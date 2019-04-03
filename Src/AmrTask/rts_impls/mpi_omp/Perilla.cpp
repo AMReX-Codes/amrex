@@ -16,6 +16,9 @@ using namespace amrex;
 using namespace perilla;
 
 volatile int Perilla::numTeamsFinished = 0;
+volatile int Perilla::updateMetadata_request = 0;
+volatile int Perilla::updateMetadata_noticed = 0;
+volatile int Perilla::updateMetadata_done = 0;
 int Perilla::max_step=1;
 std::map<int,std::map<int,int>> Perilla::pTagCnt;
 int Perilla::uTags=0;
@@ -23,7 +26,15 @@ bool Perilla::genTags=true;
 std::map<int, std::map<int, std::map<int, std::map<int, std::map<int,int> > > > > Perilla::tagMap;
 std::map<int, std::map<int, std::map<int, std::map<int, int> > > > Perilla::myTagMap;
 
-void Perilla::communicateTags(std::vector<RegionGraph*> ga)
+void Perilla::clearTagMap(){
+    Perilla::tagMap.clear();
+}
+
+void Perilla::clearMyTagMap(){
+    Perilla::myTagMap.clear();
+}
+
+void Perilla::communicateTags()
 {
     int myProc = ParallelDescriptor::MyProc();
     int nPs = ParallelDescriptor::NProcs();
@@ -269,9 +280,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
     }
 #pragma omp parallel shared(rg, mf, numfabs, np, TheFB, recv_cctc, send_cctc)
     {
-	int tg = WorkerThread::perilla_wid();
+	//int tg = WorkerThread::perilla_wid();
 	int fg;
-	if(WorkerThread::perilla_isCommunicationThread())	
+	//if(WorkerThread::perilla_isCommunicationThread())	
+#pragma omp single
 	{	  
 	    //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
 	    //mf->sMap.reserve(numfabs);
@@ -287,9 +299,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 	    //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
 	    //mf->sMap.reserve(numfabs);
 	    //mf->rMap.reserve(numfabs);
+#pragma omp for
 	    for(int f=0; f<numfabs; f++) //	   !create local communication metadata for each fab
 	    {
-		if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+		//if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
 		{	      
 		    rg->lMap[f]->l_con.nscpy = 0;
 
@@ -320,11 +333,12 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 	}
 #pragma omp barrier
 	//now we know how many copying segments each fab owns as source and destination allocate memory for metadata   
+#pragma omp for
 	for(int f=0; f<numfabs; f++)
 	{
 	    //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);   /// need to check if computing correct ???????
 	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==1))
-	    if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())	    
+	    //if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())	    
 	    {
 		//omp_init_lock(&(rg->lMap[f]->l_con.sLock));
 		//omp_init_lock(&(rg->lMap[f]->l_con.dLock));
@@ -341,9 +355,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 #pragma omp barrier
 	if(np > 1)
 	{
+#pragma omp for
 	    for(int f=0; f<numfabs; f++)
 	    {
-		if(WorkerThread::perilla_isMasterWorkerThread() && WorkerThread::isMyRegion(tg,f))      
+		//if(WorkerThread::perilla_isMasterWorkerThread() && WorkerThread::isMyRegion(tg,f))      
 		{
 		    rg->lMap[f]->r_con.nrcv = 0;
 		    rg->lMap[f]->r_con.nsnd = 0;
@@ -385,8 +400,9 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 		    rg->lMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->lMap[f]->r_con.nrcv];
 		}		
 	    }	
-	    if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)      
+	    //if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)      
 	    {
+#pragma omp for
 		for(int f=0; f<numfabs; f++)
 		{
 		    rg->rMap[f]->r_con.nrcv = 0;
@@ -441,13 +457,15 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 	//      std::cout<< "Barr 5" <<std::endl;
 	int fg, scnt, dcnt;
 
+
+#pragma omp for
 	for(int f=0; f<numfabs; f++)
 	{
 	    //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
 	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==1))
 
 	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==0))
-	    if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+	    //if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
 	    {
 		rg->lMap[f]->l_con.localBarrier = new Barrier(perilla::NUM_THREADS_PER_TEAM-1);
 		// !create local communication meta data for sources and destinations
@@ -528,7 +546,8 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 
 #pragma omp barrier	  
 
-	if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)    
+//	if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)    
+#pragma omp for
 	    for(int f=0; f<numfabs; f++)
 	    {
 		for(int i=0; i<rg->lMap[f]->l_con.nscpy; i++)
@@ -547,16 +566,16 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 
     //std::cout<< "local init done" <<std::endl;
 
-#pragma omp parallel shared(rg, mf, numfabs)
+//#pragma omp parallel shared(rg, mf, numfabs)
     {
-	int tg = WorkerThread::perilla_wid();
+	//int tg = WorkerThread::perilla_wid();
 	int fg, nsnd, nrcv;
 
 	for(int f=0; f<numfabs; f++)
 	{
 	    //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
 	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==0))
-	    if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+	    //if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
 	    {
 		//rg->lMap[f]->r_con.sndLock = new omp_lock_t;
 		//rg->lMap[f]->r_con.rcvLock = new omp_lock_t;
@@ -670,10 +689,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 
 	//std::cout<< "Barr 1 tid " << tid <<std::endl;
 
-#pragma omp barrier      //----------------------------------- Barrier ------------------------------------------      
+//#pragma omp barrier      //----------------------------------- Barrier ------------------------------------------      
 
 	//if(tid == 0)
-	if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
+	//if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
 	{
 	    for(int f=0; f<numfabs; f++)	  
 	    {
@@ -781,10 +800,9 @@ void Perilla::serviceLocalRequests(RegionGraph* rg, int tg)
 	    //if(tg == 0)
 	    //std::cout<<"I am tg " << tg << " starting to process " << f << " in Graph " << graph->graphID <<std::endl;
 
-	    int lockSucceeded = omp_test_lock(&(rg->lMap[f]->l_con.sLock));
-	    if(lockSucceeded != 0) // 0-Fail, otherwise-Succeed
+	    //int lockSucceeded = omp_test_lock(&(rg->lMap[f]->l_con.sLock));
+	    //if(lockSucceeded != 0) // 0-Fail, otherwise-Succeed
 	    {		
-#pragma omp flush (rg)
 		//if(graph->graphID == 1)
 		//if(tg == 0)
 		//std::cout<<"I am tg " << tg << " processing " << f << " in Graph " << graph->graphID <<std::endl;
@@ -804,7 +822,7 @@ void Perilla::serviceLocalRequests(RegionGraph* rg, int tg)
 
 		    if(rg->lMap[f]->l_con.scpy[i].pQueue.queueSize()>0)
 		    {
-assert(doublechecked==false);
+                        omp_set_lock(&(rg->lMap[f]->l_con.sLock));
 			Package *sPackage = rg->lMap[f]->l_con.scpy[i].pQueue.dequeue();
 			if(perilla::LAZY_PUSH)
 			{
@@ -860,10 +878,10 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
     // !we first post send and receive  
     for(int f=0; f<numfabs; f++)
     {
-	int lockSucceeded = omp_test_lock(rg->rMap[f]->r_con.rcvLock);
-	if(lockSucceeded != 0)
+	//int lockSucceeded = omp_test_lock(rg->rMap[f]->r_con.rcvLock);
+	//if(lockSucceeded != 0)
 	{
-	    if(omp_test_lock(rg->lMap[f]->r_con.rcvLock) != 0)
+	    //if(omp_test_lock(rg->lMap[f]->r_con.rcvLock) != 0)
 	    {
 		for(int i=0; i<rg->lMap[f]->r_con.nrcv; i++)
 		{
@@ -872,13 +890,15 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 		    else
 		    {
 			Package *rearPackage = rg->rMap[f]->r_con.rcv[i].pQueue.getRear(true);//!CHECK THIS POINT LATER
-			if(rearPackage->completed) //!latest receive request has been completed
+			if(rearPackage->completed && rg->rMap[f]->r_con.rcv[i].pQueue.queueSize(true) == 1) //!latest receive request has been completed
 			    nextsReq = true;
 			else //!expected message is still on the way
 			    nextsReq = false;
 		    }
 		    if(nextsReq) //!take a message from recycle pool and post a receive
 		    {
+                        omp_set_lock((rg->rMap[f]->r_con.rcvLock));
+                        omp_set_lock((rg->lMap[f]->r_con.rcvLock));
 			int ns = rg->rMap[f]->r_con.rcv[i].ns;
 			int nd = rg->rMap[f]->r_con.rcv[i].nd;
 			int lnd = rg->rMap[f]->r_con.rcv[i].lnd;
@@ -898,14 +918,13 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			rMetaPackage->request = ParallelDescriptor::Arecv(rPackage->databuf,
 				rg->rMap[f]->r_con.rcv[i].sz,
 				rg->rMap[f]->r_con.rcv[i].pr, tag).req(); // tag == SeqNum in c++ ver
-
-			std::cout<< "myP "<< myProc<< " f "<< f << " i " << i << " Req Posted "<<rMetaPackage->request << std::endl;
-
+                        omp_unset_lock((rg->lMap[f]->r_con.rcvLock));
+                        omp_unset_lock((rg->rMap[f]->r_con.rcvLock));
 		    }
 		}
-		omp_unset_lock(rg->lMap[f]->r_con.rcvLock);
+		//omp_unset_lock(rg->lMap[f]->r_con.rcvLock);
 	    }// if(omp_test_lock)
-	    omp_unset_lock(rg->rMap[f]->r_con.rcvLock);
+	    //omp_unset_lock(rg->rMap[f]->r_con.rcvLock);
 	}// if(lockSucceeded)
     }// for(f<numfabs)
 
@@ -953,7 +972,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 	{
 	    if(rg->rMap[f]->r_con.rcv[i].pQueue.queueSize(true) > 0) //!all messages before rear have completed
 	    {
-		if(omp_test_lock(rg->lMap[f]->r_con.rcvLock) != 0) // 0-Fail, otherwise-Succeed
+		//if(omp_test_lock(rg->lMap[f]->r_con.rcvLock) != 0) // 0-Fail, otherwise-Succeed
 		{
 		    Package *rearPackage =  rg->rMap[f]->r_con.rcv[i].pQueue.getRear(true);
 		    if(!rearPackage->completed)
@@ -968,14 +987,16 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			flag = (ret_flag == 0) ? false : true;//parallel_test_one(rearPackage%ptr%request) -------???????
 			if(flag)
 			{
+                            omp_set_lock((rg->lMap[f]->r_con.rcvLock));
 			    rearPackage->completeRequest();
 			    rg->lMap[f]->r_con.rcv[i].pQueue.getRear()->completeRequest();
 			    if(rg->rMap[f]->r_con.rcv[i].pQueue.queueSize(true) == 1)
 				rg->lMap[f]->r_con.firingRuleCnt++;
+			    omp_unset_lock((rg->lMap[f]->r_con.rcvLock));
 #pragma omp flush			    
 			}
 		    }
-		    omp_unset_lock(rg->lMap[f]->r_con.rcvLock);
+		    //omp_unset_lock(rg->lMap[f]->r_con.rcvLock);
 		} // if(omp_test_lock)
 	    } // if(queueSize > 0)
 	} // for(i<nrcv)
@@ -1104,6 +1125,14 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 
 } // serviceMultipleGraphComm
 
+void Perilla::flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, std::vector<RegionGraph*> &graphArray){
+    int gCnt=0;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
+    for(int l=0; l<graphArrayHierarchy.size(); l++)
+        for(int g=0; g<graphArrayHierarchy[l].size(); g++)
+            graphArray.push_back(graphArrayHierarchy[l][g]);
+}
+
 void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
@@ -1120,9 +1149,9 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
     double ltime,lstime,letime;
 
 
-    while(true)
+    //while(true)
     {	
-	lstime = omp_get_wtime();
+	//lstime = omp_get_wtime();
 	for(int g=0; g<graphArray.size(); g++)
 	{
 	    nGraphs = graphArray.size();
@@ -1183,25 +1212,25 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 	//std::cout << g+1 << ":" << graphArray[g]->totalFinishes << " | ";
 
 
-	if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
-	{
-	    if(doublechecked) // double check if there are still something to send
-		break;
-	    else
-		doublechecked = true;
-	}
+	//f( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+	//{
+	//    if(doublechecked) // double check if there are still something to send
+	//	break;
+	//    else
+	//	doublechecked = true;
+	//}
 
 	//std::cout<<"Teams Completed "<< Perilla::numTeamsFinished << " tid "<< tid << " myProc " << myProc <<std::endl;
 
-	letime = omp_get_wtime();
+	//letime = omp_get_wtime();
 	numloops++;
-	ltime = letime - lstime;
+	//ltime = letime - lstime;
 
-	avgltime += ltime;
-	if(ltime < minltime)
-	    minltime = ltime;
-	if(ltime > maxltime)
-	    maxltime = ltime;
+	//avgltime += ltime;
+	//if(ltime < minltime)
+	 //   minltime = ltime;
+	//if(ltime > maxltime)
+	//    maxltime = ltime;
 
     } // while(true)
 
@@ -1210,15 +1239,15 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 
     //std::cout<< std::endl << "COMM HANDLER " << tg << " FINISHED EXECUTION" << " myProc " << myProc << " nTF " << Perilla::numTeamsFinished << " nTT " << perilla::NUM_THREAD_TEAMS<<std::endl;
 
-    nGraphs = graphArray.size();
+    //nGraphs = graphArray.size();
     //if(tg==0)
-    for(int g=0; g<nGraphs; g++)
-    {
+    //for(int g=0; g<nGraphs; g++)
+    //{
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-1");
 	//graphArray[g]->graphTeardown(tg);
 	//graphArray[g]->workerTeardown(tg);
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-2");
-    }
+    //}
 
 } // serviceMultipleGraphCommDynamic
 
@@ -1416,6 +1445,11 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
     }
 
 } // fillBoundaryPull
+
+void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f, bool singleT)
+{
+exit(0);
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2199,6 +2233,142 @@ void Perilla::multifabCopyPushAsync(RegionGraph* destGraph, RegionGraph* srcGrap
 {
     multifabCopyPushAsync(destGraph, srcGraph, mfDst, mfSrc, f, 1, 1, 1, 0, 0, singleT);
 } 
+
+void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
+{
+    if(nc<1) cout <<"MULTIFAB_COPY_C: nc must be >= 1"<< endl;
+    if(mfDst->nComp() < (dstcomp-1)) cout <<"MULTIFAB_COPY_C: nc too large for dst multifab"<< endl;
+    if(mfSrc->nComp() < (srccomp-1)) cout <<"MULTIFAB_COPY_C: nc too large for src multifab"<< endl;
+
+    multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,dstcomp,srccomp,nc,ng,ngsrc,singleT);
+    if(!singleT)
+      srcGraph->worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+}
+
+  void Perilla::multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
+  {
+    int ntid = perilla::wtid();// - perilla::NUM_COMM_THREADS;
+    int tg = perilla::wid();
+    int myProc = amrex::ParallelDescriptor::MyProc();
+
+    if(true)//if(!(*mfDst == *mfSrc))
+      {
+        if(ng > mfDst->nGrow()) cout <<"MULTIFAB_COPY_C: ng > 0 not supported in parallel copy"<< endl;
+        if(ngsrc > mfSrc->nGrow()) cout <<"MULTIFAB_COPY_C: ngsrc > msrc%ng"<< endl;
+        FabCopyAssoc* cpSrc = srcGraph->task[f]->cpAsc_srcHead;
+
+        while(cpSrc != 0)
+        {
+            if(cpSrc->graphPartner == destGraph)
+              break;
+            cpSrc = cpSrc->next;
+        }
+        if(cpSrc == 0) cout <<"Metadata for across grid copy not found"<< endl;
+
+        if(singleT)
+        {
+            omp_set_lock(&(cpSrc->l_con.sLock));
+            for(int i=0; i<cpSrc->l_con.nscpy; i++)
+              {
+                Package* sndPackage = cpSrc->l_con.scpy[i].recycleQueue.getFront(true);
+                mfSrc->m_fabs_v[f]->copyToMem(cpSrc->l_con.scpy[i].sbx,srccomp,nc,sndPackage->databuf);
+              }
+            for(int i=0;i<cpSrc->l_con.nscpy; i++)
+              cpSrc->l_con.scpy[i].pQueue.enqueue(cpSrc->l_con.scpy[i].recycleQueue.dequeue(true));
+            omp_unset_lock(&(cpSrc->l_con.sLock));
+        }
+        else
+          {
+            if(ntid == 0)
+              omp_set_lock(&(cpSrc->l_con.sLock));
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+
+            for(int i=0; i<cpSrc->l_con.nscpy; i++)
+              if((i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
+                {
+                  Package* sndPackage = cpSrc->l_con.scpy[i].recycleQueue.getFront(true);
+                  mfSrc->m_fabs_v[f]->copyToMem(cpSrc->l_con.scpy[i].sbx,srccomp,nc,sndPackage->databuf);
+                  /*
+                  for(int ii=0; ii < sndPackage->bufSize; ii++)
+                    if(sndPackage->databuf[ii] == 0)
+                      fout << "MFCPush loc zero at " << f << " i " << i << " ii " << ii << " sbx "<< cpSrc->l_con.scpy[i].sbx << std::endl;
+                  */
+                }
+
+            //fout.close();
+
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            if(ntid==0)
+              {
+                for(int i=0;i<cpSrc->l_con.nscpy; i++)
+                  cpSrc->l_con.scpy[i].pQueue.enqueue(cpSrc->l_con.scpy[i].recycleQueue.dequeue(true));
+                omp_unset_lock(&(cpSrc->l_con.sLock));
+              }
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+          }
+
+        int np = amrex::ParallelDescriptor::NProcs();
+        if(np == 1)
+          return;
+        if(singleT)
+        {
+            omp_set_lock((cpSrc->r_con.sndLock));
+            for(int i=0; i<cpSrc->r_con.nsnd; i++)
+            {
+                Package* sndPackage = cpSrc->r_con.snd[i].recycleQueue.dequeue(true);
+                mfSrc->m_fabs_v[f]->copyToMem(cpSrc->r_con.snd[i].sbx,srccomp,nc,sndPackage->databuf);
+                sndPackage->notified = false;
+                sndPackage->served = false;
+                sndPackage->completed = false;
+                cpSrc->r_con.snd[i].pQueue.enqueue(sndPackage, true);
+            }
+            cpSrc->r_con.remotePushReady = true;
+            omp_unset_lock((cpSrc->r_con.sndLock));
+        }
+        else
+        {
+            if(ntid == 0)
+            {
+                omp_set_lock((cpSrc->r_con.sndLock));
+            }
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+
+            for(int i=0; i<cpSrc->r_con.nsnd; i++)
+              if((i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
+                {
+                  Package* sndPackage = cpSrc->r_con.snd[i].recycleQueue.dequeue(true);
+                  mfSrc->m_fabs_v[f]->copyToMem(cpSrc->r_con.snd[i].sbx,srccomp,nc,sndPackage->databuf);
+                  sndPackage->notified = false;
+                  sndPackage->served = false;
+                  sndPackage->completed = false;
+                  cpSrc->r_con.snd[i].pQueue.enqueue(sndPackage, true);
+                }
+
+            //fout.close();         
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            if(ntid==0)
+              {
+                cpSrc->r_con.remotePushReady = true;
+/*
+                for(int i=0; i<cpSrc->r_con.nsnd; i++){
+                  Package* sndPackage = srcGraph->sCopyMapHead->map[f]->r_con.snd[i].recycleQueue.dequeue(true);
+                  sndPackage->served = false;
+                  sndPackage->completed = false;
+                  srcGraph->sCopyMapHead->map[f]->r_con.snd[i].pQueue.enqueue(sndPackage, true);
+                }
+*/
+                omp_unset_lock((cpSrc->r_con.sndLock));
+            }
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+         }
+      } // if(!(*mfDst == *mfSrc))                                                                                                                    
+  } // multifabCopyPush
+
+
+void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, bool singleT)
+  {
+    multifabCopyPush(destGraph, srcGraph, mfDst, mfSrc, f, 1, 1, 1, 0, 0, singleT);
+  }
 
 void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* mfDst, MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
 {

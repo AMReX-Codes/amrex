@@ -372,7 +372,7 @@ main (int argc, char* argv[])
       Real alpha = 1.0; pp.query("alpha",alpha);
       Real beta =  1.0; pp.query("beta",beta);
       Real a=0.0; pp.query("a",  a);
-      Tuple<Real, BL_SPACEDIM> b;
+      Array<Real, BL_SPACEDIM> b;
       b[0]=1.0; pp.query("b0", b[0]);
       b[1]=1.0; pp.query("b1", b[1]);
 #if (BL_SPACEDIM > 2)

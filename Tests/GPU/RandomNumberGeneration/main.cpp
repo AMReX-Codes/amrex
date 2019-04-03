@@ -25,6 +25,8 @@ void RandomNumGen ()
 
 #ifdef AMREX_USE_CUDA    
     amrex::InitRandSeedOnDevice(N);
+    amrex::Print() << amrex::Gpu::Device::deviceId() << "\n";
+    amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
 
     Gpu::DeviceVector<double> d_xpos(N);
     Gpu::DeviceVector<double> d_ypos(N);
@@ -48,6 +50,39 @@ void RandomNumGen ()
     int timesteps = 10; // just for example
     for (int i=0; i<timesteps; i++)
     {
+
+        // an instance of growing vector //        
+        if ( i == 0){
+           int N2 = N + 1000;
+           N  = N2;
+ 	}
+
+        // an instance of growing vector //        
+        if ( i == 1){
+           int N2 = N + 1.2E5;
+           N  = N2;
+ 	}
+          
+#ifdef AMREX_USE_CUDA    
+        if ( d_xpos.size() < N){
+           CheckSeedArraySizeAndResize(N);
+           d_xpos.resize(N);
+           d_ypos.resize(N);
+           d_zpos.resize(N);
+           dxpos = d_xpos.dataPtr();
+           dypos = d_ypos.dataPtr();
+           dzpos = d_zpos.dataPtr();
+        }
+#endif
+        if ( hx.size() < N){
+           hx.resize(N);
+           hy.resize(N);
+           hz.resize(N);
+           hxpos = hx.dataPtr();
+           hypos = hy.dataPtr();
+           hzpos = hz.dataPtr();
+        }
+        
         
         AMREX_PARALLEL_FOR_1D (N, idx,
         {
@@ -72,8 +107,15 @@ void RandomNumGen ()
         {
            amrex::Print() << i << " " << hx[i]  << " " << hy[i] << " " << hz[i]<< "\n";
         }
+     
 
     }
+    hx.resize(0);
+    hy.resize(0);
+    hz.resize(0);
+    hx.shrink_to_fit();
+    hy.shrink_to_fit();
+    hz.shrink_to_fit();
 
 #ifdef AMREX_USE_CUDA    
     amrex::DeallocateRandomSeedDevArray();

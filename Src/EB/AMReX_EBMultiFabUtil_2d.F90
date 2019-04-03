@@ -8,7 +8,9 @@ module amrex_eb_util_module
   private
   public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, &
        amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence, &
-       amrex_eb_avg_fc_to_cc, amrex_eb_set_covered_nodes
+       amrex_eb_avg_fc_to_cc, amrex_eb_set_covered_nodes, &
+       amrex_eb_interpolate_to_face_centroid, &
+       amrex_eb_interpolate_to_face_centroid_per_cell
 
 contains
 
@@ -310,5 +312,180 @@ contains
     end do
 
   end subroutine amrex_eb_set_covered_nodes
+
+  ! Interpolate face-based variable from face center to face centroid -- this version 
+  !   does one face on all grids
+  subroutine amrex_eb_interpolate_to_face_centroid ( lo, hi, ivar, var, vlo, vhi, ncomp, &
+        areafrac, alo, ahi, cent, clo, chi, flags, flo, fhi, face_type  ) &
+       bind(c,name='amrex_eb_interpolate_to_face_centroid')
+
+      use amrex_ebcellflag_module, only: is_covered_cell, get_neighbor_cells
+
+      ! Tile bounds ( face centered )
+      integer,  intent(in   ) :: lo(2),  hi(2)
+
+      ! Array Bounds
+      integer,  intent(in   ) :: vlo(2), vhi(2)
+      integer,  intent(in   ) :: alo(2), ahi(2)
+      integer,  intent(in   ) :: clo(2), chi(2)
+      integer,  intent(in   ) :: flo(2), fhi(2)
+      integer,  intent(in   ) :: ncomp
+
+      ! Type of face (1=x, 2=y)
+      integer,  intent(in   ) :: face_type
+
+      ! Arrays
+      real(amrex_real), intent(inout) ::                            &
+           & ivar(vlo(1):vhi(1),vlo(2):vhi(2),ncomp)  ! Interpolated Variable
+
+      real(amrex_real), intent(inout) ::                            &
+           &      var(vlo(1):vhi(1),vlo(2):vhi(2),ncomp), &
+           & areafrac(alo(1):ahi(1),alo(2):ahi(2)      ),  &
+           &     cent(clo(1):chi(1),clo(2):chi(2),    2)
+
+      integer, intent(in   ) :: &
+           & flags(flo(1):fhi(1),flo(2):fhi(2))
+
+      ! Local variables
+      integer          :: i, j, n, nbr(-1:1,-1:1)
+      real(amrex_real) :: fracx, fracy
+
+      select case ( face_type )
+      case(1) ! >>>>>>>>>>>>>>>>>>>>>>  X-face <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< !
+         do n = 1, ncomp
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if ( ( areafrac(i,j) > zero ) .and. ( areafrac(i,j) < one ) ) then
+
+                        call get_neighbor_cells( flags(i,j), nbr )
+
+                        if ( cent(i,j,1) < zero ) then
+                           fracy = - cent(i,j,1) * nbr(0,-1)
+                           ivar(i,j,n) = fracy * var(i,j-1,n) + (one-fracy) * var(i,j,n)
+                        else
+                           fracy = cent(i,j,1) * nbr(0,1)
+                           ivar(i,j,n) = fracy * var(i,j+1,n) + (one-fracy) * var(i,j,n)
+                        end if
+                     else
+                        ivar(i,j,n) = var(i,j,n)
+                     end if
+               end do
+            end do
+         end do
+
+      case(2)  ! >>>>>>>>>>>>>>>>>>>>>>  Y-face <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< !
+
+         do n = 1, ncomp
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if ( ( areafrac(i,j) > zero ) .and. ( areafrac(i,j) < one ) ) then
+
+                        call get_neighbor_cells( flags(i,j), nbr )
+
+                        if ( cent(i,j,1) < zero ) then
+                           fracx = - cent(i,j,1) * nbr(-1,0)
+                           ivar(i,j,n) = fracx * var(i-1,j,n) + (one-fracx) * var(i,j,n)
+                        else
+                           fracx = cent(i,j,1) * nbr(1,0)
+                           ivar(i,j,n) = fracx * var(i+1,j,n) + (one-fracx) * var(i,j,n)
+                        end if
+                     else
+                        ivar(i,j,n) = var(i,j,n)
+                     end if
+               end do
+            end do
+         end do
+
+
+      case default
+
+         write(*,*) "amrex_eb_interpolate_to_face_centroid(): face_type = ", face_type, " but valid values are 1,2"
+         stop
+
+      end select
+
+  end subroutine amrex_eb_interpolate_to_face_centroid
+
+   !
+   ! Returns flux at face centroid in direction dir for just cell (i,j) -- 
+   !         note nbr is passed in 
+   !
+   function amrex_eb_interpolate_to_face_centroid_per_cell ( i, j, dir, var, vlo,  n,  &
+        afrac, alo, cent, clo, nbr )  result(ivar)
+
+      use amrex_ebcellflag_module, only: is_covered_cell
+      use amrex_error_module,      only: amrex_abort
+
+      ! Face indices: these must be consistent with a staggered indexing
+      ! and therefore consistent with the value of dir
+      integer,  intent(in   ) :: i, j
+
+      ! Direction of staggering (1=x, 2=y): this specify how (i,j) must
+      ! be interpreted, i.e. which staggered numbering the indexing refer to
+      integer,  intent(in   ) :: dir
+
+      ! The component to interpolate
+      integer,  intent(in   ) :: n
+
+      ! Array Bounds ( only start index )
+      integer,  intent(in   ) :: vlo(2), alo(2), clo(2)
+
+      ! Arrays
+      real(amrex_real), intent(in   ) ::  &
+           &   var(vlo(1):, vlo(2):, 1:), &
+           & afrac(alo(1):, alo(2):    ), &
+           &  cent(clo(1):, clo(2):, 1:)
+
+      ! Neighbors information
+      integer,  intent(in   ) :: nbr(-1:1,-1:1)
+
+      ! Output: the interpolated value
+      real(amrex_real)               :: ivar
+
+      ! Local variables
+      real(amrex_real)               :: fracx, fracy
+
+      select case ( dir )
+      case(1) ! >>>>>>>>>>>>>>>>>>>>>>  X-face <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< !
+
+         if ( afrac(i,j) == zero ) then
+            ivar = zero
+         else if ( afrac(i,j) == one ) then
+            ivar = var(i,j,n)
+         else
+            if ( cent(i,j,1) < zero ) then
+               fracy = - cent(i,j,1) * nbr(0,-1)
+               ivar = fracy * var(i,j-1,n) + (one-fracy) * var(i,j,n)
+            else
+               fracy = cent(i,j,1) * nbr(0,1)
+               ivar = fracy * var(i,j+1,n) + (one-fracy) * var(i,j,n)
+            end if
+         end if
+
+
+      case(2)  ! >>>>>>>>>>>>>>>>>>>>>>  Y-face <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< !
+
+         if ( afrac(i,j) == zero ) then
+            ivar = zero
+         else if ( afrac(i,j) == one ) then
+            ivar = var(i,j,n)
+         else
+            if ( cent(i,j,1) < zero ) then
+               fracx = - cent(i,j,1) * nbr(-1,0)
+               ivar = fracx * var(i-1,j,n) + (one-fracx) * var(i,j,n)
+            else
+               fracx = cent(i,j,1) * nbr(1,0)
+               ivar = fracx * var(i+1,j,n) + (one-fracx) * var(i,j,n)
+            end if
+         end if
+
+      case default
+
+         call amrex_abort( "interpolate_to_face_centroid(): value of 'dir'"&
+              //" is invalid. Must be either 1 or 2")
+
+      end select
+
+   end function amrex_eb_interpolate_to_face_centroid_per_cell
 
 end module amrex_eb_util_module
