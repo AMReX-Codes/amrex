@@ -2392,9 +2392,12 @@ MLNodeLaplacian::makeHypreNodeLap () const
     const DistributionMapping& dm = m_dmap[0].back();
     const Geometry& geom = m_geom[0].back();
     const auto& factory = *(m_factory[0].back());
+    const auto& owner_mask = *(m_owner_mask[0].back());
+    const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
     MPI_Comm comm = BottomCommunicator();
 
-    auto hypre_solver = amrex::makeHypreNodeLap(ba, dm, geom, comm);
+    std::unique_ptr<HypreNodeLap> hypre_solver
+        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask, comm));
 
     return hypre_solver;
 }
