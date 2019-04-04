@@ -1,3 +1,8 @@
+if (DIM EQUAL 1)
+   return()
+endif ()
+
+
 #
 # This test works for both 2D and 3D builds
 # There are two different tutorials here:
@@ -5,9 +10,6 @@
 # 1) Single Vortex
 # 2) Uniform Velocity
 #
-
-
-
 
 set (SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 
