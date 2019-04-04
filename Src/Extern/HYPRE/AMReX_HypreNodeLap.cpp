@@ -46,6 +46,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     nnodes_grid.define(grids,dmap);
     node_id.define(nba,dmap,1,1);
     node_id_vec.define(grids,dmap);
+    tmpsoln.define(nba,dmap,1,0);
 
     node_id.setVal(std::numeric_limits<Int>::lowest());
 
@@ -328,19 +329,34 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     soln.setVal(0.0);
 
-#ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(factory);
-    if (ebfactory)
+    Vector<Real> bvec;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
-        const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
-        amrex::Print() << "xxxxx HypreNodeLap::loadVectors() todo" << std::endl;
-    }
-    else
-#endif
-    {
-        for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+        const Int nrows = nnodes_grid[mfi];
+        if (nrows >= 0)
         {
+            const Vector<Int>& rows = node_id_vec[mfi];
+            HYPRE_IJVectorSetValues(x, nrows, rows.data(), soln[mfi].dataPtr());
+
+            bvec.clear();
+            bvec.reserve(nrows);
+
+            const Box& bx = mfi.validbox();
+            const auto lo = amrex::lbound(bx);
+            const auto hi = amrex::ubound(bx);
+            const auto& bfab = rhs.array(mfi);
+            const auto& nid = node_id.array(mfi);
+            for         (int k = lo.z; k <= hi.z; ++k) {
+                for     (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        if (nid(i,j,k) >= 0) {
+                            bvec.push_back(bfab(i,j,k));
+                        }
+                    }
+                }
+            }
             
+            HYPRE_IJVectorSetValues(b, nrows, rows.data(), bvec.data());
         }
     }
 }
@@ -348,6 +364,37 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 void
 HypreNodeLap::getSolution (MultiFab& soln)
 {
+    tmpsoln.setVal(0.0);
+
+    Vector<Real> xvec;
+    for (MFIter mfi(tmpsoln); mfi.isValid(); ++mfi)
+    {
+        const Int nrows = nnodes_grid[mfi];
+        if (nrows >= 0)
+        {
+            const Vector<Int>& rows = node_id_vec[mfi];
+            xvec.resize(nrows);
+            HYPRE_IJVectorGetValues(x, nrows, rows.data(), xvec.data());
+
+            const Box& bx = mfi.validbox();
+            const auto lo = amrex::lbound(bx);
+            const auto hi = amrex::ubound(bx);
+            const auto& xfab = tmpsoln.array(mfi);
+            const auto& nid = node_id.array(mfi);
+            int offset = 0;
+            for         (int k = lo.z; k <= hi.z; ++k) {
+                for     (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        if (nid(i,j,k) >= 0) {
+                            xfab(i,j,k) = xvec[offset++];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    soln.ParallelAdd(tmpsoln, 0, 0, 1, geom.periodicity());
 }
 
 }
