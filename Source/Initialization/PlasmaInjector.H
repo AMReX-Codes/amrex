@@ -68,7 +68,6 @@ public:
     virtual amrex::Real getDensity(amrex::Real x,
                                    amrex::Real y,
                                    amrex::Real z) const override;
-    UserConstants my_constants;
 private:
     std::string _parse_density_function;
     WarpXParser parser_density;
@@ -173,7 +172,6 @@ public:
                              amrex::Real x,
                              amrex::Real y,
                              amrex::Real z) override;
-    UserConstants my_constants;
 private:
     std::string _parse_momentum_function_ux;
     std::string _parse_momentum_function_uy;

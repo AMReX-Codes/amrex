@@ -97,7 +97,7 @@ WarpX::InitDiagnostics () {
                                                moving_window_v, dt_snapshots_lab,
                                                num_snapshots_lab, gamma_boost,
                                                t_new[0], dt_boost, 
-                                               moving_window_dir));
+                                               moving_window_dir, geom[0]));
     }
 }
 

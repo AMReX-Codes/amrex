@@ -1,5 +1,5 @@
 from .Bucket import Bucket
-from .Constants import constants
+from .Constants import my_constants
 from .Amr import amr
 from .Geometry import geometry
 from .Algo import algo
@@ -18,7 +18,7 @@ class WarpX(Bucket):
     def create_argv_list(self):
         argv = []
         argv += warpx.attrlist()
-        argv += constants.attrlist()
+        argv += my_constants.attrlist()
         argv += amr.attrlist()
         argv += geometry.attrlist()
         argv += algo.attrlist()

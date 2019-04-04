@@ -71,6 +71,20 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
   DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
 endif
 
+ifeq ($(USE_OPENPMD), TRUE)
+   OPENPMD_LIB_PATH ?= NOT_SET
+   ifneq ($(OPENPMD_LIB_PATH),NOT_SET)
+     LIBRARY_LOCATIONS += $(OPENPMD_LIB_PATH)
+   endif
+   OPENPMD_INCLUDE_PATH ?= NOT_SET
+   ifneq ($(OPENPMD_INCLUDE_PATH),NOT_SET)
+     INCLUDE_LOCATIONS += $(OPENPMD_INCLUDE_PATH)
+   endif
+   DEFINES += -DWARPX_USE_OPENPMD -DopenPMD_HAVE_MPI=1
+   LIBRARIES += -lopenPMD -lhdf5
+endif
+   
+
 ifeq ($(USE_PSATD),TRUE)
   FFTW_HOME ?= NOT_SET
   ifneq ($(FFTW_HOME),NOT_SET)
@@ -99,6 +113,17 @@ ifeq ($(DO_ELECTROSTATIC),TRUE)
      include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
      DEFINES += -DWARPX_DO_ELECTROSTATIC
 endif
+
+ifeq ($(USE_HDF5),TRUE)
+    HDF5_HOME ?= NOT_SET
+    ifneq ($(HDF5_HOME),NOT_SET)
+        VPATH_LOCATIONS += $(HDF5_HOME)/include
+        INCLUDE_LOCATIONS += $(HDF5_HOME)/include
+        LIBRARY_LOCATIONS += $(HDF5_HOME)/lib
+    endif
+    DEFINES += -DWARPX_USE_HDF5
+    LIBRARIES += -lhdf5 -lz
+endif     
 
 # job_info support
 CEXE_sources += AMReX_buildInfo.cpp

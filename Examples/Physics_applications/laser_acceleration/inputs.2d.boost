@@ -48,9 +48,11 @@ warpx.dt_snapshots_lab = 1.6678204759907604e-12
 #################################
 ############ PLASMA #############
 #################################
-constants.use_my_constants = 1
-constants.constant_names  = zmax    rc     rmax    n0     kp
-constants.constant_values = 30.e-2  50.e-6 110.e-6 3.5e24 353352.
+my_constants.zmax = 30.e-2
+my_constants.rc   = 50.e-6
+my_constants.rmax = 110.e-6
+my_constants.n0   = 3.5e24
+my_constants.kp   = 353352.
 
 particles.nspecies = 3
 particles.species_names = electrons ions beam

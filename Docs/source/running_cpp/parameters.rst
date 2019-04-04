@@ -103,20 +103,17 @@ distribution or the laser field (see below `Particle initialization` and
 
 The parser reads python-style expressions between double quotes, for instance
 ``"a0*x**2 * (1-y*1.e2) * (x>0)"`` is a valid expression where ``a0`` is a
-user-defined constant and ``x`` and ``y`` are variables. The factor
+user-defined constant and ``x`` and ``y`` are variables. The names are case sensitive. The factor
 ``(x>0)`` is `1` where `x>0` and `0` where `x<=0`. It allows the user to
 define functions by intervals. User-defined constants can be used in parsed
-functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``,
-see below). They are specified with:
+functions only (i.e., ``density_function(x,y,z)`` and ``field_function(X,Y,t)``,
+see below). User-defined constants can contain only letter, numbers and character _.
+The name of each constant has to begin with a letter. The following names are used 
+by WarpX, and cannot be used as user-defined constants: `x`, `y`, `z`, `X`, `Y`, `t`.
+For example, parameters ``a0`` and ``z_plateau`` can be specified with:
 
-* ``constants.use_my_constants`` (`bool`)
-    Whether to use user-defined constants.
-
-* ``constants.constant_names`` (`strings, separated by spaces`)
-    A list of variables the user wants to define, e.g., ``constants.constant_names = a0 n0``.
-
-* ``constants.constant_values`` (`floats, sepatated by spaces`)
-    Values for the user-defined constants., e.g., ``constants.constant_values = 3. 1.e24``.
+* ``my_constants.a0 = 3.0``
+* ``my_constants.z_plateau = 150.e-6``
 
 Particle initialization
 -----------------------
@@ -164,8 +161,7 @@ Particle initialization
       It requires additional argument ``<species_name>.density_function(x,y,z)``, which is a
       mathematical expression for the density of the species, e.g.
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
-      user-defined constant, see above. Note that using this density profile will turn
-      ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
+      user-defined constant, see above.
 
 * ``<species_name>.momentum_distribution_type`` (`string`)
     Distribution of the normalized momentum (`u=p/mc`) for this species. The options are:
@@ -187,8 +183,6 @@ Particle initialization
       file. It requires additional arguments ``<species_name>.momentum_function_ux(x,y,z)``,
       ``<species_name>.momentum_function_uy(x,y,z)`` and ``<species_name>.momentum_function_uz(x,y,z)``,
       which gives the distribution of each component of the momentum as a function of space.
-      Note that using this momentum distribution type will turn
-      ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
 
 * ``<species_name>.zinject_plane`` (`float`)
     Only read if  ``<species_name>`` is in ``particles.rigid_injected_species``.
@@ -209,7 +203,7 @@ Particle initialization
     fields when running in the boosted frame. See examples.
 
 * ``<species_name>.do_splitting`` (`bool`) optional (default `0`)
-    Split particles of the species when crossing the boundary from a lower 
+    Split particles of the species when crossing the boundary from a lower
     resolution domain to a higher resolution domain.
 
 * ``<species_name>.split_type`` (`int`) optional (default `0`)
@@ -408,7 +402,7 @@ Numerics and algorithms
 
     .. warning::
 
-        The vectorized version does not run on GPU. Use 
+        The vectorized version does not run on GPU. Use
 		``algo.field_gather=1`` when running on GPU.
 
 * ``algo.particle_pusher`` (`integer`)
@@ -456,6 +450,16 @@ Diagnostics and output
     The number of PIC cycles inbetween two consecutive data dumps. Use a
     negative number to disable data dumping.
 
+* ``warpx.dump_plotfiles`` (`0` or `1`) optional
+    Whether to dump the simulation data in
+    `AMReX plotfile <https://amrex-codes.github.io/amrex/docs_html/IO.html>`__
+    format. This is ``1`` by default, unless WarpX is compiled with openPMD support.
+
+* ``warpx.dump_openpmd`` (`0` or `1`) optional
+    Whether to dump the simulation data in
+    `openPMD <https://github.com/openPMD>`__ format.
+    When WarpX is compiled with openPMD support, this is ``1`` by default.
+
 * ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
@@ -487,14 +491,14 @@ Diagnostics and output
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
 
-* ``warpx.plot_coarsening_ratio`` (`int` ; default: `1`) 
+* ``warpx.plot_coarsening_ratio`` (`int` ; default: `1`)
     Reduce size of the field output by this ratio in each dimension.
     (This is done by averaging the field.) ``plot_coarsening_ratio`` should
     be an integer divisor of ``blocking_factor``.
 
-    
+
 * ``amr.plot_file`` (`string`)
-    Root for output file names. Supports sub-directories. Default `plotfiles/plt`
+    Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
 
 Checkpoints and restart
 -----------------------

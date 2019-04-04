@@ -136,3 +136,15 @@ WarpXParser::expr () const
 {
     return m_expression;
 }
+
+std::set<std::string>
+WarpXParser::symbols () const
+{
+    std::set<std::string> results;
+#ifdef _OPENMP
+    wp_ast_get_symbols(m_parser[omp_get_thread_num()]->ast, results);
+#else
+    wp_ast_get_symbols(m_parser->ast, results);
+#endif
+    return results;
+}

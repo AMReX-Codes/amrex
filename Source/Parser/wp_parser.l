@@ -50,7 +50,7 @@ EXP	([Ee][-+]?[0-9]+)
 "max"         { yylval.f2 = WP_MAX;       return F2; }
 
  /* We use SYMBOL to hold variables and constants */
-[a-zA-Z][a-zA-Z0-9]*  { yylval.s = wp_makesymbol(yytext); return SYMBOL; }
+[a-zA-Z_][a-zA-Z0-9_]*  { yylval.s = wp_makesymbol(yytext); return SYMBOL; }
 
  /* Number */
 [0-9]+"."[0-9]*{EXP}? |

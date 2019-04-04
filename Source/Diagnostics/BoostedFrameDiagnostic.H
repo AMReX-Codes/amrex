@@ -6,6 +6,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Geometry.H>
 
 #include "MultiParticleContainer.H"
 #include "WarpXConst.H"
@@ -36,9 +37,13 @@ class BoostedFrameDiagnostic {
         amrex::Real current_z_lab;
         amrex::Real current_z_boost;
         int file_num;
+        int initial_i;
+        const BoostedFrameDiagnostic& my_bfd;
 
-        LabSnapShot(amrex::Real t_lab_in, amrex::Real zmin_lab_in, 
-                    amrex::Real zmax_lab_in, int file_num_in);
+        LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
+                    amrex::Real zmin_lab_in, 
+                    amrex::Real zmax_lab_in, int file_num_in,
+                    const BoostedFrameDiagnostic& bfd);
         
         ///
         /// This snapshot is at time t_lab, and the simulation is at time t_boost.
@@ -64,11 +69,13 @@ class BoostedFrameDiagnostic {
     amrex::Real dt_snapshots_lab_;
     amrex::Real dt_boost_;
     int N_snapshots_;
-    int Nz_lab_;    
+    unsigned Nx_lab_;
+    unsigned Ny_lab_;
+    unsigned Nz_lab_;   
     int boost_direction_;
 
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > data_buffer_;
-    amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_; 
+    amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_;
     int num_buffer_ = 256;
     int max_box_size_ = 256;
     amrex::Vector<int> buff_counter_;
@@ -77,13 +84,18 @@ class BoostedFrameDiagnostic {
     
     void writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                            const std::string& name, const int i_lab);
-    
-public:
 
+#ifdef WARPX_USE_HDF5
+    void writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata,
+                               const std::string& name, const std::string& species_name);
+#endif
+public:
+    
     BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab, 
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
                            int N_snapshots, amrex::Real gamma_boost,
-                           amrex::Real t_boost, amrex::Real dt_boost, int boost_direction);
+                           amrex::Real t_boost, amrex::Real dt_boost, int boost_direction,
+                           const amrex::Geometry& geom);
     
     void Flush(const amrex::Geometry& geom);
     
