@@ -54,6 +54,7 @@ private:
     LayoutData<Int> nnodes_grid;
     LayoutData<Vector<Int> > node_id_vec;
     FabArray<BaseFab<Int> > node_id;
+    MultiFab tmpsoln;
 
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
