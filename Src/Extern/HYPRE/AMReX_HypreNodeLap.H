@@ -26,7 +26,7 @@ public:
     HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                   const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                   const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                  MPI_Comm comm_, MLNodeLaplacian const* linop_);
+                  MPI_Comm comm_, MLNodeLaplacian const* linop_, int verbose_);
     ~HypreNodeLap ();
 
     using Int = HYPRE_Int;
@@ -41,6 +41,7 @@ private:
     iMultiFab const* dirichlet_mask = nullptr;
     MPI_Comm comm = MPI_COMM_NULL;
     MLNodeLaplacian const* linop = nullptr;
+    int verbose = 0;
 
     HYPRE_IJMatrix A = NULL;
     HYPRE_IJVector b = NULL;

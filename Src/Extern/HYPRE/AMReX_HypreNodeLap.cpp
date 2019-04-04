@@ -18,10 +18,10 @@ namespace amrex {
 HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                            MPI_Comm comm_, MLNodeLaplacian const* linop_)
+                            MPI_Comm comm_, MLNodeLaplacian const* linop_, int verbose_)
     : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
       owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
-      comm(comm_), linop(linop_)
+      comm(comm_), linop(linop_), verbose(verbose_)
 {
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
@@ -47,10 +47,9 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     node_id.define(nba,dmap,1,1);
     node_id_vec.define(grids,dmap);
 
-    Int nnodes_proc = 0;
+    node_id.setVal(std::numeric_limits<Int>::lowest());
 
-//    int i = 0;
-//    amrex::Print() << "i = " << i << std::endl;
+    Int nnodes_proc = 0;
 
 #ifdef AMREX_USE_EB
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(factory);
@@ -208,6 +207,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             ncols.reserve(nrows);
 
             Vector<Int> rows = node_id_vec[mfi];
+            rows.clear();
             rows.reserve(nrows);
 
             cols.clear();
@@ -220,11 +220,38 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
 
             linop->fillIJMatrix(mfi, nid, ncols, rows, cols, mat);
 
+#ifdef AMREX_DEBUG
+            Int nvalues = 0;
+            for (Int i = 0; i < nrows; ++i) {
+                nvalues += ncols[i];
+            }
+            for (Int i = 0; i < nvalues; ++i) {
+                AMREX_ASSERT(cols[i] >= 0 && cols[i] < nnodes_total);
+            }
+#endif
+
             HYPRE_IJMatrixSetValues(A, nrows, ncols.data(), rows.data(), cols.data(), mat.data());
         }
     }
+    HYPRE_IJMatrixAssemble(A);
 
-    amrex::Abort("HypreNodeLap ctor");
+    // Create solver
+    HYPRE_BoomerAMGCreate(&solver);
+
+    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
+//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
+//    HYPRE_BoomerAMGSetCycleType(solver, 1);
+    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
+    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
+    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
+//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
+
+    int logging = (verbose >= 2) ? 1 : 0;
+    HYPRE_BoomerAMGSetLogging(solver, logging);
+
+    HYPRE_ParCSRMatrix par_A = NULL;
+    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
+    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
 }
 
 HypreNodeLap::~HypreNodeLap ()
