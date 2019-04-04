@@ -266,4 +266,88 @@ HypreNodeLap::~HypreNodeLap ()
     solver = NULL;
 }
 
+void
+HypreNodeLap::solve (MultiFab& soln, const MultiFab& rhs,
+                     Real rel_tol, Real abs_tol, int max_iter)
+{
+    BL_PROFILE("HypreNodeLap::solve()");
+
+    HYPRE_IJVectorInitialize(b);
+    HYPRE_IJVectorInitialize(x);
+    //
+    loadVectors(soln, rhs);
+    //
+    HYPRE_IJVectorAssemble(x);
+    HYPRE_IJVectorAssemble(b);
+
+    HYPRE_ParCSRMatrix par_A = NULL;
+    HYPRE_ParVector par_b = NULL;
+    HYPRE_ParVector par_x = NULL;
+    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
+    HYPRE_IJVectorGetObject(b, (void **) &par_b);
+    HYPRE_IJVectorGetObject(x, (void **) &par_x);
+
+    HYPRE_BoomerAMGSetMinIter(solver, 1);
+    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
+    HYPRE_BoomerAMGSetTol(solver, rel_tol);
+    if (abs_tol > 0.0)
+    {
+        Real bnorm = hypre_ParVectorInnerProd(par_b, par_b);
+        bnorm = std::sqrt(bnorm);
+
+        const BoxArray& grids = rhs.boxArray();
+        Real volume = grids.numPts();
+        Real rel_tol_new = (bnorm > 0.0) ? (abs_tol / bnorm * std::sqrt(volume)) : rel_tol;
+
+        if (rel_tol_new > rel_tol) {
+            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
+        }
+    }
+
+    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
+
+    if (verbose >= 2)
+    {
+        HYPRE_Int num_iterations;
+        Real res;
+        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
+        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
+
+        amrex::Print() <<"\n" <<  num_iterations
+                       << " Hypre IJ BoomerAMG Iterations, Relative Residual "
+                       << res << std::endl;
+    }
+
+    getSolution(soln);
+}
+
+void
+HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
+{
+    BL_PROFILE("HypreNodeLap::loadVectors()");
+
+    soln.setVal(0.0);
+
+#ifdef AMREX_USE_EB
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(factory);
+    if (ebfactory)
+    {
+        const FabArray<EBCellFlagFab>& flags = ebfactory->getMultiEBCellFlagFab();
+        amrex::Print() << "xxxxx HypreNodeLap::loadVectors() todo" << std::endl;
+    }
+    else
+#endif
+    {
+        for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+        {
+            
+        }
+    }
+}
+
+void
+HypreNodeLap::getSolution (MultiFab& soln)
+{
+}
+
 }
