@@ -515,7 +515,9 @@ coarsenCellCenteredFields(
 };
 
 
-/** \brief TODO
+/** \brief Write the data from MultiFab `F` into the file `filename`
+ *  as a raw field (i.e. no interpolation to cell centers).
+ *  Write guard cells if `plot_guards` is True.
  */
 void
 WriteRawField( const MultiFab& F, const DistributionMapping& dm,
@@ -539,7 +541,11 @@ WriteRawField( const MultiFab& F, const DistributionMapping& dm,
 
 }
 
-/** \brief TODO
+/** \brief Write a multifab of the same shape as `F` but filled with 0.
+ *  (The shape includes guard cells if `plot_guards` is True.)
+ *  This is mainly needed because the yt reader requires all levels of the
+ *  coarse/fine patch to be written, but WarpX does not have data for
+ *  the coarse patch of level 0 (meaningless).
  */
 void
 WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
@@ -556,7 +562,10 @@ WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
     VisMF::Write(tmpF, prefix);
 }
 
-/** \brief TODO Writes same size as fp for compatibility with yt
+/** \brief Write the coarse scalar multifab `F_cp` to the file `filename`
+ *  *after* sampling/interpolating its value on the fine grid corresponding
+ *  to `F_fp`. This is mainly needed because the yt reader requires the
+ *  coarse and fine patch to have the same shape.
  */
 void
 WriteCoarseScalar( const std::string field_name,
@@ -583,7 +592,10 @@ WriteCoarseScalar( const std::string field_name,
     }
 }
 
-/** \brief TODO Writes same size as fp for compatibility with yt
+/** \brief Write the coarse vector multifab `F*_cp` to the file `filename`
+ *  *after* sampling/interpolating its value on the fine grid corresponding
+ *  to `F*_fp`. This is mainly needed because the yt reader requires the
+ *  coarse and fine patch to have the same shape.
  */
 void
 WriteCoarseVector( const std::string field_name,
@@ -617,8 +629,8 @@ WriteCoarseVector( const std::string field_name,
     }
 }
 
-/** \brief TODO
-  *
+/** \brief Samples/Interpolates the coarse scalar multifab `F_cp` on the
+  * fine grid associated with the fine multifab `F_fp`.
   */
 std::unique_ptr<MultiFab>
 getInterpolatedScalar(
@@ -664,8 +676,8 @@ getInterpolatedScalar(
     return interpolated_F;
 }
 
-/** \brief TODO
-  *
+/** \brief Samples/Interpolates the coarse vector multifab `F*_cp` on the
+  * fine grid associated with the fine multifab `F*_fp`.
   */
 std::array<std::unique_ptr<MultiFab>, 3>
 getInterpolatedVector(
