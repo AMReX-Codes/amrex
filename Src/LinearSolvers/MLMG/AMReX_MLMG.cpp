@@ -1706,7 +1706,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         {
             hypre_node_solver = linop.makeHypreNodeLap(bottom_verbose);
         }
-        amrex::Abort("hypre_node_solver: todo");
+        hypre_node_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter);
     }
 
 #endif

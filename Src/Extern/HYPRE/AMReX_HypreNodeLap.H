@@ -29,6 +29,9 @@ public:
                   MPI_Comm comm_, MLNodeLaplacian const* linop_, int verbose_);
     ~HypreNodeLap ();
 
+    void solve (MultiFab& soln, const MultiFab& rhs,
+                Real rel_tol, Real abs_tol, int max_iter);
+
     using Int = HYPRE_Int;
 
 private:
@@ -51,6 +54,9 @@ private:
     LayoutData<Int> nnodes_grid;
     LayoutData<Vector<Int> > node_id_vec;
     FabArray<BaseFab<Int> > node_id;
+
+    void loadVectors (MultiFab& soln, const MultiFab& rhs);
+    void getSolution (MultiFab& soln);
 };
 
 }
