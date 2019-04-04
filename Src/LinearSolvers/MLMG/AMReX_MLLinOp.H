@@ -191,7 +191,7 @@ public:
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap () const {
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const {
         amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }

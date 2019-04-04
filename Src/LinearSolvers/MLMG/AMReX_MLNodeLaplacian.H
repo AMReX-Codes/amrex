@@ -119,7 +119,7 @@ public :
 #endif
 
 #ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap () const override;
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
 
     void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
                        Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,

@@ -2386,7 +2386,7 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
 
 #ifdef AMREX_USE_HYPRE
 std::unique_ptr<HypreNodeLap>
-MLNodeLaplacian::makeHypreNodeLap () const
+MLNodeLaplacian::makeHypreNodeLap (int bottom_verbose) const
 {
     const BoxArray& ba = m_grids[0].back();
     const DistributionMapping& dm = m_dmap[0].back();
@@ -2400,7 +2400,8 @@ MLNodeLaplacian::makeHypreNodeLap () const
                                      "MLNodeLaplacian: To use hypre, max_coarsening_level must be 0");
 
     std::unique_ptr<HypreNodeLap> hypre_solver
-        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask, comm, this));
+        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                 comm, this, bottom_verbose));
 
     return hypre_solver;
 }
