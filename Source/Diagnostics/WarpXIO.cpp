@@ -492,6 +492,18 @@ WarpX::WritePlotFile () const
         output_geom = Geom();
     }
 
+#ifdef WARPX_USE_OPENPMD
+    if (dump_openpmd){
+        // Write openPMD format: only for level 0
+        std::string filename = amrex::Concatenate("diags/hdf5/data", istep[0]);
+        filename += ".h5";
+        WriteOpenPMDFields( filename, varnames,
+                      *output_mf[0], output_geom[0], istep[0], t_new[0] );
+    }
+#endif
+
+    if (dump_plotfiles){
+
     // Write the fields contained in `mf_avg`, and corresponding to the
     // names `varnames`, into a plotfile.
     // Prepare extra directory (filled later), for the raw fields
@@ -673,6 +685,8 @@ WarpX::WritePlotFile () const
     WriteWarpXHeader(plotfilename);
 
     VisMF::SetHeaderVersion(current_version);
+    } // endif: dump_plotfiles
+
 }
 
 void

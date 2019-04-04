@@ -1,8 +1,191 @@
 
 #include <WarpX.H>
 #include <FieldIO.H>
+#ifdef WARPX_USE_OPENPMD
+#include <openPMD/openPMD.hpp>
+#endif
 
 using namespace amrex;
+
+#ifdef WARPX_USE_OPENPMD
+/** \brief For a given field that is to be written to an openPMD file,
+ * set the metadata that indicates the physical unit.
+ */
+void
+setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name )
+{
+    if (field_name[0] == 'E'){  // Electric field
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::L,  1},
+            {openPMD::UnitDimension::M,  1},
+            {openPMD::UnitDimension::T, -3},
+            {openPMD::UnitDimension::I, -1},
+        });
+    } else if (field_name[0] == 'B'){ // Magnetic field
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::M,  1},
+            {openPMD::UnitDimension::I, -1},
+            {openPMD::UnitDimension::T, -2}
+        });
+    } else if (field_name[0] == 'j'){ // current
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::L, -2},
+            {openPMD::UnitDimension::I,  1},
+        });
+    } else if (field_name.substr(0,3) == "rho"){ // charge density
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::L, -3},
+            {openPMD::UnitDimension::I,  1},
+            {openPMD::UnitDimension::T,  1},
+        });
+    }
+}
+
+
+/** \brief
+ * Convert an IntVect to a std::vector<std::uint64_t>
+ * and reverse the order of the elements
+ * (used for compatibility with the openPMD API)
+ */
+std::vector<std::uint64_t>
+getReversedVec( const IntVect& v )
+{
+  // Convert the IntVect v to and std::vector u
+  std::vector<std::uint64_t> u = {
+    AMREX_D_DECL(
+                 static_cast<std::uint64_t>(v[0]),
+                 static_cast<std::uint64_t>(v[1]),
+                 static_cast<std::uint64_t>(v[2])
+                 )
+  };
+  // Reverse the order of elements, if v corresponds to the indices of a
+  // Fortran-order array (like an AMReX FArrayBox)
+  // but u is intended to be used with a C-order API (like openPMD)
+  std::reverse( u.begin(), u.end() );
+
+  return u;
+}
+
+/** \brief
+ * Convert Real* pointer to a std::vector<double>,
+ * and reverse the order of the elements
+ * (used for compatibility with the openPMD API)
+ */
+std::vector<double>
+getReversedVec( const Real* v )
+{
+  // Convert Real* v to and std::vector u
+  std::vector<double> u = {
+    AMREX_D_DECL(
+                 static_cast<double>(v[0]),
+                 static_cast<double>(v[1]),
+                 static_cast<double>(v[2])
+                 )
+  };
+  // Reverse the order of elements, if v corresponds to the indices of a
+  // Fortran-order array (like an AMReX FArrayBox)
+  // but u is intended to be used with a C-order API (like openPMD)
+  std::reverse( u.begin(), u.end() );
+
+  return u;
+}
+
+/** \brief Write the `ncomp` components of `mf` (with names `varnames`)
+ * into a file `filename` in openPMD format.
+ **/
+void
+WriteOpenPMDFields( const std::string& filename,
+                  const std::vector<std::string>& varnames,
+                  const MultiFab& mf, const Geometry& geom,
+                  const int iteration, const double time )
+{
+  BL_PROFILE("WriteOpenPMDFields()");
+
+  const int ncomp = mf.nComp();
+
+  // Create a few vectors that store info on the global domain
+  // Swap the indices for each of them, since AMReX data is Fortran order
+  // and since the openPMD API assumes contiguous C order
+  // - Size of the box, in integer number of cells
+  const Box& global_box = geom.Domain();
+  auto global_size = getReversedVec(global_box.size());
+  // - Grid spacing
+  std::vector<double> grid_spacing = getReversedVec(geom.CellSize());
+  // - Global offset
+  std::vector<double> global_offset = getReversedVec(geom.ProbLo());
+  // - AxisLabels
+#if AMREX_SPACEDIM==3
+  std::vector<std::string> axis_labels{"x", "y", "z"};
+#else
+  std::vector<std::string> axis_labels{"x", "z"};
+#endif
+
+  // Prepare the type of dataset that will be written
+  openPMD::Datatype datatype = openPMD::determineDatatype<Real>();
+  auto dataset = openPMD::Dataset(datatype, global_size);
+
+  // Create new file and store the time/iteration info
+  auto series = openPMD::Series( filename,
+                                 openPMD::AccessType::CREATE,
+                                 MPI_COMM_WORLD );
+  auto series_iteration = series.iterations[iteration];
+  series_iteration.setTime( time );
+
+  // Loop through the different components, i.e. different fields stored in mf
+  for (int icomp=0; icomp<ncomp; icomp++){
+
+    // Check if this field is a vector or a scalar, and extract the field name
+    const std::string& varname = varnames[icomp];
+    std::string field_name = varname;
+    std::string comp_name = openPMD::MeshRecordComponent::SCALAR;
+    bool is_vector = false;
+    for (const char* vector_field: {"E", "B", "j"}){
+        for (const char* comp: {"x", "y", "z"}){
+            if (varname[0] == *vector_field && varname[1] == *comp ){
+                is_vector = true;
+                field_name = varname[0] + varname.substr(2); // Strip component
+                comp_name = varname[1];
+            }
+        }
+    }
+
+    // Setup the mesh accordingly
+    auto mesh = series_iteration.meshes[field_name];
+    mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab: Fortran order
+    mesh.setAxisLabels( axis_labels );
+    mesh.setGridSpacing( grid_spacing );
+    mesh.setGridGlobalOffset( global_offset );
+    setOpenPMDUnit( mesh, field_name );
+
+    // Create a new mesh record, and store the associated metadata
+    auto mesh_record = mesh[comp_name];
+    mesh_record.resetDataset( dataset );
+    // Cell-centered data: position is at 0.5 of a cell size.
+    mesh_record.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
+
+    // Loop through the multifab, and store each box as a chunk,
+    // in the openPMD file.
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+
+      const FArrayBox& fab = mf[mfi];
+      const Box& local_box = fab.box();
+
+      // Determine the offset and size of this chunk
+      IntVect box_offset = local_box.smallEnd() - global_box.smallEnd();
+      auto chunk_offset = getReversedVec(box_offset);
+      auto chunk_size = getReversedVec(local_box.size());
+
+      // Write local data
+      const double* local_data = fab.dataPtr(icomp);
+      mesh_record.storeChunk(openPMD::shareRaw(local_data),
+                             chunk_offset, chunk_size);
+    }
+  }
+  // Flush data to disk after looping over all components
+  series.flush();
+}
+#endif // WARPX_USE_OPENPMD
+
 
 void
 PackPlotDataPtrs (Vector<const MultiFab*>& pmf,

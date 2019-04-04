@@ -203,7 +203,7 @@ Particle initialization
     fields when running in the boosted frame. See examples.
 
 * ``<species_name>.do_splitting`` (`bool`) optional (default `0`)
-    Split particles of the species when crossing the boundary from a lower 
+    Split particles of the species when crossing the boundary from a lower
     resolution domain to a higher resolution domain.
 
 * ``<species_name>.split_type`` (`int`) optional (default `0`)
@@ -402,7 +402,7 @@ Numerics and algorithms
 
     .. warning::
 
-        The vectorized version does not run on GPU. Use 
+        The vectorized version does not run on GPU. Use
 		``algo.field_gather=1`` when running on GPU.
 
 * ``algo.particle_pusher`` (`integer`)
@@ -450,6 +450,16 @@ Diagnostics and output
     The number of PIC cycles inbetween two consecutive data dumps. Use a
     negative number to disable data dumping.
 
+* ``warpx.dump_plotfiles`` (`0` or `1`) optional
+    Whether to dump the simulation data in
+    `AMReX plotfile <https://amrex-codes.github.io/amrex/docs_html/IO.html>`__
+    format. This is ``1`` by default, unless WarpX is compiled with openPMD support.
+
+* ``warpx.dump_openpmd`` (`0` or `1`) optional
+    Whether to dump the simulation data in
+    `openPMD <https://github.com/openPMD>`__ format.
+    When WarpX is compiled with openPMD support, this is ``1`` by default.
+
 * ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
@@ -481,14 +491,14 @@ Diagnostics and output
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
 
-* ``warpx.plot_coarsening_ratio`` (`int` ; default: `1`) 
+* ``warpx.plot_coarsening_ratio`` (`int` ; default: `1`)
     Reduce size of the field output by this ratio in each dimension.
     (This is done by averaging the field.) ``plot_coarsening_ratio`` should
     be an integer divisor of ``blocking_factor``.
 
-    
+
 * ``amr.plot_file`` (`string`)
-    Root for output file names. Supports sub-directories. Default `plotfiles/plt`
+    Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
 
 Checkpoints and restart
 -----------------------

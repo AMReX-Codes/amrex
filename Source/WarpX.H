@@ -497,10 +497,17 @@ private:
     std::string restart_chkfile;
 
     std::string check_file {"checkpoints/chk"};
-    std::string plot_file {"plotfiles/plt"};
+    std::string plot_file {"diags/plotfiles/plt"};
     int check_int = -1;
     int plot_int = -1;
 
+#ifdef WARPX_USE_OPENPMD
+    bool dump_plotfiles = false;
+    bool dump_openpmd = true;
+#else
+    bool dump_plotfiles = true;
+    bool dump_openpmd = false;
+#endif
     bool plot_part_per_cell = true;
     bool plot_part_per_grid = false;
     bool plot_part_per_proc = false;

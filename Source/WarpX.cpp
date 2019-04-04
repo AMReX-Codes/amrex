@@ -365,6 +365,8 @@ WarpX::ReadParameters ()
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
 
+        pp.query("dump_openpmd", dump_openpmd);
+        pp.query("dump_plotfiles", dump_openpmd);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         if (ParallelDescriptor::NProcs() == 1) {
@@ -685,10 +687,10 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
     if (do_dive_cleaning || plot_rho)
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
-    
+
     if (do_subcycling == 1 && lev == 0)
     {
         current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
