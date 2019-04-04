@@ -212,6 +212,7 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
     // compare cell size of slice and domain //
     int slice_fac = 1;
     int maxdim = 0;
+    bool modifydm = 0;
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
     {
        if ( slice_dx[idim] < geom[0].CellSize(idim) ) {
@@ -229,12 +230,20 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
        }       
        // ensuring that distribution mapping can be coarsened for any integer //
        if ( slice_grid_size % cr_ratio[idim] != 0) {
+          modifydm = 1;
+       }
+    }
+
+    // modifying max grid size of slice such that it can be coarsened 
+    // for any integer multiple 
+    if ( modifydm == 1 ) {
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
           if (cr_ratio[idim] > slice_fac ) {
              if ( cr_ratio[idim] % slice_fac == 0 ) {
-              slice_fac = cr_ratio[idim];
+                slice_fac = cr_ratio[idim];
              }
              else {
-               slice_fac = cr_ratio[idim] * slice_fac;            
+                slice_fac = cr_ratio[idim] * slice_fac;            
              }
           }
           else if ( cr_ratio[idim] < slice_fac ) {
@@ -243,17 +252,12 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
              }
           } 
        }
-       
-    }
-
-    if ( slice_fac > 1 ) {
        int ncells = (real_box.hi(maxdim) - real_box.lo(maxdim))/geom[0].CellSize(maxdim);
        int fac1 = ncells/slice_grid_size;
        int fac2 = fac1/slice_fac;
        if ( fac2 > 0 ) { 
           slice_grid_size = fac1 * fac2; 
        }
-       amrex::Print() << " slice max grid size modified " << slice_grid_size << "\n";
     }
  
     if (genslice == true)
