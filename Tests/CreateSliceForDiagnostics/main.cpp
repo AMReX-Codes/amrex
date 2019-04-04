@@ -102,23 +102,14 @@ int main(int argc, char* argv[])
         Bz_mf[lev].reset(new MultiFab(amrex::convert(ba[lev], IntVect{0,0,1}), dmap[lev], ncomp, nghost));
     }
 
-    Vector<MultiFab*> mf_ptr = GetVecOfPtrs(mf);
-    Vector<MultiFab*> rho_mf_ptr = GetVecOfPtrs(rho_mf);
-    Vector<MultiFab*> Ex_mf_ptr = GetVecOfPtrs(Ex_mf);
-    Vector<MultiFab*> Ey_mf_ptr = GetVecOfPtrs(Ey_mf);
-    Vector<MultiFab*> Ez_mf_ptr = GetVecOfPtrs(Ez_mf);
-    Vector<MultiFab*> Bx_mf_ptr = GetVecOfPtrs(Bx_mf);
-    Vector<MultiFab*> By_mf_ptr = GetVecOfPtrs(By_mf);
-    Vector<MultiFab*> Bz_mf_ptr = GetVecOfPtrs(Bz_mf);
-
-    InitializeVariables( mf_ptr, geom );
-    InitializeVariables( rho_mf_ptr, geom );
-    InitializeVariables( Ex_mf_ptr, geom );
-    InitializeVariables( Ey_mf_ptr, geom );
-    InitializeVariables( Ez_mf_ptr, geom );
-    InitializeVariables( Bx_mf_ptr, geom );
-    InitializeVariables( By_mf_ptr, geom );
-    InitializeVariables( Bz_mf_ptr, geom );
+    InitializeVariables( GetVecOfPtrs(mf), geom );
+    InitializeVariables( GetVecOfPtrs(rho_mf), geom );
+    InitializeVariables( GetVecOfPtrs(Ex_mf), geom );
+    InitializeVariables( GetVecOfPtrs(Ey_mf), geom );
+    InitializeVariables( GetVecOfPtrs(Ez_mf), geom );
+    InitializeVariables( GetVecOfPtrs(Bx_mf), geom );
+    InitializeVariables( GetVecOfPtrs(By_mf), geom );
+    InitializeVariables( GetVecOfPtrs(Bz_mf), geom );
 
     // Slice generation starts here //
     Vector<Real> slo(AMREX_SPACEDIM);
@@ -136,14 +127,14 @@ int main(int argc, char* argv[])
     slice_realbox.setLo(slo); 
     slice_realbox.setHi(shi); 
 
-    CreateSlice(mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(rho_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(Ex_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(Ey_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(Ez_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(Bx_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(By_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
-    CreateSlice(Bz_mf_ptr,geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(rho_mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(Ex_mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(Ey_mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(Ez_mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(Bx_mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(By_mf),geom,slice_realbox,slice_cells,slice_grid_size);
+    CreateSlice( GetVecOfPtrs(Bz_mf),geom,slice_realbox,slice_cells,slice_grid_size);
     }
 
     amrex::Finalize();
@@ -172,13 +163,16 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
     // assumption 1 : nghost = 0; 
     const int nghost = 0;
     int is_per[AMREX_SPACEDIM];
-    double slice_dx[AMREX_SPACEDIM];
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
         is_per[i] = 1;
   
     int nlevs = geom.size();
     int ncomp = (*mf[0]).nComp();
+    bool genslice = true; 
+    int max_ratio = 1;
+    bool coarsen = false; 
+    IntVect cr_ratio(AMREX_D_DECL(1,1,1));
 
     const RealBox& real_box = geom[0].ProbDomain(); 
 
@@ -186,6 +180,7 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
     IntVect slice_lo(AMREX_D_DECL(0,0,0));
     IntVect slice_hi(AMREX_D_DECL(1,1,1)); 
 
+    // Define slice box and error checks //
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
 
        slice_lo[idim] = (slice_realbox.lo(idim) - real_box.lo(idim))/geom[0].CellSize(idim);
@@ -194,72 +189,44 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
        if ( ( slice_hi[idim] - slice_lo[idim]) == 0) {
           // Only 1 cell is required if hi and lo are equal //
           slice_hi[idim] = slice_lo[idim] + 2;
-          slice_dx[idim] = geom[0].CellSize(idim);          
        }
        else {
-          slice_dx[idim] = double((slice_realbox.hi(idim) - slice_realbox.lo(idim))/double(slice_ncells[idim]));
-       }
 
+          int refinedcells =  ((slice_realbox.hi(idim) - slice_realbox.lo(idim)) / 
+                                                         geom[0].CellSize(idim));
+
+          // compare cell sizes of slice and computational domain //
+          if (refinedcells >= slice_ncells[idim]) 
+          {
+             if (refinedcells % slice_ncells[idim] != 0) 
+             {
+                amrex::Abort( " SLICEERROR :: cell size of slice is not an integer                                           multiple of the computaitonal domain's cell size" );
+             } 
+             if ( refinedcells > slice_ncells[idim] ) 
+             {
+                coarsen = true; 
+                cr_ratio[idim] =  refinedcells / slice_ncells[idim] ;
+                if ( slice_grid_size % cr_ratio[idim] != 0) 
+                {
+                   amrex::Abort("SLICE_ERROR :: Max grid size of slice is not an                                              integer multiple of coarsening ratio ");
+                }
+                if (max_ratio < cr_ratio[idim] ) 
+                {
+                   max_ratio = cr_ratio[idim];
+                }
+             }
+          }
+          else 
+          {
+             genslice = false; // no slice generation in this case
+             amrex::Abort(" SLICEERROR : The cell size for the required diagnostic                                       slice is more refined than the simulation domain cell size.                                  Please change input such that cell size >= domain cell size");
+          }
+       }
        --slice_hi[idim]; // since default index type is cc  // -= 1; 
     }
 
-    int max_ratio = 1;
-    bool coarsen = false; 
-    bool genslice = true; 
 
-    IntVect cr_ratio(AMREX_D_DECL(1,1,1));
-    
-    // compare cell size of slice and domain //
-    int slice_fac = 1;
-    int maxdim = 0;
-    bool modifydm = 0;
-    for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
-    {
-       if ( slice_dx[idim] < geom[0].CellSize(idim) ) {
-          amrex::Print() << "The cell size for slice is more refined than baseline case. ";
-          amrex::Print() << " with refinement Ratio = " << slice_dx[idim]/geom[0].CellSize(idim) << " \n"; 
-          genslice = false; // no slice generation in this case
-       }
-       else if ( slice_dx[idim] > geom[0].CellSize(idim) ) {
-          coarsen = true; 
-          cr_ratio[idim] = round( slice_dx[idim] / geom[0].CellSize(idim) );
-          if (max_ratio < cr_ratio[idim] ) {
-             max_ratio = cr_ratio[idim];
-             maxdim = idim;
-          }
-       }       
-       // ensuring that distribution mapping can be coarsened for any integer //
-       if ( slice_grid_size % cr_ratio[idim] != 0) {
-          modifydm = 1;
-       }
-    }
-
-    // modifying max grid size of slice such that it can be coarsened 
-    // for any integer multiple 
-    if ( modifydm == 1 ) {
-       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-          if (cr_ratio[idim] > slice_fac ) {
-             if ( cr_ratio[idim] % slice_fac == 0 ) {
-                slice_fac = cr_ratio[idim];
-             }
-             else {
-                slice_fac = cr_ratio[idim] * slice_fac;            
-             }
-          }
-          else if ( cr_ratio[idim] < slice_fac ) {
-             if ( slice_fac % cr_ratio[idim] != 0 ) {
-               slice_fac = cr_ratio[idim] * slice_fac;            
-             }
-          } 
-       }
-       int ncells = (real_box.hi(maxdim) - real_box.lo(maxdim))/geom[0].CellSize(maxdim);
-       int fac1 = ncells/slice_grid_size;
-       int fac2 = fac1/slice_fac;
-       if ( fac2 > 0 ) { 
-          slice_grid_size = fac1 * fac2; 
-       }
-    }
- 
+    // Slice generation only if slice cell size >= domain cell size //
     if (genslice == true)
     {
 
@@ -280,7 +247,6 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
    
     Vector<BoxArray> sba(nlevs);
     sba[0].define(slice);
-
     sba[0].maxSize(slice_grid_size);
 
     // Distribution mapping for slice can be different from that of domain
@@ -314,7 +280,8 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
        // The input values of max_grid_size is factored by ratio in the coarsened slice //
        int cs_grid_size = double(sba[0].size())*max_ratio ; 
        crse_ba[0].maxSize(cs_grid_size);
- 
+       AMREX_ALWAYS_ASSERT(crse_ba[0].size() == sba[0].size());
+
        // constructing coarsened slice as per user-input if s_cells<ncells // 
        Vector<std::unique_ptr<MultiFab> > cs_mf(nlevs); 
 
@@ -385,19 +352,26 @@ void InitializeVariables(Vector<MultiFab*> mf, Vector<Geometry> geom)
 {
     int nlevs = geom.size();
     const Real *dom_dx = geom[0].CellSize();
-
     for (int lev = 0; lev < nlevs; ++lev) {
-        for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi){
+        for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+
+            MultiFab& mfSrc = *mf[lev];
+            auto const &mf_arr = mfSrc.array(mfi);
+
             const Box& bx = mfi.validbox();
-            FArrayBox& fbox_Dst = (*mf[lev])[mfi];
-            for (IntVect cell=bx.smallEnd(); cell<=bx.bigEnd(); bx.next(cell)) 
-            {
-                fbox_Dst(cell,0) = cell[0]*dom_dx[0];
-                fbox_Dst(cell,1) = cell[1]*dom_dx[1];
-                fbox_Dst(cell,2) = cell[2]*dom_dx[2];
-                fbox_Dst(cell,3) = cell[0]*dom_dx[0];
-                fbox_Dst(cell,4) = cell[1]*dom_dx[1];
-                fbox_Dst(cell,5) = cell[2]*dom_dx[2];
+            
+            for (int k = bx.smallEnd(2); k < bx.bigEnd(2); ++k ) {
+                for (int j = bx.smallEnd(1); j < bx.bigEnd(1); ++j ) {
+                    for (int i = bx.smallEnd(0); i < bx.bigEnd(0); ++i ) {
+                        int icomp = 0;
+                        mf_arr(i,j,k,icomp) = i * dom_dx[0]; ++icomp;
+                        mf_arr(i,j,k,icomp) = j * dom_dx[1]; ++icomp;
+                        mf_arr(i,j,k,icomp) = k * dom_dx[2]; ++icomp;
+                        mf_arr(i,j,k,icomp) = i * dom_dx[0]; ++icomp;
+                        mf_arr(i,j,k,icomp) = j * dom_dx[1]; ++icomp;
+                        mf_arr(i,j,k,icomp) = k * dom_dx[2]; 
+                    }
+                }
             }
         }
     }
