@@ -915,11 +915,49 @@ contains
                 vcent(i,j,k,2) = Sy * den
                 vcent(i,j,k,3) = Sz * den
 
-                ! clamp?
+                ! remove small cells
+                if (vfrac(i,j,k) < small) then
+                   vfrac(i,j,k) = zero
+                   vcent(i,j,k,:) = zero
+                   bcent(i,j,k,:) = -one
+                   bnorm(i,j,k,:) = zero
+                   barea(i,j,k) = zero
+                   call set_covered_cell(cell(i,j,k))
+                end if
+             end if
+          end do
+       end do
+    end do
 
-                ! should we remove small cells? probably not safe to do it here
-                ! because it affects face area
-
+    ! fix faces for small cells
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)  , hi(1)+1
+             if (vfrac(i-1,j,k) < small .or. vfrac(i,j,k) < small) then
+                fx(i,j,k) = covered
+                apx(i,j,k) = zero
+             end if
+          end do
+       end do
+    end do
+    !
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)  , hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             if (vfrac(i,j-1,k) < small .or. vfrac(i,j,k) < small) then
+                fy(i,j,k) = covered
+                apy(i,j,k) = zero
+             end if
+          end do
+       end do
+    end do
+    !
+    do       k = lo(3)  , hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             if (vfrac(i,j,k-1) < small .or. vfrac(i,j,k) < small) then
+                fz(i,j,k) = covered
+                apz(i,j,k) = zero
              end if
           end do
        end do
