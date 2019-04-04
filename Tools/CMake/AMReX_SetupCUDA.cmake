@@ -7,10 +7,6 @@
 # 
 include_guard(GLOBAL)
 
-if (${CMAKE_VERSION} VERSION_LESS "3.14.0") 
-   message(FATAL_ERROR "CUDA support requires CMake >= 3.14.0")
-endif ()
-
 #
 # Makes sure the CUDA host compiler and CXX compiler are the same.
 # CMake let you decide which host compiler to use via the env variable
