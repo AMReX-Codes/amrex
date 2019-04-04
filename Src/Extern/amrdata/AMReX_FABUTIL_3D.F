@@ -14,8 +14,9 @@ c ::: SCCS stuff "@(#)FABUTIL_3D.F	3.1\t6/25/93"
 
 
 c ::: --------------------------------------------------------------
-      subroutine FORT_CARTGRIDMINMAX (data, dlo1, dlo2, dlo3, dhi1, dhi2, dhi3,
-     $                                vfracdata, vfeps, dmin, dmax)
+      subroutine FORT_CARTGRIDMINMAX (data, dlo1, dlo2, dlo3, dhi1,
+     $                                dhi2, dhi3, vfracdata, vfeps,
+     $                                dmin, dmax)
       implicit none
 
       integer dlo1, dlo2, dlo3, dhi1, dhi2, dhi3
@@ -343,9 +344,9 @@ c                                 --- break ---
 
 
 c ::: --------------------------------------------------------------
-      subroutine FORT_PCINTERP (fine,floi1,floi2,floi3,fhii1,fhii2,fhii3,
-     $ fblo, fbhi,lrat,nvar, crse,cloi1,cloi2,cloi3,chii1,chii2,chii3,
-     $ cblo, cbhi,temp,tloi,thii)
+      subroutine FORT_PCINTERP (fine,floi1,floi2,floi3,fhii1,fhii2,
+     $ fhii3,fblo,fbhi,lrat,nvar,crse,cloi1,cloi2,cloi3,chii1,chii2,
+     $ chii3,cblo,cbhi,temp,tloi,thii)
 
       integer floi1,floi2,floi3
       integer fhii1,fhii2,fhii3
