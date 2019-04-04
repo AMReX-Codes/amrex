@@ -203,13 +203,15 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
        --slice_hi[idim]; // since default index type is cc  // -= 1; 
     }
 
-    double max_ratio = 1;
+    int max_ratio = 1;
     bool coarsen = false; 
     bool genslice = true; 
 
     IntVect cr_ratio(AMREX_D_DECL(1,1,1));
-
+    
     // compare cell size of slice and domain //
+    int slice_fac = 1;
+    int maxdim = 0;
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
     {
        if ( slice_dx[idim] < geom[0].CellSize(idim) ) {
@@ -222,8 +224,36 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
           cr_ratio[idim] = round( slice_dx[idim] / geom[0].CellSize(idim) );
           if (max_ratio < cr_ratio[idim] ) {
              max_ratio = cr_ratio[idim];
+             maxdim = idim;
           }
+       }       
+       // ensuring that distribution mapping can be coarsened for any integer //
+       if ( slice_grid_size % cr_ratio[idim] != 0) {
+          if (cr_ratio[idim] > slice_fac ) {
+             if ( cr_ratio[idim] % slice_fac == 0 ) {
+              slice_fac = cr_ratio[idim];
+             }
+             else {
+               slice_fac = cr_ratio[idim] * slice_fac;            
+             }
+          }
+          else if ( cr_ratio[idim] < slice_fac ) {
+             if ( slice_fac % cr_ratio[idim] != 0 ) {
+               slice_fac = cr_ratio[idim] * slice_fac;            
+             }
+          } 
        }
+       
+    }
+
+    if ( slice_fac > 1 ) {
+       int ncells = (real_box.hi(maxdim) - real_box.lo(maxdim))/geom[0].CellSize(maxdim);
+       int fac1 = ncells/slice_grid_size;
+       int fac2 = fac1/slice_fac;
+       if ( fac2 > 0 ) { 
+          slice_grid_size = fac1 * fac2; 
+       }
+       amrex::Print() << " slice max grid size modified " << slice_grid_size << "\n";
     }
  
     if (genslice == true)
@@ -246,6 +276,7 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
    
     Vector<BoxArray> sba(nlevs);
     sba[0].define(slice);
+
     sba[0].maxSize(slice_grid_size);
 
     // Distribution mapping for slice can be different from that of domain
@@ -279,7 +310,7 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
        // The input values of max_grid_size is factored by ratio in the coarsened slice //
        int cs_grid_size = double(sba[0].size())*max_ratio ; 
        crse_ba[0].maxSize(cs_grid_size);
-        
+ 
        // constructing coarsened slice as per user-input if s_cells<ncells // 
        Vector<std::unique_ptr<MultiFab> > cs_mf(nlevs); 
 
