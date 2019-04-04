@@ -75,11 +75,6 @@ set(AMREX_ENABLE_SUNDIALS           @ENABLE_SUNDIALS@)
 set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
 set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
 
-
-if (AMREX_ENABLE_MPI)
-   find_dependency(MPI REQUIRED)
-endif()
-
 # 
 # Find dependencies if needed
 #

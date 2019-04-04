@@ -1,3 +1,7 @@
+if (DIM EQUAL 1)
+   return()
+endif ()
+
 get_filename_component ( DIRNAME ${CMAKE_CURRENT_LIST_DIR} NAME )
 
 set ( TESTNAME ${DIRNAME} )
