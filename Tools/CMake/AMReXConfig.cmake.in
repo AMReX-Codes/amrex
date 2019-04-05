@@ -120,14 +120,24 @@ if (AMREX_ENABLE_CONDUIT)
    endif ()
 endif ()
 
+#
+# CUDA
+# 
+if (AMREX_ENABLE_CUDA)
+   # Ensure app code uses the same host compiler and flags used to
+   # build amrex.
+   macro (setup_cuda)
+      message(STATUS "Setting CUDA host compiler to @CMAKE_CUDA_HOST_COMPILER@")
+      set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CUDA_HOST_COMPILER@)
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
+      enable_language(CUDA)
+   endmacro ()
+endif ()
 
 # This two lines are suggested on the internet
 # include("${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake")
 # check_required_components("@PROJECT_NAME@")
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
-
-
-
 
 #
 # Add utility to print imported options if user wants to
