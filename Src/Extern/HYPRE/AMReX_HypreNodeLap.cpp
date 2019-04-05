@@ -168,13 +168,24 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                                      "HypreNodeLap: how did this happen?");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(node_id,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(node_id,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        node_id[mfi].plus(offset[mfi], mfi.tilebox());
+        Int os = offset[mfi];
+        const Box& bx = mfi.growntilebox();
+        const auto& nid = node_id.array(mfi);
+        AMREX_FOR_3D(bx, i, j, k,
+        {
+            if (nid(i,j,k) >= 0) {
+                nid(i,j,k) += os;
+            } else {
+                nid(i,j,k) = -1;
+            }
+        });
     }    
 
+    amrex::OverrideSync(node_id, *owner_mask, geom.periodicity());
     node_id.FillBoundary(geom.periodicity());
 
     // Create and initialize A, b & x
@@ -207,7 +218,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             ncols.clear();
             ncols.reserve(nrows);
 
-            Vector<Int> rows = node_id_vec[mfi];
+            Vector<Int>& rows = node_id_vec[mfi];
             rows.clear();
             rows.reserve(nrows);
 
@@ -218,8 +229,9 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             mat.reserve(nrows*max_stencil_size);
 
             const Array4<Int const> nid = node_id.array(mfi);
+            const auto& owner = owner_mask->array(mfi);
 
-            linop->fillIJMatrix(mfi, nid, ncols, rows, cols, mat);
+            linop->fillIJMatrix(mfi, nid, owner, ncols, rows, cols, mat);
 
 #ifdef AMREX_DEBUG
             Int nvalues = 0;
@@ -346,10 +358,11 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             const auto hi = amrex::ubound(bx);
             const auto& bfab = rhs.array(mfi);
             const auto& nid = node_id.array(mfi);
+            const auto& owner = owner_mask->array(mfi);
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (nid(i,j,k) >= 0) {
+                        if (nid(i,j,k) >= 0 && owner(i,j,k)) {
                             bvec.push_back(bfab(i,j,k));
                         }
                     }
@@ -381,11 +394,12 @@ HypreNodeLap::getSolution (MultiFab& soln)
             const auto hi = amrex::ubound(bx);
             const auto& xfab = tmpsoln.array(mfi);
             const auto& nid = node_id.array(mfi);
+            const auto& owner = owner_mask->array(mfi);
             int offset = 0;
             for         (int k = lo.z; k <= hi.z; ++k) {
                 for     (int j = lo.y; j <= hi.y; ++j) {
                     for (int i = lo.x; i <= hi.x; ++i) {
-                        if (nid(i,j,k) >= 0) {
+                        if (nid(i,j,k) >= 0 && owner(i,j,k)) {
                             xfab(i,j,k) = xvec[offset++];
                         }
                     }

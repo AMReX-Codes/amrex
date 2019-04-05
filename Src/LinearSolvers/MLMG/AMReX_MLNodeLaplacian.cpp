@@ -2409,6 +2409,7 @@ MLNodeLaplacian::makeHypreNodeLap (int bottom_verbose) const
 #if (AMREX_SPACEDIM == 2)
 void
 MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Array4<int const> const& owner,
                                Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                                Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
 {
@@ -2419,7 +2420,7 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
     if (m_coarsening_strategy == CoarseningStrategy::RAP) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (nid(i,j,k) >= 0)
+                if (nid(i,j,k) >= 0 && owner(i,j,k))
                 {
                     amrex::Abort("fillIJMatrix: RAP 3d: todo");
                 }
@@ -2428,7 +2429,7 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
     } else {
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                if (nid(i,j,k) >= 0)
+                if (nid(i,j,k) >= 0 && owner(i,j,k))
                 {
                     amrex::Abort("fillIJMatrix: Sigma 2d: todo");
                 }
@@ -2439,6 +2440,7 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
 #else
 void
 MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Array4<int const> const& owner,
                                Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                                Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
 {
@@ -2453,7 +2455,7 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    if (nid(i,j,k) >= 0)
+                    if (nid(i,j,k) >= 0 && owner(i,j,k))
                     {
                         amrex::Abort("RAP: todo");
                     }
@@ -2477,7 +2479,7 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    if (nid(i,j,k) >= 0)
+                    if (nid(i,j,k) >= 0 && owner(i,j,k))
                     {
                         // should be consistent with amrex_mlndlap_adotx_aa;
                         rows.push_back(nid(i,j,k));

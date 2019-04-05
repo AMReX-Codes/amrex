@@ -122,6 +122,7 @@ public :
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
 
     void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                       Array4<int const> const& owner,
                        Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
                        Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const;
 #endif
