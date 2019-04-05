@@ -39,8 +39,7 @@ endif ()
 # 
 # Find cuda flags for target architecture. If CUDA_ARCH is not set by the user,
 # autodetection is enabled
-# 
-set(CUDA_ARCH "Auto" CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
+#
 include(FindCUDA/select_compute_arch)
 cuda_select_nvcc_arch_flags(_nvcc_arch_flags ${CUDA_ARCH})
 
@@ -103,5 +102,9 @@ unset(_cuda_version_truncated)
 # device linking stage
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --expt-extended-lambda")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets -m64 ${NVCC_ARCH_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT} --use_fast_math")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT}")
+
+if (ENABLE_CUDA_FASTMATH)
+   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
+endif ()
 
