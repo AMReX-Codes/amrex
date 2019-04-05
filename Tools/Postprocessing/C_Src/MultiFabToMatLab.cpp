@@ -71,12 +71,13 @@ WriteFab (std::ostream&         os,
 
 int main(int argc, char* argv[])
 {
-    amrex::Initialize(argc, argv);
+  amrex::Initialize(argc, argv);
+  {
     if(argc == 1)
-        PrintUsage(argv[0]);
+      PrintUsage(argv[0]);
 
     if (ParallelDescriptor::NProcs() > 1){
-        amrex::Error("This is an inherently serial program!");
+      amrex::Error("This is an inherently serial program!");
     }
     ParmParse pp;
 
@@ -99,7 +100,7 @@ int main(int argc, char* argv[])
     os.open(file.c_str(), std::ios::out|std::ios::binary); 
     
     if(os.fail()) {
-        amrex::FileOpenFailed(file); 
+      amrex::FileOpenFailed(file); 
     }
 
 
@@ -110,21 +111,22 @@ int main(int argc, char* argv[])
     //Fake a xlo to xhi
     for(int i = 0; i < ba.size(); ++i)
     {
-        const Box& b = ba[i]; 
-        Real xlo[BL_SPACEDIM], xhi[BL_SPACEDIM];
-        for(int d = 0; d <BL_SPACEDIM; ++d)
-        {
-            xlo[d] = b.loVect()[d]; 
-            xhi[d] = b.hiVect()[d]; 
-            os.write((char*)&xlo,sizeof(Real)); 
-            os.write((char*)&xhi,sizeof(Real)); 
-        }         
+      const Box& b = ba[i]; 
+      Real xlo[BL_SPACEDIM], xhi[BL_SPACEDIM];
+      for(int d = 0; d <BL_SPACEDIM; ++d)
+      {
+        xlo[d] = b.loVect()[d]; 
+        xhi[d] = b.hiVect()[d]; 
+        os.write((char*)&xlo,sizeof(Real)); 
+        os.write((char*)&xhi,sizeof(Real)); 
+      }         
     }
     //Write the Fab Data
     for(int i = 0; i < ba.size(); ++i)
     {
-        WriteFab(os, in[i], buf);   
+      WriteFab(os, in[i], buf);   
     }
-    os.close();        
-    Finalize(); 
+    os.close();
+  }
+  Finalize(); 
 }

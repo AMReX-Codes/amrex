@@ -1,3 +1,7 @@
+if (DIM EQUAL 1)
+   return()
+endif ()
+
 #
 # This test works for both 2D and 3D builds 
 #

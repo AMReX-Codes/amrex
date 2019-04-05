@@ -265,9 +265,6 @@ if (ENABLE_CUDA)
 
    option( ENABLE_CUDA_FORTRAN "Enable Fortran CUDA kernels" OFF)
    print_option(ENABLE_CUDA_FORTRAN)
-
-   # set(CUDA_ARCH "60" CACHE STRING "CUDA architecture version")
-   # print_option(CUDA_ARCH)
    
    set(CUDA_MAX_THREADS "256" CACHE STRING
       "Maximum number of CUDA threads per block" )
