@@ -260,15 +260,11 @@ option( ENABLE_CUDA "Enable GPU support via CUDA" OFF )
 print_option( ENABLE_CUDA )
 
 if (ENABLE_CUDA)
+   set(CUDA_ARCH "Auto" CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
+   
    option( ENABLE_CUDA_FASTMATH "Enable CUDA fastmath" ON )
    print_option(ENABLE_CUDA_FASTMATH)
-
-   option( ENABLE_CUDA_FORTRAN "Enable Fortran CUDA kernels" OFF)
-   print_option(ENABLE_CUDA_FORTRAN)
-
-   # set(CUDA_ARCH "60" CACHE STRING "CUDA architecture version")
-   # print_option(CUDA_ARCH)
-   
+  
    set(CUDA_MAX_THREADS "256" CACHE STRING
       "Maximum number of CUDA threads per block" )
    print_option(CUDA_MAX_THREADS)
