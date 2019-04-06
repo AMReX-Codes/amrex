@@ -30,9 +30,9 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
                                   const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                                  bool use_hypre)
+                                  bool a_use_hypre)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory, use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_hypre);
 }
 
 #ifdef AMREX_USE_EB
@@ -41,9 +41,9 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
                                   const Vector<EBFArrayBoxFactory const*>& a_factory,
-                                  bool use_hypre)
+                                  bool a_use_hypre)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory, use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_hypre);
 }
 #endif
 
@@ -56,7 +56,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
                          const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                         bool use_hypre)
+                         bool a_use_hypre)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
 
@@ -68,7 +68,10 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 
     LPInfo info = a_info;
 #ifdef AMREX_USE_HYPRE
-    if (use_hypre) info.setMaxCoarseningLevel(0);
+    if (a_use_hypre) {
+        m_use_hypre = a_use_hypre;
+        info.setMaxCoarseningLevel(0);
+    }
 #endif
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, info, a_factory);
 
@@ -115,13 +118,13 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
                          const Vector<EBFArrayBoxFactory const*>& a_factory,
-                         bool use_hypre)
+                         bool a_use_hypre)
 {
     Vector<FabFactory<FArrayBox> const*> _factory;
     for (auto x : a_factory) {
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
-    define(a_geom, a_grids, a_dmap, a_info, _factory, use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, _factory, a_use_hypre);
 }
 #endif
 
@@ -1294,7 +1297,10 @@ void
 MLNodeLaplacian::prepareForSolve (MLMG* mlmg)
 {
 #ifdef AMREX_USE_HYPRE
-    mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
+    if (m_use_hypre) {
+        mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
+        setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
+    }
 #endif
     prepareForSolve();
 }
@@ -2435,22 +2441,14 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
     const auto lo = amrex::lbound(ndbx);
     const auto hi = amrex::ubound(ndbx);
     const int k = 0;
-    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (nid(i,j,k) >= 0 && owner(i,j,k))
-                {
-                    amrex::Abort("fillIJMatrix: RAP 3d: todo");
-                }
-            }
-        }
-    } else {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                if (nid(i,j,k) >= 0 && owner(i,j,k))
-                {
-                    amrex::Abort("fillIJMatrix: Sigma 2d: todo");
-                }
+
+    AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
+
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if (nid(i,j,k) >= 0 && owner(i,j,k))
+            {
+                amrex::Abort("fillIJMatrix: 2d: todo");
             }
         }
     }
@@ -2469,229 +2467,187 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
     const Box& ndbx = mfi.validbox();
     const auto lo = amrex::lbound(ndbx);
     const auto hi = amrex::ubound(ndbx);
-    if (m_coarsening_strategy == CoarseningStrategy::RAP) {
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (nid(i,j,k) >= 0 && owner(i,j,k))
-                    {
-                        amrex::Abort("RAP: todo");
+
+    AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
+
+    const auto& sten = m_stencil[0][0]->array(mfi);
+
+    constexpr int ist_000 = 1-1;
+    constexpr int ist_p00 = 2-1;
+    constexpr int ist_0p0 = 3-1;
+    constexpr int ist_00p = 4-1;
+    constexpr int ist_pp0 = 5-1;
+    constexpr int ist_p0p = 6-1;
+    constexpr int ist_0pp = 7-1;
+    constexpr int ist_ppp = 8-1;
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (nid(i,j,k) >= 0 && owner(i,j,k))
+                {
+                    rows.push_back(nid(i,j,k));
+                    cols.push_back(nid(i,j,k));
+                    mat.push_back(sten(i,j,k,ist_000));
+                    HypreNodeLap::Int nc = 1;
+
+                    if                (nid(i-1,j-1,k-1) >= 0) {
+                        cols.push_back(nid(i-1,j-1,k-1));                  
+                        mat.push_back(sten(i-1,j-1,k-1,ist_ppp));
+                        ++nc;
                     }
-                }
-            }
-        }
-    } else {
-        const Real facx = (1./36.)*dxinv[0]*dxinv[0];
-        const Real facy = (1./36.)*dxinv[1]*dxinv[1];
-        const Real facz = (1./36.)*dxinv[2]*dxinv[2];
-        const Real fxyz = facx + facy + facz;
-        const Real fmx2y2z = -facx + 2.*facy + 2.*facz;
-        const Real f2xmy2z = 2.*facx - facy + 2.*facz;
-        const Real f2x2ymz = 2.*facx + 2.*facy - facz;
-        const Real f4xm2ym2z = 4.*facx - 2.*facy - 2.*facz;
-        const Real fm2x4ym2z = -2.*facx + 4.*facy - 2.*facz;
-        const Real fm2xm2y4z = -2.*facx - 2.*facy + 4.*facz;
 
-        const auto sig = m_sigma[0][0][0]->array(mfi);
-
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    if (nid(i,j,k) >= 0 && owner(i,j,k))
-                    {
-                        // should be consistent with amrex_mlndlap_adotx_aa;
-                        rows.push_back(nid(i,j,k));
-                        cols.push_back(nid(i,j,k));
-                        Real s = -4.*fxyz*
-                            ( sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)
-                             +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  ));
-                        mat.push_back(s);
-                        HypreNodeLap::Int nc = 1;
-
-                        if                (nid(i-1,j-1,k-1) >= 0) {
-                            cols.push_back(nid(i-1,j-1,k-1));
-                            s = fxyz*sig(i-1,j-1,k-1);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j-1,k-1) >= 0) {
-                            cols.push_back(nid(i,j-1,k-1));
-                            s = fmx2y2z*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j-1,k-1) >= 0) {
-                            cols.push_back(nid(i+1,j-1,k-1));
-                            s = fxyz*sig(i,j-1,k-1);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j,k-1) >= 0) {
-                            cols.push_back(nid(i-1,j,k-1));
-                            s = f2xmy2z*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j,k-1) >= 0) {
-                            cols.push_back(nid(i,j,k-1));
-                            s = fm2xm2y4z*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j,k-1) >= 0) {
-                            cols.push_back(nid(i+1,j,k-1));
-                            s = f2xmy2z*(sig(i,j-1,k-1)+sig(i,j,k-1));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j+1,k-1) >= 0) {
-                            cols.push_back(nid(i-1,j+1,k-1));
-                            s = fxyz*sig(i-1,j,k-1);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j+1,k-1) >= 0) {
-                            cols.push_back(nid(i,j+1,k-1));
-                            s = fmx2y2z*(sig(i-1,j,k-1)+sig(i,j,k-1));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j+1,k-1) >= 0) {
-                            cols.push_back(nid(i+1,j+1,k-1));
-                            s = fxyz*sig(i,j,k-1);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j-1,k) >= 0) {
-                            cols.push_back(nid(i-1,j-1,k));
-                            s = f2x2ymz*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j-1,k) >= 0) {
-                            cols.push_back(nid(i,j-1,k));
-                            s = fm2x4ym2z*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j-1,k) >= 0) {
-                            cols.push_back(nid(i+1,j-1,k));
-                            s = f2x2ymz*(sig(i,j-1,k-1)+sig(i,j-1,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j,k) >= 0) {
-                            cols.push_back(nid(i-1,j,k));
-                            s = f4xm2ym2z*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j,k) >= 0) {
-                            cols.push_back(nid(i+1,j,k));
-                            s = f4xm2ym2z*(sig(i,j-1,k-1)+sig(i,j,k-1)+sig(i,j-1,k)+sig(i,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j+1,k) >= 0) {
-                            cols.push_back(nid(i-1,j+1,k));
-                            s = f2x2ymz*(sig(i-1,j,k-1)+sig(i-1,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j+1,k) >= 0) {
-                            cols.push_back(nid(i,j+1,k));
-                            s = fm2x4ym2z*(sig(i-1,j,k-1)+sig(i,j,k-1)+sig(i-1,j,k)+sig(i,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j+1,k) >= 0) {
-                            cols.push_back(nid(i+1,j+1,k));
-                            s = f2x2ymz*(sig(i,j,k-1)+sig(i,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j-1,k+1) >= 0) {
-                            cols.push_back(nid(i-1,j-1,k+1));
-                            s = fxyz*sig(i-1,j-1,k);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j-1,k+1) >= 0) {
-                            cols.push_back(nid(i,j-1,k+1));
-                            s = fmx2y2z*(sig(i-1,j-1,k)+sig(i,j-1,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j-1,k+1) >= 0) {
-                            cols.push_back(nid(i+1,j-1,k+1));
-                            s = fxyz*sig(i,j-1,k);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j,k+1) >= 0) {
-                            cols.push_back(nid(i-1,j,k+1));
-                            s = f2xmy2z*(sig(i-1,j-1,k)+sig(i-1,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j,k+1) >= 0) {
-                            cols.push_back(nid(i,j,k+1));
-                            s = fm2xm2y4z*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j,k+1) >= 0) {
-                            cols.push_back(nid(i+1,j,k+1));
-                            s = f2xmy2z*(sig(i,j-1,k)+sig(i,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i-1,j+1,k+1) >= 0) {
-                            cols.push_back(nid(i-1,j+1,k+1));
-                            s = fxyz*sig(i-1,j,k);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i,j+1,k+1) >= 0) {
-                            cols.push_back(nid(i,j+1,k+1));
-                            s = fmx2y2z*(sig(i-1,j,k)+sig(i,j,k));
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        if                (nid(i+1,j+1,k+1) >= 0) {
-                            cols.push_back(nid(i+1,j+1,k+1));
-                            s = fxyz*sig(i,j,k);
-                            mat.push_back(s);
-                            ++nc;
-                        }
-
-                        ncols.push_back(nc);
+                    if                (nid(i,j-1,k-1) >= 0) {
+                        cols.push_back(nid(i,j-1,k-1));
+                        mat.push_back(sten(i,j-1,k-1,ist_0pp));
+                        ++nc;
                     }
+
+                    if                (nid(i+1,j-1,k-1) >= 0) {
+                        cols.push_back(nid(i+1,j-1,k-1));
+                        mat.push_back(sten(i,j-1,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j,k-1) >= 0) {
+                        cols.push_back(nid(i-1,j,k-1));
+                        mat.push_back(sten(i-1,j,k-1,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j,k-1) >= 0) {
+                        cols.push_back(nid(i,j,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_00p));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j,k-1) >= 0) {
+                        cols.push_back(nid(i+1,j,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j+1,k-1) >= 0) {
+                        cols.push_back(nid(i-1,j+1,k-1));
+                        mat.push_back(sten(i-1,j,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j+1,k-1) >= 0) {
+                        cols.push_back(nid(i,j+1,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j+1,k-1) >= 0) {
+                        cols.push_back(nid(i+1,j+1,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j-1,k) >= 0) {
+                        cols.push_back(nid(i-1,j-1,k));
+                        mat.push_back(sten(i-1,j-1,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j-1,k) >= 0) {
+                        cols.push_back(nid(i,j-1,k));
+                        mat.push_back(sten(i,j-1,k,ist_0p0));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j-1,k) >= 0) {
+                        cols.push_back(nid(i+1,j-1,k));
+                        mat.push_back(sten(i,j-1,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j,k) >= 0) {
+                        cols.push_back(nid(i-1,j,k));
+                        mat.push_back(sten(i-1,j,k,ist_p00));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j,k) >= 0) {
+                        cols.push_back(nid(i+1,j,k));
+                        mat.push_back(sten(i,j,k,ist_p00));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j+1,k) >= 0) {
+                        cols.push_back(nid(i-1,j+1,k));
+                        mat.push_back(sten(i-1,j,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j+1,k) >= 0) {
+                        cols.push_back(nid(i,j+1,k));
+                        mat.push_back(sten(i,j,k,ist_0p0));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j+1,k) >= 0) {
+                        cols.push_back(nid(i+1,j+1,k));
+                        mat.push_back(sten(i,j,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j-1,k+1) >= 0) {
+                        cols.push_back(nid(i-1,j-1,k+1));
+                        mat.push_back(sten(i-1,j-1,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j-1,k+1) >= 0) {
+                        cols.push_back(nid(i,j-1,k+1));
+                        mat.push_back(sten(i,j-1,k,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j-1,k+1) >= 0) {
+                        cols.push_back(nid(i+1,j-1,k+1));
+                        mat.push_back(sten(i,j-1,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j,k+1) >= 0) {
+                        cols.push_back(nid(i-1,j,k+1));
+                        mat.push_back(sten(i-1,j,k,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j,k+1) >= 0) {
+                        cols.push_back(nid(i,j,k+1));
+                        mat.push_back(sten(i,j,k,ist_00p));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j,k+1) >= 0) {
+                        cols.push_back(nid(i+1,j,k+1));
+                        mat.push_back(sten(i,j,k,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j+1,k+1) >= 0) {
+                        cols.push_back(nid(i-1,j+1,k+1));
+                        mat.push_back(sten(i-1,j,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j+1,k+1) >= 0) {
+                        cols.push_back(nid(i,j+1,k+1));
+                        mat.push_back(sten(i,j,k,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j+1,k+1) >= 0) {
+                        cols.push_back(nid(i+1,j+1,k+1));
+                        mat.push_back(sten(i,j,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    ncols.push_back(nc);
                 }
             }
         }

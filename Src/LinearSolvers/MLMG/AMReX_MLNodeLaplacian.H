@@ -24,14 +24,14 @@ public :
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                     bool use_hypre = false);
+                     bool a_use_hypre = false);
 #ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
                      const Vector<EBFArrayBoxFactory const*>& a_factory,
-                     bool use_hypre = false);
+                     bool a_use_hypre = false);
 #endif
     virtual ~MLNodeLaplacian ();
 
@@ -45,7 +45,7 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                 bool use_hypre = false);
+                 bool a_use_hypre = false);
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
@@ -53,7 +53,7 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory,
-                 bool use_hypre = false);
+                 bool a_use_hypre = false);
 #endif
 
     virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
@@ -156,6 +156,8 @@ private:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
+
+    bool m_use_hypre = false;
 
     virtual void checkPoint (std::string const& file_name) const final;
 };
