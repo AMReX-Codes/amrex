@@ -2440,15 +2440,70 @@ MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const
     const Box& ndbx = mfi.validbox();
     const auto lo = amrex::lbound(ndbx);
     const auto hi = amrex::ubound(ndbx);
-    const int k = 0;
 
     AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
 
+    const auto& sten = m_stencil[0][0]->array(mfi);
+
+    constexpr int k = 0;
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             if (nid(i,j,k) >= 0 && owner(i,j,k))
             {
-                amrex::Abort("fillIJMatrix: 2d: todo");
+                rows.push_back(nid(i,j,k));
+                cols.push_back(nid(i,j,k));
+                mat.push_back(sten(i,j,k,0));
+                HypreNodeLap::Int nc = 1;
+
+                if                (nid(i-1,j-1,k) >= 0) {
+                    cols.push_back(nid(i-1,j-1,k));                  
+                    mat.push_back(sten(i-1,j-1,k,3));
+                    ++nc;
+                }
+
+                if                (nid(i,j-1,k) >= 0) {
+                    cols.push_back(nid(i,j-1,k));
+                    mat.push_back(sten(i,j-1,k,2));
+                    ++nc;
+                }
+
+                if                (nid(i+1,j-1,k) >= 0) {
+                    cols.push_back(nid(i+1,j-1,k));
+                    mat.push_back(sten(i  ,j-1,k,3));
+                    ++nc;
+                }
+
+                if                (nid(i-1,j,k) >= 0) {
+                    cols.push_back(nid(i-1,j,k));
+                    mat.push_back(sten(i-1,j,k,1));
+                    ++nc;
+                }
+
+                if                (nid(i+1,j,k) >= 0) {
+                    cols.push_back(nid(i+1,j,k));
+                    mat.push_back(sten(i  ,j,k,1));
+                    ++nc;
+                }
+
+                if                (nid(i-1,j+1,k) >= 0) {
+                    cols.push_back(nid(i-1,j+1,k));
+                    mat.push_back(sten(i-1,j  ,k,3));
+                    ++nc;
+                }
+
+                if                (nid(i,j+1,k) >= 0) {
+                    cols.push_back(nid(i,j+1,k));
+                    mat.push_back(sten(i,j  ,k,2));
+                    ++nc;
+                }
+
+                if                (nid(i+1,j+1,k) >= 0) {
+                    cols.push_back(nid(i+1,j+1,k));
+                    mat.push_back(sten(i  ,j  ,k,3));
+                    ++nc;
+                }
+
+                ncols.push_back(nc);
             }
         }
     }
