@@ -23,13 +23,15 @@ public :
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     bool use_hypre = false);
 #ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<EBFArrayBoxFactory const*>& a_factory);
+                     const Vector<EBFArrayBoxFactory const*>& a_factory,
+                     bool use_hypre = false);
 #endif
     virtual ~MLNodeLaplacian ();
 
@@ -42,14 +44,16 @@ public :
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 bool use_hypre = false);
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 bool use_hypre = false);
 #endif
 
     virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
@@ -88,6 +92,7 @@ public :
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
     virtual void prepareForSolve () final override;
+    virtual void prepareForSolve (MLMG* mlmg) final override;
     virtual bool isSingular (int amrlev) const final override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     virtual bool isBottomSingular () const final override { return m_is_bottom_singular; }
