@@ -111,10 +111,19 @@ int main(int argc, char* argv[])
     InitializeVariables( GetVecOfPtrs(By_mf), geom );
     InitializeVariables( GetVecOfPtrs(Bz_mf), geom );
 
+    VisMF::Write((*mf[0]),"vismf_orig_cc");
+    VisMF::Write((*rho_mf[0]),"vismf_orig_node");
+    VisMF::Write((*Ex_mf[0]),"vismf_orig_Ex");
+    VisMF::Write((*Ey_mf[0]),"vismf_orig_Ey");
+    VisMF::Write((*Ez_mf[0]),"vismf_orig_Ez");
+    VisMF::Write((*Bx_mf[0]),"vismf_orig_Bx");
+    VisMF::Write((*By_mf[0]),"vismf_orig_By");
+    VisMF::Write((*Bz_mf[0]),"vismf_orig_Bz");
     // Slice generation starts here //
     Vector<Real> slo(AMREX_SPACEDIM);
     Vector<Real> shi(AMREX_SPACEDIM);
     Vector<int> slice_cells(AMREX_SPACEDIM);
+    
     int slice_grid_size;
 
     ParmParse ppg("slice");
@@ -122,7 +131,6 @@ int main(int argc, char* argv[])
     ppg.queryarr("dom_hi",shi,0,AMREX_SPACEDIM);
     ppg.queryarr("n_cells",slice_cells,0,AMREX_SPACEDIM);
     ppg.query("max_grid_size",slice_grid_size);
-
     amrex::RealBox slice_realbox;
     slice_realbox.setLo(slo); 
     slice_realbox.setHi(shi); 
@@ -173,6 +181,7 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
     int max_ratio = 1;
     bool coarsen = false; 
     IntVect cr_ratio(AMREX_D_DECL(1,1,1));
+    const auto conversionType = (*mf[0]).ixType();
 
     const RealBox& real_box = geom[0].ProbDomain(); 
 
@@ -182,13 +191,22 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
 
     // Define slice box and error checks //
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+       
+       double fac = ( 1.0-conversionType[idim] )*geom[0].CellSize(idim) * 0.5;
+//       double compare = real_box.lo(idim) + geom[0].CellSize(idim) *0.5;
+       
+       slice_lo[idim] = round((slice_realbox.lo(idim) - real_box.lo(idim))/geom[0].CellSize(idim));
+       slice_hi[idim] = round((slice_realbox.hi(idim) - real_box.lo(idim))/geom[0].CellSize(idim)); 
 
-       slice_lo[idim] = (slice_realbox.lo(idim) - real_box.lo(idim))/geom[0].CellSize(idim);
-       slice_hi[idim] = (slice_realbox.hi(idim) - real_box.lo(idim))/geom[0].CellSize(idim); 
-
+       if ( slice_lo[idim] > fac && fac > 0 ) {
+            slice_lo[idim] =  round((slice_realbox.lo(idim) - (real_box.lo(idim) + fac))/geom[0].CellSize(idim));
+            slice_hi[idim] =  round((slice_realbox.hi(idim) - (real_box.lo(idim) + fac))/geom[0].CellSize(idim));
+       }
+        
        if ( ( slice_hi[idim] - slice_lo[idim]) == 0) {
           // Only 1 cell is required if hi and lo are equal //
           slice_hi[idim] = slice_lo[idim] + 2;
+          slice_ncells[idim] = 1;
        }
        else {
 
@@ -202,7 +220,7 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
              {
                 amrex::Abort( " SLICEERROR :: cell size of slice is not an integer                                           multiple of the computaitonal domain's cell size" );
              } 
-             if ( refinedcells > slice_ncells[idim] ) 
+             if ( refinedcells > slice_ncells[idim] && slice_ncells[idim]>0) 
              {
                 coarsen = true; 
                 cr_ratio[idim] =  refinedcells / slice_ncells[idim] ;
@@ -232,9 +250,10 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
 
     // Default index type for slice is cell-centered //
     Box slice(slice_lo, slice_hi);
+    
+
 
     // Convert from cc to index type of parent multifab //
-    const auto conversionType = (*mf[0]).ixType();
     IntVect convertTypeofSlice(AMREX_D_DECL(0,0,0));
     bool slicetypeToBeConverted = 0;
     for ( int idim = 0; idim < AMREX_SPACEDIM; ++idim )
@@ -261,7 +280,8 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
     else {
        smf[0].reset(new MultiFab(sba[0],sdmap[0],ncomp,nghost));
     }
-
+    smf[0]->setVal(1);
+    VisMF::Write((*smf[0]),"vismf_init");
     // Copy data from domain to slice that has same cell size as that of the domain mf.  
     (*smf[0]).ParallelCopy((*mf[0]), 0, 0, ncomp);  
 
@@ -354,24 +374,30 @@ void InitializeVariables(Vector<MultiFab*> mf, Vector<Geometry> geom)
     const Real *dom_dx = geom[0].CellSize();
     for (int lev = 0; lev < nlevs; ++lev) {
         for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-
-            MultiFab& mfSrc = *mf[lev];
-            auto const &mf_arr = mfSrc.array(mfi);
-
-            const Box& bx = mfi.validbox();
             
-            for (int k = bx.smallEnd(2); k < bx.bigEnd(2); ++k ) {
-                for (int j = bx.smallEnd(1); j < bx.bigEnd(1); ++j ) {
-                    for (int i = bx.smallEnd(0); i < bx.bigEnd(0); ++i ) {
-                        int icomp = 0;
-                        mf_arr(i,j,k,icomp) = i * dom_dx[0]; ++icomp;
-                        mf_arr(i,j,k,icomp) = j * dom_dx[1]; ++icomp;
-                        mf_arr(i,j,k,icomp) = k * dom_dx[2]; ++icomp;
-                        mf_arr(i,j,k,icomp) = i * dom_dx[0]; ++icomp;
-                        mf_arr(i,j,k,icomp) = j * dom_dx[1]; ++icomp;
-                        mf_arr(i,j,k,icomp) = k * dom_dx[2]; 
-                    }
-                }
+            MultiFab &mfSrc= *mf[lev];
+            auto const &mf_arr = mfSrc.array(mfi);
+            const Box& bx = mfi.tilebox();
+            const auto IndType = (*mf[lev]).ixType();
+            const auto lo = amrex::lbound(bx); 
+            const auto hi = amrex::ubound(bx); 
+            for (int k = lo.z; k<=hi.z; ++k) {
+               for (int j = lo.y; j<=hi.y; ++j) {
+                  for (int i = lo.x; i<=hi.x; ++i) {
+                      int icomp= 0;
+		      mf_arr(i,j,k,icomp) = i * dom_dx[0] + (1.0-IndType[0])*dom_dx[0]*0.5; 
+                      ++icomp;      
+                      mf_arr(i,j,k,icomp) = j * dom_dx[1] + (1.0-IndType[1])*dom_dx[1]*0.5; 
+                      ++icomp;      
+                      mf_arr(i,j,k,icomp) = k * dom_dx[2] + (1.0-IndType[2])*dom_dx[2]*0.5; 
+                      ++icomp;      
+                      mf_arr(i,j,k,icomp) = i * dom_dx[0] + (1.0-IndType[0])*dom_dx[0]*0.5;
+                      ++icomp;      
+                      mf_arr(i,j,k,icomp) = j * dom_dx[1] + (1.0-IndType[1])*dom_dx[1]*0.5; 
+                      ++icomp;      
+                      mf_arr(i,j,k,icomp) = k * dom_dx[2] + (1.0-IndType[2])*dom_dx[2]*0.5;
+                  }
+               }
             }
         }
     }

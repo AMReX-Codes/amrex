@@ -1,9 +1,9 @@
 # Domain size
-ncells = 256
+ncells = 20
 
 # Maximum allowable size of each subdomain in the problem domain; 
 # this is used to decompose the domain for parallel calculations.
-max_grid_size = 32
+max_grid_size = 2
 
 # Number of levels
 nlevs = 1
@@ -15,7 +15,7 @@ ncomp = 6
 nppc = 2
 
 #slice domain
-slice.dom_lo = 0.0 0.0 0.0
-slice.dom_hi = 0.0 0.25 1.0
-slice.n_cells = 0 32 256
-slice.max_grid_size = 16
+slice.dom_lo = 0.49 0.49 0.0
+slice.dom_hi = 0.49 0.49 0.45
+slice.n_cells = 0 0 9
+slice.max_grid_size = 2
