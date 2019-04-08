@@ -546,8 +546,8 @@ void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
                 const std::array<amrex::MultiFab*,3>& E_cp)
 {
-    ExchangeB(PatchType::fine, E_fp);
-    ExchangeB(PatchType::coarse, E_cp);
+    ExchangeE(PatchType::fine, E_fp);
+    ExchangeE(PatchType::coarse, E_cp);
 }
 
 void
