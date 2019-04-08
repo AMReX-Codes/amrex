@@ -282,7 +282,6 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
                 pywarpx.warpx.moving_window_dir = 'z'
                 pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
 
-        """Not implemented in standard yet
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
             assert self.refined_regions[0][0] == 1, Exception('The one refined region can only be level 1')
@@ -292,7 +291,6 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
             # The refinement_factor is ignored (assumed to be [2,2])
         else:
             pywarpx.amr.max_level = 0
-        """
 
 
 class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
