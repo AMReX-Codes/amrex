@@ -5,6 +5,9 @@
 #include <openPMD/openPMD.hpp>
 #endif
 
+#include <AMReX_FillPatchUtil_F.H>
+#include <AMReX_Interpolater.H>
+
 using namespace amrex;
 
 #ifdef WARPX_USE_OPENPMD
@@ -510,3 +513,294 @@ coarsenCellCenteredFields(
         average_down(source_mf[lev], coarse_mf[lev], 0, ncomp, IntVect(coarse_ratio));
     }
 };
+
+
+/** \brief Write the data from MultiFab `F` into the file `filename`
+ *  as a raw field (i.e. no interpolation to cell centers).
+ *  Write guard cells if `plot_guards` is True.
+ */
+void
+WriteRawField( const MultiFab& F, const DistributionMapping& dm,
+                const std::string& filename,
+                const std::string& level_prefix,
+                const std::string& field_name,
+                const int lev, const bool plot_guards )
+{
+    std::string prefix = amrex::MultiFabFileFullPrefix(lev,
+                            filename, level_prefix, field_name);
+
+    if (plot_guards) {
+        // Dump original MultiFab F
+        VisMF::Write(F, prefix);
+    } else {
+        // Copy original MultiFab into one that does not have guard cells
+        MultiFab tmpF( F.boxArray(), dm, 1, 0);
+        MultiFab::Copy(tmpF, F, 0, 0, 1, 0);
+        VisMF::Write(tmpF, prefix);
+    }
+
+}
+
+/** \brief Write a multifab of the same shape as `F` but filled with 0.
+ *  (The shape includes guard cells if `plot_guards` is True.)
+ *  This is mainly needed because the yt reader requires all levels of the
+ *  coarse/fine patch to be written, but WarpX does not have data for
+ *  the coarse patch of level 0 (meaningless).
+ */
+void
+WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
+                const std::string& filename,
+                const std::string& level_prefix,
+                const std::string& field_name,
+                const int lev, const int ng )
+{
+    std::string prefix = amrex::MultiFabFileFullPrefix(lev,
+                            filename, level_prefix, field_name);
+
+    MultiFab tmpF(F.boxArray(), dm, 1, ng);
+    tmpF.setVal(0.);
+    VisMF::Write(tmpF, prefix);
+}
+
+/** \brief Write the coarse scalar multifab `F_cp` to the file `filename`
+ *  *after* sampling/interpolating its value on the fine grid corresponding
+ *  to `F_fp`. This is mainly needed because the yt reader requires the
+ *  coarse and fine patch to have the same shape.
+ */
+void
+WriteCoarseScalar( const std::string field_name,
+    const std::unique_ptr<MultiFab>& F_cp,
+    const std::unique_ptr<MultiFab>& F_fp,
+    const DistributionMapping& dm,
+    const std::string& filename,
+    const std::string& level_prefix,
+    const int lev, const bool plot_guards,
+    const int r_ratio, const Real* dx, const int icomp )
+{
+    int ng = 0;
+    if (plot_guards) ng = F_fp->nGrow();
+
+    if (lev == 0) {
+        // No coarse field for level 0: instead write a MultiFab
+        // filled with 0, with the same number of cells as the _fp field
+        WriteZeroRawField( *F_fp, dm, filename, level_prefix, field_name+"_cp", lev, ng );
+    } else {
+        // Create an alias to the component `icomp` of F_cp
+        MultiFab F_comp(*F_cp, amrex::make_alias, 1, icomp);
+        auto F = getInterpolatedScalar( F_comp, *F_fp, dm, r_ratio, dx, ng );
+        WriteRawField( *F, dm, filename, level_prefix, field_name+"_cp", lev, plot_guards );
+    }
+}
+
+/** \brief Write the coarse vector multifab `F*_cp` to the file `filename`
+ *  *after* sampling/interpolating its value on the fine grid corresponding
+ *  to `F*_fp`. This is mainly needed because the yt reader requires the
+ *  coarse and fine patch to have the same shape.
+ */
+void
+WriteCoarseVector( const std::string field_name,
+    const std::unique_ptr<MultiFab>& Fx_cp,
+    const std::unique_ptr<MultiFab>& Fy_cp,
+    const std::unique_ptr<MultiFab>& Fz_cp,
+    const std::unique_ptr<MultiFab>& Fx_fp,
+    const std::unique_ptr<MultiFab>& Fy_fp,
+    const std::unique_ptr<MultiFab>& Fz_fp,
+    const DistributionMapping& dm,
+    const std::string& filename,
+    const std::string& level_prefix,
+    const int lev, const bool plot_guards,
+    const int r_ratio, const Real* dx )
+{
+    int ng = 0;
+    if (plot_guards) ng = Fx_fp->nGrow();
+
+    if (lev == 0) {
+        // No coarse field for level 0: instead write a MultiFab
+        // filled with 0, with the same number of cells as the _fp field
+        WriteZeroRawField( *Fx_fp, dm, filename, level_prefix, field_name+"x_cp", lev, ng );
+        WriteZeroRawField( *Fy_fp, dm, filename, level_prefix, field_name+"y_cp", lev, ng );
+        WriteZeroRawField( *Fz_fp, dm, filename, level_prefix, field_name+"z_cp", lev, ng );
+    } else {
+        auto F = getInterpolatedVector( Fx_cp, Fy_cp, Fz_cp, Fx_fp, Fy_fp, Fz_fp,
+                                    dm, r_ratio, dx, ng );
+        WriteRawField( *F[0], dm, filename, level_prefix, field_name+"x_cp", lev, plot_guards );
+        WriteRawField( *F[1], dm, filename, level_prefix, field_name+"y_cp", lev, plot_guards );
+        WriteRawField( *F[2], dm, filename, level_prefix, field_name+"z_cp", lev, plot_guards );
+    }
+}
+
+/** \brief Samples/Interpolates the coarse scalar multifab `F_cp` on the
+  * fine grid associated with the fine multifab `F_fp`.
+  */
+std::unique_ptr<MultiFab>
+getInterpolatedScalar(
+    const MultiFab& F_cp, const MultiFab& F_fp,
+    const DistributionMapping& dm, const int r_ratio,
+    const Real* dx, const int ngrow )
+{
+    // Prepare the structure that will contain the returned fields
+    std::unique_ptr<MultiFab> interpolated_F;
+    interpolated_F.reset( new MultiFab(F_fp.boxArray(), dm, 1, ngrow) );
+    interpolated_F->setVal(0.);
+
+    // Loop through the boxes and interpolate the values from the _cp data
+    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox ffab; // Temporary array ; contains interpolated fields
+        for (MFIter mfi(*interpolated_F); mfi.isValid(); ++mfi)
+        {
+            Box ccbx = mfi.fabbox();
+            ccbx.enclosedCells();
+            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+
+            const FArrayBox& cfab = (F_cp)[mfi];
+            ffab.resize(amrex::convert(ccbx,(F_fp)[mfi].box().type()));
+
+            // - Fully nodal
+            if ( F_fp.is_nodal() ){
+                IntVect refinement_vector{AMREX_D_DECL(r_ratio, r_ratio, r_ratio)};
+                node_bilinear_interp.interp(cfab, 0, ffab, 0, 1,
+                        ccbx, refinement_vector, {}, {}, {}, 0, 0);
+            } else {
+                amrex::Abort("Unknown field staggering.");
+            }
+
+            // Add temporary array to the returned structure
+            const Box& bx = (*interpolated_F)[mfi].box();
+            (*interpolated_F)[mfi].plus(ffab, bx, bx, 0, 0, 1);
+        }
+    }
+    return interpolated_F;
+}
+
+/** \brief Samples/Interpolates the coarse vector multifab `F*_cp` on the
+  * fine grid associated with the fine multifab `F*_fp`.
+  */
+std::array<std::unique_ptr<MultiFab>, 3>
+getInterpolatedVector(
+    const std::unique_ptr<MultiFab>& Fx_cp,
+    const std::unique_ptr<MultiFab>& Fy_cp,
+    const std::unique_ptr<MultiFab>& Fz_cp,
+    const std::unique_ptr<MultiFab>& Fx_fp,
+    const std::unique_ptr<MultiFab>& Fy_fp,
+    const std::unique_ptr<MultiFab>& Fz_fp,
+    const DistributionMapping& dm, const int r_ratio,
+    const Real* dx, const int ngrow )
+{
+
+    // Prepare the structure that will contain the returned fields
+    std::array<std::unique_ptr<MultiFab>, 3> interpolated_F;
+    interpolated_F[0].reset( new MultiFab(Fx_fp->boxArray(), dm, 1, ngrow) );
+    interpolated_F[1].reset( new MultiFab(Fy_fp->boxArray(), dm, 1, ngrow) );
+    interpolated_F[2].reset( new MultiFab(Fz_fp->boxArray(), dm, 1, ngrow) );
+    for (int i=0; i<3; i++) interpolated_F[i]->setVal(0.);
+
+    // Loop through the boxes and interpolate the values from the _cp data
+    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,3> ffab; // Temporary array ; contains interpolated fields
+        for (MFIter mfi(*interpolated_F[0]); mfi.isValid(); ++mfi)
+        {
+            Box ccbx = mfi.fabbox();
+            ccbx.enclosedCells();
+            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+
+            const FArrayBox& cxfab = (*Fx_cp)[mfi];
+            const FArrayBox& cyfab = (*Fy_cp)[mfi];
+            const FArrayBox& czfab = (*Fz_cp)[mfi];
+            ffab[0].resize(amrex::convert(ccbx,(*Fx_fp)[mfi].box().type()));
+            ffab[1].resize(amrex::convert(ccbx,(*Fy_fp)[mfi].box().type()));
+            ffab[2].resize(amrex::convert(ccbx,(*Fz_fp)[mfi].box().type()));
+
+            // - Face centered, in the same way as B on a Yee grid
+            if ( (*Fx_fp)[mfi].box().type() == IntVect{AMREX_D_DECL(1,0,0)} ){
+#if (AMREX_SPACEDIM == 3)
+                amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                             BL_TO_FORTRAN_ANYD(ffab[0]),
+                                             BL_TO_FORTRAN_ANYD(ffab[1]),
+                                             BL_TO_FORTRAN_ANYD(ffab[2]),
+                                             BL_TO_FORTRAN_ANYD(cxfab),
+                                             BL_TO_FORTRAN_ANYD(cyfab),
+                                             BL_TO_FORTRAN_ANYD(czfab),
+                                             dx, &r_ratio, &use_limiter);
+#else
+                amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                             BL_TO_FORTRAN_ANYD(ffab[0]),
+                                             BL_TO_FORTRAN_ANYD(ffab[2]),
+                                             BL_TO_FORTRAN_ANYD(cxfab),
+                                             BL_TO_FORTRAN_ANYD(czfab),
+                                             dx, &r_ratio, &use_limiter);
+                amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                       BL_TO_FORTRAN_ANYD(ffab[1]),
+                                       BL_TO_FORTRAN_ANYD(cyfab),
+                                       &r_ratio, &use_limiter);
+#endif
+            // - Edge centered, in the same way as E on a Yee grid
+            } else if ( (*Fx_fp)[mfi].box().type() == IntVect{AMREX_D_DECL(0,1,1)} ){
+#if (AMREX_SPACEDIM == 3)
+                amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                    BL_TO_FORTRAN_ANYD(ffab[0]),
+                                    BL_TO_FORTRAN_ANYD(ffab[1]),
+                                    BL_TO_FORTRAN_ANYD(ffab[2]),
+                                    BL_TO_FORTRAN_ANYD(cxfab),
+                                    BL_TO_FORTRAN_ANYD(cyfab),
+                                    BL_TO_FORTRAN_ANYD(czfab),
+                                    &r_ratio, &use_limiter);
+#else
+                amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                    BL_TO_FORTRAN_ANYD(ffab[0]),
+                                    BL_TO_FORTRAN_ANYD(ffab[2]),
+                                    BL_TO_FORTRAN_ANYD(cxfab),
+                                    BL_TO_FORTRAN_ANYD(czfab),
+                                    &r_ratio,&use_limiter);
+                amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
+                                       BL_TO_FORTRAN_ANYD(ffab[1]),
+                                       BL_TO_FORTRAN_ANYD(cyfab),
+                                       &r_ratio);
+#endif
+            } else {
+                amrex::Abort("Unknown field staggering.");
+            }
+
+            // Add temporary array to the returned structure
+            for (int i = 0; i < 3; ++i) {
+                const Box& bx = (*interpolated_F[i])[mfi].box();
+                (*interpolated_F[i])[mfi].plus(ffab[i], bx, bx, 0, 0, 1);
+            }
+        }
+    }
+    return interpolated_F;
+}
+
+std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedE(int lev) const
+{
+
+    const int ngrow = 0;
+    const DistributionMapping& dm = DistributionMap(lev);
+    const Real* dx = Geom(lev-1).CellSize();
+    const int r_ratio = refRatio(lev-1)[0];
+
+    return getInterpolatedVector(
+        Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
+        Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
+        dm, r_ratio, dx, ngrow );
+}
+
+std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
+{
+    const int ngrow = 0;
+    const DistributionMapping& dm = DistributionMap(lev);
+    const Real* dx = Geom(lev-1).CellSize();
+    const int r_ratio = refRatio(lev-1)[0];
+
+    return getInterpolatedVector(
+        Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
+        Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
+        dm, r_ratio, dx, ngrow );
+}
