@@ -2579,7 +2579,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                  const Vector<std::string>& int_comp_names) const
 {    
     AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
-    AMREX_ASSERT( int_comp_names.size() == NStructINt  + NArrayInt );
+    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
 
     Vector<int> write_real_comp;
     for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
@@ -2601,7 +2601,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                  const Vector<int>& write_int_comp) const
 {    
     AMREX_ASSERT(write_real_comp.size() == NStructReal + NArrayReal);
-    AMREX_ASSERT(write_int_comp.size()  == NStructINt  + NArrayInt );
+    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
     
     Vector<std::string> real_comp_names;
     for (int i = 0; i < NStructReal + NArrayReal; ++i )
