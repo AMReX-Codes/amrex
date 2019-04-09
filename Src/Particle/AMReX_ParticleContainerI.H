@@ -2516,6 +2516,53 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Checkpoint (const std::string& dir,
+              const std::string& name, bool is_checkpoint,
+              const Vector<std::string>& real_comp_names,
+              const Vector<std::string>& int_comp_names) const
+{
+    Vector<int> write_real_comp;
+    Vector<std::string> tmp_real_comp_names;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    {
+        write_real_comp.push_back(1);
+        if (real_comp_names.size() == 0)
+        {
+            std::stringstream ss;
+            ss << "real_comp" << i;
+            tmp_real_comp_names.push_back(ss.str());
+        }
+        else
+        {
+            tmp_real_comp_names.push_back(real_comp_names[i]);
+        }
+    }
+    
+    Vector<int> write_int_comp;
+    Vector<std::string> tmp_int_comp_names;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    {
+        write_int_comp.push_back(1);
+        if (int_comp_names.size() == 0)
+        {
+            std::stringstream ss;
+            ss << "int_comp" << i;
+            tmp_int_comp_names.push_back(ss.str());
+        }
+        else
+        {
+            tmp_int_comp_names.push_back(int_comp_names[i]);
+        }
+    }
+
+    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
+                            tmp_real_comp_names, tmp_int_comp_names);
+    
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Checkpoint (const std::string& dir, const std::string& name) const
 {
     Vector<int> write_real_comp;
@@ -2587,6 +2634,33 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Vector<int> write_int_comp;
     for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
 
+    WriteBinaryParticleData(dir, name,
+                            write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names);        
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WritePlotFile (const std::string& dir, const std::string& name,
+                 const Vector<std::string>& real_comp_names) const
+{    
+    AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
+
+    Vector<int> write_real_comp;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+
+    Vector<int> write_int_comp;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+
+    Vector<std::string> int_comp_names;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    {
+        std::stringstream ss;
+        ss << "int_comp" << i;
+        int_comp_names.push_back(ss.str());
+    }
+        
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
                             real_comp_names, int_comp_names);        
@@ -3193,6 +3267,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
     }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Restart (const std::string& dir, const std::string& file, bool is_checkpoint)
+{
+    Restart(dir, file);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

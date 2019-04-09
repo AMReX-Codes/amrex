@@ -518,6 +518,13 @@ public:
      */
     void Checkpoint (const std::string& dir, const std::string& name) const;
 
+    /**
+     * \brief Older form of checkpoint, for reverse compatability
+     */
+    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
+                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
+                     const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
+    
     void WriteBinaryParticleData (const std::string& dir,
                                   const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -535,6 +542,11 @@ public:
     void Restart (const std::string& dir, const std::string& file);
 
     /**
+     *   Older version, for backwards compatability
+     */
+    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint);
+    
+    /**
      *  This version of WritePlotFile writes all components and assigns component names
      */
     void WritePlotFile (const std::string& dir, const std::string& name) const;
@@ -547,6 +559,13 @@ public:
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names) const;
 
+    /**
+     *  This version of WritePlotFile writes all components and allows the user to specify
+     *  the names of the components.
+     */
+    void WritePlotFile (const std::string& dir, const std::string& name,
+                        const Vector<std::string>& real_comp_names) const;
+    
     /**
      *  This version of WritePlotFile assigns component names, but allows the user to pass
      *  in a vector of ints that toggle on / off the writing of specfic components.
