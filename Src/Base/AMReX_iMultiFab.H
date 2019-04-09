@@ -7,6 +7,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Geometry.H>
+#include <memory>
 
 namespace amrex {
 
@@ -510,6 +511,9 @@ public:
     static void Initialize ();
     static void Finalize ();
 };
+
+std::unique_ptr<iMultiFab>
+OwnerMask (FabArrayBase const& mf, const Periodicity& period);
 
 }
 

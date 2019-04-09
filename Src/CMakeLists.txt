@@ -75,6 +75,10 @@ if (ENABLE_CONDUIT)
    add_subdirectory(Extern/Conduit)
 endif ()
 
+if (ENABLE_HYPRE)
+   add_subdirectory(Extern/HYPRE)
+endif ()
+
 #
 # Here we generate AMReX_BuildInfo.cpp
 # If Python < 2.7, script won't work so

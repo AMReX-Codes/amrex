@@ -1062,7 +1062,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     const int ncomp = linop.getNComp();
 
     if (!linop_prepared) {
-        linop.prepareForSolve();
+        linop.prepareForSolve(this);
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
@@ -1071,6 +1071,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 #ifdef AMREX_USE_HYPRE
     hypre_solver.reset();
     hypre_bndry.reset();
+    hypre_node_solver.reset();
 #endif
 
 #ifdef AMREX_USE_PETSC
@@ -1676,26 +1677,37 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
     const int ncomp = linop.getNComp();
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithHypre doesn't work with ncomp > 1");
 
-    if (hypre_solver == nullptr)  // We should reuse the setup
+    if (linop.isCellCentered())
     {
-        hypre_solver = linop.makeHypre(hypre_interface);
-        hypre_solver->setVerbose(bottom_verbose);
+        if (hypre_solver == nullptr)  // We should reuse the setup
+        {
+            hypre_solver = linop.makeHypre(hypre_interface);
+            hypre_solver->setVerbose(bottom_verbose);
 
-        const BoxArray& ba = linop.m_grids[0].back();
-        const DistributionMapping& dm = linop.m_dmap[0].back();
-        const Geometry& geom = linop.m_geom[0].back();
+            const BoxArray& ba = linop.m_grids[0].back();
+            const DistributionMapping& dm = linop.m_dmap[0].back();
+            const Geometry& geom = linop.m_geom[0].back();
 
-        hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
-        hypre_bndry->setHomogValues();
-        const Real* dx = linop.m_geom[0][0].CellSize();
-        int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
-        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
-                                         0.5*dx[1]*crse_ratio,
-                                         0.5*dx[2]*crse_ratio));
-        hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+            hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
+            hypre_bndry->setHomogValues();
+            const Real* dx = linop.m_geom[0][0].CellSize();
+            int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
+            RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
+                                             0.5*dx[1]*crse_ratio,
+                                             0.5*dx[2]*crse_ratio));
+            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+        }
+
+        hypre_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
     }
-
-    hypre_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
+    else
+    {
+        if (hypre_node_solver == nullptr)
+        {
+            hypre_node_solver = linop.makeHypreNodeLap(bottom_verbose);
+        }
+        hypre_node_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter);
+    }
 
 #endif
 }

@@ -6,6 +6,7 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
@@ -188,6 +189,7 @@ private:
 #endif
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
+    std::unique_ptr<HypreNodeLap> hypre_node_solver;
 #endif
 
     //! PETSc

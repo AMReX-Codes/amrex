@@ -929,6 +929,38 @@ prefetchToDevice (FabArray<FAB> const& fa)
 #endif
 }
 
+template <class FAB, class IFAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value
+                                                               && IsBaseFab<IFAB>::value> >
+void
+OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
+{
+    BL_PROFILE("OverrideSync()");
+
+    if (fa.ixType().cellCentered()) return;
+    
+    const int ncomp = fa.nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto fab = fa.array(mfi);
+        auto const ifab = msk.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
+        });
+    }
+    
+    FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0, MFInfo(), fa.Factory());
+    tmpmf.setVal(0);
+    tmpmf.ParallelCopy(fa, period, FabArrayBase::ADD);
+
+    amrex::Copy(fa, tmpmf, 0, 0, ncomp, 0);
+}
+
 }
 
 #endif

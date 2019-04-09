@@ -33,28 +33,28 @@ static
 bool
 isPlotVar (const std::string& name)
 {
-    for (std::list<std::string>::const_iterator li = plot_vars.begin();
-         li != plot_vars.end();
-         ++li)
-    {
-        if (*li == name)
-            return true;
-    }
+  for (std::list<std::string>::const_iterator li = plot_vars.begin();
+       li != plot_vars.end();
+       ++li)
+  {
+    if (*li == name)
+      return true;
+  }
 
-    return false;
+  return false;
 }
 
 static
 void
 PrintUsage (char* progName)
 {
-    std::cout << "\nUsage:\n"
-         << progName
-         << "\n\tinfile = inputFileName"
-         << "\n\tplot_vars = list of plot variables (none specified --> ALL)"
-         << "\n\t[-help]"
-         << "\n\n";
-    exit(1);
+  std::cout << "\nUsage:\n"
+            << progName
+            << "\n\tinfile = inputFileName"
+            << "\n\tplot_vars = list of plot variables (none specified --> ALL)"
+            << "\n\t[-help]"
+            << "\n\n";
+  exit(1);
 }
 
 //
@@ -74,19 +74,19 @@ static
 int
 ByteOrder ()
 {
-    const int BigEndian   = 1000;
-    const int SmallEndian = 0;
+  const int BigEndian   = 1000;
+  const int SmallEndian = 0;
 
-    union
-    {
-        long Long;
-        char Char[sizeof(long)];
-    }
-    SwapTest;
+  union
+  {
+    long Long;
+    char Char[sizeof(long)];
+  }
+  SwapTest;
 
-    SwapTest.Long = 1;
+  SwapTest.Long = 1;
 
-    return SwapTest.Char[0] == 1 ? SmallEndian : BigEndian;
+  return SwapTest.Char[0] == 1 ? SmallEndian : BigEndian;
 }
 
 static
@@ -96,26 +96,26 @@ WriteFab (std::ostream&         os,
           const char*      name)
 
 {
-    int nx = fab.box().length(0);
-    int ny = fab.box().length(1);
-    int dim = BL_SPACEDIM;
+  int nx = fab.box().length(0);
+  int ny = fab.box().length(1);
+  int dim = BL_SPACEDIM;
 
 
 #if (BL_SPACEDIM == 2)
-    for (int i = 0; i < nx; i++)
-     for (int j = 0; j < ny; j++)
-     {
-       int index = j*nx + i;
-       const Real * ptr = fab.dataPtr();
-       os.write((char*)(ptr+index),sizeof(Real));
-     }
+  for (int i = 0; i < nx; i++)
+    for (int j = 0; j < ny; j++)
+    {
+      int index = j*nx + i;
+      const Real * ptr = fab.dataPtr();
+      os.write((char*)(ptr+index),sizeof(Real));
+    }
 
 #elif (BL_SPACEDIM == 3)
-    int nz = fab.box().length(2);
-    os.write((char*)&nz,sizeof(int));
+  int nz = fab.box().length(2);
+  os.write((char*)&nz,sizeof(int));
 
-    for (int k = 0; k < nz; k++)
-     for (int i = 0; i < nx; i++)
+  for (int k = 0; k < nz; k++)
+    for (int i = 0; i < nx; i++)
       for (int j = 0; j < ny; j++)
       {
         int index = k*(nx*ny) + j*nx + i;
@@ -131,15 +131,15 @@ WriteLoc (std::ostream&           os,
           Real* lo, Real* hi)
 {
 
-    Real buf[2*BL_SPACEDIM];
+  Real buf[2*BL_SPACEDIM];
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-        buf[i]             = lo[i];
-        buf[i+BL_SPACEDIM] = hi[i];
-    }
-    for (int i = 0; i < 2*BL_SPACEDIM; i++)
-      os.write((char*)&(buf[i]),sizeof(Real));
+  for (int i = 0; i < BL_SPACEDIM; i++)
+  {
+    buf[i]             = lo[i];
+    buf[i+BL_SPACEDIM] = hi[i];
+  }
+  for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    os.write((char*)&(buf[i]),sizeof(Real));
 }
 
 static
@@ -148,119 +148,119 @@ Write (AmrData&       amrData,
        const std::string& iFile_name,
        const std::list<std::string> plot_vars)
 {
-    int finest_level = amrData.FinestLevel();
+  int finest_level = amrData.FinestLevel();
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+  VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    char buf[128];
+  char buf[128];
 
-    for (int icomp = 0; icomp < amrData.NComp(); icomp++)
+  for (int icomp = 0; icomp < amrData.NComp(); icomp++)
+  {
+    //
+    // Write one component per file.
+    //
+    const std::string& CompName = amrData.PlotVarNames()[icomp];
+    if (isPlotVar(CompName))
     {
-      //
-      // Write one component per file.
-      //
-      const std::string& CompName = amrData.PlotVarNames()[icomp];
-      if (isPlotVar(CompName))
-      {
 
-        std::string file = iFile_name;
-        file += '_';
-        file += CompName;
-        file += ".mat";
+      std::string file = iFile_name;
+      file += '_';
+      file += CompName;
+      file += ".mat";
 
-        std::ofstream os;
+      std::ofstream os;
 
-        os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+      os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-        os.open(file.c_str(), std::ios::out|std::ios::binary);
+      os.open(file.c_str(), std::ios::out|std::ios::binary);
 
-        if (os.fail()) {
-          amrex::FileOpenFailed(file);
-        }
+      if (os.fail()) {
+        amrex::FileOpenFailed(file);
+      }
 
-        int dim = BL_SPACEDIM;
-        os.write((char*)&dim,sizeof(int));
+      int dim = BL_SPACEDIM;
+      os.write((char*)&dim,sizeof(int));
 
-        int num_levels = finest_level+1;
-        os.write((char*)&num_levels,sizeof(int));
+      int num_levels = finest_level+1;
+      os.write((char*)&num_levels,sizeof(int));
 
 //      Write the number of grids at each level
-        for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
-        {
-          MultiFab& mf = amrData.GetGrids(iLevel,icomp);
-          const BoxArray& ba = mf.boxArray();
-          int num_grids = ba.size();
-          os.write((char*)&num_grids,sizeof(int));
-        }
+      for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
+      {
+        MultiFab& mf = amrData.GetGrids(iLevel,icomp);
+        const BoxArray& ba = mf.boxArray();
+        int num_grids = ba.size();
+        os.write((char*)&num_grids,sizeof(int));
+      }
 
 //      Write the (Real) physical locations of each grid at each level
-        for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
+      for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
+      {
+        MultiFab& mf = amrData.GetGrids(iLevel,icomp);
+        const BoxArray& ba = mf.boxArray();
+        int num_grids = ba.size();
+        for (int i = 0; i < num_grids; ++i)
         {
-          MultiFab& mf = amrData.GetGrids(iLevel,icomp);
-          const BoxArray& ba = mf.boxArray();
-          int num_grids = ba.size();
-          for (int i = 0; i < num_grids; ++i)
+          for (int idim = 0; idim < BL_SPACEDIM; ++idim)
           {
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim)
-            {
-              Real xlo = amrData.GridLocLo()[iLevel][i][idim];
-              Real xhi = amrData.GridLocHi()[iLevel][i][idim];
-              os.write((char*)&xlo,sizeof(Real));
-              os.write((char*)&xhi,sizeof(Real));
-            }
+            Real xlo = amrData.GridLocLo()[iLevel][i][idim];
+            Real xhi = amrData.GridLocHi()[iLevel][i][idim];
+            os.write((char*)&xlo,sizeof(Real));
+            os.write((char*)&xhi,sizeof(Real));
           }
-        }
-
-//      Write the (integer) dimensions of each grid at each level
-        for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
-        {
-          MultiFab& mf = amrData.GetGrids(iLevel,icomp);
-          const BoxArray& ba = mf.boxArray();
-          int num_grids = ba.size();
-          for (int i = 0; i < num_grids; ++i)
-          {
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim)
-            {
-              int n = ba[i].length(idim);
-              os.write((char*)&n,sizeof(int));
-            }
-          }
-        }
-
-//      Write the (Real) actual data of each grid at each level
-        for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
-        {
-          MultiFab& mf = amrData.GetGrids(iLevel,icomp);
-          const BoxArray& ba = mf.boxArray();
-          int num_grids = ba.size();
-          for (int ig = 0; ig < num_grids; ++ig) 
-          {
-              sprintf(buf,
-                      "%s_%d_%d",
-                      CompName.c_str(),
-                      iLevel,
-                      ig);
-              WriteFab(os, mf[ig], buf);
-          }
-        }
-
-        os.close();
-
-        if (os.fail()) {
-          amrex::FileOpenFailed(file);
         }
       }
+
+//      Write the (integer) dimensions of each grid at each level
+      for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
+      {
+        MultiFab& mf = amrData.GetGrids(iLevel,icomp);
+        const BoxArray& ba = mf.boxArray();
+        int num_grids = ba.size();
+        for (int i = 0; i < num_grids; ++i)
+        {
+          for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+          {
+            int n = ba[i].length(idim);
+            os.write((char*)&n,sizeof(int));
+          }
+        }
+      }
+
+//      Write the (Real) actual data of each grid at each level
+      for (int iLevel = 0; iLevel <= finest_level; ++iLevel)
+      {
+        MultiFab& mf = amrData.GetGrids(iLevel,icomp);
+        const BoxArray& ba = mf.boxArray();
+        int num_grids = ba.size();
+        for (int ig = 0; ig < num_grids; ++ig) 
+        {
+          sprintf(buf,
+                  "%s_%d_%d",
+                  CompName.c_str(),
+                  iLevel,
+                  ig);
+          WriteFab(os, mf[ig], buf);
+        }
+      }
+
+      os.close();
+
+      if (os.fail()) {
+        amrex::FileOpenFailed(file);
+      }
     }
+  }
 }
 
 int
 main (int   argc,
       char* argv[])
 {
-    amrex::Initialize(argc,argv);
-
+  amrex::Initialize(argc,argv);
+  {
     if (argc == 1)
-        PrintUsage(argv[0]);
+      PrintUsage(argv[0]);
 
     if (ParallelDescriptor::NProcs() > 1) {
       amrex::Error("This is an inherently serial program");
@@ -269,7 +269,7 @@ main (int   argc,
     ParmParse pp;
 
     if (pp.contains("help"))
-        PrintUsage(argv[0]);
+      PrintUsage(argv[0]);
     //
     // MatLab expects native floating-point format.
     //
@@ -280,7 +280,7 @@ main (int   argc,
     std::string iFile;
     pp.query("infile", iFile);
     if (iFile.empty()) {
-        amrex::Abort("You must specify `infile'");
+      amrex::Abort("You must specify `infile'");
     }
 
     DataServices::SetBatchMode();
@@ -290,10 +290,10 @@ main (int   argc,
 
     if (!dataServices.AmrDataOk())
     {
-        //
-        // This calls ParallelDescriptor::EndParallel() and exit()
-        //
-        DataServices::Dispatch(DataServices::ExitRequest, NULL);
+      //
+      // This calls ParallelDescriptor::EndParallel() and exit()
+      //
+      DataServices::Dispatch(DataServices::ExitRequest, NULL);
     }
     AmrData& amrData = dataServices.AmrDataRef();
 
@@ -319,7 +319,7 @@ main (int   argc,
     }
 
     Write(amrData, iFile, plot_vars);
-
-    Finalize();
+  }
+  Finalize();
 }
 
