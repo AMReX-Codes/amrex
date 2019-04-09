@@ -561,8 +561,18 @@ public:
 
     void CheckpointPost ();
 
+    /**
+     * This version of restart is for checkpoints that have all the components written out.
+     */
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
+    /**
+     * This version of restart is for checkpoints that only have a subset of the particle
+     * components stored in them.
+     */
+    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true,
+                  const Vector<int>& write_real_comp, const Vector<int>& write_int_comp);
+    
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names = Vector<std::string>(),
                         const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;

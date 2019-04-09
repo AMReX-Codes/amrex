@@ -3158,6 +3158,20 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Restart (const std::string& dir, const std::string& file, bool is_checkpoint)
 {
+    Vector<int> write_real_comp;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+
+    Vector<int> write_int_comp;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+    
+    Restart(dir, name, is_checkpoint, write_real_comp, write_int_comp);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Restart (const std::string& dir, const std::string& file, bool is_checkpoint)
+{
   BL_PROFILE("ParticleContainer::Restart()");
   BL_ASSERT(!dir.empty());
   BL_ASSERT(!file.empty());
