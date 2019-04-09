@@ -3128,21 +3128,27 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     
                     // optionally write these
                     for (int j = 0; j < NStructInt; j++)
-                        if (write_int_comp[j]) iptr[j] = p.m_idata.arr[2+j];
-                    
-                    for (int j = 0; j < NStructInt; j++)
-                        if (write_int_comp[j]) ++iptr;;
+                    {
+                        if (write_int_comp[j])
+                        {
+                            *iptr = p.m_idata.arr[2+j];
+                            ++iptr;
+                        }
+                    }
                     
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NArrayInt; j++)
-                        if (write_int_comp[NStructInt+j]) iptr[j] = soa.GetIntData(j)[pindex];
-                    
-                    for (int j = 0; j < NArrayInt; j++)
-                        if (write_int_comp[NStructInt+j]) ++iptr;
+                    {
+                        if (write_int_comp[NStructInt+j])
+                        {
+                            *iptr = soa.GetIntData(j)[pindex];
+                            ++iptr;
+                        }
+                    }
                 }
             }
         }
-        
+                
         writeIntData(istuff.dataPtr(), istuff.size(), ofs);
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
         
@@ -3160,26 +3166,32 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     // always write these
                     for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.m_rdata.arr[j];
                     rptr += AMREX_SPACEDIM;
-
+                    
                     // optionally write these
                     for (int j = 0; j < NStructReal; j++)
-                        if (write_real_comp[j]) rptr[j] = p.m_rdata.arr[AMREX_SPACEDIM+j];
-
-                    for (int j = 0; j < NStructReal; j++)
-                        if (write_real_comp[j]) ++rptr;
+                    {
+                        if (write_real_comp[j])
+                        {
+                            *rptr = p.m_rdata.arr[AMREX_SPACEDIM+j];
+                            ++rptr;
+                        }
+                    }
                     
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NArrayReal; j++)
+                    {
                         if (write_real_comp[NStructReal+j])
-                            rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
-
-                    for (int j = 0; j < NArrayReal; j++)
-                        if (write_real_comp[NStructReal+j]) ++rptr;
+                        {
+                            *rptr = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
+                            ++rptr;
+                        }
+                    }
                 }
             }
         }
+        
         WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
-        ofs.flush();  // Some systems require this flush() (probably due to a bug)              
+        ofs.flush();  // Some systems require this flush() (probably due to a bug)
     }
 }
 
