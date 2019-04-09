@@ -15,6 +15,7 @@ if (ENABLE_FORTRAN_INTERFACES)
       # CVODE interfaces
       cvode_interface.f90
       fcvode_mod.f90
+      )
 endif ()
 
 #
@@ -30,9 +31,9 @@ if (ENABLE_CUDA)
    list(APPEND _sundials_components nveccuda)
 endif ()
 
-find_package(SUNDIALS REQUIRED COMPONENTS ${_sundials_components})
+find_package(SUNDIALS 4 REQUIRED COMPONENTS ${_sundials_components})
 
-foreach(_comp ${_sundials_components})
+foreach (_comp ${_sundials_components})
    target_link_libraries(amrex PUBLIC SUNDIALS::${_comp})   
 endforeach ()
 
