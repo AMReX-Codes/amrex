@@ -755,22 +755,16 @@ protected:
     * \param where
     * \param is_checkpoint
     */
-    void WriteParticles (int            level,
-                         std::ofstream& ofs,
-                         int            fnum,
-                         Vector<int>&    which,
-                         Vector<int>&    count,
-                         Vector<long>&   where,
-                         bool           is_checkpoint) const;
+    void WriteParticles (int level, std::ofstream& ofs, int fnum,
+                         Vector<int>& which, Vector<int>& count, Vector<long>& where,
+                         bool is_checkpoint, const Vector<int>& write_real_comp,
+                         const Vector<int>& write_int_comp) const;
 
     template <class RTYPE>
-    void ReadParticles (int            cnt,
-			int            grd,
-			int            lev,
-			bool           is_checkpoint,
+    void ReadParticles (int cnt, int grd, int lev, bool is_checkpoint,
+                        const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
 			std::ifstream& ifs);
-
-
+    
     void SetParticleSize ();
 
     void BuildRedistributeMask(int lev, int nghost=1) const;
