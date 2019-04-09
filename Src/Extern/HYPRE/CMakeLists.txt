@@ -2,7 +2,7 @@ if (DIM EQUAL 1)
    message(FATAL_ERROR "HYPRE interfaces are not supported for 1D builds")
 endif ()
 
-find_package(HYPRE REQUIRED)
+find_package(HYPRE 2.15 REQUIRED)
 
 target_compile_definitions( amrex
    PUBLIC
