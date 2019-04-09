@@ -2516,7 +2516,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint) const
+::Checkpoint (const std::string& dir, const std::string& name) const
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
@@ -2527,7 +2527,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ss << "real_comp" << i;
         real_comp_names.push_back(ss.str());
     }
-
+    
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NArrayInt; ++i )
@@ -2537,20 +2537,47 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ss << "int_comp" << i;
         int_comp_names.push_back(ss.str());
     }
-
-    Checkpoint(dir, name, is_checkpoint,
-               write_real_comp, write_int_comp,
-               real_comp_names, int_comp_names);
+    
+    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
-              const Vector<std::string>& real_comp_names,
-              const Vector<std::string>& int_comp_names) const
+::WritePlotFile (const std::string& dir, const std::string& name) const
 {
+    Vector<int> write_real_comp;
+    Vector<std::string> real_comp_names;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    {
+        write_real_comp.push_back(1);
+        std::stringstream ss;
+        ss << "real_comp" << i;
+        real_comp_names.push_back(ss.str());
+    }
     
+    Vector<int> write_int_comp;
+    Vector<std::string> int_comp_names;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    {
+        write_int_comp.push_back(1);
+        std::stringstream ss;
+        ss << "int_comp" << i;
+        int_comp_names.push_back(ss.str());
+    }
+    
+    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WritePlotFile (const std::string& dir, const std::string& name,
+                 const Vector<std::string>& real_comp_names,
+                 const Vector<std::string>& int_comp_names) const
+{    
     AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
     AMREX_ASSERT( int_comp_names.size() == NStructINt  + NArrayInt );
 
@@ -2560,21 +2587,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     Vector<int> write_int_comp;
     for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
 
-    Checkpoint(dir, name, is_checkpoint,
-               write_real_comp, write_int_comp,
-               real_comp_names, int_comp_names);        
+    WriteBinaryParticleData(dir, name,
+                            write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names);        
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
-              const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const
-{
-
+::WritePlotFile (const std::string& dir,
+                 const std::string& name,
+                 const Vector<int>& write_real_comp,
+                 const Vector<int>& write_int_comp) const
+{    
     AMREX_ASSERT(write_real_comp.size() == NStructReal + NArrayReal);
     AMREX_ASSERT(write_int_comp.size()  == NStructINt  + NArrayInt );
-
+    
     Vector<std::string> real_comp_names;
     for (int i = 0; i < NStructReal + NArrayReal; ++i )
     {
@@ -2591,23 +2619,39 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int_comp_names.push_back(ss.str());
     }
 
-    Checkpoint(dir, name, is_checkpoint,
-               write_real_comp, write_int_comp,
-               real_comp_names, int_comp_names);
+    WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
-              const Vector<int>& write_real_comp,
-              const Vector<int>& write_int_comp,
-              const Vector<std::string>& real_comp_names,
-              const Vector<std::string>& int_comp_names) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+WritePlotFile (const std::string& dir, const std::string& name,
+               const Vector<int>& write_real_comp,
+               const Vector<int>& write_int_comp,    
+               const Vector<std::string>& real_comp_names,
+               const Vector<std::string>&  int_comp_names) const
 {
-    BL_PROFILE("ParticleContainer::Checkpoint()");
-    BL_ASSERT(OK());
+    BL_PROFILE("ParticleContainer::WritePlotFile()");
+    
+    WriteBinaryParticleData(dir, name,
+                            write_real_comp, write_int_comp,
+                            real_comp_names, int_comp_names);
+}
 
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WriteBinaryParticleData (const std::string& dir, const std::string& name,
+                           const Vector<int>& write_real_comp,
+                           const Vector<int>& write_int_comp,
+                           const Vector<std::string>& real_comp_names,
+                           const Vector<std::string>& int_comp_names) const
+{
+    BL_PROFILE("ParticleContainer::WriteBinaryParticleData()");
+    BL_ASSERT(OK());
+    
     BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 ||
               sizeof(typename ParticleType::RealType) == 8);
     
@@ -2628,10 +2672,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     
     std::ofstream HdrFile;
-
+    
     long nparticles = 0;
     int maxnextid;
-
+    
     if(usePrePost)
     {
         nparticles = nparticlesPrePost;
@@ -2706,7 +2750,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         // int component names
         for (int i = 0; i < NStructInt + NArrayInt; ++i )
             if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
-        
+
+        bool is_checkpoint = true; // legacy
         HdrFile << is_checkpoint << '\n';
 
         // The total number of particles.
@@ -2809,7 +2854,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 // for the start of writing of each block of data.
                 //
                 WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
-                               is_checkpoint, write_real_comp, write_int_comp);
+                               write_real_comp, write_int_comp);
 	    }
             
 	    if(usePrePost) {
@@ -2995,64 +3040,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-WritePlotFile (const std::string& dir, const std::string& name,
-               const Vector<std::string>& real_comp_names,
-               const Vector<std::string>& int_comp_names) const
-{
-    BL_PROFILE("ParticleContainer::WritePlotFile()");
-    BL_ASSERT(OK());
-    bool is_checkpoint = false;
-    
-    Checkpoint(dir, name, is_checkpoint, real_comp_names, int_comp_names);
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-WritePlotFile (const std::string& dir, const std::string& name) const
-{
-    BL_PROFILE("ParticleContainer::WritePlotFile()");
-    BL_ASSERT(OK());
-    bool is_checkpoint = false;
-    
-    Checkpoint(dir, name, is_checkpoint);
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-WritePlotFile (const std::string& dir, const std::string& name,
-               const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const
-{
-    BL_PROFILE("ParticleContainer::WritePlotFile()");
-    BL_ASSERT(OK());
-    bool is_checkpoint = false;
-    
-    Checkpoint(dir, name, is_checkpoint, write_real_comp, write_int_comp);
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-WritePlotFile (const std::string& dir, const std::string& name,
-               const Vector<int>& write_real_comp,
-               const Vector<int>& write_int_comp,    
-               const Vector<std::string>& real_comp_names,
-               const Vector<std::string>&  int_comp_names) const
-{
-    BL_PROFILE("ParticleContainer::WritePlotFile()");
-    BL_ASSERT(OK());
-    bool is_checkpoint = false;
-    
-    Checkpoint(dir, name, is_checkpoint,
-               write_real_comp, write_int_comp,
-               real_comp_names, int_comp_names);
-}
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
@@ -3076,7 +3063,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WriteParticles (int lev, std::ofstream& ofs, int fnum,
                   Vector<int>& which, Vector<int>& count, Vector<long>& where,
-                  bool is_checkpoint, const Vector<int>& write_real_comp,
+                  const Vector<int>& write_real_comp,
                   const Vector<int>& write_int_comp) const
 {
     BL_PROFILE("ParticleContainer::WriteParticles()");
@@ -3116,42 +3103,40 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         
         if (count[grid] == 0) continue;
       
-        if (is_checkpoint) {
-            // First write out the integer data in binary.
-            const int iChunkSize = 2 + NStructInt + NArrayInt;
-            Vector<int> istuff(count[grid]*iChunkSize);
-            int* iptr = istuff.dataPtr();
-
-            for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-                const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-                for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-                    const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
-                    if (p.m_idata.id > 0)
-                    {
-                        // always write these
-                        for (int j = 0; j < 2; j++) iptr[j] = p.m_idata.arr[j];
-                        iptr += 2;
-
-                        // optionally write these
-                        for (int j = 0; j < NStructInt; j++)
-                            if (write_int_comp[j]) iptr[j] = p.m_idata.arr[2+j];
-                        
-                        for (int j = 0; j < NStructInt; j++)
-                            if (write_int_comp[j]) ++iptr;;
-                        
-                        const auto& soa  = pbox.GetStructOfArrays();
-                        for (int j = 0; j < NArrayInt; j++)
-                            if (write_int_comp[NStructInt+j]) iptr[j] = soa.GetIntData(j)[pindex];
-                        
-                        for (int j = 0; j < NArrayInt; j++)
-                            if (write_int_comp[NStructInt+j]) ++iptr;
-                    }
+        // First write out the integer data in binary.
+        const int iChunkSize = 2 + NStructInt + NArrayInt;
+        Vector<int> istuff(count[grid]*iChunkSize);
+        int* iptr = istuff.dataPtr();
+        
+        for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+            const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+                const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
+                if (p.m_idata.id > 0)
+                {
+                    // always write these
+                    for (int j = 0; j < 2; j++) iptr[j] = p.m_idata.arr[j];
+                    iptr += 2;
+                    
+                    // optionally write these
+                    for (int j = 0; j < NStructInt; j++)
+                        if (write_int_comp[j]) iptr[j] = p.m_idata.arr[2+j];
+                    
+                    for (int j = 0; j < NStructInt; j++)
+                        if (write_int_comp[j]) ++iptr;;
+                    
+                    const auto& soa  = pbox.GetStructOfArrays();
+                    for (int j = 0; j < NArrayInt; j++)
+                        if (write_int_comp[NStructInt+j]) iptr[j] = soa.GetIntData(j)[pindex];
+                    
+                    for (int j = 0; j < NArrayInt; j++)
+                        if (write_int_comp[NStructInt+j]) ++iptr;
                 }
             }
-            
-            writeIntData(istuff.dataPtr(), istuff.size(), ofs);
-            ofs.flush();  // Some systems require this flush() (probably due to a bug)
         }
+        
+        writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+        ofs.flush();  // Some systems require this flush() (probably due to a bug)
         
         // Write the Real data in binary.
         const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
@@ -3193,22 +3178,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Restart (const std::string& dir, const std::string& file, bool is_checkpoint)
-{
-    Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
-
-    Vector<int> write_int_comp;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
-    
-    Restart(dir, name, is_checkpoint, write_real_comp, write_int_comp);
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::Restart (const std::string& dir, const std::string& file, bool is_checkpoint,
-           const Vector<int>& write_real_comp, const Vector<int>& write_int_comp)
+::Restart (const std::string& dir, const std::string& file)
 {
     BL_PROFILE("ParticleContainer::Restart()");
     BL_ASSERT(!dir.empty());
@@ -3418,12 +3388,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ParticleFile.seekg(where[grid], std::ios::beg);
             
             if (how == "single") {
-                ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile,
-                                     write_real_comp, write_int_comp);
+                ReadParticles<float>(count[grid], grid, lev, ParticleFile);
             }
             else if (how == "double") {
-                ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile,
-                                      write_real_comp, write_int_comp);
+                ReadParticles<double>(count[grid], grid, lev, ParticleFile);
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");
@@ -3454,8 +3422,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class RTYPE>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::ReadParticles (int cnt, int grd, int lev, bool is_checkpoint, std::ifstream& ifs,
-                 const Vector<int>& write_real_comp, const Vector<int>& write_int_comp)
+::ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs)
 {
     BL_PROFILE("ParticleContainer::ReadParticles()");
     BL_ASSERT(cnt > 0);
@@ -3466,8 +3433,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // that given the structure of the checkpoint file.
     const int iChunkSize = 2 + NStructInt + NArrayInt;
     Vector<int> istuff(cnt*iChunkSize);
-    if (is_checkpoint)
-        readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
+    readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
     
     // Then the real data in binary.
     const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
@@ -3478,75 +3444,45 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     int*   iptr = istuff.dataPtr();
     RTYPE* rptr = rstuff.dataPtr();
     
-    // If we are restarting from a plotfile instead of a checkpoint file, then we do not
-    //    read in the particle id's, so we need to reset the id counter to zero and renumber them
-    if (!is_checkpoint) {
-        int maxnextid = 1;
-        ParticleType::NextID(maxnextid);
-    }
-    
     ParticleType p;
     ParticleLocData pld;
     for (int i = 0; i < cnt; i++) {
-        if (is_checkpoint)
-        {
-            // these are always there
-            p.m_idata.id   = iptr[0];
-            p.m_idata.cpu  = iptr[1];
-
-            iptr += 2;
+        p.m_idata.id   = iptr[0];
+        p.m_idata.cpu  = iptr[1];
+        
+        iptr += 2;
             
-            // these are only there sometimes
-            for (int j = 0; j < NStructInt; j++)
-            {
-                if (write_int_comp[j])
-                {
-                    p.m_idata.arr[2+j] = *iptr;
-                    ++iptr;
-                }
-            }
-            
-            for (int j = 0; j < NArrayInt; j++)
-            {
-                if (write_int_comp[NStructInt+j])
-                {
-                    ptile.push_back_int(j, *iptr);
-                    ++iptr;
-                }
-            }
-        }
-        else {
-            p.m_idata.id   = ParticleType::NextID();
-            p.m_idata.cpu  = ParallelDescriptor::MyProc();
-        }
-        
-        BL_ASSERT(p.m_idata.id > 0);
-        
-        // these are always there
-        AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
-                     p.m_rdata.pos[1] = rptr[1];,
-                     p.m_rdata.pos[2] = rptr[2];);
-
-        rptr += AMREX_SPACEDIM;
-        
-        // these are only there sometimes
-        for (int j = 0; j < NStructReal; j++)
+        for (int j = 0; j < NStructInt; j++)
         {
-            if (write_real_comp[j])
-            {
-                p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
-                ++rptr;
-            }
+            p.m_idata.arr[2+j] = *iptr;
+            ++iptr;
         }
         
-        for (int j = 0; j < NArrayReal; j++)
+        for (int j = 0; j < NArrayInt; j++)
         {
-            if (write_real_comp[NStructReal+j])
-            {
-                ptile.push_back_real(j, *rptr);
-                ++rptr;
-            }
+            ptile.push_back_int(j, *iptr);
+            ++iptr;
         }
+    }
+    
+    BL_ASSERT(p.m_idata.id > 0);
+        
+    AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
+                 p.m_rdata.pos[1] = rptr[1];,
+                 p.m_rdata.pos[2] = rptr[2];);
+    
+    rptr += AMREX_SPACEDIM;
+    
+    for (int j = 0; j < NStructReal; j++)
+    {
+        p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
+        ++rptr;
+    }
+    
+    for (int j = 0; j < NArrayReal; j++)
+    {
+        ptile.push_back_real(j, *rptr);
+        ++rptr;
     }
 }
 

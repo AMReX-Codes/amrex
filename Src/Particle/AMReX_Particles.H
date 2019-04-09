@@ -514,64 +514,25 @@ public:
                                std::istream& is, const RealDescriptor& rd);
 
     /**
-     * \brief This version of Checkpoint writes all particle components and labels them
-     * with generic names, .e.g "real_comp0" and "int_comp2"
+     * \brief Writes a particle checkpoint to file, suitable for restarting.
      */
-    void Checkpoint (const std::string& dir,
-                     const std::string& name,
-                     bool is_checkpoint = true) const;
+    void Checkpoint (const std::string& dir, const std::string& name) const;
 
-    /**
-     * \brief This version writes all components and takes vectors of component names
-     * to label them in the file.
-     */
-    void Checkpoint (const std::string& dir,
-                     const std::string& name,
-                     bool is_checkpoint = true,
-                     const Vector<std::string>& real_comp_names,
-                     const Vector<std::string>&  int_comp_names) const;
-
-    /**
-     * \brief This version writes a selection of the particle components to the file.
-     * To toggle which comps are written, the user must mass vectors of ints that have
-     * NStructReal + NArrayReal and NStructInt + NArrayInt components, respectively.
-     * Component names are assigned.
-     */
-    void Checkpoint (const std::string& dir,
-                     const std::string& name,
-                     bool is_checkpoint = true,
-                     const Vector<int>& write_real_comp,
-                     const Vector<int>& write_int_comp) const;
-
-    /**
-     * \brief This is the most general version of Checkpoint, which takes component 
-     * names and flags for whether to write each variable as components. Note that 
-     * the user should pass in vectors containing names of all the componets, whether
-     * they are written or not.
-     */
-    void Checkpoint (const std::string& dir,
-                     const std::string& name,
-                     bool is_checkpoint = true,
-                     const Vector<int>& write_real_comp,
-                     const Vector<int>& write_int_comp,    
-                     const Vector<std::string>& real_comp_names,
-                     const Vector<std::string>&  int_comp_names) const;
+    void WriteBinaryParticleData (const std::string& dir,
+                                  const std::string& name,
+                                  const Vector<int>& write_real_comp,
+                                  const Vector<int>& write_int_comp,    
+                                  const Vector<std::string>& real_comp_names,
+                                  const Vector<std::string>&  int_comp_names) const;
     
     void CheckpointPre ();
 
     void CheckpointPost ();
 
     /**
-     * This version of restart is for checkpoints that have all the components written out.
+     *   Restart from checkpoint
      */
-    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
-
-    /**
-     * This version of restart is for checkpoints that only have a subset of the particle
-     * components stored in them.
-     */
-    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true,
-                  const Vector<int>& write_real_comp, const Vector<int>& write_int_comp);
+    void Restart (const std::string& dir, const std::string& file);
 
     /**
      *  This version of WritePlotFile writes all components and assigns component names
@@ -794,18 +755,13 @@ protected:
     * \param which
     * \param count
     * \param where
-    * \param is_checkpoint
     */
     void WriteParticles (int level, std::ofstream& ofs, int fnum,
                          Vector<int>& which, Vector<int>& count, Vector<long>& where,
-                         bool is_checkpoint, const Vector<int>& write_real_comp,
-                         const Vector<int>& write_int_comp) const;
+                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
 
     template <class RTYPE>
-    void ReadParticles (int cnt, int grd, int lev, bool is_checkpoint,
-                        const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-			std::ifstream& ifs, const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp);
+    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs);
     
     void SetParticleSize ();
 
