@@ -2733,19 +2733,27 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             HdrFile << ParticleType::Version() << "_double" << '\n';
         }
+
+        int num_output_real = 0;
+        for (int i = 0; i < NArrayReal + NStructReal; ++i)
+            if (write_real_comp[i]) ++num_output_real;
+        
+        int num_output_int = 0;
+        for (int i = 0; i < NArrayInt + NStructInt; ++i)
+            if (write_int_comp[i]) ++num_output_int;
         
         // AMREX_SPACEDIM and N for sanity checking.
         HdrFile << AMREX_SPACEDIM << '\n';
 	
 	// The number of extra real parameters
-        HdrFile << NStructReal + NArrayReal << '\n';
+        HdrFile << num_output_real << '\n';
         
         // Real component names
         for (int i = 0; i < NStructReal + NArrayReal; ++i )
             if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
         
 	// The number of extra int parameters
-        HdrFile << NStructInt + NArrayInt << '\n';
+        HdrFile << num_output_int << '\n';
         
         // int component names
         for (int i = 0; i < NStructInt + NArrayInt; ++i )
@@ -3250,7 +3258,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     std::string comp_name;
     for (int i = 0; i < nr; ++i)
-        if (write_int_comp[i]) HdrFile >> comp_name;
+        HdrFile >> comp_name;
     
     int ni;
     HdrFile >> ni;
@@ -3258,7 +3266,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         amrex::Abort("ParticleContainer::Restart(): ni != NStructInt");
     
     for (int i = 0; i < ni; ++i)
-        if (write_int_comp[i]) HdrFile >> comp_name;
+        HdrFile >> comp_name;
     
     bool checkpoint;
     HdrFile >> checkpoint;
@@ -3457,32 +3465,38 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p.m_idata.arr[2+j] = *iptr;
             ++iptr;
         }
+
+        BL_ASSERT(p.m_idata.id > 0);
+        
+        AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
+                     p.m_rdata.pos[1] = rptr[1];,
+                     p.m_rdata.pos[2] = rptr[2];);
+        
+        rptr += AMREX_SPACEDIM;
+        
+        for (int j = 0; j < NStructReal; j++)
+        {
+            p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
+            ++rptr;
+        }
+
+        locateParticle(p, pld, 0, finestLevel(), 0);
+        
+        auto& ptile = m_particles[lev][std::make_pair(grd, pld.m_tile)];
+        
+        ptile.push_back(p);
         
         for (int j = 0; j < NArrayInt; j++)
         {
             ptile.push_back_int(j, *iptr);
             ++iptr;
         }
-    }
-    
-    BL_ASSERT(p.m_idata.id > 0);
-        
-    AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
-                 p.m_rdata.pos[1] = rptr[1];,
-                 p.m_rdata.pos[2] = rptr[2];);
-    
-    rptr += AMREX_SPACEDIM;
-    
-    for (int j = 0; j < NStructReal; j++)
-    {
-        p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
-        ++rptr;
-    }
-    
-    for (int j = 0; j < NArrayReal; j++)
-    {
-        ptile.push_back_real(j, *rptr);
-        ++rptr;
+            
+        for (int j = 0; j < NArrayReal; j++)
+        {
+            ptile.push_back_real(j, *rptr);
+            ++rptr;
+        }
     }
 }
 
