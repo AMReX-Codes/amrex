@@ -2516,7 +2516,92 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint) const
+{
+    Vector<int> write_real_comp;
+    Vector<std::string> real_comp_names;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    {
+        write_real_comp.push_back(1);
+        std::stringstream ss;
+        ss << "real_comp" << i;
+        real_comp_names.push_back(ss.str());
+    }
+
+    Vector<int> write_int_comp;
+    Vector<std::string> int_comp_names;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    {
+        write_int_comp.push_back(1);
+        std::stringstream ss;
+        ss << "int_comp" << i;
+        int_comp_names.push_back(ss.str());
+    }
+
+    Checkpoint(dir, name, is_checkpoint,
+               write_real_comp, write_int_comp,
+               real_comp_names, int_comp_names);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
+              const Vector<std::string>& real_comp_names,
+              const Vector<std::string>& int_comp_names) const
+{
+    
+    AMREX_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
+    AMREX_ASSERT( int_comp_names.size() == NStructINt  + NArrayInt );
+
+    Vector<int> write_real_comp;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i) write_real_comp.push_back(1);
+
+    Vector<int> write_int_comp;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i) write_int_comp.push_back(1);
+
+    Checkpoint(dir, name, is_checkpoint,
+               write_real_comp, write_int_comp,
+               real_comp_names, int_comp_names);        
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
+              const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const
+{
+
+    AMREX_ASSERT(write_real_comp.size() == NStructReal + NArrayReal);
+    AMREX_ASSERT(write_int_comp.size()  == NStructINt  + NArrayInt );
+
+    Vector<std::string> real_comp_names;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    {
+        std::stringstream ss;
+        ss << "real_comp" << i;
+        real_comp_names.push_back(ss.str());
+    }
+
+    Vector<std::string> int_comp_names;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    {
+        std::stringstream ss;
+        ss << "int_comp" << i;
+        int_comp_names.push_back(ss.str());
+    }
+
+    Checkpoint(dir, name, is_checkpoint,
+               write_real_comp, write_int_comp,
+               real_comp_names, int_comp_names);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
+              const Vector<int>& write_real_comp,
+              const Vector<int>& write_int_comp,
               const Vector<std::string>& real_comp_names,
               const Vector<std::string>& int_comp_names) const
 {
@@ -2612,31 +2697,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         HdrFile << NStructReal + NArrayReal << '\n';
         
         // Real component names
-        if (real_comp_names.size() == 0)
-        {
-            for (int i = 0; i < NStructReal + NArrayReal; ++i )
-                HdrFile << "real_comp" << i << '\n';
-        }
-        else
-        {
-            BL_ASSERT(real_comp_names.size() == NStructReal + NArrayReal);
-            for (int i = 0; i < NStructReal + NArrayReal; ++i )
-                HdrFile << real_comp_names[i] << '\n';
-        }
+        for (int i = 0; i < NStructReal + NArrayReal; ++i )
+            if (write_real_comp[i]) HdrFile << real_comp_names[i] << '\n';
         
 	// The number of extra int parameters
         HdrFile << NStructInt + NArrayInt << '\n';
         
         // int component names
-        if (int_comp_names.size() == 0) {
-            for (int i = 0; i < NStructInt + NArrayInt; ++i )
-                HdrFile << "int_comp" << i << '\n';
-        } else
-        {
-            BL_ASSERT(int_comp_names.size() == NStructInt + NArrayInt);
-            for (int i = 0; i < NStructInt + NArrayInt; ++i )
-                HdrFile << int_comp_names[i] << '\n';
-        }
+        for (int i = 0; i < NStructInt + NArrayInt; ++i )
+            if (write_int_comp[i]) HdrFile << int_comp_names[i] << '\n';
         
         HdrFile << is_checkpoint << '\n';
 
@@ -2651,9 +2720,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         // Then the number of grids at each level.
         for (int lev = 0; lev <= finestLevel(); lev++)
-        {
             HdrFile << ParticleBoxArray(lev).size() << '\n';
-        }
     }
 
     // We want to write the data out in parallel.

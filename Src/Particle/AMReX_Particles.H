@@ -540,18 +540,20 @@ public:
     void Checkpoint (const std::string& dir,
                      const std::string& name,
                      bool is_checkpoint = true,
-                     const Vector<int>& write_real_comps,
-                     const Vector<int>& write_int_comps) const;
+                     const Vector<int>& write_real_comp,
+                     const Vector<int>& write_int_comp) const;
 
     /**
      * \brief This is the most general version of Checkpoint, which takes component 
-     * names and flags for whether to write each variable as components.
+     * names and flags for whether to write each variable as components. Note that 
+     * the user should pass in vectors containing names of all the componets, whether
+     * they are written or not.
      */
     void Checkpoint (const std::string& dir,
                      const std::string& name,
                      bool is_checkpoint = true,
-                     const Vector<int>& write_real_comps,
-                     const Vector<int>& write_int_comps,    
+                     const Vector<int>& write_real_comp,
+                     const Vector<int>& write_int_comp,    
                      const Vector<std::string>& real_comp_names,
                      const Vector<std::string>&  int_comp_names) const;
     
