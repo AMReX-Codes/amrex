@@ -48,16 +48,6 @@ namespace amrex {
             {}
 
         AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (Array4<T> const& rhs) noexcept
-            : p(rhs.p),
-              jstride(rhs.jstride),
-              kstride(rhs.kstride),
-              nstride(rhs.nstride),
-              begin(rhs.begin),
-              end(rhs.end)
-            {}
-
-        AMREX_GPU_HOST_DEVICE
         constexpr Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end) noexcept
             : p(a_p),
               jstride(a_end.x-a_begin.x),
