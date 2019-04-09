@@ -3243,7 +3243,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     std::string comp_name;
     for (int i = 0; i < nr; ++i)
-        HdrFile >> comp_name;
+        if (write_int_comp[i]) HdrFile >> comp_name;
     
     int ni;
     HdrFile >> ni;
@@ -3251,7 +3251,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         amrex::Abort("ParticleContainer::Restart(): ni != NStructInt");
     
     for (int i = 0; i < ni; ++i)
-        HdrFile >> comp_name;
+        if (write_int_comp[i]) HdrFile >> comp_name;
     
     bool checkpoint;
     HdrFile >> checkpoint;
@@ -3381,10 +3381,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ParticleFile.seekg(where[grid], std::ios::beg);
             
             if (how == "single") {
-                ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile);
+                ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile,
+                                     write_real_comp, write_int_comp);
             }
             else if (how == "double") {
-                ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
+                ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile,
+                                      write_real_comp, write_int_comp);
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");

@@ -773,7 +773,8 @@ protected:
     template <class RTYPE>
     void ReadParticles (int cnt, int grd, int lev, bool is_checkpoint,
                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-			std::ifstream& ifs);
+			std::ifstream& ifs, const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp);
     
     void SetParticleSize ();
 
