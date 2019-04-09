@@ -678,9 +678,7 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("uzold");
 #endif
 
-    Vector<std::string> int_varnames;
-    
-    mypc->WritePlotFile(plotfilename, particle_varnames, int_varnames);
+    mypc->WritePlotFile(plotfilename, particle_plot_flags, particle_varnames);
 
     WriteJobInfo(plotfilename);
 
