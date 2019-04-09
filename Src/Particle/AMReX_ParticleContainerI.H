@@ -3416,11 +3416,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class RTYPE>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles (int            cnt,
-                                                                                  int            grd,
-                                                                                  int            lev,
-                                                                                  bool           is_checkpoint,
-                                                                                  std::ifstream& ifs) 
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::ReadParticles (int cnt, int grd, int lev, bool is_checkpoint, std::ifstream& ifs,
+                 const Vector<int>& write_real_comp, const Vector<int>& write_int_comp)
 {
     BL_PROFILE("ParticleContainer::ReadParticles()");
     BL_ASSERT(cnt > 0);
@@ -3433,69 +3431,85 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
     Vector<int> istuff(cnt*iChunkSize);
     if (is_checkpoint)
         readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
-
+    
     // Then the real data in binary.
     const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
     Vector<RTYPE> rstuff(cnt*rChunkSize);
     ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
-
+    
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();
     RTYPE* rptr = rstuff.dataPtr();
-
+    
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
     //    read in the particle id's, so we need to reset the id counter to zero and renumber them
     if (!is_checkpoint) {
-      int maxnextid = 1;
-      ParticleType::NextID(maxnextid);
+        int maxnextid = 1;
+        ParticleType::NextID(maxnextid);
     }
-
+    
     ParticleType p;
     ParticleLocData pld;
     for (int i = 0; i < cnt; i++) {
-      if (is_checkpoint) {
-	p.m_idata.id   = iptr[0];
-	p.m_idata.cpu  = iptr[1];
-      }
-      else {
-	p.m_idata.id   = ParticleType::NextID();
-	p.m_idata.cpu  = ParallelDescriptor::MyProc();
-      }
+        if (is_checkpoint)
+        {
+            // these are always there
+            p.m_idata.id   = iptr[0];
+            p.m_idata.cpu  = iptr[1];
 
-      BL_ASSERT(p.m_idata.id > 0);
+            iptr += 2;
+            
+            // these are only there sometimes
+            for (int j = 0; j < NStructInt; j++)
+            {
+                if (write_int_comp[j])
+                {
+                    p.m_idata.arr[2+j] = *iptr;
+                    ++iptr;
+                }
+            }
+            
+            for (int j = 0; j < NArrayInt; j++)
+            {
+                if (write_int_comp[NStructInt+j])
+                {
+                    ptile.push_back_int(j, *iptr);
+                    ++iptr;
+                }
+            }
+        }
+        else {
+            p.m_idata.id   = ParticleType::NextID();
+            p.m_idata.cpu  = ParallelDescriptor::MyProc();
+        }
+        
+        BL_ASSERT(p.m_idata.id > 0);
+        
+        // these are always there
+        AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
+                     p.m_rdata.pos[1] = rptr[1];,
+                     p.m_rdata.pos[2] = rptr[2];);
 
-      for (int j = 0; j < NStructInt; j++)
-          p.m_idata.arr[2+j] = iptr[2+j];
-
-      iptr += 2 + NStructInt;
-
-      AMREX_D_TERM(p.m_rdata.pos[0] = rptr[0];,
-	     p.m_rdata.pos[1] = rptr[1];,
-	     p.m_rdata.pos[2] = rptr[2];);
-
-      for (int j = 0; j < NStructReal; j++)
-	p.m_rdata.arr[AMREX_SPACEDIM+j] = rptr[AMREX_SPACEDIM+j];
-
-      rptr += AMREX_SPACEDIM + NStructReal;
-      
-      locateParticle(p, pld, 0, finestLevel(), 0);
-
-      auto& ptile = m_particles[lev][std::make_pair(grd, pld.m_tile)];
-
-      ptile.push_back(p);
-
-      for (int j = 0; j < NArrayReal; j++) {
-          ptile.push_back_real(j, rptr[j]);
-      }
-
-      rptr += NArrayReal;
-
-      for (int j = 0; j < NArrayInt; j++) {
-          ptile.push_back_int(j, iptr[j]);
-      }
-
-      iptr += NArrayInt;
-
+        rptr += AMREX_SPACEDIM;
+        
+        // these are only there sometimes
+        for (int j = 0; j < NStructReal; j++)
+        {
+            if (write_real_comp[j])
+            {
+                p.m_rdata.arr[AMREX_SPACEDIM+j] = *rptr;
+                ++rptr;
+            }
+        }
+        
+        for (int j = 0; j < NArrayReal; j++)
+        {
+            if (write_real_comp[NStructReal+j])
+            {
+                ptile.push_back_real(j, *rptr);
+                ++rptr;
+            }
+        }
     }
 }
 
