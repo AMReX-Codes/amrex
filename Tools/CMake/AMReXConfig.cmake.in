@@ -75,6 +75,9 @@ set(AMREX_ENABLE_SUNDIALS           @ENABLE_SUNDIALS@)
 set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
 set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
 
+# HYPRE
+set(AMREX_ENABLE_HYPRE              @ENABLE_HYPRE@)
+
 # 
 # Find dependencies if needed
 #
@@ -118,6 +121,10 @@ if (AMREX_ENABLE_CONDUIT)
    if (ENABLE_AMREX_ASCENT)
       find_dependency(Ascent REQUIRED)     
    endif ()
+endif ()
+
+if (AMREX_ENABLE_HYPRE)
+   find_dependency(HYPRE 2.15 REQUIRED)
 endif ()
 
 #
