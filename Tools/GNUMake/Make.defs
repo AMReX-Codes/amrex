@@ -733,7 +733,6 @@ endif
 ifeq ($(USE_CONDUIT),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.conduit
-  include        $(AMREX_HOME)/Src/Extern/Conduit/Make.package
 endif
 
 ifeq ($(USE_ASCENT),TRUE)
