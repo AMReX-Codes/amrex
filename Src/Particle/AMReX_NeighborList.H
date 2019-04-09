@@ -183,9 +183,10 @@ public:
         // Now we can allocate and build our neighbor list
         
         const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
+        m_nbor_offsets.resize(0);
         m_nbor_offsets.resize(np + 1, total_nbors);
         unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
-        
+
         thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(),
                                m_nbor_offsets.begin());
         
