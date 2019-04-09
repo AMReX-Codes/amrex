@@ -33,8 +33,6 @@ find_path(HYPRE_INCLUDE_DIRS NAMES HYPRE.h)
 # Find libraries
 find_library(HYPRE_LIBRARIES NAMES HYPRE)
 
-message("${HYPRE_LIBRARIES}")
-
 # Get version for config file
 find_path(_config_h_path  NAMES HYPRE_config.h)
 
