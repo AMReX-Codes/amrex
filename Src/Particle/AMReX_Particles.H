@@ -513,10 +513,48 @@ public:
     void ReadParticleRealData (void* data, size_t size,
                                std::istream& is, const RealDescriptor& rd);
 
-    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
-                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
-                     const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
+    /**
+     * \brief This version of Checkpoint writes all particle components and labels them
+     * with generic names, .e.g "real_comp0" and "int_comp2"
+     */
+    void Checkpoint (const std::string& dir,
+                     const std::string& name,
+                     bool is_checkpoint = true) const;
 
+    /**
+     * \brief This version writes all components and takes vectors of component names
+     * to label them in the file.
+     */
+    void Checkpoint (const std::string& dir,
+                     const std::string& name,
+                     bool is_checkpoint = true,
+                     const Vector<std::string>& real_comp_names,
+                     const Vector<std::string>&  int_comp_names) const;
+
+    /**
+     * \brief This version writes a selection of the particle components to the file.
+     * To toggle which comps are written, the user must mass vectors of ints that have
+     * NStructReal + NArrayReal and NStructInt + NArrayInt components, respectively.
+     * Component names are assigned.
+     */
+    void Checkpoint (const std::string& dir,
+                     const std::string& name,
+                     bool is_checkpoint = true,
+                     const Vector<int>& write_real_comps,
+                     const Vector<int>& write_int_comps) const;
+
+    /**
+     * \brief This is the most general version of Checkpoint, which takes component 
+     * names and flags for whether to write each variable as components.
+     */
+    void Checkpoint (const std::string& dir,
+                     const std::string& name,
+                     bool is_checkpoint = true,
+                     const Vector<int>& write_real_comps,
+                     const Vector<int>& write_int_comps,    
+                     const Vector<std::string>& real_comp_names,
+                     const Vector<std::string>&  int_comp_names) const;
+    
     void CheckpointPre ();
 
     void CheckpointPost ();
