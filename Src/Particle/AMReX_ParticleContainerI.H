@@ -2999,29 +2999,66 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-WritePlotFile ( const std::string&        dir,
-                const std::string&        name,
-                const Vector<std::string>& real_comp_names,
-                const Vector<std::string>& int_comp_names) const
+WritePlotFile (const std::string& dir, const std::string& name,
+               const Vector<std::string>& real_comp_names,
+               const Vector<std::string>& int_comp_names) const
 {
     BL_PROFILE("ParticleContainer::WritePlotFile()");
     BL_ASSERT(OK());
     bool is_checkpoint = false;
-
-    // For yt we need exactly the chk particle format so would need to set is_checkpoint = true
-    // Anyway, it's not too bad to have particle ids on disk,
-    // think of merger trees or backtracing of particles for nested ics
-    // is_checkpoint = true; 
-    Checkpoint(dir,name,is_checkpoint,real_comp_names,int_comp_names);
+    
+    Checkpoint(dir, name, is_checkpoint, real_comp_names, int_comp_names);
 }
 
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+WritePlotFile (const std::string& dir, const std::string& name) const
+{
+    BL_PROFILE("ParticleContainer::WritePlotFile()");
+    BL_ASSERT(OK());
+    bool is_checkpoint = false;
+    
+    Checkpoint(dir, name, is_checkpoint);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+WritePlotFile (const std::string& dir, const std::string& name,
+               const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const
+{
+    BL_PROFILE("ParticleContainer::WritePlotFile()");
+    BL_ASSERT(OK());
+    bool is_checkpoint = false;
+    
+    Checkpoint(dir, name, is_checkpoint, write_real_comp, write_int_comp);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+WritePlotFile (const std::string& dir, const std::string& name,
+               const Vector<int>& write_real_comp,
+               const Vector<int>& write_int_comp,    
+               const Vector<std::string>& real_comp_names,
+               const Vector<std::string>&  int_comp_names) const
+{
+    BL_PROFILE("ParticleContainer::WritePlotFile()");
+    BL_ASSERT(OK());
+    bool is_checkpoint = false;
+    
+    Checkpoint(dir, name, is_checkpoint,
+               write_real_comp, write_int_comp,
+               real_comp_names, int_comp_names);
+}
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WritePlotFilePre ()
 {
-  CheckpointPre();
+    CheckpointPre();
 }
 
 
@@ -3030,7 +3067,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::WritePlotFilePost ()
 {
-  CheckpointPost();
+    CheckpointPost();
 }
 
 

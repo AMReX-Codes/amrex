@@ -572,11 +572,42 @@ public:
      */
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true,
                   const Vector<int>& write_real_comp, const Vector<int>& write_int_comp);
-    
-    void WritePlotFile (const std::string& dir, const std::string& name,
-                        const Vector<std::string>& real_comp_names = Vector<std::string>(),
-                        const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
 
+    /**
+     *  This version of WritePlotFile writes all components and assigns component names
+     */
+    void WritePlotFile (const std::string& dir, const std::string& name) const;
+
+    /**
+     *  This version of WritePlotFile writes all components and allows the user to specify
+     *  the names of the components.
+     */
+    void WritePlotFile (const std::string& dir, const std::string& name,
+                        const Vector<std::string>& real_comp_names,
+                        const Vector<std::string>&  int_comp_names) const;
+
+    /**
+     *  This version of WritePlotFile assigns component names, but allows the user to pass
+     *  in a vector of ints that toggle on / off the writing of specfic components.
+     */
+    void WritePlotFile (const std::string& dir,
+                        const std::string& name,
+                        const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp) const;
+    
+    /**
+     * \brief This is the most general version of WritePlotFile, which takes component 
+     * names and flags for whether to write each variable as components. Note that 
+     * the user should pass in vectors containing names of all the componets, whether
+     * they are written or not.
+     */
+    void WritePlotFile (const std::string& dir,
+                        const std::string& name,
+                        const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp,    
+                        const Vector<std::string>& real_comp_names,
+                        const Vector<std::string>&  int_comp_names) const;
+    
     void WritePlotFilePre ();
 
     void WritePlotFilePost ();
