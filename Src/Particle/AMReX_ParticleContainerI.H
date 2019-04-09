@@ -2808,7 +2808,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 // Do it grid block by grid block remembering the seek offset
                 // for the start of writing of each block of data.
                 //
-                WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where, is_checkpoint);
+                WriteParticles(lev, myStream, nfi.FileNumber(), which, count, where,
+                               is_checkpoint, write_real_comp, write_int_comp);
 	    }
             
 	    if(usePrePost) {
@@ -3035,13 +3036,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticles (int            lev,
-                                                                                   std::ofstream& ofs,
-                                                                                   int            fnum,
-                                                                                   Vector<int>&    which,
-                                                                                   Vector<int>&    count,
-                                                                                   Vector<long>&   where,
-                                                                                   bool           is_checkpoint) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WriteParticles (int lev, std::ofstream& ofs, int fnum,
+                  Vector<int>& which, Vector<int>& count, Vector<long>& where,
+                  bool is_checkpoint, const Vector<int>& write_real_comp,
+                  const Vector<int>& write_int_comp) const
 {
     BL_PROFILE("ParticleContainer::WriteParticles()");
 
@@ -3069,72 +3068,88 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 	
     MFInfo info;
     info.SetAlloc(false);
-    MultiFab state(ParticleBoxArray(lev),
-		   ParticleDistributionMap(lev),
-		   1,0,info);
+    MultiFab state(ParticleBoxArray(lev), ParticleDistributionMap(lev), 1,0,info);
+    
+    for (MFIter mfi(state); mfi.isValid(); ++mfi)
+    {
+        const int grid = mfi.index();
+        
+        which[grid] = fnum;
+        where[grid] = VisMF::FileOffset(ofs);
+        
+        if (count[grid] == 0) continue;
+      
+        if (is_checkpoint) {
+            // First write out the integer data in binary.
+            const int iChunkSize = 2 + NStructInt + NArrayInt;
+            Vector<int> istuff(count[grid]*iChunkSize);
+            int* iptr = istuff.dataPtr();
 
-    for (MFIter mfi(state); mfi.isValid(); ++mfi) {
-      const int grid = mfi.index();
-      
-      which[grid] = fnum;
-      where[grid] = VisMF::FileOffset(ofs);
-      
-      if (count[grid] == 0) {
-        continue;
-      }
-      
-      if (is_checkpoint) {
-	// First write out the integer data in binary.
-	const int iChunkSize = 2 + NStructInt + NArrayInt;
-	Vector<int> istuff(count[grid]*iChunkSize);
-	int* iptr = istuff.dataPtr();
+            for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+                const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+                for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+                    const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
+                    if (p.m_idata.id > 0)
+                    {
+                        // always write these
+                        for (int j = 0; j < 2; j++) iptr[j] = p.m_idata.arr[j];
+                        iptr += 2;
 
-	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-            const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-	        const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
-                if (p.m_idata.id > 0) {
-                    for (int j = 0; j < 2 + NStructInt; j++) {
-                        iptr[j] = p.m_idata.arr[j];
-		    }
-                    iptr += 2 + NStructInt;
-                    const auto& soa  = pbox.GetStructOfArrays();
-                    for (int j = 0; j < NArrayInt; j++) {
-                        iptr[j] = soa.GetIntData(j)[pindex];
+                        // optionally write these
+                        for (int j = 0; j < NStructInt; j++)
+                            if (write_int_comp[j]) iptr[j] = p.m_idata.arr[2+j];
+                        
+                        for (int j = 0; j < NStructInt; j++)
+                            if (write_int_comp[j]) ++iptr;;
+                        
+                        const auto& soa  = pbox.GetStructOfArrays();
+                        for (int j = 0; j < NArrayInt; j++)
+                            if (write_int_comp[NStructInt+j]) iptr[j] = soa.GetIntData(j)[pindex];
+                        
+                        for (int j = 0; j < NArrayInt; j++)
+                            if (write_int_comp[NStructInt+j]) ++iptr;
                     }
-                    iptr += NArrayInt;
                 }
             }
-	}
+            
+            writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+            ofs.flush();  // Some systems require this flush() (probably due to a bug)
+        }
         
-        writeIntData(istuff.dataPtr(), istuff.size(), ofs);
-        ofs.flush();  // Some systems require this flush() (probably due to a bug)
-      }
-      
-      // Write the Real data in binary.
-      const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
-      Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
-      typename ParticleType::RealType* rptr = rstuff.dataPtr();
-      
-      for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-          const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-	  for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
-	      const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
-              if (p.m_idata.id > 0) {
-                  for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
-                      rptr[j] = p.m_rdata.arr[j];
-                  }
-                  rptr += AMREX_SPACEDIM + NStructReal;
-                  const auto& soa  = pbox.GetStructOfArrays();
-                  for (int j = 0; j < NArrayReal; j++) {
-                      rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
-                  }
-                  rptr += NArrayReal;
-              }
-          }
-      }
-      WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
-      ofs.flush();  // Some systems require this flush() (probably due to a bug)              
+        // Write the Real data in binary.
+        const int rChunkSize = AMREX_SPACEDIM + NStructReal + NArrayReal;
+        Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
+        typename ParticleType::RealType* rptr = rstuff.dataPtr();
+        
+        for (unsigned i = 0; i < tile_map[grid].size(); i++) {
+            const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+                const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
+                if (p.m_idata.id > 0)
+                {
+                    // always write these
+                    for (int j = 0; j < AMREX_SPACEDIM; j++) rptr[j] = p.m_rdata.arr[j];
+                    rptr += AMREX_SPACEDIM;
+
+                    // optionally write these
+                    for (int j = 0; j < NStructReal; j++)
+                        if (write_real_comp[j]) rptr[j] = p.m_rdata.arr[AMREX_SPACEDIM+j];
+
+                    for (int j = 0; j < NStructReal; j++)
+                        if (write_real_comp[j]) ++rptr;
+                    
+                    const auto& soa  = pbox.GetStructOfArrays();
+                    for (int j = 0; j < NArrayReal; j++)
+                        if (write_real_comp[NStructReal+j])
+                            rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
+
+                    for (int j = 0; j < NArrayReal; j++)
+                        if (write_real_comp[NStructReal+j]) ++rptr;
+                }
+            }
+        }
+        WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
+        ofs.flush();  // Some systems require this flush() (probably due to a bug)              
     }
 }
 
