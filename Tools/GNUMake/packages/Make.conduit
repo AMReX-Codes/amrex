@@ -3,6 +3,7 @@
 #########################################################
 
 CPPFLAGS += -DAMREX_USE_CONDUIT
+include $(AMREX_HOME)/Src/Extern/Conduit/Make.package
 
 ifdef CONDUIT_DIR
   INCLUDE_LOCATIONS += $(CONDUIT_DIR)/include
