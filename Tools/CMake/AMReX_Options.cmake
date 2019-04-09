@@ -170,6 +170,14 @@ endif ()
 option(ENABLE_SUNDIALS "Enable SUNDIALS4 interfaces" OFF)
 print_option(ENABLE_SUNDIALS)
 
+# Hypre
+if (ENABLE_LINEAR_SOLVERS)
+   option(ENABLE_HYPRE "Enable Hypre interfaces" OFF)
+   print_option(ENABLE_HYPRE)
+else ()
+   set(ENABLE_HYPRE OFF CACHE INTERNAL "Enable Hypre interfaces")
+endif ()
+
 #
 # This options are paths to external libraries installation directories
 #
