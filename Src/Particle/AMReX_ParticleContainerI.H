@@ -2892,7 +2892,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if( ! usePrePost) {
         return;
     }
-
+    
     BL_PROFILE("ParticleContainer::CheckpointPre()");
     
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
@@ -2946,52 +2946,52 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointPost ()
 {
     if( ! usePrePost) {
-      return;
+        return;
     }
-
+    
     BL_PROFILE("ParticleContainer::CheckpointPost()");
-
+    
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     std::ofstream HdrFile;
     HdrFile.open(HdrFileNamePrePost.c_str(), std::ios::out | std::ios::app);
-
+    
     for(int lev(0); lev <= finestLevel(); ++lev) {
-      ParallelDescriptor::ReduceIntSum (whichPrePost[lev].dataPtr(), whichPrePost[lev].size(), IOProcNumber);
-      ParallelDescriptor::ReduceIntSum (countPrePost[lev].dataPtr(), countPrePost[lev].size(), IOProcNumber);
-      ParallelDescriptor::ReduceLongSum(wherePrePost[lev].dataPtr(), wherePrePost[lev].size(), IOProcNumber);
-
-
-      if(ParallelDescriptor::IOProcessor()) {
-        for(int j(0); j < whichPrePost[lev].size(); ++j) {
-          HdrFile << whichPrePost[lev][j] << ' ' << countPrePost[lev][j] << ' ' << wherePrePost[lev][j] << '\n';
-        }
-
-        const bool gotsome = (nParticlesAtLevelPrePost[lev] > 0);
-        if(gotsome && doUnlink) {
-//            BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink_post);
-          // Unlink any zero-length data files.
-          Vector<long> cnt(nOutFilesPrePost,0);
-
-          for(int i(0), N = countPrePost[lev].size(); i < N; ++i) {
-            cnt[whichPrePost[lev][i]] += countPrePost[lev][i];
-	  }
-
-          for(int i(0), N = cnt.size(); i < N; ++i) {
-            if(cnt[i] == 0) {
-              std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
-              amrex::UnlinkFile(FullFileName.c_str());
+        ParallelDescriptor::ReduceIntSum (whichPrePost[lev].dataPtr(), whichPrePost[lev].size(), IOProcNumber);
+        ParallelDescriptor::ReduceIntSum (countPrePost[lev].dataPtr(), countPrePost[lev].size(), IOProcNumber);
+        ParallelDescriptor::ReduceLongSum(wherePrePost[lev].dataPtr(), wherePrePost[lev].size(), IOProcNumber);
+        
+        
+        if(ParallelDescriptor::IOProcessor()) {
+            for(int j(0); j < whichPrePost[lev].size(); ++j) {
+                HdrFile << whichPrePost[lev][j] << ' ' << countPrePost[lev][j] << ' ' << wherePrePost[lev][j] << '\n';
             }
-          }
+            
+            const bool gotsome = (nParticlesAtLevelPrePost[lev] > 0);
+            if(gotsome && doUnlink) {
+//            BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink_post);
+                // Unlink any zero-length data files.
+                Vector<long> cnt(nOutFilesPrePost,0);
+                
+                for(int i(0), N = countPrePost[lev].size(); i < N; ++i) {
+                    cnt[whichPrePost[lev][i]] += countPrePost[lev][i];
+                }
+                
+                for(int i(0), N = cnt.size(); i < N; ++i) {
+                    if(cnt[i] == 0) {
+                        std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
+                        amrex::UnlinkFile(FullFileName.c_str());
+                    }
+                }
+            }
         }
-      }
     }
-
+    
     if(ParallelDescriptor::IOProcessor()) {
-      HdrFile.flush();
-      HdrFile.close();
-      if( ! HdrFile.good()) {
-        amrex::Abort("ParticleContainer::CheckpointPost(): problem writing HdrFile");
-      }
+        HdrFile.flush();
+        HdrFile.close();
+        if( ! HdrFile.good()) {
+            amrex::Abort("ParticleContainer::CheckpointPost(): problem writing HdrFile");
+        }
     }
 }
 
