@@ -15,6 +15,7 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
@@ -22,6 +23,8 @@ namespace amrex {
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
+
+class MLMG;
 
 struct LPInfo
 {
@@ -166,6 +169,7 @@ public:
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
     virtual void prepareForSolve () = 0;
+    virtual void prepareForSolve (MLMG* mlmg) { prepareForSolve(); }
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
@@ -188,6 +192,10 @@ public:
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const {
+        amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }
 #endif

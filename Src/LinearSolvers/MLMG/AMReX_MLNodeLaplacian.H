@@ -2,6 +2,9 @@
 #define AMREX_ML_NODE_LAPLACIAN_H_
 
 #include <AMReX_MLNodeLinOp.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreNodeLap.H>
+#endif
 
 namespace amrex {
 
@@ -20,13 +23,15 @@ public :
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                     bool a_use_hypre = false);
 #ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<EBFArrayBoxFactory const*>& a_factory);
+                     const Vector<EBFArrayBoxFactory const*>& a_factory,
+                     bool a_use_hypre = false);
 #endif
     virtual ~MLNodeLaplacian ();
 
@@ -39,14 +44,16 @@ public :
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
+                 bool a_use_hypre = false);
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 bool a_use_hypre = false);
 #endif
 
     virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
@@ -85,6 +92,7 @@ public :
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
     virtual void prepareForSolve () final override;
+    virtual void prepareForSolve (MLMG* mlmg) final override;
     virtual bool isSingular (int amrlev) const final override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     virtual bool isBottomSingular () const final override { return m_is_bottom_singular; }
@@ -115,6 +123,15 @@ public :
     void buildIntegral ();
 #endif
 
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
+
+    void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                       Array4<int const> const& owner,
+                       Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                       Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const;
+#endif
+
 private:
 
     int m_is_rz = 0;
@@ -139,6 +156,8 @@ private:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
+
+    bool m_use_hypre = false;
 
     virtual void checkPoint (std::string const& file_name) const final;
 };
