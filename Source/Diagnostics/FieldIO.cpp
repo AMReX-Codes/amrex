@@ -575,7 +575,7 @@ WriteCoarseScalar( const std::string field_name,
     const std::string& filename,
     const std::string& level_prefix,
     const int lev, const bool plot_guards,
-    const int r_ratio, const Real* dx, const int icomp )
+    const Real* dx, const int icomp )
 {
     int ng = 0;
     if (plot_guards) ng = F_fp->nGrow();
@@ -587,6 +587,7 @@ WriteCoarseScalar( const std::string field_name,
     } else {
         // Create an alias to the component `icomp` of F_cp
         MultiFab F_comp(*F_cp, amrex::make_alias, 1, icomp);
+        const int r_ratio = WarpX::GetInstance().refRatio(lev-1)[0];
         auto F = getInterpolatedScalar( F_comp, *F_fp, dm, r_ratio, dx, ng );
         WriteRawField( *F, dm, filename, level_prefix, field_name+"_cp", lev, plot_guards );
     }
@@ -609,7 +610,7 @@ WriteCoarseVector( const std::string field_name,
     const std::string& filename,
     const std::string& level_prefix,
     const int lev, const bool plot_guards,
-    const int r_ratio, const Real* dx )
+    const Real* dx )
 {
     int ng = 0;
     if (plot_guards) ng = Fx_fp->nGrow();
@@ -621,6 +622,7 @@ WriteCoarseVector( const std::string field_name,
         WriteZeroRawField( *Fy_fp, dm, filename, level_prefix, field_name+"y_cp", lev, ng );
         WriteZeroRawField( *Fz_fp, dm, filename, level_prefix, field_name+"z_cp", lev, ng );
     } else {
+        const int r_ratio = WarpX::GetInstance().refRatio(lev-1)[0];
         auto F = getInterpolatedVector( Fx_cp, Fy_cp, Fz_cp, Fx_fp, Fy_fp, Fz_fp,
                                     dm, r_ratio, dx, ng );
         WriteRawField( *F[0], dm, filename, level_prefix, field_name+"x_cp", lev, plot_guards );
