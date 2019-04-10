@@ -1,0 +1,51 @@
+# This shows an example of builing the test problem with prebuilt amrex library.
+# (1) At the top directory of amrex,
+#       ./configure --comp pgi --dim 3 --with-cuda=yes --with-acc=yes --enable-particle=yes --with-mpi=no
+#       make -j4; make install
+#     This will build and install amrex at tmp_install_dir in amrex/.
+# (2) In amrex/Tutorials/GPU/HeatEquation_EX1_C/Exec/OpenACC/
+#       make -j4 -f GNUmakefile.libamrex
+#     Depending on your system, you may need to modify the flags in this file.
+# (3) Run with
+#       ./main.exe inputs.3d
+
+AMREX_INSTALL_DIR ?= ../../../../../tmp_install_dir
+
+CXX = nvcc
+FC = pgfortran
+
+CINCLUDES = -I. -I$(AMREX_INSTALL_DIR)/include
+CXXFLAGS = -ccbin=g++ -Xcompiler=' -Werror=return-type -g -O3 -std=c++14  --std=c++14' --std=c++14 -Wno-deprecated-gpu-targets -m64 -arch=compute_60 -code=sm_60 -maxrregcount=255 --Werror=cross-execution-space-call -lineinfo --ptxas-options=-O3,-v --use_fast_math -dc -x cu --expt-relaxed-constexpr --expt-extended-lambda
+
+FINCLUDES = -module $(AMREX_INSTALL_DIR)/include -I . -I$(AMREX_INSTALL_DIR)/include
+FFLAGS = -O2 -gopt  -Mnomain -Mcuda=cc60,ptxinfo,fastmath,charstring -Mcuda=lineinfo CUDA_HOME=/usr/local/cuda -Mcuda=maxregcount:255 -Mdclchk  -acc -Minfo=accel -mcmodel=medium -ta=tesla:cc60
+
+LDFLAGS = -L$(AMREX_INSTALL_DIR)/lib -L/usr/local/cuda/lib64
+LIBRARIES = -lamrex -lcuda -lstdc++ -pgf90libs -latomic
+
+vpath %.cpp . ../../Source
+vpath %.F90 .
+vpath %.H   .
+
+default: main.exe
+
+main.exe: main.o myfunc.o mykernel.o
+	$(FC) -o $@ $(FFLAGS) $^ $(LDFLAGS) $(LIBRARIES)
+
+main.o: main.cpp myfunc.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+myfunc.o: myfunc.cpp myfunc.H myfunc_F.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+mykernel.o: mykernel.F90
+	$(FC) -o $@ -c $(FFLAGS) $(FINCLUDES) $<
+
+.PHONY: clean realclean
+
+clean:
+	$(RM) *.o
+
+realclean: clean
+	$(RM) main.exe
+
