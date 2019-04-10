@@ -28,6 +28,13 @@ include( AMReX_Utils )
 include( AMReX_Options )
 include( AMReX_Machines )
 
++# Use ccache (if present) to speedup compilation
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+      set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
 # 
