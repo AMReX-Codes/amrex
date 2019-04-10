@@ -48,7 +48,7 @@ mykernel.o: mykernel.F90
 .PHONY: clean realclean
 
 clean:
-	$(RM) *.o
+	$(RM) *.o *.mod
 
 realclean: clean
 	$(RM) main.exe
