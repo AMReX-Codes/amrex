@@ -42,7 +42,7 @@ all: $(amrexlib)
 distclean: realclean
 	$(SILENT) $(RM) GNUmakefile
 
-install: install_lib install_headers install_fortran_modules
+install: install_lib install_headers install_fortran_modules install_pkg_config
 
 uninstall:
 	@echo Uninstalling...

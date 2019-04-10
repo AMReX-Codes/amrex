@@ -159,8 +159,10 @@ endif
 
 ########################################################################
 
-FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir) -fimplicit-none
+FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore
+F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -fimplicit-none
+
+FMODULES =  -J$(fmoddir) -I $(fmoddir)
 
 ########################################################################
 

@@ -32,8 +32,7 @@ endif
 
 ########################################################################
 
-F90FLAGS += -module $(fmoddir) -I$(fmoddir)
-FFLAGS   += -module $(fmoddir) -I$(fmoddir)
+FMODULES += -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
 
@@ -47,7 +46,7 @@ CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)
 FFLAGS   += $(GENERIC_COMP_FLAGS)
 F90FLAGS += $(GENERIC_COMP_FLAGS)
-LDFLAGS  = -cxxlib
+LDFLAGS  += -cxxlib
 
 ########################################################################
 

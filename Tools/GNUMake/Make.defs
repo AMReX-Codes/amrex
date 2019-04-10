@@ -243,6 +243,7 @@ MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
+MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 
 RANLIB          = ranlib
 
@@ -655,6 +656,7 @@ amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
 amrexFortModules = $(wildcard $(objEXETempDir)/*.mod)
+amrexPkgconfigDir = $(AMREX_INSTALL_DIR)/lib/pkgconfig
 
 #
 # For source code manipulation
