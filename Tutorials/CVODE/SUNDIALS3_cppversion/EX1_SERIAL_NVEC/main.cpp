@@ -6,19 +6,11 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Print.H>
 #include <AMReX_PlotFileUtil.H>
-#if !defined(BL_NO_FORT)
-#include <AMReX_BaseFab_f.H>
-#endif
-
-#include <AMReX_BLFort.H>
-
 #include <cvode/cvode.h>               /* prototypes for CVODE fcts., consts. */
 #include <sunlinsol/sunlinsol_spgmr.h> /* access to SPGMR SUNLinearSolver     */
 #include <cvode/cvode_spils.h>         /* access to CVSpils interface */
 #include <sundials/sundials_types.h>   /* definition of type realtype */
 #include <sundials/sundials_math.h>    /* definition of ABS and EXP   */
-
-#include <nvector/nvector_cuda.h>
 #include <nvector/nvector_serial.h>
 #include "myfunc_F.H"
 

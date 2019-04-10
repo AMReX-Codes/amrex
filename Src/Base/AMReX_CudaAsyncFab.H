@@ -42,12 +42,12 @@ public:
 
 // Not allowed because it contains cuda api calls   void resize (Box const& bx, int ncomp);
     void clear ();
-    AMREX_GPU_HOST_DEVICE FArrayBox* fabPtr () const { return m_fab; }
-    AMREX_GPU_HOST_DEVICE FArrayBox& fab () const { return *m_fab; }
-    FArrayBox& hostFab () const;
+    AMREX_GPU_HOST_DEVICE FArrayBox* fabPtr () const noexcept { return m_fab; }
+    AMREX_GPU_HOST_DEVICE FArrayBox& fab () const noexcept { return *m_fab; }
+    FArrayBox& hostFab () const noexcept;
 
-    Array4<Real const> array () const;
-    Array4<Real> array ();
+    Array4<Real const> array () const noexcept;
+    Array4<Real> array () noexcept;
 
     static void Initialize ();
     static void Finalize ();

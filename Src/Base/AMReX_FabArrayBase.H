@@ -61,48 +61,48 @@ public:
                  const IntVect&             ngrow);
 
     //! Return the grow factor that defines the region of definition.
-    int nGrow () const { return n_grow[0]; }
+    int nGrow () const noexcept { return n_grow[0]; }
 
-    IntVect nGrowVect () const { return n_grow; }
+    IntVect nGrowVect () const noexcept { return n_grow; }
 
     //! Return number of variables (aka components) associated with each point.
-    int nComp () const { return n_comp; }
+    int nComp () const noexcept { return n_comp; }
 
     //! Return index type.
-    IndexType ixType () const { return boxarray.ixType(); }
+    IndexType ixType () const noexcept { return boxarray.ixType(); }
 
     //Return whether this FabArray is empty
-    bool empty () const { return boxarray.empty(); }
+    bool empty () const noexcept { return boxarray.empty(); }
 
     /**
     * \brief Return a constant reference to the BoxArray that defines the
     * valid region associated with this FabArray.
     */
-    const BoxArray& boxArray () const { return boxarray; }
+    const BoxArray& boxArray () const noexcept { return boxarray; }
 
     /**
     * \brief Return the Kth Box in the BoxArray.
     * That is, the valid region of the Kth grid.
     */
-    Box box (int K) const { return boxarray[K]; }
+    Box box (int K) const noexcept { return boxarray[K]; }
 
     /**
     * \brief Return the Kth FABs Box in the FabArray.
     * That is, the region the Kth fab is actually defined on.
     */
-    Box fabbox (int K) const;
+    Box fabbox (int K) const noexcept;
 
     //! Return the number of FABs in the FabArray.
-    int size () const { return boxarray.size(); }
+    int size () const noexcept { return boxarray.size(); }
 
     //! Return the number of local FABs in the FabArray.
-    int local_size () const { return indexArray.size(); }
+    int local_size () const noexcept { return indexArray.size(); }
 
     //! Return constant reference to indices in the FabArray that we have access.
-    const Vector<int> &IndexArray () const { return indexArray; }
+    const Vector<int> &IndexArray () const noexcept { return indexArray; }
 
     //! Return local index in the vector of FABs.
-    int localindex (int K) const {
+    int localindex (int K) const noexcept {
         std::vector<int>::const_iterator low
             = std::lower_bound(indexArray.begin(), indexArray.end(), K);
         if (low != indexArray.end() && *low == K) {
@@ -114,7 +114,7 @@ public:
     }
 
     //! Return constant reference to associated DistributionMapping.
-    const DistributionMapping& DistributionMap () const { return distributionMap; }
+    const DistributionMapping& DistributionMap () const noexcept { return distributionMap; }
 
     //
     struct CacheStats
@@ -131,18 +131,18 @@ public:
 	CacheStats (const std::string& name_)
 	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
 	      bytes(0L),bytes_hwm(0L),name(name_) {;}
-	void recordBuild () {
+	void recordBuild () noexcept {
 	    ++size;
 	    ++nbuild;
 	    maxsize = std::max(maxsize, size);
 	}
-	void recordErase (int n) {
+	void recordErase (int n) noexcept {
 	    // n: how many times the item to be deleted has been used.
 	    --size;
 	    ++nerase;
 	    maxuse = std::max(maxuse, n);
 	}
-	void recordUse () { ++nuse; }
+	void recordUse () noexcept { ++nuse; }
 	void print () {
 	    amrex::Print(Print::AllProcs) << "### " << name << " ###\n"
 					  << "    tot # of builds  : " << nbuild  << "\n"
@@ -160,10 +160,10 @@ public:
         Box sbox;
         int dstIndex;
         int srcIndex;
-	CopyComTag () {}
-	CopyComTag (const Box& db, const Box& sb, int didx, int sidx)
+	CopyComTag () noexcept {}
+	CopyComTag (const Box& db, const Box& sb, int didx, int sidx) noexcept
 	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
-	bool operator< (const CopyComTag& rhs) const {
+	bool operator< (const CopyComTag& rhs) const noexcept {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
                    (sbox.smallEnd() < rhs.sbox.smallEnd()
 		               || ((sbox.smallEnd() == rhs.sbox.smallEnd()) && (
@@ -191,17 +191,17 @@ public:
     * Objects with the same references have the same key.
     */
     struct BDKey {
-        BDKey () = default;
-        BDKey (const BoxArray::RefID& baid, const DistributionMapping::RefID& dmid)
+        BDKey () noexcept = default;
+        BDKey (const BoxArray::RefID& baid, const DistributionMapping::RefID& dmid) noexcept
             : m_ba_id(baid), m_dm_id(dmid) {}
-        bool operator< (const BDKey& rhs) const {
+        bool operator< (const BDKey& rhs) const noexcept {
             return (m_ba_id < rhs.m_ba_id) ||
                 ((m_ba_id == rhs.m_ba_id) && (m_dm_id < rhs.m_dm_id));
         }
-        bool operator== (const BDKey& rhs) const {
+        bool operator== (const BDKey& rhs) const noexcept {
             return m_ba_id == rhs.m_ba_id && m_dm_id == rhs.m_dm_id;
         }
-        bool operator!= (const BDKey& rhs) const {
+        bool operator!= (const BDKey& rhs) const noexcept {
             return m_ba_id != rhs.m_ba_id || m_dm_id != rhs.m_dm_id;
         }
         friend std::ostream& operator<< (std::ostream& os, const BDKey& id);
@@ -210,7 +210,7 @@ public:
         DistributionMapping::RefID m_dm_id;
     };
 
-    BDKey getBDKey () const {
+    BDKey getBDKey () const noexcept {
 	return {boxarray.getRefID(), distributionMap.getRefID()};
     }
 
@@ -226,7 +226,7 @@ public:
 	Vector<int> localIndexMap;
 	Vector<int> localTileIndexMap;
 	Vector<Box> tileArray;
-	TileArray () : nuse(-1) {;}
+	TileArray () noexcept : nuse(-1) {;}
 	long bytes () const;
     };
 
@@ -248,7 +248,7 @@ public:
         int procThatHasData;
         Box box;
 
-        FabComTag ()
+        FabComTag () noexcept
             :
             fromProc(0),
             toProc(0),
@@ -385,15 +385,13 @@ protected:
 
     void clear ();
 
-    DistributionMapping& ModifyDistributionMap () { return distributionMap; }
-
     /**
     * \brief Return owenership of fabs. The concept of ownership only applies when UPC++
     * team is used. In that case, each fab is shared by team workers, with one
     * taking the ownership.
     */
-    const std::vector<bool>& OwnerShip () const { return ownership; }
-    bool isOwner (int li) const { return ownership[li]; }
+    const std::vector<bool>& OwnerShip () const noexcept { return ownership; }
+    bool isOwner (int li) const noexcept { return ownership[li]; }
 
     //
     // The data ...
@@ -546,20 +544,20 @@ protected:
 	int  max_num_boxarrays;
 	int  max_num_ba_use;
 	long num_build;
-	FabArrayStats () : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
+	FabArrayStats () noexcept : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
 			   max_num_ba_use(1), num_build(0) {;}
-	void recordBuild () {
+	void recordBuild () noexcept {
 	    ++num_fabarrays;
 	    ++num_build;
 	    max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
 	}
-	void recordDelete () {
+	void recordDelete () noexcept {
 	    --num_fabarrays;
 	}
-	void recordMaxNumBoxArrays (int n) {
+	void recordMaxNumBoxArrays (int n) noexcept {
 	    max_num_boxarrays = std::max(max_num_boxarrays, n);
 	}
-	void recordMaxNumBAUse (int n) {
+	void recordMaxNumBAUse (int n) noexcept {
 	    max_num_ba_use = std::max(max_num_ba_use, n);
 	}
 	void print () {

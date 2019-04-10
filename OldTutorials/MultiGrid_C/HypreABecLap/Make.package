@@ -1,9 +1,0 @@
-MGLIB_BASE=EXE
-
-CEXE_sources += HypreABecLap.cpp
-
-CEXE_headers += HypreABecLap.H
-
-FEXE_headers += HypreABec_F.H 
-
-FEXE_sources += HypreABec_$(DIM)D.F 

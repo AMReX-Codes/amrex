@@ -53,8 +53,8 @@ PrintUsage (const char* progName)
   std::cout << "    coarFile= coarse file name  (input)" << '\n';
   std::cout << "    mediFile= medium plot file  (input)" << '\n';
   std::cout << "    fineFile= finest plot file  (input)" << '\n';
-  std::cout << "    mediError = medium error file (output)" << '\n';
-  std::cout << "    coarError = coarse error file (output)" << '\n';
+  std::cout << "    mediError = medium error file (optional output)" << '\n';
+  std::cout << "    coarError = coarse error file (optional output)" << '\n';
   std::cout << "   [-help]" << '\n';
   std::cout << "   [-verbose]" << '\n';
   std::cout << '\n';
@@ -138,7 +138,8 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
               const string& a_fineFile,
               const string& a_coarFile,
               const string& a_errFile,
-              const int& a_norm)
+              const int& a_norm,
+              bool verbose)
 {
   //
   // Scan the arguments.
@@ -150,11 +151,9 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
   difFile = a_errFile;
   norm   = a_norm;
 
-  bool verbose = true;
-
   DataServices::SetBatchMode();
   Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
   DataServices dataServices1(iFile1, fileType);
   DataServices dataServices2(iFile2, fileType);
 
@@ -162,13 +161,13 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
     amrex::Abort("ERROR: Dataservices not OK");
 
   //
-  // Generate AmrData Objects 
+  // Generate AmrData Objects
   //
   AmrData& amrData1 = dataServices1.AmrDataRef();
   AmrData& amrData2 = dataServices2.AmrDataRef();
 
   //
-  // Initial Tests 
+  // Initial Tests
   //
   if (amrData1.FinestLevel() != amrData2.FinestLevel())
     amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
@@ -177,7 +176,7 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
   int nComp2      = amrData2.NComp();
 
   int nComp = std::min(nComp1,nComp2);
-    
+
   if (!amrDatasHaveSameDerives(amrData1,amrData2))
   {
     std::cout << "Warning: Plotfiles do not have the same state variables" << std::endl;
@@ -189,19 +188,19 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
   int finestLevel = amrData1.FinestLevel();
 
   Vector<int> destComps(nComp);
-  for (int i = 0; i < nComp; i++) 
+  for (int i = 0; i < nComp; i++)
     destComps[i] = i;
-    
+
 
   //
   // Compute the error
   //
   Vector<MultiFab*> error(finestLevel+1);
-    
+
   if (ParallelDescriptor::IOProcessor())
     std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
               << "-----------------------------------------------" << std::endl;
-             
+
   Vector<Real> sum_norms(nComp);
   for (int iComp = 0; iComp < nComp; iComp++)
     sum_norms[iComp] = 0.0;
@@ -262,7 +261,7 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
         baf = BoxArray(amrData1.boxArray(iLevel+1)).coarsen(refine_ratio);
       }
 
-            
+
       // Copy the data at the coarse level one component at a time
       new_data1.copy(data1,0,0,1);
 
@@ -275,11 +274,11 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
         // Create the Coarsened version of data2
         //
         int index = mfi.index();
-                
+
         const Box& bx = ba2Coarse[index];
         FArrayBox data2Coarse(bx, 1);
         int ncCoarse = 1;
-                
+
 
 
         FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
@@ -287,12 +286,12 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
                         &ncCoarse,
                         data2Fine[mfi].dataPtr(),
                         ARLIM(data2Fine[mfi].loVect()),
-                        ARLIM(data2Fine[mfi].hiVect()), 
+                        ARLIM(data2Fine[mfi].hiVect()),
                         bx.loVect(), bx.hiVect(),
                         refine_ratio.getVect());
 
 
-        // 
+        //
         // Calculate the errors on this FAB for this component
         //
 
@@ -302,11 +301,11 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
         if (iLevel<finestLevel)
         {
           std::vector< std::pair<int,Box> > isects = baf.intersections(bx);
-                  
+
           for (int ii = 0; ii < isects.size(); ii++)
             (*error[iLevel])[mfi].setVal(0,isects[ii].second,iComp,1);
         }
-                
+
         Real grdL2 = (*error[iLevel])[mfi].norm(norm, iComp, 1);
 
         if (norm != 0)
@@ -337,8 +336,8 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
         if (proc != ParallelDescriptor::IOProcessorNumber())
         {
           MPI_Status stat;
-          int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                            MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
+          int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype,
+                            MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(),
                             &stat);
 
           if (rc != MPI_SUCCESS)
@@ -357,7 +356,7 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
     }
     else
     {
-      int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
+      int rc = MPI_Send(norms.dataPtr(), nComp, datatype,
                         ParallelDescriptor::IOProcessorNumber(),
                         ParallelDescriptor::MyProc(),
                         ParallelDescriptor::Communicator());
@@ -382,21 +381,24 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
           norms[iComp] = pow(norms[iComp], (1.0/norm));
         }
 
-        std::cout << norms[iComp] << " ";
+        if (verbose)
+          std::cout << norms[iComp] << " ";
+
         sum_norms[iComp] = sum_norms[iComp] + norms[iComp];
       }
-            
-      std::cout << std::endl;
+
+      if (verbose)
+        std::cout << std::endl;
     }
   }
 
-  if (ParallelDescriptor::IOProcessor())
-    std::cout << "  Sum    ";
-  if (ParallelDescriptor::IOProcessor())
-  {
-    for (int iComp = 0; iComp < nComp; iComp++)
-    {
-      std::cout << sum_norms[iComp] << " ";
+  if (verbose) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "  Sum    ";
+      for (int iComp = 0; iComp < nComp; iComp++)
+        {
+          std::cout << sum_norms[iComp] << " ";
+        }
     }
   }
 
@@ -406,7 +408,7 @@ getErrorNorms(Vector<Real>& a_norms, //one for each comp
   {
     WritePlotFile(error, amrData1, difFile, verbose);
   }
-    
+
   for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
   {
     delete error[iLevel];
@@ -427,6 +429,10 @@ main (int   argc,
 
   if (pp.contains("help"))
     PrintUsage(argv[0]);
+
+  bool verbose = false;
+  if (pp.contains("verbose"))
+    verbose = true;
 
   FArrayBox::setFormat(FABio::FAB_IEEE_32);
   //
@@ -450,19 +456,15 @@ main (int   argc,
 
 
   pp.query("mediError", mediError);
-  if (mediError.empty())
-    amrex::Abort("You must specify mediError");
-
   pp.query("coarError", coarError);
-  if (coarError.empty())
-    amrex::Abort("You must specify coarError");
+
   //l2 is not supported
   for(int inorm = 0; inorm <=1; inorm++)
   {
     Vector<Real> normsMedi, normsCoar;
     Vector<string> namesMedi, namesCoar;
-    getErrorNorms(normsMedi, namesMedi, fineFile, mediFile, mediError, inorm);
-    getErrorNorms(normsCoar, namesCoar, mediFile, coarFile, coarError, inorm);
+    getErrorNorms(normsMedi, namesMedi, fineFile, mediFile, mediError, inorm, verbose);
+    getErrorNorms(normsCoar, namesCoar, mediFile, coarFile, coarError, inorm, verbose);
     int ncompMedi = normsMedi.size();
     int ncompCoar = normsCoar.size();
     int ncomp = std::min(ncompMedi, ncompCoar);

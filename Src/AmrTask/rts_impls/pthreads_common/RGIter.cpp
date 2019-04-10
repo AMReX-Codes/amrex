@@ -5,6 +5,9 @@
 #include <cmath>
 
 #include <AMReX_AmrLevel.H>
+#include <PerillaConfig.H>
+using namespace perilla;
+#include <PerillaRts.H>
 
 namespace amrex{
 
@@ -72,7 +75,8 @@ namespace amrex{
 	init();
     }
 
-    RGIter::RGIter(std::vector<amrex::AsyncFillPatchIterator*> afpi, std::vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
+#ifndef USE_PERILLA_ON_DEMAND
+    RGIter::RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
 	    amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr):
 	itrGraph(afpi[itr-1]->destGraph),
 	m_level_afpi(afpi),
@@ -151,6 +155,97 @@ namespace amrex{
 	    init();
 	}
     }
+
+#else
+
+    void RGIter::exec(){
+        int myProc = amrex::ParallelDescriptor::MyProc();
+        bool push = true;
+
+        tid = perilla::tid();
+        tg = perilla::wid();
+        ntid = perilla::wtid();
+
+        AsyncFillPatchIterator::initialSend(m_level_afpi, m_upper_level_afpi, boxGrow, time, index, scomp, ncomp, iteration);
+        syncAllWorkerThreads();
+
+        itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+        if(perilla::isMasterWorkerThread())
+            m_level_afpi[iteration-1]->Reset();
+        itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+
+        if(ntid == perilla::NUM_THREADS_PER_TEAM-2)
+        {
+            int f;
+            int level = m_level_afpi[iteration-1]->m_amrlevel.level;
+            double dt = m_level_afpi[iteration-1]->m_amrlevel.parent->dtLevel(level);
+            this->currentItr = 1;
+            this->totalItr = 1;
+            while(m_level_afpi[iteration-1]->destGraph->worker[tg]->completedRegionQueue->queueSize(true) != m_level_afpi[iteration-1]->destGraph->worker[tg]->totalTasks ||
+                    m_level_afpi[iteration-1]->destGraph->worker[tg]->computedTasks != m_level_afpi[iteration-1]->destGraph->worker[tg]->totalTasks)
+            {
+                f = m_level_afpi[iteration-1]->destGraph->getFireableRegion(tg);
+                if(f != -1)
+                {
+                    m_level_afpi[iteration-1]->Receive(this,*_dest,boxGrow,time,index,scomp,ncomp,f,true);
+                    m_level_afpi[iteration-1]->destGraph->setFireableRegion(f);
+                    if(m_level_afpi[iteration-1]->destGraph->worker[tg]->unfireableRegionQueue->queueSize(true) !=0 &&
+                            m_level_afpi[iteration-1]->destGraph->worker[tg]->fireableRegionQueue->queueSize(true) < 2)
+                        continue;
+                }
+
+                if(m_level_afpi[iteration-1]->destGraph->worker[tg]->computedRegionQueue->queueSize() != 0)
+                {
+                    f = m_level_afpi[iteration-1]->destGraph->worker[tg]->computedRegionQueue->removeRegion();
+
+                    if(push & level == m_level_afpi[iteration-1]->m_amrlevel.parent->finestLevel() && iteration < m_level_afpi[iteration-1]->m_amrlevel.parent->nCycle(level))
+                        m_level_afpi[iteration]->SendIntraLevel(*(this),boxGrow,time+dt,index,scomp,ncomp,iteration,f,true);
+
+                    if(push & level < m_level_afpi[iteration-1]->m_amrlevel.parent->finestLevel())
+                    {
+                        for(int i=0; i < m_level_afpi[iteration-1]->m_amrlevel.parent->nCycle(level+1); i++)
+                        {
+                            m_upper_level_afpi[i]->SendInterLevel(this,boxGrow,time+(i*m_level_afpi[iteration-1]->m_amrlevel.parent->dtLevel(level+1)),index,scomp,ncomp,i+1,f,true);
+                        }
+                    }
+                    m_level_afpi[iteration-1]->destGraph->worker[tg]->completedRegionQueue->addRegion(f,true);
+                }
+            }
+        }
+        else
+        {
+            //fout << "Calling init "<< std::endl;
+            //fout.close();
+            init();
+        }
+    }
+
+    RGIter::RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
+            amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr):
+        itrGraph(afpi[itr-1]->destGraph),
+        m_level_afpi(afpi),
+        m_upper_level_afpi(upper_afpi),
+	_dest(&dest),
+        boxGrow(bG),
+        time(tm),
+        index(ind),
+        scomp(sc),
+        ncomp(nc),
+        iteration(itr),
+        implicit(true),
+        ppteams(true),
+        haveDepGraph(false),
+        depGraph(NULL),
+        getFireableTime(0.)
+    {
+        RTS rts;
+        rts.Init(ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs());
+        std::vector<RegionGraph*> flattenedGraphArray;
+        Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, flattenedGraphArray);
+        rts.invokeOnDemand(flattenedGraphArray, this);
+    }
+#endif
+    using namespace perilla;
 
     RGIter::~RGIter()
     {

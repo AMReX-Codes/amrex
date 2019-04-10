@@ -36,13 +36,13 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
 AsyncFabImpl::~AsyncFabImpl () {}
 
 FArrayBox*
-AsyncFabImpl::fabPtr ()
+AsyncFabImpl::fabPtr () noexcept
 {
     AMREX_ASSERT(m_gpu_fab != nullptr);
     return m_gpu_fab.get();
 }
 
-FArrayBox& AsyncFabImpl::hostFab () { return *m_gpu_fab; }
+FArrayBox& AsyncFabImpl::hostFab () noexcept { return *m_gpu_fab; }
 
 #else
 
@@ -154,14 +154,14 @@ AsyncFabImpl::~AsyncFabImpl ()
 }
 
 FArrayBox*
-AsyncFabImpl::fabPtr ()
+AsyncFabImpl::fabPtr () noexcept
 {
     AMREX_ASSERT(m_gpu_fab != nullptr);
     return m_gpu_fab.get();
 }
 
 FArrayBox&
-AsyncFabImpl::hostFab ()
+AsyncFabImpl::hostFab () noexcept
 {
     return m_cpu_fab;
 }
@@ -181,6 +181,7 @@ AsyncFabImpl::copy_htod ()
     {
         auto src  = static_cast<BaseFabData<Real>*>(&m_cpu_fab);
         std::memcpy(dest, src, sizeof(BaseFabData<Real>));
+        dest->setOwner(false);
     }
 }
 
@@ -212,9 +213,9 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp)
 
 AsyncFabImpl::~AsyncFabImpl () {}
 
-FArrayBox* AsyncFabImpl::fabPtr () { return m_cpu_fab_alias; }
+FArrayBox* AsyncFabImpl::fabPtr () noexcept { return m_cpu_fab_alias; }
 
-FArrayBox& AsyncFabImpl::hostFab () { return *m_cpu_fab_alias; }
+FArrayBox& AsyncFabImpl::hostFab () noexcept { return *m_cpu_fab_alias; }
 
 }}
 

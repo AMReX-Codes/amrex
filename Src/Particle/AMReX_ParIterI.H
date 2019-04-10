@@ -94,7 +94,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
                  y.resize(aos.size());,
                  z.resize(aos.size()););
     
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
     thrust::transform(
         thrust::device,
         thrust::device_ptr<const ParticleType>(static_cast<const ParticleType*>(aos().data())),
@@ -121,7 +121,7 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
     BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
     auto N = aos.size();
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
     thrust::transform(
         thrust::device,
         thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(thrust::device_ptr<const Real>(x.data()), 

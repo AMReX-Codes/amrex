@@ -8,7 +8,7 @@ void mlpoisson_adotx (int i, int /*j*/, int /*k*/, Array4<Real> const& y,
                       Array4<Real const> const& x,
                       Real dhx,
                       Real const* AMREX_RESTRICT re,
-                      int rlo)
+                      int rlo) noexcept
 {
     y(i,0,0) = dhx * (re[i-rlo]*x(i-1,0,0)
                       - (re[i-rlo]+re[i+1-rlo])*x(i,0,0)
@@ -18,7 +18,7 @@ void mlpoisson_adotx (int i, int /*j*/, int /*k*/, Array4<Real> const& y,
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
                        Array4<Real const> const& sol, Real dxinv,
-                       Real const* AMREX_RESTRICT re, int rlo)
+                       Real const* AMREX_RESTRICT re, int rlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -32,7 +32,7 @@ void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
                            Array4<Real const> const& sol, Real dxinv, int xlen,
-                           Real const* AMREX_RESTRICT re, int rlo)
+                           Real const* AMREX_RESTRICT re, int rlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -49,7 +49,7 @@ void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const>
                      Array4<Real const> const& f0, Array4<int const> const& m0,
                      Array4<Real const> const& f1, Array4<int const> const& m1,
                      Box const& vbox, int redblack,
-                     Real const* AMREX_RESTRICT re, int rlo)
+                     Real const* AMREX_RESTRICT re, int rlo) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -78,7 +78,7 @@ void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const>
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
-                          Real const* AMREX_RESTRICT re, int rlo, Real dhx)
+                          Real const* AMREX_RESTRICT re, int rlo, Real dhx) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

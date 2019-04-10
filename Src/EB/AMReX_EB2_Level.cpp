@@ -392,15 +392,20 @@ Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
 namespace {
     void copyMultiFabToMultiCutFab (MultiCutFab& dstmf, const MultiFab& srcmf)
     {
+        const int ncomp = srcmf.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(dstmf.data()); mfi.isValid(); ++mfi)
         {
             if (dstmf.ok(mfi)) {
-                CutFab& dstfab = dstmf[mfi];
-                const void* srcfab = static_cast<const void*>(srcmf[mfi].dataPtr());
-                dstfab.copyFromMem(srcfab);
+                const auto dstfab = dstmf.array(mfi);
+                const auto srcfab = srcmf.array(mfi);
+                const Box& box = mfi.fabbox();
+                AMREX_HOST_DEVICE_FOR_4D (box,ncomp,i,j,k,n,
+                {
+                    dstfab(i,j,k,n) = srcfab(i,j,k,n);
+                });
             }
         }
     }

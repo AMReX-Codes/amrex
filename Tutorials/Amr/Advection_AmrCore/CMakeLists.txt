@@ -1,8 +1,5 @@
-#
-# Does not work if amrex is built in shared mode
-#
-if (BUILD_SHARED_LIBS)
-  return()
+if (DIM EQUAL 1)
+   return()
 endif ()
 
 #

@@ -1,0 +1,3 @@
+ifeq ($(USE_ARKODE_LIBS), TRUE)
+     f90EXE_sources += ark_analytic_f2003.f90
+endif

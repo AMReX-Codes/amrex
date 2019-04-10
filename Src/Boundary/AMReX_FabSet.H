@@ -41,7 +41,7 @@ class FabSet
 public:
     //
     //! The default constructor -- you must later call define().
-    FabSet ();
+    FabSet () noexcept;
     //
     //! Construct a FabSet of specified number of components on the grids.
     FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
@@ -58,41 +58,41 @@ public:
     //! Define a FabSet constructed via default constructor.
     void define (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
-    FArrayBox const& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
-    FArrayBox      & operator[] (const MFIter& mfi)       { return m_mf[mfi]; }
-    FArrayBox const& operator[] (int i)             const { return m_mf[i]; }
-    FArrayBox      & operator[] (int i)                   { return m_mf[i]; }
+    FArrayBox const& operator[] (const MFIter& mfi) const noexcept { return m_mf[mfi]; }
+    FArrayBox      & operator[] (const MFIter& mfi)       noexcept { return m_mf[mfi]; }
+    FArrayBox const& operator[] (int i)             const noexcept { return m_mf[i]; }
+    FArrayBox      & operator[] (int i)                   noexcept { return m_mf[i]; }
 
-    FArrayBox const* fabPtr (const MFIter& mfi) const { return m_mf.fabPtr(mfi); }
-    FArrayBox      * fabPtr (const MFIter& mfi)       { return m_mf.fabPtr(mfi); }
-    FArrayBox const* fabPtr (int i)             const { return m_mf.fabPtr(i); }
-    FArrayBox      * fabPtr (int i)                   { return m_mf.fabPtr(i); }
+    FArrayBox const* fabPtr (const MFIter& mfi) const noexcept { return m_mf.fabPtr(mfi); }
+    FArrayBox      * fabPtr (const MFIter& mfi)       noexcept { return m_mf.fabPtr(mfi); }
+    FArrayBox const* fabPtr (int i)             const noexcept { return m_mf.fabPtr(i); }
+    FArrayBox      * fabPtr (int i)                   noexcept { return m_mf.fabPtr(i); }
 
-    FArrayBox const* fabHostPtr (const MFIter& mfi) const { return m_mf.fabHostPtr(mfi); }
-    FArrayBox      * fabHostPtr (const MFIter& mfi)       { return m_mf.fabHostPtr(mfi); }
-    FArrayBox const* fabHostPtr (int i)             const { return m_mf.fabHostPtr(i); }
-    FArrayBox      * fabHostPtr (int i)                   { return m_mf.fabHostPtr(i); }
+    FArrayBox const* fabHostPtr (const MFIter& mfi) const noexcept { return m_mf.fabHostPtr(mfi); }
+    FArrayBox      * fabHostPtr (const MFIter& mfi)       noexcept { return m_mf.fabHostPtr(mfi); }
+    FArrayBox const* fabHostPtr (int i)             const noexcept { return m_mf.fabHostPtr(i); }
+    FArrayBox      * fabHostPtr (int i)                   noexcept { return m_mf.fabHostPtr(i); }
 
-    FArrayBox const* fabDevicePtr (const MFIter& mfi) const { return m_mf.fabDevicePtr(mfi); }
-    FArrayBox      * fabDevicePtr (const MFIter& mfi)       { return m_mf.fabDevicePtr(mfi); }
-    FArrayBox const* fabDevicePtr (int i)             const { return m_mf.fabDevicePtr(i); }
-    FArrayBox      * fabDevicePtr (int i)                   { return m_mf.fabDevicePtr(i); }
+    FArrayBox const* fabDevicePtr (const MFIter& mfi) const noexcept { return m_mf.fabDevicePtr(mfi); }
+    FArrayBox      * fabDevicePtr (const MFIter& mfi)       noexcept { return m_mf.fabDevicePtr(mfi); }
+    FArrayBox const* fabDevicePtr (int i)             const noexcept { return m_mf.fabDevicePtr(i); }
+    FArrayBox      * fabDevicePtr (int i)                   noexcept { return m_mf.fabDevicePtr(i); }
 
-    Array4<Real const> array (const MFIter& mfi) const { return m_mf.array(mfi); }
-    Array4<Real      > array (const MFIter& mfi)       { return m_mf.array(mfi); }
-    Array4<Real const> array (int i)             const { return m_mf.array(i);   }
-    Array4<Real      > array (int i)                   { return m_mf.array(i);   }
+    Array4<Real const> array (const MFIter& mfi) const noexcept { return m_mf.array(mfi); }
+    Array4<Real      > array (const MFIter& mfi)       noexcept { return m_mf.array(mfi); }
+    Array4<Real const> array (int i)             const noexcept { return m_mf.array(i);   }
+    Array4<Real      > array (int i)                   noexcept { return m_mf.array(i);   }
 
-    Box fabbox (int K) const { return m_mf.fabbox(K); }
+    Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
 
-    int size () const { return m_mf.size(); }
+    int size () const noexcept { return m_mf.size(); }
 
-    const BoxArray& boxArray () const { return m_mf.boxArray(); }
+    const BoxArray& boxArray () const noexcept { return m_mf.boxArray(); }
 
-    const DistributionMapping& DistributionMap () const
+    const DistributionMapping& DistributionMap () const noexcept
 	{ return m_mf.DistributionMap(); }
 
-    int nComp () const { return m_mf.nComp(); }
+    int nComp () const noexcept { return m_mf.nComp(); }
 
     void clear () { m_mf.clear(); }
 

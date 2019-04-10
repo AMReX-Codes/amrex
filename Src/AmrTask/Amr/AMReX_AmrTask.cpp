@@ -36,10 +36,6 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Print.H>
 
-#ifdef AMREX_USE_FBOXLIB_MG
-#include <mg_cpp_f.h>
-#endif
-
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
 #endif
@@ -2342,12 +2338,6 @@ Amr::regrid (int  lbase,
     }
 
     finest_level = new_finest;
-    //
-    // Flush the caches.
-    //
-#ifdef AMREX_USE_FBOXLIB_MG
-    mgt_flush_copyassoc_cache();
-#endif
 
     //
     // Define the new grids from level start up to new_finest.

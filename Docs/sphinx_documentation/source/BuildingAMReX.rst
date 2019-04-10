@@ -161,6 +161,23 @@ also have an ``amrex/Tools/GNUMake/Make.local`` file to override various
 variables. See ``amrex/Tools/GNUMake/Make.local.template`` for more examples of
 how to customize the build process.
 
+If you need to pass macro definitions to the preprocessor, you can add
+them to your make file as follows,
+
+::
+
+        DEFINES += -Dmyname1 -Dmyname2=mydefinition
+
+To link to an additional library say ``foo`` with headers located at
+``foopath/include`` and library at ``foopath/lib``, you can add the
+following to your make file before the line that includes AMReX's
+``Make.defs``,
+
+::
+
+        INCLUDE_LOCATIONS += foopath/include
+        LIBRARY_LOCATIONS += foopath/lib
+        LIBRARIES += -lfoo
 
 .. _sec:build:local:
 
@@ -316,7 +333,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Option Name                  | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | DIM                          |  Dimension of AMReX build                       | 3           | 2, 3            |
+   | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_DP                    |  Build with double-precision reals              | ON          | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -326,7 +343,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_OMP                   |  Build with OpenMP support                      | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | ON          | ON, OFF         |
+   | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_LINEAR_SOLVERS        |  Build AMReX linear solvers                     | ON          | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -363,6 +380,8 @@ below.
    | ALGOIM_INSTALL_DIR           |  Path to Algoim installation directory          |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | BLITZ_INSTALL_DIR            |  Path to Blitz installation directory           |             | user-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_SUNDIALS              |  Enable SUNDIALS3 interfaces                    | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
