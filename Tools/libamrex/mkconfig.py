@@ -27,36 +27,37 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
 
     print("#ifdef __cplusplus");
 
-    if comp == "gnu" or comp == "nag":
-        print("#ifndef __GNUC__")
-        print('static_assert(false,"libamrex was built with GNU");')
-        print("#endif")
-    elif comp == "intel":
-        print("#ifndef __INTEL_COMPILER")
-        print('static_assert(false,"libamrex was built with Intel");')
-        print("#endif")
-    elif comp == "cray":
-        print("#ifndef _CRAYC")
-        print('static_assert(false,"libamrex was built with Cray");')
-        print("#endif")
-    elif comp == "pgi":
-        print("#ifndef __PGI")
-        print('static_assert(false,"libamrex was built with PGI");')
-        print("#endif")
-    elif comp == "llvm":
-        print("#ifndef __llvm__")
-        print('static_assert(false,"libamrex was built with Clang/LLVM");')
-        print("#endif")
-    elif comp == "nec":
-        print("#ifndef __NEC__")
-        print('static_assert(false,"libamrex was built with NEC");')
-        print("#endif")
-    elif comp == "ibm":
-        print("#ifndef __ibmxl__")
-        print('static_assert(false,"libamrex was built with IBM");')
-        print("#endif")
-    else:
-        sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
+    if allow_diff_comp == "FALSE":
+        if comp == "gnu" or comp == "nag":
+            print("#ifndef __GNUC__")
+            print('static_assert(false,"libamrex was built with GNU");')
+            print("#endif")
+        elif comp == "intel":
+            print("#ifndef __INTEL_COMPILER")
+            print('static_assert(false,"libamrex was built with Intel");')
+            print("#endif")
+        elif comp == "cray":
+            print("#ifndef _CRAYC")
+            print('static_assert(false,"libamrex was built with Cray");')
+            print("#endif")
+        elif comp == "pgi":
+            print("#ifndef __PGI")
+            print('static_assert(false,"libamrex was built with PGI");')
+            print("#endif")
+        elif comp == "llvm":
+            print("#ifndef __llvm__")
+            print('static_assert(false,"libamrex was built with Clang/LLVM");')
+            print("#endif")
+        elif comp == "nec":
+            print("#ifndef __NEC__")
+            print('static_assert(false,"libamrex was built with NEC");')
+            print("#endif")
+        elif comp == "ibm":
+            print("#ifndef __ibmxl__")
+            print('static_assert(false,"libamrex was built with IBM");')
+            print("#endif")
+        else:
+            sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
 
     if use_omp == "TRUE":
         print("#ifndef _OPENMP")
