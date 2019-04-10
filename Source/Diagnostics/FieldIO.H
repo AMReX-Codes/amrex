@@ -44,7 +44,7 @@ WriteCoarseScalar( const std::string field_name,
     const std::string& filename,
     const std::string& level_prefix,
     const int lev, const bool plot_guards,
-    const Real* dx, const int icomp=0 );
+    const int icomp=0 );
 
 void
 WriteCoarseVector( const std::string field_name,
@@ -57,8 +57,7 @@ WriteCoarseVector( const std::string field_name,
     const DistributionMapping& dm,
     const std::string& filename,
     const std::string& level_prefix,
-    const int lev, const bool plot_guards,
-    const Real* dx );
+    const int lev, const bool plot_guards );
 
 std::unique_ptr<MultiFab>
 getInterpolatedScalar(
