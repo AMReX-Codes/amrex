@@ -751,6 +751,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
         amrex::Print() << "InitFromBinaryFile() time: " << runtime << '\n';
     }
+
+    Gpu::Device::streamSynchronize();
 }
 
 //
