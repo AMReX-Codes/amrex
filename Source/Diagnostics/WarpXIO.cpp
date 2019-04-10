@@ -557,31 +557,26 @@ WarpX::WritePlotFile () const
 
             // Coarse path
             if (plot_crsepatch) {
-                const Real* dx = Geom(lev-1).CellSize();
-                const int r_ratio = refRatio(lev-1)[0];
                 WriteCoarseVector( "E",
                     Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
                     Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
-                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
-                    r_ratio, dx );
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards);
                 WriteCoarseVector( "B",
                     Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
                     Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
-                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
-                    r_ratio, dx );
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards);
                 WriteCoarseVector( "j",
                     current_cp[lev][0], current_cp[lev][1], current_cp[lev][2],
                     current_fp[lev][0], current_fp[lev][1], current_fp[lev][2],
-                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
-                    r_ratio, dx );
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards);
                 if (F_cp[lev]) WriteCoarseScalar(
                         "F", F_cp[lev], F_fp[lev],
                         dm, raw_pltname, level_prefix, lev,
-                        plot_raw_fields_guards, r_ratio, dx );
+                        plot_raw_fields_guards);
                 if (plot_rho) WriteCoarseScalar(
                         "rho", rho_cp[lev], rho_fp[lev],
                         dm, raw_pltname, level_prefix, lev,
-                        plot_raw_fields_guards, r_ratio, dx, 1 );
+                        plot_raw_fields_guards, 1);
                         // Use the component 1 of `rho_cp`, i.e. rho_new for time synchronization
             }
         }
