@@ -19,8 +19,8 @@ public:
     AsyncFabImpl (AsyncFabImpl const&) = delete;
     void operator= (AsyncFabImpl const&) = delete;
 
-    FArrayBox* fabPtr ();
-    FArrayBox& hostFab ();
+    FArrayBox* fabPtr () noexcept;
+    FArrayBox& hostFab () noexcept;
 
     static void Initialize ();
     static void Finalize ();

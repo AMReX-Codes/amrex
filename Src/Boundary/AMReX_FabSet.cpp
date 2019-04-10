@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-FabSet::FabSet () {}
+FabSet::FabSet () noexcept {}
 
 FabSet::FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp)
     :

@@ -47,7 +47,7 @@ MyTest::solve ()
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
+    MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory), use_hypre);
 
     if (sigma) {
         mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);

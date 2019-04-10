@@ -457,7 +457,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     typedef typename FAB::value_type value_type;
 
     BL_PROFILE("FabArrayCopyDescriptor::CollectData()");

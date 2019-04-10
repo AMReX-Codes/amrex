@@ -37,7 +37,7 @@ public:
     /**
     * \brief Construct an invalid TagBox with no memory.
     */
-    TagBox ();
+    TagBox () noexcept;
 
     /**
     * \brief Construct a TagBox on Box bx with number of components n.
@@ -69,7 +69,7 @@ public:
     * \param ratio
     * \param owner
     */
-    void coarsen (const IntVect& ratio, bool owner);
+    void coarsen (const IntVect& ratio, bool owner) noexcept;
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
@@ -79,14 +79,14 @@ public:
     * \param nbuff
     * \param nwid
     */
-    void buffer (int nbuff, int nwid);
+    void buffer (int nbuff, int nwid) noexcept;
 
     /**
     * \brief Tag cells on intersect with src if corresponding src cell is tagged.
     *
     * \param src
     */
-    void merge (const TagBox& src);
+    void merge (const TagBox& src) noexcept;
 
     /**
     * \brief Add location of every tagged cell to IntVect array,
@@ -96,26 +96,26 @@ public:
     * \param ar
     * \param start
     */
-    long collate (Vector<IntVect>& ar, int start) const;
+    long collate (Vector<IntVect>& ar, int start) const noexcept;
 
     /**
     * \brief Returns number of tagged cells in specified Box.
     *
     * \param bx
     */
-    long numTags (const Box& bx) const;
+    long numTags (const Box& bx) const noexcept;
 
     /**
     * \brief Returns total number of tagged cells in the TagBox.
     */
-    long numTags () const;
+    long numTags () const noexcept;
 
     /**
     * \brief Returns Vector\<int\> of size domain.numPts() suitable for calling
     * Fortran, with positions set to same value as in the TagBox
     * dataPtr().
     */
-    Vector<int> tags () const;
+    Vector<int> tags () const noexcept;
 
     /**
     * \brief Since a TagBox is a BaseFab\<char\>, we can use this utility
@@ -125,7 +125,7 @@ public:
     * \param ar
     * \param tilebx
     */
-    void get_itags(Vector<int>& ar, const Box& tilebx) const;
+    void get_itags(Vector<int>& ar, const Box& tilebx) const noexcept;
 
     /**
     * \brief Set values as specified by the array -- this only tags.
@@ -133,7 +133,7 @@ public:
     *
     * \param ar
     */
-    void tags (const Vector<int>& ar);
+    void tags (const Vector<int>& ar) noexcept;
 
     /**
     * \brief Set values as specified by the array -- this tags and untags.
@@ -141,7 +141,7 @@ public:
     *
     * \param ar
     */
-    void tags_and_untags (const Vector<int>& ar);
+    void tags_and_untags (const Vector<int>& ar) noexcept;
 
     /**
     * \brief Set values as specified by the array -- this only tags.
@@ -150,7 +150,7 @@ public:
     * \param ar
     * \param tilebx
     */
-    void tags (const Vector<int>& ar, const Box& tilebx);
+    void tags (const Vector<int>& ar, const Box& tilebx) noexcept;
 
     /**
     * \brief Set values as specified by the array -- this tags and untags.
@@ -159,7 +159,7 @@ public:
     * \param ar
     * \param tilebx
     */
-    void tags_and_untags (const Vector<int>& ar, const Box& tilebx);
+    void tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept;
 };
 
 
@@ -199,7 +199,7 @@ public:
     /**
     * \brief Returns the grow factor for the TagBoxArray.
     */
-    int borderSize () const;
+    int borderSize () const noexcept;
 
     /**
     * \brief Calls buffer() on all contained TagBoxes.

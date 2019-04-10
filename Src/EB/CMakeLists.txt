@@ -1,42 +1,83 @@
-add_sources ( AMReX_EBAmrUtil_F.H     AMReX_EBCellFlag.H        AMReX_EBFArrayBox.H )
-add_sources ( AMReX_EBInterp_F.H      AMReX_EBMultiFabUtil.H    AMReX_MultiCutFab.H )
-add_sources ( AMReX_EBAmrUtil.H       AMReX_EBDataCollection.H  AMReX_EBFluxRegister_F.H )
-add_sources ( AMReX_EBInterpolater.H  AMReX_EBSupport.H         AMReX_EBCellFlag_F.H )
-add_sources ( AMReX_EBFabFactory.H    AMReX_EBFluxRegister.H    AMReX_EBMultiFabUtil_F.H )
-add_sources ( AMReX_EB_F.H            AMReX_EB_levelset.H       AMReX_EB_utils.H )
-add_sources ( AMReX_EB_LSCore_F.H     AMReX_EB_LSCoreBase.H   AMReX_EB_LSCore.H  )
-add_sources ( AMReX_EB_LSCoreI.H )
+target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
-add_sources ( AMReX_EBAmrUtil.cpp       AMReX_EBDataCollection.cpp  AMReX_EBFArrayBox.cpp )
-add_sources ( AMReX_EBInterpolater.cpp )
-add_sources ( AMReX_EBCellFlag.cpp      AMReX_EBFabFactory.cpp      AMReX_EBFluxRegister.cpp   )
-add_sources ( AMReX_EBMultiFabUtil.cpp  AMReX_MultiCutFab.cpp )
-add_sources ( AMReX_EB_levelset.cpp     AMReX_EB_utils.cpp )
-add_sources ( AMReX_EB_LSCoreBase.cpp  )
+target_sources(amrex
+   PRIVATE 
+   AMReX_EBAmrUtil_F.H
+   AMReX_EBCellFlag.H
+   AMReX_EBFArrayBox.H
+   AMReX_EBInterp_F.H
+   AMReX_EBMultiFabUtil.H
+   AMReX_MultiCutFab.H
+   AMReX_EBAmrUtil.H
+   AMReX_EBDataCollection.H
+   AMReX_EBFluxRegister_F.H
+   AMReX_EBInterpolater.H
+   AMReX_EBSupport.H
+   AMReX_EBCellFlag_F.H
+   AMReX_EBFabFactory.H
+   AMReX_EBFluxRegister.H
+   AMReX_EBMultiFabUtil_F.H
+   AMReX_EB_F.H
+   AMReX_EB_levelset.H
+   AMReX_EB_utils.H
+   AMReX_EB_LSCore_F.H
+   AMReX_EB_LSCoreBase.H
+   AMReX_EB_LSCore.H 
+   AMReX_EB_LSCoreI.H
+   AMReX_EBAmrUtil.cpp
+   AMReX_EBDataCollection.cpp
+   AMReX_EBFArrayBox.cpp
+   AMReX_EBInterpolater.cpp
+   AMReX_EBCellFlag.cpp
+   AMReX_EBFabFactory.cpp
+   AMReX_EBFluxRegister.cpp  
+   AMReX_EBMultiFabUtil.cpp
+   AMReX_MultiCutFab.cpp
+   AMReX_EB_levelset.cpp
+   AMReX_EB_utils.cpp
+   AMReX_EB_LSCoreBase.cpp 
+   AMReX_EBFluxRegister_${DIM}d.F90
+   AMReX_EBFluxRegister_nd.F90
+   AMReX_EBMultiFabUtil_${DIM}d.F90
+   AMReX_EBMultiFabUtil_nd.F90
+   AMReX_EBAmrUtil_nd.F90     
+   AMReX_ebinterp_${DIM}d.F90  
+   AMReX_ebcellflag_mod.F90   
+   AMReX_compute_normals.F90
+   AMReX_EB_geometry.F90
+   AMReX_EB_levelset_F.F90
+   AMReX_EB_Tagging.F90
+   AMReX_EB_bc_fill_nd.F90
+   AMReX_EB2_F.H
+   AMReX_EB2_IF_Box.H
+   AMReX_EB2_IF_Lathe.H
+   AMReX_EB2_IF_Union.H
+   AMReX_EB2_GeometryShop.H
+   AMReX_EB2_IF_Complement.H
+   AMReX_EB2_IF_Plane.H
+   AMReX_EB2_IndexSpaceI.H
+   AMReX_EB2_Graph.H
+   AMReX_EB2_IF_Cylinder.H
+   AMReX_EB2_IF_Scale.H
+   AMReX_EB2_Level.H
+   AMReX_EB2.H
+   AMReX_EB2_IF_Ellipsoid.H
+   AMReX_EB2_IF_Sphere.H
+   AMReX_EB2_MultiGFab.H
+   AMReX_EB2_IF_AllRegular.H
+   AMReX_EB2_IF_Intersection.H
+   AMReX_EB2_IF_Translation.H
+   AMReX_EB2_IF_Rotation.H
+   AMReX_EB2_IF_Polynomial.H
+   AMReX_EB2_IF_Extrusion.H
+   AMReX_EB2_IF_Difference.H
+   AMReX_EB2_IF.H
+   AMReX_EB2_IF_Base.H
+   AMReX_distFcnElement.H
+   AMReX_distFcnElement.cpp
+   AMReX_EB2.cpp
+   AMReX_EB2_Level.cpp
+   AMReX_EB2_MultiGFab.cpp
+   AMReX_eb2_${DIM}d.F90
+)
 
-add_sources ( AMReX_EBFluxRegister_${DIM}d.F90 )
-add_sources ( AMReX_EBFluxRegister_nd.F90 )
-add_sources ( AMReX_EBMultiFabUtil_${DIM}d.F90 )
-add_sources ( AMReX_EBMultiFabUtil_nd.F90 )
-add_sources ( AMReX_EBAmrUtil_nd.F90      )
-add_sources ( AMReX_ebinterp_${DIM}d.F90   )
-add_sources ( AMReX_ebcellflag_mod.F90    )
-add_sources ( AMReX_compute_normals.F90 AMReX_EB_geometry.F90    AMReX_EB_levelset_F.F90 )
-add_sources ( AMReX_EB_Tagging.F90      AMReX_EB_bc_fill_nd.F90 )
-
-
-add_sources ( AMReX_EB2_F.H           AMReX_EB2_IF_Box.H        AMReX_EB2_IF_Lathe.H )
-add_sources ( AMReX_EB2_IF_Union.H    AMReX_EB2_GeometryShop.H  AMReX_EB2_IF_Complement.H )
-add_sources ( AMReX_EB2_IF_Plane.H    AMReX_EB2_IndexSpaceI.H   AMReX_EB2_Graph.H )
-add_sources ( AMReX_EB2_IF_Cylinder.H AMReX_EB2_IF_Scale.H      AMReX_EB2_Level.H )
-add_sources ( AMReX_EB2.H             AMReX_EB2_IF_Ellipsoid.H  AMReX_EB2_IF_Sphere.H )
-add_sources ( AMReX_EB2_MultiGFab.H   AMReX_EB2_IF_AllRegular.H AMReX_EB2_IF_Intersection.H )
-add_sources ( AMReX_EB2_IF_Translation.H AMReX_EB2_IF_Rotation.H AMReX_EB2_IF_Polynomial.H)
-add_sources ( AMReX_EB2_IF_Extrusion.H AMReX_EB2_IF_Difference.H )
-add_sources ( AMReX_EB2_IF.H )
-add_sources ( AMReX_distFcnElement.H )
-add_sources ( AMReX_distFcnElement.cpp )
-
-add_sources( AMReX_EB2.cpp  AMReX_EB2_Level.cpp  AMReX_EB2_MultiGFab.cpp )
-
-add_sources ( AMReX_eb2_${DIM}d.F90 )

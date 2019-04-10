@@ -9,11 +9,11 @@ namespace {
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
 }
 
-Cluster::Cluster ()
+Cluster::Cluster () noexcept
     :
     m_ar(0) {}
 
-Cluster::Cluster (IntVect* a, long len)
+Cluster::Cluster (IntVect* a, long len) noexcept
     :
     m_ar(a),
     m_len(len)
@@ -30,9 +30,9 @@ namespace {
 class InBox
 {
 public:
-    InBox (const Box& b) : m_box(b) {}
+    InBox (const Box& b) noexcept : m_box(b) {}
 
-    bool operator() (const IntVect& iv) const
+    bool operator() (const IntVect& iv) const noexcept
     {
         return m_box.contains(iv);
     }
@@ -118,7 +118,7 @@ Cluster::distribute (ClusterList&     clst,
 }
 
 long
-Cluster::numTag (const Box& b) const
+Cluster::numTag (const Box& b) const noexcept
 {
     long cnt = 0;
     for (int i = 0; i < m_len; i++)
@@ -130,7 +130,7 @@ Cluster::numTag (const Box& b) const
 }
 
 void
-Cluster::minBox ()
+Cluster::minBox () noexcept
 {
     if (m_len == 0)
     {

@@ -5,6 +5,9 @@ CEXE_headers += AMReX_HypreABecLap.H AMReX_HypreABecLap2.H AMReX_HypreABecLap3.H
 
 CEXE_headers += AMReX_HypreABec_F.H 
 
+CEXE_headers += AMReX_HypreNodeLap.H
+CEXE_sources += AMReX_HypreNodeLap.cpp
+
 F90EXE_sources += AMReX_HABEC_$(DIM)D.F90 AMReX_Hypre_fort_mod.F90
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/HYPRE

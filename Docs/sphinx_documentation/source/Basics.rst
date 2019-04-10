@@ -84,6 +84,10 @@ used functions are
      // See AMReX_ParallelDescriptor.H for many other Reduce functions
      ParallelDescriptor::ReduceRealSum(x);
 
+Additionally, ``amrex_paralleldescriptor_module`` in
+``Src/Base/AMReX_ParallelDescriptor_F.F90`` provides a number of
+functions for Fortran.
+
 ParallelContext
 ===============
 
@@ -95,7 +99,9 @@ stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
 additional subcommunicators can be handled by adding comms with 
 :cpp:`push(MPI_Comm)` and removed using :cpp:`pop()`.  This creates a
 hierarchy of :cpp:`MPI_Comm` objects that can be used to split work as
-the user sees fit. 
+the user sees fit.   Note that ``ParallelDescriptor`` by default uses
+AMReX's base comm, independent of the status of the
+``ParallelContext`` stack.
  
 :cpp:`ParallelContext` also tracks and returns information about the
 local (most recently added) and global :cpp:`MPI_Comm`.  The most common
@@ -172,6 +178,11 @@ get mixed up. Below are some examples.
 
      AllPrintToFile("file.") << "Each process appends to its own file (e.g., file.3)\n";
 
+It should be emphasized that :cpp:`Print()` without any argument only
+prints on the I/O process.  A common mistake in using it for debug
+printing is one forgets that for non-I/O processes to print we should
+use :cpp:`AllPrint()` or :cpp:`Print(rank)`.
+
 .. _sec:basics:parmparse:
 
 ParmParse
@@ -236,7 +247,7 @@ Note that when there are multiple definitions for a parameter :cpp:`ParmParse`
 by default returns the last one. The difference between :cpp:`query` and
 :cpp:`get` should also be noted. It is a runtime error if :cpp:`get` fails to
 get the value, whereas :cpp:`query` returns an error code without generating a
-runtime error that will abort the run.  If it is sometimes convenient to
+runtime error that will abort the run.  It is sometimes convenient to
 override parameters with command-line arguments without modifying the inputs
 file. The command-line arguments after the inputs file are added later than the
 file to the database and are therefore used by default. For example, one can
@@ -1996,10 +2007,10 @@ that is readable and easy to implement. An example is given below:
         Array4<Real> const& src = fab1.array();
         Array4<Real> const& dst = fab2.array();
 
-        for         (int k = lo.z; k < hi.z; ++k) {
-            for     (int j = lo.y; j < hi.y; ++j) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i < hi.x; ++i) {
+                for (int i = lo.x; i <= hi.x; ++i) {
                     dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k));
                 }
             }
@@ -2020,7 +2031,7 @@ and :cpp:`Box::bigend` of ``bx``.  Both functions return a
 The individual components are accessed by using :cpp:`.x`, :cpp:`.y` and
 :cpp:`.z`, as shown in the :cpp:`for` loops. 
 
-`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
+:cpp:`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
 designed as an independent, :cpp:`operator()` based accessor to the
 :cpp:`BaseFab` data. :cpp:`Array4` is an AMReX class that contains a
 pointer to the :cpp:`FArrayBox` data and two :cpp:`Dim3` vectors that
@@ -2040,6 +2051,10 @@ dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
 macro on loops that are not safe for vectorization will lead to a variety
 of errors, so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
+
+These loops should always use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+defining the loop bounds. If not, the highest index cells will be left out
+of the calculation. 
 
 
 Ghost Cells

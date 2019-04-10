@@ -19,15 +19,15 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_sm(&sm, 1);
-        value_type* d_sm = as_sm.data();
+        Gpu::DeviceScalar<value_type> ds_sm(sm);
+        value_type* d_sm = ds_sm.dataPtr();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -49,7 +49,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        as_sm.copyToHost(&sm, 1);
+        sm = ds_sm.dataValue();
     }
     else
 #endif
@@ -79,8 +79,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_sm(&sm, 1);
-        value_type* d_sm = as_sm.data();
+        Gpu::DeviceScalar<value_type> ds_sm(sm);
+        value_type* d_sm = ds_sm.dataPtr();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -88,7 +88,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -110,7 +110,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        as_sm.copyToHost(&sm, 1);
+        sm = ds_sm.dataValue();
     }
     else
 #endif
@@ -140,8 +140,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_sm(&sm, 1);
-        value_type* d_sm = as_sm.data();
+        Gpu::DeviceScalar<value_type> ds_sm(sm);
+        value_type* d_sm = ds_sm.dataPtr();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -150,7 +150,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
             FAB2 const* fab2 = fa2.fabPtr(mfi);
             FAB3 const* fab3 = fa3.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -172,7 +172,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
             });
         }
 
-        as_sm.copyToHost(&sm, 1);
+        sm = ds_sm.dataValue();
     }
     else
 #endif
@@ -202,15 +202,15 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_r(&r, 1);
-        value_type* d_r = as_r.data();
+        Gpu::DeviceScalar<value_type> ds_r(r);
+        value_type* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -237,7 +237,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -267,8 +267,8 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_r(&r, 1);
-        value_type* d_r = as_r.data();
+        Gpu::DeviceScalar<value_type> ds_r(r);
+        value_type* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -276,7 +276,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -303,7 +303,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -333,15 +333,15 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_r(&r, 1);
-        value_type* d_r = as_r.data();
+        Gpu::DeviceScalar<value_type> ds_r(r);
+        value_type* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -368,7 +368,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -398,8 +398,8 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<value_type> as_r(&r, 1);
-        value_type* d_r = as_r.data();
+        Gpu::DeviceScalar<value_type> ds_r(r);
+        value_type* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -407,7 +407,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::Device::cudaStream()>>>(
@@ -434,7 +434,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -462,15 +462,15 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<int> as_r(&r, 1);
-        int* d_r = as_r.data();
+        Gpu::DeviceScalar<int> ds_r(r);
+        int* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::Device::cudaStream()>>>(
@@ -492,7 +492,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -521,8 +521,8 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<int> as_r(&r, 1);
-        int* d_r = as_r.data();
+        Gpu::DeviceScalar<int> ds_r(r);
+        int* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -530,7 +530,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::Device::cudaStream()>>>(
@@ -552,7 +552,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -580,15 +580,15 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<int> as_r(&r, 1);
-        int* d_r = as_r.data();
+        Gpu::DeviceScalar<int> ds_r(r);
+        int* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::Device::cudaStream()>>>(
@@ -610,7 +610,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -639,8 +639,8 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_CUDA
     if (Gpu::inLaunchRegion())
     {
-        AsyncArray<int> as_r(&r, 1);
-        int* d_r = as_r.data();
+        Gpu::DeviceScalar<int> ds_r(r);
+        int* d_r = ds_r.dataPtr();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -648,7 +648,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx);
+            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::Device::cudaStream()>>>(
@@ -670,7 +670,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        as_r.copyToHost(&r, 1);
+        r = ds_r.dataValue();
     }
     else
 #endif
@@ -905,6 +905,60 @@ Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
             });
         }
     }
+}
+
+template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+prefetchToHost (FabArray<FAB> const& fa)
+{
+#ifdef AMREX_USE_CUDA
+    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+        fa.prefetchToHost(mfi);
+    }
+#endif
+}
+
+template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+prefetchToDevice (FabArray<FAB> const& fa)
+{
+#ifdef AMREX_USE_CUDA
+    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+        fa.prefetchToDevice(mfi);
+    }
+#endif
+}
+
+template <class FAB, class IFAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value
+                                                               && IsBaseFab<IFAB>::value> >
+void
+OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
+{
+    BL_PROFILE("OverrideSync()");
+
+    if (fa.ixType().cellCentered()) return;
+    
+    const int ncomp = fa.nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(fa,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto fab = fa.array(mfi);
+        auto const ifab = msk.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
+        });
+    }
+    
+    FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0, MFInfo(), fa.Factory());
+    tmpmf.setVal(0);
+    tmpmf.ParallelCopy(fa, period, FabArrayBase::ADD);
+
+    amrex::Copy(fa, tmpmf, 0, 0, ncomp, 0);
 }
 
 }

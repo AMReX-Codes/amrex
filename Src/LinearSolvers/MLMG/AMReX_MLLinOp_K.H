@@ -14,7 +14,7 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, Real bcl,
                          Array4<Real const> const& bcval,
-                         int maxorder, Real dxinv, int inhomog, int ncomp)
+                         int maxorder, Real dxinv, int inhomog, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -84,7 +84,7 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, Real bcl,
                          Array4<Real const> const& bcval,
-                         int maxorder, Real dyinv, int inhomog, int ncomp)
+                         int maxorder, Real dyinv, int inhomog, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -154,7 +154,7 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
                          Array4<int const> const& mask,
                          BoundCond bct, Real bcl,
                          Array4<Real const> const& bcval,
-                         int maxorder, Real dzinv, int inhomog, int ncomp)
+                         int maxorder, Real dzinv, int inhomog, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -223,7 +223,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
                                   Array4<Real> const& f,
                                   Array4<int const> const& mask,
                                   BoundCond bct, Real bcl,
-                                  int maxorder, Real dxinv, int ncomp)
+                                  int maxorder, Real dxinv, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -279,7 +279,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
                                   Array4<Real> const& f,
                                   Array4<int const> const& mask,
                                   BoundCond bct, Real bcl,
-                                  int maxorder, Real dyinv, int ncomp)
+                                  int maxorder, Real dyinv, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -335,7 +335,7 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
                                   Array4<Real> const& f,
                                   Array4<int const> const& mask,
                                   BoundCond bct, Real bcl,
-                                  int maxorder, Real dzinv, int ncomp)
+                                  int maxorder, Real dzinv, int ncomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

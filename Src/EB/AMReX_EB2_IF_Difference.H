@@ -2,6 +2,7 @@
 #define AMREX_EB2_IF_DIFFERENCE_H_
 
 #include <AMReX_Array.H>
+#include <AMReX_EB2_IF_Base.H>
 
 #include <type_traits>
 #include <algorithm>
@@ -25,18 +26,27 @@ public:
           m_g(a_g)
     {}
 
-    ~DifferenceIF () {}
-
     DifferenceIF (const DifferenceIF& rhs) = default;
     DifferenceIF (DifferenceIF&& rhs) = default;
     DifferenceIF& operator= (const DifferenceIF& rhs) = delete;
     DifferenceIF& operator= (DifferenceIF&& rhs) = delete;
 
-    Real operator() (const RealArray& p) const
+    inline Real operator() (const RealArray& p) const noexcept
     {
         Real r1 = m_f(p);
         Real r2 = m_g(p);
-        return std::min(m_f(p), -m_g(p));
+        return amrex::min(r1, -r2);
+    }
+
+    template <class U=F, class V=G,
+              class = typename std::enable_if<IsGPUable<U>::value &&
+                                              IsGPUable<V>::value>::type>
+    AMREX_GPU_HOST_DEVICE inline
+    Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+    {
+        Real r1 = m_f(AMREX_D_DECL(x,y,z));
+        Real r2 = m_g(AMREX_D_DECL(x,y,z));
+        return amrex::min(r1, -r2);
     }
 
 protected:
@@ -44,6 +54,11 @@ protected:
     F m_f;
     G m_g;
 };
+
+template <class F, class G>
+struct IsGPUable<DifferenceIF<F,G>, typename std::enable_if<IsGPUable<F>::value &&
+                                                            IsGPUable<G>::value>::type>
+    : std::true_type {};
 
 template <class F, class G>
 constexpr DifferenceIF<typename std::decay<F>::type,

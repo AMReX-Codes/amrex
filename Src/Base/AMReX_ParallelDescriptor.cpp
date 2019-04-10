@@ -345,7 +345,7 @@ ParallelDescriptor::EndParallel ()
 }
 
 double
-ParallelDescriptor::second ()
+ParallelDescriptor::second () noexcept
 {
     return MPI_Wtime();
 }
@@ -1801,7 +1801,7 @@ void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
 void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
 
 double
-ParallelDescriptor::second ()
+ParallelDescriptor::second () noexcept
 {
     return amrex::second();
 }

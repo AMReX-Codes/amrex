@@ -24,7 +24,7 @@ public:
     MLCGSolver (const MLCGSolver& rhs) = delete;
     MLCGSolver& operator= (const MLCGSolver& rhs) = delete;
 
-    void setSolver (Type _typ) { solver_type = _typ; }
+    void setSolver (Type _typ) noexcept { solver_type = _typ; }
 
     /**
     * solve the system, Lp(solnL)=rhsL to relative err, tolerance

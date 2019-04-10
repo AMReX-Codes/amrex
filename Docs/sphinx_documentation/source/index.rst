@@ -3,7 +3,7 @@
 Welcome to AMReX's documentation
 ================================
 
-AMReX is a software framework library containing all the functionality to write
+AMReX is a software framework containing all the functionality to write
 massively parallel, block-structured adaptive mesh refinement (AMR)
 applications. AMReX is freely available `on Github
 <https://github.com/AMReX-Codes/amrex>`_.
@@ -42,6 +42,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    AmrCore_Chapter
    AmrLevel_Chapter
    AsyncIter_Chapter
+   ForkJoin
    IO_Chapter
    LinearSolvers_Chapter
    Particle_Chapter

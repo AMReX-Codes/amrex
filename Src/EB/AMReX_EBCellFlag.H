@@ -26,23 +26,27 @@ public:
         return *this;
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setRegular () {
         flag &= zero_lower_mask; //!< clean lower bits
         flag |= regular_bits;
         flag |= single_vof_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setCovered () {
         flag &= zero_lower_mask;
         flag |= covered_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setSingleValued () {
         flag &= zero_lower_mask;
         flag |= single_vauled_bits;
         flag |= single_vof_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setMultiValued (int n) {
         flag &= zero_lower_mask;
         flag |= multi_valued_bits;
@@ -50,37 +54,45 @@ public:
         flag |= static_cast<uint32_t>(n) << pos_numvofs;
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool operator==(const EBCellFlag& a_input) const
     {
       return (flag == (a_input.flag));
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool operator!=(const EBCellFlag& a_input) const
     {
       return (flag != (a_input.flag));
     }
 
+    AMREX_GPU_HOST_DEVICE
     int getNumVoFs () const
     {
      return (flag & one_numvofs_mask) >> pos_numvofs;
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool isRegular () const {
         return (flag & one_type_mask) == regular_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool isSingleValued () const {
         return (flag & one_type_mask) == single_vauled_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool isMultiValued () const {
         return (flag & one_type_mask) == multi_valued_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool isCovered () const {
         return (flag & one_type_mask) == covered_bits;
     }
 
+    AMREX_GPU_HOST_DEVICE
     bool isConnected (const IntVect& iv) const {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
@@ -88,10 +100,12 @@ public:
         return flag & (1 << n);
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setDisconnected () {
         flag &= one_lower_mask;
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setDisconnected (const IntVect& iv) {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
@@ -99,10 +113,12 @@ public:
         flag &= ~(1 << n);
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setConnected () {
         flag |= zero_lower_mask;
     }
 
+    AMREX_GPU_HOST_DEVICE
     void setConnected (const IntVect& iv) {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
@@ -110,12 +126,16 @@ public:
         flag |= 1 << n;
     }
 
+    AMREX_GPU_HOST_DEVICE
     uint32_t getValue() const
     {
       return flag;
     }
 
+    AMREX_GPU_HOST_DEVICE
     static constexpr EBCellFlag TheDefaultCell () { return {default_value}; }
+
+    AMREX_GPU_HOST_DEVICE
     static constexpr EBCellFlag TheCoveredCell () { return {covered_value}; }
 
 private:

@@ -12,7 +12,7 @@ AMREX_GPU_HOST
 inline
 Vector<Real>
 ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cgeom,
-                       Geometry const& fgeom)
+                       Geometry const& fgeom) noexcept
 {
     const Box& fbx = amrex::refine(cbx,ratio);
     const auto& flen = amrex::length(fbx);
@@ -61,7 +61,7 @@ namespace {
 AMREX_GPU_HOST_DEVICE AMREX_INLINE void
 compute_slopes (const Dim3& len, const Dim3& lo, const Dim3& hi, FabView<Real> const& slopes,
                 FabView<const Real> const& u, Box const& sbox, const Dim3& slo, const Dim3& shi,
-                const Dim3& slen, BCRec const& bc, const int n, const int ncomp)
+                const Dim3& slen, BCRec const& bc, const int n, const int ncomp) noexcept
 {
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
@@ -202,7 +202,7 @@ compute_slopes (const Dim3& len, const Dim3& lo, const Dim3& hi, FabView<Real> c
 AMREX_GPU_HOST_DEVICE inline void
 cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
                            FArrayBox const& ufab, const int icomp, const int ncomp,
-                           BCRec const* AMREX_RESTRICT bcr)
+                           BCRec const* AMREX_RESTRICT bcr) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -290,7 +290,7 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
 AMREX_GPU_HOST_DEVICE inline void
 cellconslin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
                     FArrayBox const& slopesfab, FArrayBox const& crsefab, const int ccomp,
-                    Real const* AMREX_RESTRICT voff, IntVect const& ratio)
+                    Real const* AMREX_RESTRICT voff, IntVect const& ratio) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -329,7 +329,7 @@ cellconslin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const in
 AMREX_GPU_HOST_DEVICE inline void
 cellconslin_slopes_mclim (Box const& bx, FArrayBox& ccfab,
                           FArrayBox const& ufab, const int icomp, const int ncomp,
-                          BCRec const* AMREX_RESTRICT bcr)
+                          BCRec const* AMREX_RESTRICT bcr) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -395,7 +395,7 @@ cellconslin_slopes_mclim (Box const& bx, FArrayBox& ccfab,
 
 AMREX_GPU_HOST_DEVICE inline void
 cellconslin_fine_alpha (Box const& bx, FArrayBox& alphafab, FArrayBox const& ccfab, const int ncomp,
-                        Real const* AMREX_RESTRICT voff, IntVect const& ratio)
+                        Real const* AMREX_RESTRICT voff, IntVect const& ratio) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -439,7 +439,7 @@ cellconslin_fine_alpha (Box const& bx, FArrayBox& alphafab, FArrayBox const& ccf
 
 AMREX_GPU_HOST_DEVICE inline void
 cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab, FArrayBox const& alphafab,
-                          const int ncomp, IntVect const& ratio)
+                          const int ncomp, IntVect const& ratio) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -474,7 +474,7 @@ cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab, FArrayBox const& alph
 
 AMREX_GPU_HOST_DEVICE inline void
 pcinterp_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
-                 FArrayBox const& crsefab, const int ccomp, IntVect const& ratio)
+                 FArrayBox const& crsefab, const int ccomp, IntVect const& ratio) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -510,7 +510,7 @@ namespace {
 
 AMREX_GPU_HOST_DEVICE inline void
 nodebilin_slopes (Box const& bx, FArrayBox& slopefab, FArrayBox const& ufab,
-                  const int icomp, const int ncomp, IntVect const& ratio)
+                  const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -552,7 +552,7 @@ nodebilin_slopes (Box const& bx, FArrayBox& slopefab, FArrayBox const& ufab,
 AMREX_GPU_HOST_DEVICE inline void
 nodebilin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
                   FArrayBox const& slopefab, FArrayBox const& crsefab, const int ccomp,
-                  IntVect const& ratio)
+                  IntVect const& ratio) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);

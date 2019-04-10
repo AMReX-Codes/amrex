@@ -7,6 +7,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Geometry.H>
+#include <memory>
 
 namespace amrex {
 
@@ -507,23 +508,12 @@ public:
                          const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
 #endif
 
-    const IArrayBox& operator[] (int K) const;
-
-    IArrayBox& operator[] (int K);
-
-    const IArrayBox& operator[] (const MFIter& mfi) const {
-	return this->FabArray<IArrayBox>::get(mfi); }
-
-    const IArrayBox& get (const MFIter& mfi) const { return operator[](mfi); }
-
-    IArrayBox& operator[] (const MFIter& mfi) {
-	return this->FabArray<IArrayBox>::get(mfi); }
-    
-    IArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
-
     static void Initialize ();
     static void Finalize ();
 };
+
+std::unique_ptr<iMultiFab>
+OwnerMask (FabArrayBase const& mf, const Periodicity& period);
 
 }
 

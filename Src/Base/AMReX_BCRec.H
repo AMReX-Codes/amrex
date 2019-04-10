@@ -20,7 +20,7 @@ public:
     * \brief The default constructor, which does NOT set valid boundary types.
     */
     AMREX_GPU_HOST_DEVICE
-    BCRec ()
+    BCRec () noexcept
         : bc {AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
               AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}
         { }
@@ -29,7 +29,7 @@ public:
     */
     AMREX_GPU_HOST_DEVICE
     BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
-           AMREX_D_DECL(int hiX, int hiY, int hiZ))
+           AMREX_D_DECL(int hiX, int hiY, int hiZ)) noexcept
         : bc {AMREX_D_DECL(loX,loY,loZ),
               AMREX_D_DECL(hiX,hiY,hiZ)}
         {}
@@ -37,9 +37,9 @@ public:
     * \brief Another constructor.
     */
     AMREX_GPU_HOST_DEVICE
-    BCRec (const int* lo, const int* hi)
-        : bc {AMREX_D_DECL(lo[0],lo[1],lo[2]),
-              AMREX_D_DECL(hi[0],hi[1],hi[2])}
+    BCRec (const int* a_lo, const int* a_hi) noexcept
+        : bc {AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2]),
+              AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])}
         {}
     /*
     * \brief Yet another constructor.  Inherits bndry types from bc_domain
@@ -48,7 +48,7 @@ public:
     AMREX_GPU_HOST_DEVICE
     BCRec (const Box&   bx,
            const Box&   domain,
-           const BCRec& bc_domain)
+           const BCRec& bc_domain) noexcept
     {
         const int* bxlo = bx.loVect();
         const int* bxhi = bx.hiVect();
@@ -66,50 +66,50 @@ public:
     * \brief Explicitly set lo bndry value.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    void setLo (int dir, int bc_val) { bc[dir] = bc_val; }
+    void setLo (int dir, int bc_val) noexcept { bc[dir] = bc_val; }
     /**
     * \brief Explicitly set hi bndry value.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    void setHi (int dir, int bc_val) { bc[AMREX_SPACEDIM+dir] = bc_val; }
+    void setHi (int dir, int bc_val) noexcept { bc[AMREX_SPACEDIM+dir] = bc_val; }
     /**
     * \brief  Return bndry values (used in calls to FORTRAN).
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const int* vect () const& { return bc; }
+    const int* vect () const& noexcept{ return bc; }
     const int* vect () && = delete;
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const int* data () const& { return bc; }
+    const int* data () const& noexcept { return bc; }
     const int* data () && = delete;
 
     /**
     * \brief Return low-end boundary data.
     */
     AMREX_GPU_HOST_DEVICE  AMREX_INLINE
-    const int* lo () const& { return bc; }
+    const int* lo () const& noexcept { return bc; }
     const int* lo () && = delete;
     /**
     * \brief Return high-end boundary data.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const int* hi () const& { return bc+AMREX_SPACEDIM; }
+    const int* hi () const& noexcept { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
     * \brief Return low-end boundary data in direction \<dir\>.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    int lo (int dir) const { return bc[dir]; }
+    int lo (int dir) const noexcept { return bc[dir]; }
     /**
     * \brief Return high-end boundary data in direction \<dir\>.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
+    int hi (int dir) const noexcept { return bc[AMREX_SPACEDIM+dir]; }
     /**
     * \brief Equal test.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    bool operator== (const BCRec& rhs) const {
+    bool operator== (const BCRec& rhs) const noexcept {
         bool retval = true;
         for (int i = 0; i < 2*AMREX_SPACEDIM && retval; i++)
         {
@@ -121,7 +121,7 @@ public:
     * \brief Not equal test.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    bool operator!= (const BCRec& rhs) const { return !(*this == rhs); }
+    bool operator!= (const BCRec& rhs) const noexcept { return !(*this == rhs); }
     /**
     * \brief ASCII write to ostream.
     */
@@ -139,7 +139,7 @@ private:
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void
-setBC (const Box& bx, const Box& domain, const BCRec& bc_dom, BCRec& bcr)
+setBC (const Box& bx, const Box& domain, const BCRec& bc_dom, BCRec& bcr) noexcept
 {
     const int* bxlo = bx.loVect();
     const int* bxhi = bx.hiVect();
@@ -162,7 +162,7 @@ setBC (const Box&           bx,
        int                  dest_comp,
        int                  ncomp,
        const Vector<BCRec>& bc_dom,
-       Vector<BCRec>&       bcr);
+       Vector<BCRec>&       bcr) noexcept;
 }
 
 #endif /*_BCREC_H_*/

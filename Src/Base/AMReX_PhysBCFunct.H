@@ -32,9 +32,9 @@ typedef void (*UserFillBox) (Box const& bx, FArrayBox& dest,
 class BndryFuncArray
 {
 public:
-    BndryFuncArray () {}
-    BndryFuncArray (BndryFuncDefault inFunc) : m_func(inFunc) {}
-    BndryFuncArray (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
+    BndryFuncArray () noexcept {}
+    BndryFuncArray (BndryFuncDefault inFunc) noexcept : m_func(inFunc) {}
+    BndryFuncArray (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
                      const int dcomp, const int numcomp,
@@ -42,8 +42,8 @@ public:
                      const Vector<BCRec>& bcr, const int bcomp,
                      const int orig_comp);
 
-    bool RunOnGPU () const { return m_run_on_gpu; }
-    void setRunOnGPU (bool b) { m_run_on_gpu = b; }
+    bool RunOnGPU () const noexcept { return m_run_on_gpu; }
+    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
 protected:
     BndryFuncDefault   m_func   = nullptr;

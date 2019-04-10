@@ -15,6 +15,7 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
@@ -22,6 +23,8 @@ namespace amrex {
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
+
+class MLMG;
 
 struct LPInfo
 {
@@ -32,12 +35,12 @@ struct LPInfo
     bool has_metric_term = true;
     int max_coarsening_level = 30;
 
-    LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
-    LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
-    LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
-    LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
-    LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
-    LPInfo& setMaxCoarseningLevel (int n) { max_coarsening_level = n; return *this; }
+    LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
+    LPInfo& setAgglomerationGridSize (int x) noexcept { agg_grid_size = x; return *this; }
+    LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
+    LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
+    LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
 };
 
 class MLLinOp
@@ -73,6 +76,7 @@ public:
                  const LPInfo& a_info,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
+    virtual std::string name () const { return std::string("Unspecified"); }
 
     /**
     * \brief Boundary of the whole domain. This functions must be called,
@@ -82,7 +86,7 @@ public:
     * \param hibc
     */
     void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,
-                      const Array<BCType,AMREX_SPACEDIM>& hibc);
+                      const Array<BCType,AMREX_SPACEDIM>& hibc) noexcept;
 
 
     /**
@@ -91,7 +95,7 @@ public:
     * supplying Dirichlet bc at coarse/fine boundary, even when the
     * domain bc is not Dirichlet.
     */
-    bool needsCoarseDataForBC () const { return m_needs_coarse_data_for_bc; }
+    bool needsCoarseDataForBC () const noexcept { return m_needs_coarse_data_for_bc; }
 
 
     /**
@@ -104,7 +108,7 @@ public:
     * \param crse
     * \param crse_ratio
     */
-    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept;
 
 
     /**
@@ -124,10 +128,10 @@ public:
     */
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
-    void setVerbose (int v) { verbose = v; }
+    void setVerbose (int v) noexcept { verbose = v; }
 
-    void setMaxOrder (int o) { maxorder = o; }
-    int getMaxOrder () const { return maxorder; }
+    void setMaxOrder (int o) noexcept { maxorder = o; }
+    int getMaxOrder () const noexcept { return maxorder; }
 
     virtual int getNComp() const { return 1; }
 
@@ -165,6 +169,7 @@ public:
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
     virtual void prepareForSolve () = 0;
+    virtual void prepareForSolve (MLMG* mlmg) { prepareForSolve(); }
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
@@ -189,6 +194,10 @@ public:
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const {
+        amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
+        return {nullptr};
+    }
 #endif
 
 #ifdef AMREX_USE_PETSC
@@ -198,7 +207,11 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
+#ifdef AMREX_USE_EB
+    static constexpr int mg_box_min_width = 4;
+#else
     static constexpr int mg_box_min_width = 2;
+#endif
 
     LPInfo info;
 
@@ -229,7 +242,7 @@ protected:
     MPI_Comm m_bottom_comm = MPI_COMM_NULL;
     struct CommContainer {
         MPI_Comm comm;
-        CommContainer (MPI_Comm m) : comm(m) {}
+        CommContainer (MPI_Comm m) noexcept : comm(m) {}
         CommContainer (const CommContainer&) = delete;
         CommContainer (CommContainer&&) = delete;
         void operator= (const CommContainer&) = delete;
@@ -255,23 +268,23 @@ protected:
     /**
     * \brief functions
     */
-    int NAMRLevels () const { return m_num_amr_levels; }
-    int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
-    const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
-    int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
+    int NAMRLevels () const noexcept { return m_num_amr_levels; }
+    int NMGLevels (int amrlev) const noexcept { return m_num_mg_levels[amrlev]; }
+    const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
+    int AMRRefRatio (int amr_lev) const noexcept { return m_amr_ref_ratio[amr_lev]; }
 
-    const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
-    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const {
+    const Geometry& Geom (int amr_lev, int mglev=0) const noexcept { return m_geom[amr_lev][mglev]; }
+    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const noexcept {
         return m_factory[amr_lev][mglev].get();
     }
 
 #ifdef BL_USE_MPI
-    bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
+    bool isBottomActive () const noexcept { return m_bottom_comm != MPI_COMM_NULL; }
 #else
-    bool isBottomActive () const { return true; }
+    bool isBottomActive () const noexcept { return true; }
 #endif
-    MPI_Comm BottomCommunicator () const { return m_bottom_comm; }
-    MPI_Comm Communicator (int amrlev, int mglev) const {
+    MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
+    MPI_Comm Communicator (int amrlev, int mglev) const noexcept {
         if (amrlev == 0 && mglev == NMGLevels(0)-1) {
             return m_bottom_comm;
         } else {
@@ -279,12 +292,12 @@ protected:
         }
     }
 
-    void setCoarseFineBCLocation (const RealVect& cloc) { m_coarse_bc_loc = cloc; }
+    void setCoarseFineBCLocation (const RealVect& cloc) noexcept { m_coarse_bc_loc = cloc; }
 
-    bool doAgglomeration () const { return m_do_agglomeration; }
-    bool doConsolidation () const { return m_do_consolidation; }
+    bool doAgglomeration () const noexcept { return m_do_agglomeration; }
+    bool doConsolidation () const noexcept { return m_do_consolidation; }
 
-    bool isCellCentered () const { return m_ixtype == 0; }
+    bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
@@ -305,6 +318,10 @@ private:
                                       int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
     void remapNeighborhoods (Vector<DistributionMapping> & dms);
+
+    virtual void checkPoint (std::string const& file_name) const {
+        amrex::Abort("MLLinOp:checkPoint: not implemented");
+    }
 };
 
 }

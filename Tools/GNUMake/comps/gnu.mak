@@ -63,10 +63,13 @@ CFLAGS   =
 
 ########################################################################
 
+CXXFLAGS += -Werror=return-type
+CFLAGS   += -Werror=return-type
+
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable -Werror=return-type
-  CFLAGS   += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable -Werror=return-type
+  CXXFLAGS += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CFLAGS   += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
 
   ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
     CXXFLAGS += -Wnull-dereference

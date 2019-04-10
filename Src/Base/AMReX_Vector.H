@@ -34,22 +34,22 @@ public:
 
     using std::vector<T, Allocator>::vector;
 
-    T& operator[] (std::size_t i)
+    T& operator[] (std::size_t i) noexcept
     {
 	BL_ASSERT(static_cast<long>(i) < this->size());
 	return this->std::vector<T, Allocator>::operator[](i);
     }
 
-    const T& operator[] (std::size_t i) const
+    const T& operator[] (std::size_t i) const noexcept
     {
 	BL_ASSERT(static_cast<long>(i) < this->size());
 	return this->std::vector<T, Allocator>::operator[](i);
     }
 
     //! get access to the underlying data pointer
-    T* dataPtr () { return this->data(); }
+    T* dataPtr () noexcept { return this->data(); }
     //! get access to the underlying data pointer
-    const T* dataPtr () const { return this->data(); }
+    const T* dataPtr () const noexcept { return this->data(); }
 
     long size() const {return static_cast<long>(std::vector<T, Allocator>::size());}
 

@@ -147,16 +147,16 @@ protected:
     struct MetricFactor {
         MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
                       const Geometry& geom, bool null_metric);
-        const Vector<Real>& cellCenters (const MFIter& mfi) const {
+        const Vector<Real>& cellCenters (const MFIter& mfi) const noexcept {
             return r_cellcenter[mfi];
         }
-        const Vector<Real>& cellEdges (const MFIter& mfi) const {
+        const Vector<Real>& cellEdges (const MFIter& mfi) const noexcept {
             return r_celledge[mfi];
         }
-        const Vector<Real>& invCellCenters (const MFIter& mfi) const {
+        const Vector<Real>& invCellCenters (const MFIter& mfi) const noexcept {
             return inv_r_cellcenter[mfi];
         }
-        const Vector<Real>& invCellEdges (const MFIter& mfi) const {
+        const Vector<Real>& invCellEdges (const MFIter& mfi) const noexcept {
             return inv_r_celledge[mfi];
         }
         LayoutData<Vector<Real> > r_cellcenter;
@@ -186,10 +186,10 @@ protected:
                               const Array<BCType,AMREX_SPACEDIM>& lobc,
                               const Array<BCType,AMREX_SPACEDIM>& hibc,
                               int ratio, const RealVect& a_loc);
-        const BCTuple& bndryConds (const MFIter& mfi) const {
+        const BCTuple& bndryConds (const MFIter& mfi) const noexcept {
             return bcond[mfi];
         }
-        const RealTuple& bndryLocs (const MFIter& mfi) const {
+        const RealTuple& bndryLocs (const MFIter& mfi) const noexcept {
             return bcloc[mfi];
         }
     private:

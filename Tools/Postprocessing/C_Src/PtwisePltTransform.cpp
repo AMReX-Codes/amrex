@@ -48,77 +48,78 @@ main (int   argc,
       char* argv[])
 {
   amrex::Initialize(argc,argv);
+  {
+    if (argc < 2)
+      print_usage(argc,argv);
 
-  if (argc < 2)
-    print_usage(argc,argv);
+    ParmParse pp;
 
-  ParmParse pp;
+    if (pp.contains("help"))
+      print_usage(argc,argv);
 
-  if (pp.contains("help"))
-    print_usage(argc,argv);
-
-  std::string infile; pp.get("infile",infile);
-  DataServices::SetBatchMode();
-  Amrvis::FileType fileType(Amrvis::NEWPLT);
-  DataServices dataServices(infile, fileType);
-  if( ! dataServices.AmrDataOk()) {
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
-  }
-  AmrData& amrData = dataServices.AmrDataRef();
-
-  int nv = pp.countval("varNames");
-  Vector<std::string> varNames(nv); pp.getarr("varNames",varNames,0,nv);
-
-  const Vector<std::string>& plotVarNames = amrData.PlotVarNames();
-  int nCompIn = varNames.size();
-  Vector<int> destFillComps(nCompIn);
-  for (int i=0; i<nCompIn; ++i) {
-    destFillComps[i] = i;
-  }
-
-
-  for (int i=0; i<nCompIn; ++i) {
-    int ivar = -1;
-    for (int j=0; j<plotVarNames.size(); ++j) {
-      if (plotVarNames[j] == varNames[i]) {ivar = j;}
+    std::string infile; pp.get("infile",infile);
+    DataServices::SetBatchMode();
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
+    DataServices dataServices(infile, fileType);
+    if( ! dataServices.AmrDataOk()) {
+      DataServices::Dispatch(DataServices::ExitRequest, NULL);
     }
-    if (ParallelDescriptor::IOProcessor() && ivar<0) {
-      Abort("Cannot find variable="+varNames[i]+" in pltfile");
+    AmrData& amrData = dataServices.AmrDataRef();
+
+    int nv = pp.countval("varNames");
+    Vector<std::string> varNames(nv); pp.getarr("varNames",varNames,0,nv);
+
+    const Vector<std::string>& plotVarNames = amrData.PlotVarNames();
+    int nCompIn = varNames.size();
+    Vector<int> destFillComps(nCompIn);
+    for (int i=0; i<nCompIn; ++i) {
+      destFillComps[i] = i;
     }
-  }
 
-  const int nCompOut = 1;
-  const int nGrow = 0;
-  const int nLev = amrData.FinestLevel() + 1;
 
-  Vector<MultiFab*> stateOut(nLev);
-  for (int lev=0; lev<nLev; ++lev) {
-    const BoxArray ba = amrData.boxArray(lev);
-    const DistributionMapping dmap(ba);
-    MultiFab stateIn(ba,dmap,nCompIn,nGrow);
-    stateOut[lev] = new MultiFab(ba,dmap,nCompOut,0);
+    for (int i=0; i<nCompIn; ++i) {
+      int ivar = -1;
+      for (int j=0; j<plotVarNames.size(); ++j) {
+        if (plotVarNames[j] == varNames[i]) {ivar = j;}
+      }
+      if (ParallelDescriptor::IOProcessor() && ivar<0) {
+        Abort("Cannot find variable="+varNames[i]+" in pltfile");
+      }
+    }
 
-    // Load input data from pltfile 
-    amrData.FillVar(stateIn,lev,varNames,destFillComps);
+    const int nCompOut = 1;
+    const int nGrow = 0;
+    const int nLev = amrData.FinestLevel() + 1;
 
-    // Compute transformation
-    for (MFIter mfi(stateIn); mfi.isValid(); ++mfi) {
-      const FArrayBox& sIn = stateIn[mfi];
-      FArrayBox& sOut = (*stateOut[lev])[mfi];
-      const Box& box = mfi.validbox();
+    Vector<MultiFab*> stateOut(nLev);
+    for (int lev=0; lev<nLev; ++lev) {
+      const BoxArray ba = amrData.boxArray(lev);
+      const DistributionMapping dmap(ba);
+      MultiFab stateIn(ba,dmap,nCompIn,nGrow);
+      stateOut[lev] = new MultiFab(ba,dmap,nCompOut,0);
 
-      transform(BL_TO_FORTRAN_BOX(box),
-                BL_TO_FORTRAN_ANYD(sIn),&nCompIn,
-                BL_TO_FORTRAN_ANYD(sOut),&nCompOut);
+      // Load input data from pltfile 
+      amrData.FillVar(stateIn,lev,varNames,destFillComps);
+
+      // Compute transformation
+      for (MFIter mfi(stateIn); mfi.isValid(); ++mfi) {
+        const FArrayBox& sIn = stateIn[mfi];
+        FArrayBox& sOut = (*stateOut[lev])[mfi];
+        const Box& box = mfi.validbox();
+
+        transform(BL_TO_FORTRAN_BOX(box),
+                  BL_TO_FORTRAN_ANYD(sIn),&nCompIn,
+                  BL_TO_FORTRAN_ANYD(sOut),&nCompOut);
       
+      }
     }
-  }
 
-  // Write result to new plotfile in local folder
-  std::string outfile=getFileRoot(infile) + "_tr";
-  Vector<std::string> outNames;
-  outNames.push_back("transform");
-  WritePlotFile(stateOut,amrData,outfile,false,outNames);
+    // Write result to new plotfile in local folder
+    std::string outfile=getFileRoot(infile) + "_tr";
+    Vector<std::string> outNames;
+    outNames.push_back("transform");
+    WritePlotFile(stateOut,amrData,outfile,false,outNames);
+  }
   amrex::Finalize();
   return 0;
 }

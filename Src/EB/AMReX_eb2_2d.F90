@@ -151,7 +151,7 @@ contains
                 apy(i,j) = one
                 fcy(i,j) = zero
                 fy(i,j) = regular
-             else if (fy(i,j) .eq. covered) then
+             else if (apy(i,j) .lt. small) then
                 apy(i,j) = zero
                 fcy(i,j) = zero
                 fy(i,j) = covered
@@ -315,6 +315,35 @@ contains
                    vcent(i,j,2) = min(max(vcent(i,j,2),-half),half)
                 end if
              end if
+
+             ! remove small cells
+             if (vfrac(i,j) < small) then
+                vfrac(i,j) = zero
+                vcent(i,j,:) = zero
+                barea(i,j) = zero
+                bcent(i,j,:) = -one
+                bnorm(i,j,:) = zero
+                call set_covered_cell(cell(i,j))
+             end if
+          end if
+       end do
+    end do
+
+    ! fix faces for small cells
+    do    j = lo(2)-1, hi(2)+1
+       do i = lo(1)  , hi(1)+1
+          if (vfrac(i-1,j) < small .or. vfrac(i,j) < small) then
+             fx(i,j) = covered
+             apx(i,j) = zero
+          end if
+       end do
+    end do
+    !
+    do    j = lo(2)  , hi(2)+1
+       do i = lo(1)-1, hi(1)+1
+          if (vfrac(i,j-1) < small .or. vfrac(i,j) < small) then
+             fy(i,j) = covered
+             apy(i,j) = zero
           end if
        end do
     end do

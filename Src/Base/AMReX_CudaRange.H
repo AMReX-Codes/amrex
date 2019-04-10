@@ -14,15 +14,15 @@ namespace range_detail {
 //! integer version
 template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_GPU_HOST_DEVICE
-long size (T const& b) { return static_cast<long>(b); }
+long size (T const& b) noexcept { return static_cast<long>(b); }
 
 template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_GPU_HOST_DEVICE
-long at (T const& b, long offset) { return offset; }
+long at (T const& b, long offset) noexcept { return offset; }
 
 //! Box version
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE long size (Box const& b)
+AMREX_INLINE long size (Box const& b) noexcept
 {
 #ifdef __CUDA_ARCH__
     return b.numPts();
@@ -32,7 +32,7 @@ AMREX_INLINE long size (Box const& b)
 }
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE Box at (Box const& b, long offset)
+AMREX_INLINE Box at (Box const& b, long offset) noexcept
 {
 #ifdef __CUDA_ARCH__
     auto len = b.length3d();
@@ -53,21 +53,21 @@ template <typename T>
 struct range_impl
 {
     AMREX_GPU_HOST_DEVICE
-    range_impl (T const& b) : m_b(b), m_n(range_detail::size(b)) {}
+    range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
 
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (T const& b, long i, long s) : mi_b(b), mi_i(i), mi_s(s)  {}
+        iterator (T const& b, long i, long s) noexcept : mi_b(b), mi_i(i), mi_s(s)  {}
 
         AMREX_GPU_HOST_DEVICE
-        void operator++ () { mi_i += mi_s; }
+        void operator++ () noexcept { mi_i += mi_s; }
 
         AMREX_GPU_HOST_DEVICE
-        bool operator!= (iterator const& rhs) const { return mi_i < rhs.mi_i; }
+        bool operator!= (iterator const& rhs) const noexcept { return mi_i < rhs.mi_i; }
 
         AMREX_GPU_HOST_DEVICE
-        T operator* () const { return range_detail::at(mi_b,mi_i); }
+        T operator* () const noexcept { return range_detail::at(mi_b,mi_i); }
 
     private:
         T const& mi_b;
@@ -76,7 +76,7 @@ struct range_impl
     };
 
     AMREX_GPU_HOST_DEVICE
-    iterator begin () const {
+    iterator begin () const noexcept {
 #ifdef __CUDA_ARCH__
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #else
@@ -85,7 +85,7 @@ struct range_impl
     }
 
     AMREX_GPU_HOST_DEVICE
-    iterator end () const { return iterator(m_b,m_n,0); }
+    iterator end () const noexcept { return iterator(m_b,m_n,0); }
 
 private:
     T m_b;
@@ -95,7 +95,7 @@ private:
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE
-range_detail::range_impl<T> Range(T const& b) { return range_detail::range_impl<T>(b); }
+range_detail::range_impl<T> Range(T const& b) noexcept { return range_detail::range_impl<T>(b); }
 
 }}
 

@@ -159,7 +159,6 @@ if ( NOT ALGOIM_INSTALL_PREFIX )
       )  
 
    file(GLOB_RECURSE _ALGOIM_HEADERS  "${_ALGOIM_INSTALL_DIR}/src/*.hpp" )
-   message("_ALGOIM_HEADERS=${_ALGOIM_HEADERS}")
    install(FILES ${_ALGOIM_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/algoim)
    
 else ()
@@ -168,16 +167,4 @@ else ()
       INTERFACE_INCLUDE_DIRECTORIES ${ALGOIM_INSTALL_PREFIX}/src )
 
 endif ()
-
-
-
-
-
-
-
-
-
-
-
-
 

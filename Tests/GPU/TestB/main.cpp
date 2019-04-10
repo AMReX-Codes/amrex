@@ -1,26 +1,23 @@
-#include <cuda_device_runtime_api.h>
-#include <thrust/device_vector.h>
+//#include <cuda_device_runtime_api.h>
+//#include <thrust/device_vector.h>
 
 #include <iostream>
 #include <AMReX.H>
 #include <AMReX_Print.H>
 
-#include <AMReX_Memory.H>
-#include <AMReX_Device.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
-#include <AMReX_BaseFab_f.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_Gpu.H>
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 extern "C"
 {
 
-  AMREX_CUDA_DEVICE
+  AMREX_GPU_DEVICE
   long fort_return_test (long* mallocd);
 
 }
@@ -52,8 +49,8 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << n << std::endl << std::endl;
 
-      AMREX_SIMPLE_L_LAUNCH(1,1,
-      [=] AMREX_CUDA_DEVICE () mutable
+      amrex::launch_global<<<1,1>>>(
+      [=] AMREX_GPU_DEVICE () mutable
       {
 
          long returned = 0;
@@ -67,7 +64,7 @@ int main (int argc, char* argv[])
 
       cudaMemcpy(&n, n_d, sizeof(long), cudaMemcpyDeviceToHost);
       cudaFree(n_d);
-      Device::synchronize();
+      amrex::Gpu::Device::synchronize();
 
       std::cout << "n after = " << n << std::endl; 
     }

@@ -25,6 +25,8 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
 
     print("#undef",undefines)
 
+    print("#ifdef __cplusplus");
+
     if comp == "gnu" or comp == "nag":
         print("#ifndef __GNUC__")
         print('static_assert(false,"libamrex was built with GNU");')
@@ -66,6 +68,8 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
         print("#endif")
     else:
         sys.exit("ERROR: unknown use_omp flag "+use_omp+" in mkconfig.py")
+
+    print("#endif") #  ifdef __cplusplus
 
     print("#endif")
 
