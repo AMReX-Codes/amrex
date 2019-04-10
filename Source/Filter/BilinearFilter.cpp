@@ -127,11 +127,6 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             dst(i,j,k,dcomp+n) = 0.0;
-        });
-        
-        amrex::ParallelFor(tbx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
 
             for         (int iz=0; iz < slen_local.z; ++iz){
                 for     (int iy=0; iy < slen_local.y; ++iy){
@@ -140,8 +135,7 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
                         Real sss = sx[ix]*sy[iy]*sz[iz];
 #else
                         Real sss = sx[ix]*sz[iy];
-#endif
-                        
+#endif                        
 #if (AMREX_SPACEDIM == 3)
                         dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k-iz,scomp+n)
                                                   +tmp(i+ix,j-iy,k-iz,scomp+n)
