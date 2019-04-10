@@ -74,6 +74,8 @@ public:
     void setBottomVerbose (int v) { bottom_verbose = v; }
     void setBottomMaxIter (int n) { bottom_maxiter = n; }
     void setBottomTolerance (Real t) { bottom_reltol = t; }
+    void setBottomToleranceAbs (Real t) { bottom_abstol = t;}
+    Real getBottomToleranceAbs () { return bottom_abstol; }
     void setCGVerbose (int v) { bottom_verbose = v; }
     void setCGMaxIter (int n) { bottom_maxiter = n; }
     void setCGTolerance (Real t) { bottom_reltol = t; }
@@ -154,6 +156,7 @@ private:
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
     Real bottom_reltol         = 1.e-4;
+    Real bottom_abstol         = -1.0;
 
     int always_use_bnorm = 0;
 

@@ -912,7 +912,7 @@ MLMG::actualBottomSolve ()
             cg_solver.setMaxIter(bottom_maxiter);
             
             const Real cg_rtol = bottom_reltol;
-            const Real cg_atol = -1.0;
+            const Real cg_atol = bottom_abstol;
             int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
             if (ret != 0 && verbose > 1) {
                 amrex::Print() << "MLMG: Bottom solve failed.\n";
