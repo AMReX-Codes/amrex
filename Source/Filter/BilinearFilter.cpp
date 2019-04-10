@@ -120,41 +120,85 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
     amrex::Real const* AMREX_RESTRICT sx = stencil_x.dataPtr();
     amrex::Real const* AMREX_RESTRICT sy = stencil_y.dataPtr();
     amrex::Real const* AMREX_RESTRICT sz = stencil_z.dataPtr();
+#ifdef AMREX_USE_CUDA
     Dim3 slen_local = slen;
-    for (int n = 0; n < ncomp; ++n) {
-        // Set dst value to 0.
-        amrex::ParallelFor(tbx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            dst(i,j,k,dcomp+n) = 0.0;
+    amrex::ParallelFor(tbx, ncomp,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        dst(i,j,k,dcomp+n) = 0.0;
 
-            for         (int iz=0; iz < slen_local.z; ++iz){
-                for     (int iy=0; iy < slen_local.y; ++iy){
-                    for (int ix=0; ix < slen_local.x; ++ix){
+        for         (int iz=0; iz < slen_local.z; ++iz){
+            for     (int iy=0; iy < slen_local.y; ++iy){
+                for (int ix=0; ix < slen_local.x; ++ix){
 #if (AMREX_SPACEDIM == 3)        
-                        Real sss = sx[ix]*sy[iy]*sz[iz];
+                    Real sss = sx[ix]*sy[iy]*sz[iz];
 #else
-                        Real sss = sx[ix]*sz[iy];
+                    Real sss = sx[ix]*sz[iy];
 #endif                        
 #if (AMREX_SPACEDIM == 3)
-                        dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k-iz,scomp+n)
-                                                  +tmp(i+ix,j-iy,k-iz,scomp+n)
-                                                  +tmp(i-ix,j+iy,k-iz,scomp+n)
-                                                  +tmp(i+ix,j+iy,k-iz,scomp+n)
-                                                  +tmp(i-ix,j-iy,k+iz,scomp+n)
-                                                  +tmp(i+ix,j-iy,k+iz,scomp+n)
-                                                  +tmp(i-ix,j+iy,k+iz,scomp+n)
-                                                  +tmp(i+ix,j+iy,k+iz,scomp+n));
+                    dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k-iz,scomp+n)
+                                              +tmp(i+ix,j-iy,k-iz,scomp+n)
+                                              +tmp(i-ix,j+iy,k-iz,scomp+n)
+                                              +tmp(i+ix,j+iy,k-iz,scomp+n)
+                                              +tmp(i-ix,j-iy,k+iz,scomp+n)
+                                              +tmp(i+ix,j-iy,k+iz,scomp+n)
+                                              +tmp(i-ix,j+iy,k+iz,scomp+n)
+                                              +tmp(i+ix,j+iy,k+iz,scomp+n));
 #else
-                        dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k,scomp+n)
-                                                  +tmp(i+ix,j-iy,k,scomp+n)
-                                                  +tmp(i-ix,j+iy,k,scomp+n)
-                                                  +tmp(i+ix,j+iy,k,scomp+n));
+                    dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k,scomp+n)
+                                              +tmp(i+ix,j-iy,k,scomp+n)
+                                              +tmp(i-ix,j+iy,k,scomp+n)
+                                              +tmp(i+ix,j+iy,k,scomp+n));
 #endif
+                }
+            }
+        }
+    });
+#else  // if not USE_CUDA
+    for (int n = 0; n < ncomp; ++n) {
+        // Set dst value to 0.
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    dst(i,j,k,dcomp+n) = 0.0;
+                }
+            }
+        }
+        // 3 nested loop on 3D stencil
+        for         (int iz=0; iz < slen.z; ++iz){
+            for     (int iy=0; iy < slen.y; ++iy){
+                for (int ix=0; ix < slen.x; ++ix){
+#if (AMREX_SPACEDIM == 3)        
+                    Real sss = sx[ix]*sy[iy]*sz[iz];
+#else
+                    Real sss = sx[ix]*sz[iy];
+#endif
+                    // 3 nested loop on 3D array
+                    for         (int k = lo.z; k <= hi.z; ++k) {
+                        for     (int j = lo.y; j <= hi.y; ++j) {
+                            AMREX_PRAGMA_SIMD
+                                for (int i = lo.x; i <= hi.x; ++i) {
+#if (AMREX_SPACEDIM == 3)
+                                    dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k-iz,scomp+n)
+                                                               +tmp(i+ix,j-iy,k-iz,scomp+n)
+                                                               +tmp(i-ix,j+iy,k-iz,scomp+n)
+                                                               +tmp(i+ix,j+iy,k-iz,scomp+n)
+                                                               +tmp(i-ix,j-iy,k+iz,scomp+n)
+                                                               +tmp(i+ix,j-iy,k+iz,scomp+n)
+                                                               +tmp(i-ix,j+iy,k+iz,scomp+n)
+                                                               +tmp(i+ix,j+iy,k+iz,scomp+n));
+#else
+                                    dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k,scomp+n)
+                                                               +tmp(i+ix,j-iy,k,scomp+n)
+                                                               +tmp(i-ix,j+iy,k,scomp+n)
+                                                               +tmp(i+ix,j+iy,k,scomp+n));
+#endif
+                                }
+                            }
+                        }
                     }
                 }
             }
-        });
-    }
+        }
+#endif // USE_CUDA
 }
-
