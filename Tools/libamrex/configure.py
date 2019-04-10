@@ -13,7 +13,7 @@ def configure(argv):
     argv[0] = "configure" # So the help message print it
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefix",
-                        help="Install libarmex, headers and Fortran modules in PREFIX directory [default=tmp_install_dir]",
+                        help="Install libamrex, headers and Fortran modules in PREFIX directory [default=tmp_install_dir]",
                         default="tmp_install_dir")
     parser.add_argument("--dim",
                         help="Dimension [default=3]",

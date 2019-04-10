@@ -150,8 +150,10 @@ endif
 
 ########################################################################
 
-F90FLAGS += -module $(fmoddir) -I$(fmoddir) -Mdclchk
-FFLAGS   += -module $(fmoddir) -I$(fmoddir) -Mextend
+F90FLAGS += -Mdclchk
+FFLAGS   += -Mextend
+
+FMODULES = -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
 
