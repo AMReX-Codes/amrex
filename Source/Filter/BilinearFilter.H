@@ -1,5 +1,5 @@
 #include <AMReX_MultiFab.H>
-#include <AMReX_Vector.H>
+#include <AMReX_CudaContainers.H>
 
 #ifndef WARPX_FILTER_H_
 #define WARPX_FILTER_H_
@@ -15,11 +15,11 @@ public:
     amrex::IntVect npass_each_dir;
     amrex::IntVect stencil_length_each_dir;
 
-private:
-
     void Filter(const amrex::Box& tbx, amrex::FArrayBox const& tmpfab, amrex::FArrayBox &dstfab, int scomp, int dcomp, int ncomp);
 
-    amrex::Vector<amrex::Real> stencil_x, stencil_y, stencil_z;
+private:
+
+    amrex::Gpu::ManagedVector<amrex::Real> stencil_x, stencil_y, stencil_z;
 
     amrex::Dim3 slen;
 };
