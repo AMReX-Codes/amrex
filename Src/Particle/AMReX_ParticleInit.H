@@ -572,6 +572,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
     for (int j = 0; j < how_many_redists; j++)
     {
+
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
+        host_particles.reserve(15);
+        host_particles.resize(finestLevel()+1);
+        
         if (readers.find(MyProc) != readers.end())
         {
             ParticleType p;
@@ -672,12 +677,30 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
 
             how_many_read += NRead;
         }
 
+        for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+        {
+            for (auto& kv : host_particles[host_lev]) {
+                auto grid = kv.first.first;
+                auto tile = kv.first.second;
+                const auto& src_tile = kv.second;
+                
+                auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+                auto old_size = dst_tile.GetArrayOfStructs().size();
+                auto new_size = old_size + src_tile.size();
+                dst_tile.resize(new_size);
+                
+                Cuda::thrust_copy(src_tile.begin(),
+                                  src_tile.end(),
+                                  dst_tile.GetArrayOfStructs().begin() + old_size);
+            }
+        }
+        
         Redistribute();
         //
         // Move particles in m_particles into tmp_particles so that
@@ -728,6 +751,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
         amrex::Print() << "InitFromBinaryFile() time: " << runtime << '\n';
     }
+
+    Gpu::Device::streamSynchronize();
 }
 
 //
