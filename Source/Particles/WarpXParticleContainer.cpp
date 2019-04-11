@@ -56,14 +56,6 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     m_yp.resize(num_threads);
     m_zp.resize(num_threads);
     m_giv.resize(num_threads);
-    for (int i = 0; i < num_threads; ++i)
-      {
-        local_rho[i].reset(nullptr);
-        local_jx[i].reset(nullptr);
-        local_jy[i].reset(nullptr);
-        local_jz[i].reset(nullptr);
-      }
-
 }
 
 void
@@ -232,35 +224,38 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       tby.grow(ngJ);
       tbz.grow(ngJ);
 
-      local_jx[thread_num]->resize(tbx);
-      local_jy[thread_num]->resize(tby);
-      local_jz[thread_num]->resize(tbz);
+      local_jx[thread_num].resize(tbx);
+      local_jy[thread_num].resize(tby);
+      local_jz[thread_num].resize(tbz);
 
-      jx_ptr = local_jx[thread_num]->dataPtr();
-      jy_ptr = local_jy[thread_num]->dataPtr();
-      jz_ptr = local_jz[thread_num]->dataPtr();
+      jx_ptr = local_jx[thread_num].dataPtr();
+      jy_ptr = local_jy[thread_num].dataPtr();
+      jz_ptr = local_jz[thread_num].dataPtr();
 
-      FArrayBox* local_jx_ptr = local_jx[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+      auto jxarr = local_jx[thread_num].array();
+      amrex::ParallelFor(tbx,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_jx_ptr->setVal(0.0, b, 0, 1);
+          jxarr(i,j,k) = 0.0;
       });
 
-      FArrayBox* local_jy_ptr = local_jy[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
+      auto jyarr = local_jy[thread_num].array();
+      amrex::ParallelFor(tby,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_jy_ptr->setVal(0.0, b, 0, 1);
+          jyarr(i,j,k) = 0.0;
       });
 
-      FArrayBox* local_jz_ptr = local_jz[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
+      auto jzarr = local_jz[thread_num].array();
+      amrex::ParallelFor(tbz,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_jz_ptr->setVal(0.0, b, 0, 1);
+          jzarr(i,j,k) = 0.0;
       });
 
-      auto jxntot = local_jx[thread_num]->length();
-      auto jyntot = local_jy[thread_num]->length();
-      auto jzntot = local_jz[thread_num]->length();
+      auto jxntot = local_jx[thread_num].length();
+      auto jyntot = local_jy[thread_num].length();
+      auto jzntot = local_jz[thread_num].length();
 
       BL_PROFILE_VAR_START(blp_pxr_cd);
       if (j_is_nodal) {
@@ -341,28 +336,31 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &lvect,&WarpX::current_deposition_algo);
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
+      
       BL_PROFILE_VAR_START(blp_accumulate);
-
-      FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
-      FArrayBox* global_jx_ptr = jx.fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+      
+      const auto local_jx_arr  = local_jx[thread_num].array();
+            auto global_jx_arr = jx.array(pti);
+      amrex::ParallelFor(tbx,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
+          Gpu::Atomic::Add(&global_jx_arr(i, j, k), local_jx_arr(i, j, k));
       });
 
-      FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = jy.fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+      const auto local_jy_arr  = local_jy[thread_num].array();
+            auto global_jy_arr = jy.array(pti);
+      amrex::ParallelFor(tby,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
+          Gpu::Atomic::Add(&global_jy_arr(i, j, k), local_jy_arr(i, j, k));
       });
 
-      FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = jz.fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+      const auto local_jz_arr  = local_jz[thread_num].array();
+            auto global_jz_arr = jz.array(pti);
+      amrex::ParallelFor(tbz,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
+          Gpu::Atomic::Add(&global_jz_arr(i, j, k), local_jz_arr(i, j, k));
       });
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
@@ -382,34 +380,38 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       tby.grow(ngJ);
       tbz.grow(ngJ);
 
-      local_jx[thread_num]->resize(tbx);
-      local_jy[thread_num]->resize(tby);
-      local_jz[thread_num]->resize(tbz);
+      local_jx[thread_num].resize(tbx);
+      local_jy[thread_num].resize(tby);
+      local_jz[thread_num].resize(tbz);
 
-      jx_ptr = local_jx[thread_num]->dataPtr();
-      jy_ptr = local_jy[thread_num]->dataPtr();
-      jz_ptr = local_jz[thread_num]->dataPtr();
+      jx_ptr = local_jx[thread_num].dataPtr();
+      jy_ptr = local_jy[thread_num].dataPtr();
+      jz_ptr = local_jz[thread_num].dataPtr();
 
-      FArrayBox* local_jx_ptr = local_jx[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+      auto jxarr = local_jx[thread_num].array();
+      amrex::ParallelFor(tbx,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_jx_ptr->setVal(0.0, b, 0, 1);
+          jxarr(i,j,k) = 0.0;
       });
 
-      FArrayBox* local_jy_ptr = local_jy[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
+      auto jyarr = local_jy[thread_num].array();
+      amrex::ParallelFor(tby,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_jy_ptr->setVal(0.0, b, 0, 1);
+          jyarr(i,j,k) = 0.0;
       });
 
-      FArrayBox* local_jz_ptr = local_jz[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
+      auto jzarr = local_jz[thread_num].array();
+      amrex::ParallelFor(tbz,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_jz_ptr->setVal(0.0, b, 0, 1);
+          jzarr(i,j,k) = 0.0;
       });
-      auto jxntot = local_jx[thread_num]->length();
-      auto jyntot = local_jy[thread_num]->length();
-      auto jzntot = local_jz[thread_num]->length();
+
+      auto jxntot = local_jx[thread_num].length();
+      auto jyntot = local_jy[thread_num].length();
+      auto jzntot = local_jz[thread_num].length();
 
       long ncrse = np - np_current;
       BL_PROFILE_VAR_START(blp_pxr_cd);
@@ -496,25 +498,28 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
-      FArrayBox* global_jx_ptr = cjx->fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+      const auto local_jx_arr  = local_jx[thread_num].array();
+            auto global_jx_arr = cjx->array(pti);
+      amrex::ParallelFor(tbx,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
+          Gpu::Atomic::Add(&global_jx_arr(i, j, k), local_jx_arr(i, j, k));
       });
 
-      FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = cjy->fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+      const auto local_jy_arr  = local_jy[thread_num].array();
+            auto global_jy_arr = cjy->array(pti);
+      amrex::ParallelFor(tby,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
+          Gpu::Atomic::Add(&global_jy_arr(i, j, k), local_jy_arr(i, j, k));
       });
 
-      FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = cjz->fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+      const auto local_jz_arr  = local_jz[thread_num].array();
+            auto global_jz_arr = cjz->array(pti);
+      amrex::ParallelFor(tbz,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
+          Gpu::Atomic::Add(&global_jz_arr(i, j, k), local_jz_arr(i, j, k));
       });
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
@@ -547,15 +552,17 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
     {
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
       tile_box.grow(ngRho);
-      local_rho[thread_num]->resize(tile_box);
-      FArrayBox* local_rho_ptr = local_rho[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, b,
+      local_rho[thread_num].resize(tile_box);
+
+      auto rhoarr = local_rho[thread_num].array();
+      amrex::ParallelFor(tile_box,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_rho_ptr->setVal(0.0, b, 0, 1);
+          rhoarr(i,j,k) = 0.0;
       });
 
-      data_ptr = local_rho[thread_num]->dataPtr();
-      auto rholen = local_rho[thread_num]->length();
+      data_ptr = local_rho[thread_num].dataPtr();
+      auto rholen = local_rho[thread_num].length();
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -579,14 +586,16 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
-      const int ncomp = 1;
-      FArrayBox const* local_fab = local_rho[thread_num].get();
-      FArrayBox*       global_fab = rhomf->fabPtr(pti);
       BL_PROFILE_VAR_START(blp_accumulate);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+
+      const auto local_rho_arr  = local_rho[thread_num].array();
+            auto global_rho_arr = rhomf->array(pti);
+      amrex::ParallelFor(tile_box,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
+          Gpu::Atomic::Add(&global_rho_arr(i, j, k), local_rho_arr(i, j, k));
       });
+
       BL_PROFILE_VAR_STOP(blp_accumulate);
     }
 
@@ -599,15 +608,17 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
       tile_box.grow(ngRho);
-      local_rho[thread_num]->resize(tile_box);
-      FArrayBox* local_rho_ptr = local_rho[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, b,
+      local_rho[thread_num].resize(tile_box);
+
+      auto rhoarr = local_rho[thread_num].array();
+      amrex::ParallelFor(tile_box,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        local_rho_ptr->setVal(0.0, b, 0, 1);
+          rhoarr(i,j,k) = 0.0;
       });
 
-      data_ptr = local_rho[thread_num]->dataPtr();
-      auto rholen = local_rho[thread_num]->length();
+      data_ptr = local_rho[thread_num].dataPtr();
+      auto rholen = local_rho[thread_num].length();
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -633,14 +644,16 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
-      const int ncomp = 1;
-      FArrayBox const* local_fab = local_rho[thread_num].get();
-      FArrayBox*       global_fab = crhomf->fabPtr(pti);
       BL_PROFILE_VAR_START(blp_accumulate);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+
+      const auto local_rho_arr  = local_rho[thread_num].array();
+            auto global_rho_arr = crhomf->array(pti);
+      amrex::ParallelFor(tile_box,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
+          Gpu::Atomic::Add(&global_rho_arr(i, j, k), local_rho_arr(i, j, k));
       });
+      
       BL_PROFILE_VAR_STOP(blp_accumulate);
     }
 };
