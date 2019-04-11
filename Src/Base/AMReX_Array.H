@@ -30,21 +30,11 @@ namespace amrex {
     struct Array4
     {
         T* AMREX_RESTRICT p;
-        long jstride;
-        long kstride;
-        long nstride;
-        Dim3 begin;
-        Dim3 end;
-
-        AMREX_GPU_HOST_DEVICE
-        constexpr Array4 ()
-            : p(NULL),
-              jstride(0),
-              kstride(0),
-              nstride(0),
-              begin({0,0,0}),
-              end({0,0,0})
-            {}
+        long const jstride;
+        long const kstride;
+        long const nstride;
+        Dim3 const begin;
+        Dim3 const end;
 
         template <class U=T, class = typename std::enable_if<std::is_const<U>::value>::type >
         AMREX_GPU_HOST_DEVICE
@@ -66,22 +56,6 @@ namespace amrex {
               begin(a_begin),
               end(a_end)
             {}
-/*
-        Array4<T>& operator= (const Array4<T> &arr)
-        {
-            return Array4<T>(arr.p, arr.begin, arr.end);
-        }
-*/
-        AMREX_FORCE_INLINE Array4<T>& operator= (Array4<T> &&arr)
-        {
-            p = std::move(arr.p);
-            jstride = std::move(arr.jstride);
-            kstride = std::move(arr.kstride);
-            nstride = std::move(arr.nstride);
-            begin = std::move(arr.begin);
-            end = std::move(arr.end); 
-            return *this;
-        } 
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) const noexcept {
