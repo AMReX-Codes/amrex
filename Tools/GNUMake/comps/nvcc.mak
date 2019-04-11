@@ -48,7 +48,9 @@ else
   CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT) --Werror=cross-execution-space-call
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
+# Unfortunately, on cori with cuda 10.0 this fails in thrust code
+# NVCC_FLAGS += --Werror=cross-execution-space-call
 
 ifeq ($(DEBUG),TRUE)
   NVCC_FLAGS += -g -G

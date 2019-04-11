@@ -49,7 +49,7 @@ namespace amrex {
 
 	initFillPatch(boxGrow, time, index, scomp, ncomp, iter);
 
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
     }
