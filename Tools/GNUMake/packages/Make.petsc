@@ -1,11 +1,13 @@
 
 CPPFLAGS += -DAMREX_USE_PETSC
+include $(AMREX_HOME)/Src/Extern/PETSc/Make.package
 
 ifdef PETSC_DIR
-  INCLUDE_LOCATIONS += $(PETSC_DIR)/include
-  LIBRARY_LOCATIONS += $(PETSC_DIR)/lib
+  PETSC_ABSPATH = $(abspath $(PETSC_DIR))
+  INCLUDE_LOCATIONS += $(PETSC_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(PETSC_ABSPATH)/lib
   ifndef CRAY_PETSC_VERSION
-      LIBRARIES += -lpetsc -lHYPRE -llapack -lblas -lX11 -ldl
+      LIBRARIES += -Wl,-rpath,$(PETSC_ABSPATH)/lib -lpetsc -lHYPRE -llapack -lblas -lX11 -ldl
   endif
 endif
 
