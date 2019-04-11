@@ -498,8 +498,8 @@ Diagnostics and output
 
 * ``warpx.particle_plot_vars`` (`strings`, separated by spaces ; default: all)
     Control which particle variables get written to the plot file. Choices are:
-    `particle_weight`, `particle_momentum_[xyz]`, `particle_efield_[xyz]`,
-    and `particle_bfield_[xyz]`. The particle positions and ids are always included.
+    `w`, `ux`, `uy`, `uz`, `Ex`, `Ey`, `Ez`, `Bx`, `By`, and `Bz`.
+    The particle positions and ids are always included.
 
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
