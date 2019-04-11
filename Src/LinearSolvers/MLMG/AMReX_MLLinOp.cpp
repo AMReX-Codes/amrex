@@ -135,7 +135,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     }
 
     info = a_info;
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     if (!a_factory.empty()){
         auto f = dynamic_cast<EBFArrayBoxFactory const*>(a_factory[0]);
         if (f) {
