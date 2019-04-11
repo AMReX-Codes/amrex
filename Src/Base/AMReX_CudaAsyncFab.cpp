@@ -7,9 +7,11 @@
 #ifdef AMREX_USE_CUDA
 
 extern "C" {
-    void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p) {
+
+    void CUDART_CB amrex_devicefab_delete (void* p) {
         delete (amrex::Cuda::AsyncFabImpl*)p;
     }
+
 }
 
 #endif
@@ -57,10 +59,13 @@ AsyncFab::clear ()
     if (inLaunchRegion())
     {
         if (m_impl != nullptr) {
-// CUDA 10        AMREX_GPU_SAFE_CALL(cudaLaunchHostFunc(Device::cudaStream(), amrex_devicefab_delete, p));
-            AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
-                                                      amrex_devicefab_delete,
-                                                      m_impl, 0));
+// CUDA 10
+            cudaHostFn_t clear = amrex_devicefab_delete;
+            AMREX_GPU_SAFE_CALL(cudaLaunchHostFunc(Device::cudaStream(), clear, m_impl));
+// CUDA 9
+//            AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
+//                                                      amrex_devicefab_delete,
+//                                                      m_impl, 0));
         }
     }
     else
