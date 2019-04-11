@@ -38,6 +38,10 @@ else
   GENERIC_PGI_FLAGS += -noacc
 endif
 
+# Note that -O2 is the default optimization level for PGI
+
+PGI_OPT := -O2 -fast
+
 ########################################################################
 ########################################################################
 ########################################################################
@@ -51,10 +55,6 @@ CC  = pgcc
 
 CXXFLAGS =
 CFLAGS   =
-
-# Note that -O2 is the default optimization level for PGI
-
-PGI_OPT := -O2 -fast
 
 ifeq ($(DEBUG),TRUE)
 
