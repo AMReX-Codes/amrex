@@ -175,7 +175,7 @@ WarpX::WriteCheckPointFile() const
         }
     }
 
-    mypc->Checkpoint(checkpointname, true);
+    mypc->Checkpoint(checkpointname);
 
     VisMF::SetHeaderVersion(current_version);
 }
@@ -607,7 +607,7 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("uzold");
 #endif
 
-    mypc->Checkpoint(plotfilename, true, particle_varnames);
+    mypc->WritePlotFile(plotfilename, particle_plot_flags, particle_varnames);
 
     WriteJobInfo(plotfilename);
 

@@ -19,12 +19,25 @@ WarpXParticleContainer::WriteHeader (std::ostream& os) const
 }
 
 void
-MultiParticleContainer::Checkpoint (const std::string& dir, 
-				    bool is_checkpoint,
-                                    const Vector<std::string>& varnames) const
+MultiParticleContainer::Checkpoint (const std::string& dir) const
 {
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->Checkpoint(dir, species_names[i], is_checkpoint, varnames);
+	allcontainers[i]->Checkpoint(dir, species_names[i]);
+    }
+}
+
+void
+MultiParticleContainer::WritePlotFile (const std::string& dir,
+                                       const Vector<int>& real_flags,
+                                       const Vector<std::string>& real_names) const
+{
+    Vector<std::string> int_names;    
+    Vector<int> int_flags;
+    
+    for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
+	allcontainers[i]->WritePlotFile(dir, species_names[i],
+                                        real_flags, int_flags,
+                                        real_names, int_names);
     }
 }
 

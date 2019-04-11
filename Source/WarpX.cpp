@@ -356,9 +356,9 @@ WarpX::ReadParameters ()
 
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
-    pp.query("do_dive_cleaning", do_dive_cleaning);
-    pp.query("n_field_gather_buffer", n_field_gather_buffer);
-    pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
+        pp.query("do_dive_cleaning", do_dive_cleaning);
+        pp.query("n_field_gather_buffer", n_field_gather_buffer);
+        pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
 	pp.query("sort_int", sort_int);
 
         pp.query("do_pml", do_pml);
@@ -429,10 +429,29 @@ WarpX::ReadParameters ()
             fine_tag_hi = RealVect{hi};
         }
 
+        // select which particle comps to write
+        {
+            pp.queryarr("particle_plot_vars", particle_plot_vars);
+            
+            if (particle_plot_vars.size() == 0)
+            {
+                particle_plot_flags.resize(PIdx::nattribs, 1);
+            }
+            else
+            {
+                particle_plot_flags.resize(PIdx::nattribs, 0);
+                
+                for (const auto& var : particle_plot_vars)
+                {
+                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
+                }
+            }
+        }
+        
         pp.query("load_balance_int", load_balance_int);
         pp.query("load_balance_with_sfc", load_balance_with_sfc);
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
-
+        
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
 
         pp.query("do_nodal", do_nodal);

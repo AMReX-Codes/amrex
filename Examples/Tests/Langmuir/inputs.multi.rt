@@ -13,6 +13,7 @@ amr.max_level = 0
 
 amr.plot_int = 20   # How often to write plotfiles.  "<= 0" means no plotfiles.
 warpx.plot_rho = 1
+warpx.particle_plot_vars = w ux Bz Ey
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
