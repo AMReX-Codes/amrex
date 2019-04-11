@@ -15,6 +15,6 @@ ifdef ASCENT_DIR
   else
      LIBRARIES += -lascent
   endif
-  
+
 endif
 
