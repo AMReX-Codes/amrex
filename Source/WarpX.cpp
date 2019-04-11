@@ -431,39 +431,19 @@ WarpX::ReadParameters ()
 
         // select which particle comps to write
         {
-            std::map<std::string, int> particle_var_map;
-            particle_var_map["particle_weight"]         = 0;
-            particle_var_map["particle_momentum_x"]     = 1;
-            particle_var_map["particle_momentum_y"]     = 2;
-            particle_var_map["particle_momentum_z"]     = 3;
-            particle_var_map["particle_efield_x"]       = 4;
-            particle_var_map["particle_efield_y"]       = 5;
-            particle_var_map["particle_efield_z"]       = 6;
-            particle_var_map["particle_bfield_x"]       = 7;
-            particle_var_map["particle_bfield_y"]       = 8;
-            particle_var_map["particle_bfield_z"]       = 9;
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-            particle_var_map["particle_x_old"]          = 10;
-            particle_var_map["particle_y_old"]          = 11;
-            particle_var_map["particle_z_old"]          = 12;
-            particle_var_map["particle_momentum_x_old"] = 13;
-            particle_var_map["particle_momentum_y_old"] = 14;
-            particle_var_map["particle_momentum_z_old"] = 15;
-#endif
-            
             pp.queryarr("particle_plot_vars", particle_plot_vars);
             
             if (particle_plot_vars.size() == 0)
             {
-                particle_plot_flags.resize(particle_var_map.size(), 1);
+                particle_plot_flags.resize(PIdx::nattribs, 1);
             }
             else
             {
-                particle_plot_flags.resize(particle_var_map.size(), 0);
+                particle_plot_flags.resize(PIdx::nattribs, 0);
                 
-                for (auto& var : particle_plot_vars)
+                for (const auto& var : particle_plot_vars)
                 {
-                    particle_plot_flags[particle_var_map[var]] = 1;
+                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
                 }
             }
         }
