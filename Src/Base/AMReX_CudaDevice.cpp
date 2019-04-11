@@ -475,7 +475,7 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexc
 
 #if (AMREX_SPACEDIM == 1)
 
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS);
+    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_CUDA_MAX_THREADS);
     numThreads.x = std::max(numThreads.x, numThreadsMin.x);
     numThreads.y = 1;
     numThreads.z = 1;
