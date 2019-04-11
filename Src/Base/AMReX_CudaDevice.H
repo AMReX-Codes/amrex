@@ -23,7 +23,7 @@ public:
 #if defined(AMREX_USE_CUDA)
     static cudaStream_t cudaStream () noexcept { return cuda_stream; }
 #endif
-    static void setStreamIndex (const int idx);
+    static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
     static int numCudaStreams () { return max_cuda_streams; }
 
