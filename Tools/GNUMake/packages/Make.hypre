@@ -1,9 +1,11 @@
 
 CPPFLAGS += -DAMREX_USE_HYPRE
+include $(AMREX_HOME)/Src/Extern/HYPRE/Make.package
 
 ifdef HYPRE_DIR
-  INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
-  LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
-  LIBRARIES += -lHYPRE
+  HYPRE_ABSPATH = $(abspath $(HYPRE_DIR))
+  INCLUDE_LOCATIONS += $(HYPRE_ABSPATH)/include
+  LIBRARY_LOCATIONS += $(HYPRE_ABSPATH)/lib
+  LIBRARIES += -Wl,-rpath,$(HYPRE_ABSPATH)/lib -lHYPRE
 endif
 

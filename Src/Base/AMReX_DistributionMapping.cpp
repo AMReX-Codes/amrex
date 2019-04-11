@@ -1375,7 +1375,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
     DistributionMapping r;
 
     Vector<long> cost(weight.size());
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     {
 	Vector<Real> rcost(cost.size(), 0.0);
 #ifdef _OPENMP
@@ -1411,7 +1411,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
     DistributionMapping r;
 
     Vector<long> cost(weight.size());
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     {
 	Vector<Real> rcost(cost.size(), 0.0);
 #ifdef _OPENMP
@@ -1446,7 +1446,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
     DistributionMapping r;
 
     Vector<long> cost(weight.size());
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     {
 	Vector<Real> rcost(cost.size(), 0.0);
 #ifdef _OPENMP

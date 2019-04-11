@@ -142,7 +142,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
 
     if (!m_masks_built) buildMasks();
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
 #endif
 
@@ -363,7 +363,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
             }
         }
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
         // Make sure to zero out the RHS on any nodes completely surrounded by covered cells
         amrex::EB_set_covered((*rhs[ilev]),0.0);
 #endif
@@ -380,7 +380,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     if (!m_masks_built) buildMasks();
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
 #endif
 
@@ -2249,7 +2249,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          m_lobc.data(), m_hibc.data());
         }
     }
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     // Make sure to zero out the residual on any nodes completely surrounded by covered cells
     amrex::EB_set_covered(res,0.0);
 #endif

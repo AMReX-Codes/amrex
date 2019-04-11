@@ -24,14 +24,6 @@ Pdirs := Base Boundary AmrCore
 Pdirs += EB
 Pdirs += LinearSolvers/C_CellMG LinearSolvers/MLMG
 
-ifeq ($(USE_HYPRE),TRUE)
-    Pdirs += Extern/HYPRE
-endif
-
-ifeq ($(USE_PETSC),TRUE)
-    Pdirs += Extern/PETSc
-endif
-
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)
