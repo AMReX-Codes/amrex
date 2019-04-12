@@ -38,6 +38,8 @@ dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 
 cudaDeviceProp Device::device_prop;
+
+Vector<cudaGraph_t> Device::cuda_graphs;
 #endif
 
 void
@@ -277,6 +279,8 @@ Device::initialize_cuda ()
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
+
+    cuda_graphs.clear();
 #endif
 }
 
@@ -315,6 +319,55 @@ Device::streamSynchronize ()
 }
 
 #ifdef AMREX_USE_CUDA
+
+void
+Device::startGraphIterRecording()
+{
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+    }
+}
+
+void
+Device::stopGraphIterRecording()
+{
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        cudaGraph_t curr_graph;
+        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(curr_graph)));
+
+        cuda_graphs.push_back(curr_graph);
+    }
+}
+
+cudaGraphExec_t
+Device::assembleGraphIter()
+{
+    cudaGraphExec_t graphExec;
+
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        cudaGraph_t     graphFull;
+        cudaGraphNode_t emptyNode, placeholder;
+
+        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
+
+        for (auto it = cuda_graphs.begin(); it != cuda_graphs.end(); ++it)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, *it));
+        }
+
+        graphExec = instantiateGraph(graphFull);
+
+    }
+
+    cuda_graphs.clear();
+
+    return graphExec;
+}
+
 void
 Device::startGraphStreamRecording()
 {
