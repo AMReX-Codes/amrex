@@ -34,12 +34,20 @@ public:
 
 #if defined(AMREX_USE_CUDA)
     // Capture graphs per iteration
-
-
+/*
+    static void initGraphIter();
+    static void startGraphIterRecording();
+    static void stopGraphIterRecording();
+    static cudaGraphExec_t assembleGraphIter();
+*/
     // Capture graphs along streams
     static void startGraphStreamRecording();
     static cudaGraphExec_t stopGraphStreamRecording();
 
+    // Instantiate a created cudaGtaph
+    static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
+
+    // Execute an instantiated cudaGraphExec
     static void executeGraph(cudaGraphExec_t &graphExec);
 #endif
 
