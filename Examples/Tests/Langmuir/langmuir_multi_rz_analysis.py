@@ -123,9 +123,13 @@ fig, ax = plt.subplots(1,2)
 im = ax[0].imshow(Er_sim, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
 fig.colorbar(im, ax=ax[0], orientation='vertical', shrink=0.6)
 ax[0].set_title('Er sim')
+ax[0].set_xlabel('Z (um)')
+ax[0].set_ylabel('R (um)')
 im = ax[1].imshow(Er_th, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
 fig.colorbar(im, ax=ax[1], orientation='vertical', shrink=0.6)
 ax[1].set_title('Er th')
+ax[1].set_xlabel('Z (um)')
+ax[1].set_ylabel('R (um)')
 fig.show()
 
 # Side by side plot of Ez
@@ -133,9 +137,13 @@ fig, ax = plt.subplots(1,2)
 im = ax[0].imshow(Ez_sim, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
 fig.colorbar(im, ax=ax[0], orientation='vertical', shrink=0.6)
 ax[0].set_title('Ez sim')
+ax[0].set_xlabel('Z (um)')
+ax[0].set_ylabel('R (um)')
 im = ax[1].imshow(Ez_th, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
 fig.colorbar(im, ax=ax[1], orientation='vertical', shrink=0.6)
 ax[1].set_title('Ez th')
+ax[1].set_xlabel('Z (um)')
+ax[1].set_ylabel('R (um)')
 fig.show()
 
 # Differences of Er and Ez
@@ -143,43 +151,59 @@ fig, ax = plt.subplots(1,2)
 im = ax[0].imshow((Er_sim - Er_th)/Er_sim.max(), interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
 fig.colorbar(im, ax=ax[0], orientation='vertical', shrink=0.5)
 ax[0].set_title('Er difference')
+ax[0].set_xlabel('Z (um)')
+ax[0].set_ylabel('R (um)')
 im = ax[1].imshow((Ez_sim - Ez_th)/Ez_sim.max(), interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
 fig.colorbar(im, ax=ax[1], orientation='vertical', shrink=0.5)
 ax[1].set_title('Ez difference')
+ax[1].set_xlabel('Z (um)')
+ax[1].set_ylabel('R (um)')
 fig.show()
 
 # Er along z
 fig, ax = plt.subplots()
 ax.plot(zz[0,:]*1.e6, Er_sim[2,:], 'r')
 ax.plot(zz[0,:]*1.e6, Er_th[2,:], 'b')
+ax.set_xlabel('Z (um)')
+ax.set_ylabel('Er')
 fig.show()
 
 # Er along radius
 fig, ax = plt.subplots()
 ax.plot(rr[:,48]*1.e6, Er_sim[:,48], 'r')
 ax.plot(rr[:,48]*1.e6, Er_th[:,48], 'b')
+ax.set_xlabel('R (um)')
+ax.set_ylabel('Er')
 fig.show()
 
 # Er difference along radius
 fig, ax = plt.subplots()
 ax.plot(rr[:,48]*1.e6, (Er_sim[:,48] - Er_th[:,48])/Er_sim.max(), 'r')
+ax.set_xlabel('R (um)')
+ax.set_ylabel('Er difference')
 fig.show()
 
 # Ez along radius
 fig, ax = plt.subplots()
 ax.plot(rr[:,48]*1.e6, Ez_sim[:,48], 'r')
 ax.plot(rr[:,48]*1.e6, Ez_th[:,48], 'b')
+ax.set_xlabel('R (um)')
+ax.set_ylabel('Ez')
 fig.show()
 
 # Ez difference along radius
 fig, ax = plt.subplots()
 ax.plot(rr[:,48]*1.e6, (Ez_sim[:,48] - Ez_th[:,48])/Ez_sim.max(), 'r')
+ax.set_xlabel('R (um)')
+ax.set_ylabel('Ez difference')
 fig.show()
 
 # Ez along z
 fig, ax = plt.subplots()
 ax.plot(zz[0,:]*1.e6, Ez_sim[2,:], 'r')
 ax.plot(zz[0,:]*1.e6, Ez_th[2,:], 'b')
+ax.set_xlabel('Z (um)')
+ax.set_ylabel('Ez')
 fig.show()
 
 # Fetch Jr
@@ -198,6 +222,8 @@ print('Jz: Max error: %.2e' %(max_error))
 fig, ax = plt.subplots()
 ax.plot(rr[:,48]*1.e6, Jr_sim[:,48], 'r')
 ax.plot(rr[:,48]*1.e6, Jr_th[:,48], 'b')
+ax.set_xlabel('R (um)')
+ax.set_ylabel('Jr')
 fig.show()
 
 """
