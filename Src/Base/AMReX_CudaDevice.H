@@ -34,12 +34,10 @@ public:
 
 #if defined(AMREX_USE_CUDA)
     // Capture graphs per iteration
-/*
-    static void initGraphIter();
     static void startGraphIterRecording();
     static void stopGraphIterRecording();
     static cudaGraphExec_t assembleGraphIter();
-*/
+
     // Capture graphs along streams
     static void startGraphStreamRecording();
     static cudaGraphExec_t stopGraphStreamRecording();
@@ -93,6 +91,8 @@ private:
     static dim3 numBlocksOverride, numThreadsOverride;
 
     static cudaDeviceProp device_prop;
+
+    static Vector<cudaGraph_t> cuda_graphs;
 #endif
 };
 
