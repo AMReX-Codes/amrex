@@ -518,8 +518,12 @@ int main (int argc, char* argv[])
         cudaFreeHost(src_fab);
         cudaFreeHost(dst_fab);
 */
-        cudaFree(src_fab);
-        cudaFree(dst_fab);
+        cudaFree(src_fab_d);
+        cudaFree(dst_fab_d);
+
+        std::free(src_fab);
+        std::free(dst_fab);
+
 
         amrex::Print() << "Test Completed." << std::endl;
     }
