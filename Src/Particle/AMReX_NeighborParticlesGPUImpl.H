@@ -60,6 +60,8 @@ buildNeighborMask()
     const BoxArray& ba = this->ParticleBoxArray(lev);
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+
     if (m_neighbor_mask_ptr == nullptr ||
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
         ! DistributionMapping::SameRefs(m_neighbor_mask_ptr->DistributionMap(), dmap))
@@ -140,6 +142,8 @@ sortParticlesByNeighborDestGPU()
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
 
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -175,10 +179,26 @@ sortParticlesByNeighborDestGPU()
             pcodes[i] = code;
         });
 
+        Gpu::ManagedDeviceVector<int> index_sequence_tmp(np);
+        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
+
+        ParticleVector aos_r(np);
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             neighbor_codes.begin(),
                             neighbor_codes.end(),
-                            aos().begin());
+                            index_sequence_tmp.begin());
+
+        //
+        // Reorder the particle data 
+        //
+        {
+	    // reorder structs
+	    aos_r.resize(np);
+            thrust::gather(thrust::device,
+                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                           aos().begin(), aos_r.begin());
+            aos().swap(aos_r);
+        }
 
         int num_codes = m_grid_map[gid].size();
         Gpu::ManagedDeviceVector<int> neighbor_code_begin(num_codes + 1);
@@ -242,6 +262,8 @@ updateNeighborsGPU()
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
     
+    if (ba.size() == 1 and (not this->Geom(lev).isAnyPeriodic()) ) return;
+
     std::map<int, SendBuffer> not_ours;
     std::map<int, size_t> grid_counts;
     
@@ -363,7 +385,7 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int lev = 0;
     

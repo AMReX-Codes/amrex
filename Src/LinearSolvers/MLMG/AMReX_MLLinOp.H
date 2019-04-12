@@ -15,6 +15,7 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
@@ -22,6 +23,8 @@ namespace amrex {
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
+
+class MLMG;
 
 struct LPInfo
 {
@@ -73,6 +76,7 @@ public:
                  const LPInfo& a_info,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
+    virtual std::string name () const { return std::string("Unspecified"); }
 
     /**
     * \brief Boundary of the whole domain. This functions must be called,
@@ -165,6 +169,7 @@ public:
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
     virtual void prepareForSolve () = 0;
+    virtual void prepareForSolve (MLMG* mlmg) { prepareForSolve(); }
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
@@ -189,6 +194,10 @@ public:
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const {
+        amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
+        return {nullptr};
+    }
 #endif
 
 #ifdef AMREX_USE_PETSC
@@ -198,7 +207,11 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
+#ifdef AMREX_USE_EB
+    static constexpr int mg_box_min_width = 4;
+#else
     static constexpr int mg_box_min_width = 2;
+#endif
 
     LPInfo info;
 
@@ -305,6 +318,10 @@ private:
                                       int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
     void remapNeighborhoods (Vector<DistributionMapping> & dms);
+
+    virtual void checkPoint (std::string const& file_name) const {
+        amrex::Abort("MLLinOp:checkPoint: not implemented");
+    }
 };
 
 }

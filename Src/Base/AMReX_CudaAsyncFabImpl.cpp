@@ -181,6 +181,7 @@ AsyncFabImpl::copy_htod ()
     {
         auto src  = static_cast<BaseFabData<Real>*>(&m_cpu_fab);
         std::memcpy(dest, src, sizeof(BaseFabData<Real>));
+        dest->setOwner(false);
     }
 }
 

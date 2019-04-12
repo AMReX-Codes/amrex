@@ -95,9 +95,9 @@ public:
                 CheckPair check_pair)
     {
         BL_PROFILE("NeighborList::build");
-        
-        m_pstruct = vec.dataPtr();
 
+        m_pstruct = vec.dataPtr();
+        
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
                 
@@ -105,41 +105,40 @@ public:
         const auto hi = amrex::ubound(bx);
 
         const size_t np = vec.size();
+        const ParticleType* pstruct_ptr = vec.dataPtr();
         
         Gpu::ManagedDeviceVector<unsigned int> cells(np);
         unsigned int* pcell = cells.dataPtr();
         
         Gpu::ManagedDeviceVector<unsigned int> counts(bx.numPts(), 0);
         unsigned int* pcount = counts.dataPtr();
-        
+
         Gpu::ManagedDeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
         unsigned int* poffset = offsets.dataPtr();
     
         Gpu::ManagedDeviceVector<unsigned int> permutation(np);
         unsigned int* pperm = permutation.dataPtr();
-        
+
         // First we build the cell list data structure
-        
-        m_pstruct = vec.dataPtr();
         AMREX_FOR_1D ( np, i,
         {
-            int ix = (m_pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (m_pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (m_pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;            
-            unsigned int uix = amrex::min(nx,amrex::max(0,ix));
-            unsigned int uiy = amrex::min(ny,amrex::max(0,iy));
-            unsigned int uiz = amrex::min(nz,amrex::max(0,iz));
-            pcell[i] = (uix * ny + uiy) * nz + uiz; 
+            unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
+            unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
+            unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
+            pcell[i] = (uix * ny + uiy) * nz + uiz;
             Cuda::Atomic::Add(&pcount[pcell[i]], 1u);
         });
 
         thrust::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
         
         thrust::copy(offsets.begin(), offsets.end()-1, counts.begin());
-        
+
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
         
         AMREX_FOR_1D ( np, i,
@@ -155,9 +154,9 @@ public:
         
         AMREX_FOR_1D ( np, i,
         {
-            int ix = (m_pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (m_pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (m_pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
             
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -171,7 +170,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(m_pstruct[i], m_pstruct[pperm[p]]))
+                            if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]]))
                                 count += 1;
                         }
                     }
@@ -184,9 +183,10 @@ public:
         // Now we can allocate and build our neighbor list
         
         const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
+        m_nbor_offsets.resize(0);
         m_nbor_offsets.resize(np + 1, total_nbors);
         unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
-        
+
         thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(),
                                m_nbor_offsets.begin());
         
@@ -195,9 +195,9 @@ public:
         
         AMREX_FOR_1D ( np, i,
         {
-            int ix = (m_pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (m_pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (m_pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = (pstruct_ptr[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (pstruct_ptr[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (pstruct_ptr[i].pos(2)-plo[2])*dxi[2] - lo.z;
             
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -210,7 +210,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(m_pstruct[i], m_pstruct[pperm[p]])) {
+                            if (check_pair(pstruct_ptr[i], pstruct_ptr[pperm[p]])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p]; 
                                 ++n;
                             }

@@ -40,7 +40,7 @@ main (int argc, char** argv)
       bins[iv].resize(1, Real(MyProc) );
     }
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     //
     // The number of keys and their respective offsets.
     // Used by IOProc but the "1" is so others can call dataPtr()

@@ -111,8 +111,7 @@ F90FLAGS += -WF,-C!
 
 FFLAGS   += -qfixed=72
 
-F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
-FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
+FMODULES = -qmoddir=$(fmoddir) -I $(fmoddir)
 
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)

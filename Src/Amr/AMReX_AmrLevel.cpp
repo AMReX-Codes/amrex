@@ -670,7 +670,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
 
     Initialize(boxGrow,time,idx,scomp,ncomp);
 
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
@@ -3315,7 +3315,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
 
     //InitializePush(boxGrow,time,index,scomp,ncomp,f,tid);
 
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 

@@ -105,7 +105,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
                       const IntVect&    ratio,
                       const Geometry& /*crse_geom */,
                       const Geometry& /*fine_geom */,
-                      Vector<BCRec>&   /*bcr*/,
+                      Vector<BCRec> const& /*bcr*/,
                       int               /*actual_comp*/,
                       int               /*actual_state*/)
 {
@@ -174,7 +174,7 @@ CellBilinear::interp (const FArrayBox&  crse,
                       const IntVect &   ratio,
                       const Geometry& /*crse_geom*/,
                       const Geometry& /*fine_geom*/,
-                      Vector<BCRec>&   /*bcr*/,
+                      Vector<BCRec> const& /*bcr*/,
                       int               actual_comp,
                       int               actual_state)
 {
@@ -269,7 +269,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                 const IntVect&   ratio,
                                 const Geometry&  crse_geom,
                                 const Geometry&  fine_geom,
-                                Vector<BCRec>&   bcr,
+                                Vector<BCRec> const& bcr,
                                 int              /*actual_comp*/,
                                 int              /*actual_state*/)
 {
@@ -381,7 +381,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                        const IntVect&   ratio,
                        const Geometry&  crse_geom,
                        const Geometry&  fine_geom,
-                       Vector<BCRec>&    bcr,
+                       Vector<BCRec> const&  bcr,
                        int              actual_comp,
                        int              actual_state)
 {
@@ -498,7 +498,7 @@ PCInterp::interp (const FArrayBox& crse,
                   const IntVect&   ratio,
                   const Geometry& /*crse_geom*/,
                   const Geometry& /*fine_geom*/,
-                  Vector<BCRec>&   /*bcr*/,
+                  Vector<BCRec> const& /*bcr*/,
                   int               /*actual_comp*/,
                   int               /*actual_state*/)
 {
@@ -547,7 +547,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                                    const IntVect&   ratio,
                                    const Geometry&  crse_geom,
                                    const Geometry&  fine_geom,
-                                   Vector<BCRec>&    bcr,
+                                   Vector<BCRec> const&  bcr,
                                    int              actual_comp,
                                    int              actual_state)
 {
@@ -723,7 +723,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 				 const IntVect&    ratio,
 				 const Geometry&   /* crse_geom */,
 				 const Geometry&   /* fine_geom */,
-				 Vector<BCRec>&     bcr,
+				 Vector<BCRec> const&   bcr,
 				 int               actual_comp,
 				 int               actual_state)
 {
