@@ -8,7 +8,7 @@ CPUs and GPUs to render images of simulation meshes.
 Compiling with GNU Make
 -----------------------
 After building and installing Ascent according to the instructions at
-`Building Ascent <https://ascent.readthedocs.io/en/latest/BuildingAscent.html/>`_,
+`Building Ascent <https://ascent.readthedocs.io/en/latest/BuildingAscent.html>`_,
 you can enable it in WarpX by changing the line
 
 .. code-block:: bash
@@ -54,7 +54,7 @@ Ascent uses the file :code:`ascent_actions.json` to configure analysis and
 visualization pipelines. For example, the following :code:`ascent_actions.json`
 file extracts an isosurface of the field Ex for 15 levels and saves the
 resulting images to :code:`levels_<nnnn>.png`. `Ascent Actions 
-<https://ascent.readthedocs.io/en/latest/Actions/index.html/>`_ provides an
+<https://ascent.readthedocs.io/en/latest/Actions/index.html>`_ provides an
 overview over all available analysis and visualization actions.
 
 .. code-block:: json
