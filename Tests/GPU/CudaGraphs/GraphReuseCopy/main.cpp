@@ -165,32 +165,26 @@ int main (int argc, char* argv[])
         w.setVal(0.0);
 
         int size = x.local_size();
+
+        FArrayBox** src_fab = static_cast<FArrayBox**>( std::malloc(sizeof(FArrayBox*)*size) );
+        FArrayBox** dst_fab = static_cast<FArrayBox**>( std::malloc(sizeof(FArrayBox*)*size) );
+
 /*
-        // Array pointers on host
-        Array4<Real>* src_arrs_host;
-        Array4<Real>* dst_arrs_host;
-        src_arrs_host = static_cast<Array4<Real>*>(malloc(sizeof(Array4<Real>)*size));
-        dst_arrs_host = static_cast<Array4<Real>*>(malloc(sizeof(Array4<Real>)*size));
-*/
-        Arena* the_arena = The_Pinned_Arena();
-
-
-        FArrayBox** src_fab;
-        FArrayBox** dst_fab;
-
+        amrex::Print() << "************Host Malloc" << std::endl<< std::endl;
         cudaMallocHost(&src_fab, sizeof(FArrayBox*)*size);
         cudaMallocHost(&dst_fab, sizeof(FArrayBox*)*size);
+*/
+/*
+        amrex::Print() << "************Managed Malloc" << std::endl<< std::endl;
+        cudaMallocManaged(&src_fab, sizeof(FArrayBox*)*size);
+        cudaMallocManaged(&dst_fab, sizeof(FArrayBox*)*size);
+*/
+        amrex::Print() << "************Device" << std::endl<< std::endl;
+        FArrayBox** src_fab_d;
+        FArrayBox** dst_fab_d;
+        cudaMalloc(&src_fab_d, sizeof(FArrayBox*)*size);
+        cudaMalloc(&dst_fab_d, sizeof(FArrayBox*)*size);
 
-/*
-        FArrayBox* src_fab[size];
-        FArrayBox* dst_fab[size];
-        cudaHostAlloc(&src_fab[0], sizeof(FArrayBox*)*size, 0);
-        cudaHostAlloc(&dst_fab[0], sizeof(FArrayBox*)*size, 0);
-*/
-/*
-        src_fab = static_cast<FArrayBox*>(the_arena->alloc(sizeof(FArrayBox*)*size));
-        dst_fab = static_cast<FArrayBox*>(the_arena->alloc(sizeof(FArrayBox*)*size));
-*/
         Real points = ba.numPts();
 
         amrex::Print() << "Testing on " << n_cell << "^3 boxes with max grid size " << max_grid_size
@@ -330,6 +324,15 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
+                int idx = mfi.LocalIndex();
+                src_fab[idx] = x.fabPtr(mfi);
+                dst_fab[idx] = y.fabPtr(mfi); 
+            }
+            cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
                 if (mfi.LocalIndex() == 0)
                 {
                     amrex::Gpu::Device::startGraphRecording();
@@ -338,8 +341,6 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
 
                 int idx = mfi.LocalIndex();
-                src_fab[idx] = x.fabPtr(mfi);
-                dst_fab[idx] = y.fabPtr(mfi);
 
                 int ncells = bx.numPts();
                 const auto lo  = amrex::lbound(bx);
@@ -349,7 +350,7 @@ int main (int argc, char* argv[])
 
                 AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
                                          lo, len, ncells,
-                                         offset, &(src_fab[idx]), &(dst_fab[idx]), 0, 0, 1); 
+                                         offset, &(src_fab_d[idx]), &(dst_fab_d[idx]), 0, 0, 1); 
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
@@ -396,6 +397,8 @@ int main (int argc, char* argv[])
                 src_fab[idx] = v.fabPtr(mfi);
                 dst_fab[idx] = w.fabPtr(mfi);
             }
+            cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
 
             BL_PROFILE_VAR("cudaGraphFunction-diff", cgfdiff);
 
@@ -424,6 +427,15 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
+                int idx = mfi.LocalIndex();
+                src_fab[idx] = x.fabPtr(mfi);
+                dst_fab[idx] = y.fabPtr(mfi); 
+            }
+            cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
                 if (mfi.LocalIndex() == 0)
                 {
                     amrex::Gpu::Device::startGraphRecording();
@@ -432,16 +444,16 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
 
                 int idx = mfi.LocalIndex();
-                src_fab[idx] = x.fabPtr(mfi);
-                dst_fab[idx] = y.fabPtr(mfi);
+//                src_fab[idx] = x.fabPtr(mfi);
+//                dst_fab[idx] = y.fabPtr(mfi);
                 const Dim3 offset = {0,0,0};
                 int dcomp = 0;
                 int scomp = 0;
 
                 AMREX_HOST_DEVICE_FOR_4D ( bx, Ncomp, i, j, k, n,
                 {
-                    Array4<Real> src = src_fab[idx]->array();
-                    Array4<Real> dst = dst_fab[idx]->array();
+                    Array4<Real> src = src_fab_d[idx]->array();
+                    Array4<Real> dst = dst_fab_d[idx]->array();
                     dst(i,j,k,dcomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
                 });
 
@@ -490,6 +502,8 @@ int main (int argc, char* argv[])
                 src_fab[idx] = v.fabPtr(mfi);
                 dst_fab[idx] = w.fabPtr(mfi);
             }
+            cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
 
             BL_PROFILE_VAR("cudaGraphLambda-diff", cgfdiff);
 
@@ -500,9 +514,12 @@ int main (int argc, char* argv[])
             amrex::Print() << "Diff Graph Function = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
         }
-
+/*
         cudaFreeHost(src_fab);
         cudaFreeHost(dst_fab);
+*/
+        cudaFree(src_fab);
+        cudaFree(dst_fab);
 
         amrex::Print() << "Test Completed." << std::endl;
     }
