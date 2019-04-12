@@ -335,7 +335,7 @@ int main (int argc, char* argv[])
             {
                 if (mfi.LocalIndex() == 0)
                 {
-                    amrex::Gpu::Device::startGraphRecording();
+                    amrex::Gpu::Device::startGraphStreamRecording();
                 } 
 
                 const Box bx = mfi.validbox();
@@ -354,7 +354,7 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
-                    graphExec = amrex::Gpu::Device::stopGraphRecording(); 
+                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
                 }
             }
 
@@ -438,7 +438,7 @@ int main (int argc, char* argv[])
             {
                 if (mfi.LocalIndex() == 0)
                 {
-                    amrex::Gpu::Device::startGraphRecording();
+                    amrex::Gpu::Device::startGraphStreamRecording();
                 } 
 
                 const Box bx = mfi.validbox();
@@ -459,7 +459,7 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
-                    graphExec = amrex::Gpu::Device::stopGraphRecording(); 
+                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
                 }
             }
 

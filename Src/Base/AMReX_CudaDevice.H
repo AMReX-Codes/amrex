@@ -33,8 +33,13 @@ public:
     static void streamSynchronize ();
 
 #if defined(AMREX_USE_CUDA)
-    static void startGraphRecording();
-    static cudaGraphExec_t stopGraphRecording();
+    // Capture graphs per iteration
+
+
+    // Capture graphs along streams
+    static void startGraphStreamRecording();
+    static cudaGraphExec_t stopGraphStreamRecording();
+
     static void executeGraph(cudaGraphExec_t &graphExec);
 #endif
 

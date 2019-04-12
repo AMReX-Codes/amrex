@@ -316,7 +316,7 @@ Device::streamSynchronize ()
 
 #ifdef AMREX_USE_CUDA
 void
-Device::startGraphRecording()
+Device::startGraphStreamRecording()
 {
     if (inLaunchRegion() && inGraphRegion())
     {
@@ -335,7 +335,7 @@ Device::startGraphRecording()
 }
 
 cudaGraphExec_t
-Device::stopGraphRecording()
+Device::stopGraphStreamRecording()
 {
 
     cudaGraphExec_t graphExec;
