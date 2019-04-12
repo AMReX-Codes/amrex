@@ -78,6 +78,14 @@ inline bool IOProcessorSub () noexcept { return MyProcSub() == IOProcessorNumber
 //! Pointer to ofstream
 inline std::ofstream * OFSPtrSub () noexcept { return frames.back().get_ofs_ptr(); }
 
+#ifdef BL_USE_MPI
+inline void BarrierSub () noexcept { MPI_Barrier(CommunicatorSub()); }
+inline void BarrierAll () noexcept { MPI_Barrier(CommunicatorAll()); }
+#else
+inline void BarrierSub () noexcept { }
+inline void BarrierAll () noexcept { }
+#endif
+
 //! get and increment mpi tag in current frame
 inline int get_inc_mpi_tag () noexcept { return frames.back().get_inc_mpi_tag(); }
 //! translate between local rank and global rank

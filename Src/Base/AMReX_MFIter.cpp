@@ -183,7 +183,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif

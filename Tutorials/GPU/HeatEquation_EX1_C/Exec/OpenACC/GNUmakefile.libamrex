@@ -1,0 +1,59 @@
+# This shows an example of builing the test problem with prebuilt amrex library.
+# (1) At the top directory of amrex,
+#       ./configure --comp pgi --dim 3 --with-cuda=yes --with-acc=yes --enable-particle=yes --with-mpi=no
+#       make -j4; make install
+#     This will build and install amrex at tmp_install_dir in amrex/.
+# (2) In amrex/Tutorials/GPU/HeatEquation_EX1_C/Exec/OpenACC/
+#       make -j4 -f GNUmakefile.libamrex
+#     Depending on your system, you may need to modify the flags in this file.
+# (3) Run with
+#       ./main.exe inputs.3d
+
+AMREX_INSTALL_DIR ?= ../../../../../tmp_install_dir
+PKG_CONFIG_PATH := $(AMREX_INSTALL_DIR)/lib/pkgconfig:$(PKG_CONFIG_PATH)
+AMREX_CXXFLAGS     := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags          amrex)
+AMREX_INCLUDEFLAGS := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags-only-I   amrex)
+AMREX_LIBFLAGS     := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs            amrex)
+AMREX_FFLAGS       := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --variable=fflags amrex)
+
+CXX = nvcc
+FC = pgfortran
+
+CINCLUDES = -I.
+CXXFLAGS = $(AMREX_CXXFLAGS)
+
+FINCLUDES = -I. $(AMREX_INCLUDEFLAGS)
+FFLAGS = $(AMREX_FFLAGS)
+
+LDFLAGS = $(AMREX_LIBFLAGS)
+
+vpath %.cpp . ../../Source
+vpath %.F90 .
+vpath %.H   .
+
+default: main.exe
+
+main.exe: main.o myfunc.o mykernel.o
+	$(FC) -o $@ $(FFLAGS) $^ $(LDFLAGS)
+
+main.o: main.cpp myfunc.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+myfunc.o: myfunc.cpp myfunc.H myfunc_F.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+mykernel.o: mykernel.F90
+	$(FC) -o $@ -c $(FFLAGS) $(FINCLUDES) $<
+
+.PHONY: clean realclean
+
+clean:
+	$(RM) *.o *.mod
+
+realclean: clean
+	$(RM) main.exe
+
+print-%:
+	@echo $* is '$($*)'
+	@echo '    origin = $(origin $*)'
+	@echo '     value = $(value  $*)'

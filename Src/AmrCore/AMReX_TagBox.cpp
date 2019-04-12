@@ -558,7 +558,7 @@ TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
 
     TheGlobalCollateSpace.resize(numtags);
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     //
     // Tell root CPU how many tags each CPU will be sending.
     //

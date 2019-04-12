@@ -6,6 +6,10 @@
 # ############################################################################ #
 @PACKAGE_INIT@
 
+
+# Provides find_dependency 
+include(CMakeFindDependencyMacro)
+
 #
 # Build type
 #
@@ -22,6 +26,12 @@ set(AMREX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/")
 
 # 
+# AMReX CMake modules PATH
+#
+set(AMREX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
+
+
+# 
 # Configuration options
 #
 
@@ -30,6 +40,7 @@ set(AMREX_DIM                       @DIM@)
 set(AMREX_ENABLE_PIC                @ENABLE_PIC@)
 set(AMREX_ENABLE_MPI                @ENABLE_MPI@)
 set(AMREX_ENABLE_OMP                @ENABLE_OMP@)
+set(AMREX_ENABLE_CUDA               @ENABLE_CUDA@)
 set(AMREX_ENABLE_DP                 @ENABLE_DP@)
 
 # Components selection
@@ -43,7 +54,6 @@ set(AMREX_ENABLE_SENSEI_INSITU      @ENABLE_SENSEI_INSITU@)
 set(AMREX_ENABLE_3D_NODAL_MLMG      @ENABLE_3D_NODAL_MLMG@)
 set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
 set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
-
 
 # Compilation options 
 set(AMREX_ENABLE_FPE                @ENABLE_FPE@)
@@ -61,16 +71,33 @@ set(AMREX_ENABLE_PROFPARSER         @ENABLE_PROFPARSER@)
 # SUNDIALS support
 set(AMREX_ENABLE_SUNDIALS           @ENABLE_SUNDIALS@)
 
+# Conduit and Ascent
+set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
+set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
+
+# HYPRE
+set(AMREX_ENABLE_HYPRE              @ENABLE_HYPRE@)
+
+# 
 # Find dependencies if needed
+#
+if (AMREX_ENABLE_MPI)
+   set( _mpi_components CXX )
+   if (AMREX_ENABLE_FORTRAN_INTERFACES)
+         set( _mpi_components "${_mpi_components} Fortran" )
+   endif ()
+   find_dependency(MPI REQUIRED ${_mpi_components})
+   unset(_mpi_components)
+endif()
+
+if (AMREX_ENABLE_OMP)
+   find_dependency(OpenMP REQUIRED)
+endif ()
+
 if (AMREX_ENABLE_3D_NODAL_MLMG)
    # External libs
    set(BLITZ_INSTALL_PREFIX @BLITZ_INSTALL_PREFIX@)
    set(_NO_BLITZ_DEPENDENCY_NEEDED @_NO_BLITZ_DEPENDENCY_NEEDED@)
-
-   #
-   # Add search for required packages
-   # 
-   include(CMakeFindDependencyMacro)
 
    if (BLITZ_INSTALL_PREFIX)
       if (NOT _NO_BLITZ_DEPENDENCY_NEEDED)
@@ -82,18 +109,42 @@ if (AMREX_ENABLE_3D_NODAL_MLMG)
 endif ()
 
 if (AMREX_ENABLE_SUNDIALS)
-   include(CMakeFindDependencyMacro)
-   find_dependency(SUNDIALS COMPONENTS nvecserial cvode arkode REQUIRED )
+   find_dependency(SUNDIALS 4 COMPONENTS nvecserial cvode arkode REQUIRED )
 endif ()
 
+if (AMREX_ENABLE_SENSEI_INSITU)
+   find_dependency(SENSEI REQUIRED)
+endif ()
+
+if (AMREX_ENABLE_CONDUIT)
+   find_dependency(Conduit REQUIRED)
+   if (ENABLE_AMREX_ASCENT)
+      find_dependency(Ascent REQUIRED)     
+   endif ()
+endif ()
+
+if (AMREX_ENABLE_HYPRE)
+   find_dependency(HYPRE 2.15 REQUIRED)
+endif ()
+
+#
+# CUDA
+# 
+if (AMREX_ENABLE_CUDA)
+   # Ensure app code uses the same host compiler and flags used to
+   # build amrex.
+   macro (setup_cuda)
+      message(STATUS "Setting CUDA host compiler to @CMAKE_CUDA_HOST_COMPILER@")
+      set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CUDA_HOST_COMPILER@)
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
+      enable_language(CUDA)
+   endmacro ()
+endif ()
 
 # This two lines are suggested on the internet
 # include("${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake")
 # check_required_components("@PROJECT_NAME@")
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
-
-
-
 
 #
 # Add utility to print imported options if user wants to

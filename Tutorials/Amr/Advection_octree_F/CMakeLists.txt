@@ -1,7 +1,7 @@
 #
 # This test requires a 2D build
 # 
-if ( NOT (${DIM} EQUAL 2) OR (NOT ENABLE_F_INTERFACES) )
+if ( NOT (${DIM} EQUAL 2) OR (NOT ENABLE_FORTRAN_INTERFACES) )
    return ()
 endif ()
 
@@ -34,7 +34,10 @@ set_target_properties ( ${EXENAME} PROPERTIES
    Fortran_MODULE_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}/mod_files
    RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
+   ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex
+   LINKER_LANGUAGE
+   Fortran
+   )
 
 target_link_libraries (${EXENAME} amrex)
 
