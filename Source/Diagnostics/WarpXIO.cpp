@@ -11,6 +11,11 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
+#ifdef AMREX_USE_ASCENT
+#include <ascent.hpp>
+#include <AMReX_Conduit_Blueprint.H>
+#endif
+
 using namespace amrex;
 
 namespace
@@ -439,7 +444,7 @@ WarpX::GetCellCenteredData() {
 void
 WarpX::UpdateInSitu () const
 {
-#ifdef BL_USE_SENSEI_INSITU
+#if defined(BL_USE_SENSEI_INSITU) || defined(AMREX_USE_ASCENT)
     BL_PROFILE("WarpX::UpdateInSitu()");
 
     // Average the fields from the simulation to the cell centers
@@ -449,9 +454,10 @@ WarpX::UpdateInSitu () const
     Vector<MultiFab> mf_avg;
     WarpX::AverageAndPackFields( varnames, mf_avg, ngrow );
 
+#ifdef BL_USE_SENSEI_INSITU
     if (insitu_bridge->update(istep[0], t_new[0],
         dynamic_cast<amrex::AmrMesh*>(const_cast<WarpX*>(this)),
-        {&mf}, {varnames}))
+        {&mf_avg}, {varnames}))
     {
         amrex::ErrorStream()
             << "WarpXIO::UpdateInSitu : Failed to update the in situ bridge."
@@ -459,6 +465,30 @@ WarpX::UpdateInSitu () const
 
         amrex::Abort();
     }
+#endif
+
+#ifdef AMREX_USE_ASCENT
+    conduit::Node bp_mesh;
+    MultiLevelToBlueprint(finest_level+1,
+            amrex::GetVecOfConstPtrs(mf_avg),
+            varnames,
+            Geom(),
+            t_new[0],
+            istep,
+            refRatio(),
+            bp_mesh);
+
+    ascent::Ascent ascent;
+    conduit::Node opts;
+    opts["exceptions"] = "catch";
+    opts["mpi_comm"] = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    ascent.open(opts);
+    ascent.publish(bp_mesh);
+    conduit::Node actions;
+    ascent.execute(actions);
+    ascent.close();
+#endif
+
 #endif
 }
 
