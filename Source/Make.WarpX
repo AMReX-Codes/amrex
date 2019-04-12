@@ -12,6 +12,15 @@ ifeq ($(USE_GPU),TRUE)
   NVCC_HOST_COMP = gcc
 endif
 
+ifeq ($(USE_ASCENT_INSITU),TRUE)
+  ASCENT_HOME ?= NOT_SET
+  ifneq ($(ASCENT_HOME),NOT_SET)
+    include $(ASCENT_HOME)/share/ascent/ascent_config.mk
+  endif
+  USE_CONDUIT = TRUE
+  USE_ASCENT = TRUE
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 ifndef USE_PYTHON_MAIN
