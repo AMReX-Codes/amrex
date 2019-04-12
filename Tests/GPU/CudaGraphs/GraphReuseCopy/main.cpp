@@ -411,16 +411,16 @@ int main (int argc, char* argv[])
 //      Create a single graph for the MFIter loop using a lambda:
 //        an empty node at the start linked to each individually captured stream graph.
         amrex::Print() << "=============" << std::endl;
-/*
+
         {
-            x.setVal(1e-5);
+            x.setVal(4e-5);
             y.setVal(0.0);
 
             BL_PROFILE("cudaGraphLambda");
 
 // --------- Capture each stream in the MFIter loop ----------
 
-            BL_PROFILE_VAR("cudaGraphLambda-create", cglc);
+            BL_PROFILE_VAR("cudaGraphLambda-create", cgfc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -432,20 +432,17 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
 
                 int idx = mfi.LocalIndex();
-                src_arrs_gpu[idx] = x.array(mfi);
-                dst_arrs_gpu[idx] = y.array(mfi);
-
-                int ncells = bx.numPts();
-                const auto lo  = amrex::lbound(bx);
-                const auto len = amrex::length(bx);
-                const auto ec = Cuda::ExecutionConfig(ncells);
+                src_fab[idx] = x.fabPtr(mfi);
+                dst_fab[idx] = y.fabPtr(mfi);
                 const Dim3 offset = {0,0,0};
                 int dcomp = 0;
                 int scomp = 0;
 
                 AMREX_HOST_DEVICE_FOR_4D ( bx, Ncomp, i, j, k, n,
                 {
-                    dst_arrs_gpu[idx](i,j,k,dcomp+n) = src_arrs_gpu[idx](i+offset.x,j+offset.y,k+offset.z,scomp+n); 
+                    Array4<Real> src = src_fab[idx]->array();
+                    Array4<Real> dst = dst_fab[idx]->array();
+                    dst(i,j,k,dcomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
                 });
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
@@ -454,29 +451,28 @@ int main (int argc, char* argv[])
                 }
             }
 
-            BL_PROFILE_VAR_STOP(cglc);
+            BL_PROFILE_VAR_STOP(cgfc);
 
 // --------- Launch the graph  ----------
 
-            BL_PROFILE_VAR("cudaGraphLambda-launch", cgll);
+            BL_PROFILE_VAR("cudaGraphLambda-launch", cgfl);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
-            BL_PROFILE_VAR_STOP(cgll);
+            BL_PROFILE_VAR_STOP(cgfl);
 
             amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
 
 // --------- Relaunch the graph with a different result  ----------
 
-            x.setVal(8.67530e-9);
+            x.setVal(6.5784e-9);
             y.setVal(0.0);
 
-            BL_PROFILE_VAR("cudaGraphLambda-relaunch", cglrl);
+            BL_PROFILE_VAR("cudaGraphLambda-relaunch", cgfrl);
 
             amrex::Gpu::Device::executeGraph(graphExec);
-            amrex::Gpu::Device::synchronize();
 
-            BL_PROFILE_VAR_STOP(cglrl);
+            BL_PROFILE_VAR_STOP(cgfrl);
 
             amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
 
@@ -484,34 +480,29 @@ int main (int argc, char* argv[])
 // --------- Doesn't work changing the Array4 in CPU memory, even with function. ----------
 // --------- Trying with Array4 in device memory defined by Arena. ----------
 
-            x.setVal(0.707106);
-            v.setVal(0.367879);
+            x.setVal(0.167852);
+            v.setVal(0.15e-5);
             w.setVal(0.0);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                src_arrs_gpu[idx] = v.array(mfi);
-                dst_arrs_gpu[idx] = w.array(mfi);
+                src_fab[idx] = v.fabPtr(mfi);
+                dst_fab[idx] = w.fabPtr(mfi);
             }
 
-            BL_PROFILE_VAR("cudaGraphLambda-diff", cgldiff);
+            BL_PROFILE_VAR("cudaGraphLambda-diff", cgfdiff);
 
             amrex::Gpu::Device::executeGraph(graphExec);
-            amrex::Gpu::Device::synchronize();
 
-            BL_PROFILE_VAR_STOP(cgldiff);
+            BL_PROFILE_VAR_STOP(cgfdiff);
 
-            amrex::Print() << "Diff Graph Lambda = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << "Diff Graph Function = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
-
         }
-*/
+
         cudaFreeHost(src_fab);
         cudaFreeHost(dst_fab);
-
-//        the_arena->free(src_fab);
-//        the_arena->free(dst_fab); 
 
         amrex::Print() << "Test Completed." << std::endl;
     }
