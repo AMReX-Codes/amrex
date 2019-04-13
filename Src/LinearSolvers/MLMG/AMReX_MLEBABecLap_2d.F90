@@ -732,27 +732,27 @@ contains
         flag,  flo,  fhi,     &
         bct, phib, anrmx, anrmy, vf)
 
-      ! Cell indices 
-      integer, intent(in   ) :: i, j
-
-      ! Grid spacing
-      real(amrex_real),       intent(in   ) :: dxinv(2)
-
-      integer, intent(in   ) :: p_lo(2), p_hi(2)
-      integer, intent(in   ) ::  flo(2),  fhi(2)
-      integer, intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2) )
-
-      ! Arrays
-      real(amrex_real),  intent(in   ) ::                            &
-           & phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
-
-      real(amrex_real),  intent(in   ) :: bct(2), phib
-      real(amrex_real),  intent(in   ) :: anrmx, anrmy, vf
-
-      real(amrex_real),        intent(  out) :: dphidn
-
+       ! Cell indices 
+       integer, intent(in   ) :: i, j
+ 
+       ! Grid spacing
+       real(amrex_real),       intent(in   ) :: dxinv(2)
+ 
+       integer, intent(in   ) :: p_lo(2), p_hi(2)
+       integer, intent(in   ) ::  flo(2),  fhi(2)
+       integer, intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2) )
+ 
+       ! Arrays
+       real(amrex_real),  intent(in   ) ::                            &
+            & phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
+ 
+       real(amrex_real),  intent(in   ) :: bct(2), phib
+       real(amrex_real),  intent(in   ) :: anrmx, anrmy, vf
+ 
+       real(amrex_real),        intent(  out) :: dphidn
+ 
        real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-       real(amrex_real) :: w1, w2, dg
+       real(amrex_real) :: w1, w2, dg, dx_eb
        real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
        real(amrex_real) :: phig, phig1, phig2, gx, gy, sx, sy
        integer          :: ii, jj
