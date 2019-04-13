@@ -10,9 +10,15 @@ module amrex_mlebabeclap_3d_module
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 
             amrex_eb_mg_interp, amrex_mlebabeclap_grad, amrex_mlebabeclap_flux, &
-            compute_dphidn_3d, compute_dphidn_3d_ho
+            compute_dphidn_3d, compute_dphidn_3d_ho, amrex_get_dx_eb
 
 contains
+
+  elemental function amrex_get_dx_eb (kappa)
+    real(amrex_real), intent(in) :: kappa
+    real(amrex_real) :: amrex_get_dx_eb
+    amrex_get_dx_eb = max(0.3d0, (kappa*kappa-0.25d0)/(2.d0*kappa))
+  end function amrex_get_dx_eb
 
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, & 
        a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, & 
@@ -477,7 +483,7 @@ contains
                        bcty = bc(i,j,k,2)
                        bctz = bc(i,j,k,3)
 
-                       dx_eb = max(0.3d0, (vfrc(i,j,k)*vfrc(i,j,k) - 0.25d0) / (2.d0*vfrc(i,j,k)))
+                       dx_eb = amrex_get_dx_eb(vfrc(i,j,k))
                        dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
 
                        gx = bctx - dg*anrmx
@@ -650,7 +656,7 @@ contains
                 bcty = bc(i,j,k,2)
                 bctz = bc(i,j,k,3)
 
-                dx_eb = max(0.3d0, (vfrc(i,j,k)*vfrc(i,j,k) - 0.25d0) / (2.d0*vfrc(i,j,k)))
+                dx_eb = amrex_get_dx_eb(vfrc(i,j,k))
                 dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
 
                 gx = bctx - dg*anrmx
@@ -1005,7 +1011,7 @@ contains
       bcty = bct(2)
       bctz = bct(3)
 
-      dx_eb = max(0.3d0, (vf*vf - 0.25d0) / (2.d0*vf))
+      dx_eb = amrex_get_dx_eb(vf)
 
       dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
       gx = bctx - dg*anrmx
