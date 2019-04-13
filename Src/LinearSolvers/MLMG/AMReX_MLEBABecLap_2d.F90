@@ -343,7 +343,7 @@ contains
                    bctx = bc(i,j,1)
                    bcty = bc(i,j,2)
 
-                   dx_eb = max(0.3d0, vfrc(i,j)*vfrc(i,j) - 0.25d0) / (2.d0*vfrc(i,j))
+                   dx_eb = max(0.3d0, (vfrc(i,j)*vfrc(i,j) - 0.25d0) / (2.d0*vfrc(i,j)))
 
                    if (abs(anrmx) .gt. abs(anrmy)) then
                       dg = dx_eb / abs(anrmx)
@@ -515,7 +515,7 @@ contains
                 bctx = bc(i,j,1)
                 bcty = bc(i,j,2)
 
-                dx_eb = max(0.3d0, vfrc(i,j)*vfrc(i,j) - 0.25d0) / (2.d0*vfrc(i,j))
+                dx_eb = max(0.3d0, (vfrc(i,j)*vfrc(i,j) - 0.25d0) / (2.d0*vfrc(i,j)))
 
                 if (abs(anrmx) .gt. abs(anrmy)) then
                    dg = dx_eb / abs(anrmx)
@@ -760,7 +760,7 @@ contains
        bctx = bct(1)
        bcty = bct(2)
 
-       dx_eb = max(0.3d0, vf*vf - 0.25d0) / (2.d0*vf)
+       dx_eb = max(0.3d0, (vf*vf - 0.25d0) / (2.d0*vf))
 
        if (abs(anrmx) .gt. abs(anrmy)) then
           dg = dx_eb / abs(anrmx)
