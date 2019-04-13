@@ -362,7 +362,7 @@ contains
        sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
-    use amrex_mlebabeclap_2d_module, only : dx_eb, blend_beta => amrex_blend_beta
+    use amrex_mlebabeclap_2d_module, only : amrex_get_dx_eb, blend_beta => amrex_blend_beta
     integer(hypre_int), intent(in) :: nrows, cell_id_begin
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*9-1), intent(out) :: cols
@@ -649,13 +649,13 @@ contains
                    bctx = bcen(i,j,1)
                    bcty = bcen(i,j,2)
                    if (abs(anrmx) .gt. abs(anrmy)) then
-                      dg = dx_eb / abs(anrmx)
+                      dg = amrex_get_dx_eb(vfrc(i,j)) / abs(anrmx)
                       gx = bctx - dg*anrmx
                       gy = bcty - dg*anrmy
                       sx = sign(one,anrmx)
                       sy = sign(one,anrmy)
                    else
-                      dg = dx_eb / abs(anrmy)
+                      dg = amrex_get_dx_eb(vfrc(i,j)) / abs(anrmy)
                       gx = bctx - dg*anrmx
                       gy = bcty - dg*anrmy
                       sx = sign(one,anrmx)

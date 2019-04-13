@@ -11,9 +11,15 @@ module amrex_mlebabeclap_2d_module
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
             amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad, amrex_blend_beta, &
-            compute_dphidn_2d, compute_dphidn_2d_ho
+            compute_dphidn_2d, compute_dphidn_2d_ho, amrex_get_dx_eb
 
 contains
+
+  elemental function amrex_get_dx_eb (kappa)
+    real(amrex_real), intent(in) :: kappa
+    real(amrex_real) :: amrex_get_dx_eb
+    amrex_get_dx_eb = max(0.3d0, (kappa*kappa-0.25d0)/(2.d0*kappa))
+  end function amrex_get_dx_eb
 
   pure function amrex_blend_beta (kappa) result(beta)
     real(amrex_real), intent(in) :: kappa
@@ -343,7 +349,7 @@ contains
                    bctx = bc(i,j,1)
                    bcty = bc(i,j,2)
 
-                   dx_eb = max(0.3d0, (vfrc(i,j)*vfrc(i,j) - 0.25d0) / (2.d0*vfrc(i,j)))
+                   dx_eb = amrex_get_dx_eb(vfrc(i,j))
 
                    if (abs(anrmx) .gt. abs(anrmy)) then
                       dg = dx_eb / abs(anrmx)
@@ -515,7 +521,7 @@ contains
                 bctx = bc(i,j,1)
                 bcty = bc(i,j,2)
 
-                dx_eb = max(0.3d0, (vfrc(i,j)*vfrc(i,j) - 0.25d0) / (2.d0*vfrc(i,j)))
+                dx_eb = amrex_get_dx_eb(vfrc(i,j))
 
                 if (abs(anrmx) .gt. abs(anrmy)) then
                    dg = dx_eb / abs(anrmx)
@@ -760,7 +766,7 @@ contains
        bctx = bct(1)
        bcty = bct(2)
 
-       dx_eb = max(0.3d0, (vf*vf - 0.25d0) / (2.d0*vf))
+       dx_eb = amrex_get_dx_eb(vf)
 
        if (abs(anrmx) .gt. abs(anrmy)) then
           dg = dx_eb / abs(anrmx)
