@@ -477,7 +477,7 @@ contains
                        bcty = bc(i,j,k,2)
                        bctz = bc(i,j,k,3)
 
-                       dx_eb = max(0.3d0, vfrc(i,j,k)*vfrc(i,j,k) - 0.25d0) / (2.d0*vfrc(i,j,k))
+                       dx_eb = max(0.3d0, (vfrc(i,j,k)*vfrc(i,j,k) - 0.25d0) / (2.d0*vfrc(i,j,k)))
                        dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
 
                        gx = bctx - dg*anrmx
@@ -650,7 +650,7 @@ contains
                 bcty = bc(i,j,k,2)
                 bctz = bc(i,j,k,3)
 
-                dx_eb = max(0.3d0, vfrc(i,j,k)*vfrc(i,j,k) - 0.25d0) / (2.d0*vfrc(i,j,k))
+                dx_eb = max(0.3d0, (vfrc(i,j,k)*vfrc(i,j,k) - 0.25d0) / (2.d0*vfrc(i,j,k)))
                 dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
 
                 gx = bctx - dg*anrmx
@@ -1005,7 +1005,7 @@ contains
       bcty = bct(2)
       bctz = bct(3)
 
-      dx_eb = max(0.3d0, vf*vf - 0.25d0) / (2.d0*vf)
+      dx_eb = max(0.3d0, (vf*vf - 0.25d0) / (2.d0*vf))
 
       dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
       gx = bctx - dg*anrmx
