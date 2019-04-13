@@ -1,6 +1,6 @@
 #
 # Options provided to the user
-# 
+#
 set(BLITZ_INSTALL_PREFIX ""  CACHE PATH "Path to Blitz installation directory")
 set(ALGOIM_INSTALL_PREFIX "" CACHE PATH "Path to Algoim installation directory")
 
@@ -10,7 +10,7 @@ endif ()
 
 #
 # Some variables for internal use
-# 
+#
 set(_EXTERNAL_LIBS_PATH "${CMAKE_BINARY_DIR}/external"
    CACHE INTERNAL "Installation path for external libraries (blitz and Algoim)")
 
@@ -35,7 +35,7 @@ if (NOT BLITZ_INSTALL_PREFIX)
       if (EXISTS ${PROJECT_SOURCE_DIR}/Src/Extern/blitz)
          file( REMOVE_RECURSE  ${PROJECT_SOURCE_DIR}/Src/Extern/blitz)
       endif ()
-      
+
       # Clone
       message(STATUS "Cloning Blitz")
       execute_process(
@@ -57,20 +57,20 @@ if (NOT BLITZ_INSTALL_PREFIX)
          RESULT_VARIABLE   _RVAR
          OUTPUT_QUIET
          )
-      
+
       if (NOT "${_RVAR}" STREQUAL "0")
          message(FATAL_ERROR "Fatal error when checking out Blitz ${_BLITZ_GIT_TAG}")
       endif()
 
       set(_BLITZ-INSTALLED TRUE CACHE INTERNAL "Blitz has been installed")
-      
+
    endif ()
 
    add_subdirectory(${PROJECT_SOURCE_DIR}/Src/Extern/blitz)
    target_link_libraries(amrex PUBLIC blitz)
 
 else ()
-   
+
    # Try to find the package
    find_package(blitz HINTS ${BLITZ_INSTALL_PREFIX})
 
@@ -84,14 +84,14 @@ else ()
          set(CMAKE_PREFIX_PATH ${BLITZ_INSTALL_PREFIX})
          pkg_check_modules(BLITZ IMPORTED_TARGET blitz)
       endif ()
-      
+
       if (BLITZ_FOUND) # This is true if both pkgconfig is found and blitz is found
          get_target_property(_BLITZ_LIBRARIES    PkgConfig::BLITZ INTERFACE_LINK_LIBRARIES)
          get_target_property(_BLITZ_INCLUDE_DIR  PkgConfig::BLITZ INTERFACE_INCLUDE_DIRECTORIES)
          get_target_property(_BLITZ_DEFINES      PkgConfig::BLITZ INTERFACE_COMPILE_DEFINITIONS)
       else () # manual search
-         message( STATUS "Trying to find blitz \"manually\" ")        
-         find_library(_BLITZ_LIBRARIES NAMES libblitz.a HINTS ${BLITZ_INSTALL_PREFIX})        
+         message( STATUS "Trying to find blitz \"manually\" ")
+         find_library(_BLITZ_LIBRARIES NAMES libblitz.a HINTS ${BLITZ_INSTALL_PREFIX})
          find_path(_BLITZ_INCLUDE_DIR  NAMES blitz      HINTS ${BLITZ_INSTALL_PREFIX})
 
          include(CheckIncludeFileCXX)
@@ -108,20 +108,20 @@ else ()
    else()
       target_link_libraries(amrex PUBLIC blitz)
    endif()
-      
+
 endif()
 
 #
 # Download algoim if required
 #
 if ( NOT ALGOIM_INSTALL_PREFIX )
-   
+
    set(_ALGOIM_REPO  "https://github.com/algoim/algoim.git" CACHE INTERNAL "Algoim git repo url")
    set(_ALGOIM_GIT_TAG  "a3d0b7bb2872cd414f77dbe7e77b25b9e707eaf3" CACHE INTERNAL "Algoim git tag")
    set(_ALGOIM_INSTALL_DIR "${_EXTERNAL_LIBS_PATH}/algoim" CACHE INTERNAL "Algoim install directory")
 
    if (NOT _ALGOIM-INSTALLED )
-      
+
       # Clone
       message(STATUS "Cloning Algoim")
       execute_process(
@@ -135,36 +135,34 @@ if ( NOT ALGOIM_INSTALL_PREFIX )
          message(FATAL_ERROR "Fatal error when cloning ALGOIM repo")
       endif()
 
-      # Fix source code NOTE: there is a odd problem using the macOS default sed:
+      # Fix source code NOTE: on Mac, BSD sed requires backup suffix for -i option
       # https://stackoverflow.com/questions/7573368/in-place-edits-with-sed-on-os-x
       execute_process(
-         COMMAND           sed -i /tinyvec-et.h/d  ${_ALGOIM_INSTALL_DIR}/src/algoim_blitzinc.hpp
+         COMMAND           sed -i'' /tinyvec-et.h/d  ${_ALGOIM_INSTALL_DIR}/src/algoim_blitzinc.hpp
          WORKING_DIRECTORY ${_ALGOIM_INSTALL_DIR}
          RESULT_VARIABLE   _RVAR
          OUTPUT_QUIET
          )
 
       if (NOT "${_RVAR}" STREQUAL "0")
-         message(FATAL_ERROR "Fatal error when fixing ALGOIM source code.
-                           If you're using macOS, please install gnu-sed via homebrew.")
+         message(FATAL_ERROR "Fatal error when fixing ALGOIM source code.")
       endif()
 
       set(_ALGOIM-INSTALLED TRUE CACHE INTERNAL "Algoim has been installed")
 
    endif ()
-      
+
    target_include_directories(amrex PUBLIC
       $<BUILD_INTERFACE:${_ALGOIM_INSTALL_DIR}/src>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/algoim>
-      )  
+      )
 
    file(GLOB_RECURSE _ALGOIM_HEADERS  "${_ALGOIM_INSTALL_DIR}/src/*.hpp" )
    install(FILES ${_ALGOIM_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/algoim)
-   
+
 else ()
-  
+
    set_target_properties(algoim PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES ${ALGOIM_INSTALL_PREFIX}/src )
 
 endif ()
-
