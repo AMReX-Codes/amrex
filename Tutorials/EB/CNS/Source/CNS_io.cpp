@@ -200,7 +200,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	int comp = plot_var_map[i].second;
 	this_dat = &state[typ].newData();
 	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
-#if BL_TESTING
+#ifdef BL_TESTING
         // to avoid fcompare failure
         if (typ == Cost_Type) {
             plotMF.setVal(0.0, cnt, 1, nGrow);

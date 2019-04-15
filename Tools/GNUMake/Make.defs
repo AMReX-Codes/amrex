@@ -227,6 +227,12 @@ else
   FAB_IS_PINNED := FALSE
 endif
 
+ifdef FIX_NVCC_PTHREAD
+  FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
+else
+  FIX_NVCC_PTHREAD := FALSE
+endif
+
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
@@ -243,6 +249,7 @@ MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
+MKPKGCONFIG     = $(AMREX_HOME)/Tools/libamrex/mkpkgconfig.py
 
 RANLIB          = ranlib
 
@@ -655,6 +662,7 @@ amrexLibDir = $(AMREX_INSTALL_DIR)/lib
 amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
 # Do different compilers have different name convention for mod files?
 amrexFortModules = $(wildcard $(objEXETempDir)/*.mod)
+amrexPkgconfigDir = $(AMREX_INSTALL_DIR)/lib/pkgconfig
 
 #
 # For source code manipulation
@@ -819,14 +827,34 @@ ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_CUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
 
+    comm := ,
+    space :=
+    space +=
+
     ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
       LINKFLAGS = $(NVCC_FLAGS)
       # we are using nvcc for linking
-      comm := ,
-      space :=
-      space +=
       libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
+      ifeq ($(FIX_NVCC_PTHREAD),TRUE)
+        libraries := $(subst -pthread,-Xcompiler$(space)-pthread,$(libraries))
+      endif
       AMREX_LINKER = nvcc
+    endif
+
+    ifeq ($(USE_MPI),TRUE)
+
+      ifneq ($(findstring Open MPI, $(shell mpicxx -showme:version 2>&1)),)
+
+        ifeq ($(FIX_NVCC_PTHREAD),TRUE)
+          OMPI_CXXFLAGS_ORIG = $(shell mpicxx -showme:compile)
+          export OMPI_CXXFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+
+          OMPI_CFLAGS_ORIG = $(shell mpicc -showme:compile)
+          export OMPI_CFLAGS := $(subst -pthread,-Xcompiler$(space)-pthread,$(OMPI_CXXFLAGS_ORIG))
+        endif
+
+      endif
+
     endif
 
 endif
