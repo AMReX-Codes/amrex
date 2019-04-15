@@ -22,7 +22,7 @@ endif
 
 ifndef LINKFLAGS
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-  LINKFLAGS = $(F90FLAGS)
+  LINKFLAGS = $(F90FLAGS) $(FMODULES)
 else
   LINKFLAGS = $(CXXFLAGS)
 endif
@@ -110,13 +110,28 @@ install_fortran_modules:
 	    install -c -m 644 "$$m" $(amrexIncludeDir); \
 	done
 
+$(objEXETempDir)/amrex.pc: FORCE
+	@echo Generating amrex.pc ...
+	@ $(MKPKGCONFIG) --prefix="$(abspath $(AMREX_INSTALL_DIR))" \
+	                 --version="$(AMREX_GIT_VERSION)" \
+	                 --cflags="$(CXXFLAGS)" \
+	                 --libs="$(filter-out -L.,$(LDFLAGS)) $(libraries)" \
+	                 --libpriv="" \
+	                 --fflags="$(F90FLAGS)" \
+                         > $@
+
+install_pkg_config: $(objEXETempDir)/amrex.pc
+	@echo Installing amrex.pc ...
+	@if [ ! -d $(amrexPkgconfigDir) ]; then mkdir -p $(amrexPkgconfigDir); fi
+	$(SILENT) install -c -m 644 $< $(amrexPkgconfigDir)
+
 $(amrexIncludeDir)/AMReX_Config.H: FORCE
 	@echo Generating AMReX_config.H ...
 	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
-	@ $(MKCONFIG) --defines "$(CPPFLAGS)" --undefine "BL_LANG_FORT" \
-	              --comp "$(lowercase_comp)" \
-	              --allow-different-compiler "$(ALLOW_DIFFERENT_COMP)" \
-	              --use-omp "$(USE_OMP)" \
+	@ $(MKCONFIG) --defines="$(CPPFLAGS)" --undefine="BL_LANG_FORT" \
+	              --comp="$(lowercase_comp)" \
+	              --allow-different-compiler="$(ALLOW_DIFFERENT_COMP)" \
+	              --use-omp="$(USE_OMP)" \
 	              > $@
 
 clean::
@@ -158,7 +173,7 @@ clang-tidy: $(CEXE_sources)
 
 FORCE:
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules
+.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules install_pkg_config
 
 #
 # Rules for objects.
@@ -188,9 +203,9 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.F
@@ -202,10 +217,10 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $(srcTempdir)/$(<F) | $(FORTPREP) > $(srcTempDir)/$*.f
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 else
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $< | $(FORTPREP) > $(f77EXETempDir)/$*.f
-	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(FMODULES) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.f90
@@ -215,9 +230,9 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
 endif
 
 $(objEXETempDir)/%.o: %.F90
@@ -227,9 +242,9 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
 endif
 
 # Handle the special case of amrex_filccn for CUDA -- we need to reduce the register count.
@@ -256,9 +271,9 @@ $(objEXETempDir)/AMReX_filcc_mod.o: AMReX_filcc_mod.F90
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
 ifeq ($(cap_registers),1)
-	$(SILENT) $(F90CACHE) $(F90) $(patsubst $(cap_register_flag)$(CUDA_MAXREGCOUNT), $(cap_register_flag)128, $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
+	$(SILENT) $(F90CACHE) $(F90) $(patsubst $(cap_register_flag)$(CUDA_MAXREGCOUNT), $(cap_register_flag)128, $(F90FLAGS) $(FMODULES)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
 else
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
 endif
 
 endif
@@ -375,19 +390,19 @@ $(fortran_ir_sources): $(objForTypeCheck)
 # gfortran only
 $(tmpEXETempDir)/%.f90.orig: %.f90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(F90FLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(F90FLAGS) $(FMODULES) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 $(tmpEXETempDir)/%.F90.orig: %.F90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(F90FLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 $(tmpEXETempDir)/%.f.orig: %.f
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(FFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(FFLAGS) $(FMODULES) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 $(tmpEXETempDir)/%.F.orig: %.F
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(FFLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(FFLAGS) $(FMODULES) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 # fix amrex::Real and amrex_real
 # & --> *
@@ -471,9 +486,9 @@ help:
 	@echo ""
 	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
 	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
-	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(fincludes) -c foo.o foo.f90"
-	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FCPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
-	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(fincludes) -c foo.o foo.f"
+	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f90"
+	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FMODULES) \$$(FCPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
+	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(FMODULES) \$$(fincludes) -c foo.o foo.f"
 	@echo "    Note that .F files are preprocessed with cpp into .f files before being compiled."
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	@echo "The rule for linking            is: \$$(F90) \$$(LINKFLAGS) \$$(FCPPFLAGS) \$$(fincludes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
@@ -494,6 +509,7 @@ endif
 	@echo "    includes   = $(includes)"
 	@echo "    FFLAGS     = $(FFLAGS)"
 	@echo "    F90FLAGS   = $(F90FLAGS)"
+	@echo "    FMODULES   = $(FMODULES)"
 	@echo "    fincludes  = $(fincludes)"
 	@echo "    LDFLAGS    = $(LDFLAGS)"
 	@echo "    libraries  = $(libraries)"

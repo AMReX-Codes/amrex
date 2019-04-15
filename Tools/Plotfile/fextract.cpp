@@ -21,6 +21,7 @@ void main_main()
     int coarse_level = 0;
     int fine_level = -1;  // This will be fixed later
     Real ycoord = std::numeric_limits<Real>::lowest();
+    bool scientific = false;
 
     int farg = 1;
     while (farg <= narg) {
@@ -39,6 +40,8 @@ void main_main()
             coarse_level = std::stoi(amrex::get_command_argument(++farg));
         } else if (name == "-f" or name == "--fine_level") {
             fine_level = std::stoi(amrex::get_command_argument(++farg));
+        } else if (name == "-e" or name == "--scientific") {
+            scientific = true;
         } else {
             break;
         }
@@ -69,6 +72,7 @@ void main_main()
             << "                                         (overrides center/lower-left)\n"
             << "      [-c|--coarse_level] coarse level : coarsest level to extract from\n"
             << "      [-f|--fine_level]   fine level   : finest level to extract from\n"
+            << "      [-e|--scientific]                : output data in scientific notation\n"
             << "\n"
             << " If a job_info file is present in the plotfile, that information is made\n"
             << " available at the end of the slice file (commented out), for reference.\n"
@@ -297,6 +301,9 @@ void main_main()
             ofs << " " <<  std::setw(24) << std::right << vname;
         }
         ofs << "\n";
+        if (scientific) {
+            ofs << std::scientific;
+        }
         for (int i = 0; i < posidx.size(); ++i) {
             ofs << std::setw(25) << std::right << std::setprecision(12) << posidx[i].first;
             for (int j = 0; j < var_names.size(); ++j) {
