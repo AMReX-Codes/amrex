@@ -659,18 +659,17 @@ getInterpolatedScalar(
         FArrayBox ffab; // Temporary array ; contains interpolated fields
         for (MFIter mfi(*interpolated_F); mfi.isValid(); ++mfi)
         {
-            Box ccbx = mfi.fabbox();
-            ccbx.enclosedCells();
-            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+            Box finebx = mfi.fabbox();
+            finebx.coarsen(r_ratio).refine(r_ratio); // so that finebx is coarsenable
 
             const FArrayBox& cfab = (F_cp)[mfi];
-            ffab.resize(amrex::convert(ccbx,(F_fp)[mfi].box().type()));
+            ffab.resize(finebx);
 
             // - Fully nodal
             if ( F_fp.is_nodal() ){
                 IntVect refinement_vector{AMREX_D_DECL(r_ratio, r_ratio, r_ratio)};
                 node_bilinear_interp.interp(cfab, 0, ffab, 0, 1,
-                        ccbx, refinement_vector, {}, {}, {}, 0, 0);
+                        finebx, refinement_vector, {}, {}, {}, 0, 0);
             } else {
                 amrex::Abort("Unknown field staggering.");
             }
