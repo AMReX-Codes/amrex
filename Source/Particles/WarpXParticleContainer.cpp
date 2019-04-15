@@ -529,9 +529,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
 void
 WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
-                                  MultiFab* rhomf, MultiFab* crhomf, int icomp,
-                                 const long np_current,
-                                 const long np, int thread_num, int lev )
+                                        MultiFab* rhomf, MultiFab* crhomf, int icomp,
+                                        const long np_current,
+                                        const long np, int thread_num, int lev )
 {
 
   BL_PROFILE_VAR_NS("PICSAR::ChargeDeposition", blp_pxr_chd);
@@ -593,7 +593,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       amrex::ParallelFor(tile_box,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-          Gpu::Atomic::Add(&global_rho_arr(i, j, k), local_rho_arr(i, j, k));
+          Gpu::Atomic::Add(&global_rho_arr(i, j, k, icomp), local_rho_arr(i, j, k));
       });
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
@@ -651,7 +651,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       amrex::ParallelFor(tile_box,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
-          Gpu::Atomic::Add(&global_rho_arr(i, j, k), local_rho_arr(i, j, k));
+          Gpu::Atomic::Add(&global_rho_arr(i, j, k, icomp), local_rho_arr(i, j, k));
       });
       
       BL_PROFILE_VAR_STOP(blp_accumulate);
