@@ -586,7 +586,7 @@ WriteCoarseScalar( const std::string field_name,
         WriteZeroRawField( *F_fp, dm, filename, level_prefix, field_name+"_cp", lev, ng );
     } else {
         // Create an alias to the component `icomp` of F_cp
-        MultiFab F_comp(*F_cp, amrex::make_alias, 1, icomp);
+        MultiFab F_comp(*F_cp, amrex::make_alias, icomp, 1);
         // Interpolate coarse data onto fine grid
         const int r_ratio = WarpX::GetInstance().refRatio(lev-1)[0];
         const Real* dx = WarpX::GetInstance().Geom(lev-1).CellSize();
