@@ -342,11 +342,6 @@ LaserParticleContainer::Evolve (int lev,
       int thread_num = 0;
 #endif
 
-      if (local_rho[thread_num] == nullptr) local_rho[thread_num].reset( new amrex::FArrayBox());
-      if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset( new amrex::FArrayBox());
-      if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
-      if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
-
         Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
