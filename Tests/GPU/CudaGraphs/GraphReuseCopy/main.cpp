@@ -37,6 +37,29 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
 
 AMREX_GPU_GLOBAL
 void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
+           amrex::Dim3 offset, amrex::Array4<Real> src*, amrex::Array4<Real> dst*,
+           int scomp, int dcomp, int ncomp)
+{
+
+    for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+             icell < ncells; icell += stride) {
+        int k =  icell /   (len.x*len.y);
+        int j = (icell - k*(len.x*len.y)) /   len.x;
+        int i = (icell - k*(len.x*len.y)) - j*len.x;
+        i += lo.x;
+        j += lo.y;
+        k += lo.z;
+        for (int n = 0; n < ncomp; ++n) {
+            (*dst)(i,j,k,dcomp+n) = (*src)(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+        }
+    }
+
+}
+
+
+
+AMREX_GPU_GLOBAL
+void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
            amrex::Dim3 offset, amrex::FArrayBox* src_fab, amrex::FArrayBox* dst_fab,
            int scomp, int dcomp, int ncomp)
 {
@@ -166,20 +189,17 @@ int main (int argc, char* argv[])
 
         int size = x.local_size();
 
+        // Array4<Real> Variation
+        Array4<Real>* src_arrs_h = static_cast<Array4<Real>*>(malloc(sizeof(Array4<Real>)*size));
+        Array4<Real>* dst_arrs_h = static_cast<Array4<Real>*>(malloc(sizeof(Array4<Real>)*size));
+        Array4<Real>* src_arrs_d;
+        Array4<Real>* dst_arrs_d;
+        cudaMalloc(&src_arrs_d, sizeof(Array4<Real>)*size);
+        cudaMalloc(&dst_arrs_d, sizeof(Array4<Real>)*size);
+
+        // FAB* Variation
         FArrayBox** src_fab = static_cast<FArrayBox**>( std::malloc(sizeof(FArrayBox*)*size) );
         FArrayBox** dst_fab = static_cast<FArrayBox**>( std::malloc(sizeof(FArrayBox*)*size) );
-
-/*
-        amrex::Print() << "************Host Malloc" << std::endl<< std::endl;
-        cudaMallocHost(&src_fab, sizeof(FArrayBox*)*size);
-        cudaMallocHost(&dst_fab, sizeof(FArrayBox*)*size);
-*/
-/*
-        amrex::Print() << "************Managed Malloc" << std::endl<< std::endl;
-        cudaMallocManaged(&src_fab, sizeof(FArrayBox*)*size);
-        cudaMallocManaged(&dst_fab, sizeof(FArrayBox*)*size);
-*/
-        amrex::Print() << "************Device" << std::endl<< std::endl;
         FArrayBox** src_fab_d;
         FArrayBox** dst_fab_d;
         cudaMalloc(&src_fab_d, sizeof(FArrayBox*)*size);
@@ -192,6 +212,8 @@ int main (int argc, char* argv[])
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Launch without graphs
+
+        amrex::Print() << "Testing Cases" << std::endl;
 
         {
             x.setVal(4.5);
@@ -312,15 +334,17 @@ int main (int argc, char* argv[])
 
         cudaGraphExec_t graphExec;
 
+        amrex::Print() << "Function w/ FAB" << std::endl;
+
         {
             x.setVal(2e-5);
             y.setVal(0.0);
 
-            BL_PROFILE("cudaGraphFunction");
+            BL_PROFILE("cudaGraph - Function FAB");
 
 // --------- Capture each stream in the MFIter loop ----------
 
-            BL_PROFILE_VAR("cudaGraphFunction-create", cgfc);
+            BL_PROFILE_VAR("cudaGraph - Function FAB: create", cgfc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -362,7 +386,7 @@ int main (int argc, char* argv[])
 
 // --------- Launch the graph  ----------
 
-            BL_PROFILE_VAR("cudaGraphFunction-launch", cgfl);
+            BL_PROFILE_VAR("cudaGraph - Function FAB: launch", cgfl);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
@@ -375,7 +399,7 @@ int main (int argc, char* argv[])
             x.setVal(4337654e-9);
             y.setVal(0.0);
 
-            BL_PROFILE_VAR("cudaGraphFunction-relaunch", cgfrl);
+            BL_PROFILE_VAR("cudaGraph - Function FAB: relaunch", cgfrl);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
@@ -400,7 +424,7 @@ int main (int argc, char* argv[])
             cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
             cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
 
-            BL_PROFILE_VAR("cudaGraphFunction-diff", cgfdiff);
+            BL_PROFILE_VAR("cudaGraph - Function FAB: diff", cgfdiff);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
@@ -413,26 +437,31 @@ int main (int argc, char* argv[])
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Create a single graph for the MFIter loop using a lambda:
 //        an empty node at the start linked to each individually captured stream graph.
+
         amrex::Print() << "=============" << std::endl;
+        amrex::Print() << "Lambda w/ Array4" << std::endl;
 
         {
             x.setVal(4e-5);
             y.setVal(0.0);
 
-            BL_PROFILE("cudaGraphLambda");
+
+            BL_PROFILE("cudaGraph - Lambda Array4");
 
 // --------- Capture each stream in the MFIter loop ----------
 
-            BL_PROFILE_VAR("cudaGraphLambda-create", cgfc);
+            BL_PROFILE_VAR("cudaGraph - Lambda Array4: create", cgfc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                src_fab[idx] = x.fabPtr(mfi);
-                dst_fab[idx] = y.fabPtr(mfi); 
+                Array4<Real> src = x[mfi].array();
+                Array4<Real> dst = y[mfi].array();
+                std::memcpy(&src_arrs_h[idx], &src, sizeof(Array4<Real>));
+                std::memcpy(&dst_arrs_h[idx], &dst, sizeof(Array4<Real>));
             }
-            cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
-            cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(src_arrs_d, src_arrs_h, sizeof(Array4<Real>)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(dst_arrs_d, dst_arrs_h, sizeof(Array4<Real>)*size, cudaMemcpyHostToDevice);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -442,19 +471,14 @@ int main (int argc, char* argv[])
                 } 
 
                 const Box bx = mfi.validbox();
-
                 int idx = mfi.LocalIndex();
-//                src_fab[idx] = x.fabPtr(mfi);
-//                dst_fab[idx] = y.fabPtr(mfi);
                 const Dim3 offset = {0,0,0};
                 int dcomp = 0;
                 int scomp = 0;
 
-                AMREX_HOST_DEVICE_FOR_4D ( bx, Ncomp, i, j, k, n,
+                AMREX_HOST_DEVICE_FOR_4D (bx, Ncomp, i, j, k, n,
                 {
-                    Array4<Real> src = src_fab_d[idx]->array();
-                    Array4<Real> dst = dst_fab_d[idx]->array();
-                    dst(i,j,k,dcomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
+                    (dst_arrs_d[idx])(i,j,k,dcomp+n) = (src_arrs_d[idx])(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
                 });
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
@@ -467,7 +491,7 @@ int main (int argc, char* argv[])
 
 // --------- Launch the graph  ----------
 
-            BL_PROFILE_VAR("cudaGraphLambda-launch", cgfl);
+            BL_PROFILE_VAR("cudaGraph - Lambda Array4: launch", cgfl);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
@@ -480,7 +504,7 @@ int main (int argc, char* argv[])
             x.setVal(6.5784e-9);
             y.setVal(0.0);
 
-            BL_PROFILE_VAR("cudaGraphLambda-relaunch", cgfrl);
+            BL_PROFILE_VAR("cudaGraph - Lambda Array4: relaunch", cgfrl);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
@@ -499,30 +523,32 @@ int main (int argc, char* argv[])
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                src_fab[idx] = v.fabPtr(mfi);
-                dst_fab[idx] = w.fabPtr(mfi);
+                Array4<Real> src = v[mfi].array();
+                Array4<Real> dst = w[mfi].array();
+                std::memcpy(&src_arrs_h[idx], &src, sizeof(Array4<Real>));
+                std::memcpy(&dst_arrs_h[idx], &dst, sizeof(Array4<Real>));
             }
-            cudaMemcpy(src_fab_d, src_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
-            cudaMemcpy(dst_fab_d, dst_fab, sizeof(FArrayBox*)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(src_arrs_d, src_arrs_h, sizeof(Array4<Real>)*size, cudaMemcpyHostToDevice);
+            cudaMemcpy(dst_arrs_d, dst_arrs_h, sizeof(Array4<Real>)*size, cudaMemcpyHostToDevice);
 
-            BL_PROFILE_VAR("cudaGraphLambda-diff", cgfdiff);
+            BL_PROFILE_VAR("cudaGraph - Lambda Array4: diff", cgfdiff);
 
             amrex::Gpu::Device::executeGraph(graphExec);
 
             BL_PROFILE_VAR_STOP(cgfdiff);
 
-            amrex::Print() << "Diff Graph Function = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
         }
 /*
         cudaFreeHost(src_fab);
         cudaFreeHost(dst_fab);
 */
-        cudaFree(src_fab_d);
-        cudaFree(dst_fab_d);
+        cudaFree(src_arrs_d);
+        cudaFree(dst_arrs_d);
 
-        std::free(src_fab);
-        std::free(dst_fab);
+        std::free(src_arrs_h);
+        std::free(dst_arrs_h);
 
 
         amrex::Print() << "Test Completed." << std::endl;
