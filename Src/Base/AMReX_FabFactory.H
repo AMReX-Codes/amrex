@@ -73,7 +73,7 @@ public:
 
     virtual void destroyDeviceAlias (FAB* fab) const override
     {
-        delete fab;
+        if (fab) delete fab;
     }
 #endif
 
