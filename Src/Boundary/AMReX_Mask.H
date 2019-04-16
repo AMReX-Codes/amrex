@@ -58,7 +58,7 @@ public:
     Mask (Mask&& rhs) noexcept = default;
 
 #ifdef AMREX_USE_GPU
-    Mask (Mask const& rhs, MakeType make_type);
+    Mask (Mask const& rhs, MakeType make_type, int scomp, int ncomp);
 #endif
 
     Mask (const Mask&) = delete;

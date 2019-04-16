@@ -649,7 +649,7 @@ protected:
     //! The data.
     std::vector<FAB*> m_fabs_v;
 #ifdef AMREX_USE_GPU
-    std::vector<FAB*> m_host_fabs_v;
+    std::vector<FAB*> m_device_fabs_v;
 #endif
 
     //! for shared memory
@@ -799,8 +799,12 @@ FabArray<FAB>::fabDevicePtr (const MFIter& mfi) noexcept
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
+#ifdef AMREX_USE_GPU
+    return m_device_fabs_v[li];
+#else
     return m_fabs_v[li];
+#endif
 }
 
 template <class FAB>
@@ -810,8 +814,12 @@ FabArray<FAB>::fabDevicePtr (const MFIter& mfi) const noexcept
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
+#ifdef AMREX_USE_GPU
+    return m_device_fabs_v[li];
+#else
     return m_fabs_v[li];
+#endif
 }
 
 template <class FAB>
@@ -820,8 +828,12 @@ FabArray<FAB>::fabDevicePtr (int K) noexcept
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
+#ifdef AMREX_USE_GPU
+    return m_device_fabs_v[li];
+#else
     return m_fabs_v[li];
+#endif
 }
 
 template <class FAB>
@@ -830,7 +842,11 @@ FabArray<FAB>::fabDevicePtr (int K) const noexcept
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+#ifdef AMREX_USE_GPU
+    return m_device_fabs_v[li];
+#else
     return m_fabs_v[li];
+#endif
 }
 
 template <class FAB>
@@ -840,12 +856,8 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi) noexcept
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#ifdef AMREX_USE_GPU
-    return m_host_fabs_v[li];
-#else
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
     return m_fabs_v[li];
-#endif
 }
 
 template <class FAB>
@@ -855,12 +867,8 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi) const noexcept
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#ifdef AMREX_USE_GPU
-    return m_host_fabs_v[li];
-#else
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
     return m_fabs_v[li];
-#endif
 }
 
 template <class FAB>
@@ -869,12 +877,8 @@ FabArray<FAB>::fabHostPtr (int K) noexcept
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#ifdef AMREX_USE_GPU
-    return m_host_fabs_v[li];
-#else
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
     return m_fabs_v[li];
-#endif
 }
 
 template <class FAB>
@@ -883,12 +887,8 @@ FabArray<FAB>::fabHostPtr (int K) const noexcept
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
-    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#ifdef AMREX_USE_GPU
-    return m_host_fabs_v[li];
-#else
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_device_fabs_v[li]));
     return m_fabs_v[li];
-#endif
 }
 
 template <class FAB>
@@ -1002,10 +1002,10 @@ FabArray<FAB>::clear ()
     }
     m_fabs_v.clear();
 #ifdef AMREX_USE_GPU
-    for (auto it = m_host_fabs_v.begin(); it != m_host_fabs_v.end(); ++it) {
-        m_factory->destroyHostAlias(*it);
+    for (auto it = m_device_fabs_v.begin(); it != m_device_fabs_v.end(); ++it) {
+        m_factory->destroyDeviceAlias(*it);
     }
-    m_host_fabs_v.clear();
+    m_device_fabs_v.clear();
 #endif
     m_factory.reset();
     // no need to clear the non-blocking fillboundary stuff
@@ -1096,7 +1096,7 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
         for (const auto& rhsfab : rhs.m_fabs_v) {
             m_fabs_v.push_back(new FAB(*rhsfab, amrex::make_alias, scomp, ncomp));
 #ifdef AMREX_USE_GPU
-            m_host_fabs_v.push_back(m_factory->createHostAlias(*m_fabs_v.back()));
+            m_device_fabs_v.push_back(m_factory->createDeviceAlias(*m_fabs_v.back()));
 #endif
         }
     }
@@ -1113,7 +1113,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
 #ifdef AMREX_USE_GPU
-    , m_host_fabs_v(std::move(rhs.m_host_fabs_v))
+    , m_device_fabs_v(std::move(rhs.m_device_fabs_v))
 #endif
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
@@ -1122,7 +1122,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     rhs.define_function_called = false; // the responsibility of clear BD has been transferred.
     rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does delete them.
 #ifdef AMREX_USE_GPU
-    rhs.m_host_fabs_v.clear();
+    rhs.m_device_fabs_v.clear();
 #endif
     rhs.clear();
 }
@@ -1140,14 +1140,14 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         define_function_called = rhs.define_function_called;
         std::swap(m_fabs_v,rhs.m_fabs_v);
 #ifdef AMREX_USE_GPU
-        std::swap(m_host_fabs_v,rhs.m_host_fabs_v);
+        std::swap(m_device_fabs_v,rhs.m_device_fabs_v);
 #endif
         shmem = std::move(rhs.shmem);
 
         rhs.define_function_called = false;
         rhs.m_fabs_v.clear();
 #ifdef AMREX_USE_GPU
-        rhs.m_host_fabs_v.clear();
+        rhs.m_device_fabs_v.clear();
 #endif
         rhs.clear();
     }
@@ -1331,9 +1331,9 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 #endif
 
 #ifdef AMREX_USE_GPU
-    m_host_fabs_v.reserve(n);
+    m_device_fabs_v.reserve(n);
     for (int i = 0; i < n; ++i) {
-        m_host_fabs_v.push_back(factory.createHostAlias(*m_fabs_v[i]));
+        m_device_fabs_v.push_back(factory.createDeviceAlias(*m_fabs_v[i]));
     }
 #endif
 }
@@ -1359,14 +1359,14 @@ FabArray<FAB>::setFab (int  boxno,
     if (m_fabs_v.size() == 0) {
       m_fabs_v.resize(indexArray.size(),nullptr);
 #ifdef AMREX_USE_GPU
-      m_host_fabs_v.resize(m_fabs_v.size(),nullptr);
+      m_device_fabs_v.resize(m_fabs_v.size(),nullptr);
 #endif
     }
 
     const int li = localindex(boxno);
     m_fabs_v[li] = elem;
 #ifdef AMREX_USE_GPU
-    m_host_fabs_v[li] = m_factory->createHostAlias(*elem);
+    m_device_fabs_v[li] = m_factory->createDeviceAlias(*elem);
 #endif
 }
 
@@ -1393,14 +1393,14 @@ FabArray<FAB>::setFab (const MFIter& mfi,
     if (m_fabs_v.size() == 0) {
       m_fabs_v.resize(indexArray.size(),nullptr);
 #ifdef AMREX_USE_GPU
-      m_host_fabs_v.resize(m_fabs_v.size(),nullptr);
+      m_device_fabs_v.resize(m_fabs_v.size(),nullptr);
 #endif
     }
 
     const int li = mfi.LocalIndex();
     m_fabs_v[li] = elem;
 #ifdef AMREX_USE_GPU
-    m_host_fabs_v[li] = m_factory->createHostAlias(*elem);
+    m_device_fabs_v[li] = m_factory->createDeviceAlias(*elem);
 #endif
 }
 

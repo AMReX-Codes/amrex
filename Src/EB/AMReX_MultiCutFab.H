@@ -16,8 +16,8 @@ public:
         : FArrayBox(b, ncomps, alloc, shared) {}
 
 #ifdef AMREX_USE_GPU
-    CutFab (CutFab const& rhs, MakeType make_type)
-        : FArrayBox(rhs, make_type) {}
+    CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)
+        : FArrayBox(rhs, make_type, scomp, ncomp) {}
 #endif
 
     ~CutFab () = default;
