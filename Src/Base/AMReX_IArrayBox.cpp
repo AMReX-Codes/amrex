@@ -64,14 +64,6 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
-#ifdef AMREX_USE_GPU
-IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type)
-    :
-    BaseFab<int>(rhs,make_type)
-{
-}
-#endif
-
 IArrayBox&
 IArrayBox::operator= (int v) noexcept
 {
