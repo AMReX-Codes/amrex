@@ -87,7 +87,7 @@ public:
         } else {
             Real rtop = ( pdir - 0.5*m_height);
             Real rbot = (-pdir - 0.5*m_height);
-            Real r = std::max(d2,std::max(rtop,rbot));
+            Real r = amrex::max(d2,rtop,rbot);
             return r*m_sign;
         }
     }

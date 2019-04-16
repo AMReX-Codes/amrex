@@ -509,7 +509,7 @@ and neighbor particles into a Fortran subroutine, as follows:
             AoS& particles = pti.GetArrayOfStructs();
             int Np = particles.size();
             PairIndex index(pti.index(), pti.LocalTileIndex());
-            int Nn = neighbors[index].size() / pdata_size;
+            int Nn = neighbors[index].size();
             amrex_compute_forces(particles.data(), &Np,
                                  neighbors[index].dataPtr(), &Nn);
         }
