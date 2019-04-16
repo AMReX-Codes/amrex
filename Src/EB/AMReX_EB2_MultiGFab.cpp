@@ -36,7 +36,7 @@ MultiGFab::getLevelSet ()
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         auto& fab = (*this)[mfi].getLevelSet();
-        FArrayBox* p = new FArrayBox(fab.box(),1,fab.dataPtr());
+        FArrayBox* p = ::new FArrayBox(fab.box(),1,fab.dataPtr());
         r.setFab(mfi,p);
     }
 
