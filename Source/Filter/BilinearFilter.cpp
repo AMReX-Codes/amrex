@@ -86,9 +86,9 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             const Box& tbx = mfi.growntilebox();
             const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
             // tmpfab has enough ghost cells for the stencil
-            tmpfab.resize(gbx,ncomp);
-            FArrayBox* tmpfab_ptr = &tmpfab;
-            const FArrayBox* srcfab_ptr = &srcfab;
+            AsyncFab tmp_async_fab(tmpfab,gbx,ncomp);
+            FArrayBox* tmpfab_ptr = tmp_async_fab.fabPtr();
+            const FArrayBox* srcfab_ptr = srcmf.fabPtr(mfi);
             // Copy values in srcfab into tmpfab
             const Box& ibx = gbx & srcfab.box();
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(gbx, tgbx,
@@ -102,9 +102,7 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             });
 
             // Apply filter
-            Filter(tbx, tmpfab, dstfab, 0, dcomp, ncomp);
-
-            Gpu::Device::streamSynchronize();  // needed because of the resize above
+            Filter(tbx, tmp_async_fab.hostFab(), dstfab, 0, dcomp, ncomp);
         }
     }
 }
