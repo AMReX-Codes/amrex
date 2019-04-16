@@ -23,13 +23,11 @@ TagBox::TagBox (const Box& bx,
     if (alloc) setVal(TagBox::CLEAR);
 }
 
-#ifdef AMREX_USE_GPU
 TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
     :
     BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
 {
 }
-#endif
 
 void
 TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
