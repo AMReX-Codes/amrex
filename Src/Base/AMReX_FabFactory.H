@@ -47,14 +47,6 @@ public:
 #ifdef AMREX_USE_GPU
     virtual FAB* createDeviceAlias (FAB const& src) const = 0;
     virtual void destroyDeviceAlias (FAB* fab) const = 0;
-    virtual Vector<FAB*> createDeviceAliases (Vector<FAB*> const& src) const {
-        Vector <FAB*> r;
-        r.reserve(src.size());
-        for (auto s : src) {
-            r.push_back(createDeviceAlias(*s));
-        }
-        return r;
-    }
 #endif
 };
 
