@@ -106,7 +106,9 @@ namespace amrex {
 //
 struct MFInfo {
     bool    alloc = true;
-    MFInfo& SetAlloc(bool a) noexcept { alloc = a; return *this; }
+    bool    device_fab = true;
+    MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+    MFInfo& SetDeviceFab (bool b) noexcept { device_fab = b; return *this; }
 };
 
     template <class T>
@@ -709,7 +711,7 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs (const FabFactory<FAB>& factory);
+    void AllocFabs (const FabFactory<FAB>& factory, bool create_device_fab=true);
 
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
@@ -1226,7 +1228,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(*m_factory);
+        AllocFabs(*m_factory, info.device_fab);
     }
 
 #ifdef BL_USE_TEAM
@@ -1236,7 +1238,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, bool create_device_fab)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
@@ -1331,9 +1333,13 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 #endif
 
 #ifdef AMREX_USE_GPU
-    m_device_fabs_v.reserve(n);
-    for (int i = 0; i < n; ++i) {
-        m_device_fabs_v.push_back(factory.createDeviceAlias(*m_fabs_v[i]));
+    if (create_device_fab) {
+        m_device_fabs_v.reserve(n);
+        for (int i = 0; i < n; ++i) {
+            m_device_fabs_v.push_back(factory.createDeviceAlias(*m_fabs_v[i]));
+        }
+    } else {
+        m_device_fabs_v.resize(n,nullptr);
     }
 #endif
 }
