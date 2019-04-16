@@ -88,7 +88,7 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             // tmpfab has enough ghost cells for the stencil
             AsyncFab tmp_async_fab(tmpfab,gbx,ncomp);
             FArrayBox* tmpfab_ptr = tmp_async_fab.fabPtr();
-            const FArrayBox* srcfab_ptr = dstmf.fabPtr(mfi);
+            const FArrayBox* srcfab_ptr = srcmf.fabPtr(mfi);
             // Copy values in srcfab into tmpfab
             const Box& ibx = gbx & srcfab.box();
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(gbx, tgbx,
