@@ -10,7 +10,7 @@ class PsatdSolver
 
     public:
         PsatdSolver( const BoxArray& ba, const DistributionMapping& dm, const Real* dx );
-        pushSpectralFields( SpectralData& data );
+        void pushSpectralFields( SpectralData& f ) const;
 
     private:
         SpectralVector kx, ky, kz;
@@ -39,11 +39,19 @@ PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm, con
     S = SpectralMatrix( ba, dm, 1, 0 );
     // Fill them with the right values
     for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
-        C[mfi] = ...
-        S[mfi] = ...
+        FillCoefficients( C[mfi], S[mfi], kx[mfi], ky[mfi], kz[mfi] );
     }
 }
 
+void
+PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
+
+    for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
+
+
+    }
+
+}
 
 AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim )
 {

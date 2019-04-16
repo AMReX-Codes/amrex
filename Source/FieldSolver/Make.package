@@ -1,6 +1,8 @@
 CEXE_headers += WarpX_K.H
 CEXE_sources += WarpXPushFieldsEM.cpp
 ifeq ($(USE_PSATD),TRUE)
+  CEXE_headers += WarpXComplex.H
+  CEXE_sources += SpectralData.cpp
   CEXE_sources += WarpXFFT.cpp
   F90EXE_sources += WarpX_fft.F90
 endif
