@@ -24,9 +24,9 @@ TagBox::TagBox (const Box& bx,
 }
 
 #ifdef AMREX_USE_GPU
-TagBox::TagBox (const TagBox& rhs, MakeType make_type)
+TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
     :
-    BaseFab<TagBox::TagType>(rhs,make_type)
+    BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
 {
 }
 #endif

@@ -15,7 +15,7 @@ public:
     EBFArrayBox (const EBCellFlagFab& ebcellflag, const Box& box, int ncomps);
 
 #ifdef AMREX_USE_GPU
-    EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type);
+    EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type, int scomp, int ncomp);
 #endif
 
     EBFArrayBox (EBFArrayBox&& rhs) noexcept = default;
