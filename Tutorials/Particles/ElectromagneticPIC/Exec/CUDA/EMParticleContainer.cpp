@@ -7,7 +7,7 @@ using namespace amrex;
 
 namespace
 {    
-    void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
+    AMREX_GPU_HOST_DEVICE void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
         int ny = nppc[1];
@@ -22,11 +22,11 @@ namespace
         r[2] = (0.5+iz_part)/nz;
     }
 
-    void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
+    AMREX_GPU_HOST_DEVICE void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
         Real ux_th = amrex::RandomNormal(0.0, u_std);
         Real uy_th = amrex::RandomNormal(0.0, u_std);
         Real uz_th = amrex::RandomNormal(0.0, u_std);
-
+        
         u[0] = u_mean + ux_th;
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
@@ -56,31 +56,79 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     BL_PROFILE("EMParticleContainer::InitParticles");
 
     const int lev = 0;   
-    const Real* dx = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
+    const auto dx = Geom(lev).CellSizeArray();
+    const auto plo = Geom(lev).ProbLoArray();
     
     const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0],
                                       *a_num_particles_per_cell[1],
                                       *a_num_particles_per_cell[2]);
     const Real scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
     
-    std::array<Real,PIdx::nattribs> attribs;
-    attribs.fill(0.0);    
-
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
-
-        Cuda::HostVector<ParticleType> host_particles;
-        std::array<Cuda::HostVector<Real>, PIdx::nattribs> host_attribs;
         
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
-            for (int i_part=0; i_part<num_ppc;i_part++) {
+        // count number of particles we will add
+        int num_to_add = 0;
+        Gpu::DeviceScalar<int> num_to_add_dev(num_to_add);
+        int* p_num_to_add_dev = num_to_add_dev.dataPtr();
+        
+        amrex::ParallelFor(tile_box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            for (int i_part=0; i_part<num_ppc;i_part++)
+            {
+                Real r[3];
+                
+                get_position_unit_cell(r, a_num_particles_per_cell, i_part);
+                
+                Real x = plo[0] + (i + r[0])*dx[0];
+                Real y = plo[1] + (j + r[1])*dx[1];
+                Real z = plo[2] + (k + r[2])*dx[2];
+                
+                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
+                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
+                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
+                
+                Cuda::Atomic::Add(p_num_to_add_dev, 1);
+            }
+        });
+
+        num_to_add = num_to_add_dev.dataValue();
+
+        amrex::CheckSeedArraySizeAndResize(tile_box.numPts());
+
+        auto& particles = GetParticles(lev);
+        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
+
+        auto old_size = particle_tile.GetArrayOfStructs().size();
+        auto new_size = old_size + num_to_add;
+        particle_tile.resize(new_size);
+        
+        ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data();
+        
+        auto arrdata = particle_tile.GetStructOfArrays().realarray();
+        
+        int procID = ParallelDescriptor::MyProc();
+
+        amrex::ParallelFor(tile_box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            for (int i_part=0; i_part<num_ppc;i_part++)
+            {
                 Real r[3];
                 Real u[3];
                 
                 get_position_unit_cell(r, a_num_particles_per_cell, i_part);
                 
+                Real x = plo[0] + (i + r[0])*dx[0];
+                Real y = plo[1] + (j + r[1])*dx[1];
+                Real z = plo[2] + (k + r[2])*dx[2];
+                
+                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
+                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
+                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
+
                 if (a_problem == 0) {
                     get_gaussian_random_momentum(u, a_thermal_momentum_mean,
                                                  a_thermal_momentum_std);
@@ -93,48 +141,28 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                     amrex::Abort("problem type not valid");
                 }
                 
-                Real x = plo[0] + (iv[0] + r[0])*dx[0];
-                Real y = plo[1] + (iv[1] + r[1])*dx[1];
-                Real z = plo[2] + (iv[2] + r[2])*dx[2];
-                
-                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
-                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
-                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
-                
-                ParticleType p;
-                p.id()  = ParticleType::NextID();
-                p.cpu() = ParallelDescriptor::MyProc();                
+                long pidx = num_ppc * tile_box.index(IntVect(i, j, k)) + i_part;
+
+                ParticleType& p = pstruct[pidx];
+                p.id()  = 0;
+                p.cpu() = procID;
                 p.pos(0) = x;
                 p.pos(1) = y;
                 p.pos(2) = z;
                 
-                attribs[PIdx::ux] = u[0] * PhysConst::c;
-                attribs[PIdx::uy] = u[1] * PhysConst::c;
-                attribs[PIdx::uz] = u[2] * PhysConst::c;
-                attribs[PIdx::w ] = a_density * scale_fac;
-                
-                host_particles.push_back(p);
-                for (int kk = 0; kk < PIdx::nattribs; ++kk)
-                    host_attribs[kk].push_back(attribs[kk]);                
-            }
-        }
-        
-        auto& particles = GetParticles(lev);
-        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
-        auto old_size = particle_tile.GetArrayOfStructs().size();
-        auto new_size = old_size + host_particles.size();
-        particle_tile.resize(new_size);
-        
-        Cuda::thrust_copy(host_particles.begin(),
-                          host_particles.end(),
-                          particle_tile.GetArrayOfStructs().begin() + old_size);
-        
-        for (int kk = 0; kk < PIdx::nattribs; ++kk)
-        {
-            Cuda::thrust_copy(host_attribs[kk].begin(),
-                              host_attribs[kk].end(),
-                              particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
-        }
+                arrdata[PIdx::ux  ][pidx] = u[0] * PhysConst::c;
+                arrdata[PIdx::uy  ][pidx] = u[1] * PhysConst::c;
+                arrdata[PIdx::uz  ][pidx] = u[2] * PhysConst::c;
+                arrdata[PIdx::w   ][pidx] = a_density * scale_fac;
+                arrdata[PIdx::Ex  ][pidx] = 0.0;
+                arrdata[PIdx::Ey  ][pidx] = 0.0;
+                arrdata[PIdx::Ez  ][pidx] = 0.0;
+                arrdata[PIdx::Bx  ][pidx] = 0.0;
+                arrdata[PIdx::By  ][pidx] = 0.0;
+                arrdata[PIdx::Bz  ][pidx] = 0.0;
+                arrdata[PIdx::ginv][pidx] = 0.0;
+            }            
+        });
     }
 }
 
