@@ -218,14 +218,6 @@ CoordSys::UpperIndex(const Real* point) const noexcept
     return ix;
 }
 
-FArrayBox*
-CoordSys::GetVolume (const Box& region) const 
-{
-    FArrayBox* vol = new FArrayBox();
-    GetVolume(*vol,region);
-    return vol;
-}
-
 void
 CoordSys::GetVolume (FArrayBox& vol,
                      const Box& region) const 
@@ -270,15 +262,6 @@ CoordSys::GetDLogA (FArrayBox& dloga,
     SetDLogA(dloga,region,dir);
 }
 
-FArrayBox*
-CoordSys::GetDLogA (const Box& region,
-                    int        dir) const
-{
-    FArrayBox* dloga = new FArrayBox();
-    GetDLogA(*dloga,region,dir);
-    return dloga;
-}
-
 void
 CoordSys::SetDLogA (FArrayBox& a_dlogafab,
                     const Box& region,
@@ -304,15 +287,6 @@ CoordSys::SetDLogA (FArrayBox& a_dlogafab,
         amrex_setdloga(tbx, dloga, a_offset, a_dx, dir, coord);
     });
 #endif
-}
-
-FArrayBox*
-CoordSys::GetFaceArea (const Box& region,
-                       int        dir) const
-{
-    FArrayBox* area = new FArrayBox();
-    GetFaceArea(*area,region,dir);
-    return area;
 }
 
 void

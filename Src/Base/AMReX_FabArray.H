@@ -1356,6 +1356,10 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
+#if AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Gpu::isGpuPtr(elem), "setFab takes host fab only");
+#endif
+
     if (m_fabs_v.size() == 0) {
       m_fabs_v.resize(indexArray.size(),nullptr);
 #ifdef AMREX_USE_GPU
@@ -1389,6 +1393,10 @@ FabArray<FAB>::setFab (const MFIter& mfi,
         BL_ASSERT(!this->defined(mfi));
         BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
     }
+
+#if AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Gpu::isGpuPtr(elem), "setFab takes host fab only");
+#endif
 
     if (m_fabs_v.size() == 0) {
       m_fabs_v.resize(indexArray.size(),nullptr);
