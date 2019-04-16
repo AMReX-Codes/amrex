@@ -1005,7 +1005,7 @@ FabArray<FAB>::clear ()
     m_fabs_v.clear();
 #ifdef AMREX_USE_GPU
     for (auto it = m_device_fabs_v.begin(); it != m_device_fabs_v.end(); ++it) {
-        m_factory->destroyDeviceAlias(*it);
+        if (*it) m_factory->destroyDeviceAlias(*it);
     }
     m_device_fabs_v.clear();
 #endif
