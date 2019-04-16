@@ -2,7 +2,6 @@
 #include<AMReX_FabArray.H>
 
 using namespace amrex;
-using Complex = std::complex<Real>;
 
 /* \brief Class that stores the fields in spectral space
  *  and performs the spectral transforms to/from real space
