@@ -84,7 +84,7 @@ PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
                 X2(i,j,k) = c*c * dt*dt / (6.*ep0);
                 X3(i,j,k) = - c*c * dt*dt / (3.*ep0);
             }
-        }
+        });
     }
 }
 
