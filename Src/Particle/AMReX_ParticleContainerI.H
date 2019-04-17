@@ -3395,11 +3395,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
         std::string phdr_string(phdr_chars.dataPtr());
         std::istringstream phdr_file(phdr_string, std::istringstream::in);
+
+        if (lev > finestLevel())
+        {
+            dual_grid = true;
+            break;
+        }
         
         particle_box_arrays[lev].readFrom(phdr_file);
         if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) dual_grid = true;
     }
-    
+
     if (dual_grid) {
         for (int lev = 0; lev <= finestLevel(); lev++) {
             SetParticleBoxArray(lev, particle_box_arrays[lev]);
@@ -3490,10 +3496,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ParticleFile.seekg(where[grid], std::ios::beg);
             
             if (how == "single") {
-                ReadParticles<float>(count[grid], grid, lev, ParticleFile);
+                ReadParticles<float>(count[grid], grid, lev, ParticleFile, finest_level_in_file);
             }
             else if (how == "double") {
-                ReadParticles<double>(count[grid], grid, lev, ParticleFile);
+                ReadParticles<double>(count[grid], grid, lev, ParticleFile, finest_level_in_file);
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");
@@ -3524,7 +3530,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 template <class RTYPE>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs)
+::ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file)
 {
     BL_PROFILE("ParticleContainer::ReadParticles()");
     BL_ASSERT(cnt > 0);
@@ -3551,15 +3557,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
     host_particles.reserve(15);
-    host_particles.resize(finestLevel()+1);
+    host_particles.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>, std::array<Cuda::HostVector<Real>, NArrayReal > > > host_real_attribs;
     host_real_attribs.reserve(15);
-    host_real_attribs.resize(finestLevel()+1);
+    host_real_attribs.resize(finest_level_in_file+1);
 
     Vector<std::map<std::pair<int, int>, std::array<Cuda::HostVector<int>, NArrayInt > > > host_int_attribs;
     host_int_attribs.reserve(15);
-    host_int_attribs.resize(finestLevel()+1);
+    host_int_attribs.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
         p.m_idata.id   = iptr[0];
