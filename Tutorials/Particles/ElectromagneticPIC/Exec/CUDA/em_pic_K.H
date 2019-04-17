@@ -6,7 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void gather_fields (EMParticleContainer::ParticleType const& p,
                     amrex::Real& Exp, amrex::Real& Eyp, amrex::Real& Ezp,
                     amrex::Real& Bxp, amrex::Real& Byp, amrex::Real& Bzp,
@@ -88,7 +88,7 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
     }            
 }
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_momentum_boris(amrex::Real& uxp, amrex::Real& uyp, amrex::Real& uzp, amrex::Real& gaminv,
                          amrex::Real Exp, amrex::Real Eyp, amrex::Real Ezp,
                          amrex::Real Bxp, amrex::Real Byp, amrex::Real Bzp,
@@ -127,14 +127,14 @@ void push_momentum_boris(amrex::Real& uxp, amrex::Real& uyp, amrex::Real& uzp, a
     gaminv = 1.0/std::sqrt(1.0+usq);    
 }
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_position_boris(EMParticleContainer::ParticleType& p,
                          amrex::Real uxp, amrex::Real uyp, amrex::Real uzp,
                          amrex::Real gaminv, amrex::Real dt)
 {
     p.pos(0) += uxp*gaminv*dt;
     p.pos(1) += uyp*gaminv*dt;
-    p.pos(2) += uzp*gaminv*dt;    
+    p.pos(2) += uzp*gaminv*dt;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
