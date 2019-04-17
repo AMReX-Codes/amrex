@@ -954,7 +954,8 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
         });
     }
     
-    FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0, MFInfo(), fa.Factory());
+    FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0,
+                        MFInfo().SetDeviceFab(false), fa.Factory());
     tmpmf.setVal(0);
     tmpmf.ParallelCopy(fa, period, FabArrayBase::ADD);
 
