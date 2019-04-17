@@ -18,7 +18,7 @@ class PsatdSolver
 };
 
 /*
- * ba: BoxArray for spectral space ( index i corresponds to k=2*pi*i/(n*dx) )
+ * ba: BoxArray for spectral space
  * dm: DistributionMapping for spectral space
  */
 PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm, const Real* dx )
@@ -50,17 +50,32 @@ PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
 
 
     }
-
 }
 
 AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim )
 {
     // Alllocate k to the right size
-    int n = bx.length( i_dim );
-    k.resize( n );
+    int N = bx.length( i_dim );
+    k.resize( N );
 
-    // Fill with the right values
-    for (int i=bx.smallEnd(i_dim); i<=bx.bigEnd(i_dim); i++ ){
-        k[i] = ...
+    // Fill the k vector
+    const Real PI = std::atan(1.0)*4;
+    const Real dk = 2*PI/(N*dx[i_dim]);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.smallEnd(i_dim) == 0,
+        "Expected box to start at 0, in spectral space.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
+        "Expected different box end index in spectral space.");
+    // Fill positive values of k (FFT conventions: first half is positive)
+    for (int i=0; i<(N+1)/2; i++ ){
+        k[i] = i*dk;
     }
+    // Fill negative values of k (FFT conventions: second half is negative)
+    for (int i=(N+1)/2, i<N; i++){
+        k[i] = (N-i)*dk;
+    }
+    // TODO: This should be quite different for the hybrid spectral code:
+    // In that case we should take into consideration the actual indices of the box
+    // and distinguish the size of the local box and that of the global FFT
+    // TODO: For real-to-complex,
+
 }
