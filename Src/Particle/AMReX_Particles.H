@@ -780,7 +780,7 @@ protected:
                          const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
 
     template <class RTYPE>
-    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs);
+    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
     
     void SetParticleSize ();
 
