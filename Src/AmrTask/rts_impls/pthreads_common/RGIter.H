@@ -38,8 +38,16 @@ namespace amrex{
 	    std::ofstream fout;
 
 	public:
-	    RGIter(RegionGraph* rg, bool enableAllTasks=false);
-	    RGIter(RegionGraph* rg, RegionGraph* drg, bool isDep=true);
+	    RGIter(RegionGraph* rg 
+#ifdef USE_PERILLA_ON_DEMAND
+            ,std::vector<RegionGraph*> graphArray
+#endif
+	    , bool enableAllTasks=false);
+	    RGIter(RegionGraph* rg 
+#ifdef USE_PERILLA_ON_DEMAND
+            ,std::vector<RegionGraph*> graphArray
+#endif
+	    , RegionGraph* drg, bool isDep=true);
 	    RGIter(amrex::AsyncFillPatchIterator* afpi, bool enableAllTasks=false);
 	    RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
 		    amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr);

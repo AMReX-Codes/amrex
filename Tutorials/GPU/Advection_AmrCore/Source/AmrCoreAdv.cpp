@@ -946,11 +946,11 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                                                          fluxes[2].array(mfi)) };
           
             if (do_reflux) {
-                for (int i = 0; i < BL_SPACEDIM; i++) {
-                    amrex::ParallelFor(nbx[i],
+                for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+                    amrex::ParallelFor(nbx[idim],
                     [=] AMREX_GPU_DEVICE (int i, int j, int k)
                     {
-                        fluxout[i](i,j,k) = flux[i](i,j,k);
+                        fluxout[idim](i,j,k) = flux[idim](i,j,k);
                     });
                 }
             }

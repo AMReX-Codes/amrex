@@ -2389,11 +2389,13 @@ Amr::coarseTimeStep (Real stop_time)
     exit(0);
 #endif
 
+#if 0
     if(!okToContinue() || (level_steps[0] == Perilla::max_step) || (stop_time -(dt_level[0] + cumTime())<=0)){
         for(int i=0; i<= finest_level; i++){
             getLevel(i).finalizePerilla(cumtime);
         }
     }
+#endif
 //end nonPthreads backends
 #endif
 //end Perilla backends
