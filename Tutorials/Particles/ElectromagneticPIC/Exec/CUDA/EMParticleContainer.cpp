@@ -67,11 +67,17 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
+
+        const auto lo = amrex::lbound(tile_box);
+        const auto hi = amrex::ubound(tile_box);
+
+        amrex::CheckSeedArraySizeAndResize(tile_box.numPts());
+
+        Gpu::ManagedDeviceVector<unsigned int> counts(tile_box.numPts(), 0);
+        unsigned int* pcount = counts.dataPtr();
         
-        // count number of particles we will add
-        int num_to_add = 0;
-        Gpu::DeviceScalar<int> num_to_add_dev(num_to_add);
-        int* p_num_to_add_dev = num_to_add_dev.dataPtr();
+        Gpu::ManagedDeviceVector<unsigned int> offsets(tile_box.numPts());
+        unsigned int* poffset = offsets.dataPtr();
         
         amrex::ParallelFor(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -89,14 +95,24 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
                     y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
                     z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
-                
-                Cuda::Atomic::Add(p_num_to_add_dev, 1);
+              
+                int ix = i - lo.x;
+                int iy = j - lo.y;
+                int iz = k - lo.z;
+                int nx = hi.x-lo.x+1;
+                int ny = hi.y-lo.y+1;
+                int nz = hi.z-lo.z+1;            
+                unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
+                unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
+                unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
+                unsigned int cellid = (uix * ny + uiy) * nz + uiz;
+                pcount[cellid] += 1;
             }
         });
 
-        num_to_add = num_to_add_dev.dataValue();
+        thrust::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
 
-        amrex::CheckSeedArraySizeAndResize(tile_box.numPts());
+        int num_to_add = counts[tile_box.numPts()-1] + offsets[tile_box.numPts()-1];
 
         auto& particles = GetParticles(lev);
         auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
@@ -104,9 +120,11 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + num_to_add;
         particle_tile.resize(new_size);
+
+        if (num_to_add == 0) continue;
         
         ParticleType* pstruct = particle_tile.GetArrayOfStructs()().data();
-        
+
         auto arrdata = particle_tile.GetStructOfArrays().realarray();
         
         int procID = ParallelDescriptor::MyProc();
@@ -114,6 +132,19 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         amrex::ParallelFor(tile_box,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+            int ix = i - lo.x;
+            int iy = j - lo.y;
+            int iz = k - lo.z;
+            int nx = hi.x-lo.x+1;
+            int ny = hi.y-lo.y+1;
+            int nz = hi.z-lo.z+1;            
+            unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
+            unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
+            unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
+            unsigned int cellid = (uix * ny + uiy) * nz + uiz;
+
+            int pidx = poffset[cellid];
+
             for (int i_part=0; i_part<num_ppc;i_part++)
             {
                 Real r[3];
@@ -125,10 +156,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 Real y = plo[1] + (j + r[1])*dx[1];
                 Real z = plo[2] + (k + r[2])*dx[2];
                 
-                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
-                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
-                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
-
                 if (a_problem == 0) {
                     get_gaussian_random_momentum(u, a_thermal_momentum_mean,
                                                  a_thermal_momentum_std);
@@ -141,11 +168,13 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                     amrex::Abort("problem type not valid");
                 }
                 
-                long pidx = num_ppc * tile_box.index(IntVect(i, j, k)) + i_part;
-
+                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
+                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
+                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
+                
                 ParticleType& p = pstruct[pidx];
-                p.id()  = 0;
-                p.cpu() = procID;
+                p.id()   = 0;
+                p.cpu()  = procID;
                 p.pos(0) = x;
                 p.pos(1) = y;
                 p.pos(2) = z;
@@ -161,7 +190,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 arrdata[PIdx::By  ][pidx] = 0.0;
                 arrdata[PIdx::Bz  ][pidx] = 0.0;
                 arrdata[PIdx::ginv][pidx] = 0.0;
-            }            
+
+                ++pidx;
+            }
         });
     }
 }
@@ -189,6 +220,7 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
         Real * uxp  = attribs[PIdx::ux].data();
         Real * uyp  = attribs[PIdx::uy].data();
         Real * uzp  = attribs[PIdx::uz].data();
+
 /*
         Real       * AMREX_RESTRICT Exp  = attribs[PIdx::Ex].data();
         Real       * AMREX_RESTRICT Eyp  = attribs[PIdx::Ey].data();
@@ -220,6 +252,7 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
             amrex::Real Byp;
             amrex::Real Bzp;
             amrex::Real ginv;
+
             gather_fields(pstruct[i], Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                           Exarr, Eyarr, Ezarr, Bxarr, Byarr, Bzarr, plo, dxi);
 
@@ -230,7 +263,7 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
 
             deposit_current(jxarr, jyarr, jzarr, pstruct[i], uxp[i], uyp[i], uzp[i],
                             ginv, wp[i], q, dt, plo, dxi);
-        });
+        });       
     }
 }
 
@@ -274,6 +307,7 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 
         Real q = m_charge;
         Real m = m_mass;
+
         AMREX_PARALLEL_FOR_1D ( np, i,
         {
             amrex::Real Exp;
