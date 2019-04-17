@@ -1096,7 +1096,7 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
     if (maketype == amrex::make_alias)
     {
         for (const auto& rhsfab : rhs.m_fabs_v) {
-            m_fabs_v.push_back(new FAB(*rhsfab, amrex::make_alias, scomp, ncomp));
+            m_fabs_v.push_back(::new FAB(*rhsfab, amrex::make_alias, scomp, ncomp));
 #ifdef AMREX_USE_GPU
             m_device_fabs_v.push_back(m_factory->createDeviceAlias(*m_fabs_v.back()));
 #endif
