@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -P CSC249ADCD03
+#BSUB -P CSC308
 #BSUB -W 2:00
 #BSUB -nnodes 1
 #BSUB -J ElectromagneticPIC
