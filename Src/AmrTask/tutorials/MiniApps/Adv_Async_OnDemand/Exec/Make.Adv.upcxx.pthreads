@@ -1,0 +1,73 @@
+AMREX_HOME = ../../../../../../../
+ADR_DIR  ?= $(AMREX_HOME)/Src/AmrTask/tutorials/MiniApps/Adv_Async_OnDemand
+TOP := $(ADR_DIR)
+UPCXX_INSTALL=/home/users/nnguyent/upcxx
+PPFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta PPFLAGS)
+LDFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta LDFLAGS)
+LIBFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta LIBFLAGS) 
+
+TOP := $(ADR_DIR)
+
+EBASE := main
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
+include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads/perilla.mak
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/pthreads_common/perilla.mak
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads/Make.package
+
+Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
+Bpack   += $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs   += $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads
+CXXFLAGS += $(PPFLAGS) 
+libraries += $(LDFLAGS)
+
+vpathdir += $(AMREX_HOME)/Src/Boundary
+vpathdir += $(AMREX_HOME)/Src/Base
+vpathdir += $(AMREX_HOME)/Src/Amr
+vpathdir += $(AMREX_HOME)/Src/AmrCore
+vpathdir += $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads
+
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+
+Pdirs   := Base Boundary AmrCore Amr Particle
+Ppack   += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+
+include $(Ppack)
+LDFLAGS += $(LIBFLAGS)
+
+all: $(executable) 
+	@echo SUCCESS
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+
+vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
+vpath %.H   . $(VPATH_LOCATIONS)
+vpath %.F   . $(VPATH_LOCATIONS)
+vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.F90 . $(VPATH_LOCATIONS)
+vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.fi  . $(VPATH_LOCATIONS)
+
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+
+#-----------------------------------------------------------------------------
+# for debugging.  To see the value of a Makefile variable,
+# e.g. COMP, simply do "make print-COMP".  This will
+# print out the value.
+print-%: ; @echo $* is $($*)
+

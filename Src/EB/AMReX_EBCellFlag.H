@@ -57,19 +57,19 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool operator==(const EBCellFlag& a_input) const
     {
-      return (flag == (a_input.flag));
+        return (flag == (a_input.flag));
     }
 
     AMREX_GPU_HOST_DEVICE
     bool operator!=(const EBCellFlag& a_input) const
     {
-      return (flag != (a_input.flag));
+        return (flag != (a_input.flag));
     }
 
     AMREX_GPU_HOST_DEVICE
     int getNumVoFs () const
     {
-     return (flag & one_numvofs_mask) >> pos_numvofs;
+        return (flag & one_numvofs_mask) >> pos_numvofs;
     }
 
     AMREX_GPU_HOST_DEVICE
@@ -96,7 +96,7 @@ public:
     bool isConnected (const IntVect& iv) const {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos_ngbr[k+1][j+1][i+1];
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         return flag & (1 << n);
     }
 
@@ -109,7 +109,7 @@ public:
     void setDisconnected (const IntVect& iv) {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos_ngbr[k+1][j+1][i+1];
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         flag &= ~(1 << n);
     }
 
@@ -122,14 +122,14 @@ public:
     void setConnected (const IntVect& iv) {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos_ngbr[k+1][j+1][i+1];
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         flag |= 1 << n;
     }
 
     AMREX_GPU_HOST_DEVICE
     uint32_t getValue() const
     {
-      return flag;
+        return flag;
     }
 
     AMREX_GPU_HOST_DEVICE
@@ -171,6 +171,7 @@ private:
     static constexpr int w_type       = 2;
     static constexpr int w_numvofs    = 3;
     static constexpr int pos_numvofs  = 2;
+#if 0
     static constexpr std::array<std::array<std::array<int,3>,3>,3> pos_ngbr
         {{ std::array<std::array<int,3>,3>{{{ w_lower_mask   , w_lower_mask+ 1, w_lower_mask+ 2 },
                                             { w_lower_mask+ 3, w_lower_mask+ 4, w_lower_mask+ 5 },
@@ -181,6 +182,7 @@ private:
            std::array<std::array<int,3>,3>{{{ w_lower_mask+18, w_lower_mask+19, w_lower_mask+20 },
                                             { w_lower_mask+21, w_lower_mask+22, w_lower_mask+23 },
                                             { w_lower_mask+24, w_lower_mask+25, w_lower_mask+26 }}} }};
+#endif
 
     //! regular connected with all neighbors
 #if AMREX_SPACEDIM == 3

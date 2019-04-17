@@ -13,7 +13,7 @@ namespace perilla
     void WorkerThread::init(){
 	WorkerThread::globalBarrier= new Barrier(perilla::NUM_THREAD_TEAMS);
 	for(int i=0; i<perilla::NUM_THREAD_TEAMS; i++) WorkerThread::localBarriers[i]= new Barrier(perilla::NUM_THREADS_PER_TEAM);
-	for(int i=0; i<perilla::NUM_THREAD_TEAMS; i++) WorkerThread::localBarriers1[i]= new Barrier(perilla::NUM_THREADS_PER_TEAM-1);
+	for(int i=0; i<perilla::NUM_THREAD_TEAMS; i++) WorkerThread::localBarriers1[i]= new Barrier(perilla::NUM_THREADS_PER_TEAM);
     }
 
     void WorkerThread::syncWorkers(){
