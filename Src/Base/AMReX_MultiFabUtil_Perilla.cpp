@@ -43,7 +43,7 @@ namespace amrex
 	      
               amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
 	    }
-	RG_fine->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+	RG_fine->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
 	
 	//if(RG_fine->graphID == 23)
 	//std::cout<<"In avg down pushAsych f " << f << std::endl;
