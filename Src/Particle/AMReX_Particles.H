@@ -107,12 +107,12 @@ struct ParticleLocData
 ///
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
-    {
-        std::array<double, NStructReal> real_struct_data;
-        std::array<int,    NStructInt > int_struct_data;
-        std::array<double, NArrayReal > real_array_data;
-        std::array<int,    NArrayInt  > int_array_data;
-    };
+{
+    std::array<double, NStructReal> real_struct_data;
+    std::array<int,    NStructInt > int_struct_data;
+    std::array<double, NArrayReal > real_array_data;
+    std::array<int,    NArrayInt  > int_array_data;
+};
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIterBase;

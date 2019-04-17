@@ -134,6 +134,8 @@ void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
     test_box.setSmall(IntVect(AMREX_D_DECL(2, 2, 2)));
     test_box.setBig(IntVect(AMREX_D_DECL(30, 30, 30)));
 
+    test_box.convert(YeeGrid::jx_nodal_flag);
+
     const amrex::Real u = 0.01;
     const amrex::Real n0 = 1.e25;
     const amrex::Real wp = std::sqrt(n0*PhysConst::q_e*PhysConst::q_e/(PhysConst::m_e*PhysConst::ep0));

@@ -334,6 +334,13 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
   dyi = 1.d0 / dx(2)
   dzi = 1.d0 / dx(3)
 
+  ixmin = 0
+  ixmax = 0
+  iymin = 0
+  iymax = 0
+  izmin = 0
+  izmax = 0
+
   ! CD: Not needed - initialized in parallel loop
   !sx  = 0.d0
   !sy  = 0.d0
@@ -341,13 +348,6 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
   !sx0 = 0.d0
   !sy0 = 0.d0
   !sz0 = 0.d0
-
-  ixmin = 0
-  ixmax = 0
-  iymin = 0
-  iymax = 0
-  izmin = 0
-  izmax = 0
 
   ixmin0 = 0
   ixmax0 = 0
