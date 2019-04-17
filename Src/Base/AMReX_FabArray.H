@@ -288,7 +288,7 @@ public:
     //
     template <class T, typename std::enable_if< IsBaseFab<T>::value>::type* = nullptr>
     bool checkDataPtrConsistence (T const* d, T const* h) const noexcept {
-        return d->dataPtr() == h->dataPtr();
+        return d == nullptr || h == nullptr || d->dataPtr() == h->dataPtr();
     }
 
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
