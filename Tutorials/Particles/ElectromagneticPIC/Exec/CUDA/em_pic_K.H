@@ -86,6 +86,33 @@ void gather_fields (EMParticleContainer::ParticleType const& p,
             }
         }
     }            
+
+    Bxp = 0.;
+    for         (int ll = izmin0 ; ll <= izmax0 ; ++ll) {
+        for     (int kk = iymin0 ; kk <= iymax0 ; ++kk) {
+            for (int jj = ixmin  ; jj <= ixmax+1; ++jj) {
+                Bxp += sx[jj]*sy0[kk]*sz0[ll]*Bxarr(j+jj,k0+kk,l0+ll);
+            }
+        }
+    }            
+
+    Byp = 0.;
+    for         (int ll = izmin0; ll <= izmax0  ; ++ll) {
+        for     (int kk = iymin ; kk <= iymax +1; ++kk) {
+            for (int jj = ixmin0; jj <= ixmax0  ; ++jj) {
+                Byp += sx0[jj]*sy[kk]*sz0[ll]*Byarr(j0+jj,k+kk,l0+ll);
+            }
+        }
+    }            
+
+    Bzp = 0.;
+    for         (int ll = izmin ; ll <= izmax +1; ++ll) {
+        for     (int kk = iymin0; kk <= iymax0  ; ++kk) {
+            for (int jj = ixmin0; jj <= ixmax0  ; ++jj) {
+                Bzp += sx0[jj]*sy0[kk]*sz[ll]*Bzarr(j0+jj,k0+kk,l+ll);
+            }
+        }
+    }                
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
