@@ -75,6 +75,14 @@ def configure(argv):
                         help="Use SENSEI in situ [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--with-omp-offload",
+                        help="Use OpenMP-offload [default=no]",
+                        choices=["yes","no"],
+                        default="no")
+    parser.add_argument("--enable-tiny-profile",
+                        help="Enable tiny profile [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     f = open("GNUmakefile","w")
@@ -94,6 +102,8 @@ def configure(argv):
     f.write("AMREX_XSDK = {}\n".format("TRUE" if args.enable_xsdk_defaults == "yes" else "FALSE"))
     f.write("ALLOW_DIFFERENT_COMP = {}\n".format("FALSE" if args.allow_different_compiler == "no" else "TRUE"))
     f.write("USE_SENSEI_INSITU = {}\n".format("FALSE" if args.with_sensei_insitu == "no" else "TRUE"))
+    f.write("USE_OMP_OFFLOAD = {}\n".format("FALSE" if args.with_omp_offload == "no" else "TRUE"))
+    f.write("TINY_PROFILE = {}\n".format("FALSE" if args.enable_tiny_profile == "no" else "TRUE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")
