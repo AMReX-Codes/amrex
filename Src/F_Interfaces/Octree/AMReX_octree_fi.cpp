@@ -3,7 +3,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_AmrCore.H>
+#include <AMReX_FAmrCore.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -66,33 +66,89 @@ extern "C" {
         leaves = new Vector<treenode>;
         const int finest_level = amrcore->finestLevel();
         const int myproc = ParallelDescriptor::MyProc();
+
+        FAmrCore* famrcore = dynamic_cast<FAmrCore*>(amrcore);
+
+        famrcore->octree_leaf_grids.resize(finest_level+1);
+        famrcore->octree_leaf_dmap.resize(finest_level+1);
+        famrcore->octree_leaf_dummy_mf.resize(finest_level+1);
+        famrcore->octree_li_full_to_leaf.resize(finest_level+1);
+        famrcore->octree_li_leaf_to_full.resize(finest_level+1);
+
+        BoxList bl;
+        Vector<int> iproc;
+
         for (int lev = 0; lev <= finest_level; ++lev)
         {
+            famrcore->octree_li_full_to_leaf[lev].clear();
+            famrcore->octree_li_leaf_to_full[lev].clear();
+
             const BoxArray& ba = amrcore->boxArray(lev);
             const DistributionMapping& dm = amrcore->DistributionMap(lev);
             const int ngrids = ba.size();
             BL_ASSERT(ba.size() < std::numeric_limits<int>::max());
+
             if (lev == finest_level)
             {
+                famrcore->octree_leaf_grids[lev] = ba;
+                famrcore->octree_leaf_dmap[lev] = dm;
+                famrcore->octree_leaf_dummy_mf[lev].reset
+                    (new MultiFab(ba,dm,1,0,MFInfo().SetAlloc(false)));
+
+                int ilocal = 0;
                 for (int i = 0; i < ngrids; ++i) {
                     if (dm[i] == myproc) {
                         leaves->push_back({lev, i});
+                        famrcore->octree_li_full_to_leaf[lev].push_back(ilocal);
                     }
                 }
+                famrcore->octree_li_leaf_to_full[lev] = famrcore->octree_li_full_to_leaf[lev];
             }
             else
             {
                 const BoxArray& fba = amrcore->boxArray(lev+1);
                 const IntVect& rr = amrcore->refRatio(lev);
+                bl.clear();
+                iproc.clear();
+                int ilocal_full = 0;
+                int ilocal_leaf = 0;
                 for (int i = 0; i < ngrids; ++i) {
-                    if (dm[i] == myproc)
-                    {  
-                        Box bx = ba[i];
-                        bx.refine(rr);
-                        if (!fba.intersects(bx)) {
+                    Box bx = ba[i];
+                    Box fbx = amrex::refine(bx,rr);
+                    if (fba.intersects(fbx)) { // non-leaf
+                        if (dm[i] == myproc) {
+                            famrcore->octree_li_full_to_leaf[lev].push_back(-1);
+                            ++ilocal_full;
+                        }
+                    } else { // leaves
+                        bl.push_back(bx);
+                        iproc.push_back(dm[i]);
+                        if (dm[i] == myproc) {
                             leaves->push_back({lev, i});
+                            famrcore->octree_li_full_to_leaf[lev].push_back(ilocal_leaf++);
+                            famrcore->octree_li_leaf_to_full[lev].push_back(ilocal_full++);
                         }
                     }
+                }
+
+                if (bl.size() == 0) {
+                    famrcore->octree_leaf_grids[lev] = BoxArray();
+                    famrcore->octree_leaf_dmap[lev] = DistributionMapping();
+                    famrcore->octree_leaf_dummy_mf[lev].reset(new MultiFab());
+                } else {
+                    bool update_dummy_mf = false;
+                    if (famrcore->octree_leaf_grids[lev] != bl.data()) {
+                        famrcore->octree_leaf_grids[lev] = BoxArray(bl);
+                        update_dummy_mf = true;
+                    }
+                    if (famrcore->octree_leaf_dmap[lev].ProcessorMap() != iproc) {
+                        famrcore->octree_leaf_dmap[lev] = DistributionMapping(iproc);
+                        update_dummy_mf = true;
+                    }
+                    famrcore->octree_leaf_dummy_mf[lev].reset
+                        (new MultiFab(famrcore->octree_leaf_grids[lev],
+                                      famrcore->octree_leaf_dmap[lev],
+                                      1,0,MFInfo().SetAlloc(false)));
                 }
             }
         }
