@@ -14,7 +14,7 @@ are new to git, you can follow one of these tutorials:
 
 Follow instructions from the 
 [WarpX documentation](https://ecp-warpx.github.io/doc_versions/dev/building/building.html) 
-to install the code. Make sure you are on WarpX `dev` branch: run
+to install the code. Make sure you are on WarpX `dev` branch with
 ```
 git checkout dev
 ```
@@ -25,7 +25,7 @@ of code you want to add, like `fix_spectral_solver`) with
 ```
 git checkout -b <branch_name>
 ```
-and do the hacks you want. Add the files you modified/added to the git staging 
+and do the coding you want. Add the files you modified/added to the git staging 
 area with 
 ```
 git add file_I_created and_file_I_modified
@@ -35,8 +35,9 @@ git add file_I_created and_file_I_modified
 
 Periodically commit your changes with
 ```
-git commit -m "Write 50 chars description to explain your work"
+git commit -m "This is a 50-char description to explain my work"
 ```
+
 The commit message (between quotation marks) is super important to follow the 
 developments and identify bugs.
 
@@ -46,8 +47,8 @@ the WarpX Github repo with
 git push -u origin <branch_name>
 ```
 
-If you want to synchronize your branch with the `dev` branch (this is useful) 
-when the `dev` branch is modified while you are working on `<branch_name>`, 
+If you want to synchronize your branch with the `dev` branch (this is useful 
+when the `dev` branch is modified while you are working on `<branch_name>`), 
 you can use
 ```
 git pull --rebase origin dev
@@ -57,12 +58,12 @@ git pull --rebase origin dev
 
 Once your new feature is ready, you can check that you did not break anything. 
 WarpX has automated tests running at each `git push`. For easier debugging, 
-it is convenient to run the tests on your local machine. The code can be 
-tested by running
+it can be convenient to run the tests on your local machine. Run the test 
+suite with
 ```
 ./run_tests.sh
 ```
-from the root folder of WarpX (after downloading the sources of `amrex` and 
+from WarpX root folder (after downloading the sources of `amrex` and 
 `picsar`, as explained in the documentation).
 
 The tests can be influenced by environment variables:
@@ -75,17 +76,17 @@ run the tests on CPU or GPU respectively.
 ### Submit a Pull Request
 
 A Pull Request (PR) is the way to efficiently visualize the changes you made 
-and to propose your new feature/bug fix/improvement to the WarpX project. 
+and to propose your new feature/improvement/fix to the WarpX project. 
 Right after you pushed changes, a banner should appear on the 
-[WarpX repo](https://github.com/ECP-WarpX/WarpX) with <branch_name>. 
+[WarpX repo](https://github.com/ECP-WarpX/WarpX) with your `<branch_name>`. 
 - Click on the `compare & pull request` button to prepare your PR. 
 - Change the PR destination from `master` to `dev`. 
 - It is time to communicate your changes: write a title and a description for 
 your PR. People who review your PR are happy to know
-..* what changes you made, and why
-..* how you made it (created a new class than inherits from...)
-..* and anything relevant to your PR (performance tests, images, *etc.*)
-- Press `Create pull request`. Now you can navigate through you PR, which 
+  * what feature/fix you propose, and why
+  * how you made it (created a new class than inherits from...)
+  * and anything relevant to your PR (performance tests, images, *etc.*)
+- Press `Create pull request`. Now you can navigate through your PR, which 
 highlights the changes you made.
 
 Pull Requests DO NOT have to be large: it is much easier to review small 
@@ -109,10 +110,10 @@ re-use an existing input file (even better!) and pass specific parameters at
 runtime (see below).
 - A Python script that reads simulation output and tests correctness versus 
 theory or calibrated results. For the PML test, see
-[/Examples/Tests/PML/analysis_pml.py](/Examples/Tests/PML/analysis_pml.py). 
+[Examples/Tests/PML/analysis_pml.py](/Examples/Tests/PML/analysis_pml.py). 
 It typically ends with Python statement `assert( error<0.01 )`.
 - Add an entry to [Regression/WarpX-tests.ini](./Regression/WarpX-tests.ini), 
-so that a WarpX simulation runs the example in the continuous integration 
+so that a WarpX simulation runs your test in the continuous integration 
 process on [Travis CI](https://docs.travis-ci.com/user/tutorial/), and the 
 Python script is executed to assess the correctness. For the PML test, the 
 entry is
@@ -145,10 +146,17 @@ Now, let users know about your new feature by adding it to the
 located in `Docs/`. For instance, if you introduce a new runtime parameter in 
 the input file, you can add it to 
 [Docs/source/running_cpp/parameters.rst](Docs/source/running_cpp/parameters.rst).
+If Sphinx is installed on your computer, you should be able to generate the 
+html documentation with
+```
+make html
+```
+in `Docs/`. Then open `html/index.html` with your favorite web browser to see 
+your changes.
 
-Once your code is ready, with documentation and automated test, you can create 
-the PR (or remove the [WIP] tag if you already created it). Reviewers will 
-interact with you if they have comments/questions.
+Once your code is ready with documentation and automated test, 
+congratulations! you can create the PR (or remove the [WIP] tag if you already 
+created it). Reviewers will interact with you if they have comments/questions.
 
 ## Style and conventions
 - For indentation, WarpX uses four spaces (no tabs)
