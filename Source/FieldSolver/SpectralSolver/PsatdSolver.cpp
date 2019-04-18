@@ -1,23 +1,9 @@
+#include <PsatdSolver.H>
 #include <WarpXConst.H>
 #include <cmath>
 
 using namespace amrex;
 using namespace Gpu;
-
-
-class PsatdSolver
-{
-    using SpectralCoefficients = FabArray<BaseFab<Real>>
-    using SpectralVector = LayoutData<ManagedVector<Real>>
-
-    public:
-        PsatdSolver( const BoxArray& ba, const DistributionMapping& dm, const Real* dx );
-        void pushSpectralFields( SpectralData& f ) const;
-
-    private:
-        SpectralVector kx, ky, kz;
-        SpectralCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
-};
 
 /*
  * ba: BoxArray for spectral space

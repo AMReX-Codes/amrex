@@ -1,43 +1,7 @@
 #include <WarpXComplex.H>
-#include <AMReX_FabArray.H>
-#include <AMReX_MFIter.H>
 #include <AMReX_MultiFab.H>
 
 using namespace amrex;
-
-// Declare spectral types
-using SpectralField = FabArray<BaseFab<Complex>>;
-#ifdef AMREX_USE_GPU
-// Add cuFFT-specific code
-#else
-using FFTplans = LayoutData<fftw_plan>;
-#endif
-
-/* Fields that will be stored in spectral space */
-struct SpectralFieldIndex{
-    enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new };
-};
-
-/* \brief Class that stores the fields in spectral space
- *  and performs the spectral transforms to/from real space
- */
-class SpectralData
-{
-    public:
-        SpectralData( const BoxArray& realspace_ba,
-                      const BoxArray& spectralspace_ba,
-                      const DistributionMapping& dm );
-        ~SpectralData();
-        void ForwardTransform( const MultiFab& mf, const int field_index );
-        void InverseTransform( MultiFab& mf, const int field_index );
-
-    private:
-        SpectralField Ex, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new;
-        SpectralField tmpRealField, tmpSpectralField; // Store fields before/after transform
-        FFTplans forward_plan, inverse_plan;
-        SpectralField& getSpectralField( const int field_index );
-};
-
 
 SpectralData::SpectralData( const BoxArray& realspace_ba,
                             const BoxArray& spectralspace_ba,
