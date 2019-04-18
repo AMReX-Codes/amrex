@@ -4,20 +4,33 @@
 
 using namespace amrex;
 
-/*
- * ba: BoxArray for spectral space
- * dm: DistributionMapping for spectral space
- */
+
 PsatdSolver::PsatdSolver(const SpectralKSpace& spectral_kspace,
-                         const DistributionMapping& dm, const Real dt)
+                         const DistributionMapping& dm,
+                         const int norder_x, const int norder_y,
+                         const int norder_z, const Real dt)
 {
+    const BoxArray& ba = spectral_kspace.spectralspace_ba;
+
     // Allocate the 1D vectors
-    modified_kx_vec = spectral_kspace.getModifiedKVector( 0 );
-    modified_ky_vec = spectral_kspace.getModifiedKVector( 1 );
-    modified_kz_vec = spectral_kspace.getModifiedKVector( 2 );
+    modified_kx_vec = SpectralKVector( ba, dm );
+    modified_ky_vec = SpectralKVector( ba, dm );
+    modified_kz_vec = SpectralKVector( ba, dm );
+    // Allocate and fill them by computing the modified vector
+    for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
+        Box bx = ba[mfi];
+        ComputeModifiedKVector(
+            modified_kx_vec[mfi], spectral_kspace.kx_vec[mfi],
+            bx, spectral_kspace.dx[0], norder_x );
+        ComputeModifiedKVector(
+            modified_ky_vec[mfi], spectral_kspace.ky_vec[mfi],
+            bx, spectral_kspace.dx[1], norder_y );
+        ComputeModifiedKVector(
+            modified_kz_vec[mfi], spectral_kspace.kz_vec[mfi],
+            bx, spectral_kspace.dx[2], norder_z );
+    }
 
     // Allocate the arrays of coefficients
-    const BoxArray& ba = spectral_kspace.spectralspace_ba;
     C_coef = SpectralCoefficients( ba, dm, 1, 0 );
     S_ck_coef = SpectralCoefficients( ba, dm, 1, 0 );
     X1_coef = SpectralCoefficients( ba, dm, 1, 0 );
@@ -69,7 +82,7 @@ PsatdSolver::PsatdSolver(const SpectralKSpace& spectral_kspace,
             }
         });
     }
-}
+};
 
 void
 PsatdSolver::pushSpectralFields( SpectralData& f ) const{
@@ -155,4 +168,4 @@ PsatdSolver::pushSpectralFields( SpectralData& f ) const{
                         +   X1*I*(kx*Jy     - ky*Jx );
         });
     }
-}
+};

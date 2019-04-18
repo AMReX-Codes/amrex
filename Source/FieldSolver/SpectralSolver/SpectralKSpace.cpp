@@ -60,3 +60,19 @@ AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, c
     // TODO: For real-to-complex,
 
 }
+
+void
+ComputeModifiedKVector( ManagedVector<Real>& modified_k,
+                        const ManagedVector<Real>& k,
+                        const Box& bx, const Real dx, const int norder )
+{
+    // Allocate modified_k to the right size
+    int N = k.size();
+    modified_k.resize( N );
+
+    // For now, this simply copies the infinite order k
+    for (int i=0; i<N; i++ ){
+        modified_k[i] = k[i];
+    }
+
+}

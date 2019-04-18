@@ -16,15 +16,17 @@ class SpectralKSpace
 {
     public:
         SpectralKSpace( const BoxArray& realspace_ba, const DistributionMapping& dm, const Real* dx );
-        SpectralKVector& getModifiedKVector( const int i_dim ) const;
         BoxArray spectralspace_ba;
-
-    private:
         SpectralKVector kx_vec, ky_vec, kz_vec;
         const Real* dx;
 };
 
 void
 AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim );
+
+void
+ComputeModifiedKVector( ManagedVector<Real>& modified_k,
+                        const ManagedVector<Real>& k,
+                        const Box& bx, const Real dx, const int norder );
 
 #endif
