@@ -25,12 +25,12 @@ of code you want to add, like `fix_spectral_solver`) with
 ```
 git checkout -b <branch_name>
 ```
-and do the coding you want. Add the files you modified/added to the git staging 
-area with 
+and do the coding you want. It is probably a good time to look at the 
+[AMReX documentation](https://amrex-codes.github.io/amrex/docs_html/). 
+Add the files you work on to the git staging area with 
 ```
 git add file_I_created and_file_I_modified
 ```
-
 ### Commit & push your changes
 
 Periodically commit your changes with
@@ -48,8 +48,8 @@ git push -u origin <branch_name>
 ```
 
 If you want to synchronize your branch with the `dev` branch (this is useful 
-when the `dev` branch is modified while you are working on `<branch_name>`), 
-you can use
+when the `dev` branch is being modified while you are working on 
+`<branch_name>`), you can use
 ```
 git pull --rebase origin dev
 ```
@@ -58,15 +58,11 @@ git pull --rebase origin dev
 
 Once your new feature is ready, you can check that you did not break anything. 
 WarpX has automated tests running at each `git push`. For easier debugging, 
-it can be convenient to run the tests on your local machine. Run the test 
-suite with
+it can be convenient to run the tests on your local machine with
 ```
 ./run_tests.sh
 ```
-from WarpX root folder (after downloading the sources of `amrex` and 
-`picsar`, as explained in the documentation).
-
-The tests can be influenced by environment variables:
+from WarpX root folder. The tests can be influenced by environment variables:
 - `export WARPX_TEST_DIM=3` or `export WARPX_TEST_DIM=2` in order to select 
 only the tests that correspond to this dimension
 - `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order to 
@@ -77,7 +73,7 @@ run the tests on CPU or GPU respectively.
 
 A Pull Request (PR) is the way to efficiently visualize the changes you made 
 and to propose your new feature/improvement/fix to the WarpX project. 
-Right after you pushed changes, a banner should appear on the 
+Right after you push changes, a banner should appear on the 
 [WarpX repo](https://github.com/ECP-WarpX/WarpX) with your `<branch_name>`. 
 - Click on the `compare & pull request` button to prepare your PR. 
 - Change the PR destination from `master` to `dev`. 
@@ -151,8 +147,8 @@ html documentation with
 ```
 make html
 ```
-in `Docs/`. Then open `html/index.html` with your favorite web browser to see 
-your changes.
+in `Docs/`. Then open `html/index.html` with your favorite web browser and look 
+for your changes.
 
 Once your code is ready with documentation and automated test, 
 congratulations! you can create the PR (or remove the [WIP] tag if you already 
@@ -160,4 +156,3 @@ created it). Reviewers will interact with you if they have comments/questions.
 
 ## Style and conventions
 - For indentation, WarpX uses four spaces (no tabs)
-- 
