@@ -3504,7 +3504,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             
             std::ifstream ParticleFile;
             
-            ParticleFile.open(name.c_str(), std::ios::in);
+            ParticleFile.open(name.c_str(), std::ios::in | std::ios::binary);
             
             if (!ParticleFile.good())
                 amrex::FileOpenFailed(name);
