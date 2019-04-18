@@ -3,7 +3,35 @@
 #include <cmath>
 
 using namespace amrex;
-using namespace Gpu;
+
+void
+AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim )
+{
+    // Alllocate k to the right size
+    int N = bx.length( i_dim );
+    k.resize( N );
+
+    // Fill the k vector
+    const Real PI = std::atan(1.0)*4;
+    const Real dk = 2*PI/(N*dx[i_dim]);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.smallEnd(i_dim) == 0,
+        "Expected box to start at 0, in spectral space.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
+        "Expected different box end index in spectral space.");
+    // Fill positive values of k (FFT conventions: first half is positive)
+    for (int i=0; i<(N+1)/2; i++ ){
+        k[i] = i*dk;
+    }
+    // Fill negative values of k (FFT conventions: second half is negative)
+    for (int i=(N+1)/2; i<N; i++){
+        k[i] = (N-i)*dk;
+    }
+    // TODO: This should be quite different for the hybrid spectral code:
+    // In that case we should take into consideration the actual indices of the box
+    // and distinguish the size of the local box and that of the global FFT
+    // TODO: For real-to-complex,
+
+}
 
 /*
  * ba: BoxArray for spectral space
@@ -13,33 +41,33 @@ PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
                           const Real* dx, const Real dt )
 {
     // Allocate the 1D vectors
-    kx = SpectralVector( ba, dm );
-    ky = SpectralVector( ba, dm );
-    kz = SpectralVector( ba, dm );
+    kx_vec = SpectralVector( ba, dm );
+    ky_vec = SpectralVector( ba, dm );
+    kz_vec = SpectralVector( ba, dm );
     for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
         Box bx = ba[mfi];
-        AllocateAndFillKvector( kx[mfi], bx, dx, 0 )
-        AllocateAndFillKvector( ky[mfi], bx, dx, 1 )
-        AllocateAndFillKvector( kz[mfi], bx, dx, 2 )
+        AllocateAndFillKvector( kx_vec[mfi], bx, dx, 0 );
+        AllocateAndFillKvector( ky_vec[mfi], bx, dx, 1 );
+        AllocateAndFillKvector( kz_vec[mfi], bx, dx, 2 );
     }
 
     // Allocate the arrays of coefficients
-    C_coef = SpectralMatrix( ba, dm, 1, 0 );
-    S_ck_coef = SpectralMatrix( ba, dm, 1, 0 );
-    X1_coef = SpectralMatrix( ba, dm, 1, 0 );
-    X2_coef = SpectralMatrix( ba, dm, 1, 0 );
-    X3_coef = SpectralMatrix( ba, dm, 1, 0 );
+    C_coef = SpectralCoefficients( ba, dm, 1, 0 );
+    S_ck_coef = SpectralCoefficients( ba, dm, 1, 0 );
+    X1_coef = SpectralCoefficients( ba, dm, 1, 0 );
+    X2_coef = SpectralCoefficients( ba, dm, 1, 0 );
+    X3_coef = SpectralCoefficients( ba, dm, 1, 0 );
 
     // Fill them with the right values:
     // Loop over boxes
     for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
 
-        const Box& bx = mfi.box();
+        const Box& bx = ba[mfi];
 
         // Extract pointers for the k vectors
-        const Real* kx = kx[mfi].dataPtr();
-        const Real* ky = ky[mfi].dataPtr();
-        const Real* kz = kz[mfi].dataPtr();
+        const Real* kx = kx_vec[mfi].dataPtr();
+        const Real* ky = ky_vec[mfi].dataPtr();
+        const Real* kz = kz_vec[mfi].dataPtr();
         // Extract arrays for the coefficients
         Array4<Real> C = C_coef[mfi].array();
         Array4<Real> S_ck = S_ck_coef[mfi].array();
@@ -75,12 +103,12 @@ PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
 }
 
 void
-PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
+PsatdSolver::pushSpectralFields( SpectralData& f ) const{
 
     // Loop over boxes
     for ( MFIter mfi(f.Ex); mfi.isValid(); ++mfi ){
 
-        const Box& bx = mfi.box();
+        const Box& bx = f.Ex[mfi].box();
 
         // Extract arrays for the fields to be updated
         Array4<Complex> Ex_arr = f.Ex[mfi].array();
@@ -89,20 +117,22 @@ PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
         Array4<Complex> Bx_arr = f.Bx[mfi].array();
         Array4<Complex> By_arr = f.By[mfi].array();
         Array4<Complex> Bz_arr = f.Bz[mfi].array();
-        // Extract arrays for J
-        const Array4<Complex> Jx_arr = f.Jx[mfi].array();
-        const Array4<Complex> Jy_arr = f.Jy[mfi].array();
-        const Array4<Complex> Jz_arr = f.Jz[mfi].array();
-        const Array4<Complex> rho_old_arr = f.rho_old[mfi].array();
-        const Array4<Complex> rho_new_arr = f.rho_new[mfi].array();
+        // Extract arrays for J and rho
+        Array4<const Complex> Jx_arr = f.Jx[mfi].array();
+        Array4<const Complex> Jy_arr = f.Jy[mfi].array();
+        Array4<const Complex> Jz_arr = f.Jz[mfi].array();
+        Array4<const Complex> rho_old_arr = f.rho_old[mfi].array();
+        Array4<const Complex> rho_new_arr = f.rho_new[mfi].array();
         // Extract arrays for the coefficients
-        const Array4<Real> C_arr = C_coef[mfi].array();
-        const Array4<Real> S_ck_arr = S_ck_coef[mfi].array();
-        const Array4<Real> inv_k2_arr =
+        Array4<const Real> C_arr = C_coef[mfi].array();
+        Array4<const Real> S_ck_arr = S_ck_coef[mfi].array();
+        Array4<const Real> X1_arr = X1_coef[mfi].array();
+        Array4<const Real> X2_arr = X2_coef[mfi].array();
+        Array4<const Real> X3_arr = X3_coef[mfi].array();
         // Extract pointers for the k vectors
-        const Real* kx_arr = kx[mfi].dataPtr();
-        const Real* ky_arr = ky[mfi].dataPtr();
-        const Real* kz_arr = kz[mfi].dataPtr();
+        const Real* kx_arr = kx_vec[mfi].dataPtr();
+        const Real* ky_arr = ky_vec[mfi].dataPtr();
+        const Real* kz_arr = kz_vec[mfi].dataPtr();
 
         // Loop over indices within one box
         ParallelFor( bx,
@@ -115,6 +145,12 @@ PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
             const Complex Bx_old = Bx_arr(i,j,k);
             const Complex By_old = By_arr(i,j,k);
             const Complex Bz_old = Bz_arr(i,j,k);
+            // Shortcut for the values of J and rho
+            const Complex Jx = Jx_arr(i,j,k);
+            const Complex Jy = Jy_arr(i,j,k);
+            const Complex Jz = Jz_arr(i,j,k);
+            const Complex rho_old = rho_old_arr(i,j,k);
+            const Complex rho_new = rho_new_arr(i,j,k);
             // k vector values, and coefficients
             const Real kx = kx_arr[i];
             const Real ky = ky_arr[j];
@@ -127,10 +163,6 @@ PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
             const Real X1 = X1_arr(i,j,k);
             const Real X2 = X2_arr(i,j,k);
             const Real X3 = X3_arr(i,j,k);
-            // Short cut for the values of J and rho
-            const Complex Jx = Jx_arr(i,j,k);
-            const Complex Jy = Jy_arr(i,j,k);
-            const Complex Jz = Jz_arr(i,j,k);
 
             // Update E (see WarpX online documentation: theory section)
             Ex_arr(i,j,k) = C*Ex_old
@@ -145,41 +177,13 @@ PsatdSolver::pushSpectralFields( SpectralFields& f ) const{
             // Update B (see WarpX online documentation: theory section)
             Bx_arr(i,j,k) = C*Bx_old
                         - S_ck*I*(ky*Ez_old - kz*Ey_old)
-                        +   X1*I*(ky*Jz_old - kz*Jy_old);
+                        +   X1*I*(ky*Jz     - kz*Jy );
             By_arr(i,j,k) = C*By_old
                         - S_ck*I*(kz*Ex_old - kx*Ez_old)
-                        +   X1*I*(kz*Jx_old - kx*Jz_old);
+                        +   X1*I*(kz*Jx     - kx*Jz );
             Bz_arr(i,j,k) = C*Bz_old
                         - S_ck*I*(kx*Ey_old - ky*Ex_old)
-                        +   X1*I*(kx*Jy_old - ky*Jx_old);
+                        +   X1*I*(kx*Jy     - ky*Jx );
         });
     }
-}
-
-AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim )
-{
-    // Alllocate k to the right size
-    int N = bx.length( i_dim );
-    k.resize( N );
-
-    // Fill the k vector
-    const Real PI = std::atan(1.0)*4;
-    const Real dk = 2*PI/(N*dx[i_dim]);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.smallEnd(i_dim) == 0,
-        "Expected box to start at 0, in spectral space.");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
-        "Expected different box end index in spectral space.");
-    // Fill positive values of k (FFT conventions: first half is positive)
-    for (int i=0; i<(N+1)/2; i++ ){
-        k[i] = i*dk;
-    }
-    // Fill negative values of k (FFT conventions: second half is negative)
-    for (int i=(N+1)/2, i<N; i++){
-        k[i] = (N-i)*dk;
-    }
-    // TODO: This should be quite different for the hybrid spectral code:
-    // In that case we should take into consideration the actual indices of the box
-    // and distinguish the size of the local box and that of the global FFT
-    // TODO: For real-to-complex,
-
 }

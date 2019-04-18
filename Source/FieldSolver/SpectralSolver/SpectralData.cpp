@@ -1,5 +1,4 @@
-#include <WarpXComplex.H>
-#include <AMReX_MultiFab.H>
+#include <SpectralData.H>
 
 using namespace amrex;
 

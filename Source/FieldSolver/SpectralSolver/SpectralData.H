@@ -1,12 +1,12 @@
 #ifndef WARPX_PSATD_DATA_H_
 #define WARPX_PSATD_DATA_H_
 
-#include <WarpXComplex.H>
+#include <WarpX_Complex.H>
 #include <AMReX_MultiFab.H>
 
 using namespace amrex;
 
-// Declare spectral types
+// Declare type for spectral fields
 using SpectralField = FabArray<BaseFab<Complex>>;
 
 /* Fields that will be stored in spectral space */
@@ -19,6 +19,8 @@ struct SpectralFieldIndex{
  */
 class SpectralData
 {
+    friend class PsatdSolver;
+
 #ifdef AMREX_USE_GPU
 // Add cuFFT-specific code
 #else

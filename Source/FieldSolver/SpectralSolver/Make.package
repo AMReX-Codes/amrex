@@ -1,6 +1,5 @@
-CEXE_headers += WarpXComplex.H
+CEXE_headers += WarpX_Complex.H
 CEXE_headers += SpectralData.H
-CEXE_sources += SpectralData.cpp
 CEXE_headers += PsatdSolver.H
 CEXE_sources += PsatdSolver.cpp
 
