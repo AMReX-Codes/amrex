@@ -191,12 +191,12 @@ WarpXParticleContainer::AddNParticles (int lev,
 
 void
 WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
-                                          RealVector& wp, RealVector& uxp,
-                                          RealVector& uyp, RealVector& uzp,
-                                          MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                          MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                          const long np_current, const long np,
-                                          int thread_num, int lev, Real dt )
+                                       RealVector& wp, RealVector& uxp,
+                                       RealVector& uyp, RealVector& uzp,
+                                       MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                       MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                       const long np_current, const long np,
+                                       int thread_num, int lev, Real dt )
 {
   Real *jx_ptr, *jy_ptr, *jz_ptr;
   const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
@@ -219,7 +219,16 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
   // Deposit charge for particles that are not in the current buffers
   if (np_current > 0)
-    {
+  {
+#ifdef AMREX_USE_GPU
+      jx_ptr = jx[pti].dataPtr();
+      jy_ptr = jy[pti].dataPtr();
+      jz_ptr = jz[pti].dataPtr();
+
+      auto jxntot = jx[pti].length();
+      auto jyntot = jy[pti].length();
+      auto jzntot = jz[pti].length();
+#else
       tbx.grow(ngJ);
       tby.grow(ngJ);
       tbz.grow(ngJ);
@@ -231,31 +240,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       jx_ptr = local_jx[thread_num].dataPtr();
       jy_ptr = local_jy[thread_num].dataPtr();
       jz_ptr = local_jz[thread_num].dataPtr();
-
-      auto jxarr = local_jx[thread_num].array();
-      amrex::ParallelFor(tbx,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          jxarr(i,j,k) = 0.0;
-      });
-
-      auto jyarr = local_jy[thread_num].array();
-      amrex::ParallelFor(tby,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          jyarr(i,j,k) = 0.0;
-      });
-
-      auto jzarr = local_jz[thread_num].array();
-      amrex::ParallelFor(tbz,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          jzarr(i,j,k) = 0.0;
-      });
+      
+      jx_ptr->setVal(0.0);
+      jy_ptr->setVal(0.0);
+      jz_ptr->setVal(0.0);
 
       auto jxntot = local_jx[thread_num].length();
       auto jyntot = local_jy[thread_num].length();
       auto jzntot = local_jz[thread_num].length();
+#endif
 
       BL_PROFILE_VAR_START(blp_pxr_cd);
       if (j_is_nodal) {
@@ -336,42 +329,34 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &lvect,&WarpX::current_deposition_algo);
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
-      
+
+#ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
-      
-      const auto local_jx_arr  = local_jx[thread_num].array();
-            auto global_jx_arr = jx.array(pti);
-      amrex::ParallelFor(tbx,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_jx_arr(i, j, k), local_jx_arr(i, j, k));
-      });
 
-      const auto local_jy_arr  = local_jy[thread_num].array();
-            auto global_jy_arr = jy.array(pti);
-      amrex::ParallelFor(tby,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_jy_arr(i, j, k), local_jy_arr(i, j, k));
-      });
-
-      const auto local_jz_arr  = local_jz[thread_num].array();
-            auto global_jz_arr = jz.array(pti);
-      amrex::ParallelFor(tbz,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_jz_arr(i, j, k), local_jz_arr(i, j, k));
-      });
+      jx.atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+      jy.atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+      jz.atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
-    }
+#endif
+  }
 
   // Deposit charge for particles that are in the current buffers
   if (np_current < np)
-    {
+  {
       const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
       const Box& ctilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
       const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
+
+#ifdef AMREX_USE_GPU
+      jx_ptr = (*cjx)[pti].dataPtr();
+      jy_ptr = (*cjy)[pti].dataPtr();
+      jz_ptr = (*cjz)[pti].dataPtr();
+
+      auto jxntot = jx[pti].length();
+      auto jyntot = jy[pti].length();
+      auto jzntot = jz[pti].length();
+#else
 
       tbx = amrex::convert(ctilebox, WarpX::jx_nodal_flag);
       tby = amrex::convert(ctilebox, WarpX::jy_nodal_flag);
@@ -388,31 +373,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       jy_ptr = local_jy[thread_num].dataPtr();
       jz_ptr = local_jz[thread_num].dataPtr();
 
-      auto jxarr = local_jx[thread_num].array();
-      amrex::ParallelFor(tbx,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          jxarr(i,j,k) = 0.0;
-      });
-
-      auto jyarr = local_jy[thread_num].array();
-      amrex::ParallelFor(tby,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          jyarr(i,j,k) = 0.0;
-      });
-
-      auto jzarr = local_jz[thread_num].array();
-      amrex::ParallelFor(tbz,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          jzarr(i,j,k) = 0.0;
-      });
+      jx_ptr->setVal(0.0);
+      jy_ptr->setVal(0.0);
+      jz_ptr->setVal(0.0);
 
       auto jxntot = local_jx[thread_num].length();
       auto jyntot = local_jy[thread_num].length();
       auto jzntot = local_jz[thread_num].length();
-
+#endif
+      
       long ncrse = np - np_current;
       BL_PROFILE_VAR_START(blp_pxr_cd);
       if (j_is_nodal) {
@@ -496,33 +465,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
+#ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      const auto local_jx_arr  = local_jx[thread_num].array();
-            auto global_jx_arr = cjx->array(pti);
-      amrex::ParallelFor(tbx,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_jx_arr(i, j, k), local_jx_arr(i, j, k));
-      });
-
-      const auto local_jy_arr  = local_jy[thread_num].array();
-            auto global_jy_arr = cjy->array(pti);
-      amrex::ParallelFor(tby,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_jy_arr(i, j, k), local_jy_arr(i, j, k));
-      });
-
-      const auto local_jz_arr  = local_jz[thread_num].array();
-            auto global_jz_arr = cjz->array(pti);
-      amrex::ParallelFor(tbz,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_jz_arr(i, j, k), local_jz_arr(i, j, k));
-      });
+      cjx.atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+      cjy.atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+      cjz.atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
     }
 };
 
@@ -549,20 +500,22 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 
   // Deposit charge for particles that are not in the current buffers
   if (np_current > 0)
-    {
+  {
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
+
+#ifdef AMREX_USE_GPU
+      data_ptr = (*rhomf)[pti].dataPtr();
+      auto rholen = (*rhomf)[pti].length();
+#else
       tile_box.grow(ngRho);
       local_rho[thread_num].resize(tile_box);
 
-      auto rhoarr = local_rho[thread_num].array();
-      amrex::ParallelFor(tile_box,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          rhoarr(i,j,k) = 0.0;
-      });
-
       data_ptr = local_rho[thread_num].dataPtr();
       auto rholen = local_rho[thread_num].length();
+
+      data_ptr->setVal(0.0);
+#endif
+
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -586,39 +539,36 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
+#ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      const auto local_rho_arr  = local_rho[thread_num].array();
-            auto global_rho_arr = rhomf->array(pti);
-      amrex::ParallelFor(tile_box,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_rho_arr(i, j, k, icomp), local_rho_arr(i, j, k));
-      });
+      rhomf->atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
-    }
+#endif
+  }
 
   // Deposit charge for particles that are in the current buffers
   if (np_current < np)
-    {
+  {
       const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
       const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
       const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
 
+#ifdef AMREX_USE_GPU
+      data_ptr = (*crhomf)[pti].dataPtr();
+      auto rholen = (*crhomf)[pti].length();
+#else
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
       tile_box.grow(ngRho);
       local_rho[thread_num].resize(tile_box);
 
-      auto rhoarr = local_rho[thread_num].array();
-      amrex::ParallelFor(tile_box,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          rhoarr(i,j,k) = 0.0;
-      });
-
       data_ptr = local_rho[thread_num].dataPtr();
       auto rholen = local_rho[thread_num].length();
+
+      data_ptr->setVal(0.0);
+#endif
+
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -644,17 +594,13 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
+#ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      const auto local_rho_arr  = local_rho[thread_num].array();
-            auto global_rho_arr = crhomf->array(pti);
-      amrex::ParallelFor(tile_box,
-      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-      {
-          Gpu::Atomic::Add(&global_rho_arr(i, j, k, icomp), local_rho_arr(i, j, k));
-      });
-      
+      crhomf->atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+
       BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
     }
 };
 
