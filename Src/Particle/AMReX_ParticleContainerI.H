@@ -3402,6 +3402,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             std::string phdr_name = fullname;
             phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
             phdr_name += "/Particle_H";
+
+            if (not amrex::FileExists(phdr_name)) continue;
             
             Vector<char> phdr_chars;
             ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
