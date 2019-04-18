@@ -3395,7 +3395,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }        
     }
 
-    if (have_peaders)
+    if (have_pheaders)
     {
         for (int lev = 0; lev <= finest_level_in_file; lev++)
         {
