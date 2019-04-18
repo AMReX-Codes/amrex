@@ -188,7 +188,7 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         species.__setattr__('density_function(x,y,z)', self.density_expression)
 
         for k,v in self.user_defined_kw.items():
-            setattr(pywarpx.constants, k, v)
+            setattr(pywarpx.my_constants, k, v)
 
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"

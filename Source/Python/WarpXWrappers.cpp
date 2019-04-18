@@ -5,6 +5,7 @@
 #include <WarpXWrappers.h>
 #include <WarpXParticleContainer.H>
 #include <WarpX.H>
+#include <WarpXUtil.H>
 #include <WarpX_py.H>
 
 namespace 
@@ -168,6 +169,11 @@ extern "C"
 	auto & myspc = mypc.GetParticleContainer(speciesnumber);
         const int lev = 0;
 	myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+    }
+
+    void warpx_ConvertLabParamsToBoost()
+    {
+      ConvertLabParamsToBoost();
     }
 
     double warpx_getProbLo(int dir)

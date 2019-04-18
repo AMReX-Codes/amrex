@@ -1,6 +1,7 @@
 #include "PlasmaInjector.H"
 
 #include <sstream>
+#include <functional>
 
 #include <WarpXConst.H>
 #include <WarpX_f.H>
@@ -72,19 +73,31 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
 {
-    my_constants.ReadParameters();
-    parse_density_function = my_constants.replaceStringValue(parse_density_function);
-    const std::string s_var = "x,y,z";
-    parser_instance_number = parser_initialize_function(parse_density_function.c_str(),
-                                                        parse_density_function.length(),
-                                                        s_var.c_str(),
-                                                        s_var.length());
+    parser_density.define(parse_density_function);
+    parser_density.registerVariables({"x","y","z"});
+
+    ParmParse pp("my_constants");
+    std::set<std::string> symbols = parser_density.symbols();
+    symbols.erase("x");
+    symbols.erase("y");
+    symbols.erase("z"); // after removing variables, we are left with constants
+    for (auto it = symbols.begin(); it != symbols.end(); ) {
+        Real v;
+        if (pp.query(it->c_str(), v)) {
+            parser_density.setConstant(*it, v);
+            it = symbols.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (auto const& s : symbols) { // make sure there no unknown symbols
+        amrex::Abort("ParseDensityProfile: Unknown symbol "+s);
+    }
 }
 
 Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const
 {
-    std::array<amrex::Real, 3> list_var = {x,y,z};
-    return parser_evaluate_function(list_var.data(), 3, parser_instance_number);
+    return parser_density.eval(x,y,z);
 }
 
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
@@ -141,31 +154,39 @@ ParseMomentumFunction::ParseMomentumFunction(std::string parse_momentum_function
       _parse_momentum_function_uy(parse_momentum_function_uy),
       _parse_momentum_function_uz(parse_momentum_function_uz)
 {
-    const std::string s_var = "x,y,z";
-    my_constants.ReadParameters();
-    parse_momentum_function_ux = my_constants.replaceStringValue(parse_momentum_function_ux);
-    parse_momentum_function_uy = my_constants.replaceStringValue(parse_momentum_function_uy);
-    parse_momentum_function_uz = my_constants.replaceStringValue(parse_momentum_function_uz);
-    parser_instance_number_ux = parser_initialize_function(parse_momentum_function_ux.c_str(),
-                                                           parse_momentum_function_ux.length(),
-                                                           s_var.c_str(),
-                                                           s_var.length());
-    parser_instance_number_uy = parser_initialize_function(parse_momentum_function_uy.c_str(),
-                                                           parse_momentum_function_uy.length(),
-                                                           s_var.c_str(),
-                                                           s_var.length());
-    parser_instance_number_uz = parser_initialize_function(parse_momentum_function_uz.c_str(),
-                                                           parse_momentum_function_uz.length(),
-                                                           s_var.c_str(),
-                                                           s_var.length());
+    parser_ux.define(parse_momentum_function_ux);
+    parser_uy.define(parse_momentum_function_uy);
+    parser_uz.define(parse_momentum_function_uz);
+
+    amrex::Array<std::reference_wrapper<WarpXParser>,3> parsers{parser_ux, parser_uy, parser_uz};
+    ParmParse pp("my_constants");
+    for (auto& p : parsers) {
+        auto& parser = p.get();
+        parser.registerVariables({"x","y","z"});
+        std::set<std::string> symbols = parser.symbols();
+        symbols.erase("x");
+        symbols.erase("y");
+        symbols.erase("z"); // after removing variables, we are left with constants
+        for (auto it = symbols.begin(); it != symbols.end(); ) {
+            Real v;
+            if (pp.query(it->c_str(), v)) {
+                parser.setConstant(*it, v);
+                it = symbols.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        for (auto const& s : symbols) { // make sure there no unknown symbols
+            amrex::Abort("ParseMomentumFunction: Unknown symbol "+s);
+        }
+    }
 }
 
 void ParseMomentumFunction::getMomentum(vec3& u, Real x, Real y, Real z)
 {
-    std::array<amrex::Real, 3> list_var = {x,y,z};
-        u[0] = parser_evaluate_function(list_var.data(), 3, parser_instance_number_ux);
-        u[1] = parser_evaluate_function(list_var.data(), 3, parser_instance_number_uy);
-        u[2] = parser_evaluate_function(list_var.data(), 3, parser_instance_number_uz);
+    u[0] = parser_ux.eval(x,y,z);
+    u[1] = parser_uy.eval(x,y,z);
+    u[2] = parser_uz.eval(x,y,z);
 }
 
 RandomPosition::RandomPosition(int num_particles_per_cell):
@@ -313,8 +334,6 @@ void PlasmaInjector::parseDensity(ParmParse pp){
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
     } else if (rho_prof_s == "parse_density_function") {
-        // Serialize particle initialization
-        WarpX::serialize_ics = true;
         pp.get("density_function(x,y,z)", str_density_function);
         rho_prof.reset(new ParseDensityProfile(str_density_function));
     } else {
@@ -360,8 +379,6 @@ void PlasmaInjector::parseMomentum(ParmParse pp){
         pp.query("u_over_r", u_over_r);
         mom_dist.reset(new RadialExpansionMomentumDistribution(u_over_r));
     } else if (mom_dist_s == "parse_momentum_function") {
-        // Serialize particle initialization
-        WarpX::serialize_ics = true;
         pp.get("momentum_function_ux(x,y,z)", str_momentum_function_ux);
         pp.get("momentum_function_uy(x,y,z)", str_momentum_function_uy);
         pp.get("momentum_function_uz(x,y,z)", str_momentum_function_uz);

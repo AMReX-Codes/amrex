@@ -113,7 +113,9 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     particle_varnames.push_back("By");
     particle_varnames.push_back("Bz");
 
-    mypc->Checkpoint(plotfilename, true, particle_varnames);
+    Vector<std::string> int_names;
+        
+    mypc->Checkpoint(plotfilename, particle_varnames, int_names);
 
     WriteJobInfo(plotfilename);
 

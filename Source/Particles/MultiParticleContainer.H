@@ -127,10 +127,12 @@ public:
     ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void Checkpoint (const std::string& dir,
-		     bool is_checkpoint,
-                     const amrex::Vector<std::string>& varnames = amrex::Vector<std::string>()) const;
+    void Checkpoint (const std::string& dir) const;
 
+    void WritePlotFile( const std::string& dir,
+                        const amrex::Vector<int>& real_flags, 
+                        const amrex::Vector<std::string>& real_names) const;
+    
     void Restart (const std::string& dir);
 
     void PostRestart ();
