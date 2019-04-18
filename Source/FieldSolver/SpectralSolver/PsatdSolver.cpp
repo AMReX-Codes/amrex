@@ -4,54 +4,20 @@
 
 using namespace amrex;
 
-void
-AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim )
-{
-    // Alllocate k to the right size
-    int N = bx.length( i_dim );
-    k.resize( N );
-
-    // Fill the k vector
-    const Real PI = std::atan(1.0)*4;
-    const Real dk = 2*PI/(N*dx[i_dim]);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.smallEnd(i_dim) == 0,
-        "Expected box to start at 0, in spectral space.");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
-        "Expected different box end index in spectral space.");
-    // Fill positive values of k (FFT conventions: first half is positive)
-    for (int i=0; i<(N+1)/2; i++ ){
-        k[i] = i*dk;
-    }
-    // Fill negative values of k (FFT conventions: second half is negative)
-    for (int i=(N+1)/2; i<N; i++){
-        k[i] = (N-i)*dk;
-    }
-    // TODO: This should be quite different for the hybrid spectral code:
-    // In that case we should take into consideration the actual indices of the box
-    // and distinguish the size of the local box and that of the global FFT
-    // TODO: For real-to-complex,
-
-}
-
 /*
  * ba: BoxArray for spectral space
  * dm: DistributionMapping for spectral space
  */
-PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
-                          const Real* dx, const Real dt )
+PsatdSolver::PsatdSolver(const SpectralKSpace& spectral_kspace,
+                         const DistributionMapping& dm, const Real dt)
 {
     // Allocate the 1D vectors
-    kx_vec = SpectralVector( ba, dm );
-    ky_vec = SpectralVector( ba, dm );
-    kz_vec = SpectralVector( ba, dm );
-    for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
-        Box bx = ba[mfi];
-        AllocateAndFillKvector( kx_vec[mfi], bx, dx, 0 );
-        AllocateAndFillKvector( ky_vec[mfi], bx, dx, 1 );
-        AllocateAndFillKvector( kz_vec[mfi], bx, dx, 2 );
-    }
+    modified_kx_vec = spectral_kspace.getModifiedKVector( 0 );
+    modified_ky_vec = spectral_kspace.getModifiedKVector( 1 );
+    modified_kz_vec = spectral_kspace.getModifiedKVector( 2 );
 
     // Allocate the arrays of coefficients
+    const BoxArray& ba = spectral_kspace.spectralspace_ba;
     C_coef = SpectralCoefficients( ba, dm, 1, 0 );
     S_ck_coef = SpectralCoefficients( ba, dm, 1, 0 );
     X1_coef = SpectralCoefficients( ba, dm, 1, 0 );
@@ -65,9 +31,9 @@ PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
         const Box& bx = ba[mfi];
 
         // Extract pointers for the k vectors
-        const Real* kx = kx_vec[mfi].dataPtr();
-        const Real* ky = ky_vec[mfi].dataPtr();
-        const Real* kz = kz_vec[mfi].dataPtr();
+        const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
+        const Real* modified_ky = modified_ky_vec[mfi].dataPtr();
+        const Real* modified_kz = modified_kz_vec[mfi].dataPtr();
         // Extract arrays for the coefficients
         Array4<Real> C = C_coef[mfi].array();
         Array4<Real> S_ck = S_ck_coef[mfi].array();
@@ -80,7 +46,10 @@ PsatdSolver::PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             // Calculate norm of vector
-            const Real k_norm = std::sqrt( kx[i]*kx[i] + ky[j]*ky[j] + kz[k]*kz[k] );
+            const Real k_norm = std::sqrt(
+                std::pow( modified_kx[i], 2 ) +
+                std::pow( modified_ky[j], 2 ) +
+                std::pow( modified_kz[k], 2 ) );
 
             // Calculate coefficients
             constexpr Real c = PhysConst::c;
@@ -130,9 +99,9 @@ PsatdSolver::pushSpectralFields( SpectralData& f ) const{
         Array4<const Real> X2_arr = X2_coef[mfi].array();
         Array4<const Real> X3_arr = X3_coef[mfi].array();
         // Extract pointers for the k vectors
-        const Real* kx_arr = kx_vec[mfi].dataPtr();
-        const Real* ky_arr = ky_vec[mfi].dataPtr();
-        const Real* kz_arr = kz_vec[mfi].dataPtr();
+        const Real* modified_kx_arr = modified_kx_vec[mfi].dataPtr();
+        const Real* modified_ky_arr = modified_ky_vec[mfi].dataPtr();
+        const Real* modified_kz_arr = modified_kz_vec[mfi].dataPtr();
 
         // Loop over indices within one box
         ParallelFor( bx,
@@ -152,9 +121,9 @@ PsatdSolver::pushSpectralFields( SpectralData& f ) const{
             const Complex rho_old = rho_old_arr(i,j,k);
             const Complex rho_new = rho_new_arr(i,j,k);
             // k vector values, and coefficients
-            const Real kx = kx_arr[i];
-            const Real ky = ky_arr[j];
-            const Real kz = kz_arr[k];
+            const Real kx = modified_kx_arr[i];
+            const Real ky = modified_ky_arr[j];
+            const Real kz = modified_kz_arr[k];
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real inv_ep0 = 1./PhysConst::ep0;
             constexpr Complex I = Complex{0,1};

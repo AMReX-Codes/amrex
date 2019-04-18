@@ -1,14 +1,11 @@
 #ifndef WARPX_PSATD_SOLVER_H_
 #define WARPX_PSATD_SOLVER_H_
 
-#include <AMReX_REAL.H>
-#include <WarpX_Complex.H>
+#include <SpectralKSpace.H>
 #include <SpectralData.H>
 
 using namespace amrex;
 using namespace Gpu;
-
-using SpectralVector = LayoutData<ManagedVector<Real>>;
 
 /* TODO: Write documentation
 */
@@ -17,12 +14,13 @@ class PsatdSolver
     using SpectralCoefficients = FabArray<BaseFab<Real>>;
 
     public:
-        PsatdSolver( const BoxArray& ba, const DistributionMapping& dm,
-                     const Real* dx, const Real dt );
+        PsatdSolver( const SpectralKSpace& spectral_kspace,
+                     const DistributionMapping& dm, Real dt );
         void pushSpectralFields( SpectralData& f ) const;
 
     private:
-        SpectralVector kx_vec, ky_vec, kz_vec;
+        // Modified finite-order vectors
+        SpectralKVector modified_kx_vec, modified_ky_vec, modified_kz_vec;
         SpectralCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
 };
 

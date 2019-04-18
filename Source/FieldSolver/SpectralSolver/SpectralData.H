@@ -33,12 +33,12 @@ class SpectralData
                       const DistributionMapping& dm );
         ~SpectralData();
         void ForwardTransform( const MultiFab& mf, const int field_index );
-        void InverseTransform( MultiFab& mf, const int field_index );
+        void BackwardTransform( MultiFab& mf, const int field_index );
 
     private:
         SpectralField Ex, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new;
         SpectralField tmpRealField, tmpSpectralField; // Store fields before/after transform
-        FFTplans forward_plan, inverse_plan;
+        FFTplans forward_plan, backward_plan;
         SpectralField& getSpectralField( const int field_index );
 };
 

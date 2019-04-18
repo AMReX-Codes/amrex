@@ -1,7 +1,10 @@
 CEXE_headers += WarpX_Complex.H
 CEXE_headers += SpectralData.H
+CEXE_sources += SpectralData.cpp
 CEXE_headers += PsatdSolver.H
 CEXE_sources += PsatdSolver.cpp
+CEXE_headers += SpectralKSpace.H
+CEXE_sources += SpectralKSpace.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver

@@ -25,7 +25,7 @@ SpectralData::SpectralData( const BoxArray& realspace_ba,
 
     // Allocate and initialize the FFT plans
     forward_plan = FFTplans(spectralspace_ba, dm);
-    inverse_plan = FFTplans(spectralspace_ba, dm);
+    backward_plan = FFTplans(spectralspace_ba, dm);
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Box bx = spectralspace_ba[mfi];
 #ifdef AMREX_USE_GPU
@@ -38,7 +38,7 @@ SpectralData::SpectralData( const BoxArray& realspace_ba,
             reinterpret_cast<fftw_complex*>( tmpRealField[mfi].dataPtr() ),
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
             FFTW_FORWARD, FFTW_ESTIMATE );
-        inverse_plan[mfi] = fftw_plan_dft_3d(
+        backward_plan[mfi] = fftw_plan_dft_3d(
             // Swap dimensions: AMReX data is Fortran-order, but FFTW is C-order
             bx.length(2), bx.length(1), bx.length(0),
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
@@ -60,7 +60,7 @@ SpectralData::~SpectralData()
 #else
         // Destroy FFTW plans
         fftw_destroy_plan( forward_plan[mfi] );
-        fftw_destroy_plan( inverse_plan[mfi] );
+        fftw_destroy_plan( backward_plan[mfi] );
 #endif
     }
 }
@@ -156,7 +156,7 @@ SpectralData::BackwardTransform( MultiFab& mf, const int field_index )
             Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                mf_arr(i,j,k) = tmp_arr(i,j,k);
+                mf_arr(i,j,k) = tmp_arr(i,j,k).real();
             });
         }
     }
