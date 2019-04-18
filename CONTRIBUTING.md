@@ -74,8 +74,82 @@ run the tests on CPU or GPU respectively.
 
 ### Submit a Pull Request
 
+A Pull Request (PR) is the way to efficiently visualize the changes you made 
+and to propose your new feature/bug fix/improvement to the WarpX project. 
+Right after you pushed changes, a banner should appear on the 
+[WarpX repo](https://github.com/ECP-WarpX/WarpX) with <branch_name>. 
+- Click on the `compare & pull request` button to prepare your PR. 
+- Change the PR destination from `master` to `dev`. 
+- It is time to communicate your changes: write a title and a description for 
+your PR. People who review your PR are happy to know
+..* what changes you made, and why
+..* how you made it (created a new class than inherits from...)
+..* and anything relevant to your PR (performance tests, images, *etc.*)
+- Press `Create pull request`. Now you can navigate through you PR, which 
+highlights the changes you made.
+
+Pull Requests DO NOT have to be large: it is much easier to review small 
+targeted PRs than a huge chunk of code, so feel free to split your work 
+in small pieces.
+
+Even before your work is ready to merge, it can be convenient to create a PR 
+(so you can use Github tools to visualize your changes). In this case, please 
+put the `[WIP]` tag (for Work In Progress) at the beginning of the PR title.
+
 #### Include a test to your PR
+
+A new feature is great, a **working** new feature is even better! Please test 
+your code and add your test to the automated test suite. It's the way to 
+protect your work from adventurous developers. There are three steps to follow 
+to add a new automated test (illustrated here for PML boundary conditions):
+- An input file for your test, in folder `Example/Tests/...`. For the PML 
+test, the input file is at 
+[Examples/Tests/PML/inputs2d](./Examples/Tests/PML/inputs2d). You can also 
+re-use an existing input file (even better!) and pass specific parameters at 
+runtime (see below).
+- A Python script that reads simulation output and tests correctness versus 
+theory or calibrated results. For the PML test, see
+[/Examples/Tests/PML/analysis_pml.py](/Examples/Tests/PML/analysis_pml.py). 
+It typically ends with Python statement `assert( error<0.01 )`.
+- Add an entry to [Regression/WarpX-tests.ini](./Regression/WarpX-tests.ini), 
+so that a WarpX simulation runs the example in the continuous integration 
+process on [Travis CI](https://docs.travis-ci.com/user/tutorial/), and the 
+Python script is executed to assess the correctness. For the PML test, the 
+entry is
+```
+[pml_x_yee]
+buildDir = .
+inputFile = Examples/Tests/PML/inputs2d
+runtime_params = warpx.do_dynamic_scheduling=0 algo.maxwell_fdtd_solver=yee
+dim = 2
+addToCompileString =
+restartTest = 0
+useMPI = 1
+numprocs = 2
+useOMP = 1
+numthreads = 2
+compileTest = 0
+doVis = 0
+analysisRoutine = Examples/Tests/PML/analysis_pml_yee.py
+```
+If you re-use an existing input file, you can add arguments to 
+`runtime_params`, like 
+`runtime_params = amr.max_level=1 amr.n_cell=32 512 max_step=100 plasma_e.zmin=-200.e-6`
+.
 
 #### Include documentation to your PR
 
+Now, let users know about your new feature by adding it to the 
+[WarpX documentation](https://ecp-warpx.github.io). Our documentation uses 
+[Sphinx](http://www.sphinx-doc.org/en/master/usage/quickstart.html), and it is 
+located in `Docs/`. For instance, if you introduce a new runtime parameter in 
+the input file, you can add it to 
+[Docs/source/running_cpp/parameters.rst](Docs/source/running_cpp/parameters.rst).
+
+Once your code is ready, with documentation and automated test, you can create 
+the PR (or remove the [WIP] tag if you already created it). Reviewers will 
+interact with you if they have comments/questions.
+
 ## Style and conventions
+- For indentation, WarpX uses four spaces (no tabs)
+- 
