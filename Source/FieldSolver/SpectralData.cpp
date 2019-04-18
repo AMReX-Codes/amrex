@@ -1,11 +1,21 @@
-#include<WarpXComplex.H>
-#include<AMReX_FabArray.H>
+#include <WarpXComplex.H>
+#include <AMReX_FabArray.H>
+#include <AMReX_MFIter.H>
+#include <AMReX_MultiFab.H>
 
 using namespace amrex;
 
+// Declare spectral types
+using SpectralField = FabArray<BaseFab<Complex>>;
+#ifdef AMREX_USE_GPU
+// Add cuFFT-specific code
+#else
+using FFTplans = LayoutData<fftw_plan>;
+#endif
+
 /* Fields that will be stored in spectral space */
 struct SpectralFieldIndex{
-    enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new }
+    enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new };
 };
 
 /* \brief Class that stores the fields in spectral space
@@ -13,25 +23,19 @@ struct SpectralFieldIndex{
  */
 class SpectralData
 {
-    using SpectralField = FabArray<BaseFab<Complex>>;
-#ifdef AMREX_USE_GPU
-    // Add cuFFT-specific code
-#else
-    using FFTplans = LayoutData<fftw_plan>;
-#endif
-
     public:
         SpectralData( const BoxArray& realspace_ba,
                       const BoxArray& spectralspace_ba,
                       const DistributionMapping& dm );
         ~SpectralData();
-        void ForwardTransform( const MultiFab& mf, const std::string& field_name );
-        void InverseTransform( MultiFab& mf, const std::string& field_name );
+        void ForwardTransform( const MultiFab& mf, const int field_index );
+        void InverseTransform( MultiFab& mf, const int field_index );
 
     private:
         SpectralField Ex, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new;
         SpectralField tmpRealField, tmpSpectralField; // Store fields before/after transform
         FFTplans forward_plan, inverse_plan;
+        SpectralField& getSpectralField( const int field_index );
 };
 
 
@@ -102,7 +106,7 @@ SpectralData::~SpectralData()
  * Example: ForwardTransform( Efield_cp[0], SpectralFieldIndex::Ex )
  */
 void
-ForwardTransform( const MultiFab& mf, const int field_index )
+SpectralData::ForwardTransform( const MultiFab& mf, const int field_index )
 {
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
@@ -112,14 +116,17 @@ ForwardTransform( const MultiFab& mf, const int field_index )
         // before the Fourier transform.
         // As a consequence, the copy discards the *last* point of `mf`
         // in any direction that has *nodal* index type.
-        const Box realspace_bx = mf[mfi].box().enclosedCells(); // discards last point in each nodal direction
-        AMREX_ALWAYS_ASSERT( realspace_bx == tmpRealField[mfi].box() );
-        const Array4<Real> mf_arr = mf[mfi].array();
-        Array4<Complex> tmp_arr = tmpRealField[mfi].array();
-        ParallelFor( realspace_bx,
-        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-            tmp_arr(i,j,k) = mf_arr(i,j,k);
-        });
+        {
+            Box bx = mf[mfi].box();
+            const Box realspace_bx = bx.enclosedCells(); // discards last point in each nodal direction
+            AMREX_ALWAYS_ASSERT( realspace_bx == tmpRealField[mfi].box() );
+            Array4<const Real> mf_arr = mf[mfi].array();
+            Array4<Complex> tmp_arr = tmpRealField[mfi].array();
+            ParallelFor( realspace_bx,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                tmp_arr(i,j,k) = mf_arr(i,j,k);
+            });
+        }
 
         // Perform Fourier transform from `tmpRealField` to `tmpSpectralField`
 #ifdef AMREX_USE_GPU
@@ -131,20 +138,22 @@ ForwardTransform( const MultiFab& mf, const int field_index )
 
         // Copy the spectral-space field `tmpSpectralField` to the appropriate field
         // (specified by the input argument field_index )
-        SpectralField& field = getSpectralField( field_index );
-        Array4<Complex> field_arr = field[mfi].array();
-        const Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
-        const Box spectralspace_bx = tmpSpectralField[mfi].box();
-        ParallelFor( spectralspace_bx,
-        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-            field_arr(i,j,k) = tmp_arr(i,j,k);
-        });
+        {
+            SpectralField& field = getSpectralField( field_index );
+            Array4<Complex> field_arr = field[mfi].array();
+            Array4<const Complex> tmp_arr = tmpSpectralField[mfi].array();
+            const Box spectralspace_bx = tmpSpectralField[mfi].box();
+            ParallelFor( spectralspace_bx,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                field_arr(i,j,k) = tmp_arr(i,j,k);
+            });
+        }
     }
 }
 
 
 SpectralField&
-getSpectralField( const int field_index )
+SpectralData::getSpectralField( const int field_index )
 {
     switch(field_index)
     {
@@ -159,5 +168,6 @@ getSpectralField( const int field_index )
         case SpectralFieldIndex::Jz : return Jz;
         case SpectralFieldIndex::rho_old : return rho_old;
         case SpectralFieldIndex::rho_new : return rho_new;
+        default : return tmpSpectralField; // For synthax; should not occur in practice
     }
 }
