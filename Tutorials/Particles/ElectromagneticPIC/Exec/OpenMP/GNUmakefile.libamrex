@@ -22,7 +22,7 @@ vpath %.H   . ../../Source
 
 default: main.exe
 
-main.exe: main.o Evolve.o EMParticleContainer.o em_pic_3d.o NodalFlags.o IO.o
+main.exe: main.o Evolve.o EMParticleContainer.o EMParticleContainerInit.o em_pic_3d.o NodalFlags.o IO.o
 	$(FC) -o $@ $(FFLAGS) $^ $(LDFLAGS)
 
 main.o: main.cpp EMParticleContainer.H Evolve.H NodalFlags.H Constants.H IO.H
@@ -31,7 +31,10 @@ main.o: main.cpp EMParticleContainer.H Evolve.H NodalFlags.H Constants.H IO.H
 Evolve.o: Evolve.cpp Constants.H em_pic_F.H
 	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
 
-EMParticleContainer.o: EMParticleContainer.cpp
+EMParticleContainer.o: EMParticleContainer.cpp EMParticleContainer.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+EMParticleContainerInit.o: EMParticleContainerInit.cpp EMParticleContainer.H
 	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
 
 em_pic_3d.o : em_pic_3d.F90 em_pic_F.H
