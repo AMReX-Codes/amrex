@@ -3,6 +3,11 @@
 
 using namespace amrex;
 
+/* Fields that will be stored in spectral space */
+struct SpectralFieldIndex{
+    enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new }
+};
+
 /* \brief Class that stores the fields in spectral space
  *  and performs the spectral transforms to/from real space
  */
@@ -93,9 +98,11 @@ SpectralData::~SpectralData()
     }
 }
 
-
+/* TODO: Documentation
+ * Example: ForwardTransform( Efield_cp[0], SpectralFieldIndex::Ex )
+ */
 void
-ForwardTransform( const MultiFab& mf, const std::string& field_name )
+ForwardTransform( const MultiFab& mf, const int field_index )
 {
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
@@ -123,12 +130,34 @@ ForwardTransform( const MultiFab& mf, const std::string& field_name )
 #endif
 
         // Copy the spectral-space field `tmpSpectralField` to the appropriate field
-        const Box spectralspace_bx = tmpSpectralField[mfi].box();
+        // (specified by the input argument field_index )
+        SpectralField& field = getSpectralField( field_index );
+        Array4<Complex> field_arr = field[mfi].array();
         const Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
-        Array4<Complex> field_arr = Ex[mfi].array(); // TODO: Pick the right field
+        const Box spectralspace_bx = tmpSpectralField[mfi].box();
         ParallelFor( spectralspace_bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
             field_arr(i,j,k) = tmp_arr(i,j,k);
         });
+    }
+}
+
+
+SpectralField&
+getSpectralField( const int field_index )
+{
+    switch(field_index)
+    {
+        case SpectralFieldIndex::Ex : return Ex;
+        case SpectralFieldIndex::Ey : return Ey;
+        case SpectralFieldIndex::Ez : return Ez;
+        case SpectralFieldIndex::Bx : return Bx;
+        case SpectralFieldIndex::By : return By;
+        case SpectralFieldIndex::Bz : return Bz;
+        case SpectralFieldIndex::Jx : return Jx;
+        case SpectralFieldIndex::Jy : return Jy;
+        case SpectralFieldIndex::Jz : return Jz;
+        case SpectralFieldIndex::rho_old : return rho_old;
+        case SpectralFieldIndex::rho_new : return rho_new;
     }
 }
