@@ -115,6 +115,54 @@ SpectralData::ForwardTransform( const MultiFab& mf, const int field_index )
 }
 
 
+/* TODO: Documentation
+ */
+void
+SpectralData::BackwardTransform( MultiFab& mf, const int field_index )
+{
+    // Loop over boxes
+    for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
+
+        // Copy the appropriate field (specified by the input argument field_index)
+        // to the spectral-space field `tmpSpectralField`
+        {
+            SpectralField& field = getSpectralField( field_index );
+            Array4<const Complex> field_arr = field[mfi].array();
+            Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
+            const Box spectralspace_bx = tmpSpectralField[mfi].box();
+            ParallelFor( spectralspace_bx,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                tmp_arr(i,j,k) = field_arr(i,j,k);
+            });
+        }
+
+        // Perform Fourier transform from `tmpSpectralField` to `tmpRealField`
+#ifdef AMREX_USE_GPU
+        // Add cuFFT-specific code ; make sure that this is done on the same
+        // GPU stream as the above copy
+#else
+        fftw_execute( backward_plan[mfi] );
+#endif
+
+        // Copy the temporary field `tmpRealField` to the real-space field `mf`
+        // The copy does *not* fill the *last* point of `mf`
+        // in any direction that has *nodal* index type (but this point is
+        // in the guard cells and will be filled by guard cell exchange)
+        {
+            Box bx = mf[mfi].box();
+            const Box realspace_bx = bx.enclosedCells(); // discards last point in each nodal direction
+            AMREX_ALWAYS_ASSERT( realspace_bx == tmpRealField[mfi].box() );
+            Array4<Real> mf_arr = mf[mfi].array();
+            Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
+            ParallelFor( realspace_bx,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                mf_arr(i,j,k) = tmp_arr(i,j,k);
+            });
+        }
+    }
+}
+
+
 SpectralField&
 SpectralData::getSpectralField( const int field_index )
 {
