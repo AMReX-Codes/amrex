@@ -186,7 +186,8 @@ public:
     
         // Now we can allocate and build our neighbor list
         
-        const size_t total_nbors = thrust::reduce(m_nbor_counts.begin(), m_nbor_counts.end());
+        const size_t total_nbors = thrust::reduce(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                                  m_nbor_counts.begin(), m_nbor_counts.end());
         m_nbor_offsets.resize(0);
         m_nbor_offsets.resize(np + 1, total_nbors);
         unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
