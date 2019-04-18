@@ -1,7 +1,7 @@
 #ifndef WARPX_PSATD_SOLVER_H_
 #define WARPX_PSATD_SOLVER_H_
 
-#include <AMREX_Real.H>
+#include <AMReX_REAL.H>
 #include <WarpX_Complex.H>
 #include <SpectralData.H>
 
