@@ -241,9 +241,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       jy_ptr = local_jy[thread_num].dataPtr();
       jz_ptr = local_jz[thread_num].dataPtr();
       
-      jx_ptr->setVal(0.0);
-      jy_ptr->setVal(0.0);
-      jz_ptr->setVal(0.0);
+      local_jx[thread_num].setVal(0.0);
+      local_jy[thread_num].setVal(0.0);
+      local_jz[thread_num].setVal(0.0);
 
       auto jxntot = local_jx[thread_num].length();
       auto jyntot = local_jy[thread_num].length();
@@ -333,9 +333,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      jx.atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-      jy.atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-      jz.atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+      jx[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+      jy[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+      jz[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -373,9 +373,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       jy_ptr = local_jy[thread_num].dataPtr();
       jz_ptr = local_jz[thread_num].dataPtr();
 
-      jx_ptr->setVal(0.0);
-      jy_ptr->setVal(0.0);
-      jz_ptr->setVal(0.0);
+      local_jx[thread_num].setVal(0.0);
+      local_jy[thread_num].setVal(0.0);
+      local_jz[thread_num].setVal(0.0);
 
       auto jxntot = local_jx[thread_num].length();
       auto jyntot = local_jy[thread_num].length();
@@ -468,9 +468,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      cjx.atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-      cjy.atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-      cjz.atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+      (*cjx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+      (*cjy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+      (*cjz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -513,7 +513,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       data_ptr = local_rho[thread_num].dataPtr();
       auto rholen = local_rho[thread_num].length();
 
-      data_ptr->setVal(0.0);
+      local_rho[thread_num].setVal(0.0);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -542,7 +542,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 #ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      rhomf->atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+      (*rhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -566,7 +566,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       data_ptr = local_rho[thread_num].dataPtr();
       auto rholen = local_rho[thread_num].length();
 
-      data_ptr->setVal(0.0);
+      local_rho[thread_num].setVal(0.0);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -597,7 +597,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 #ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      crhomf->atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+      (*crhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
