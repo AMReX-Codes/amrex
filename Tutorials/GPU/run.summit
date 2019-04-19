@@ -40,11 +40,13 @@ JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
 INPUTS=inputs_3d
 
 # Runtime flags
-# --smpiargs="gpu": Allows CUDA-aware MPI functionality on Summitdev.
+# --smpiargs="gpu": Allows CUDA-aware MPI functionality.
+#                   Only needed if amrex.use_gpu_aware_mpi=1.
+#                   Requires using one resource set per node.
+#                   RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
 # --alloc_flags gpumps: Turn on MPS. Needed when running multiple MPI ranks per GPU. 
 
 # 1. Run normally
-#${JSRUN} --smpiargs="gpu" ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 ${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprov.{jobid}
