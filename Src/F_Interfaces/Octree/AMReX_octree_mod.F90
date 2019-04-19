@@ -9,7 +9,7 @@ module amrex_octree_module
   private
 
   public :: amrex_octree_init, amrex_octree_finalize, amrex_octree_iter_build, &
-       amrex_octree_iter_destroy
+       amrex_octree_iter_destroy, amrex_octree_average_down_leaves
 
   type, public :: amrex_octree_iter
      integer, private :: begin_index    = 0
@@ -29,6 +29,11 @@ module amrex_octree_module
 
   type(node), allocatable :: leaf_nodes(:)
 
+  interface amrex_octree_average_down_leaves
+     module procedure amrex_octree_average_down_leaves_all
+     module procedure amrex_octree_average_down_leaves_level
+  end interface amrex_octree_average_down_leaves
+
   interface
      subroutine amrex_fi_init_octree () bind(c)
      end subroutine amrex_fi_init_octree
@@ -47,6 +52,13 @@ module amrex_octree_module
        type(c_ptr), value :: leaves
        type(node), intent(inout) :: leaves_copy(*)
      end subroutine amrex_fi_copy_octree_leaves
+
+     subroutine amrex_fi_octree_average_down_level (amr, flev, fine, coarse) bind(c)
+       import
+       implicit none
+       integer, intent(in), value :: flev
+       type(c_ptr), intent(in), value :: amr, fine, coarse
+     end subroutine amrex_fi_octree_average_down_level
   end interface
 
 contains
@@ -131,5 +143,22 @@ contains
     ba = amrex_get_boxarray(leaf_nodes(this%current_index)%level)
     amrex_octree_iter_box = ba%get_box(leaf_nodes(this%current_index)%grid)
   end function amrex_octree_iter_box
-  
+
+  subroutine amrex_octree_average_down_leaves_all (mfs)
+    type(amrex_multifab), intent(inout) :: mfs(0:)
+    integer :: ilev
+    do ilev = amrex_max_level, 1, -1
+       call amrex_octree_average_down_leaves_level(ilev, mfs(ilev), mfs(ilev-1));
+    end do
+  end subroutine amrex_octree_average_down_leaves_all
+
+  subroutine amrex_octree_average_down_leaves_level (flev, fine, coarse)
+    integer, intent(in) :: flev
+    type(amrex_multifab), intent(in) :: fine
+    type(amrex_multifab), intent(inout) :: coarse
+    type(c_ptr) :: amrcore
+    amrcore = amrex_get_amrcore()
+    call amrex_fi_octree_average_down_level(amrcore, flev, fine%p, coarse%p)
+  end subroutine amrex_octree_average_down_leaves_level
+
 end module amrex_octree_module
