@@ -400,45 +400,73 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     BL_PROFILE_VAR_STOP(blp_copy);
 
     BL_PROFILE_VAR_START(blp_push_eb);
-    if (Efield_fp_fft[lev][0]->local_size() == 1)
-       //Only one FFT patch on this MPI
-    {
-	for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
-	{
-            warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
-                              WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
-                              WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],0),
-                              WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],1));
-	}
-    }
-    else if (Efield_fp_fft[lev][0]->local_size() == 0)
-      // No FFT patch on this MPI rank
-      // Still need to call the MPI-FFT routine.
-    {
-	FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
-	warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab));
-    }
-    else
-      // Multiple FFT patches on this MPI rank
-    {
-	amrex::Abort("WarpX::PushPSATD: TODO");
+    if (fft_hybrid_mpi_decomposition){
+        if (Efield_fp_fft[lev][0]->local_size() == 1)
+           //Only one FFT patch on this MPI
+        {
+        	for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
+        	{
+                    warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
+                                      WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
+                                      WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],0),
+                                      WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],1));
+        	}
+        }
+        else if (Efield_fp_fft[lev][0]->local_size() == 0)
+          // No FFT patch on this MPI rank
+          // Still need to call the MPI-FFT routine.
+        {
+        	FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
+        	warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab),
+        			  WARPX_TO_FORTRAN_ANYD(fab));
+        }
+        else
+          // Multiple FFT patches on this MPI rank
+        {
+    	amrex::Abort("WarpX::PushPSATD: TODO");
+        }
+    } else {
+        // Not using the hybrid decomposition
+        auto& solver = *spectral_solver_fp[lev];
+
+        // Perform forward Fourier transform
+        solver.ForwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
+        solver.ForwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
+        solver.ForwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
+        solver.ForwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
+        solver.ForwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
+        solver.ForwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
+        solver.ForwardTransform(*current_fp_fft[lev][0], SpectralFieldIndex::Jx);
+        solver.ForwardTransform(*current_fp_fft[lev][1], SpectralFieldIndex::Jy);
+        solver.ForwardTransform(*current_fp_fft[lev][2], SpectralFieldIndex::Jz);
+        // TODO: Transform rho
+
+        // Advance fields in spectral space
+        solver.pushSpectralFields();
+
+        // Perform backward Fourier Transform
+        solver.BackwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
+        solver.BackwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
+        solver.BackwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
+        solver.BackwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
+        solver.BackwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
+        solver.BackwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
