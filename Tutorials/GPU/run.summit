@@ -30,6 +30,11 @@ set -x
 #         3  GPUs per socket (6 total)
 #         21 CPUs per socket (42 total)
 #         4  Hardware Threads per CPU (168 total)
+#
+# On Summit: Recommended initial configuration:
+#             one GPU per MPI rank,
+#             one resource set per socket.
+#             (-r2 -c21 -g3 -a3)
 # =====================
  
 omp=1
