@@ -173,16 +173,23 @@ extern "C" {
 
     void amrex_fi_octree_average_down_level (AmrCore* const amrcore, int flev,
                                              MultiFab const * const fine,
-                                             MultiFab * const crse)
+                                             MultiFab * const crse,
+                                             int scomp, int ncomp)
     {
         FAmrCore* famrcore = dynamic_cast<FAmrCore*>(amrcore);
         const BoxArray& lba = famrcore->octree_leaf_grids[flev];
         const DistributionMapping& ldm = famrcore->octree_leaf_dmap[flev];
         const Vector<int>& li_leaf_to_full = famrcore->octree_li_leaf_to_full[flev];
-        const int ncomp = fine->nComp();
         const IntVect& rr = famrcore->refRatio(flev-1);
 
         MultiFab lmf(amrex::coarsen(lba,rr),ldm,ncomp,0);
+
+        MultiFab fvolume;
+        if (!Geometry::IsCartesian())
+        {
+            const Geometry& fgeom = famrcore->Geom(flev);
+            fgeom.GetVolume(fvolume, lba, ldm, 0);
+        }
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -193,12 +200,21 @@ extern "C" {
             FArrayBox * crsefab = lmf.fabPtr(mfi);
             const int li = li_leaf_to_full[mfi.LocalIndex()];
             FArrayBox const* finefab = fine->fabPtrAtLocalIdx(li);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-            {
-                amrex_avgdown(tbx,*crsefab,*finefab,0,0,ncomp,rr);
-            });
+            if (Geometry::IsCartesian()) {
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,rr);
+                });
+            } else {
+                FArrayBox const* finevolfab = fvolume.fabPtr(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown_with_vol(tbx,*crsefab,*finefab,*finevolfab,
+                                           0,scomp,ncomp,rr);
+                });
+            }
         }
 
-        crse->ParallelCopy(lmf);
+        crse->ParallelCopy(lmf,0,scomp,ncomp);
     }
 }

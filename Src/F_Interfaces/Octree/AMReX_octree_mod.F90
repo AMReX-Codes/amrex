@@ -31,7 +31,9 @@ module amrex_octree_module
 
   interface amrex_octree_average_down_leaves
      module procedure amrex_octree_average_down_leaves_all
+     module procedure amrex_octree_average_down_leaves_all_comp
      module procedure amrex_octree_average_down_leaves_level
+     module procedure amrex_octree_average_down_leaves_level_comp
   end interface amrex_octree_average_down_leaves
 
   interface
@@ -53,10 +55,11 @@ module amrex_octree_module
        type(node), intent(inout) :: leaves_copy(*)
      end subroutine amrex_fi_copy_octree_leaves
 
-     subroutine amrex_fi_octree_average_down_level (amr, flev, fine, coarse) bind(c)
+     subroutine amrex_fi_octree_average_down_level &
+          (amr, flev, fine, coarse, scomp, ncomp) bind(c)
        import
        implicit none
-       integer, intent(in), value :: flev
+       integer, intent(in), value :: flev, scomp, ncomp
        type(c_ptr), intent(in), value :: amr, fine, coarse
      end subroutine amrex_fi_octree_average_down_level
   end interface
@@ -144,21 +147,42 @@ contains
     amrex_octree_iter_box = ba%get_box(leaf_nodes(this%current_index)%grid)
   end function amrex_octree_iter_box
 
+  ! average down all components for all levels
   subroutine amrex_octree_average_down_leaves_all (mfs)
     type(amrex_multifab), intent(inout) :: mfs(0:)
-    integer :: ilev
-    do ilev = amrex_max_level, 1, -1
-       call amrex_octree_average_down_leaves_level(ilev, mfs(ilev), mfs(ilev-1));
-    end do
+    call amrex_octree_average_down_leaves_all_comp(mfs, 0, mfs(0)%ncomp())
   end subroutine amrex_octree_average_down_leaves_all
 
+  ! average down ncomp components starting from component scomp for all levels
+  subroutine amrex_octree_average_down_leaves_all_comp(mfs, scomp, ncomp)
+    type(amrex_multifab), intent(inout) :: mfs(0:)
+    integer, intent(in) :: scomp, ncomp
+    integer :: ilev
+    do ilev = amrex_max_level, 1, -1
+       call amrex_octree_average_down_leaves_level_comp(ilev, &
+            mfs(ilev), mfs(ilev-1), scomp, ncomp)
+    end do
+  end subroutine amrex_octree_average_down_leaves_all_comp
+
+  ! average down flev to flev-1 for all component
   subroutine amrex_octree_average_down_leaves_level (flev, fine, coarse)
     integer, intent(in) :: flev
     type(amrex_multifab), intent(in) :: fine
     type(amrex_multifab), intent(inout) :: coarse
+    call amrex_octree_average_down_leaves_level_comp(flev, &
+         fine, coarse, 0, fine%ncomp())
+  end subroutine amrex_octree_average_down_leaves_level
+
+  ! average down flev to flev-1 for components [scomp, scomp+ncomp-1]
+  subroutine amrex_octree_average_down_leaves_level_comp &
+       (flev, fine, coarse, scomp, ncomp)
+    integer, intent(in) :: flev, scomp, ncomp
+    type(amrex_multifab), intent(in) :: fine
+    type(amrex_multifab), intent(inout) :: coarse
     type(c_ptr) :: amrcore
     amrcore = amrex_get_amrcore()
-    call amrex_fi_octree_average_down_level(amrcore, flev, fine%p, coarse%p)
-  end subroutine amrex_octree_average_down_leaves_level
+    call amrex_fi_octree_average_down_level &
+         (amrcore, flev, fine%p, coarse%p, scomp-1, ncomp) ! -1 for C++
+  end subroutine amrex_octree_average_down_leaves_level_comp
 
 end module amrex_octree_module
