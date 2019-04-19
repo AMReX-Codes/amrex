@@ -24,6 +24,11 @@ ifeq ($(USE_HYPRE),TRUE)
       Pdirs += Extern/HYPRE
    endif
 endif
+ifeq ($(USE_PETSC),TRUE)
+   ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+      Pdirs += Extern/PETSc
+   endif
+endif
 ifeq ($(USE_SENSEI_INSITU),TRUE)
 	Pdirs += Extern/SENSEI
 endif
