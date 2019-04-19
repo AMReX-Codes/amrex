@@ -3381,29 +3381,47 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Determine whether this is a dual-grid restart or not.
     Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
     bool dual_grid = false;
-    for (int lev = 0; lev <= finest_level_in_file; lev++) {
+
+    bool have_pheaders = false;
+    for (int lev = 0; lev <= finest_level_in_file; lev++)
+    {
         std::string phdr_name = fullname;
         phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
         phdr_name += "/Particle_H";
-        
-        if (not amrex::FileExists(phdr_name)) {
-            dual_grid = false;
-            break;
-        }
-        
-        Vector<char> phdr_chars;
-        ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
-        std::string phdr_string(phdr_chars.dataPtr());
-        std::istringstream phdr_file(phdr_string, std::istringstream::in);
 
-        if (lev > finestLevel())
-        {
-            dual_grid = true;
+        if (amrex::FileExists(phdr_name)) {
+            have_pheaders = true;
             break;
-        }
+        }        
+    }
+
+    if (have_pheaders)
+    {
+        for (int lev = 0; lev <= finest_level_in_file; lev++)
+        {
+            std::string phdr_name = fullname;
+            phdr_name = amrex::Concatenate(phdr_name + "/Level_", lev, 1);
+            phdr_name += "/Particle_H";
+
+            if (not amrex::FileExists(phdr_name)) continue;
+            
+            Vector<char> phdr_chars;
+            ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
+            std::string phdr_string(phdr_chars.dataPtr());
+            std::istringstream phdr_file(phdr_string, std::istringstream::in);
+            
+            if (lev > finestLevel())
+            {
+                dual_grid = true;
+                break;
+            }
         
-        particle_box_arrays[lev].readFrom(phdr_file);
-        if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) dual_grid = true;
+            particle_box_arrays[lev].readFrom(phdr_file);
+            if (not particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) dual_grid = true;
+        }
+    } else // if no particle box array information exists in the file, we assume a single grid restart
+    {
+        dual_grid = false;
     }
 
     if (dual_grid) {
@@ -3488,7 +3506,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             
             std::ifstream ParticleFile;
             
-            ParticleFile.open(name.c_str(), std::ios::in);
+            ParticleFile.open(name.c_str(), std::ios::in | std::ios::binary);
             
             if (!ParticleFile.good())
                 amrex::FileOpenFailed(name);
