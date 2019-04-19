@@ -150,7 +150,7 @@ contains
   ! average down all components for all levels
   subroutine amrex_octree_average_down_leaves_all (mfs)
     type(amrex_multifab), intent(inout) :: mfs(0:)
-    call amrex_octree_average_down_leaves_all_comp(mfs, 0, mfs(0)%ncomp())
+    call amrex_octree_average_down_leaves_all_comp(mfs, 1, mfs(0)%ncomp())
   end subroutine amrex_octree_average_down_leaves_all
 
   ! average down ncomp components starting from component scomp for all levels
@@ -170,7 +170,7 @@ contains
     type(amrex_multifab), intent(in) :: fine
     type(amrex_multifab), intent(inout) :: coarse
     call amrex_octree_average_down_leaves_level_comp(flev, &
-         fine, coarse, 0, fine%ncomp())
+         fine, coarse, 1, fine%ncomp())
   end subroutine amrex_octree_average_down_leaves_level
 
   ! average down flev to flev-1 for components [scomp, scomp+ncomp-1]
