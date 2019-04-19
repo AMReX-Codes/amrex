@@ -9,6 +9,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MLMG.H>
 
+#include "Poisson.H"
+
 using namespace amrex;
 
 int main (int argc, char* argv[])
@@ -74,8 +76,8 @@ int main (int argc, char* argv[])
         MultiFab q  (grids, dmap, 2, 0, MFInfo(), factory);
         MultiFab phi(grids, dmap, 2, 0, MFInfo(), factory);
 
-        q.setVal(1.0);
-        phi.setVal(1.0);
+        q.setVal(0.0);
+        InitData(q);
 
         LPInfo info;
 
@@ -127,10 +129,11 @@ int main (int argc, char* argv[])
         MLMG mlmg(mlebabec);
 
         // relative and absolute tolerances for linear solve
-        const Real tol_rel = 0.1;
+        const Real tol_rel = 1.e-4;
         const Real tol_abs = 0.0;
 
         // Solve linear system
+        phi.setVal(0.0); // initial guess for phi
         mlmg.solve({&phi}, {&q}, tol_rel, tol_abs);
         
         // store plotfile variables; q and phi
