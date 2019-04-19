@@ -5,10 +5,8 @@
 #include <SpectralKSpace.H>
 #include <AMReX_MultiFab.H>
 
-using namespace amrex;
-
 // Declare type for spectral fields
-using SpectralField = FabArray<BaseFab<Complex>>;
+using SpectralField = amrex::FabArray< amrex::BaseFab <Complex> >;
 
 /* Fields that will be stored in spectral space */
 struct SpectralFieldIndex{
@@ -25,16 +23,16 @@ class SpectralFieldData
 #ifdef AMREX_USE_GPU
 // Add cuFFT-specific code
 #else
-    using FFTplans = LayoutData<fftw_plan>;
+    using FFTplans = amrex::LayoutData<fftw_plan>;
 #endif
 
     public:
-        SpectralFieldData( const BoxArray& realspace_ba,
+        SpectralFieldData( const amrex::BoxArray& realspace_ba,
                       const SpectralKSpace& k_space,
-                      const DistributionMapping& dm );
+                      const amrex::DistributionMapping& dm );
         ~SpectralFieldData();
-        void ForwardTransform( const MultiFab& mf, const int field_index );
-        void BackwardTransform( MultiFab& mf, const int field_index );
+        void ForwardTransform( const amrex::MultiFab& mf, const int field_index );
+        void BackwardTransform( amrex::MultiFab& mf, const int field_index );
 
     private:
         SpectralField Ex, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new;

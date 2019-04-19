@@ -1,6 +1,9 @@
 #include <WarpXConst.H>
 #include <SpectralKSpace.H>
 
+using namespace amrex;
+using namespace Gpu;
+
 SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
                                 const DistributionMapping& dm,
                                 const Real* realspace_dx )
