@@ -108,7 +108,7 @@ user-defined constant and ``x`` and ``y`` are variables. The names are case sens
 define functions by intervals. User-defined constants can be used in parsed
 functions only (i.e., ``density_function(x,y,z)`` and ``field_function(X,Y,t)``,
 see below). User-defined constants can contain only letter, numbers and character _.
-The name of each constant has to begin with a letter. The following names are used 
+The name of each constant has to begin with a letter. The following names are used
 by WarpX, and cannot be used as user-defined constants: `x`, `y`, `z`, `X`, `Y`, `t`.
 For example, parameters ``a0`` and ``z_plateau`` can be specified with:
 
@@ -428,8 +428,14 @@ Numerics and algorithms
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
 
+* ``psatd.hybrid_mpi_decomposition`` (`0` or `1`; default: 0)
+    Whether to use a different MPI decomposition for the particle-grid operations
+    (deposition and gather) and for the PSATD solver. If `1`, the FFT will
+    be performed over MPI groups.
+
 * ``psatd.ngroups_fft`` (`integer`)
-    The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver.
+    The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver
+    (and only if `hybrid_mpi_decomposition` is `1`).
     The FFTs are global within one MPI group and use guard cell exchanges in between MPI groups.
     (If ``ngroups_fft`` is larger than the number of MPI ranks used,
     than the actual number of MPI ranks is used instead.)

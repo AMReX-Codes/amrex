@@ -126,6 +126,13 @@ WarpX::AllocLevelDataFFT (int lev)
     FFTDomainDecomposition(lev, ba_fp_fft, dm_fp_fft, ba_valid_fp_fft[lev], domain_fp_fft[lev],
                            geom[lev].Domain());
 
+    if (fft_hybrid_mpi_decomposition == false){
+        // Allocate and initialize objects for the spectral solver
+        // (all use the same distribution mapping)
+        spectral_solver_fp[lev].reset( new SpectralSolver( ba_fp_fft, dm_fp_fft,
+                          nox_fft, noy_fft, noz_fft, CellSize(lev), dt[lev] ) );
+    }
+
     // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
     // pushing particle.
 
@@ -426,7 +433,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 			  WARPX_TO_FORTRAN_ANYD(fab),
 			  WARPX_TO_FORTRAN_ANYD(fab),
 			  WARPX_TO_FORTRAN_ANYD(fab),
-			  WARPX_TO_FORTRAN_ANYD(fab));	
+			  WARPX_TO_FORTRAN_ANYD(fab));
     }
     else
       // Multiple FFT patches on this MPI rank

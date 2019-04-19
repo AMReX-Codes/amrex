@@ -6,7 +6,7 @@ using namespace Gpu;
 
 SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
                                 const DistributionMapping& dm,
-                                const Real* realspace_dx )
+                                const Array<Real,3> realspace_dx )
 {
     // Create the box array that corresponds to spectral space
     BoxList spectral_bl; // Create empty box list
@@ -37,7 +37,8 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
 }
 
 void
-AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx, const Real* dx, const int i_dim )
+AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx,
+                        const Array<Real,3> dx, const int i_dim )
 {
     // Alllocate k to the right size
     int N = bx.length( i_dim );

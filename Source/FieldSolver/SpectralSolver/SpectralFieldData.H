@@ -30,6 +30,8 @@ class SpectralFieldData
         SpectralFieldData( const amrex::BoxArray& realspace_ba,
                       const SpectralKSpace& k_space,
                       const amrex::DistributionMapping& dm );
+        SpectralFieldData() = default; // Default constructor
+        SpectralFieldData& operator=(SpectralFieldData&& field_data) = default; // Default move assignment
         ~SpectralFieldData();
         void ForwardTransform( const amrex::MultiFab& mf, const int field_index );
         void BackwardTransform( amrex::MultiFab& mf, const int field_index );

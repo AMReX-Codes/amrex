@@ -13,15 +13,16 @@ class SpectralKSpace
 {
     public:
         SpectralKSpace( const amrex::BoxArray& realspace_ba,
-            const amrex::DistributionMapping& dm, const amrex::Real* dx );
+                        const amrex::DistributionMapping& dm,
+                        const amrex::Array<amrex::Real,3> dx );
         amrex::BoxArray spectralspace_ba;
         SpectralKVector kx_vec, ky_vec, kz_vec;
-        const amrex::Real* dx;
+        amrex::Array<amrex::Real,3> dx;
 };
 
 void
 AllocateAndFillKvector( amrex::Gpu::ManagedVector<amrex::Real>& k,
-    const amrex::Box& bx, const amrex::Real* dx, const int i_dim );
+    const amrex::Box& bx, const amrex::Array<amrex::Real,3> dx, const int i_dim );
 
 void
 ComputeModifiedKVector( amrex::Gpu::ManagedVector<amrex::Real>& modified_k,
