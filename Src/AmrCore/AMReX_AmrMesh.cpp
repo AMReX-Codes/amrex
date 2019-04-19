@@ -385,14 +385,24 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 BoxArray
 AmrMesh::MakeBaseGrids () const
 {
-    BoxArray ba(amrex::coarsen(geom[0].Domain(),2));
-    ba.maxSize(max_grid_size[0]/2);
-    ba.refine(2);
+    IntVect fac(2);
+    const Box& dom = geom[0].Domain();
+    const Box dom2 = amrex::refine(amrex::coarsen(dom,2),2);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (dom.length(idim) != dom2.length(idim)) {
+            fac[idim] = 1;
+        }
+    }
+    BoxArray ba(amrex::coarsen(dom,fac));
+    ba.maxSize(max_grid_size[0]/fac);
+    ba.refine(fac);
+    // Boxes in ba have even number of cells in each direction
+    // unless the domain has odd number of cells in that direction.
     if (refine_grid_layout) {
-	ChopGrids(0, ba, ParallelDescriptor::NProcs());
+        ChopGrids(0, ba, ParallelDescriptor::NProcs());
     }
     if (ba == grids[0]) {
-	ba = grids[0];  // to avoid duplicates
+        ba = grids[0];  // to avoid duplicates
     }
     return ba;
 }

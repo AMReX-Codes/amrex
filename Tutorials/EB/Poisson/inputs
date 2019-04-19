@@ -1,0 +1,10 @@
+amrex.fpe_trap_invalid=1
+
+verbose = 2
+n_cell = 128
+max_grid_size = 32
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.5  0.5  0.5
+eb2.sphere_radius = 0.25
+eb2.sphere_has_fluid_inside = 1
