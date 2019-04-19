@@ -6,6 +6,9 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 Pdirs := Base AmrCore Amr Boundary
 ifeq ($(USE_PARTICLES),TRUE)
     Pdirs += Particle
+   ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+     Pdirs += F_Interfaces/Particle
+   endif
 endif
 ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
