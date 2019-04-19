@@ -1,6 +1,6 @@
 #
 #
-# 
+#
 function ( generate_amrex_config_header )
 
    get_target_property(_defines amrex COMPILE_DEFINITIONS)
@@ -13,7 +13,7 @@ function ( generate_amrex_config_header )
 
    foreach(_define IN LISTS _defines_list)
       string(REPLACE "=" " " _define "${_define}")
-      file(APPEND "${_config_fname}" "#define ${_define}\n" )      
+      file(APPEND "${_config_fname}" "#define ${_define}\n" )
    endforeach ()
 
    file(APPEND "${_config_fname}" "#ifdef __cplusplus\n")
@@ -37,24 +37,24 @@ function ( generate_amrex_config_header )
    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
       file(APPEND "${_config_fname}" "#ifndef __llvm__\n")
       file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with Clang/LLVM\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )   
+      file(APPEND "${_config_fname}" "#endif\n" )
    endif ()
 
    if (ENABLE_OMP)
       file(APPEND "${_config_fname}" "#ifndef _OPENMP\n")
       file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built with OpenMP\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )      
+      file(APPEND "${_config_fname}" "#endif\n" )
    else ()
       file(APPEND "${_config_fname}" "#ifdef _OPENMP\n")
       file(APPEND "${_config_fname}" "static_assert(false,\"libamrex was built without OpenMP\");\n")
-      file(APPEND "${_config_fname}" "#endif\n" )        
+      file(APPEND "${_config_fname}" "#endif\n" )
    endif ()
 
-   file(APPEND "${_config_fname}" "#endif\n" )   
+   file(APPEND "${_config_fname}" "#endif\n" )
    file(APPEND "${_config_fname}" "#endif\n" )
 
    install(FILES ${_config_fname} DESTINATION include)
-   
+
 endfunction ()
 
 
@@ -62,8 +62,8 @@ endfunction ()
 # Manage AMReX installation process
 #
 function (install_amrex)
-   
-   # Write and install configure file 
+
+   # Write and install configure file
    include(CMakePackageConfigHelpers)
 
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
@@ -80,7 +80,7 @@ function (install_amrex)
       string(SUBSTRING "${_pkg_version}" 0 "${_idx}" _pkg_version )
       string(REPLACE "-" "." _pkg_version "${_pkg_version}")
    endif ()
-   
+
    write_basic_package_version_file( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
       VERSION ${_pkg_version}
       COMPATIBILITY AnyNewerVersion )
@@ -88,15 +88,15 @@ function (install_amrex)
    install( FILES
       ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
       ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
-      DESTINATION lib/cmake/AMReX ) 
+      DESTINATION lib/cmake/AMReX )
 
    # Setup for target amrex installation
    install( TARGETS amrex
       EXPORT        AMReXTargets
-      ARCHIVE       DESTINATION lib 
-      LIBRARY       DESTINATION lib 
-      INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
-      PUBLIC_HEADER DESTINATION include )
+      ARCHIVE       DESTINATION lib
+      LIBRARY       DESTINATION lib
+      INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES
+      PUBLIC_HEADER DESTINATION include_orig )
 
    # Setup for export AMReXtargets installation
    install( EXPORT AMReXTargets
@@ -113,9 +113,9 @@ function (install_amrex)
 
    # Generate config header
    generate_amrex_config_header()
-   
+
    # Install Tools directory
-   install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/  DESTINATION Tools 
+   install(DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/  DESTINATION Tools
       USE_SOURCE_PERMISSIONS )
 
    # Modify installed headers by calling external script: add #include<AMReX_Config.H>
