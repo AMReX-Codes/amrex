@@ -101,7 +101,7 @@ extern "C" {
                 for (int i = 0; i < ngrids; ++i) {
                     if (dm[i] == myproc) {
                         leaves->push_back({lev, i});
-                        famrcore->octree_li_full_to_leaf[lev].push_back(ilocal);
+                        famrcore->octree_li_full_to_leaf[lev].push_back(ilocal++);
                     }
                 }
                 famrcore->octree_li_leaf_to_full[lev] = famrcore->octree_li_full_to_leaf[lev];
