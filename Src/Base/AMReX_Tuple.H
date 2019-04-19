@@ -11,8 +11,8 @@
 #include <AMReX_GpuQualifiers.H>
 
 namespace amrex {
-    template <class T, std::size_t N>
-    using Tuple = std::array<T,N>;
+    template <class... Ts>
+    using Tuple = std::tuple<Ts...>;
 }
 
 namespace amrex {
