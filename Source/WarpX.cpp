@@ -206,6 +206,9 @@ WarpX::WarpX ()
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
 
+    spectral_solver_fp.resize(nlevs_max);
+    spectral_solver_cp.resize(nlevs_max);
+    
     ba_valid_fp_fft.resize(nlevs_max);
     ba_valid_cp_fft.resize(nlevs_max);
 

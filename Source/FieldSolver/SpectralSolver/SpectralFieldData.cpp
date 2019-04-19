@@ -56,14 +56,16 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
 
 SpectralFieldData::~SpectralFieldData()
 {
-    for ( MFIter mfi(tmpRealField); mfi.isValid(); ++mfi ){
+    if (tmpRealField.size() > 0){
+        for ( MFIter mfi(tmpRealField); mfi.isValid(); ++mfi ){
 #ifdef AMREX_USE_GPU
-        // Add cuFFT-specific code
+            // Add cuFFT-specific code
 #else
-        // Destroy FFTW plans
-        fftw_destroy_plan( forward_plan[mfi] );
-        fftw_destroy_plan( backward_plan[mfi] );
+            // Destroy FFTW plans
+            fftw_destroy_plan( forward_plan[mfi] );
+            fftw_destroy_plan( backward_plan[mfi] );
 #endif
+        }
     }
 }
 
