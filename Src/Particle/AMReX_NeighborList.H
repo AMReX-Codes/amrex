@@ -94,8 +94,6 @@ public:
                 const amrex::Box& bx, const amrex::Geometry& geom,
                 CheckPair check_pair)
     {
-        BL_PROFILE("NeighborList::build");
-
         m_pstruct = vec.dataPtr();
         
         const auto dxi = geom.InvCellSizeArray();
