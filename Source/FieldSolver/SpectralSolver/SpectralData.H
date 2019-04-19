@@ -19,7 +19,7 @@ struct SpectralFieldIndex{
  */
 class SpectralData
 {
-    friend class PsatdSolver;
+    friend class PsatdAlgorithm;
 
 #ifdef AMREX_USE_GPU
 // Add cuFFT-specific code

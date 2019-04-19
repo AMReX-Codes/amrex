@@ -1,11 +1,10 @@
-#include <PsatdSolver.H>
+#include <PsatdAlgorithm.H>
 #include <WarpXConst.H>
 #include <cmath>
 
 using namespace amrex;
 
-
-PsatdSolver::PsatdSolver(const SpectralKSpace& spectral_kspace,
+PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                          const DistributionMapping& dm,
                          const int norder_x, const int norder_y,
                          const int norder_z, const Real dt)
@@ -85,7 +84,7 @@ PsatdSolver::PsatdSolver(const SpectralKSpace& spectral_kspace,
 };
 
 void
-PsatdSolver::pushSpectralFields( SpectralData& f ) const{
+PsatdAlgorithm::pushSpectralFields( SpectralData& f ) const{
 
     // Loop over boxes
     for ( MFIter mfi(f.Ex); mfi.isValid(); ++mfi ){

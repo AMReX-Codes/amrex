@@ -1,5 +1,5 @@
-#ifndef WARPX_PSATD_SOLVER_H_
-#define WARPX_PSATD_SOLVER_H_
+#ifndef WARPX_PSATD_ALGORITHM_H_
+#define WARPX_PSATD_ALGORITHM_H_
 
 #include <SpectralKSpace.H>
 #include <SpectralData.H>
@@ -9,12 +9,12 @@ using namespace Gpu;
 
 /* TODO: Write documentation
 */
-class PsatdSolver
+class PsatdAlgorithm
 {
     using SpectralCoefficients = FabArray<BaseFab<Real>>;
 
     public:
-        PsatdSolver(const SpectralKSpace& spectral_kspace,
+        PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                                  const DistributionMapping& dm,
                                  const int norder_x, const int norder_y,
                                  const int norder_z, const Real dt);
@@ -26,4 +26,4 @@ class PsatdSolver
         SpectralCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
 };
 
-#endif // WARPX_PSATD_SOLVER_H_
+#endif // WARPX_PSATD_ALGORITHM_H_
