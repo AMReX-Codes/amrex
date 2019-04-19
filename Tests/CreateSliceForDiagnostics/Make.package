@@ -1,0 +1,2 @@
+CEXE_headers += main.H 
+CEXE_sources += main.cpp 

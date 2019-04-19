@@ -20,6 +20,20 @@ EXE="./main3d.pgi.MPI.CUDA.ex"
 JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
 INPUTS=inputs_3d
 
+# JSRUN parameters
+# -N = number of nodes
+# -n = number of resource sets
+# (alternatively, -r = number of resource sets per node)
+# -a = number of MPI tasks/ranks per resource set
+# -c = number of CPU cores per resource set
+# -g = number of GPUs per resource set
+
+# Summit: Each node has:
+#         2  Sockets
+#         3  GPUs per socket (6 total)
+#         21 CPUs per socket (42 total)
+#         4  Hardware Threads per CPU (168 total)
+
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #mkdir $rundir
 #cp $0 $rundir

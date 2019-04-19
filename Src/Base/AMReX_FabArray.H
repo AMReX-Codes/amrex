@@ -260,18 +260,24 @@ public:
     //! Return pointer to FAB
     FAB      * fabPtr (const MFIter& mfi) noexcept;
     FAB const* fabPtr (const MFIter& mfi) const noexcept;
-    FAB      * fabPtr (int K) noexcept;
+    FAB      * fabPtr (int K) noexcept;  // Here K is global index
     FAB const* fabPtr (int K) const noexcept;
+    FAB      * fabPtrAtLocalIdx (int L) noexcept;  // Here L is local index
+    FAB const* fabPtrAtLocalIdx (int L) const noexcept;
 
     FAB      * fabHostPtr (const MFIter& mfi) noexcept;
     FAB const* fabHostPtr (const MFIter& mfi) const noexcept;
     FAB      * fabHostPtr (int K) noexcept;
     FAB const* fabHostPtr (int K) const noexcept;
+    FAB      * fabHostPtrAtLocalIdx (int L) noexcept;  // Here L is local index
+    FAB const* fabHostPtrAtLocalIdx (int L) const noexcept;
 
     FAB      * fabDevicePtr (const MFIter& mfi) noexcept;
     FAB const* fabDevicePtr (const MFIter& mfi) const noexcept;
     FAB      * fabDevicePtr (int K) noexcept;
     FAB const* fabDevicePtr (int K) const noexcept;
+    FAB      * fabDevicePtrAtLocalIdx (int L) noexcept;
+    FAB const* fabDevicePtrAtLocalIdx (int L) const noexcept;
 
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void prefetchToHost (const MFIter& mfi) const noexcept;
@@ -794,6 +800,22 @@ FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 
 template <class FAB>
 FAB*
+FabArray<FAB>::fabDevicePtrAtLocalIdx (int L) noexcept
+{
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
+    return m_fabs_v[L];
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabDevicePtrAtLocalIdx (int L) const noexcept
+{
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
+    return m_fabs_v[L];
+}
+
+template <class FAB>
+FAB*
 FabArray<FAB>::fabDevicePtr (const MFIter& mfi) noexcept
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
@@ -831,6 +853,30 @@ FabArray<FAB>::fabDevicePtr (int K) const noexcept
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
     return m_fabs_v[li];
+}
+
+template <class FAB>
+FAB*
+FabArray<FAB>::fabHostPtrAtLocalIdx (int L) noexcept
+{
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
+#ifdef AMREX_USE_GPU
+    return m_host_fabs_v[L];
+#else
+    return m_fabs_v[L];
+#endif
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabHostPtrAtLocalIdx (int L) const noexcept
+{
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
+#ifdef AMREX_USE_GPU
+    return m_host_fabs_v[L];
+#else
+    return m_fabs_v[L];
+#endif
 }
 
 template <class FAB>
@@ -888,6 +934,28 @@ FabArray<FAB>::fabHostPtr (int K) const noexcept
     return m_host_fabs_v[li];
 #else
     return m_fabs_v[li];
+#endif
+}
+
+template <class FAB>
+FAB*
+FabArray<FAB>::fabPtrAtLocalIdx (int L) noexcept
+{
+#ifdef AMREX_USE_GPU
+    return (Gpu::inLaunchRegion()) ? this->fabDevicePtrAtLocalIdx(L) : this->fabHostPtrAtLocalIdx(L);
+#else
+    return this->fabHostPtrAtLocalIdx(L);
+#endif
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabPtrAtLocalIdx (int L) const noexcept
+{
+#ifdef AMREX_USE_GPU
+    return (Gpu::inLaunchRegion()) ? this->fabDevicePtrAtLocalIdx(L) : this->fabHostPtrAtLocalIdx(L);
+#else
+    return this->fabHostPtrAtLocalIdx(L);
 #endif
 }
 
