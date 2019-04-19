@@ -1,11 +1,13 @@
-#include <SpectralData.H>
+#include <SpectralFieldData.H>
 
 using namespace amrex;
 
-SpectralData::SpectralData( const BoxArray& realspace_ba,
-                            const BoxArray& spectralspace_ba,
+SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
+                            const SpectralKSpace& k_space,
                             const DistributionMapping& dm )
 {
+    const BoxArray& spectralspace_ba = k_space.spectralspace_ba;
+
     // Allocate the arrays that contain the fields in spectral space
     Ex = SpectralField(spectralspace_ba, dm, 1, 0);
     Ey = SpectralField(spectralspace_ba, dm, 1, 0);
@@ -52,7 +54,7 @@ SpectralData::SpectralData( const BoxArray& realspace_ba,
 }
 
 
-SpectralData::~SpectralData()
+SpectralFieldData::~SpectralFieldData()
 {
     for ( MFIter mfi(tmpRealField); mfi.isValid(); ++mfi ){
 #ifdef AMREX_USE_GPU
@@ -69,7 +71,7 @@ SpectralData::~SpectralData()
  * Example: ForwardTransform( Efield_cp[0], SpectralFieldIndex::Ex )
  */
 void
-SpectralData::ForwardTransform( const MultiFab& mf, const int field_index )
+SpectralFieldData::ForwardTransform( const MultiFab& mf, const int field_index )
 {
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
@@ -118,7 +120,7 @@ SpectralData::ForwardTransform( const MultiFab& mf, const int field_index )
 /* TODO: Documentation
  */
 void
-SpectralData::BackwardTransform( MultiFab& mf, const int field_index )
+SpectralFieldData::BackwardTransform( MultiFab& mf, const int field_index )
 {
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
@@ -164,7 +166,7 @@ SpectralData::BackwardTransform( MultiFab& mf, const int field_index )
 
 
 SpectralField&
-SpectralData::getSpectralField( const int field_index )
+SpectralFieldData::getSpectralField( const int field_index )
 {
     switch(field_index)
     {

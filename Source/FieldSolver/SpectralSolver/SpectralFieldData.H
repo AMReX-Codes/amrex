@@ -1,7 +1,8 @@
-#ifndef WARPX_PSATD_DATA_H_
-#define WARPX_PSATD_DATA_H_
+#ifndef WARPX_SPECTRAL_FIELD_DATA_H_
+#define WARPX_SPECTRAL_FIELD_DATA_H_
 
 #include <WarpX_Complex.H>
+#include <SpectralKSpace.H>
 #include <AMReX_MultiFab.H>
 
 using namespace amrex;
@@ -17,7 +18,7 @@ struct SpectralFieldIndex{
 /* \brief Class that stores the fields in spectral space
  *  and performs the spectral transforms to/from real space
  */
-class SpectralData
+class SpectralFieldData
 {
     friend class PsatdAlgorithm;
 
@@ -28,10 +29,10 @@ class SpectralData
 #endif
 
     public:
-        SpectralData( const BoxArray& realspace_ba,
-                      const BoxArray& spectralspace_ba,
+        SpectralFieldData( const BoxArray& realspace_ba,
+                      const SpectralKSpace& k_space,
                       const DistributionMapping& dm );
-        ~SpectralData();
+        ~SpectralFieldData();
         void ForwardTransform( const MultiFab& mf, const int field_index );
         void BackwardTransform( MultiFab& mf, const int field_index );
 
@@ -42,4 +43,4 @@ class SpectralData
         SpectralField& getSpectralField( const int field_index );
 };
 
-#endif // WARPX_PSATD_DATA_H_
+#endif // WARPX_SPECTRAL_FIELD_DATA_H_

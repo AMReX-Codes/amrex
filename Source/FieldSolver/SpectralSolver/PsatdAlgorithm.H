@@ -2,7 +2,7 @@
 #define WARPX_PSATD_ALGORITHM_H_
 
 #include <SpectralKSpace.H>
-#include <SpectralData.H>
+#include <SpectralFieldData.H>
 
 using namespace amrex;
 using namespace Gpu;
@@ -18,7 +18,7 @@ class PsatdAlgorithm
                                  const DistributionMapping& dm,
                                  const int norder_x, const int norder_y,
                                  const int norder_z, const Real dt);
-        void pushSpectralFields( SpectralData& f ) const;
+        void pushSpectralFields( SpectralFieldData& f ) const;
 
     private:
         // Modified finite-order vectors

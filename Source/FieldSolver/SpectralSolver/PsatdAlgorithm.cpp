@@ -84,7 +84,7 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
 };
 
 void
-PsatdAlgorithm::pushSpectralFields( SpectralData& f ) const{
+PsatdAlgorithm::pushSpectralFields( SpectralFieldData& f ) const{
 
     // Loop over boxes
     for ( MFIter mfi(f.Ex); mfi.isValid(); ++mfi ){
