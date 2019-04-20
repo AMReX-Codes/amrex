@@ -154,15 +154,18 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
         // The copy does *not* fill the *last* point of `mf`
         // in any direction that has *nodal* index type (but this point is
         // in the guard cells and will be filled by guard cell exchange)
+        // Normalize (divide by 1/N) since the FFT result in a factor N
         {
             Box bx = mf[mfi].box();
             const Box realspace_bx = bx.enclosedCells(); // discards last point in each nodal direction
             AMREX_ALWAYS_ASSERT( realspace_bx == tmpRealField[mfi].box() );
             Array4<Real> mf_arr = mf[mfi].array();
             Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
+            // For normalization: divide by the number of points in the box
+            const Real inv_N = 1./(bx.length(0)*bx.length(1)*bx.length(2));
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k).real();
+                mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i,j,k).real();
             });
         }
     }
