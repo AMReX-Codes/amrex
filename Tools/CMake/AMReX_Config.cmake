@@ -92,6 +92,11 @@ function (configure_amrex)
       #
       get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
 
+      if (NOT CMAKE_CXX_FLAGS)
+         get_target_property( _amrex_flags_2 Flags_CXX COMPILE_OPTIONS)
+         list(APPEND _amrex_flags ${_amrex_flags_2})
+      endif ()
+
       evaluate_genex(_amrex_flags _amrex_cxx_flags
          LANG   CXX
          COMP   ${CMAKE_CXX_COMPILER_ID}
