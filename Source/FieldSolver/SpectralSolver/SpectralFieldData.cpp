@@ -167,7 +167,7 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
             Array4<Real> mf_arr = mf[mfi].array();
             Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
             // For normalization: divide by the number of points in the box
-            const Real inv_N = 1./(bx.length(0)*bx.length(1)*bx.length(2));
+            const Real inv_N = 1./bx.numPts();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i,j,k).real();
