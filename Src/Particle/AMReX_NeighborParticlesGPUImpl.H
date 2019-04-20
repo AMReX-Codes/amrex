@@ -235,7 +235,7 @@ sortParticlesByNeighborDestGPU()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-fillNeighborsGPU()
+fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
 
@@ -249,11 +249,11 @@ fillNeighborsGPU()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-updateNeighborsGPU()
+updateNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::updateNeighborsGPU");
 
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+    AMREX_ASSERT(this->numLevels() == 1);
 
     clearNeighbors();
 

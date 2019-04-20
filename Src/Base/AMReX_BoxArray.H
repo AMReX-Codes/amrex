@@ -287,6 +287,9 @@ public:
     //! Are the BoxArrays not equal?
     bool operator!= (const BoxArray& rhs) const noexcept;
 
+    bool operator== (const Vector<Box>& bv) const noexcept;
+    bool operator!= (const Vector<Box>& bv) const noexcept;
+
     //!  Are the BoxArrays equal after conversion to cell-centered
     bool CellEqual (const BoxArray& rhs) const noexcept;
 

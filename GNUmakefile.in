@@ -10,6 +10,9 @@ endif
 Pdirs := Base AmrCore Amr Boundary
 ifeq ($(USE_PARTICLES),TRUE)
     Pdirs += Particle
+   ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+     Pdirs += F_Interfaces/Particle
+   endif
 endif
 ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
@@ -26,6 +29,11 @@ endif
 ifeq ($(USE_HYPRE),TRUE)
    ifeq ($(USE_LINEAR_SOLVERS),TRUE)
       Pdirs += Extern/HYPRE
+   endif
+endif
+ifeq ($(USE_PETSC),TRUE)
+   ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+      Pdirs += Extern/PETSc
    endif
 endif
 ifeq ($(USE_SENSEI_INSITU),TRUE)
