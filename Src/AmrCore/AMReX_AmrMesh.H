@@ -96,8 +96,11 @@ public:
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;
 
-    //! Return the number of buffer cells in error estimator.
-    int nErrorBuf (int lev) const noexcept { return n_error_buf[lev]; }
+    //! Return the number of buffer cells (as a single integer) in error estimator.
+    int nErrorBuf (int lev) const noexcept { return n_error_buf[lev][0]; }
+
+    //! Return the number of buffer cells (as an IntVect) in error estimator.
+    // const IntVect& nErrorBuf (int lev) const noexcept { return n_error_buf[lev]; }
 
     //! Return the minimum allowable grid efficiency.
     Real gridEff () const noexcept { return grid_eff; }
@@ -165,14 +168,14 @@ public:
 protected:
 
     int              verbose;
-    int              max_level;    //!< Maximum allowed level.
-    Vector<IntVect>   ref_ratio;    //!< Refinement ratios [0:finest_level-1]
+    int              max_level;       //!< Maximum allowed level.
+    Vector<IntVect>  ref_ratio;       //!< Refinement ratios [0:finest_level-1]
 
-    int              finest_level; //!< Current finest level.
+    int              finest_level;    //!< Current finest level.
 
-    Vector<int>       n_error_buf;     //!< Buffer cells around each tagged cell.
-    Vector<IntVect>   blocking_factor; //!< Blocking factor in grid generation (by level).
-    Vector<IntVect>   max_grid_size;   //!< Maximum allowable grid size (by level).
+    Vector<IntVect>  n_error_buf;     //!< Buffer cells around each tagged cell.
+    Vector<IntVect>  blocking_factor; //!< Blocking factor in grid generation (by level).
+    Vector<IntVect>  max_grid_size;   //!< Maximum allowable grid size (by level).
     Real             grid_eff;        //!< Grid efficiency.
     int              n_proper;        //!< # cells required for proper nesting.
 
