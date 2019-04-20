@@ -805,7 +805,11 @@ FAB*
 FabArray<FAB>::fabDevicePtrAtLocalIdx (int L) noexcept
 {
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
+#ifdef AMREX_USE_GPU
+    return m_device_fabs_v[L];
+#else
     return m_fabs_v[L];
+#endif
 }
 
 template <class FAB>
@@ -813,7 +817,11 @@ FAB const*
 FabArray<FAB>::fabDevicePtrAtLocalIdx (int L) const noexcept
 {
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
+#ifdef AMREX_USE_GPU
+    return m_device_fabs_v[L];
+#else
     return m_fabs_v[L];
+#endif
 }
 
 template <class FAB>
@@ -878,11 +886,7 @@ FAB*
 FabArray<FAB>::fabHostPtrAtLocalIdx (int L) noexcept
 {
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
-#ifdef AMREX_USE_GPU
-    return m_host_fabs_v[L];
-#else
     return m_fabs_v[L];
-#endif
 }
 
 template <class FAB>
@@ -890,11 +894,7 @@ FAB const*
 FabArray<FAB>::fabHostPtrAtLocalIdx (int L) const noexcept
 {
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[L],m_host_fabs_v[L]));
-#ifdef AMREX_USE_GPU
-    return m_host_fabs_v[L];
-#else
     return m_fabs_v[L];
-#endif
 }
 
 template <class FAB>
