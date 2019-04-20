@@ -13,7 +13,9 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
 
     // Allocate the 1D vectors
     modified_kx_vec = SpectralKVector( ba, dm );
+#if (AMREX_SPACEDIM==3)
     modified_ky_vec = SpectralKVector( ba, dm );
+#endif
     modified_kz_vec = SpectralKVector( ba, dm );
     // Allocate and fill them by computing the modified vector
     for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
@@ -21,12 +23,18 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
         ComputeModifiedKVector(
             modified_kx_vec[mfi], spectral_kspace.kx_vec[mfi],
             bx, spectral_kspace.dx[0], norder_x );
+#if (AMREX_SPACEDIM==3)
         ComputeModifiedKVector(
             modified_ky_vec[mfi], spectral_kspace.ky_vec[mfi],
             bx, spectral_kspace.dx[1], norder_y );
         ComputeModifiedKVector(
             modified_kz_vec[mfi], spectral_kspace.kz_vec[mfi],
             bx, spectral_kspace.dx[2], norder_z );
+#else
+        ComputeModifiedKVector(
+            modified_kz_vec[mfi], spectral_kspace.kz_vec[mfi],
+            bx, spectral_kspace.dx[1], norder_z );
+#endif
     }
 
     // Allocate the arrays of coefficients
@@ -44,7 +52,9 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
 
         // Extract pointers for the k vectors
         const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
+#if (AMREX_SPACEDIM==3)
         const Real* modified_ky = modified_ky_vec[mfi].dataPtr();
+#endif
         const Real* modified_kz = modified_kz_vec[mfi].dataPtr();
         // Extract arrays for the coefficients
         Array4<Real> C = C_coef[mfi].array();
@@ -60,7 +70,9 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
             // Calculate norm of vector
             const Real k_norm = std::sqrt(
                 std::pow( modified_kx[i], 2 ) +
+#if (AMREX_SPACEDIM==3)
                 std::pow( modified_ky[j], 2 ) +
+#endif
                 std::pow( modified_kz[k], 2 ) );
 
             // Calculate coefficients
@@ -112,7 +124,9 @@ PsatdAlgorithm::pushSpectralFields( SpectralFieldData& f ) const{
         Array4<const Real> X3_arr = X3_coef[mfi].array();
         // Extract pointers for the k vectors
         const Real* modified_kx_arr = modified_kx_vec[mfi].dataPtr();
+#if (AMREX_SPACEDIM==3)
         const Real* modified_ky_arr = modified_ky_vec[mfi].dataPtr();
+#endif
         const Real* modified_kz_arr = modified_kz_vec[mfi].dataPtr();
 
         // Loop over indices within one box
@@ -134,7 +148,11 @@ PsatdAlgorithm::pushSpectralFields( SpectralFieldData& f ) const{
             const Complex rho_new = rho_new_arr(i,j,k);
             // k vector values, and coefficients
             const Real kx = modified_kx_arr[i];
+#if (AMREX_SPACEDIM==3)
             const Real ky = modified_ky_arr[j];
+#else
+            constexpr Real ky = 0;
+#endif
             const Real kz = modified_kz_arr[k];
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real inv_ep0 = 1./PhysConst::ep0;

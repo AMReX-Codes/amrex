@@ -21,7 +21,10 @@ class PsatdAlgorithm
 
     private:
         // Modified finite-order vectors
-        SpectralKVector modified_kx_vec, modified_ky_vec, modified_kz_vec;
+        SpectralKVector modified_kx_vec, modified_kz_vec;
+#if (AMREX_SPACEDIM==3)
+        SpectralKVector modified_ky_vec;
+#endif 
         SpectralCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
 };
 

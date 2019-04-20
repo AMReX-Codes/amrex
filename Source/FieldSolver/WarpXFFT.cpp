@@ -129,8 +129,10 @@ WarpX::AllocLevelDataFFT (int lev)
     if (fft_hybrid_mpi_decomposition == false){
         // Allocate and initialize objects for the spectral solver
         // (all use the same distribution mapping)
+        std::array<Real,3> dx = CellSize(lev);
+        RealVect dx_vect = RealVect( AMREX_D_DECL(dx[0], dx[1], dx[2]) );
         spectral_solver_fp[lev].reset( new SpectralSolver( ba_fp_fft, dm_fp_fft,
-                          nox_fft, noy_fft, noz_fft, CellSize(lev), dt[lev] ) );
+                          nox_fft, noy_fft, noz_fft, dx_vect, dt[lev] ) );
     }
 
     // rho2 has one extra ghost cell, so that it's safe to deposit charge density after

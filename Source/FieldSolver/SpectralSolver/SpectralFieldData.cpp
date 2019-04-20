@@ -34,19 +34,24 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         // Add cuFFT-specific code
 #else
         // Create FFTW plans
-        forward_plan[mfi] = fftw_plan_dft_3d(
-            // Swap dimensions: AMReX data is Fortran-order, but FFTW is C-order
-            bx.length(2), bx.length(1), bx.length(0),
+        forward_plan[mfi] =
+#if (AMREX_SPACEDIM == 3) // Swap dimensions: AMReX data is Fortran-order, but FFTW is C-order
+            fftw_plan_dft_3d( bx.length(2), bx.length(1), bx.length(0),
+#else
+            fftw_plan_dft_2d( bx.length(1), bx.length(0),
+#endif
             reinterpret_cast<fftw_complex*>( tmpRealField[mfi].dataPtr() ),
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
             FFTW_FORWARD, FFTW_ESTIMATE );
-        backward_plan[mfi] = fftw_plan_dft_3d(
-            // Swap dimensions: AMReX data is Fortran-order, but FFTW is C-order
-            bx.length(2), bx.length(1), bx.length(0),
+        backward_plan[mfi] =
+#if (AMREX_SPACEDIM == 3) // Swap dimensions: AMReX data is Fortran-order, but FFTW is C-order
+            fftw_plan_dft_3d( bx.length(2), bx.length(1), bx.length(0),
+#else
+            fftw_plan_dft_2d( bx.length(1), bx.length(0),
+#endif
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
             reinterpret_cast<fftw_complex*>( tmpRealField[mfi].dataPtr() ),
             FFTW_BACKWARD, FFTW_ESTIMATE );
-        // TODO: Add 2D code
         // TODO: Do real-to-complex transform instead of complex-to-complex
         // TODO: Let the user decide whether to use FFTW_ESTIMATE or FFTW_MEASURE
 #endif

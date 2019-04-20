@@ -6,7 +6,7 @@ using namespace Gpu;
 
 SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
                                 const DistributionMapping& dm,
-                                const Array<Real,3> realspace_dx )
+                                const RealVect realspace_dx )
 {
     // Store the cell size
     dx = realspace_dx;
@@ -25,20 +25,26 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
 
     // Allocate the 1D vectors
     kx_vec = SpectralKVector( spectralspace_ba, dm );
+#if (AMREX_SPACEDIM == 3)
     ky_vec = SpectralKVector( spectralspace_ba, dm );
+#endif
     kz_vec = SpectralKVector( spectralspace_ba, dm );
     // Initialize the values on each box
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Box bx = spectralspace_ba[mfi];
         AllocateAndFillKvector( kx_vec[mfi], bx, dx, 0 );
+#if (AMREX_SPACEDIM == 3)
         AllocateAndFillKvector( ky_vec[mfi], bx, dx, 1 );
         AllocateAndFillKvector( kz_vec[mfi], bx, dx, 2 );
+#else
+        AllocateAndFillKvector( kz_vec[mfi], bx, dx, 1 );
+#endif
     }
 }
 
 void
 AllocateAndFillKvector( ManagedVector<Real>& k, const Box& bx,
-                        const Array<Real,3> dx, const int i_dim )
+                        const RealVect dx, const int i_dim )
 {
     // Alllocate k to the right size
     int N = bx.length( i_dim );

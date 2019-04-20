@@ -19,7 +19,7 @@ class SpectralSolver
         SpectralSolver( const amrex::BoxArray& realspace_ba,
                         const amrex::DistributionMapping& dm,
                         const int norder_x, const int norder_y, const int norder_z,
-                        const amrex::Array<amrex::Real,3> dx, const amrex::Real dt )
+                        const amrex::RealVect dx, const amrex::Real dt )
         {
             // Initialize all structures using the same distribution mapping dm
             // - Initialize k space (Contains size of each box in spectral space,
