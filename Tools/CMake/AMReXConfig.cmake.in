@@ -30,6 +30,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/"
 #
 set(AMREX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
 
+#
+# Path to amrex typechecker command
+# 
+set(AMREX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
 
 # 
 # Configuration options

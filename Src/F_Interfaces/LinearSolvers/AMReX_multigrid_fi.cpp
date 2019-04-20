@@ -84,6 +84,8 @@
              mlmg->setBottomSolver(MLMG::BottomSolver::cg);
          } else if (s == 3) {
              mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
+         } else if (s == 4) {
+             mlmg->setBottomSolver(MLMG::BottomSolver::petsc);
          } else {
              amrex::Abort("amrex_fi_multigrid_set_bottom_solver: unknown bottom solver");
          }

@@ -511,6 +511,22 @@ BoxArray::operator!= (const BoxArray& rhs) const noexcept
 }
 
 bool
+BoxArray::operator== (const Vector<Box>& bv) const noexcept
+{
+    if (size() != bv.size()) return false;
+    for (long i = 0; i < size(); ++i) {
+        if (this->operator[](i) != bv[i]) return false;
+    }
+    return true;
+}
+
+bool
+BoxArray::operator!= (const Vector<Box>& bv) const noexcept
+{
+    return !operator==(bv);
+}
+
+bool
 BoxArray::CellEqual (const BoxArray& rhs) const noexcept
 {
     return m_crse_ratio == rhs.m_crse_ratio
