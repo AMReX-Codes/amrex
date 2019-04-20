@@ -8,7 +8,10 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
                                 const DistributionMapping& dm,
                                 const Array<Real,3> realspace_dx )
 {
-    // Create the box array that corresponds to spectral space
+    // Store the cell size
+    dx = realspace_dx;
+
+  // Create the box array that corresponds to spectral space
     BoxList spectral_bl; // Create empty box list
     // Loop over boxes and fill the box list
     for (int i=0; i < realspace_ba.size(); i++ ) {
@@ -31,9 +34,6 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
         AllocateAndFillKvector( ky_vec[mfi], bx, dx, 1 );
         AllocateAndFillKvector( kz_vec[mfi], bx, dx, 2 );
     }
-
-    // Store the cell size
-    dx = realspace_dx;
 }
 
 void
