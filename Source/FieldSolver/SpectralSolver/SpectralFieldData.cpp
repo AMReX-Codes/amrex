@@ -73,7 +73,8 @@ SpectralFieldData::~SpectralFieldData()
  * Example: ForwardTransform( Efield_cp[0], SpectralFieldIndex::Ex )
  */
 void
-SpectralFieldData::ForwardTransform( const MultiFab& mf, const int field_index )
+SpectralFieldData::ForwardTransform( const MultiFab& mf,
+                                     const int field_index, const int i_comp )
 {
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
@@ -91,7 +92,7 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf, const int field_index )
             Array4<Complex> tmp_arr = tmpRealField[mfi].array();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                tmp_arr(i,j,k) = mf_arr(i,j,k);
+                tmp_arr(i,j,k) = mf_arr(i,j,k,i_comp);
             });
         }
 
@@ -122,7 +123,8 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf, const int field_index )
 /* TODO: Documentation
  */
 void
-SpectralFieldData::BackwardTransform( MultiFab& mf, const int field_index )
+SpectralFieldData::BackwardTransform( MultiFab& mf,
+                                      const int field_index, const int i_comp )
 {
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
@@ -160,7 +162,7 @@ SpectralFieldData::BackwardTransform( MultiFab& mf, const int field_index )
             Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                mf_arr(i,j,k) = tmp_arr(i,j,k).real();
+                mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k).real();
             });
         }
     }

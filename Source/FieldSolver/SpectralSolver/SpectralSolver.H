@@ -30,11 +30,13 @@ class SpectralSolver
             // - Initialize arrays for fields in Fourier space + FFT plans
             field_data = SpectralFieldData( realspace_ba, k_space, dm );
         };
-        void ForwardTransform( const amrex::MultiFab& mf, const int field_index ){
-            field_data.ForwardTransform( mf, field_index );
+        void ForwardTransform( const amrex::MultiFab& mf,
+                               const int field_index, const int i_comp=0 ){
+            field_data.ForwardTransform( mf, field_index, i_comp );
         };
-        void BackwardTransform( amrex::MultiFab& mf, const int field_index ){
-            field_data.BackwardTransform( mf, field_index );
+        void BackwardTransform( amrex::MultiFab& mf,
+                                const int field_index, const int i_comp=0 ){
+            field_data.BackwardTransform( mf, field_index, i_comp );
         };
         void pushSpectralFields(){
             algorithm.pushSpectralFields( field_data );
