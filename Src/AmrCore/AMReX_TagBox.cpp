@@ -667,7 +667,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     }
 
-    boxarray.growcoarsen(n_grow[0],ratio);
+    boxarray.growcoarsen(n_grow,ratio);
     updateBDKey();  // because we just modify boxarray in-place.
 
     n_grow = IntVect::TheZeroVector();
