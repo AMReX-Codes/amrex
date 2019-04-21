@@ -30,7 +30,7 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         shift_C2N[i_dim] = k_space.AllocateAndFillSpectralShiftFactor(
                             dm, i_dim, ShiftType::CenteredToNodal );
         shift_N2C[i_dim] = k_space.AllocateAndFillSpectralShiftFactor(
-                            dm, i_dim, ShiftType::NodalToCentered );        
+                            dm, i_dim, ShiftType::NodalToCentered );
     }
 
     // Allocate and initialize the FFT plans
@@ -190,17 +190,17 @@ SpectralFieldData::getSpectralField( const int field_index )
 {
     switch(field_index)
     {
-        case SpectralFieldIndex::Ex : return Ex;
-        case SpectralFieldIndex::Ey : return Ey;
-        case SpectralFieldIndex::Ez : return Ez;
-        case SpectralFieldIndex::Bx : return Bx;
-        case SpectralFieldIndex::By : return By;
-        case SpectralFieldIndex::Bz : return Bz;
-        case SpectralFieldIndex::Jx : return Jx;
-        case SpectralFieldIndex::Jy : return Jy;
-        case SpectralFieldIndex::Jz : return Jz;
-        case SpectralFieldIndex::rho_old : return rho_old;
-        case SpectralFieldIndex::rho_new : return rho_new;
+        case SpectralFieldIndex::Ex : return Ex; break;
+        case SpectralFieldIndex::Ey : return Ey; break;
+        case SpectralFieldIndex::Ez : return Ez; break;
+        case SpectralFieldIndex::Bx : return Bx; break;
+        case SpectralFieldIndex::By : return By; break;
+        case SpectralFieldIndex::Bz : return Bz; break;
+        case SpectralFieldIndex::Jx : return Jx; break;
+        case SpectralFieldIndex::Jy : return Jy; break;
+        case SpectralFieldIndex::Jz : return Jz; break;
+        case SpectralFieldIndex::rho_old : return rho_old; break;
+        case SpectralFieldIndex::rho_new : return rho_new; break;
         default : return tmpSpectralField; // For synthax; should not occur in practice
     }
 }

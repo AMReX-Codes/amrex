@@ -107,7 +107,7 @@ SpectralKSpace::AllocateAndFillSpectralShiftFactor(
         // Fill the shift coefficients
         Real sign = 0;
         switch (shift_type){
-            case ShiftType::CenteredToNodal: sign = -1.;
+            case ShiftType::CenteredToNodal: sign = -1.; break;
             case ShiftType::NodalToCentered: sign = 1.;
         }
         constexpr Complex I{0,1};
