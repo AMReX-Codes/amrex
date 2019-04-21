@@ -77,7 +77,7 @@ public:
     * \param nbuff
     * \param nwid
     */
-    void buffer (int nbuff, int nwid) noexcept;
+    void buffer (const IntVect& nbuf, const IntVect& nwid) noexcept;
 
     /**
     * \brief Tag cells on intersect with src if corresponding src cell is tagged.
@@ -184,6 +184,7 @@ public:
     * \param _ngrow
     */
     TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, int _ngrow=0);
+    TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, const IntVect& _ngrow);
 
     ~TagBoxArray () override = default;
 
@@ -204,7 +205,7 @@ public:
     *
     * \param nbuf
     */
-    void buffer (int nbuf);
+    void buffer (const IntVect& nbuf);
 
     /**
     * \brief Map tagged cells through a periodic boundary to other grids in

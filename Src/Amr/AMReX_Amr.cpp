@@ -3272,7 +3272,7 @@ Amr::grid_places (int              lbase,
 void
 Amr::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
-    amr_level[lev]->errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev],ngrow);
+    amr_level[lev]->errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev][0], ngrow);
 }
 
 BoxArray
