@@ -94,6 +94,15 @@ void
 SpectralFieldData::ForwardTransform( const MultiFab& mf,
                                      const int field_index, const int i_comp )
 {
+    // Check field index type, in order to apply proper shift in spectral space
+    const bool is_nodal_x = mf.is_nodal(0);
+#if (AMREX_SPACEDIM == 3)
+    const bool is_nodal_y = mf.is_nodal(1);
+    const bool is_nodal_z = mf.is_nodal(2);
+#else
+    const bool is_nodal_z = mf.is_nodal(1);
+#endif
+
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
 
@@ -128,10 +137,24 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
             SpectralField& field = getSpectralField( field_index );
             Array4<Complex> field_arr = field[mfi].array();
             Array4<const Complex> tmp_arr = tmpSpectralField[mfi].array();
+            const Complex* xshift_C2N_arr = xshift_C2N[mfi].dataPtr();
+#if (AMREX_SPACEDIM == 3)
+            const Complex* yshift_C2N_arr = yshift_C2N[mfi].dataPtr();
+#endif
+            const Complex* zshift_C2N_arr = zshift_C2N[mfi].dataPtr();
+            // Loop over indices within one box
             const Box spectralspace_bx = tmpSpectralField[mfi].box();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                field_arr(i,j,k) = tmp_arr(i,j,k);
+                Complex spectral_field_value = field_arr(i,j,k);
+                // Apply proper shift in each dimension
+                if (is_nodal_x==false) spectral_field_value *= xshift_C2N_arr[i];
+#if (AMREX_SPACEDIM == 3)
+                if (is_nodal_y==false) spectral_field_value *= yshift_C2N_arr[j];
+#endif
+                if (is_nodal_z==false) spectral_field_value *= zshift_C2N_arr[k];
+                // Copy field into temporary array
+                field_arr(i,j,k) = spectral_field_value;
             });
         }
     }
@@ -162,20 +185,22 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
             SpectralField& field = getSpectralField( field_index );
             Array4<const Complex> field_arr = field[mfi].array();
             Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
-            const Complex* xshift_C2N_arr = xshift_C2N[mfi].dataPtr();
-            const Complex* yshift_C2N_arr = yshift_C2N[mfi].dataPtr();
-            const Complex* zshift_C2N_arr = zshift_C2N[mfi].dataPtr();
+            const Complex* xshift_N2C_arr = xshift_N2C[mfi].dataPtr();
+#if (AMREX_SPACEDIM == 3)
+            const Complex* yshift_N2C_arr = yshift_N2C[mfi].dataPtr();
+#endif
+            const Complex* zshift_N2C_arr = zshift_N2C[mfi].dataPtr();
             // Loop over indices within one box
             const Box spectralspace_bx = tmpSpectralField[mfi].box();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 Complex spectral_field_value = field_arr(i,j,k);
                 // Apply proper shift in each dimension
-                if (is_nodal_x==false) spectral_field_value *= xshift_C2N_arr[i];
+                if (is_nodal_x==false) spectral_field_value *= xshift_N2C_arr[i];
 #if (AMREX_SPACEDIM == 3)
-                if (is_nodal_y==false) spectral_field_value *= yshift_C2N_arr[j];
+                if (is_nodal_y==false) spectral_field_value *= yshift_N2C_arr[j];
 #endif
-                if (is_nodal_z==false) spectral_field_value *= zshift_C2N_arr[k];
+                if (is_nodal_z==false) spectral_field_value *= zshift_N2C_arr[k];
                 // Copy field into temporary array
                 tmp_arr(i,j,k) = spectral_field_value;
             });
