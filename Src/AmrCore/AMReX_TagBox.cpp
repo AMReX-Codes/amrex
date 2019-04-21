@@ -650,9 +650,9 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        this->fabDevicePtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
+        this->fabHostPtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
 #ifdef AMREX_USE_GPU
-        this->fabHostPtr(mfi)->coarsen(ratio,false);
+        this->fabDevicePtr(mfi)->coarsen(ratio,false);
 #endif
     }
 
