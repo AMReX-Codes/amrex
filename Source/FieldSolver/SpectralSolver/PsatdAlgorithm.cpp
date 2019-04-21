@@ -12,12 +12,12 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     const BoxArray& ba = spectral_kspace.spectralspace_ba;
 
     // Allocate the 1D vectors
-    modified_kx_vec = spectral_kspace.AllocateAndFillModifiedKComponent( dm, 0, norder_x );
+    modified_kx_vec = spectral_kspace.getModifiedKComponent( dm, 0, norder_x );
 #if (AMREX_SPACEDIM==3)
-    modified_ky_vec = spectral_kspace.AllocateAndFillModifiedKComponent( dm, 1, norder_y );
-    modified_kz_vec = spectral_kspace.AllocateAndFillModifiedKComponent( dm, 2, norder_z );
+    modified_ky_vec = spectral_kspace.getModifiedKComponent( dm, 1, norder_y );
+    modified_kz_vec = spectral_kspace.getModifiedKComponent( dm, 2, norder_z );
 #else
-    modified_kz_vec = spectral_kspace.AllocateAndFillModifiedKComponent( dm, 1, norder_z );
+    modified_kz_vec = spectral_kspace.getModifiedKComponent( dm, 1, norder_z );
 #endif
 
     // Allocate the arrays of coefficients

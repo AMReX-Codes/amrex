@@ -22,13 +22,12 @@ class SpectralKSpace
         SpectralKSpace( const amrex::BoxArray& realspace_ba,
                         const amrex::DistributionMapping& dm,
                         const amrex::RealVect dx );
-        KVectorComponent AllocateAndFillKComponent(
+        KVectorComponent getKComponent(
             const amrex::DistributionMapping& dm, const int i_dim ) const;
-        KVectorComponent AllocateAndFillModifiedKComponent(
+        KVectorComponent getModifiedKComponent(
             const amrex::DistributionMapping& dm, const int i_dim, const int order ) const;
-        SpectralShiftFactor AllocateAndFillSpectralShiftFactor(
-            const amrex::DistributionMapping& dm, const int i_dim, const int order ) const;
-
+        SpectralShiftFactor getSpectralShiftFactor(
+            const amrex::DistributionMapping& dm, const int i_dim, const int shift_type ) const;
 
     private:
         amrex::Array<KVectorComponent, AMREX_SPACEDIM> k_vec;

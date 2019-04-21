@@ -43,8 +43,10 @@ class SpectralFieldData
         SpectralField tmpRealField, tmpSpectralField; // Store fields before/after transform
         FFTplans forward_plan, backward_plan;
         // Factors that shift the fields between nodal and cell-centered, in spectral space
-        // (for each dimension of space)
-        amrex::Array<SpectralShiftFactor,AMREX_SPACEDIM> shift_N2C, shift_C2N;
+        SpectralShiftFactor xshift_N2C, xshift_C2N, zshift_N2C, zshift_C2N;
+#if (AMREX_SPACEDIM==3)
+        SpectralShiftFactor yshift_N2C, yshift_C2N;
+#endif
         SpectralField& getSpectralField( const int field_index );
 };
 

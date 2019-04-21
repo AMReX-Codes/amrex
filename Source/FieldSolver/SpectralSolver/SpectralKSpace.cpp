@@ -26,12 +26,12 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
 
     // Allocate the components of the k vector: kx, ky (only in 3D), kz
     for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++) {
-        k_vec[i_dim] = AllocateAndFillKComponent( dm, i_dim );
+        k_vec[i_dim] = getKComponent( dm, i_dim );
     }
 }
 
 KVectorComponent
-SpectralKSpace::AllocateAndFillKComponent( const DistributionMapping& dm, const int i_dim ) const
+SpectralKSpace::getKComponent( const DistributionMapping& dm, const int i_dim ) const
 {
     // Initialize an empty ManagedVector in each box
     KVectorComponent k_comp = KVectorComponent(spectralspace_ba, dm);
@@ -67,7 +67,7 @@ SpectralKSpace::AllocateAndFillKComponent( const DistributionMapping& dm, const 
 }
 
 KVectorComponent
-SpectralKSpace::AllocateAndFillModifiedKComponent(
+SpectralKSpace::getModifiedKComponent(
         const DistributionMapping& dm, const int i_dim, const int order ) const
 {
     // Initialize an empty ManagedVector in each box
@@ -91,7 +91,7 @@ SpectralKSpace::AllocateAndFillModifiedKComponent(
 }
 
 SpectralShiftFactor
-SpectralKSpace::AllocateAndFillSpectralShiftFactor(
+SpectralKSpace::getSpectralShiftFactor(
         const DistributionMapping& dm, const int i_dim, const int shift_type ) const
 {
     // Initialize an empty ManagedVector in each box
