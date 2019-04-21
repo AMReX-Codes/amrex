@@ -34,15 +34,19 @@ Development generally follows the following ideas:
     If a change is critical, we can cherry-pick the commit from
     `development` to `master`.
 
-  * Contributions are welcomed from anyone.  *Any contributions that
-    have the potential to change answers should be done via pull
-    requests.*   A pull request should be generated from your fork of
-    amrex and target the `development` branch.
+  * Bug fixes, questions and contributions of new features are welcome!
 
-    If there are a number of small commits making up the PR, we may
-    wish to squash commits upon merge to have a clean history.
-    *Please ensure that your PR title and first post are descriptive,
-    since these will be used for a squashed commit message.*
+       * Bugs should be reported through GitHub issues
+       * We suggest asking questions through GitHub issues as well
+       * *Any contributions of new features that have the potential
+         to change answers should be done via pull requests.*
+         A pull request should be generated from your fork of
+         amrex and target the `development` branch.
+
+         If there are a number of small commits making up the PR, we may
+         wish to squash commits upon merge to have a clean history.
+         *Please ensure that your PR title and first post are descriptive,
+         since these will be used for a squashed commit message.*
 
   * On the first workday of each month, we perform a merge of
     `development` into `master`.  For this merge to take place, we
