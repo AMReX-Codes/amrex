@@ -112,7 +112,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
 }
 
 void 
-TagBox::buffer (int nbuff, int nwid) noexcept
+TagBox::buffer (const IntVect& nbuff, const IntVect& nwid) noexcept
 {
     //
     // Note: this routine assumes cell with TagBox::SET tag are in
@@ -122,16 +122,18 @@ TagBox::buffer (int nbuff, int nwid) noexcept
     inside.grow(-nwid);
     const int* inlo = inside.loVect();
     const int* inhi = inside.hiVect();
+
     int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
     AMREX_D_TERM(ilo=inlo[0]; ihi=inhi[0]; ,
-           jlo=inlo[1]; jhi=inhi[1]; ,
-           klo=inlo[2]; khi=inhi[2];)
+                 jlo=inlo[1]; jhi=inhi[1]; ,
+                 klo=inlo[2]; khi=inhi[2];)
+
+    int ni = 0, nj = 0, nk = 0;
+    AMREX_D_TERM(ni=nbuff[0];, nj=nbuff[1];, nk=nbuff[2];)
 
     IntVect d_length = domain.size();
     const int* len = d_length.getVect();
     const int* lo = domain.loVect();
-    int ni = 0, nj = 0, nk = 0;
-    AMREX_D_TERM(ni, =nj, =nk) = nbuff;
     TagType* d = dataPtr();
 
 #define OFF(i,j,k,lo,len) AMREX_D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
@@ -437,6 +439,15 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     if (SharedMemory()) setVal(TagBox::CLEAR);
 }
 
+TagBoxArray::TagBoxArray (const BoxArray& ba,
+			  const DistributionMapping& dm,
+                          const IntVect&  _ngrow)
+    :
+    FabArray<TagBox>(ba,dm,1,_ngrow,MFInfo(),DefaultFabFactory<TagBox>())
+{
+    if (SharedMemory()) setVal(TagBox::CLEAR);
+}
+
 int
 TagBoxArray::borderSize () const noexcept
 {
@@ -444,19 +455,23 @@ TagBoxArray::borderSize () const noexcept
 }
 
 void 
-TagBoxArray::buffer (int nbuf)
+TagBoxArray::buffer (const IntVect& nbuf)
 {
-    if (nbuf != 0)
-    {
-        BL_ASSERT(nbuf <= n_grow[0]);
+    for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
+      if (nbuf[idir] != 0)
+         BL_ASSERT(nbuf[idir] <= n_grow[idir]);
 
+    int max_nbuf = nbuf[0];
+    for (int idir = 1; idir < AMREX_SPACEDIM; idir++)
+        max_nbuf = std::max(max_nbuf,nbuf[idir]);
+
+    if (max_nbuf != 0)
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    get(mfi).buffer(nbuf, n_grow[0]);
-        } 
+       for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+           get(mfi).buffer(nbuf, n_grow);
     }
 }
 
