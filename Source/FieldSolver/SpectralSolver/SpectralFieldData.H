@@ -42,6 +42,9 @@ class SpectralFieldData
         SpectralField Ex, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new;
         SpectralField tmpRealField, tmpSpectralField; // Store fields before/after transform
         FFTplans forward_plan, backward_plan;
+        // Factors that shift the fields between nodal and cell-centered, in spectral space
+        // (for each dimension of space)
+        amrex::Array<SpectralShiftFactor,AMREX_SPACEDIM> shift_N2C, shift_C2N;
         SpectralField& getSpectralField( const int field_index );
 };
 

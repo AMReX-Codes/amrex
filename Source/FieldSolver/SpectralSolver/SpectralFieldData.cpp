@@ -25,6 +25,14 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
     tmpRealField = SpectralField(realspace_ba, dm, 1, 0);
     tmpSpectralField = SpectralField(spectralspace_ba, dm, 1, 0);
 
+    // Allocate the vectors that allow to shift between nodal and cell-centered
+    for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++) {
+        shift_C2N[i_dim] = k_space.AllocateAndFillSpectralShiftFactor(
+                            dm, i_dim, ShiftType::CenteredToNodal );
+        shift_N2C[i_dim] = k_space.AllocateAndFillSpectralShiftFactor(
+                            dm, i_dim, ShiftType::NodalToCentered );        
+    }
+
     // Allocate and initialize the FFT plans
     forward_plan = FFTplans(spectralspace_ba, dm);
     backward_plan = FFTplans(spectralspace_ba, dm);

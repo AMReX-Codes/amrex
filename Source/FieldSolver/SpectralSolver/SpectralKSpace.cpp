@@ -1,5 +1,6 @@
 #include <WarpXConst.H>
 #include <SpectralKSpace.H>
+#include <cmath>
 
 using namespace amrex;
 using namespace Gpu;
@@ -25,19 +26,19 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
 
     // Allocate the components of the k vector: kx, ky (only in 3D), kz
     for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++) {
-        k_vec[i_dim] = AllocateAndFillKVector( dm, i_dim );
+        k_vec[i_dim] = AllocateAndFillKComponent( dm, i_dim );
     }
 }
 
-KVectorComponent&
-SpectralKSpace::AllocateAndFillKVector( const DistributionMapping& dm, const int i_dim ) const
+KVectorComponent
+SpectralKSpace::AllocateAndFillKComponent( const DistributionMapping& dm, const int i_dim ) const
 {
-    // Initialize an empty vector in each box
-    KVectorComponent k_vec = KVectorComponent(spectralspace_ba, dm);
+    // Initialize an empty ManagedVector in each box
+    KVectorComponent k_comp = KVectorComponent(spectralspace_ba, dm);
     // Loop over boxes
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Box bx = spectralspace_ba[mfi];
-        ManagedVector<Real>& k = k_vec[mfi];
+        ManagedVector<Real>& k = k_comp[mfi];
 
         // Allocate k to the right size
         int N = bx.length( i_dim );
@@ -62,19 +63,19 @@ SpectralKSpace::AllocateAndFillKVector( const DistributionMapping& dm, const int
         // and distinguish the size of the local box and that of the global FFT
         // This will also be different for the real-to-complex transform
     }
-    return k_vec;
+    return k_comp;
 }
 
-KVectorComponent&
-SpectralKSpace::AllocateAndFillModifiedKVector(
+KVectorComponent
+SpectralKSpace::AllocateAndFillModifiedKComponent(
         const DistributionMapping& dm, const int i_dim, const int order ) const
 {
-    // Initialize an empty vector in each box
-    KVectorComponent modified_k_vec = KVectorComponent( spectralspace_ba, dm );
+    // Initialize an empty ManagedVector in each box
+    KVectorComponent modified_k_comp = KVectorComponent( spectralspace_ba, dm );
     // Loop over boxes
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         const ManagedVector<Real>& k = k_vec[i_dim][mfi];
-        ManagedVector<Real>& modified_k = modified_k_vec[mfi];
+        ManagedVector<Real>& modified_k = modified_k_comp[mfi];
 
         // Allocate modified_k to the same size as k
         modified_k.resize( k.size() );
@@ -86,5 +87,33 @@ SpectralKSpace::AllocateAndFillModifiedKVector(
             modified_k[i] = k[i];
         }
     }
-    return modified_k_vec;
+    return modified_k_comp;
+}
+
+SpectralShiftFactor
+SpectralKSpace::AllocateAndFillSpectralShiftFactor(
+        const DistributionMapping& dm, const int i_dim, const int shift_type ) const
+{
+    // Initialize an empty ManagedVector in each box
+    SpectralShiftFactor shift_factor = SpectralShiftFactor( spectralspace_ba, dm );
+    // Loop over boxes
+    for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
+        const ManagedVector<Real>& k = k_vec[i_dim][mfi];
+        ManagedVector<Complex>& shift = shift_factor[mfi];
+
+        // Allocate shift coefficients
+        shift.resize( k.size() );
+
+        // Fill the shift coefficients
+        Real sign = 0;
+        switch (shift_type){
+            case ShiftType::CenteredToNodal: sign = -1.;
+            case ShiftType::NodalToCentered: sign = 1.;
+        }
+        constexpr Complex I{0,1};
+        for (int i=0; i<k.size(); i++ ){
+            shift[i] = std::exp( I*sign*k[i]*0.5*dx[i_dim] );
+        }
+    }
+    return shift_factor;
 }
