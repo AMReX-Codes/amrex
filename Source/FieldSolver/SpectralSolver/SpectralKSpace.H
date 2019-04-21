@@ -15,22 +15,17 @@ class SpectralKSpace
         SpectralKSpace( const amrex::BoxArray& realspace_ba,
                         const amrex::DistributionMapping& dm,
                         const amrex::RealVect dx );
+        SpectralKVector& AllocateAndFillKVector(
+            const amrex::DistributionMapping& dm, const int i_dim ) const;
+        SpectralKVector& AllocateAndFillModifiedKVector(
+            const amrex::DistributionMapping& dm, const int i_dim, const int order ) const;
         amrex::BoxArray spectralspace_ba;
-        SpectralKVector kx_vec, kz_vec;
-#if (AMREX_SPACEDIM==3)
-        SpectralKVector ky_vec;
-#endif
+
+    private:
+        amrex::Array<SpectralKVector, AMREX_SPACEDIM> k_vec;
+        // 3D: array of 3 components, corresponding to kx, ky, kz
+        // 2D: array of 2 components, corresponding to kx, kz
         amrex::RealVect dx;
 };
-
-void
-AllocateAndFillKvector( amrex::Gpu::ManagedVector<amrex::Real>& k,
-    const amrex::Box& bx, const amrex::RealVect dx, const int i_dim );
-
-void
-ComputeModifiedKVector( amrex::Gpu::ManagedVector<amrex::Real>& modified_k,
-                        const amrex::Gpu::ManagedVector<amrex::Real>& k,
-                        const amrex::Box& bx, const amrex::Real dx,
-                        const int norder );
 
 #endif

@@ -12,30 +12,13 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     const BoxArray& ba = spectral_kspace.spectralspace_ba;
 
     // Allocate the 1D vectors
-    modified_kx_vec = SpectralKVector( ba, dm );
+    modified_kx_vec = spectral_kspace.AllocateAndFillModifiedKVector( dm, 0, norder_x );
 #if (AMREX_SPACEDIM==3)
-    modified_ky_vec = SpectralKVector( ba, dm );
-#endif
-    modified_kz_vec = SpectralKVector( ba, dm );
-    // Allocate and fill them by computing the modified vector
-    for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
-        Box bx = ba[mfi];
-        ComputeModifiedKVector(
-            modified_kx_vec[mfi], spectral_kspace.kx_vec[mfi],
-            bx, spectral_kspace.dx[0], norder_x );
-#if (AMREX_SPACEDIM==3)
-        ComputeModifiedKVector(
-            modified_ky_vec[mfi], spectral_kspace.ky_vec[mfi],
-            bx, spectral_kspace.dx[1], norder_y );
-        ComputeModifiedKVector(
-            modified_kz_vec[mfi], spectral_kspace.kz_vec[mfi],
-            bx, spectral_kspace.dx[2], norder_z );
+    modified_ky_vec = spectral_kspace.AllocateAndFillModifiedKVector( dm, 1, norder_y );
+    modified_kz_vec = spectral_kspace.AllocateAndFillModifiedKVector( dm, 2, norder_z );
 #else
-        ComputeModifiedKVector(
-            modified_kz_vec[mfi], spectral_kspace.kz_vec[mfi],
-            bx, spectral_kspace.dx[1], norder_z );
+    modified_kz_vec = spectral_kspace.AllocateAndFillModifiedKVector( dm, 1, norder_z );
 #endif
-    }
 
     // Allocate the arrays of coefficients
     C_coef = SpectralCoefficients( ba, dm, 1, 0 );
