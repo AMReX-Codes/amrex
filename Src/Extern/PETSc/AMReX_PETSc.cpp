@@ -14,6 +14,11 @@
 #include <algorithm>
 #include <type_traits>
 
+#ifdef AMREX_USE_HYPRE
+#include "_hypre_utilities.h"
+#endif
+
+
 namespace amrex {
 
 constexpr PetscInt PETScABecLap::regular_stencil_size;
