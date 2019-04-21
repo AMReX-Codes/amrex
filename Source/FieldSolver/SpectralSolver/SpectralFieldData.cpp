@@ -146,7 +146,7 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
             const Box spectralspace_bx = tmpSpectralField[mfi].box();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                Complex spectral_field_value = field_arr(i,j,k);
+                Complex spectral_field_value = tmp_arr(i,j,k);
                 // Apply proper shift in each dimension
                 if (is_nodal_x==false) spectral_field_value *= xshift_C2N_arr[i];
 #if (AMREX_SPACEDIM == 3)
