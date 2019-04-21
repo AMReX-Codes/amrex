@@ -448,24 +448,18 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     if (SharedMemory()) setVal(TagBox::CLEAR);
 }
 
-int
+IntVect
 TagBoxArray::borderSize () const noexcept
 {
-    return n_grow[0];
+    return n_grow;
 }
 
 void 
 TagBoxArray::buffer (const IntVect& nbuf)
 {
-    for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
-      if (nbuf[idir] != 0)
-         BL_ASSERT(nbuf[idir] <= n_grow[idir]);
+    AMREX_ASSERT(nbuf.allLE(n_grow));
 
-    int max_nbuf = nbuf[0];
-    for (int idir = 1; idir < AMREX_SPACEDIM; idir++)
-        max_nbuf = std::max(max_nbuf,nbuf[idir]);
-
-    if (max_nbuf != 0)
+    if (nbuf.max() > 0)
     {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -671,7 +665,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     }
 
-    boxarray.growcoarsen(n_grow[0],ratio);
+    boxarray.growcoarsen(n_grow,ratio);
     updateBDKey();  // because we just modify boxarray in-place.
 
     n_grow = IntVect::TheZeroVector();
