@@ -29,11 +29,11 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
     }
 }
 
-SpectralKVector&
+KVectorComponent&
 SpectralKSpace::AllocateAndFillKVector( const DistributionMapping& dm, const int i_dim ) const
 {
     // Initialize an empty vector in each box
-    SpectralKVector k_vec = SpectralKVector(spectralspace_ba, dm);
+    KVectorComponent k_vec = KVectorComponent(spectralspace_ba, dm);
     // Loop over boxes
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Box bx = spectralspace_ba[mfi];
@@ -65,12 +65,12 @@ SpectralKSpace::AllocateAndFillKVector( const DistributionMapping& dm, const int
     return k_vec;
 }
 
-SpectralKVector&
+KVectorComponent&
 SpectralKSpace::AllocateAndFillModifiedKVector(
         const DistributionMapping& dm, const int i_dim, const int order ) const
 {
     // Initialize an empty vector in each box
-    SpectralKVector modified_k_vec = SpectralKVector( spectralspace_ba, dm );
+    KVectorComponent modified_k_vec = KVectorComponent( spectralspace_ba, dm );
     // Loop over boxes
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         const ManagedVector<Real>& k = k_vec[i_dim][mfi];
