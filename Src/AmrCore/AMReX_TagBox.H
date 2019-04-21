@@ -200,7 +200,7 @@ public:
     /**
     * \brief Returns the grow factor for the TagBoxArray.
     */
-    int borderSize () const noexcept;
+    IntVect borderSize () const noexcept;
 
     /**
     * \brief Calls buffer() on all contained TagBoxes.
