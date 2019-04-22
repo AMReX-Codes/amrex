@@ -5,60 +5,55 @@
 
 namespace amrex {
 
+template <typename T>
 struct CopyMemory
 {
-    Array4<Real> src{nullptr,{},{}};
-    Array4<Real> dst{nullptr,{},{}};
+    Array4<T const> src{nullptr,{},{}};
+    Array4<T> dst{nullptr,{},{}};
     Dim3 offset = {0,0,0};
     int scomp = 0;
     int ncomp = 0;
 };
 
+template <typename T>
 struct CudaGraph
 {
-    cudaGraphExec_t copyGraph;
-    CopyMemory* mem = nullptr;
-    CopyMemory* mem_d = nullptr;
-    int size;
+    cudaGraphExec_t m_graph;
+    Vector<T> m_parms;
+    T* m_parms_d = nullptr;
 
     CudaGraph(int num)
-        : size(num)
+        : m_parms(num)
     {
-        // Placement new to allow graph creation before host memory definition. 
-        mem = static_cast<CopyMemory*>(std::malloc(sizeof(CopyMemory)*size)); 
-        for(int i=0; i<size; ++i)
-        {
-           new (mem+i) CopyMemory();
-        }
-
-        cudaMalloc(&mem_d, sizeof(CopyMemory)*size);
-        cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
+        cudaMalloc(&m_parms_d, sizeof(T)*m_parms.size());
+//        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+//        cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
+//                   cudaMemcpyHostToDevice);
     }
     ~CudaGraph()
     {
-        for(int i=0; i<size; ++i)
-        {
-            (mem+i)->~CopyMemory();
-        }
-        std::free(mem);
-
-        cudaFree(mem_d);         
+        cudaFree(m_parms_d);
     }
-    void setGraph(cudaGraphExec_t &graph)
+    void setGraph(cudaGraphExec_t const& graph)
     { 
-        copyGraph = graph;
+        m_graph = graph;
     }
-    void setParams(int idx, CopyMemory &set)
+    void setParams(int idx, T const& a_parm)
     {
-        std::memcpy((mem+idx), &set, sizeof(CopyMemory)); 
+        m_parms[idx] = a_parm;
+    }
+    T* getDevicePtr (int idx) {
+        return m_parms_d + idx;
     }
     void executeGraph()
     {
-        cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+        cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
+                   cudaMemcpyHostToDevice);
 
         Cuda::Device::setStreamIndex(0);
 
-        cudaGraphLaunch(copyGraph, amrex::Cuda::Device::cudaStream());
+        cudaGraphLaunch(m_graph, amrex::Cuda::Device::cudaStream());
 
         Cuda::Device::resetStreamIndex();
         Cuda::Device::synchronize();
