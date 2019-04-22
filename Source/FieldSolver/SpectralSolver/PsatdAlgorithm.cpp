@@ -7,29 +7,29 @@ using namespace amrex;
 PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                          const DistributionMapping& dm,
                          const int norder_x, const int norder_y,
-                         const int norder_z, const Real dt)
+                         const int norder_z, const bool nodal, const Real dt)
 {
     const BoxArray& ba = spectral_kspace.spectralspace_ba;
 
     // Allocate the 1D vectors
-    modified_kx_vec = spectral_kspace.getModifiedKComponent( dm, 0, norder_x );
+    modified_kx_vec = spectral_kspace.getModifiedKComponent(dm, 0, norder_x, nodal);
 #if (AMREX_SPACEDIM==3)
-    modified_ky_vec = spectral_kspace.getModifiedKComponent( dm, 1, norder_y );
-    modified_kz_vec = spectral_kspace.getModifiedKComponent( dm, 2, norder_z );
+    modified_ky_vec = spectral_kspace.getModifiedKComponent(dm, 1, norder_y, nodal);
+    modified_kz_vec = spectral_kspace.getModifiedKComponent(dm, 2, norder_z, nodal);
 #else
-    modified_kz_vec = spectral_kspace.getModifiedKComponent( dm, 1, norder_z );
+    modified_kz_vec = spectral_kspace.getModifiedKComponent(dm, 1, norder_z, nodal);
 #endif
 
     // Allocate the arrays of coefficients
-    C_coef = SpectralCoefficients( ba, dm, 1, 0 );
-    S_ck_coef = SpectralCoefficients( ba, dm, 1, 0 );
-    X1_coef = SpectralCoefficients( ba, dm, 1, 0 );
-    X2_coef = SpectralCoefficients( ba, dm, 1, 0 );
-    X3_coef = SpectralCoefficients( ba, dm, 1, 0 );
+    C_coef = SpectralCoefficients(ba, dm, 1, 0);
+    S_ck_coef = SpectralCoefficients(ba, dm, 1, 0);
+    X1_coef = SpectralCoefficients(ba, dm, 1, 0);
+    X2_coef = SpectralCoefficients(ba, dm, 1, 0);
+    X3_coef = SpectralCoefficients(ba, dm, 1, 0);
 
     // Fill them with the right values:
     // Loop over boxes
-    for ( MFIter mfi(ba, dm); mfi.isValid(); ++mfi ){
+    for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
 
         const Box& bx = ba[mfi];
 
@@ -47,26 +47,26 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
         Array4<Real> X3 = X3_coef[mfi].array();
 
         // Loop over indices within one box
-        ParallelFor( bx,
+        ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             // Calculate norm of vector
             const Real k_norm = std::sqrt(
-                std::pow( modified_kx[i], 2 ) +
+                std::pow(modified_kx[i], 2) +
 #if (AMREX_SPACEDIM==3)
-                std::pow( modified_ky[j], 2 ) +
+                std::pow(modified_ky[j], 2) +
 #endif
-                std::pow( modified_kz[k], 2 ) );
+                std::pow(modified_kz[k], 2));
 
             // Calculate coefficients
             constexpr Real c = PhysConst::c;
             constexpr Real ep0 = PhysConst::ep0;
-            if ( k_norm != 0 ){
-                C(i,j,k) = std::cos( c*k_norm*dt );
-                S_ck(i,j,k) = std::sin( c*k_norm*dt )/( c*k_norm );
+            if (k_norm != 0){
+                C(i,j,k) = std::cos(c*k_norm*dt);
+                S_ck(i,j,k) = std::sin(c*k_norm*dt)/(c*k_norm);
                 X1(i,j,k) = (1. - C(i,j,k))/(ep0 * c*c * k_norm*k_norm);
-                X2(i,j,k) = (1. - S_ck(i,j,k)/dt )/(ep0 * k_norm*k_norm);
-                X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt )/(ep0 * k_norm*k_norm);
+                X2(i,j,k) = (1. - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
+                X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
             } else { // Handle k_norm = 0, by using the analytical limit
                 C(i,j,k) = 1.;
                 S_ck(i,j,k) = dt;
@@ -79,10 +79,10 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
 };
 
 void
-PsatdAlgorithm::pushSpectralFields( SpectralFieldData& f ) const{
+PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
 
     // Loop over boxes
-    for ( MFIter mfi(f.Ex); mfi.isValid(); ++mfi ){
+    for (MFIter mfi(f.Ex); mfi.isValid(); ++mfi){
 
         const Box& bx = f.Ex[mfi].box();
 
@@ -113,7 +113,7 @@ PsatdAlgorithm::pushSpectralFields( SpectralFieldData& f ) const{
         const Real* modified_kz_arr = modified_kz_vec[mfi].dataPtr();
 
         // Loop over indices within one box
-        ParallelFor( bx,
+        ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             // Record old values of the fields to be updated
@@ -148,24 +148,24 @@ PsatdAlgorithm::pushSpectralFields( SpectralFieldData& f ) const{
 
             // Update E (see WarpX online documentation: theory section)
             Ex_arr(i,j,k) = C*Ex_old
-                        + S_ck*( c2*I*(ky*Bz_old - kz*By_old) - inv_ep0*Jx )
-                        - I*( X2*rho_new - X3*rho_old )*kx;
+                        + S_ck*(c2*I*(ky*Bz_old - kz*By_old) - inv_ep0*Jx)
+                        - I*(X2*rho_new - X3*rho_old)*kx;
             Ey_arr(i,j,k) = C*Ey_old
-                        + S_ck*( c2*I*(kz*Bx_old - kx*Bz_old) - inv_ep0*Jy )
-                        - I*( X2*rho_new - X3*rho_old )*ky;
+                        + S_ck*(c2*I*(kz*Bx_old - kx*Bz_old) - inv_ep0*Jy)
+                        - I*(X2*rho_new - X3*rho_old)*ky;
             Ez_arr(i,j,k) = C*Ez_old
-                        + S_ck*( c2*I*(kx*By_old - ky*Bx_old) - inv_ep0*Jz )
-                        - I*( X2*rho_new - X3*rho_old )*kz;
+                        + S_ck*(c2*I*(kx*By_old - ky*Bx_old) - inv_ep0*Jz)
+                        - I*(X2*rho_new - X3*rho_old)*kz;
             // Update B (see WarpX online documentation: theory section)
             Bx_arr(i,j,k) = C*Bx_old
                         - S_ck*I*(ky*Ez_old - kz*Ey_old)
-                        +   X1*I*(ky*Jz     - kz*Jy );
+                        +   X1*I*(ky*Jz     - kz*Jy);
             By_arr(i,j,k) = C*By_old
                         - S_ck*I*(kz*Ex_old - kx*Ez_old)
-                        +   X1*I*(kz*Jx     - kx*Jz );
+                        +   X1*I*(kz*Jx     - kx*Jz);
             Bz_arr(i,j,k) = C*Bz_old
                         - S_ck*I*(kx*Ey_old - ky*Ex_old)
-                        +   X1*I*(kx*Jy     - ky*Jx );
+                        +   X1*I*(kx*Jy     - ky*Jx);
         });
     }
 };

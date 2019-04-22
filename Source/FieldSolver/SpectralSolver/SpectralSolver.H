@@ -19,14 +19,14 @@ class SpectralSolver
         SpectralSolver( const amrex::BoxArray& realspace_ba,
                         const amrex::DistributionMapping& dm,
                         const int norder_x, const int norder_y, const int norder_z,
-                        const amrex::RealVect dx, const amrex::Real dt )
+                        const bool nodal, const amrex::RealVect dx, const amrex::Real dt )
         {
             // Initialize all structures using the same distribution mapping dm
             // - Initialize k space (Contains size of each box in spectral space,
             // and corresponding values of the k vectors)
             const SpectralKSpace k_space = SpectralKSpace( realspace_ba, dm, dx );
             // - Initialize algorithm (coefficients) over this space
-            algorithm = PsatdAlgorithm( k_space, dm, norder_x, norder_y, norder_z, dt );
+            algorithm = PsatdAlgorithm( k_space, dm, norder_x, norder_y, norder_z, nodal, dt );
             // - Initialize arrays for fields in Fourier space + FFT plans
             field_data = SpectralFieldData( realspace_ba, k_space, dm );
         };

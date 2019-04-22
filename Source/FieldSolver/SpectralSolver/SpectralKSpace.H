@@ -25,7 +25,8 @@ class SpectralKSpace
         KVectorComponent getKComponent(
             const amrex::DistributionMapping& dm, const int i_dim ) const;
         KVectorComponent getModifiedKComponent(
-            const amrex::DistributionMapping& dm, const int i_dim, const int order ) const;
+            const amrex::DistributionMapping& dm, const int i_dim,
+            const int n_order, const bool nodal ) const;
         SpectralShiftFactor getSpectralShiftFactor(
             const amrex::DistributionMapping& dm, const int i_dim, const int shift_type ) const;
 
@@ -35,5 +36,8 @@ class SpectralKSpace
         // 2D: array of 2 components, corresponding to kx, kz
         amrex::RealVect dx;
 };
+
+amrex::Vector<amrex::Real>
+getFonbergStencilCoefficients( const int n_order, const bool nodal );
 
 #endif

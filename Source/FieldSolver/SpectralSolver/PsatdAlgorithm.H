@@ -11,13 +11,13 @@ class PsatdAlgorithm
     using SpectralCoefficients = amrex::FabArray< amrex::BaseFab <amrex::Real> >;
 
     public:
-        PsatdAlgorithm( const SpectralKSpace& spectral_kspace,
+        PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                          const amrex::DistributionMapping& dm,
                          const int norder_x, const int norder_y,
-                         const int norder_z, const amrex::Real dt);
+                         const int norder_z, const bool nodal, const amrex::Real dt);
         PsatdAlgorithm() = default; // Default constructor
         PsatdAlgorithm& operator=(PsatdAlgorithm&& algorithm) = default; // Default move assignment
-        void pushSpectralFields( SpectralFieldData& f ) const;
+        void pushSpectralFields(SpectralFieldData& f) const;
 
     private:
         // Modified finite-order vectors

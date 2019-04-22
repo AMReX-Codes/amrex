@@ -101,8 +101,13 @@ SpectralKSpace::getModifiedKComponent(
 {
     // Initialize an empty ManagedVector in each box
     KVectorComponent modified_k_comp = KVectorComponent( spectralspace_ba, dm );
+
+    // Compute real-space stencil coefficients
+    Vector<Real> stencil_coef = getFonbergStencilCoefficients(n_order, nodal);
+
     // Loop over boxes
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
+        Real delta_x = dx[i_dim];
         const ManagedVector<Real>& k = k_vec[i_dim][mfi];
         ManagedVector<Real>& modified_k = modified_k_comp[mfi];
 
@@ -111,9 +116,15 @@ SpectralKSpace::getModifiedKComponent(
 
         // Fill the modified k vector
         for (int i=0; i<k.size(); i++ ){
-            // For now, this simply copies the infinite order k
-            // TODO: Use the formula for finite-order modified k vector
-            modified_k[i] = k[i];
+            for (int n=1; n<stencil_coef.size(); n++){
+                if (nodal){
+                    modified_k[i] = \
+                        stencil_coef[n]*std::sin( k[i]*n*delta_x )/( n*delta_x );
+                } else {
+                    modified_k[i] = \
+                        stencil_coef[n]*std::sin( k[i]*(n-0.5)*delta_x )/( (n-0.5)*delta_x );
+                }
+            }
         }
     }
     return modified_k_comp;
@@ -121,12 +132,12 @@ SpectralKSpace::getModifiedKComponent(
 
 /* TODO: Documentation: point to Fonberg paper ; explain recurrence relation
  */
-Array<Real>
+Vector<Real>
 getFonbergStencilCoefficients( const int n_order, const bool nodal )
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE( n_order%2 == 0, "n_order should be even.");
     const int m = n_order/2;
-    Array<Real> stencil_coef;
+    Vector<Real> stencil_coef;
     stencil_coef.resize( m+1 );
 
     // Coefficients for nodal (a.k.a. centered) finite-difference
