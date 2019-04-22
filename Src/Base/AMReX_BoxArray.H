@@ -317,6 +317,7 @@ public:
 
     //! Grow and then coarsen each Box in the BoxArray.
     BoxArray& growcoarsen (int n, const IntVect& refinement_ratio);
+    BoxArray& growcoarsen (IntVect const& ngrow, const IntVect& refinement_ratio);
 
     //! Grow each Box in the BoxArray by the specified amount.
     BoxArray& grow (int n);

@@ -59,6 +59,10 @@ def configure(argv):
                         help="Enable Hypre as an option for bottom solver of AMReX linear solvers [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--enable-petsc",
+                        help="Enable PETSc as an option for bottom solver of AMReX linear solvers [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--enable-eb",
                         help="Enable AMReX embedded boundary capability [default=no]",
                         choices=["yes","no"],
@@ -98,6 +102,7 @@ def configure(argv):
     f.write("USE_FORTRAN_INTERFACE = {}\n".format("FALSE" if args.enable_fortran_api == "no" else "TRUE"))
     f.write("USE_LINEAR_SOLVERS = {}\n".format("FALSE" if args.enable_linear_solver == "no" else "TRUE"))
     f.write("USE_HYPRE = {}\n".format("TRUE" if args.enable_hypre == "yes" else "FALSE"))
+    f.write("USE_PETSC = {}\n".format("TRUE" if args.enable_petsc == "yes" else "FALSE"))
     f.write("USE_EB = {}\n".format("TRUE" if args.enable_eb == "yes" else "FALSE"))
     f.write("AMREX_XSDK = {}\n".format("TRUE" if args.enable_xsdk_defaults == "yes" else "FALSE"))
     f.write("ALLOW_DIFFERENT_COMP = {}\n".format("FALSE" if args.allow_different_compiler == "no" else "TRUE"))
