@@ -96,7 +96,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
 	    const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
 	    amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
 	}
-    RG_fine->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    RG_fine->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
 }
 
@@ -113,6 +113,7 @@ void average_down_push (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, MultiFa
 {
     if(rgi.currentItr != rgi.totalItr)
 	return;
+    int tg = WorkerThread::perilla_wid();
 
     f = rgi.currentRegion;
     //  NOTE: The tilebox is defined at the coarse level.
@@ -122,14 +123,16 @@ void average_down_push (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, MultiFa
     //        because the crse fab is a temporary which was made starting at comp 0, it is
     //        not part of the actual crse multifab which came in.
 
-    perilla::syncWorkerThreads();
+    //perilla::syncWorkerThreads();
+    RG_fine->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     int nThreads= perilla::nWorkerThreads();
     for(int t=0; t<RG_fine->fabTiles[f]->numTiles; t+= nThreads)
     {
 	const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
 	amrex_avgdown(tbx,(*crse_S_fine)[lfi],(*S_fine)[lfi],0,scomp,ncomp,ratio);
     }
-    perilla::syncWorkerThreads();
+    //perilla::syncWorkerThreads();
+    RG_fine->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     Perilla::multifabCopyPush(RG_crse, RG_fine, S_crse, crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
 }
 

@@ -10,6 +10,7 @@ module amrex_multigrid_module
   integer, parameter, public :: amrex_bottom_bicgstab = 1
   integer, parameter, public :: amrex_bottom_cg       = 2
   integer, parameter, public :: amrex_bottom_hypre    = 3
+  integer, parameter, public :: amrex_bottom_petsc    = 4
   integer, parameter, public :: amrex_bottom_default  = 1
 
   private

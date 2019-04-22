@@ -271,7 +271,7 @@ is roughly equivalent to running ``./configure`` (see the section on
 :ref:`sec:build:lib`). Next, the actual build and installation are performed by
 invoking ``make install`` from within ``builddir``. This installs the library files
 in a chosen installation directory (``installdir``).  If no installation path
-is provided by the user, AMReX will be installed in /path/to/amrex/installdir.
+is provided by the user, AMReX will be installed in ``/path/to/amrex/installdir``.
 The CMake build process is summarized as follows:
 
 .. highlight:: console
@@ -309,15 +309,22 @@ we recommend telling cmake to use gcc for c/c++ also.
 Customization options
 ---------------------
 
-AMReX configuration settings may be specified on the command line with the
-``-D`` option.  For example, one can enable OpenMP support as follows:
+AMReX build can be customized  by setting the value of suitable configuration variables
+on the command line via the ``-D <var>=<value>`` syntax, where ``<var>`` is the
+variable to set and ``<value>`` its desired value.
+For example, one can enable OpenMP support as follows:
 
 .. highlight:: console
 
 ::
 
-    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
+    cmake -DENABLE_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
+In the example above ``<var>=ENABLE_OMP`` and ``<value>=ON``.
+Configuration variables requiring a boolen value are evaluated to true if they
+are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
+if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
+Boolean configuration variables are case-insensitive.
 The list of available option is reported in the table on :ref:`tab:cmakevar`
 below.
 
@@ -331,73 +338,92 @@ below.
 .. table:: AMReX build options
 
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | Option Name                  | Description                                     | Default     | Possible values |
+   | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_DP                    |  Build with double-precision reals              | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PIC                   |  Build Position Independent Code                | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MPI                   |  Build with MPI support                         | ON          | ON OFF          |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_OMP                   |  Build with OpenMP support                      | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_LINEAR_SOLVERS        |  Build AMReX linear solvers                     | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_AMRDATA               |  Build data services                            | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PARTICLES             |  Build particle classes                         | OFF         | ON OFF          |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_DP_PARTICLES          |  Use double-precision reals in particle classes | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_BASE_PROFILE          |  Build with basic profiling support             | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_TINY_PROFILE          |  Build with tiny profiling support              | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_TRACE_PROFILE         |  Build with trace-profiling support             | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_COMM_PROFILE          |  Build with comm-profiling support              | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PROFPARSER            |  Build with profile parser support              | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_BACKTRACE             |  Build with backtrace support                   | OFF         | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | OFF         | ON,OFF          |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_ASSERTIONS            |  Build with assertions turned on                | OFF         | ON,OFF          |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |
+   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |   
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_3D_NODAL_MGML         |  Enable 3D nodal projection                     | OFF         | ON,OFF          |
+   | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   | ENABLE_DP                    |  Build with double-precision reals              | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_PIC                   |  Build Position Independent Code                | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_MPI                   |  Build with MPI support                         | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_OMP                   |  Build with OpenMP support                      | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_CUDA                  |  Build with CUDA support                        | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_ARCH                    |  CUDA target architecture                       | Auto        | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |    
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_LINEAR_SOLVERS        |  Build AMReX linear solvers                     | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_AMRDATA               |  Build data services                            | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_PARTICLES             |  Build particle classes                         | NO          | YES NO          |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_DP_PARTICLES          |  Use double-precision reals in particle classes | YES         | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_BASE_PROFILE          |  Build with basic profiling support             | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_TINY_PROFILE          |  Build with tiny profiling support              | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_TRACE_PROFILE         |  Build with trace-profiling support             | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_COMM_PROFILE          |  Build with comm-profiling support              | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_PROFPARSER            |  Build with profile parser support              | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_BACKTRACE             |  Build with backtrace support                   | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | NO          | YES,NO          |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES,NO          |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_3D_NODAL_MGML         |  Enable 3D nodal projection                     | NO          | YES,NO          |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ALGOIM_INSTALL_DIR           |  Path to Algoim installation directory          |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | BLITZ_INSTALL_DIR            |  Path to Blitz installation directory           |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_SUNDIALS              |  Enable SUNDIALS3 interfaces                    | OFF         | ON, OFF         |
+   | ENABLE_SUNDIALS              |  Enable SUNDIALS 4 interfaces                   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_SENSEI_IN_SITU        |  Enable SENSEI_IN_SITU infrastucture            | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_CONDUIT               |  Enable Conduit support                         | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_ASCENT                |  Enable Ascent support                          | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_HYPRE                 |  Enable HYPRE interfaces                        | NO          | YES, NO         |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+  
 .. raw:: latex
 
    \end{center}
 
-The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
-assertions in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while
+The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=YES``. In order to turn off
+assertions in debug mode, ``ENABLE_ASSERTION=NO`` must be set explicitly while
 invoking CMake.
 
 The options ``CMAKE_Fortran_FLAGS`` and ``CMAKE_CXX_FLAGS`` allow the user to
 set his own compilation flags for Fortran and C++ source files respectively.
 If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
 they will be initialized with the value of the environmental variables ``FFLAGS``/
-``CXXFLAGS``. If ``FFLAGS``/ ``CXXFLAGS`` are not defined in the environment,
-``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` will be set to the AMReX default values
-defined in  ``/path/to/amrex/Tools/CMake/AMReX_Compilers.cmake``.
+``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
+are defined, AMReX default flags are used.
 
 The option ``ENABLE_3D_NODAL_MGML`` enables AMReX 3D nodal projection. This option requires
 two external libraries: Blitz and Algoim. The user can provide the location of
@@ -405,6 +431,7 @@ both libraries via ``BLITZ_INSTALL_DIR`` and ``ALGOIM_INSTALL_DIR``. However, if
 options is not provided, AMReX will download and build Blitz and/or Algoim automatically.
 It should be noted that AMReX 2D nodal projection does not require the use of external libraries.
 
+For a detailed explanation of CUDA support in CMake, refer to section :ref:`sec:gpu:build`.
 
 .. _sec:build:cmake:config:
 
@@ -418,11 +445,16 @@ to include the following line in the appropriate CMakeLists.txt file:
 
 ::
 
-    find_package (AMReX 18 [REQUIRED] [HINTS /path/to/installdir/] )
+    find_package(AMReX 18 [REQUIRED])
 
-
+    
+To specify a search path for the AMReX library, set the environmental variable
+``AMReX_ROOT`` to point to the AMReX installation directory or add
+``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation for your 
+project. More details on how CMake search for external packages can be find 
+`here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
 In the above snippet, ``18`` refer to the minimum AMReX version supporting
-the import feature discussed here.
+the import feature discussed here. 
 Linking AMReX to any target defined in your CMake project is done by including
 the following line in the appropriate CMakeLists.txt file
 
@@ -430,7 +462,7 @@ the following line in the appropriate CMakeLists.txt file
 
 ::
 
-    target_link_libraries ( <your-target-name>  AMReX::amrex )
+    target_link_libraries( <your-target-name>  AMReX::amrex )
 
 The above snippet will take care of properly linking ``<your-target-name>``
 to AMReX and to all the required transitive dependencies.

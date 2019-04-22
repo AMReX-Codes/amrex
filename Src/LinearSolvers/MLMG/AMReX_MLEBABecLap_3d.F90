@@ -7,14 +7,18 @@ module amrex_mlebabeclap_3d_module
        get_neighbor_cells_int_single
   implicit none
 
-  real(amrex_real), parameter, public :: dx_eb = third
-
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 
             amrex_eb_mg_interp, amrex_mlebabeclap_grad, amrex_mlebabeclap_flux, &
-            compute_dphidn_3d, compute_dphidn_3d_ho
+            compute_dphidn_3d, compute_dphidn_3d_ho, amrex_get_dx_eb
 
 contains
+
+  elemental function amrex_get_dx_eb (kappa)
+    real(amrex_real), intent(in) :: kappa
+    real(amrex_real) :: amrex_get_dx_eb
+    amrex_get_dx_eb = max(0.3d0, (kappa*kappa-0.25d0)/(2.d0*kappa))
+  end function amrex_get_dx_eb
 
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, & 
        a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, & 
@@ -196,7 +200,7 @@ contains
                                       x,    xlo,  xhi, &
                                       flag, flo,  fhi, &
                                       bc(i,j,k,:),  phib, &
-                                      anrmx, anrmy, anrmz)
+                                      anrmx, anrmy, anrmz, vfrc(i,j,k))
             end if
 
             y(i,j,k) = y(i,j,k) - (one/vfrc(i,j,k)) * dhx * dphidn * ba(i,j,k) * beb(i,j,k)
@@ -270,7 +274,7 @@ contains
     real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho, res, vfrcinv
     real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
     real(amrex_real) :: sxm, sxp, sym, syp, szm, szp, oxm, oxp, oym, oyp, ozm, ozp
-    real(amrex_real) :: feb, phig, gx, gy, gz, dg, gxy, gxz, gyz, gxyz
+    real(amrex_real) :: feb, phig, gx, gy, gz, dg, dx_eb, gxy, gxz, gyz, gxyz
     real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
     real(amrex_real) :: bctx, bcty, bctz
@@ -478,7 +482,10 @@ contains
                        bctx = bc(i,j,k,1)
                        bcty = bc(i,j,k,2)
                        bctz = bc(i,j,k,3)
+
+                       dx_eb = amrex_get_dx_eb(vfrc(i,j,k))
                        dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
+
                        gx = bctx - dg*anrmx
                        gy = bcty - dg*anrmy
                        gz = bctz - dg*anrmz
@@ -559,7 +566,7 @@ contains
 
     integer :: i, j, k, ii, jj, kk
     real(amrex_real) :: dhx, dhy, dhz, sxm, sxp, sym, syp, szm, szp, gamma, fracx, fracy, fracz, vfrcinv
-    real(amrex_real) :: gx, gy, gz, dg, gxy, gxz, gyz, gxyz
+    real(amrex_real) :: gx, gy, gz, dg, dx_eb, gxy, gxz, gyz, gxyz
     real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
     real(amrex_real) :: bctx, bcty, bctz
@@ -648,7 +655,10 @@ contains
                 bctx = bc(i,j,k,1)
                 bcty = bc(i,j,k,2)
                 bctz = bc(i,j,k,3)
+
+                dx_eb = amrex_get_dx_eb(vfrc(i,j,k))
                 dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
+
                 gx = bctx - dg*anrmx
                 gy = bcty - dg*anrmy
                 gz = bctz - dg*anrmz
@@ -969,7 +979,7 @@ contains
   subroutine compute_dphidn_3d (dphidn, dxinv, i, j, k, &
         phi,  p_lo, p_hi,     &
         flag,  flo,  fhi,     &
-        bct, phib, anrmx, anrmy, anrmz)
+        bct, phib, anrmx, anrmy, anrmz, vf)
 
       ! Cell indices 
       integer, intent(in   ) :: i, j, k
@@ -987,19 +997,21 @@ contains
       integer, intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)) 
 
       real(amrex_real),  intent(in   ) :: bct(3), phib
-      real(amrex_real),  intent(in   ) :: anrmx, anrmy, anrmz
+      real(amrex_real),  intent(in   ) :: anrmx, anrmy, anrmz, vf
 
       real(amrex_real),        intent(  out) :: dphidn
 
       ! Local variable
       real(amrex_real) :: bctx, bcty, bctz
-      real(amrex_real) :: phig, gx, gy, gz, dg, gxy, gxz, gyz, gxyz
+      real(amrex_real) :: phig, gx, gy, gz, dg, dx_eb, gxy, gxz, gyz, gxyz
       real(amrex_real) :: sx, sy, sz
       integer          :: ii, jj, kk
 
       bctx = bct(1)
       bcty = bct(2)
       bctz = bct(3)
+
+      dx_eb = amrex_get_dx_eb(vf)
 
       dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
       gx = bctx - dg*anrmx

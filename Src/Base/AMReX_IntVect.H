@@ -128,7 +128,7 @@ public:
 
     //! maximum (no absolute values) value
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    int max() const noexcept
+    int max () const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
         return vect[0];
@@ -142,7 +142,7 @@ public:
 
     //! minimum (no absolute values) value
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    int min() const noexcept
+    int min () const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
         return vect[0];

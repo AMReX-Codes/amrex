@@ -8,14 +8,18 @@ module amrex_mlebabeclap_2d_module
        get_neighbor_cells_int_single
   implicit none
 
-  real(amrex_real), parameter, public :: dx_eb = third
-
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
             amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad, amrex_blend_beta, &
-            compute_dphidn_2d, compute_dphidn_2d_ho
+            compute_dphidn_2d, compute_dphidn_2d_ho, amrex_get_dx_eb
 
 contains
+
+  elemental function amrex_get_dx_eb (kappa)
+    real(amrex_real), intent(in) :: kappa
+    real(amrex_real) :: amrex_get_dx_eb
+    amrex_get_dx_eb = max(0.3d0, (kappa*kappa-0.25d0)/(2.d0*kappa))
+  end function amrex_get_dx_eb
 
   pure function amrex_blend_beta (kappa) result(beta)
     real(amrex_real), intent(in) :: kappa
@@ -218,7 +222,7 @@ contains
     real(amrex_real) :: feb, phib, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
     real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-    real(amrex_real) :: w1, w2, dg
+    real(amrex_real) :: w1, w2, dg, dx_eb
     real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     real(amrex_real), parameter :: omega = 1._amrex_real
 
@@ -344,6 +348,9 @@ contains
 
                    bctx = bc(i,j,1)
                    bcty = bc(i,j,2)
+
+                   dx_eb = amrex_get_dx_eb(vfrc(i,j))
+
                    if (abs(anrmx) .gt. abs(anrmy)) then
                       dg = dx_eb / abs(anrmx)
                       gx = bctx - dg*anrmx
@@ -462,7 +469,7 @@ contains
     real(amrex_real) :: gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
     real(amrex_real) :: bctx, bcty
-    real(amrex_real) :: w1, w2, dg
+    real(amrex_real) :: w1, w2, dg, dx_eb
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -513,6 +520,9 @@ contains
                 anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
                 bctx = bc(i,j,1)
                 bcty = bc(i,j,2)
+
+                dx_eb = amrex_get_dx_eb(vfrc(i,j))
+
                 if (abs(anrmx) .gt. abs(anrmy)) then
                    dg = dx_eb / abs(anrmx)
                    gx = bctx - dg*anrmx
@@ -728,33 +738,36 @@ contains
         flag,  flo,  fhi,     &
         bct, phib, anrmx, anrmy, vf)
 
-      ! Cell indices 
-      integer, intent(in   ) :: i, j
-
-      ! Grid spacing
-      real(amrex_real),       intent(in   ) :: dxinv(2)
-
-      integer, intent(in   ) :: p_lo(2), p_hi(2)
-      integer, intent(in   ) ::  flo(2),  fhi(2)
-      integer, intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2) )
-
-      ! Arrays
-      real(amrex_real),  intent(in   ) ::                            &
-           & phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
-
-      real(amrex_real),  intent(in   ) :: bct(2), phib
-      real(amrex_real),  intent(in   ) :: anrmx, anrmy, vf
-
-      real(amrex_real),        intent(  out) :: dphidn
-
+       ! Cell indices 
+       integer, intent(in   ) :: i, j
+ 
+       ! Grid spacing
+       real(amrex_real),       intent(in   ) :: dxinv(2)
+ 
+       integer, intent(in   ) :: p_lo(2), p_hi(2)
+       integer, intent(in   ) ::  flo(2),  fhi(2)
+       integer, intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2) )
+ 
+       ! Arrays
+       real(amrex_real),  intent(in   ) ::                            &
+            & phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
+ 
+       real(amrex_real),  intent(in   ) :: bct(2), phib
+       real(amrex_real),  intent(in   ) :: anrmx, anrmy, vf
+ 
+       real(amrex_real),        intent(  out) :: dphidn
+ 
        real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-       real(amrex_real) :: w1, w2, dg
+       real(amrex_real) :: w1, w2, dg, dx_eb
        real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
        real(amrex_real) :: phig, phig1, phig2, gx, gy, sx, sy
        integer          :: ii, jj
 
        bctx = bct(1)
        bcty = bct(2)
+
+       dx_eb = amrex_get_dx_eb(vf)
+
        if (abs(anrmx) .gt. abs(anrmy)) then
           dg = dx_eb / abs(anrmx)
           gx = bctx - dg*anrmx

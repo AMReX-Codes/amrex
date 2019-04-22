@@ -180,10 +180,31 @@ can run it and that will generate results like:
    [The  Pinned Arena] space (kilobyte): 8192
    AMReX (18.12-95-gf265b537f479-dirty) finalized
 
+
 Building with CMake
 -------------------
+To build AMReX with GPU support in CMake, add ``ENABLE_CUDA=YES`` to the
+``cmake`` invocation. By default, CMake will try to determine which GPU
+architecture is supported by the system. If more than one is found, CMake
+will build for all of them. This will generally results in a larger library.
+If autodetection fails, a set of "common" architectures is assumed.
+You can specify the target architecture to build for via the configuration option
+``-DCUDA_ARCH=<target-achitecture>``, where ``<target-architecture>`` can be either
+the name of the NVIDIA GPU, i.e. ``Turing``, ``Volta``, ``Pascal``, ``...`` , or its
+version number, i.e. ``10.0``, ``9.0``, ``8.0``, ``...`` .
+For example, on Cori GPUs you can specify the architecture as follows:
 
-CMake is currently unavailable when building with GPUs.
+.. highlight:: console
+               
+::
+
+   cmake [options] -DENABLE_CUDA=yes -DCUDA_ARCH=Volta /path/to/amrex/source
+   
+
+Note that AMReX only supports GPU architectures with version number ``6.0`` or higher. 
+
+
+
 
 .. ===================================================================
 
