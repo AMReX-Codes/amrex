@@ -61,7 +61,7 @@ public:
                  const IntVect&             ngrow);
 
     //! Return the grow factor that defines the region of definition.
-    int nGrow () const noexcept { return n_grow[0]; }
+    int nGrow (int direction = 0) const noexcept { return n_grow[direction]; }
 
     IntVect nGrowVect () const noexcept { return n_grow; }
 
