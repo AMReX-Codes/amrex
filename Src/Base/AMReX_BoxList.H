@@ -105,7 +105,7 @@ public:
     //! Remove all Boxes from this BoxList.
     void clear ();
     //! The number of Boxes in this BoxList.
-    int size () const noexcept { return m_lbox.size(); }
+    long size () const noexcept { return m_lbox.size(); }
 
     std::size_t capacity () const noexcept { return m_lbox.capacity(); }
 

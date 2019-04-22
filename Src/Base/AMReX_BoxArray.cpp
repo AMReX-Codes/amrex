@@ -511,6 +511,22 @@ BoxArray::operator!= (const BoxArray& rhs) const noexcept
 }
 
 bool
+BoxArray::operator== (const Vector<Box>& bv) const noexcept
+{
+    if (size() != bv.size()) return false;
+    for (long i = 0; i < size(); ++i) {
+        if (this->operator[](i) != bv[i]) return false;
+    }
+    return true;
+}
+
+bool
+BoxArray::operator!= (const Vector<Box>& bv) const noexcept
+{
+    return !operator==(bv);
+}
+
+bool
 BoxArray::CellEqual (const BoxArray& rhs) const noexcept
 {
     return m_crse_ratio == rhs.m_crse_ratio
@@ -605,6 +621,12 @@ BoxArray::coarsen (const IntVect& iv)
 BoxArray&
 BoxArray::growcoarsen (int n, const IntVect& iv)
 {
+    return growcoarsen(IntVect(n), iv);
+}
+
+BoxArray&
+BoxArray::growcoarsen (IntVect const& ngrow, const IntVect& iv)
+{
     uniqify();
 
     const int N = m_ref->m_abox.size();
@@ -612,7 +634,7 @@ BoxArray::growcoarsen (int n, const IntVect& iv)
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
-        m_ref->m_abox[i].grow(n).coarsen(iv);
+        m_ref->m_abox[i].grow(ngrow).coarsen(iv);
     }
     return *this;
 }

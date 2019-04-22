@@ -1,0 +1,20 @@
+# Domain size
+ncells = 128
+
+# Maximum allowable size of each subdomain in the problem domain; 
+# this is used to decompose the domain for parallel calculations.
+max_grid_size = 2
+
+# Number of levels
+nlevs = 1
+
+# Number of components in the multifabs
+ncomp = 6
+
+# Number of particles per cell
+nppc = 2
+
+#slice domain
+slice.dom_lo = 0.01 0.1 0.55
+slice.dom_hi = 0.01 0.7 0.55
+slice.coarsening_ratio = 1 4 3

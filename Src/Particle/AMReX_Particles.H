@@ -107,12 +107,12 @@ struct ParticleLocData
 ///
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
-    {
-        std::array<double, NStructReal> real_struct_data;
-        std::array<int,    NStructInt > int_struct_data;
-        std::array<double, NArrayReal > real_array_data;
-        std::array<int,    NArrayInt  > int_array_data;
-    };
+{
+    std::array<double, NStructReal> real_struct_data;
+    std::array<int,    NStructInt > int_struct_data;
+    std::array<double, NArrayReal > real_array_data;
+    std::array<int,    NArrayInt  > int_array_data;
+};
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIterBase;
@@ -780,7 +780,7 @@ protected:
                          const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
 
     template <class RTYPE>
-    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs);
+    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
     
     void SetParticleSize ();
 

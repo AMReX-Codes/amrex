@@ -1,0 +1,9 @@
+
+CEXE_sources += main.cpp
+
+CEXE_headers += Poisson.H
+CEXE_headers += Poisson_F.H
+
+CEXE_sources += Poisson.cpp
+
+F90EXE_sources += poisson.F90

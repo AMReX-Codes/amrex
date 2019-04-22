@@ -38,5 +38,11 @@
 # ==================
 # module purge
 # module load modules esslurm gcc cuda mvapich2 
+#    or for openmpi:
+# module load modules esslurm gcc cuda openmpi/3.1.0-ucx
 
-srun ./CNS3d.gnu.TPROF.MPI.CUDA.ex inputs
+
+EXE=./CNS3d.gnu.TPROF.MPI.CUDA.ex
+INPUTS=inputs
+
+srun ${EXE} ${INPUTS}
