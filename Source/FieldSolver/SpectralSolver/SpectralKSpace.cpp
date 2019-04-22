@@ -66,30 +66,6 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm, const int i_dim ) 
     return k_comp;
 }
 
-KVectorComponent
-SpectralKSpace::getModifiedKComponent(
-        const DistributionMapping& dm, const int i_dim, const int order ) const
-{
-    // Initialize an empty ManagedVector in each box
-    KVectorComponent modified_k_comp = KVectorComponent( spectralspace_ba, dm );
-    // Loop over boxes
-    for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
-        const ManagedVector<Real>& k = k_vec[i_dim][mfi];
-        ManagedVector<Real>& modified_k = modified_k_comp[mfi];
-
-        // Allocate modified_k to the same size as k
-        modified_k.resize( k.size() );
-
-        // Fill the modified k vector
-        for (int i=0; i<k.size(); i++ ){
-            // For now, this simply copies the infinite order k
-            // TODO: Use the formula for finite-order modified k vector
-            modified_k[i] = k[i];
-        }
-    }
-    return modified_k_comp;
-}
-
 SpectralShiftFactor
 SpectralKSpace::getSpectralShiftFactor(
         const DistributionMapping& dm, const int i_dim, const int shift_type ) const
@@ -116,4 +92,60 @@ SpectralKSpace::getSpectralShiftFactor(
         }
     }
     return shift_factor;
+}
+
+KVectorComponent
+SpectralKSpace::getModifiedKComponent(
+        const DistributionMapping& dm, const int i_dim,
+        const int n_order, const bool nodal ) const
+{
+    // Initialize an empty ManagedVector in each box
+    KVectorComponent modified_k_comp = KVectorComponent( spectralspace_ba, dm );
+    // Loop over boxes
+    for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
+        const ManagedVector<Real>& k = k_vec[i_dim][mfi];
+        ManagedVector<Real>& modified_k = modified_k_comp[mfi];
+
+        // Allocate modified_k to the same size as k
+        modified_k.resize( k.size() );
+
+        // Fill the modified k vector
+        for (int i=0; i<k.size(); i++ ){
+            // For now, this simply copies the infinite order k
+            // TODO: Use the formula for finite-order modified k vector
+            modified_k[i] = k[i];
+        }
+    }
+    return modified_k_comp;
+}
+
+/* TODO: Documentation: point to Fonberg paper ; explain recurrence relation
+ */
+Array<Real>
+getFonbergStencilCoefficients( const int n_order, const bool nodal )
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( n_order%2 == 0, "n_order should be even.");
+    const int m = n_order/2;
+    Array<Real> stencil_coef;
+    stencil_coef.resize( m+1 );
+
+    // Coefficients for nodal (a.k.a. centered) finite-difference
+    if (nodal == true) {
+        stencil_coef[0] = -2.; // First coefficient
+        for (int n=1; n<m+1; n++){ // Get the other coefficients by recurrence
+            stencil_coef[n] = - (m+1-n)*1./(m+n)*stencil_coef[n-1];
+        }
+    }
+    // Coefficients for staggered finite-difference
+    else {
+        Real prod = 1.;
+        for (int k=1; k<m+1; k++){
+            prod *= (m+k)*1./(4*k);
+        }
+        stencil_coef[0] = 4*m*prod*prod; // First coefficient
+        for (int n=1; n<m+1; n++){ // Get the other coefficients by recurrence
+            stencil_coef[n] = - ((2*n-3)*(m+1-n))*1./((2*n-1)*(m-1+n))*stencil_coef[n-1];
+        }
+    }
+    return stencil_coef;
 }
