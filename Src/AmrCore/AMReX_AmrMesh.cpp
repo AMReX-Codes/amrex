@@ -103,9 +103,15 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     pp.query("grid_eff",grid_eff);
     int cnt = pp.countval("n_error_buf");
     if (cnt > 0) {
-        pp.getarr("n_error_buf",n_error_buf);
-        for (int i = cnt; i < nlev; ++i) {
-            n_error_buf[i] = n_error_buf[cnt-1];
+        Vector<int> neb;
+        pp.getarr("n_error_buf",neb);
+        int n = std::min(cnt, max_level);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) 
+        {
+            for (int i = 0; i < n; ++i) 
+               n_error_buf[i][idim] = neb[i];
+            for (int i = n; i < max_level; ++i) 
+               n_error_buf[i][idim] = neb[cnt-1];
         }
     }
 
