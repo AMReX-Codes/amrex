@@ -56,8 +56,6 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
 
 }
 
-
-
 AMREX_GPU_GLOBAL
 void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
            amrex::Dim3 offset, amrex::FArrayBox* src_fab, amrex::FArrayBox* dst_fab,
@@ -126,24 +124,13 @@ struct CopyGraph
     : size(num)
     {
         mem = static_cast<CopyMemory*>(std::malloc(sizeof(CopyMemory)*size)); 
-
         for(int i=0; i<size; ++i)
         {
-           new (&mem[i]) CopyMemory();
+           new (mem+i) CopyMemory();
         }
-/*        
-        amrex::Cuda::ExecutionConfig ec(dim3(1), dim3(size));
-        AMREX_CUDA_LAUNCH_DEVICE(ec,
-        [=] AMREX_GPU_DEVICE 
-        {
-            new (mem_d + (sizeof(CopyMemory)*threadIdx.x)) CopyMemory(); 
-        });
-*/
-        AMREX_GPU_ERROR_CHECK();
+
         cudaMalloc(&mem_d, sizeof(CopyMemory)*size);
-        AMREX_GPU_ERROR_CHECK();
         cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
-        AMREX_GPU_ERROR_CHECK();
     }
     ~CopyGraph()
     {
@@ -151,10 +138,10 @@ struct CopyGraph
 
         for(int i=0; i<size; ++i)
         {
-            (mem + sizeof(CopyMemory)*i)->~CopyMemory();
+            (mem+i)->~CopyMemory();
         }
-        cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
         std::free(mem);
+
         cudaFree(mem_d);         
     }
     void setGraph(cudaGraphExec_t &graph)
@@ -163,17 +150,18 @@ struct CopyGraph
     }
     void setParams(int idx, CopyMemory &set)
     {
-        std::memcpy(&mem[idx], &set, sizeof(CopyMemory)); 
+        std::memcpy((mem+idx), &set, sizeof(CopyMemory)); 
     }
     void executeGraph()
     {
+        cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
+
         Cuda::Device::setStreamIndex(0);
-        cudaMemcpy(&mem, mem_d, sizeof(CopyMemory), cudaMemcpyHostToDevice);
 
         cudaGraphLaunch(copyGraph, amrex::Cuda::Device::cudaStream());
 
-        Cuda::Device::synchronize();
         Cuda::Device::resetStreamIndex();
+        Cuda::Device::synchronize();
     }
 };
 
@@ -182,7 +170,6 @@ struct CopyGraph
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
-
     {
         amrex::Print() << "amrex::Initialize complete." << "\n";
 
@@ -641,26 +628,27 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
 
-                CopyMemory cgd = cgraph.mem_d[idx];
+                CopyMemory* cgd = (cgraph.mem_d+idx);
                 AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                 {
-                    for (int n = 0; n < cgd.ncomp; ++n) {
-                        int scomp   = cgd.scomp;
-                        Dim3 offset = cgd.offset;
-                        (cgd.dst)(i,j,k,scomp+n) = (cgd.src)(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                    for (int n = 0; n < cgd->ncomp; ++n) {
+                        int scomp   = cgd->scomp;
+                        Dim3 offset = cgd->offset;
+                        (cgd->dst)(i,j,k,scomp+n) = (cgd->src)(i+offset.x,j+offset.y,k+offset.z,scomp+n);
                     }
                 });
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
                     graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
+                    cgraph.setGraph(graphExec);
                 }
             }
 
             BL_PROFILE_VAR_STOP(goc);
 
 // --------- Launch the graph  ----------
-/*
+
             BL_PROFILE_VAR("GraphObject: launch", gol);
 
             CopyMemory mem;
@@ -684,10 +672,9 @@ int main (int argc, char* argv[])
 
             amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
 
-
 // --------- Relaunch the graph with a different result  ----------
 
-            x.setVal(6.5784e-9);
+            x.setVal(55.555e-5);
             y.setVal(0.0);
 
             BL_PROFILE_VAR("GraphObject: relaunch", cgfrl);
@@ -699,33 +686,34 @@ int main (int argc, char* argv[])
             amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
 
 // --------- Relaunch the graph on different MFIters  ----------
-// --------- Doesn't work changing the Array4 in CPU memory, even with function. ----------
-// --------- Trying with Array4 in device memory defined by Arena. ----------
 
             x.setVal(0.167852);
-            v.setVal(0.15e-5);
-            w.setVal(0.0);
+            v.setVal(0.0);
+            w.setVal(0.15e-5);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                Array4<Real> src = v[mfi].array();
-                Array4<Real> dst = w[mfi].array();
-                std::memcpy(&src_arrs_h[idx], &src, sizeof(Array4<Real>));
-                std::memcpy(&dst_arrs_h[idx], &dst, sizeof(Array4<Real>));
+                Array4<Real> src = w[mfi].array();
+                Array4<Real> dst = v[mfi].array();
+                std::memcpy(&mem.src, &src, sizeof(Array4<Real>));
+                std::memcpy(&mem.dst, &dst, sizeof(Array4<Real>));
+                mem.offset = {0,0,0};
+                mem.ncomp = 1;
+                mem.scomp = 0;
+
+                cgraph.setParams(idx, mem);
             }
-            cudaMemcpy(src_arrs_d, src_arrs_h, sizeof(Array4<Real>)*size, cudaMemcpyHostToDevice);
-            cudaMemcpy(dst_arrs_d, dst_arrs_h, sizeof(Array4<Real>)*size, cudaMemcpyHostToDevice);
 
             BL_PROFILE_VAR("GraphObject: diff", cgfdiff);
 
-            amrex::Gpu::Device::executeGraph(graphExec);
+            cgraph.executeGraph();
 
             BL_PROFILE_VAR_STOP(cgfdiff);
 
             amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
-*/
+
         }
 
         std::free(src_arrs_h);
