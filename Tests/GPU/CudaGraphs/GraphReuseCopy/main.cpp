@@ -9,6 +9,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Gpu.H>
+#include "AMReX_CudaGraph.H"
 
 using namespace amrex;
 
@@ -99,71 +100,6 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
         }
     }
 }
-
-// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-struct CopyMemory
-{
-    Array4<Real> src{nullptr,{},{}};
-    Array4<Real> dst{nullptr,{},{}};
-    Dim3 offset = {0,0,0};
-    int scomp = 0;
-    int ncomp = 0;
-};
-
-// Template later on CopyMemory
-// Change name to something more generic (Graph)
-struct CopyGraph
-{
-    cudaGraphExec_t copyGraph;
-    CopyMemory* mem = nullptr;
-    CopyMemory* mem_d = nullptr;
-    int size;
-
-    CopyGraph(int num)
-    : size(num)
-    {
-        mem = static_cast<CopyMemory*>(std::malloc(sizeof(CopyMemory)*size)); 
-        for(int i=0; i<size; ++i)
-        {
-           new (mem+i) CopyMemory();
-        }
-
-        cudaMalloc(&mem_d, sizeof(CopyMemory)*size);
-        cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
-    }
-    ~CopyGraph()
-    {
-        // Device placement free method?
-
-        for(int i=0; i<size; ++i)
-        {
-            (mem+i)->~CopyMemory();
-        }
-        std::free(mem);
-
-        cudaFree(mem_d);         
-    }
-    void setGraph(cudaGraphExec_t &graph)
-    { 
-        copyGraph = graph;
-    }
-    void setParams(int idx, CopyMemory &set)
-    {
-        std::memcpy((mem+idx), &set, sizeof(CopyMemory)); 
-    }
-    void executeGraph()
-    {
-        cudaMemcpy(mem_d, mem, size_t(sizeof(CopyMemory)*size), cudaMemcpyHostToDevice);
-
-        Cuda::Device::setStreamIndex(0);
-
-        cudaGraphLaunch(copyGraph, amrex::Cuda::Device::cudaStream());
-
-        Cuda::Device::resetStreamIndex();
-        Cuda::Device::synchronize();
-    }
-};
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
@@ -616,7 +552,7 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR("GraphObject: create", goc);
 
             // Creates appropriate device storage of graph parameters.
-            CopyGraph cgraph(x.local_size());
+            CudaGraph cgraph(x.local_size());
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
