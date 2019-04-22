@@ -97,10 +97,10 @@ public:
     void ClearBoxArray (int lev) noexcept;
 
     //! Return the number of buffer cells (as a single integer) in error estimator.
-    int nErrorBuf (int lev) const noexcept { return n_error_buf[lev][0]; }
+    int nErrorBuf (int lev, int direction = 0) const noexcept { return n_error_buf[lev][direction]; }
 
     //! Return the number of buffer cells (as an IntVect) in error estimator.
-    // const IntVect& nErrorBuf (int lev) const noexcept { return n_error_buf[lev]; }
+    const IntVect& nErrorBufVect (int lev) const noexcept { return n_error_buf[lev]; }
 
     //! Return the minimum allowable grid efficiency.
     Real gridEff () const noexcept { return grid_eff; }
