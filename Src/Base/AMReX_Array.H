@@ -30,11 +30,11 @@ namespace amrex {
     struct Array4
     {
         T* AMREX_RESTRICT p;
-        long const jstride;
-        long const kstride;
-        long const nstride;
-        Dim3 const begin;
-        Dim3 const end;
+        long jstride;
+        long kstride;
+        long nstride;
+        Dim3 begin;
+        Dim3 end;
 
         template <class U=T, class = typename std::enable_if<std::is_const<U>::value>::type >
         AMREX_GPU_HOST_DEVICE
