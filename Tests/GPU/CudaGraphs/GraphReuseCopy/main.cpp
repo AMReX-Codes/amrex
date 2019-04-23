@@ -205,8 +205,8 @@ int main (int argc, char* argv[])
 
         Real points = ba.numPts();
 
-        amrex::Print() << "Testing on " << n_cell << "^3 boxes with max grid size " << max_grid_size
-                       << std::endl << std::endl;
+        amrex::Print() << "Testing on " << n_cell << "^3 boxes with max grid size " << max_grid_size << std::endl 
+                       << "Number of boxes per MultiFab: " << x.size() << std::endl << std::endl;
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Launch without graphs
@@ -539,6 +539,16 @@ int main (int argc, char* argv[])
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
         }
 
+        std::free(src_arrs_h);
+        std::free(dst_arrs_h);
+        cudaFree (src_arrs_d);
+        cudaFree (dst_arrs_d);
+
+        std::free(src_fab);
+        std::free(dst_fab); 
+        cudaFree (src_fab_d);
+        cudaFree (dst_fab_d);
+
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
         amrex::Print() << "=============" << std::endl;
@@ -639,16 +649,6 @@ int main (int argc, char* argv[])
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
 
         }
-
-        std::free(src_arrs_h);
-        std::free(dst_arrs_h);
-        cudaFree (src_arrs_d);
-        cudaFree (dst_arrs_d);
-
-        std::free(src_fab);
-        std::free(dst_fab); 
-        cudaFree (src_fab_d);
-        cudaFree (dst_fab_d);
 
         amrex::Print() << "Test Completed." << std::endl;
     }
