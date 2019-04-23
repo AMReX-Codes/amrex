@@ -3036,7 +3036,7 @@ contains
                    wpp = abs(sten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
                    fine(i,j,k) = (wmm*crse(ic,jc,kc) + wpm*crse(ic,jc+1,kc) &
                         + wmp*crse(ic,jc,kc+1) + wpp*crse(ic,jc+1,kc+1)) &
-                        / (wmm+wpm+wmp+wpp+eps)                   
+                        / (wmm+wpm+wmp+wpp+eps)
                 else if (jeven) then
                    w1m = abs(sten(i-1,j,k,ist_p00)) / (abs(sten(i-1,j,k-1,ist_p0p)) &
                         &                             +abs(sten(i-1,j,k  ,ist_p0p)) + eps)
@@ -3834,6 +3834,7 @@ contains
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),n_sten)
 
     integer :: i,j,k,ii,jj,kk
+    real(amrex_real) :: ap(-1:1,-1:1,-1:1), p(-1:1,-1:1,-1:1)
 
     do k = lo(3), hi(3)
        kk = 2*k
@@ -3842,8 +3843,16 @@ contains
           do i = lo(1), hi(1)
              ii = 2*i
 
-             ! for testing only!!!!! this works for constant sigma only
-             csten(i,j,k,ist_p00) = fsten(ii,jj,kk,ist_p00) * 0.25d0
+             ! csten(i,j,k,ist_p00)
+!             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj-1,kk-1)
+!             p( 0,-1,-1) = interp_from
+
+!             csten(i,j,k,ist_p00) = 
+
+
+
+
+
              csten(i,j,k,ist_0p0) = fsten(ii,jj,kk,ist_0p0) * 0.25d0
              csten(i,j,k,ist_00p) = fsten(ii,jj,kk,ist_00p) * 0.25d0
              csten(i,j,k,ist_pp0) = fsten(ii,jj,kk,ist_pp0) * 0.25d0
@@ -3854,6 +3863,408 @@ contains
           end do
        end do
     end do
+
+  contains
+
+    elemental function interp_from_mmm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i-1,j,k,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j-1,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mmm_to
+
+    elemental function interp_from_pmm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j-1,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_pmm_to
+
+    elemental function interp_from_mpm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i-1,j,k,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j  ,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mpm_to
+
+    elemental function interp_from_ppm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j  ,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_ppm_to
+
+    elemental function interp_from_mmp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i-1,j,k,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j-1,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mmp_to
+
+    elemental function interp_from_pmp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j-1,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_pmp_to
+
+    elemental function interp_from_mpp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i-1,j,k,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j  ,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mpp_to
+
+    elemental function interp_from_ppp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j  ,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_ppp_to
+
+    elemental function interp_from_0mm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0mm_to
+
+    elemental function interp_from_0mp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0mp_to
+
+    elemental function interp_from_0pm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0pm_to
+
+    elemental function interp_from_0pp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0pp_to
+
+    elemental function interp_from_m0m_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_m0m_to
+
+    elemental function interp_from_p0m_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_p0m_to
+
+    elemental function interp_from_m0p_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_m0p_to
+
+    elemental function interp_from_p0p_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_p0p_to
+
+#if 0
+    elemental function interp_from_pmm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+    end function interp_from_pmm_to
+#endif
   end subroutine amrex_mlndlap_stencil_rap
 
 
