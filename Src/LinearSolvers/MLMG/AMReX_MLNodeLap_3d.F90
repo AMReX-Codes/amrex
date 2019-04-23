@@ -3844,21 +3844,125 @@ contains
              ii = 2*i
 
              ! csten(i,j,k,ist_p00)
-!             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj-1,kk-1)
-!             p( 0,-1,-1) = interp_from
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj-1,kk-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj-1,kk-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj  ,kk-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj  ,kk-1)
+             p(-1, 1,-1) = interp_from_pmp_to(ii+2-1,jj+1,kk-1)
+             p( 0, 1,-1) = interp_from_0mp_to(ii+2  ,jj+1,kk-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj-1,kk  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj-1,kk  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj  ,kk  )
+             p( 0, 0, 0) = 1.d0
+             p(-1, 1, 0) = interp_from_pm0_to(ii+2-1,jj+1,kk  )
+             p( 0, 1, 0) = interp_from_0m0_to(ii+2  ,jj+1,kk  )
+             !
+             p(-1,-1, 1) = interp_from_ppm_to(ii+2-1,jj-1,kk+1)
+             p( 0,-1, 1) = interp_from_0pm_to(ii+2  ,jj-1,kk+1)
+             p(-1, 0, 1) = interp_from_p0m_to(ii+2-1,jj  ,kk+1)
+             p( 0, 0, 1) = interp_from_00m_to(ii+2  ,jj  ,kk+1)
+             p(-1, 1, 1) = interp_from_pmm_to(ii+2-1,jj+1,kk+1)
+             p( 0, 1, 1) = interp_from_0mm_to(ii+2  ,jj+1,kk+1)
 
-!             csten(i,j,k,ist_p00) = 
+             ! csten(i,j,k,ist_0p0)
+             p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj+2-1,kk-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj+2-1,kk-1)
+             p( 1,-1,-1) = interp_from_mpp_to(ii+1,jj+2-1,kk-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii-1,jj+2  ,kk-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii  ,jj+2  ,kk-1)
+             p( 1, 0,-1) = interp_from_m0p_to(ii+1,jj+2  ,kk-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii-1,jj+2-1,kk  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii  ,jj+2-1,kk  )
+             p( 1,-1, 0) = interp_from_mp0_to(ii+1,jj+2-1,kk  )
+             p(-1, 0, 0) = interp_from_p00_to(ii-1,jj+2  ,kk  )
+             p( 0, 0, 0) = 1.d0
+             p( 1, 0, 0) = interp_from_m00_to(ii+1,jj+2  ,kk  )
+             !
+             p(-1,-1, 1) = interp_from_ppm_to(ii-1,jj+2-1,kk+1)
+             p( 0,-1, 1) = interp_from_0pm_to(ii  ,jj+2-1,kk+1)
+             p( 1,-1, 1) = interp_from_mpm_to(ii+1,jj+2-1,kk+1)
+             p(-1, 0, 1) = interp_from_p0m_to(ii-1,jj+2  ,kk+1)
+             p( 0, 0, 1) = interp_from_00m_to(ii  ,jj+2  ,kk+1)
+             p( 1, 0, 1) = interp_from_m0m_to(ii+1,jj+2  ,kk+1)
 
+             ! csten(i,j,k,ist_00p)
+             p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj-1,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj-1,kk+2-1)
+             p( 1,-1,-1) = interp_from_mpp_to(ii+1,jj-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii-1,jj  ,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii  ,jj  ,kk+2-1)
+             p( 1, 0,-1) = interp_from_m0p_to(ii+1,jj  ,kk+2-1)
+             p(-1, 1,-1) = interp_from_pmp_to(ii-1,jj+1,kk+2-1)
+             p( 0, 1,-1) = interp_from_0mp_to(ii  ,jj+1,kk+2-1)
+             p( 1, 1,-1) = interp_from_mmp_to(ii+1,jj+1,kk+2-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii-1,jj-1,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii  ,jj-1,kk+2  )
+             p( 1,-1, 0) = interp_from_mp0_to(ii+1,jj-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii-1,jj  ,kk+2  )
+             p( 0, 0, 0) = 1.d0
+             p( 1, 0, 0) = interp_from_m00_to(ii+1,jj  ,kk+2  )
+             p(-1, 1, 0) = interp_from_pm0_to(ii-1,jj+1,kk+2  )
+             p( 0, 1, 0) = interp_from_0m0_to(ii  ,jj+1,kk+2  )
+             p( 1, 1, 0) = interp_from_mm0_to(ii+1,jj+1,kk+2  )
 
+             ! csten(i,j,k,ist_pp0)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj+2-1,kk-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj+2-1,kk-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj+2  ,kk-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj+2  ,kk-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj+2-1,kk  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj+2-1,kk  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj+2  ,kk  )
+             p( 0, 0, 0) = 1.d0
+             !
+             p(-1,-1, 1) = interp_from_ppm_to(ii+2-1,jj+2-1,kk+1)
+             p( 0,-1, 1) = interp_from_0pm_to(ii+2  ,jj+2-1,kk+1)
+             p(-1, 0, 1) = interp_from_p0m_to(ii+2-1,jj+2  ,kk+1)
+             p( 0, 0, 1) = interp_from_00m_to(ii+2  ,jj+2  ,kk+1)
 
+             ! csten(i,j,k,ist_p0p)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj-1,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj  ,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj  ,kk+2-1)
+             p(-1, 1,-1) = interp_from_pmp_to(ii+2-1,jj+1,kk+2-1)
+             p( 0, 1,-1) = interp_from_0mp_to(ii+2  ,jj+1,kk+2-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj-1,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj  ,kk+2  )
+             p( 0, 0, 0) = 1.d0
+             p(-1, 1, 0) = interp_from_pm0_to(ii+2-1,jj+1,kk+2  )
+             p( 0, 1, 0) = interp_from_0m0_to(ii+2  ,jj+1,kk+2  )
 
+             ! csten(i,j,k,ist_0pp)
+             p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj+2-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii-1,jj+2  ,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj+2-1,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii  ,jj+2  ,kk+2-1)
+             p( 1,-1,-1) = interp_from_mpp_to(ii+1,jj+2-1,kk+2-1)
+             p( 1, 0,-1) = interp_from_m0p_to(ii+1,jj+2  ,kk+2-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii-1,jj+2-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii-1,jj+2  ,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii  ,jj+2-1,kk+2  )
+             p( 0, 0, 0) = 1.d0
+             p( 1,-1, 0) = interp_from_mp0_to(ii+1,jj+2-1,kk+2  )
+             p( 1, 0, 0) = interp_from_m00_to(ii+1,jj+2  ,kk+2  )
 
-             csten(i,j,k,ist_0p0) = fsten(ii,jj,kk,ist_0p0) * 0.25d0
-             csten(i,j,k,ist_00p) = fsten(ii,jj,kk,ist_00p) * 0.25d0
-             csten(i,j,k,ist_pp0) = fsten(ii,jj,kk,ist_pp0) * 0.25d0
-             csten(i,j,k,ist_p0p) = fsten(ii,jj,kk,ist_p0p) * 0.25d0
-             csten(i,j,k,ist_0pp) = fsten(ii,jj,kk,ist_0pp) * 0.25d0
-             csten(i,j,k,ist_ppp) = fsten(ii,jj,kk,ist_ppp) * 0.25d0
+             ! csten(i,j,k,ist_ppp)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj+2-1,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj+2-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj+2  ,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj+2  ,kk+2-1)
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj+2-1,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj+2-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj+2  ,kk+2  )
+             p( 0, 0, 0) = 1.d0
 
           end do
        end do
