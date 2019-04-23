@@ -3865,6 +3865,29 @@ contains
              p(-1, 1, 1) = interp_from_pmm_to(ii+2-1,jj+1,kk+1)
              p( 0, 1, 1) = interp_from_0mm_to(ii+2  ,jj+1,kk+1)
 
+#if 0
+             ap(0,-1,-1) =
+             ap(1,-1,-1) =
+             ap(0, 0,-1) =
+             ap(1, 0,-1) =
+             ap(0, 1,-1) =
+             ap(1, 1,-1) =
+             !
+             ap(0,-1, 0) =
+             ap(1,-1, 0) =
+             ap(0, 0, 0) =
+             ap(1, 0, 0) =
+             ap(0, 1, 0) =
+             ap(1, 1, 0) =
+             !
+             ap(0,-1, 1) =
+             ap(1,-1, 1) =
+             ap(0, 0, 1) =
+             ap(1, 0, 1) =
+             ap(0, 1, 1) =
+             ap(1, 1, 1) =
+#endif
+
              ! csten(i,j,k,ist_0p0)
              p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj+2-1,kk-1)
              p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj+2-1,kk-1)
@@ -4505,6 +4528,141 @@ contains
          p = w2 / (w1+w2)
       end if
     end function interp_from_p00_to
+
+    elemental real(amrex_real) function Ammm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ammm = fsten(i-1,j-1,k-1,ist_ppp)
+    end function Ammm
+
+    elemental real(amrex_real) function A0mm (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0mm = fsten(i  ,j-1,k-1,ist_0pp)
+    end function A0mm
+
+    elemental real(amrex_real) function Apmm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Apmm = fsten(i  ,j-1,k-1,ist_ppp)
+    end function Apmm
+
+    elemental real(amrex_real) function Am0m (i,j,k)
+      integer, intent(in) :: i,j,k
+      Am0m = fsten(i-1,j  ,k-1,ist_p0p)
+    end function Am0m
+
+    elemental real(amrex_real) function A00m (i,j,k)
+      integer, intent(in) :: i,j,k
+      A00m = fsten(i  ,j  ,k-1,ist_00p)
+    end function A00m
+
+    elemental real(amrex_real) function Ap0m (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ap0m = fsten(i  ,j  ,k-1,ist_p0p)
+    end function Ap0m
+
+    elemental real(amrex_real) function Ampm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ampm = fsten(i-1,j  ,k-1,ist_ppp)
+    end function Ampm
+
+    elemental real(amrex_real) function A0pm (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0pm = fsten(i  ,j  ,k-1,ist_0pp)
+    end function A0pm
+
+    elemental real(amrex_real) function Appm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Appm = fsten(i  ,j  ,k-1,ist_ppp)
+    end function Appm
+
+    elemental real(amrex_real) function Amm0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Amm0 = fsten(i-1,j-1,k  ,ist_pp0)
+    end function Amm0
+
+    elemental real(amrex_real) function A0m0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0m0 = fsten(i  ,j-1,k  ,ist_0p0)
+    end function A0m0
+
+    elemental real(amrex_real) function Apm0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Apm0 = fsten(i  ,j-1,k  ,ist_pp0)
+    end function Apm0
+
+    elemental real(amrex_real) function Am00 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Am00 = fsten(i-1,j  ,k  ,ist_p00)
+    end function Am00
+
+    elemental real(amrex_real) function A000 (i,j,k)
+      integer, intent(in) :: i,j,k
+      A000 = fsten(i  ,j  ,k  ,ist_000)
+    end function A000
+
+    elemental real(amrex_real) function Ap00 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ap00 = fsten(i  ,j  ,k  ,ist_p00)
+    end function Ap00
+
+    elemental real(amrex_real) function Amp0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Amp0 = fsten(i-1,j  ,k  ,ist_pp0)
+    end function Amp0
+
+    elemental real(amrex_real) function A0p0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0p0 = fsten(i  ,j  ,k  ,ist_0p0)
+    end function A0p0
+
+    elemental real(amrex_real) function App0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      App0 = fsten(i  ,j  ,k  ,ist_pp0)
+    end function App0
+
+    elemental real(amrex_real) function Ammp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ammp = fsten(i-1,j-1,k  ,ist_ppp)
+    end function Ammp
+
+    elemental real(amrex_real) function A0mp (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0mp = fsten(i  ,j-1,k  ,ist_0pp)
+    end function A0mp
+
+    elemental real(amrex_real) function Apmp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Apmp = fsten(i  ,j-1,k  ,ist_ppp)
+    end function Apmp
+
+    elemental real(amrex_real) function Am0p (i,j,k)
+      integer, intent(in) :: i,j,k
+      Am0p = fsten(i-1,j  ,k  ,ist_p0p)
+    end function Am0p
+
+    elemental real(amrex_real) function A00p (i,j,k)
+      integer, intent(in) :: i,j,k
+      A00p = fsten(i  ,j  ,k  ,ist_00p)
+    end function A00p
+
+    elemental real(amrex_real) function Ap0p (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ap0p = fsten(i  ,j  ,k  ,ist_p0p)
+    end function Ap0p
+
+    elemental real(amrex_real) function Ampp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ampp = fsten(i-1,j  ,k  ,ist_ppp)
+    end function Ampp
+
+    elemental real(amrex_real) function A0pp (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0pp = fsten(i  ,j  ,k  ,ist_0pp)
+    end function A0pp
+
+    elemental real(amrex_real) function Appp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Appp = fsten(i  ,j  ,k  ,ist_ppp)
+    end function Appp
 
   end subroutine amrex_mlndlap_stencil_rap
 
