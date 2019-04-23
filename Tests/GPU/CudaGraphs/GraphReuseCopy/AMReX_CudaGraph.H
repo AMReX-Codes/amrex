@@ -5,14 +5,28 @@
 
 namespace amrex {
 
-template <typename T>
 struct CopyMemory
 {
-    Array4<T const> src{nullptr,{},{}};
-    Array4<T> dst{nullptr,{},{}};
+    Array4<void const> src{nullptr,{},{}};  // think of int as void
+    Array4<void> dst{nullptr,{},{}};
     int scomp = 0;
     int ncomp = 0;
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    Array4<T const> getSrc () { return ToArray4<T const>(src); }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    Array4<T> getDst () { return ToArray4<T>(dst); }
 };
+
+template <typename T, typename U>
+CopyMemory
+makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp)
+{
+    return { ToArray4<void const>(src), ToArray4<void>(dst), scomp, ncomp };
+}
 
 template <typename T>
 struct CudaGraph
