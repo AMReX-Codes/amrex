@@ -92,7 +92,7 @@ function (configure_amrex)
       get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
 
       if (NOT CMAKE_CXX_FLAGS)
-         get_target_property( _amrex_flags_2 Flags_CXX COMPILE_OPTIONS)
+         get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
          list(APPEND _amrex_flags ${_amrex_flags_2})
       endif ()
 
