@@ -578,8 +578,7 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
-                    graphExec = amrex::Gpu::Device::stopGraphStreamRecording(); 
-                    cgraph.setGraph(graphExec);
+                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
                 }
             }
 
@@ -610,7 +609,7 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR("GraphObject: relaunch", cgfrl);
 
-            amrex::Gpu::Device::executeGraph(graphExec);
+            cgraph.executeGraph();
 
             BL_PROFILE_VAR_STOP(cgfrl);
 
