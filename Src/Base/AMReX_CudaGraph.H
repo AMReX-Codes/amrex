@@ -38,11 +38,11 @@ struct CudaGraph
     CudaGraph(int num)
         : m_parms(num)
     {
-        cudaMalloc(&m_parms_d, sizeof(T)*m_parms.size());
+        m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     ~CudaGraph()
     {
-        cudaFree(m_parms_d);
+        The_Device_Arena()->free(m_parms_d);
     }
     void setGraph(cudaGraphExec_t const& graph)
     { 
