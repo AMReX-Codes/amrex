@@ -754,8 +754,13 @@ ifeq ($(USE_PETSC),TRUE)
 endif
 
 ifeq ($(USE_SENSEI_INSITU),TRUE)
-  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+endif
+
+ifeq ($(USE_ALGOIM),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.algoim...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.algoim
 endif
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
