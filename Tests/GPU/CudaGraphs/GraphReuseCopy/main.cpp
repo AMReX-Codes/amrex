@@ -552,7 +552,7 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR("GraphObject: create", goc);
 
             // Creates appropriate device storage of graph parameters.
-            CudaGraph cgraph(x.local_size());
+            CudaGraph<CopyMemory<Real>> cgraph(x.local_size());
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -563,13 +563,13 @@ int main (int argc, char* argv[])
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
+                Dim3 offset = {0,0,0};
 
-                CopyMemory* cgd = (cgraph.mem_d+idx);
+                CopyMemory<Real>* cgd = cgraph.getDevicePtr(idx); 
                 AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                 {
                     for (int n = 0; n < cgd->ncomp; ++n) {
                         int scomp   = cgd->scomp;
-                        Dim3 offset = cgd->offset;
                         (cgd->dst)(i,j,k,scomp+n) = (cgd->src)(i+offset.x,j+offset.y,k+offset.z,scomp+n);
                     }
                 });
@@ -587,19 +587,12 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR("GraphObject: launch", gol);
 
-            CopyMemory mem;
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                Array4<Real> src = x[mfi].array();
-                Array4<Real> dst = y[mfi].array();
-
-                std::memcpy(&mem.src, &src, sizeof(Array4<Real>));
-                std::memcpy(&mem.dst, &dst, sizeof(Array4<Real>));
-                mem.offset = {0,0,0};
-                mem.ncomp = 1;
-                mem.scomp = 0;
-                cgraph.setParams(idx, mem);
+                cgraph.setParams(idx, {x[mfi].array(),
+                                       y[mfi].array(),
+                                       0, 1});
             }
 
             cgraph.executeGraph();
@@ -630,15 +623,9 @@ int main (int argc, char* argv[])
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                Array4<Real> src = w[mfi].array();
-                Array4<Real> dst = v[mfi].array();
-                std::memcpy(&mem.src, &src, sizeof(Array4<Real>));
-                std::memcpy(&mem.dst, &dst, sizeof(Array4<Real>));
-                mem.offset = {0,0,0};
-                mem.ncomp = 1;
-                mem.scomp = 0;
-
-                cgraph.setParams(idx, mem);
+                cgraph.setParams(idx, {w[mfi].array(),
+                                       v[mfi].array(),
+                                       0, 1});
             }
 
             BL_PROFILE_VAR("GraphObject: diff", cgfdiff);
