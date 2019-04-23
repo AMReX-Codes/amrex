@@ -16,10 +16,12 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
     BoxList spectral_bl; // Create empty box list
     // Loop over boxes and fill the box list
     for (int i=0; i < realspace_ba.size(); i++ ) {
-        // For local FFTs, each box in spectral space starts at 0 in each direction
-        // and has the same number of points as the real space box (including guard cells)
+        // For local FFTs, boxes in spectral space start at 0 in each direction
+        // and have the same number of points as the real space box
+        // TODO: this will be different for the hybrid FFT scheme
         Box realspace_bx = realspace_ba[i];
-        Box bx = Box( IntVect::TheZeroVector(), realspace_bx.bigEnd() - realspace_bx.smallEnd() );
+        Box bx = Box( IntVect::TheZeroVector(),
+                      realspace_bx.bigEnd() - realspace_bx.smallEnd() );
         spectral_bl.push_back( bx );
     }
     spectralspace_ba.define( spectral_bl );
@@ -31,7 +33,8 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
 }
 
 KVectorComponent
-SpectralKSpace::getKComponent( const DistributionMapping& dm, const int i_dim ) const
+SpectralKSpace::getKComponent( const DistributionMapping& dm,
+                               const int i_dim ) const
 {
     // Initialize an empty ManagedVector in each box
     KVectorComponent k_comp = KVectorComponent(spectralspace_ba, dm);
@@ -58,17 +61,16 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm, const int i_dim ) 
         for (int i=(N+1)/2; i<N; i++){
             k[i] = (N-i)*dk;
         }
-        // TODO: This should be quite different for the hybrid spectral code:
-        // In that case we should take into consideration the actual indices of the box
-        // and distinguish the size of the local box and that of the global FFT
-        // This will also be different for the real-to-complex transform
+        // TODO: this will also be different for the real-to-complex transform
+        // TODO: this will be different for the hybrid FFT scheme
     }
     return k_comp;
 }
 
 SpectralShiftFactor
-SpectralKSpace::getSpectralShiftFactor(
-        const DistributionMapping& dm, const int i_dim, const int shift_type ) const
+SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
+                                        const int i_dim,
+                                        const int shift_type ) const
 {
     // Initialize an empty ManagedVector in each box
     SpectralShiftFactor shift_factor = SpectralShiftFactor( spectralspace_ba, dm );
@@ -83,8 +85,8 @@ SpectralKSpace::getSpectralShiftFactor(
         // Fill the shift coefficients
         Real sign = 0;
         switch (shift_type){
-            case ShiftType::CenteredToNodal: sign = -1.; break;
-            case ShiftType::NodalToCentered: sign = 1.;
+            case ShiftType::TransformFromCellCentered: sign = 1.; break;
+            case ShiftType::TransformToCellCentered: sign = -1.;
         }
         constexpr Complex I{0,1};
         for (int i=0; i<k.size(); i++ ){
@@ -95,9 +97,10 @@ SpectralKSpace::getSpectralShiftFactor(
 }
 
 KVectorComponent
-SpectralKSpace::getModifiedKComponent(
-        const DistributionMapping& dm, const int i_dim,
-        const int n_order, const bool nodal ) const
+SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
+                                       const int i_dim,
+                                       const int n_order,
+                                       const bool nodal ) const
 {
     // Initialize an empty ManagedVector in each box
     KVectorComponent modified_k_comp = KVectorComponent( spectralspace_ba, dm );
@@ -118,11 +121,11 @@ SpectralKSpace::getModifiedKComponent(
         for (int i=0; i<k.size(); i++ ){
             for (int n=1; n<stencil_coef.size(); n++){
                 if (nodal){
-                    modified_k[i] = \
-                        stencil_coef[n]*std::sin( k[i]*n*delta_x )/( n*delta_x );
+                    modified_k[i] = stencil_coef[n]* \
+                        std::sin( k[i]*n*delta_x )/( n*delta_x );
                 } else {
-                    modified_k[i] = \
-                        stencil_coef[n]*std::sin( k[i]*(n-0.5)*delta_x )/( (n-0.5)*delta_x );
+                    modified_k[i] = stencil_coef[n]* \
+                        std::sin( k[i]*(n-0.5)*delta_x )/( (n-0.5)*delta_x );
                 }
             }
         }
@@ -135,16 +138,17 @@ SpectralKSpace::getModifiedKComponent(
 Vector<Real>
 getFonbergStencilCoefficients( const int n_order, const bool nodal )
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( n_order%2 == 0, "n_order should be even.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( n_order%2 == 0,
+                                      "n_order should be even.");
     const int m = n_order/2;
-    Vector<Real> stencil_coef;
-    stencil_coef.resize( m+1 );
+    Vector<Real> coefs;
+    coefs.resize( m+1 );
 
     // Coefficients for nodal (a.k.a. centered) finite-difference
     if (nodal == true) {
-        stencil_coef[0] = -2.; // First coefficient
+        coefs[0] = -2.; // First coefficient
         for (int n=1; n<m+1; n++){ // Get the other coefficients by recurrence
-            stencil_coef[n] = - (m+1-n)*1./(m+n)*stencil_coef[n-1];
+            coefs[n] = - (m+1-n)*1./(m+n)*coefs[n-1];
         }
     }
     // Coefficients for staggered finite-difference
@@ -153,10 +157,10 @@ getFonbergStencilCoefficients( const int n_order, const bool nodal )
         for (int k=1; k<m+1; k++){
             prod *= (m+k)*1./(4*k);
         }
-        stencil_coef[0] = 4*m*prod*prod; // First coefficient
+        coefs[0] = 4*m*prod*prod; // First coefficient
         for (int n=1; n<m+1; n++){ // Get the other coefficients by recurrence
-            stencil_coef[n] = - ((2*n-3)*(m+1-n))*1./((2*n-1)*(m-1+n))*stencil_coef[n-1];
+            coefs[n] = - ((2*n-3)*(m+1-n))*1./((2*n-1)*(m-1+n))*coefs[n-1];
         }
     }
-    return stencil_coef;
+    return coefs;
 }

@@ -5,11 +5,11 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_LayoutData.H>
 
-using KVectorComponent = amrex::LayoutData< amrex::Gpu::ManagedVector <amrex::Real> >;
-using SpectralShiftFactor = amrex::LayoutData< amrex::Gpu::ManagedVector <Complex> >;
+using KVectorComponent = amrex::LayoutData<amrex::Gpu::ManagedVector<amrex::Real>>;
+using SpectralShiftFactor = amrex::LayoutData<amrex::Gpu::ManagedVector<Complex>>;
 
 struct ShiftType {
-    enum{ NodalToCentered=0, CenteredToNodal=1 };
+    enum{ TransformFromCellCentered=0, TransformToCellCentered=1 };
 };
 
 /* TODO Documentation: class represent k space, and how it is distribution
@@ -28,7 +28,8 @@ class SpectralKSpace
             const amrex::DistributionMapping& dm, const int i_dim,
             const int n_order, const bool nodal ) const;
         SpectralShiftFactor getSpectralShiftFactor(
-            const amrex::DistributionMapping& dm, const int i_dim, const int shift_type ) const;
+            const amrex::DistributionMapping& dm, const int i_dim,
+            const int shift_type ) const;
 
     private:
         amrex::Array<KVectorComponent, AMREX_SPACEDIM> k_vec;

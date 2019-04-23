@@ -21,21 +21,32 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
     rho_old = SpectralField(spectralspace_ba, dm, 1, 0);
     rho_new = SpectralField(spectralspace_ba, dm, 1, 0);
 
-    // Allocate temporary arrays - over different boxarrays
+    // Allocate temporary arrays - in real space and spectral space
+    // These arrays will store the data just before/after the FFT
     tmpRealField = SpectralField(realspace_ba, dm, 1, 0);
     tmpSpectralField = SpectralField(spectralspace_ba, dm, 1, 0);
 
-    // Allocate the coefficients that allow to shift between nodal and cell-centered
-    xshift_C2N = k_space.getSpectralShiftFactor(dm, 0, ShiftType::CenteredToNodal);
-    xshift_N2C = k_space.getSpectralShiftFactor(dm, 0, ShiftType::NodalToCentered);
+    // By default, we assume the FFT is done from/to a nodal grid in real space
+    // It the FFT is performed from/to a cell-centered grid in real space,
+    // a correcting "shift" factor must be applied in spectral space.
+    xshift_FFTfromCell = k_space.getSpectralShiftFactor(dm, 0,
+                                    ShiftType::TransformFromCellCentered);
+    xshift_FFTtoCell = k_space.getSpectralShiftFactor(dm, 0,
+                                    ShiftType::TransformToCellCentered);
 #if (AMREX_SPACEDIM == 3)
-    yshift_C2N = k_space.getSpectralShiftFactor(dm, 1, ShiftType::CenteredToNodal);
-    yshift_N2C = k_space.getSpectralShiftFactor(dm, 1, ShiftType::NodalToCentered);
-    zshift_C2N = k_space.getSpectralShiftFactor(dm, 2, ShiftType::CenteredToNodal);
-    zshift_N2C = k_space.getSpectralShiftFactor(dm, 2, ShiftType::NodalToCentered);
+    yshift_FFTfromCell = k_space.getSpectralShiftFactor(dm, 1,
+                                    ShiftType::TransformFromCellCentered);
+    yshift_FFTtoCell = k_space.getSpectralShiftFactor(dm, 1,
+                                    ShiftType::TransformToCellCentered);
+    zshift_FFTfromCell = k_space.getSpectralShiftFactor(dm, 2,
+                                    ShiftType::TransformFromCellCentered);
+    zshift_FFTtoCell = k_space.getSpectralShiftFactor(dm, 2,
+                                    ShiftType::TransformToCellCentered);
 #else
-    zshift_C2N = k_space.getSpectralShiftFactor(dm, 1, ShiftType::CenteredToNodal);
-    zshift_N2C = k_space.getSpectralShiftFactor(dm, 1, ShiftType::NodalToCentered);
+    zshift_FFTfromCell = k_space.getSpectralShiftFactor(dm, 1,
+                                    ShiftType::TransformFromCellCentered);
+    zshift_FFTtoCell = k_space.getSpectralShiftFactor(dm, 1,
+                                    ShiftType::TransformToCellCentered);
 #endif
 
     // Allocate and initialize the FFT plans
@@ -131,28 +142,30 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
         fftw_execute( forward_plan[mfi] );
 #endif
 
-        // Copy the spectral-space field `tmpSpectralField` to the appropriate field
-        // (specified by the input argument field_index )
+        // Copy the spectral-space field `tmpSpectralField` to the appropriate
+        // field (specified by the input argument field_index )
+        // and apply correcting shift factor if the real space data comes
+        // from a cell-centered grid in real space instead of a nodal grid.
         {
             SpectralField& field = getSpectralField( field_index );
             Array4<Complex> field_arr = field[mfi].array();
             Array4<const Complex> tmp_arr = tmpSpectralField[mfi].array();
-            const Complex* xshift_C2N_arr = xshift_C2N[mfi].dataPtr();
+            const Complex* xshift_arr = xshift_FFTfromCell[mfi].dataPtr();
 #if (AMREX_SPACEDIM == 3)
-            const Complex* yshift_C2N_arr = yshift_C2N[mfi].dataPtr();
+            const Complex* yshift_arr = yshift_FFTfromCell[mfi].dataPtr();
 #endif
-            const Complex* zshift_C2N_arr = zshift_C2N[mfi].dataPtr();
+            const Complex* zshift_arr = zshift_FFTfromCell[mfi].dataPtr();
             // Loop over indices within one box
             const Box spectralspace_bx = tmpSpectralField[mfi].box();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 Complex spectral_field_value = tmp_arr(i,j,k);
                 // Apply proper shift in each dimension
-                if (is_nodal_x==false) spectral_field_value *= xshift_C2N_arr[i];
+                if (is_nodal_x==false) spectral_field_value *= xshift_arr[i];
 #if (AMREX_SPACEDIM == 3)
-                if (is_nodal_y==false) spectral_field_value *= yshift_C2N_arr[j];
+                if (is_nodal_y==false) spectral_field_value *= yshift_arr[j];
 #endif
-                if (is_nodal_z==false) spectral_field_value *= zshift_C2N_arr[k];
+                if (is_nodal_z==false) spectral_field_value *= zshift_arr[k];
                 // Copy field into temporary array
                 field_arr(i,j,k) = spectral_field_value;
             });
@@ -179,28 +192,30 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
     // Loop over boxes
     for ( MFIter mfi(mf); mfi.isValid(); ++mfi ){
 
-        // Copy the appropriate field (specified by the input argument field_index)
-        // to the spectral-space field `tmpSpectralField`
+        // Copy the spectral-space field `tmpSpectralField` to the appropriate
+        // field (specified by the input argument field_index )
+        // and apply correcting shift factor if the field is to be transformed
+        // to a cell-centered grid in real space instead of a nodal grid.
         {
             SpectralField& field = getSpectralField( field_index );
             Array4<const Complex> field_arr = field[mfi].array();
             Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
-            const Complex* xshift_N2C_arr = xshift_N2C[mfi].dataPtr();
+            const Complex* xshift_arr = xshift_FFTtoCell[mfi].dataPtr();
 #if (AMREX_SPACEDIM == 3)
-            const Complex* yshift_N2C_arr = yshift_N2C[mfi].dataPtr();
+            const Complex* yshift_arr = yshift_FFTtoCell[mfi].dataPtr();
 #endif
-            const Complex* zshift_N2C_arr = zshift_N2C[mfi].dataPtr();
+            const Complex* zshift_arr = zshift_FFTtoCell[mfi].dataPtr();
             // Loop over indices within one box
             const Box spectralspace_bx = tmpSpectralField[mfi].box();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 Complex spectral_field_value = field_arr(i,j,k);
                 // Apply proper shift in each dimension
-                if (is_nodal_x==false) spectral_field_value *= xshift_N2C_arr[i];
+                if (is_nodal_x==false) spectral_field_value *= xshift_arr[i];
 #if (AMREX_SPACEDIM == 3)
-                if (is_nodal_y==false) spectral_field_value *= yshift_N2C_arr[j];
+                if (is_nodal_y==false) spectral_field_value *= yshift_arr[j];
 #endif
-                if (is_nodal_z==false) spectral_field_value *= zshift_N2C_arr[k];
+                if (is_nodal_z==false) spectral_field_value *= zshift_arr[k];
                 // Copy field into temporary array
                 tmp_arr(i,j,k) = spectral_field_value;
             });
