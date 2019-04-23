@@ -2312,8 +2312,6 @@ MLNodeLaplacian::buildIntegral ()
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         amrex::compute_integrals(*m_integral[amrlev]);
-        const Geometry& geom = m_geom[amrlev][0];
-        m_integral[amrlev]->FillBoundary(geom.periodicity());
     }
 #else
     amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
