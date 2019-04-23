@@ -98,7 +98,7 @@ To run an enumerated list of tests, do:
 Adding a new test
 =================
 
-New tests can be added to the suite by modifying the `AMReX-Tests.ini` file. The easiest thing to
+New tests can be added to the suite by modifying the :cpp:`AMReX-Tests.ini` file. The easiest thing to
 do is start from an existing test and modify it. For example, this entry:
 
 ::
