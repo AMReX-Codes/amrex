@@ -82,8 +82,7 @@ For a complete set of script options, run
 
    python regtest.py --help
 
-To see a complete list of test runner options. A particularly useful option lets you run just a subset of the
-complete test suite. To run only one test, you can do:
+A particularly useful option lets you run just a subset of the complete test suite. To run only one test, you can do:
    
 ::
    
