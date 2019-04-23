@@ -16,7 +16,7 @@ Nightly Regression Testing
 Each night, we automically run a suite of tests, both on AMReX itself, and on a most of the major
 application codes that use it as a framework. We use an in-house test runner script to manage this
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
-applitation codes as well. The results for each night are collected and stored on a web page; see
+application codes as well. The results for each night are collected and stored on a web page; see
 https://ccse.lbl.gov/pub/RegressionTesting/ for the latest set of results.
 
 Running the test suite locally
