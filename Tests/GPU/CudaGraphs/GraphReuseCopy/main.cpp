@@ -552,7 +552,7 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR("GraphObject: create", goc);
 
             // Creates appropriate device storage of graph parameters.
-            CudaGraph<CopyMemory<Real>> cgraph(x.local_size());
+            CudaGraph<CopyMemory> cgraph(x.local_size());
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -565,12 +565,14 @@ int main (int argc, char* argv[])
                 int idx = mfi.LocalIndex();
                 Dim3 offset = {0,0,0};
 
-                CopyMemory<Real>* cgd = cgraph.getDevicePtr(idx); 
+                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
                 AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                 {
+                    auto const dst = cgd->getDst<Real>();
+                    auto const src = cgd->getSrc<Real>();
+                    int scomp   = cgd->scomp;
                     for (int n = 0; n < cgd->ncomp; ++n) {
-                        int scomp   = cgd->scomp;
-                        (cgd->dst)(i,j,k,scomp+n) = (cgd->src)(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
                     }
                 });
 
@@ -590,9 +592,9 @@ int main (int argc, char* argv[])
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                cgraph.setParams(idx, {x[mfi].array(),
-                                       y[mfi].array(),
-                                       0, 1});
+                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
+                                                            y[mfi].array(),
+                                                            0, 1));
             }
 
             cgraph.executeGraph();
@@ -623,9 +625,9 @@ int main (int argc, char* argv[])
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 int idx = mfi.LocalIndex();
-                cgraph.setParams(idx, {w[mfi].array(),
-                                       v[mfi].array(),
-                                       0, 1});
+                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
+                                                            v[mfi].array(),
+                                                            0, 1));
             }
 
             BL_PROFILE_VAR("GraphObject: diff", cgfdiff);

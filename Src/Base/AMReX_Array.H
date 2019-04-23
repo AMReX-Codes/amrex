@@ -57,22 +57,25 @@ namespace amrex {
               end(a_end)
             {}
 
+        template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i, int j, int k) const noexcept {
+        U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(i,j,k);
 #endif
             return p[(i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride];
         }
 
+        template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i, int j, int k, int n) const noexcept {
+        U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(i,j,k);
 #endif
             return p[(i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride+n*nstride];
         }
 
+        template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -102,6 +105,13 @@ namespace amrex {
         }
 #endif
     };
+
+    template <class Tto, class Tfrom>
+    AMREX_GPU_HOST_DEVICE
+    Array4<Tto> ToArray4 (Array4<Tfrom> const& a_in)
+    {
+        return Array4<Tto>((Tto*)(a_in.p), a_in.begin, a_in.end);
+    }
 
     inline std::ostream& operator<< (std::ostream& os, const Dim3& d) {
         os << '(' << d.x << ',' << d.y << ',' << d.z << ')';
