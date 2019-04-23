@@ -21,6 +21,7 @@ static_assert( sizeof(Complex) == sizeof(fftw_complex),
     "The complex types in WarpX and FFTW do not match.");
 
 #endif
-static_assert(sizeof(Complex) == sizeof(amrex::Real[2]), "Unexpected complex type.");
+static_assert(sizeof(Complex) == sizeof(amrex::Real[2]),
+              "Unexpected complex type.");
 
 #endif //WARPX_COMPLEX_H_
