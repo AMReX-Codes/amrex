@@ -4,6 +4,7 @@
 
 using namespace amrex;
 
+/* \brief Initialize coefficients for the update equation */
 PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                          const DistributionMapping& dm,
                          const int norder_x, const int norder_y,
@@ -28,7 +29,8 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     X3_coef = SpectralCoefficients(ba, dm, 1, 0);
 
     // Fill them with the right values:
-    // Loop over boxes
+    // Loop over boxes and allocate the corresponding coefficients
+    // for each box owned by the local MPI proc
     for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
 
         const Box& bx = ba[mfi];
@@ -78,6 +80,8 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     }
 };
 
+/* Advance the E and B field in spectral space (stored in `f`)
+ * over one time step */
 void
 PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
 

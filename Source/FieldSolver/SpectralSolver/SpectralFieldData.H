@@ -8,20 +8,23 @@
 // Declare type for spectral fields
 using SpectralField = amrex::FabArray< amrex::BaseFab <Complex> >;
 
-/* Fields that will be stored in spectral space */
+/* Index for the fields that will be stored in spectral space */
 struct SpectralFieldIndex{
     enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new };
 };
 
-/* \brief Class that stores the fields in spectral space
- *  and performs the spectral transforms to/from real space
+/* \brief Class that stores the fields in spectral space, and performs the
+ *  Fourier transforms between real space and spectral space
  */
 class SpectralFieldData
 {
     friend class PsatdAlgorithm;
 
+    // Define the FFTplans type, which holds one fft plan per box
+    // (plans are only initialized for the boxes that are owned by
+    // the local MPI rank)
 #ifdef AMREX_USE_GPU
-// Add cuFFT-specific code
+    // Add cuFFT-specific code
 #else
     using FFTplans = amrex::LayoutData<fftw_plan>;
 #endif
@@ -40,7 +43,9 @@ class SpectralFieldData
 
     private:
         SpectralField Ex, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new;
-        SpectralField tmpRealField, tmpSpectralField; // Store fields before/after transform
+        // tmpRealField and tmpSpectralField store fields
+        // right before/after the Fourier transform
+        SpectralField tmpRealField, tmpSpectralField;
         FFTplans forward_plan, backward_plan;
         // Correcting "shift" factors when performing FFT from/to
         // a cell-centered grid in real space, instead of a nodal grid

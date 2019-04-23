@@ -45,10 +45,9 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
     }
 }
 
-/* For each box, in `spectralspace_ba`, which is owned
- * by the local MPI proc (as indicated by the argument `dm`),
- * compute the values of the corresponding k coordinate
- * along the dimension specified by `i_dim`
+/* For each box, in `spectralspace_ba`, which is owned by the local MPI rank
+ * (as indicated by the argument `dm`), compute the values of the
+ * corresponding k coordinate along the dimension specified by `i_dim`
  */
 KVectorComponent
 SpectralKSpace::getKComponent( const DistributionMapping& dm,
@@ -57,7 +56,7 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
     // Initialize an empty ManagedVector in each box
     KVectorComponent k_comp = KVectorComponent(spectralspace_ba, dm);
     // Loop over boxes and allocate the corresponding ManagedVector
-    // for each box owned by the local MPI proc ("mfi.isValid")
+    // for each box owned by the local MPI proc
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Box bx = spectralspace_ba[mfi];
         ManagedVector<Real>& k = k_comp[mfi];
@@ -87,6 +86,15 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
     return k_comp;
 }
 
+/* For each box, in `spectralspace_ba`, which is owned by the local MPI rank
+ * (as indicated by the argument `dm`), compute the values of the
+ * corresponding correcting "shift" factor, along the dimension
+ * specified by `i_dim`.
+ *
+ * (By default, we assume the FFT is done from/to a nodal grid in real space
+ * It the FFT is performed from/to a cell-centered grid in real space,
+ * a correcting "shift" factor must be applied in spectral space.)
+ */
 SpectralShiftFactor
 SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
                                         const int i_dim,
@@ -94,7 +102,8 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
 {
     // Initialize an empty ManagedVector in each box
     SpectralShiftFactor shift_factor = SpectralShiftFactor( spectralspace_ba, dm );
-    // Loop over boxes
+    // Loop over boxes and allocate the corresponding ManagedVector
+    // for each box owned by the local MPI proc
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         const ManagedVector<Real>& k = k_vec[i_dim][mfi];
         ManagedVector<Complex>& shift = shift_factor[mfi];
@@ -116,6 +125,19 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
     return shift_factor;
 }
 
+/* \brief For each box, in `spectralspace_ba`, which is owned by the local MPI
+ * rank (as indicated by the argument `dm`), compute the values of the
+ * corresponding finite-order modified k vector, along the
+ * dimension specified by `i_dim`
+ *
+ * The finite-order modified k vector is the spectral-space representation
+ * of a finite-order stencil in real space.
+ *
+ * \param n_order Order of accuracy of the stencil, in discretizing
+ *                a spatial derivative
+ * \param nodal Whether the stencil is to be applied to a nodal or
+                staggered set of fields
+ */
 KVectorComponent
 SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
                                        const int i_dim,
@@ -123,12 +145,13 @@ SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
                                        const bool nodal ) const
 {
     // Initialize an empty ManagedVector in each box
-    KVectorComponent modified_k_comp = KVectorComponent( spectralspace_ba, dm );
+    KVectorComponent modified_k_comp = KVectorComponent(spectralspace_ba, dm);
 
     // Compute real-space stencil coefficients
     Vector<Real> stencil_coef = getFonbergStencilCoefficients(n_order, nodal);
 
-    // Loop over boxes
+    // Loop over boxes and allocate the corresponding ManagedVector
+    // for each box owned by the local MPI proc
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Real delta_x = dx[i_dim];
         const ManagedVector<Real>& k = k_vec[i_dim][mfi];
@@ -153,7 +176,12 @@ SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
     return modified_k_comp;
 }
 
-/* TODO: Documentation: point to Fonberg paper ; explain recurrence relation
+/* Returns an array of coefficients, corresponding to the weight
+ * of each point in a finite-difference approximation (to order `n_order`)
+ * of a derivative.
+ *
+ * `nodal` indicates whether this finite-difference approximation is
+ * taken on a nodal grid or a staggered grid.
  */
 Vector<Real>
 getFonbergStencilCoefficients( const int n_order, const bool nodal )
@@ -163,6 +191,11 @@ getFonbergStencilCoefficients( const int n_order, const bool nodal )
     const int m = n_order/2;
     Vector<Real> coefs;
     coefs.resize( m+1 );
+
+    // Note: there are closed-form formula for these coefficients,
+    // but they result in an overflow when evaluated numerically.
+    // One way to avoid the overflow is to calculate the coefficients
+    // by recurrence.
 
     // Coefficients for nodal (a.k.a. centered) finite-difference
     if (nodal == true) {

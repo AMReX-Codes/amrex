@@ -4,8 +4,9 @@
 #include <SpectralKSpace.H>
 #include <SpectralFieldData.H>
 
-/* TODO: Write documentation
-*/
+/* \brief Class that updates the field in spectral space
+ * and stores the coefficients of the corresponding update equation.
+ */
 class PsatdAlgorithm
 {
     using SpectralCoefficients = amrex::FabArray< amrex::BaseFab <amrex::Real> >;
@@ -16,7 +17,7 @@ class PsatdAlgorithm
                          const int norder_x, const int norder_y,
                          const int norder_z, const bool nodal, const amrex::Real dt);
         PsatdAlgorithm() = default; // Default constructor
-        PsatdAlgorithm& operator=(PsatdAlgorithm&& algorithm) = default; // Default move assignment
+        PsatdAlgorithm& operator=(PsatdAlgorithm&& algorithm) = default;
         void pushSpectralFields(SpectralFieldData& f) const;
 
     private:
