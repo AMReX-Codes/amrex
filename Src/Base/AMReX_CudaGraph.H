@@ -7,25 +7,29 @@ namespace amrex {
 
 struct CopyMemory
 {
-    Array4<void const> src{nullptr,{},{}};  // think of int as void
-    Array4<void> dst{nullptr,{},{}};
+    void* src = nullptr;
+    void* dst = nullptr;
+    Dim3 src_begin = {0,0,0};
+    Dim3 src_end = {0,0,0};
+    Dim3 dst_begin = {0,0,0};
+    Dim3 dst_end = {0,0,0};
     int scomp = 0;
     int ncomp = 0;
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    Array4<T const> getSrc () { return ToArray4<T const>(src); }
+    Array4<T const> getSrc () { return Array4<T const>(static_cast<T const*>(src), src_begin, src_end); }
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    Array4<T> getDst () { return ToArray4<T>(dst); }
+    Array4<T> getDst () { return Array4<T>(static_cast<T*>(dst), dst_begin, dst_end); }
 };
 
 template <typename T, typename U>
 CopyMemory
 makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp)
 {
-    return { ToArray4<void const>(src), ToArray4<void>(dst), scomp, ncomp };
+    return { src.p, dst.p, src.begin, src.end, dst.begin, dst.end, scomp, ncomp };
 }
 
 template <typename T>
