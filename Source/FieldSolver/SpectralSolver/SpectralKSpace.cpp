@@ -5,10 +5,21 @@
 using namespace amrex;
 using namespace Gpu;
 
+/* \brief Initialize k space object.
+ *
+ * \param realspace_ba Box array that corresponds to the decomposition
+ * of the fields in real space (cell-centered ; includes guard cells)
+ * \param dm Indicates which MPI proc owns which box, in realspace_ba.
+ * \param realspace_dx Cell size of the grid in real space
+ */
 SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
                                 const DistributionMapping& dm,
                                 const RealVect realspace_dx )
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        realspace_ba.ixType()==IndexType::TheCellType(),
+        "SpectralKSpace expects a cell-centered box.");
+
     // Store the cell size
     dx = realspace_dx;
 
@@ -16,8 +27,10 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
     BoxList spectral_bl; // Create empty box list
     // Loop over boxes and fill the box list
     for (int i=0; i < realspace_ba.size(); i++ ) {
-        // For local FFTs, boxes in spectral space start at 0 in each direction
-        // and have the same number of points as the real space box
+        // For local FFTs, boxes in spectral space start at 0 in
+        // each direction and have the same number of points as the
+        // (cell-centered) real space box
+        // TODO: this will be different for the real-to-complex FFT
         // TODO: this will be different for the hybrid FFT scheme
         Box realspace_bx = realspace_ba[i];
         Box bx = Box( IntVect::TheZeroVector(),
@@ -32,13 +45,19 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
     }
 }
 
+/* For each box, in `spectralspace_ba`, which is owned
+ * by the local MPI proc (as indicated by the argument `dm`),
+ * compute the values of the corresponding k coordinate
+ * along the dimension specified by `i_dim`
+ */
 KVectorComponent
 SpectralKSpace::getKComponent( const DistributionMapping& dm,
                                const int i_dim ) const
 {
     // Initialize an empty ManagedVector in each box
     KVectorComponent k_comp = KVectorComponent(spectralspace_ba, dm);
-    // Loop over boxes
+    // Loop over boxes and allocate the corresponding ManagedVector
+    // for each box owned by the local MPI proc ("mfi.isValid")
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
         Box bx = spectralspace_ba[mfi];
         ManagedVector<Real>& k = k_comp[mfi];
@@ -53,15 +72,16 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
             "Expected box to start at 0, in spectral space.");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
             "Expected different box end index in spectral space.");
+        const int mid_point = (N+1)/2;
         // Fill positive values of k (FFT conventions: first half is positive)
-        for (int i=0; i<(N+1)/2; i++ ){
+        for (int i=0; i<mid_point; i++ ){
             k[i] = i*dk;
         }
         // Fill negative values of k (FFT conventions: second half is negative)
-        for (int i=(N+1)/2; i<N; i++){
-            k[i] = (N-i)*dk;
+        for (int i=mid_point; i<N; i++){
+            k[i] = (i-N)*dk;
         }
-        // TODO: this will also be different for the real-to-complex transform
+        // TODO: this will be different for the real-to-complex transform
         // TODO: this will be different for the hybrid FFT scheme
     }
     return k_comp;
