@@ -9,7 +9,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Gpu.H>
-#include "AMReX_CudaGraph.H"
+#include <AMReX_CudaGraph.H>
 
 using namespace amrex;
 
