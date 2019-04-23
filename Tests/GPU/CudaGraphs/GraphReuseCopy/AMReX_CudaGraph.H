@@ -10,7 +10,6 @@ struct CopyMemory
 {
     Array4<T const> src{nullptr,{},{}};
     Array4<T> dst{nullptr,{},{}};
-    Dim3 offset = {0,0,0};
     int scomp = 0;
     int ncomp = 0;
 };
@@ -26,9 +25,6 @@ struct CudaGraph
         : m_parms(num)
     {
         cudaMalloc(&m_parms_d, sizeof(T)*m_parms.size());
-//        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
-//        cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
-//                   cudaMemcpyHostToDevice);
     }
     ~CudaGraph()
     {
