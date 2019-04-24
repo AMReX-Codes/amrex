@@ -356,15 +356,17 @@ WarpX::ReadParameters ()
 
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
-    pp.query("do_dive_cleaning", do_dive_cleaning);
-    pp.query("n_field_gather_buffer", n_field_gather_buffer);
-    pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
+        pp.query("do_dive_cleaning", do_dive_cleaning);
+        pp.query("n_field_gather_buffer", n_field_gather_buffer);
+        pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
 	pp.query("sort_int", sort_int);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
 
+        pp.query("dump_openpmd", dump_openpmd);
+        pp.query("dump_plotfiles", dump_openpmd);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         if (ParallelDescriptor::NProcs() == 1) {
@@ -427,10 +429,29 @@ WarpX::ReadParameters ()
             fine_tag_hi = RealVect{hi};
         }
 
+        // select which particle comps to write
+        {
+            pp.queryarr("particle_plot_vars", particle_plot_vars);
+            
+            if (particle_plot_vars.size() == 0)
+            {
+                particle_plot_flags.resize(PIdx::nattribs, 1);
+            }
+            else
+            {
+                particle_plot_flags.resize(PIdx::nattribs, 0);
+                
+                for (const auto& var : particle_plot_vars)
+                {
+                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
+                }
+            }
+        }
+        
         pp.query("load_balance_int", load_balance_int);
         pp.query("load_balance_with_sfc", load_balance_with_sfc);
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
-
+        
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
 
         pp.query("do_nodal", do_nodal);
@@ -707,10 +728,10 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
     if (do_dive_cleaning || plot_rho)
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
-    
+
     if (do_subcycling == 1 && lev == 0)
     {
         current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));

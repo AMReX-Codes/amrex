@@ -503,10 +503,17 @@ private:
     std::string restart_chkfile;
 
     std::string check_file {"checkpoints/chk"};
-    std::string plot_file {"plotfiles/plt"};
+    std::string plot_file {"diags/plotfiles/plt"};
     int check_int = -1;
     int plot_int = -1;
 
+#ifdef WARPX_USE_OPENPMD
+    bool dump_plotfiles = false;
+    bool dump_openpmd = true;
+#else
+    bool dump_plotfiles = true;
+    bool dump_openpmd = false;
+#endif
     bool plot_part_per_cell = true;
     bool plot_part_per_grid = false;
     bool plot_part_per_proc = false;
@@ -549,6 +556,9 @@ private:
 
 
 
+    amrex::Vector<std::string> particle_plot_vars;
+    amrex::Vector<int> particle_plot_flags;
+    
 #ifdef WARPX_USE_PSATD
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
@@ -590,6 +600,7 @@ public:
         void operator= (FFTData const&) = delete;
         void operator= (FFTData&&) = delete;
     };
+
 private:
 
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;

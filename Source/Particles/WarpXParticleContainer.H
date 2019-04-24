@@ -27,6 +27,30 @@ struct DiagIdx
     };
 };
 
+namespace ParticleStringNames
+{
+    const std::map<std::string, int> to_index = {
+        {"w",     PIdx::w    },
+        {"ux",    PIdx::ux   },
+        {"uy",    PIdx::uy   },
+        {"uz",    PIdx::uz   },
+        {"Ex",    PIdx::Ex   },
+        {"Ey",    PIdx::Ey   },
+        {"Ez",    PIdx::Ez   },
+        {"Bx",    PIdx::Bx   },
+        {"By",    PIdx::By   },
+        {"Bz",    PIdx::Bz   },
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS    
+        {"xold",  PIdx::xold },
+        {"yold",  PIdx::yold },
+        {"zold",  PIdx::zold },
+        {"uxold", PIdx::uxold},
+        {"uyold", PIdx::uyold},
+        {"uzold", PIdx::uzold},
+#endif
+    };
+}
+
 class WarpXParIter
     : public amrex::ParIter<0,0,PIdx::nattribs>
 {
@@ -215,12 +239,12 @@ protected:
 
     static int do_not_push;
 
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_rho;
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jx;
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jy;
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jz;
+    amrex::Vector<amrex::FArrayBox> local_rho;
+    amrex::Vector<amrex::FArrayBox> local_jx;
+    amrex::Vector<amrex::FArrayBox> local_jy;
+    amrex::Vector<amrex::FArrayBox> local_jz;
 
-  amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
+    amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
 
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,

@@ -9,38 +9,39 @@
 using namespace amrex;
 
 namespace {
-void compute_stencil(Vector<Real> &stencil, int npass){
-    Vector<Real> old_s(1+npass,0.);
-    Vector<Real> new_s(1+npass,0.);
+    void compute_stencil(Gpu::ManagedVector<Real> &stencil, int npass)
+    {
+        Gpu::ManagedVector<Real> old_s(1+npass,0.);
+        Gpu::ManagedVector<Real> new_s(1+npass,0.);
 
-    old_s[0] = 1.;
-    int jmax = 1;
-    amrex::Real loc;
-    // Convolve the filter with itself npass times
-    for(int ipass=1; ipass<npass+1; ipass++){
-        // element 0 has to be treated in its own way
-        new_s[0] = 0.5 * old_s[0];
-        if (1<jmax) new_s[0] += 0.5 * old_s[1];
-        loc = 0.;
-        // For each element j, apply the filter to 
-        // old_s to get new_s[j]. loc stores the tmp 
-        // filtered value.
-        for(int j=1; j<jmax+1; j++){
-            loc = 0.5 * old_s[j];
-            loc += 0.25 * old_s[j-1];
-            if (j<jmax) loc += 0.25 * old_s[j+1];
-            new_s[j] = loc;
+        old_s[0] = 1.;
+        int jmax = 1;
+        amrex::Real loc;
+        // Convolve the filter with itself npass times
+        for(int ipass=1; ipass<npass+1; ipass++){
+            // element 0 has to be treated in its own way
+            new_s[0] = 0.5 * old_s[0];
+            if (1<jmax) new_s[0] += 0.5 * old_s[1];
+            loc = 0.;
+            // For each element j, apply the filter to 
+            // old_s to get new_s[j]. loc stores the tmp 
+            // filtered value.
+            for(int j=1; j<jmax+1; j++){
+                loc = 0.5 * old_s[j];
+                loc += 0.25 * old_s[j-1];
+                if (j<jmax) loc += 0.25 * old_s[j+1];
+                new_s[j] = loc;
+            }
+            // copy new_s into old_s
+            old_s = new_s;
+            // extend the stencil length for next iteration
+            jmax += 1;
         }
-        // copy new_s into old_s
-        old_s = new_s;
-        // extend the stencil length for next iteration
-        jmax += 1;
+        // we use old_s here to make sure the stencil
+        // is corrent even when npass = 0
+        stencil = old_s;
+        stencil[0] *= 0.5; // because we will use it twice
     }
-    // we use old_s here to make sure the stencil
-    // is corrent even when npass = 0
-    stencil = old_s;
-    stencil[0] *= 0.5; // because we will use it twice
-}
 }
 
 void BilinearFilter::ComputeStencils(){
@@ -69,6 +70,88 @@ void BilinearFilter::ComputeStencils(){
 }
 
 
+#ifdef AMREX_USE_CUDA
+
+void
+BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
+{
+    BL_PROFILE("BilinearFilter::ApplyStencil()");
+    ncomp = std::min(ncomp, srcmf.nComp());
+
+    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
+    {
+        const auto& src = srcmf.array(mfi);
+        const auto& dst = dstmf.array(mfi);
+        const Box& tbx = mfi.growntilebox();
+        const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
+
+        // tmpfab has enough ghost cells for the stencil
+        FArrayBox tmp_fab(gbx,ncomp);
+        Elixir tmp_eli = tmp_fab.elixir();  // Prevent the tmp data from being deleted too early
+        auto const& tmp = tmp_fab.array();
+
+        // Copy values in srcfab into tmpfab
+        const Box& ibx = gbx & srcmf[mfi].box();
+        AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
+        {
+            if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                tmp(i,j,k,n) = src(i,j,k,n+scomp);
+            } else {
+                tmp(i,j,k,n) = 0.0;
+            }
+        });
+
+        // Apply filter
+        Filter(tbx, tmp, dst, 0, dcomp, ncomp);
+    }
+}
+
+void BilinearFilter::Filter (const Box& tbx,
+                             Array4<Real const> const& tmp,
+                             Array4<Real      > const& dst,
+                             int scomp, int dcomp, int ncomp)
+{
+    amrex::Real const* AMREX_RESTRICT sx = stencil_x.data();
+    amrex::Real const* AMREX_RESTRICT sy = stencil_y.data();
+    amrex::Real const* AMREX_RESTRICT sz = stencil_z.data();
+    Dim3 slen_local = slen;
+    AMREX_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
+    {
+        Real d = 0.0;
+
+        for         (int iz=0; iz < slen_local.z; ++iz){
+            for     (int iy=0; iy < slen_local.y; ++iy){
+                for (int ix=0; ix < slen_local.x; ++ix){
+#if (AMREX_SPACEDIM == 3)        
+                    Real sss = sx[ix]*sy[iy]*sz[iz];
+#else
+                    Real sss = sx[ix]*sz[iy];
+#endif                        
+#if (AMREX_SPACEDIM == 3)
+                    d += sss*( tmp(i-ix,j-iy,k-iz,scomp+n)
+                              +tmp(i+ix,j-iy,k-iz,scomp+n)
+                              +tmp(i-ix,j+iy,k-iz,scomp+n)
+                              +tmp(i+ix,j+iy,k-iz,scomp+n)
+                              +tmp(i-ix,j-iy,k+iz,scomp+n)
+                              +tmp(i+ix,j-iy,k+iz,scomp+n)
+                              +tmp(i-ix,j+iy,k+iz,scomp+n)
+                              +tmp(i+ix,j+iy,k+iz,scomp+n));
+#else
+                    d += sss*( tmp(i-ix,j-iy,k,scomp+n)
+                              +tmp(i+ix,j-iy,k,scomp+n)
+                              +tmp(i-ix,j+iy,k,scomp+n)
+                              +tmp(i+ix,j+iy,k,scomp+n));
+#endif
+                }
+            }
+        }
+
+        dst(i,j,k,dcomp+n) = d;
+    });
+}
+
+#else
+
 void
 BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
@@ -91,18 +174,18 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
             // Apply filter
-            Filter(tbx, tmpfab, dstfab, 0, dcomp, ncomp);
+            Filter(tbx, tmpfab.array(), dstfab.array(), 0, dcomp, ncomp);
         }
     }
 }
 
-void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox &dstfab,
+void BilinearFilter::Filter (const Box& tbx,
+                             Array4<Real const> const& tmp,
+                             Array4<Real      > const& dst,
                              int scomp, int dcomp, int ncomp)
 {
     const auto lo = amrex::lbound(tbx);
     const auto hi = amrex::ubound(tbx);
-    const auto tmp = tmpfab.array();
-    const auto dst = dstfab.array();
     // tmp and dst are of type Array4 (Fortran ordering)
     amrex::Real const* AMREX_RESTRICT sx = stencil_x.data();
     amrex::Real const* AMREX_RESTRICT sy = stencil_y.data();
@@ -154,3 +237,4 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
     }
 }
 
+#endif

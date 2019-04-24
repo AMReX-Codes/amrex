@@ -61,6 +61,23 @@ def get_theoretical_field( field, t ):
 
 # Read the file
 ds = yt.load(fn)
+
+# Check that the particle selective output worked:
+for species in ['electrons', 'positrons']:
+    for field in ['particle_weight',
+                  'particle_momentum_x',
+                  'particle_Bz',
+                  'particle_Ey']:
+        assert (species, field) in ds.field_list
+    for field in ['particle_momentum_y',
+                  'particle_momentum_z',
+                  'particle_Bx',
+                  'particle_By',
+                  'particle_Ex',
+                  'particle_Ez']:
+        assert (species, field) not in ds.field_list
+
+
 t0 = ds.current_time.to_ndarray().mean()
 data = ds.covering_grid(level=0, left_edge=ds.domain_left_edge,
                                     dims=ds.domain_dimensions)

@@ -56,14 +56,6 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     m_yp.resize(num_threads);
     m_zp.resize(num_threads);
     m_giv.resize(num_threads);
-    for (int i = 0; i < num_threads; ++i)
-      {
-        local_rho[i].reset(nullptr);
-        local_jx[i].reset(nullptr);
-        local_jy[i].reset(nullptr);
-        local_jz[i].reset(nullptr);
-      }
-
 }
 
 void
@@ -199,12 +191,12 @@ WarpXParticleContainer::AddNParticles (int lev,
 
 void
 WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
-                                          RealVector& wp, RealVector& uxp,
-                                          RealVector& uyp, RealVector& uzp,
-                                          MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                          MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                          const long np_current, const long np,
-                                          int thread_num, int lev, Real dt )
+                                       RealVector& wp, RealVector& uxp,
+                                       RealVector& uyp, RealVector& uzp,
+                                       MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                       MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                       const long np_current, const long np,
+                                       int thread_num, int lev, Real dt )
 {
   Real *jx_ptr, *jy_ptr, *jz_ptr;
   const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
@@ -227,40 +219,36 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
   // Deposit charge for particles that are not in the current buffers
   if (np_current > 0)
-    {
+  {
+#ifdef AMREX_USE_GPU
+      jx_ptr = jx[pti].dataPtr();
+      jy_ptr = jy[pti].dataPtr();
+      jz_ptr = jz[pti].dataPtr();
+
+      auto jxntot = jx[pti].length();
+      auto jyntot = jy[pti].length();
+      auto jzntot = jz[pti].length();
+#else
       tbx.grow(ngJ);
       tby.grow(ngJ);
       tbz.grow(ngJ);
 
-      local_jx[thread_num]->resize(tbx);
-      local_jy[thread_num]->resize(tby);
-      local_jz[thread_num]->resize(tbz);
+      local_jx[thread_num].resize(tbx);
+      local_jy[thread_num].resize(tby);
+      local_jz[thread_num].resize(tbz);
 
-      jx_ptr = local_jx[thread_num]->dataPtr();
-      jy_ptr = local_jy[thread_num]->dataPtr();
-      jz_ptr = local_jz[thread_num]->dataPtr();
+      jx_ptr = local_jx[thread_num].dataPtr();
+      jy_ptr = local_jy[thread_num].dataPtr();
+      jz_ptr = local_jz[thread_num].dataPtr();
+      
+      local_jx[thread_num].setVal(0.0);
+      local_jy[thread_num].setVal(0.0);
+      local_jz[thread_num].setVal(0.0);
 
-      FArrayBox* local_jx_ptr = local_jx[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
-      {
-        local_jx_ptr->setVal(0.0, b, 0, 1);
-      });
-
-      FArrayBox* local_jy_ptr = local_jy[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
-      {
-        local_jy_ptr->setVal(0.0, b, 0, 1);
-      });
-
-      FArrayBox* local_jz_ptr = local_jz[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
-      {
-        local_jz_ptr->setVal(0.0, b, 0, 1);
-      });
-
-      auto jxntot = local_jx[thread_num]->length();
-      auto jyntot = local_jy[thread_num]->length();
-      auto jzntot = local_jz[thread_num]->length();
+      auto jxntot = local_jx[thread_num].length();
+      auto jyntot = local_jy[thread_num].length();
+      auto jzntot = local_jz[thread_num].length();
+#endif
 
       BL_PROFILE_VAR_START(blp_pxr_cd);
       if (j_is_nodal) {
@@ -342,38 +330,33 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
+#ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
-      FArrayBox* global_jx_ptr = jx.fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
-      {
-        global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
-      });
-
-      FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = jy.fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
-      {
-        global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
-      });
-
-      FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = jz.fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
-      {
-        global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
-      });
+      jx[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+      jy[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+      jz[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
-    }
+#endif
+  }
 
   // Deposit charge for particles that are in the current buffers
   if (np_current < np)
-    {
+  {
       const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
       const Box& ctilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
       const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
+
+#ifdef AMREX_USE_GPU
+      jx_ptr = (*cjx)[pti].dataPtr();
+      jy_ptr = (*cjy)[pti].dataPtr();
+      jz_ptr = (*cjz)[pti].dataPtr();
+
+      auto jxntot = jx[pti].length();
+      auto jyntot = jy[pti].length();
+      auto jzntot = jz[pti].length();
+#else
 
       tbx = amrex::convert(ctilebox, WarpX::jx_nodal_flag);
       tby = amrex::convert(ctilebox, WarpX::jy_nodal_flag);
@@ -382,35 +365,23 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       tby.grow(ngJ);
       tbz.grow(ngJ);
 
-      local_jx[thread_num]->resize(tbx);
-      local_jy[thread_num]->resize(tby);
-      local_jz[thread_num]->resize(tbz);
+      local_jx[thread_num].resize(tbx);
+      local_jy[thread_num].resize(tby);
+      local_jz[thread_num].resize(tbz);
 
-      jx_ptr = local_jx[thread_num]->dataPtr();
-      jy_ptr = local_jy[thread_num]->dataPtr();
-      jz_ptr = local_jz[thread_num]->dataPtr();
+      jx_ptr = local_jx[thread_num].dataPtr();
+      jy_ptr = local_jy[thread_num].dataPtr();
+      jz_ptr = local_jz[thread_num].dataPtr();
 
-      FArrayBox* local_jx_ptr = local_jx[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
-      {
-        local_jx_ptr->setVal(0.0, b, 0, 1);
-      });
+      local_jx[thread_num].setVal(0.0);
+      local_jy[thread_num].setVal(0.0);
+      local_jz[thread_num].setVal(0.0);
 
-      FArrayBox* local_jy_ptr = local_jy[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
-      {
-        local_jy_ptr->setVal(0.0, b, 0, 1);
-      });
-
-      FArrayBox* local_jz_ptr = local_jz[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
-      {
-        local_jz_ptr->setVal(0.0, b, 0, 1);
-      });
-      auto jxntot = local_jx[thread_num]->length();
-      auto jyntot = local_jy[thread_num]->length();
-      auto jzntot = local_jz[thread_num]->length();
-
+      auto jxntot = local_jx[thread_num].length();
+      auto jyntot = local_jy[thread_num].length();
+      auto jzntot = local_jz[thread_num].length();
+#endif
+      
       long ncrse = np - np_current;
       BL_PROFILE_VAR_START(blp_pxr_cd);
       if (j_is_nodal) {
@@ -494,39 +465,24 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
+#ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
-      FArrayBox* global_jx_ptr = cjx->fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
-      {
-        global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
-      });
-
-      FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = cjy->fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
-      {
-        global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
-      });
-
-      FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = cjz->fabPtr(pti);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
-      {
-        global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
-      });
+      (*cjx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+      (*cjy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+      (*cjz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
     }
 };
 
 
 void
 WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
-                                  MultiFab* rhomf, MultiFab* crhomf, int icomp,
-                                 const long np_current,
-                                 const long np, int thread_num, int lev )
+                                        MultiFab* rhomf, MultiFab* crhomf, int icomp,
+                                        const long np_current,
+                                        const long np, int thread_num, int lev )
 {
 
   BL_PROFILE_VAR_NS("PICSAR::ChargeDeposition", blp_pxr_chd);
@@ -544,18 +500,22 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 
   // Deposit charge for particles that are not in the current buffers
   if (np_current > 0)
-    {
+  {
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
-      tile_box.grow(ngRho);
-      local_rho[thread_num]->resize(tile_box);
-      FArrayBox* local_rho_ptr = local_rho[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, b,
-      {
-        local_rho_ptr->setVal(0.0, b, 0, 1);
-      });
 
-      data_ptr = local_rho[thread_num]->dataPtr();
-      auto rholen = local_rho[thread_num]->length();
+#ifdef AMREX_USE_GPU
+      data_ptr = (*rhomf)[pti].dataPtr();
+      auto rholen = (*rhomf)[pti].length();
+#else
+      tile_box.grow(ngRho);
+      local_rho[thread_num].resize(tile_box);
+
+      data_ptr = local_rho[thread_num].dataPtr();
+      auto rholen = local_rho[thread_num].length();
+
+      local_rho[thread_num].setVal(0.0);
+#endif
+
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -579,35 +539,36 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
-      const int ncomp = 1;
-      FArrayBox const* local_fab = local_rho[thread_num].get();
-      FArrayBox*       global_fab = rhomf->fabPtr(pti);
+#ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
-      {
-        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
-      });
+
+      (*rhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+
       BL_PROFILE_VAR_STOP(blp_accumulate);
-    }
+#endif
+  }
 
   // Deposit charge for particles that are in the current buffers
   if (np_current < np)
-    {
+  {
       const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
       const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
       const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
 
+#ifdef AMREX_USE_GPU
+      data_ptr = (*crhomf)[pti].dataPtr();
+      auto rholen = (*crhomf)[pti].length();
+#else
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
       tile_box.grow(ngRho);
-      local_rho[thread_num]->resize(tile_box);
-      FArrayBox* local_rho_ptr = local_rho[thread_num].get();
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, b,
-      {
-        local_rho_ptr->setVal(0.0, b, 0, 1);
-      });
+      local_rho[thread_num].resize(tile_box);
 
-      data_ptr = local_rho[thread_num]->dataPtr();
-      auto rholen = local_rho[thread_num]->length();
+      data_ptr = local_rho[thread_num].dataPtr();
+      auto rholen = local_rho[thread_num].length();
+
+      local_rho[thread_num].setVal(0.0);
+#endif
+
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -633,15 +594,13 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
-      const int ncomp = 1;
-      FArrayBox const* local_fab = local_rho[thread_num].get();
-      FArrayBox*       global_fab = crhomf->fabPtr(pti);
+#ifndef AMREX_USE_GPU            
       BL_PROFILE_VAR_START(blp_accumulate);
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
-      {
-        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
-      });
+
+      (*crhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+
       BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
     }
 };
 
