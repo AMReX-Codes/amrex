@@ -16,7 +16,7 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
 
     // Allocate temporary arrays - in real space and spectral space
     // These arrays will store the data just before/after the FFT
-    tmpRealField = SpectralField(realspace_ba, dm, 1, 0);
+    tmpRealField = MultiFab(realspace_ba, dm, 1, 0);
     tmpSpectralField = SpectralField(spectralspace_ba, dm, 1, 0);
 
     // By default, we assume the FFT is done from/to a nodal grid in real space
@@ -56,23 +56,23 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         forward_plan[mfi] =
             // Swap dimensions: AMReX FAB are Fortran-order but FFTW is C-order
 #if (AMREX_SPACEDIM == 3)
-            fftw_plan_dft_3d( bx.length(2), bx.length(1), bx.length(0),
+            fftw_plan_dft_r2c_3d( bx.length(2), bx.length(1), bx.length(0),
 #else
-            fftw_plan_dft_2d( bx.length(1), bx.length(0),
+            fftw_plan_dft_r2c_2d( bx.length(1), bx.length(0),
 #endif
-            reinterpret_cast<fftw_complex*>( tmpRealField[mfi].dataPtr() ),
+            tmpRealField[mfi].dataPtr(),
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
-            FFTW_FORWARD, FFTW_ESTIMATE );
+            FFTW_ESTIMATE );
         backward_plan[mfi] =
             // Swap dimensions: AMReX FAB are Fortran-order but FFTW is C-order
 #if (AMREX_SPACEDIM == 3)
-            fftw_plan_dft_3d( bx.length(2), bx.length(1), bx.length(0),
+            fftw_plan_dft_c2r_3d( bx.length(2), bx.length(1), bx.length(0),
 #else
-            fftw_plan_dft_2d( bx.length(1), bx.length(0),
+            fftw_plan_dft_c2r_2d( bx.length(1), bx.length(0),
 #endif
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
-            reinterpret_cast<fftw_complex*>( tmpRealField[mfi].dataPtr() ),
-            FFTW_BACKWARD, FFTW_ESTIMATE );
+            tmpRealField[mfi].dataPtr(),
+            FFTW_ESTIMATE );
 #endif
     }
 }
@@ -123,7 +123,7 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
             realspace_bx.enclosedCells(); // Discard last point in nodal direction
             AMREX_ALWAYS_ASSERT( realspace_bx == tmpRealField[mfi].box() );
             Array4<const Real> mf_arr = mf[mfi].array();
-            Array4<Complex> tmp_arr = tmpRealField[mfi].array();
+            Array4<Real> tmp_arr = tmpRealField[mfi].array();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 tmp_arr(i,j,k) = mf_arr(i,j,k,i_comp);
@@ -235,10 +235,10 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
         {
             const Box realspace_bx = tmpRealField[mfi].box();
             Array4<Real> mf_arr = mf[mfi].array();
-            Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
+            Array4<const Real> tmp_arr = tmpRealField[mfi].array();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k).real();
+                mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k);
             });
         }
     }

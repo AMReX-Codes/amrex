@@ -28,19 +28,33 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
         // For local FFTs, boxes in spectral space start at 0 in
         // each direction and have the same number of points as the
         // (cell-centered) real space box
-        // TODO: this will be different for the real-to-complex FFT
         // TODO: this will be different for the hybrid FFT scheme
         Box realspace_bx = realspace_ba[i];
-        Print() << realspace_bx.smallEnd() << " " << realspace_bx.bigEnd() << std::endl;
-        Box bx = Box( IntVect::TheZeroVector(),
-                      realspace_bx.bigEnd() - realspace_bx.smallEnd() );
-        spectral_bl.push_back( bx );
+        IntVect spectral_bx_size = realspace_bx.length();
+        // Because the spectral solver uses real-to-complex FFTs, we only
+        // need the positive k values along the fastest axis
+        // (first axis for AMReX Fortran-order arrays) in spectral space.
+        // This effectively reduces the size of the spectral space by half
+        // see e.g. the FFTW documentation for real-to-complex FFTs
+        spectral_bx_size[0] = spectral_bx_size[0]/2 + 1;
+        // Define the corresponding box
+        Box spectral_bx = Box( IntVect::TheZeroVector(),
+                               spectral_bx_size - IntVect::TheUnitVector() );
+        spectral_bl.push_back( spectral_bx );
     }
     spectralspace_ba.define( spectral_bl );
 
     // Allocate the components of the k vector: kx, ky (only in 3D), kz
+    bool only_positive_k;
     for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++) {
-        k_vec[i_dim] = getKComponent( dm, i_dim );
+        if (i_dim==0) {
+            // For real-to-complex FFTs, the first axis contains
+            // only the positive k
+            only_positive_k = true;
+        } else {
+            only_positive_k = false;
+        }
+        k_vec[i_dim] = getKComponent( dm, i_dim, only_positive_k );
     }
 }
 
@@ -50,7 +64,8 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
  */
 KVectorComponent
 SpectralKSpace::getKComponent( const DistributionMapping& dm,
-                               const int i_dim ) const
+                               const int i_dim,
+                               const bool only_positive_k ) const
 {
     // Initialize an empty ManagedVector in each box
     KVectorComponent k_comp(spectralspace_ba, dm);
@@ -70,16 +85,25 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
             "Expected box to start at 0, in spectral space.");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
             "Expected different box end index in spectral space.");
-        const int mid_point = (N+1)/2;
-        // Fill positive values of k (FFT conventions: first half is positive)
-        for (int i=0; i<mid_point; i++ ){
-            k[i] = i*dk;
+        if (only_positive_k){
+            // Fill the full axis with positive k values
+            // (typically: first axis, in a real-to-complex FFT)
+            for (int i=0; i<N; i++ ){
+                k[i] = i*dk;
+            }
+        } else {
+            const int mid_point = (N+1)/2;
+            // Fill positive values of k
+            // (FFT conventions: first half is positive)
+            for (int i=0; i<mid_point; i++ ){
+                k[i] = i*dk;
+            }
+            // Fill negative values of k
+            // (FFT conventions: second half is negative)
+            for (int i=mid_point; i<N; i++){
+                k[i] = (i-N)*dk;
+            }
         }
-        // Fill negative values of k (FFT conventions: second half is negative)
-        for (int i=mid_point; i<N; i++){
-            k[i] = (i-N)*dk;
-        }
-        // TODO: this will be different for the real-to-complex transform
         // TODO: this will be different for the hybrid FFT scheme
     }
     return k_comp;
