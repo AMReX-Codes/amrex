@@ -460,8 +460,6 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_old, 0);
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_new, 1);
 
-        // TODO: Transform rho
-
         // Advance fields in spectral space
         solver.pushSpectralFields();
 
