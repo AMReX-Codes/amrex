@@ -43,7 +43,7 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
     IntVect interp_lo(AMREX_D_DECL(0,0,0));
 
     // If inheriting data type //
-    CheckSliceInput(real_box, slice_cc_nd_box, slice_realbox, cr_ratio, slice_cr_ratio, dom_geom, SliceType, slice_lo, slice_hi, interp_lo);
+    CheckSliceInput(real_box, slice_cc_nd_box, slice_realbox, cr_ratio,                                          slice_cr_ratio, dom_geom, SliceType, slice_lo, slice_hi, interp_lo);
 
     // Determine if interpolation is required and number of cells in slice //
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {    
@@ -73,10 +73,10 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
              if ( slice_grid_size >= refined_ncells ) {
                 slice_grid_size = refined_ncells - 1;
              }
+
           }
        }
     }
-
 
     // Slice generation with index type inheritance //
     Box slice(slice_lo, slice_hi);
@@ -110,7 +110,7 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
 
     // inteprolate if required on refined slice //
     if (interpolate == 1 ) {    
-       InterpolateSliceValues( *smf, interp_lo, slice_cc_nd_box, dom_geom, ncomp, nghost, slice_lo, slice_hi, SliceType, real_box);
+       InterpolateSliceValues( *smf, interp_lo, slice_cc_nd_box, dom_geom, ncomp,                                            nghost, slice_lo, slice_hi, SliceType, real_box);
     }
 
     if ( coarsen == false ) {
@@ -118,15 +118,10 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
        return smf;
     }
     else if ( coarsen == true ) {
-
        Vector<BoxArray> crse_ba(1);
        crse_ba[0] = sba[0];
        crse_ba[0].coarsen(cr_ratio);
 
-       // The input values of max_grid_size is factored by ratio in the coarsened slice //
-       int cs_grid_size = double(sba[0].size())*max_ratio ;
-       crse_ba[0].maxSize(cs_grid_size);
-       
        AMREX_ALWAYS_ASSERT(crse_ba[0].size() == sba[0].size());
 
        if(slicetypeToBeConverted==1) {
