@@ -237,13 +237,11 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 #endif
 
         // Copy the temporary field `tmpRealField` to the real-space field `mf`
-        // in the *valid* part of the domain (guard cells are filled later,
-        // through guard cell exchange)
         {
-            const Box realspace_valid_bx = mfi.validbox();
+            const Box realspace_bx = tmpRealField[mfi].box();
             Array4<Real> mf_arr = mf[mfi].array();
             Array4<const Complex> tmp_arr = tmpRealField[mfi].array();
-            ParallelFor( realspace_valid_bx,
+            ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k).real();
             });
