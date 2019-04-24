@@ -42,7 +42,7 @@ AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell
   Initialize();
 
   Geometry::Setup(rb,coord);
-  InitAmrMesh(max_level_in,n_cell_in, a_refrat);
+  InitAmrMesh(max_level_in,n_cell_in, std::move(a_refrat));
 }
 
 AmrMesh::~AmrMesh ()
