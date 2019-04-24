@@ -57,6 +57,41 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 loc_copy_tags[tag.dstIndex].push_back
                     ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
             }
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+
+            if ( !(TheFB.m_localCopy.ready()) ) 
+            {
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                {
+                    if (mfi.LocalIndex() == 0) {
+                        amrex::Gpu::Device::startGraphStreamRecording();
+                    }
+
+                    const auto& tags = loc_copy_tags[mfi];
+                    auto dfab = this->array(mfi);
+                    for (auto const & tag : tags)
+                    {
+                        auto const sfab = tag.sfab->array();
+                        const auto offset = tag.offset.dim3();
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
+                        });
+                    }
+
+                    if (mfi.LocalIndex() == (this->local_size()-1)) {
+                        TheFB.m_localCopy.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
+                    }
+                }
+            }
+ 
+            // Setup Data
+            // Launch Graph
+
+
+#else
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -74,6 +109,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     });
                 }
             }
+
+#endif
         }
         else
         {
