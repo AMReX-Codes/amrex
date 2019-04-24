@@ -488,6 +488,28 @@ WarpX::ReadParameters ()
         pp.query("config", insitu_config);
         pp.query("pin_mesh", insitu_pin_mesh);
     }
+
+    // for slice generation //
+    {
+       ParmParse pp("slice");
+       amrex::Vector<Real> slice_lo(AMREX_SPACEDIM);
+       amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
+       Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
+       pp.queryarr("dom_lo",slice_lo,0,AMREX_SPACEDIM);
+       pp.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
+       pp.queryarr("coarsening_ratio",slice_crse_ratio,0,AMREX_SPACEDIM);
+       pp.query("plot_int",slice_plot_int);
+       slice_realbox.setLo(slice_lo);
+       slice_realbox.setHi(slice_hi);
+       IntVect slice_loc_ratio(AMREX_D_DECL(1,1,1));
+       slice_cr_ratio = slice_loc_ratio;
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+       {
+          slice_cr_ratio[idim] = slice_crse_ratio[idim];
+       }
+
+    }
+ 
 }
 
 // This is a virtual function.
