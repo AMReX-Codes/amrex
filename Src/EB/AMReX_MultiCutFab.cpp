@@ -40,7 +40,7 @@ MultiCutFab::remove ()
         {
             CutFab* p = &(m_data[mfi]);
             delete p;
-            m_data.setFab(mfi, new CutFab(), false);
+            m_data.setFab(mfi, ::new CutFab(), false);
         }
     }
 }

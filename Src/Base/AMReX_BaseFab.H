@@ -1970,37 +1970,6 @@ BaseFab<T,Allocator>::BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_ty
     }
 }
 
-#ifdef AMREX_USE_GPU
-template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_type)
-{
-    auto dst = static_cast<BaseFabData<T>*>(this);
-    auto src = static_cast<BaseFabData<T>const*>(&rhs);
-#ifndef AMREX_FAB_IS_PINNED
-    if (Gpu::isDevicePtr(&rhs)) {
-#ifdef AMREX_USE_CUDA
-        AMREX_GPU_SAFE_CALL(cudaMemcpy(dst, src, sizeof(BaseFabData<T>), cudaMemcpyDeviceToHost));
-#endif
-    }
-    else
-#endif
-    {
-        std::memcpy(dst, src, sizeof(BaseFabData<T>));
-    }
-
-    if (make_type == amrex::make_deep_copy)
-    {
-        this->dptr = nullptr;
-        define();
-        this->copy(rhs, this->domain, 0, this->domain, 0, this->nvar);
-    } else if (make_type == amrex::make_alias) {
-        this->setOwner(false);
-    } else {
-        amrex::Abort("BaseFab: unknown MakeType");
-    }
-}
-#endif
-
 template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (const Box& bx, int ncomp, T* p)
     : BaseFabData<T>{p, bx, ncomp, bx.numPts()*ncomp, false, false}
