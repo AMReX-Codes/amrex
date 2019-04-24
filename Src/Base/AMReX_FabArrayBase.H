@@ -12,6 +12,7 @@
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
+#include <AMReX_Gpu.H>
 
 namespace amrex {
 
@@ -447,6 +448,10 @@ protected:
 	//
 	int                 m_nuse;
 	//
+        CudaGraph<CopyMemory> m_localCopy;
+        CudaGraph<CopyMemory> m_copyToBuffer;
+        CudaGraph<CopyMemory> m_copyFromBuffer;
+        //
 	long bytes () const;
     private:
 	void define_fb (const FabArrayBase& fa);
