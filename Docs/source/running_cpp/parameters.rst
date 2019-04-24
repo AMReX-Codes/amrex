@@ -44,10 +44,14 @@ Setting up the field mesh
 
     For each direction, use 1 for periodic conditions, 0 otherwise.
 
+* ``geometry.coord_sys`` (`integer`) optional (default `0`)
+    Coordinate system used by the simulation. 0 for Cartesian, 1 for cylindrical.
+
 * ``geometry.prob_lo`` and ``geometry.prob_hi`` (`2 floats in 2D`, `3 integers in 3D`; in meters)
     The extent of the full simulation box. This box is rectangular, and thus its
     extent is given here by the coordinates of the lower corner (``geometry.prob_lo``) and
-    upper corner (``geometry.prob_hi``).
+    upper corner (``geometry.prob_hi``). The first axis of the coordinates is x (or r with cylindrical)
+    and the last is z.
 
 * ``warpx.fine_tag_lo`` and ``warpx.fine_tag_hi`` (`2 floats in 2D`, `3 integers in 3D`; in meters) optional
     **When using static mesh refinement with 1 level**, the extent of the refined patch.
@@ -162,6 +166,10 @@ Particle initialization
       mathematical expression for the density of the species, e.g.
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
       user-defined constant, see above.
+
+* ``<species_name>.radially_weighted`` (`bool`) optional (default `true`)
+    Whether particle's weight is varied with their radius. This only applies to cylindrical geometry.
+    The only valid value is true.
 
 * ``<species_name>.momentum_distribution_type`` (`string`)
     Distribution of the normalized momentum (`u=p/mc`) for this species. The options are:

@@ -118,6 +118,14 @@ extern "C"
 			const long* nox, const long* noy,const long* noz,
 			const long* lvect, const long* current_depo_algo);
 
+        // Current deposition finalize for RZ
+        void warpx_current_deposition_rz_volume_scaling(
+			amrex::Real* jx, const long* jx_ng, const int* jx_ntot,
+			amrex::Real* jy, const long* jy_ng, const int* jy_ntot,
+			amrex::Real* jz, const long* jz_ng, const int* jz_ntot,
+			const amrex::Real* rmin,
+			const amrex::Real* dr);
+
 	// Field gathering
 
 	void warpx_geteb_energy_conserving(const long* np,
@@ -210,7 +218,9 @@ extern "C"
                 const amrex::Real* mudt,
                 const amrex::Real* dtsdx,
                 const amrex::Real* dtsdy,
-                const amrex::Real* dtsdz);
+                const amrex::Real* dtsdz,
+                const amrex::Real* xmin,
+                const amrex::Real* dx);
 
         void warpx_push_bvec(
                 const int* xlo, const int* xhi,
@@ -225,6 +235,8 @@ extern "C"
                 const amrex::Real* dtsdx,
                 const amrex::Real* dtsdy,
                 const amrex::Real* dtsdz,
+                const amrex::Real* xmin,
+                const amrex::Real* dx,
 		const int* maxwell_fdtd_solver_id);
 
         void warpx_push_evec_f(

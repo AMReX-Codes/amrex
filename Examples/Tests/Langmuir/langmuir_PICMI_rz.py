@@ -1,24 +1,24 @@
 import numpy as np
 from pywarpx import picmi
 
-nx = 64
-ny = 64
+nr = 64
+nz = 64
 
-xmin = -20.e-6
-ymin = -20.e-6
-xmax = +20.e-6
-ymax = +20.e-6
+rmin =  0.e0
+zmin = -20.e-6
+rmax = +20.e-6
+zmax = +20.e-6
 
-uniform_plasma = picmi.UniformDistribution(density=1.e25, upper_bound=[0., None, None], directed_velocity=[0.1, 0., 0.])
+uniform_plasma = picmi.UniformDistribution(density=1.e25, upper_bound=[None, None, 0.], directed_velocity=[0., 0., 0.1])
 
 electrons = picmi.Species(particle_type='electron', name='electrons', initial_distribution=uniform_plasma)
 
-grid = picmi.Cartesian2DGrid(number_of_cells = [nx, ny],
-                             lower_bound = [xmin, ymin],
-                             upper_bound = [xmax, ymax],
-                             lower_boundary_conditions = ['periodic', 'periodic'],
-                             upper_boundary_conditions = ['periodic', 'periodic'],
-                             moving_window_velocity = [0., 0., 0.],
+grid = picmi.CylindricalGrid(number_of_cells = [nr, nz],
+                             lower_bound = [rmin, zmin],
+                             upper_bound = [rmax, zmax],
+                             lower_boundary_conditions = ['dirichlet', 'periodic'],
+                             upper_boundary_conditions = ['dirichlet', 'periodic'],
+                             moving_window_velocity = [0., 0.],
                              warpx_max_grid_size=32)
 
 solver = picmi.ElectromagneticSolver(grid=grid, cfl=1.)
@@ -36,7 +36,7 @@ sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
-sim.write_input_file(file_name='inputs2d_from_PICMI')
+sim.write_input_file(file_name='inputsrz_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
 #sim.step()

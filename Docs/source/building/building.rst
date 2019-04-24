@@ -84,6 +84,7 @@ Advanced building instructions
 
    openpmd
    spectral
+   rzgeometry
    gpu_local
    python
    spack

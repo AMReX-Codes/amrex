@@ -627,6 +627,10 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("By");
     particle_varnames.push_back("Bz");
 
+#ifdef WARPX_RZ
+    particle_varnames.push_back("theta");
+#endif
+
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
     particle_varnames.push_back("xold");
     particle_varnames.push_back("yold");

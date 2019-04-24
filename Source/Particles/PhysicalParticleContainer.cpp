@@ -163,7 +163,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
        std::array<Real, 3> u;
        Real weight;
        for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 | WARPX_RZ)
             weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
@@ -257,6 +257,9 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
+#ifdef WARPX_RZ
+    Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
+#endif
 
     const Real* dx = geom.CellSize();
 
@@ -382,6 +385,19 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
+                    // Save the x and y values to use in the insideBounds checks.
+                    // This is needed with WARPX_RZ since x and y are modified.
+                    Real xb = x;
+                    Real yb = y;
+
+#ifdef WARPX_RZ
+                    // Replace the x and y, choosing the angle randomly.
+                    // These x and y are used to get the momentum and density
+                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    y = x*std::sin(theta);
+                    x = x*std::cos(theta);
+#endif
+
                     Real dens;
                     std::array<Real, 3> u;
                     if (WarpX::gamma_boost == 1.){
@@ -389,7 +405,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       // If the particle is not within the species's
                       // xmin, xmax, ymin, ymax, zmin, zmax, go to
                       // the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z)) continue;
                       plasma_injector->getMomentum(u, x, y, z);
                       dens = plasma_injector->getDensity(x, y, z);
                     } else {
@@ -416,7 +432,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab) - c*t*(betaz_lab-beta_boost) );
                       // If the particle is not within the lab-frame zmin, zmax, etc.
                       // go to the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z0_lab)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z0_lab)) continue;
                       // call `getDensity` with lab-frame parameters
                       dens = plasma_injector->getDensity(x, y, z0_lab);
                       // At this point u and dens are the lab-frame quantities
@@ -424,7 +440,18 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+#ifdef WARPX_RZ
+                    if (plasma_injector->radially_weighted) {
+                      weight *= 2*MathConst::pi*xb;
+                    } else {
+                      // This is not correct since it might shift the particle
+                      // out of the local grid
+                      x = std::sqrt(xb*rmax);
+                      weight *= dx[0];
+                    }
+#endif
+                    attribs[PIdx::w ] = weight;
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
@@ -466,6 +493,9 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
+#ifdef WARPX_RZ
+    Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
+#endif
 
     const Real* dx = geom.CellSize();
 
@@ -594,6 +624,19 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
+                    // Save the x and y values to use in the insideBounds checks.
+                    // This is needed with WARPX_RZ since x and y are modified.
+                    Real xb = x;
+                    Real yb = y;
+
+#ifdef WARPX_RZ
+                    // Replace the x and y, choosing the angle randomly.
+                    // These x and y are used to get the momentum and density
+                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    x = xb*std::cos(theta);
+                    y = xb*std::sin(theta);
+#endif
+
                     Real dens;
                     std::array<Real, 3> u;
                     if (WarpX::gamma_boost == 1.){
@@ -601,7 +644,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       // If the particle is not within the species's
                       // xmin, xmax, ymin, ymax, zmin, zmax, go to
                       // the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z)) continue;
                       plasma_injector->getMomentum(u, x, y, z);
                       dens = plasma_injector->getDensity(x, y, z);
                     } else {
@@ -628,7 +671,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab) - c*t*(betaz_lab-beta_boost) );
                       // If the particle is not within the lab-frame zmin, zmax, etc.
                       // go to the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z0_lab)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z0_lab)) continue;
                       // call `getDensity` with lab-frame parameters
                       dens = plasma_injector->getDensity(x, y, z0_lab);
                       // At this point u and dens are the lab-frame quantities
@@ -636,7 +679,18 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+#ifdef WARPX_RZ
+                    if (plasma_injector->radially_weighted) {
+                      weight *= 2*MathConst::pi*xb;
+                    } else {
+                      // This is not correct since it might shift the particle
+                      // out of the local grid
+                      x = std::sqrt(xb*rmax);
+                      weight *= dx[0];
+                    }
+#endif
+                    attribs[PIdx::w ] = weight;
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
@@ -659,7 +713,10 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
 		    p.pos(1) = y;
 		    p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
-		    p.pos(0) = x;
+#ifdef WARPX_RZ
+                    attribs[PIdx::theta] = theta;
+#endif
+		    p.pos(0) = xb;
 		    p.pos(1) = z;
 #endif
 

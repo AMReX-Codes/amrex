@@ -299,6 +299,9 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         StringParseAbortMessage("Injection style", part_pos_s);
     }
 
+    pp.query("radially_weighted", radially_weighted);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(radially_weighted, "ERROR: Only radially_weighted=true is supported");
+
     // parse plasma boundaries
     xmin = std::numeric_limits<amrex::Real>::lowest();
     ymin = std::numeric_limits<amrex::Real>::lowest();
