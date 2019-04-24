@@ -10,7 +10,7 @@
 #endif
 
 #ifdef AMREX_USE_EB
-#ifdef USE_ALGOIM
+#ifdef AMREX_USE_ALGOIM
 #include <AMReX_algoim_integrals.H>
 #endif
 #endif
@@ -1014,8 +1014,8 @@ MLNodeLaplacian::buildMasks ()
                 }
 
                 amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
-                                            BL_TO_FORTRAN_BOX(ccdom),
-                                            m_lobc.data(), m_hibc.data());
+                                          BL_TO_FORTRAN_BOX(ccdom),
+                                          m_lobc.data(), m_hibc.data());
             }
         }
 
@@ -2308,13 +2308,10 @@ MLNodeLaplacian::buildIntegral ()
         }
     }
 #else
-#ifdef USE_ALGOIM
+#ifdef AMREX_USE_ALGOIM
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        MultiFab* intg = m_integral[amrlev].get();
-        amrex::compute_integrals(intg);
-        const Geometry& geom = m_geom[amrlev][0];
-        intg->FillBoundary(geom.periodicity());
+        amrex::compute_integrals(*m_integral[amrlev]);
     }
 #else
     amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
