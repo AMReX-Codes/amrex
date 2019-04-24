@@ -139,7 +139,7 @@ void compute_integrals(MultiFab& intg)
           {
              const Real volfrac = vfracarr(i,j,k);
 
-             if (volfrac >= (1.0-1.e-12))
+             if (volfrac >= (1.0-1.e-12) || volfrac <= 1.0e-12)
              {
                  for (int n = 0; n < ncomp; ++n) {
                      garr(i,j,k,n) = 0.0;
