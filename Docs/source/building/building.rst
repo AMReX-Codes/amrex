@@ -1,11 +1,11 @@
 Building/installing WarpX
 =========================
 
-WarpX can currently be built (and run) in two variants:
-   - as a compiled executable (run with the command line)
-   - as a Python package (run through a Python script)
+WarpX can be built with various options. This page describes the most basic
+build, and points to instructions for more advanced builds.
 
-Currently, for both of these options, the user needs to build the code from source.
+Even if you are interested in more advanced builds, we recommend reading this
+page first.
 
 Downloading the source code
 ---------------------------
@@ -29,8 +29,16 @@ Then switch to the branch ``development`` of AMReX
     git checkout development
     cd ..
 
-Compiling WarpX as an executable
---------------------------------
+and to the branch ``dev`` of WarpX
+
+::
+
+    cd WarpX/
+    git checkout dev
+    cd ..
+
+Basic compilation
+-----------------
 
 ``cd`` into the directory ``WarpX`` and type
 
@@ -68,43 +76,15 @@ In order to clean a previously compiled version:
 
     make realclean
 
-
-Installing WarpX as a Python package
-------------------------------------
-
-Type
-
-::
-
-    make -j 4 USE_PYTHON_MAIN=TRUE
-
-or edit the GNUmakefile and set `USE_PYTHON_MAIN=TRUE`, and type
-
-::
-
-    make -j 4
-
-This will compile the code, and install the Python bindings as a package (named
-``pywarpx``) in your standard Python installation (i.e. in your
-``site-packages`` directory). The note on compiler options from the previous
-section also holds when compiling the Python package.
-
-In case you do not have write permissions to the default Python installation (e.g. typical on computer clusters), use the following command instead:
-
-::
-
-   make -j 4 PYINSTALLOPTIONS=--user
-
-In this case, you can also set the variable `PYTHONUSERBASE` to set the folder where `pywarpx` will be installed.
-
 Advanced building instructions
 ------------------------------
-
 
 .. toctree::
    :maxdepth: 1
 
    spectral
+   gpu_local
+   python
+   spack
    cori
    summit
-   spack

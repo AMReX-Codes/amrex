@@ -22,6 +22,7 @@
 #include <MultiParticleContainer.H>
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
+#include <BilinearFilter.H>
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>
@@ -59,6 +60,9 @@ public:
     WarpX ();
     ~WarpX ();
 
+    static std::string Version ();
+    static std::string PicsarVersion ();
+
     int Verbose () const { return verbose; }
 
     void InitData ();
@@ -88,7 +92,7 @@ public:
 
     static bool use_fdtd_nci_corr;
     static int  l_lower_order_in_v;
-    
+
     static bool use_laser;
     static bool use_filter;
     static bool serialize_ics;
@@ -136,6 +140,9 @@ public:
             return nullptr;
         }
     }
+
+    static amrex::IntVect filter_npass_each_dir;
+    BilinearFilter bilinear_filter;
 
     void ComputeDt ();
     int  MoveWindow (bool move_j);
@@ -189,6 +196,8 @@ public:
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
     void UpdateInSitu () const;
+    void AverageAndPackFields( amrex::Vector<std::string>& varnames,
+        amrex::Vector<amrex::MultiFab>& mf_avg, const int ngrow) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
@@ -343,6 +352,8 @@ private:
     void InitPML ();
     void ComputePMLFactors ();
 
+    void InitFilter ();
+
     void InitDiagnostics ();
 
     void InitNCICorrector ();
@@ -355,9 +366,6 @@ private:
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
-
-    static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
-				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
                              const std::array<const amrex::MultiFab*, 3>& B,
@@ -386,9 +394,6 @@ private:
     void ExchangeWithPmlF (int lev);
 
     void LoadBalance ();
-
-    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf,
-                             int scomp = 0, int dcomp = 0, int ncomp = 10000);
 
     void BuildBufferMasks ();
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
@@ -452,7 +457,7 @@ private:
 
     amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_fp_owner_masks;
     amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_cp_owner_masks;
-    
+
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_fp_owner_masks;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_cp_owner_masks;
 
@@ -514,6 +519,7 @@ private:
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+    int plot_coarsening_ratio = 1;
 
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
 //    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;

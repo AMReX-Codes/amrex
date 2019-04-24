@@ -9,4 +9,4 @@ AMReX_buildInfo.cpp
 Backtrace.*
 *.vth
 *.sw[opqrs]
-*.png
+

@@ -87,3 +87,6 @@ Further information
 
 A lot more information can be obtained from the yt documentation, and the
 corresponding notebook tutorials `here <http://yt-project.org/doc/>`__.
+
+A notebook with useful yt commands can be found at ``WarpX/Tools/Visualization.ipynb``.
+It is a good start to explore simulation results.

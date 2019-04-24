@@ -927,7 +927,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp;
+        Cuda::ManagedDeviceVector<Real> xp, yp, zp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -1444,7 +1444,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
 {
     auto& mypc = WarpX::GetInstance().GetPartContainer();
     auto& pctmp_split = mypc.GetPCtmp();
-    Cuda::DeviceVector<Real> xp, yp, zp;
+    Cuda::ManagedDeviceVector<Real> xp, yp, zp;
     RealVector psplit_x, psplit_y, psplit_z, psplit_w;
     RealVector psplit_ux, psplit_uy, psplit_uz;
     long np_split_to_add = 0;
@@ -1593,10 +1593,10 @@ PhysicalParticleContainer::SplitParticles(int lev)
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-	                          Cuda::DeviceVector<Real>& xp,
-                                  Cuda::DeviceVector<Real>& yp,
-                                  Cuda::DeviceVector<Real>& zp,
-                                  Cuda::DeviceVector<Real>& giv,
+	                          Cuda::ManagedDeviceVector<Real>& xp,
+                                  Cuda::ManagedDeviceVector<Real>& yp,
+                                  Cuda::ManagedDeviceVector<Real>& zp,
+                                  Cuda::ManagedDeviceVector<Real>& giv,
                                   Real dt)
 {
 
