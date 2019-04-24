@@ -16,7 +16,7 @@ Nightly Regression Testing
 Each night, we automically run a suite of tests, both on AMReX itself, and on a most of the major
 application codes that use it as a framework. We use an in-house test runner script to manage this
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
-applitation codes as well. The results for each night are collected and stored on a web page; see
+application codes as well. The results for each night are collected and stored on a web page; see
 https://ccse.lbl.gov/pub/RegressionTesting/ for the latest set of results.
 
 Running the test suite locally
@@ -82,8 +82,7 @@ For a complete set of script options, run
 
    python regtest.py --help
 
-To see a complete list of test runner options. A particularly useful option lets you run just a subset of the
-complete test suite. To run only one test, you can do:
+A particularly useful option lets you run just a subset of the complete test suite. To run only one test, you can do:
    
 ::
    
@@ -99,7 +98,7 @@ To run an enumerated list of tests, do:
 Adding a new test
 =================
 
-New tests can be added to the suite by modifying the `AMReX-Tests.ini` file. The easiest thing to
+New tests can be added to the suite by modifying the :cpp:`AMReX-Tests.ini` file. The easiest thing to
 do is start from an existing test and modify it. For example, this entry:
 
 ::

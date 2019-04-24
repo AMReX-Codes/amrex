@@ -60,8 +60,19 @@ endfunction ()
 
 #
 # Manage AMReX installation process
+# Extra arguments are the targets to install
 #
 function (install_amrex)
+
+   # Check if the given arguments are vvalid targets
+   set(_targets amrex)
+   foreach (_arg IN LISTS ARGV)
+      if (TARGET ${_arg})
+         set(_targets ${_targets} ${_arg})
+      else ()
+         message(WARNING "Target ${_arg} does not exist: skipping installation")
+      endif ()
+   endforeach ()
    
    # Write and install configure file 
    include(CMakePackageConfigHelpers)
@@ -91,12 +102,14 @@ function (install_amrex)
       DESTINATION lib/cmake/AMReX ) 
 
    # Setup for target amrex installation
-   install( TARGETS amrex
+   install(
+      TARGETS       ${_targets}
       EXPORT        AMReXTargets
       ARCHIVE       DESTINATION lib 
       LIBRARY       DESTINATION lib 
       INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
-      PUBLIC_HEADER DESTINATION include )
+      PUBLIC_HEADER DESTINATION include
+      )
 
    # Setup for export AMReXtargets installation
    install( EXPORT AMReXTargets

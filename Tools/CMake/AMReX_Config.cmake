@@ -51,7 +51,6 @@ function (configure_amrex)
    endif()
 
    # Load flags preset
-   include(AMReX_Compilers)
    set_compiler_flags_preset(amrex)
 
    if (ENABLE_CUDA)
@@ -91,6 +90,11 @@ function (configure_amrex)
       # possible configurations.
       #
       get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
+
+      if (NOT CMAKE_CXX_FLAGS)
+         get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
+         list(APPEND _amrex_flags ${_amrex_flags_2})
+      endif ()
 
       evaluate_genex(_amrex_flags _amrex_cxx_flags
          LANG   CXX
@@ -273,3 +277,76 @@ function (print_amrex_configuration_summary)
    message( STATUS "   Link line                = ${AMREX_LINK_LINE}") 
 
 endfunction ()
+
+
+#
+# For now let's keep this here
+# 
+function ( set_compiler_flags_preset _target )
+
+   #
+   # WARNING: since cmake 3.14 the genex Fortran_COMPILER_ID is available!!!
+   #
+
+   # 
+   # Check if target "_target" has been defined before
+   # calling this macro
+   #
+   if ( NOT TARGET ${_target} )
+      message (FATAL_ERROR "Target '${_target}' does not exist" )
+   endif ()
+
+   #
+   # Check wether the compiler ID has been defined
+   # 
+   if (  NOT (DEFINED CMAKE_Fortran_COMPILER_ID) OR
+	 NOT (DEFINED CMAKE_C_COMPILER_ID) OR 
+	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
+      message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
+   endif ()
+
+   #
+   # Helper variables
+   # 
+   set(_cxx             "$<COMPILE_LANGUAGE:CXX>")
+   set(_fortran         "$<COMPILE_LANGUAGE:Fortran>")
+
+   set(_debug           "$<CONFIG:Debug>")
+   set(_release         "$<CONFIG:Release>")
+
+   set(_gnu             "$<CXX_COMPILER_ID:GNU>")
+   set(_cxx_gnu         "$<AND:${_cxx},${_gnu}>")
+
+   set(_intel           "$<CXX_COMPILER_ID:Intel>")
+   set(_cxx_intel       "$<AND:${_cxx},${_intel}>")
+
+   set(_pgi             "$<CXX_COMPILER_ID:PGI>")
+   set(_cxx_pgi         "$<AND:${_cxx},${_pgi}>")
+
+   set(_cray            "$<CXX_COMPILER_ID:Cray>")
+   set(_cxx_cray        "$<AND:${_cxx},${_cray}>")
+
+   set(_clang           "$<CXX_COMPILER_ID:Clang>")
+   set(_cxx_clang       "$<AND:${_cxx},${_clang}>")
+   
+   set(_apple           "$<CXX_COMPILER_ID:AppleClang>")
+   set(_cxx_apple       "$<AND:${_cxx},${_apple}>")
+
+
+   if (ENABLE_3D_NODAL_MLMG)
+      set(_cxx_std c++14)
+   else ()
+      set(_cxx_std c++11)
+   endif ()
+   
+   target_compile_options(  ${_target}
+         PUBLIC
+         $<${_cxx_gnu}:-std=${_cxx_std}>
+         $<${_cxx_intel}:-std=${_cxx_std}>
+         $<${_cxx_cray}:-h std=${_cxx_std} -h list=a>
+         $<${_cxx_pgi}:-std=${_cxx_std}>
+         $<${_cxx_clang}:-std=${_cxx_std}>
+         $<${_cxx_apple}:-std=${_cxx_std}>
+         )
+  
+endfunction () 
