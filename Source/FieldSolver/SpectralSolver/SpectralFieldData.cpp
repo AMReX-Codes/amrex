@@ -48,7 +48,10 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
     // Loop over boxes and allocate the corresponding plan
     // for each box owned by the local MPI proc
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
-        Box bx = spectralspace_ba[mfi];
+        // Note: the size of the real-space box and spectral-space box
+        // differ when using real-to-complex FFT. When initializing
+        // the FFT plan, the valid dimensions are those of the real-space box.
+        IntVect fft_size = realspace_ba[mfi].length();
 #ifdef AMREX_USE_GPU
         // Add cuFFT-specific code
 #else
@@ -56,9 +59,9 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         forward_plan[mfi] =
             // Swap dimensions: AMReX FAB are Fortran-order but FFTW is C-order
 #if (AMREX_SPACEDIM == 3)
-            fftw_plan_dft_r2c_3d( bx.length(2), bx.length(1), bx.length(0),
+            fftw_plan_dft_r2c_3d( fft_size[2], fft_size[1], fft_size[0],
 #else
-            fftw_plan_dft_r2c_2d( bx.length(1), bx.length(0),
+            fftw_plan_dft_r2c_2d( fft_size[1], fft_size[0],
 #endif
             tmpRealField[mfi].dataPtr(),
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
@@ -66,9 +69,9 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         backward_plan[mfi] =
             // Swap dimensions: AMReX FAB are Fortran-order but FFTW is C-order
 #if (AMREX_SPACEDIM == 3)
-            fftw_plan_dft_c2r_3d( bx.length(2), bx.length(1), bx.length(0),
+            fftw_plan_dft_c2r_3d( fft_size[2], fft_size[1], fft_size[0],
 #else
-            fftw_plan_dft_c2r_2d( bx.length(1), bx.length(0),
+            fftw_plan_dft_c2r_2d( fft_size[1], fft_size[0],
 #endif
             reinterpret_cast<fftw_complex*>( tmpSpectralField[mfi].dataPtr() ),
             tmpRealField[mfi].dataPtr(),
