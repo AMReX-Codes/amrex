@@ -578,6 +578,7 @@ int main (int argc, char* argv[])
                 CopyMemory* cgd = cgraph.getDevicePtr(idx); 
                 AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                 {
+                    // Build the Array4's.
                     auto const dst = cgd->getDst<Real>();
                     auto const src = cgd->getSrc<Real>();
                     int scomp   = cgd->scomp;
