@@ -380,13 +380,11 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &lvect,&WarpX::current_deposition_algo);
 
 #ifdef WARPX_RZ
-         const long nmodes = 1;
          warpx_current_deposition_rz_volume_scaling(
                                   jx_ptr, &ngJ, jxntot.getVect(),
                                   jy_ptr, &ngJ, jyntot.getVect(),
                                   jz_ptr, &ngJ, jzntot.getVect(),
-                                  &nmodes, &xyzmin[0], &dx[0]);
-                                  /* &WarpX::nmodes, &xyzmin[0], &dx[0]); */
+                                  &xyzmin[0], &dx[0]);
 #endif
       }
 
@@ -549,13 +547,11 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                &lvect,&WarpX::current_deposition_algo);
 #ifdef WARPX_RZ
-         const long nmodes = 1;
          warpx_current_deposition_rz_volume_scaling(
                                   jx_ptr, &ngJ, jxntot.getVect(),
                                   jy_ptr, &ngJ, jyntot.getVect(),
                                   jz_ptr, &ngJ, jzntot.getVect(),
-                                  &nmodes, &xyzmin[0], &dx[0]);
-                                  /* &WarpX::nmodes, &xyzmin[0], &dx[0]); */
+                                  &xyzmin[0], &dx[0]);
 #endif
       }
 

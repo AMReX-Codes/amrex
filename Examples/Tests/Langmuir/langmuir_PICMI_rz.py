@@ -1,21 +1,21 @@
 import numpy as np
 from pywarpx import picmi
 
-nx = 64
+nr = 64
 nz = 64
 
-xmin =  0.e0
+rmin =  0.e0
 zmin = -20.e-6
-xmax = +20.e-6
+rmax = +20.e-6
 zmax = +20.e-6
 
 uniform_plasma = picmi.UniformDistribution(density=1.e25, upper_bound=[None, None, 0.], directed_velocity=[0., 0., 0.1])
 
 electrons = picmi.Species(particle_type='electron', name='electrons', initial_distribution=uniform_plasma)
 
-grid = picmi.CylindricalGrid(number_of_cells = [nx, nz],
-                             lower_bound = [xmin, zmin],
-                             upper_bound = [xmax, zmax],
+grid = picmi.CylindricalGrid(number_of_cells = [nr, nz],
+                             lower_bound = [rmin, zmin],
+                             upper_bound = [rmax, zmax],
                              lower_boundary_conditions = ['dirichlet', 'periodic'],
                              upper_boundary_conditions = ['dirichlet', 'periodic'],
                              moving_window_velocity = [0., 0.],

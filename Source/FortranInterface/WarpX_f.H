@@ -123,7 +123,6 @@ extern "C"
 			amrex::Real* jx, const long* jx_ng, const int* jx_ntot,
 			amrex::Real* jy, const long* jy_ng, const int* jy_ntot,
 			amrex::Real* jz, const long* jz_ng, const int* jz_ntot,
-			const long* nmodes,
 			const amrex::Real* rmin,
 			const amrex::Real* dr);
 

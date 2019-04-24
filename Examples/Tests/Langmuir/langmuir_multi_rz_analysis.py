@@ -17,7 +17,7 @@ from scipy.constants import e, m_e, epsilon_0, c
 # this will be the name of the plot file
 fn = sys.argv[1]
 
-# Parameters (these parameters must match the parameters in `inputs.multi.rt`)
+# Parameters (these parameters must match the parameters in `inputs.multi.rz.rt`)
 epsilon = 0.001
 n = 2.e24
 w0 = 5.e-6
@@ -31,43 +31,23 @@ k0 = 2.*np.pi*n_osc_z/(zmax-zmin)
 wp = np.sqrt((n*e**2)/(m_e*epsilon_0))
 kp = wp/c
 
-epsilons = [epsilon, 0., 0.]
-
-def Jx( z, r, epsilons, k0, w0, wp, t) :
-    return -n*e*c*epsilons[0]/kp*2*r/w0**2*np.exp(-(r**2)/w0**2)*np.sin(k0*z)*np.cos(wp*t)
-
-def Jz( z, r, epsilons, k0, w0, wp, t) :
-    return +n*e*c*epsilons[0]/kp*k0*np.exp(-(r**2)/w0**2)*np.cos(k0*z)*np.cos(wp*t)
-
-def Er( z, r, epsilons, k0, w0, wp, t) :
+def Er( z, r, epsilon, k0, w0, wp, t) :
     """
     Return the radial electric field as an array
     of the same length as z and r, in the half-plane theta=0
     """
     Er_array = \
-        epsilons[0] * m_e*c**2/e * 2*r/w0**2 * \
-            np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t ) \
-        - epsilons[1] * m_e*c**2/e * 2/w0 * \
-            np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t ) \
-        + epsilons[1] * m_e*c**2/e * 4*r**2/w0**3 * \
-            np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t ) \
-        - epsilons[2] * m_e*c**2/e * 8*r/w0**2 * \
-            np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t ) \
-        + epsilons[2] * m_e*c**2/e * 8*r**3/w0**4 * \
+        epsilon * m_e*c**2/e * 2*r/w0**2 * \
             np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t )
     return( Er_array )
 
-def Ez( z, r, epsilons, k0, w0, wp, t) :
+def Ez( z, r, epsilon, k0, w0, wp, t) :
     """
     Return the longitudinal electric field as an array
     of the same length as z and r, in the half-plane theta=0
     """
     Ez_array = \
-        - epsilons[0] * m_e*c**2/e * k0 * \
-            np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t ) \
-        - epsilons[1] * m_e*c**2/e * k0 * 2*r/w0 * \
-            np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t ) \
-        - epsilons[2] * m_e*c**2/e * k0 * 4*r**2/w0**2 * \
+        - epsilon * m_e*c**2/e * k0 * \
             np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t )
     return( Ez_array )
 
@@ -87,13 +67,13 @@ zz = zmin + (coords[1] + 0.5)*dz
 # Check the validity of the fields
 overall_max_error = 0
 Er_sim = data['Ex'].to_ndarray()[:,:,0]
-Er_th = Er(zz, rr, epsilons, k0, w0, wp, t0)
+Er_th = Er(zz, rr, epsilon, k0, w0, wp, t0)
 max_error = abs(Er_sim-Er_th).max()/abs(Er_th).max()
 print('Er: Max error: %.2e' %(max_error))
 overall_max_error = max( overall_max_error, max_error )
 
 Ez_sim = data['Ez'].to_ndarray()[:,:,0]
-Ez_th = Ez(zz, rr, epsilons, k0, w0, wp, t0)
+Ez_th = Ez(zz, rr, epsilon, k0, w0, wp, t0)
 max_error = abs(Ez_sim-Ez_th).max()/abs(Ez_th).max()
 print('Ez: Max error: %.2e' %(max_error))
 overall_max_error = max( overall_max_error, max_error )
@@ -112,118 +92,3 @@ plt.savefig('langmuir_multi_rz_analysis.png')
 
 # Automatically check the validity
 assert overall_max_error < 0.04
-
-
-"""
-# Extra plots
-import matplotlib.cm as cm
-
-# Side by side plot of Er
-fig, ax = plt.subplots(1,2)
-im = ax[0].imshow(Er_sim, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
-fig.colorbar(im, ax=ax[0], orientation='vertical', shrink=0.6)
-ax[0].set_title('Er sim')
-ax[0].set_xlabel('Z (um)')
-ax[0].set_ylabel('R (um)')
-im = ax[1].imshow(Er_th, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
-fig.colorbar(im, ax=ax[1], orientation='vertical', shrink=0.6)
-ax[1].set_title('Er th')
-ax[1].set_xlabel('Z (um)')
-ax[1].set_ylabel('R (um)')
-fig.show()
-
-# Side by side plot of Ez
-fig, ax = plt.subplots(1,2)
-im = ax[0].imshow(Ez_sim, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
-fig.colorbar(im, ax=ax[0], orientation='vertical', shrink=0.6)
-ax[0].set_title('Ez sim')
-ax[0].set_xlabel('Z (um)')
-ax[0].set_ylabel('R (um)')
-im = ax[1].imshow(Ez_th, interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
-fig.colorbar(im, ax=ax[1], orientation='vertical', shrink=0.6)
-ax[1].set_title('Ez th')
-ax[1].set_xlabel('Z (um)')
-ax[1].set_ylabel('R (um)')
-fig.show()
-
-# Differences of Er and Ez
-fig, ax = plt.subplots(1,2)
-im = ax[0].imshow((Er_sim - Er_th)/Er_sim.max(), interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
-fig.colorbar(im, ax=ax[0], orientation='vertical', shrink=0.5)
-ax[0].set_title('Er difference')
-ax[0].set_xlabel('Z (um)')
-ax[0].set_ylabel('R (um)')
-im = ax[1].imshow((Ez_sim - Ez_th)/Ez_sim.max(), interpolation='bilinear', origin='lower', cmap=cm.RdBu, extent=(-20, 20, 0, 20))
-fig.colorbar(im, ax=ax[1], orientation='vertical', shrink=0.5)
-ax[1].set_title('Ez difference')
-ax[1].set_xlabel('Z (um)')
-ax[1].set_ylabel('R (um)')
-fig.show()
-
-# Er along z
-fig, ax = plt.subplots()
-ax.plot(zz[0,:]*1.e6, Er_sim[2,:], 'r')
-ax.plot(zz[0,:]*1.e6, Er_th[2,:], 'b')
-ax.set_xlabel('Z (um)')
-ax.set_ylabel('Er')
-fig.show()
-
-# Er along radius
-fig, ax = plt.subplots()
-ax.plot(rr[:,48]*1.e6, Er_sim[:,48], 'r')
-ax.plot(rr[:,48]*1.e6, Er_th[:,48], 'b')
-ax.set_xlabel('R (um)')
-ax.set_ylabel('Er')
-fig.show()
-
-# Er difference along radius
-fig, ax = plt.subplots()
-ax.plot(rr[:,48]*1.e6, (Er_sim[:,48] - Er_th[:,48])/Er_sim.max(), 'r')
-ax.set_xlabel('R (um)')
-ax.set_ylabel('Er difference')
-fig.show()
-
-# Ez along radius
-fig, ax = plt.subplots()
-ax.plot(rr[:,48]*1.e6, Ez_sim[:,48], 'r')
-ax.plot(rr[:,48]*1.e6, Ez_th[:,48], 'b')
-ax.set_xlabel('R (um)')
-ax.set_ylabel('Ez')
-fig.show()
-
-# Ez difference along radius
-fig, ax = plt.subplots()
-ax.plot(rr[:,48]*1.e6, (Ez_sim[:,48] - Ez_th[:,48])/Ez_sim.max(), 'r')
-ax.set_xlabel('R (um)')
-ax.set_ylabel('Ez difference')
-fig.show()
-
-# Ez along z
-fig, ax = plt.subplots()
-ax.plot(zz[0,:]*1.e6, Ez_sim[2,:], 'r')
-ax.plot(zz[0,:]*1.e6, Ez_th[2,:], 'b')
-ax.set_xlabel('Z (um)')
-ax.set_ylabel('Ez')
-fig.show()
-
-# Fetch Jr
-Jr_sim = data['Jx'].to_ndarray()[:,:,0]
-Jr_th = Jx(zz, rr, epsilons, k0, w0, wp, t0)
-max_error = abs(Jr_sim-Jr_th).max()/abs(Jr_th).max()
-print('Jr: Max error: %.2e' %(max_error))
-
-# Fetch Jz
-Jz_sim = data['Jz'].to_ndarray()[:,:,0]
-Jz_th = Jz(zz, rr, epsilons, k0, w0, wp, t0)
-max_error = abs(Jz_sim-Jz_th).max()/abs(Jz_th).max()
-print('Jz: Max error: %.2e' %(max_error))
-
-# Plot Jr along radius
-fig, ax = plt.subplots()
-ax.plot(rr[:,48]*1.e6, Jr_sim[:,48], 'r')
-ax.plot(rr[:,48]*1.e6, Jr_th[:,48], 'b')
-ax.set_xlabel('R (um)')
-ax.set_ylabel('Jr')
-fig.show()
-
-"""

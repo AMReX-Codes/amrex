@@ -277,7 +277,7 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
         if self.moving_window_velocity is not None and np.any(np.not_equal(self.moving_window_velocity, 0.)):
             pywarpx.warpx.do_moving_window = 1
             if self.moving_window_velocity[0] != 0.:
-                raise Exception('In cylindrical coordinates, a moving window in x can not be done')
+                raise Exception('In cylindrical coordinates, a moving window in r can not be done')
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'z'
                 pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light

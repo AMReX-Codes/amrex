@@ -17,8 +17,8 @@ amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 # Geometry
 geometry.coord_sys = 1        # 1: RZ
 geometry.is_periodic = 0 1
-geometry.prob_lo = 0.e0 -2e-05  # physical domain
-geometry.prob_hi = 2e-05 2e-05
+geometry.prob_lo = 0.e0 -2e-05  # physical domain, rmin zmin
+geometry.prob_hi = 2e-05 2e-05  #                  rmax zmax
 
 # Verbosity
 warpx.verbose = 1

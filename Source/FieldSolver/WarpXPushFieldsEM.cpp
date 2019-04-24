@@ -76,6 +76,9 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+
+        // xmin is only used by the picsar kernel with cylindrical geometry,
+        // in which case it is actually rmin.
         const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
 
         if (do_nodal) {
@@ -232,6 +235,9 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+
+        // xmin is only used by the picsar kernel with cylindrical geometry,
+        // in which case it is actually rmin.
         const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
 
         if (do_nodal) {

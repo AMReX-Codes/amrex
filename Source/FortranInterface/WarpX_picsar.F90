@@ -320,24 +320,23 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !> Applies the inverse volume scaling for RZ current deposition
   !>
   !> @details
-  !> The scaling is done for both single mode (FDTD) and
-  !> multi mode (spectral)
+  !> The scaling is done for single mode only
   !
   !> @param[inout] jx,jy,jz current arrays
-  !> @param[in] nmodes number of spectral modes
+  !> @param[in] jx_ntot,jy_ntot,jz_ntot vectors with total number of
+  !>            cells (including guard cells) along each axis for each current
+  !> @param[in] jx_ng,jy_ng,jz_ng vectors with number of guard cells along each
+  !>            axis for each current
   !> @param[in] rmin tile grid minimum radius
   !> @param[in] dr radial space discretization steps
-  !> @param[in] nx,ny,nz number of cells
-  !> @param[in] nxguard,nyguard,nzguard number of guard cells
   !>
   subroutine warpx_current_deposition_rz_volume_scaling( &
-    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot,nmodes, &
+    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot, &
     rmin,dr) &
     bind(C, name="warpx_current_deposition_rz_volume_scaling")
 
     integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
     integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
-    integer(c_long), intent(IN) :: nmodes
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
@@ -358,9 +357,6 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
                  jx,jx_nguards,jx_nvalid, &
                  jy,jy_nguards,jy_nvalid, &
                  jz,jz_nguards,jz_nvalid, &
-#ifdef WARPX_USE_PSATD
-                 nmodes, &
-#endif
                  rmin,dr,type_rz_depose)
 #endif
 
