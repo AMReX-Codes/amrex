@@ -194,7 +194,6 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
         // field (specified by the input argument field_index)
         // and apply correcting shift factor if the field is to be transformed
         // to a cell-centered grid in real space instead of a nodal grid.
-        // Normalize (divide by 1/N) since the FFT+IFFT results in a factor N
         {
             Array4<const Complex> field_arr = SpectralFieldData::fields[mfi].array();
             Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
@@ -205,8 +204,6 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
             const Complex* zshift_arr = zshift_FFTtoCell[mfi].dataPtr();
             // Loop over indices within one box
             const Box spectralspace_bx = tmpSpectralField[mfi].box();
-            // For normalization: divide by the number of points in the box
-            const Real inv_N = 1./spectralspace_bx.numPts();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 Complex spectral_field_value = field_arr(i,j,k,field_index);
@@ -218,8 +215,8 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 #elif (AMREX_SPACEDIM == 2)
                 if (is_nodal_z==false) spectral_field_value *= zshift_arr[j];
 #endif
-                // Copy field into temporary array (after normalization)
-                tmp_arr(i,j,k) = inv_N*spectral_field_value;
+                // Copy field into temporary array
+                tmp_arr(i,j,k) = spectral_field_value;
             });
         }
 
@@ -232,13 +229,18 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 #endif
 
         // Copy the temporary field `tmpRealField` to the real-space field `mf`
+
+        // Normalize (divide by 1/N) since the FFT+IFFT results in a factor N
         {
             const Box realspace_bx = tmpRealField[mfi].box();
             Array4<Real> mf_arr = mf[mfi].array();
             Array4<const Real> tmp_arr = tmpRealField[mfi].array();
+            // Normalization: divide by the number of points in realspace
+            const Real inv_N = 1./realspace_bx.numPts();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k);
+                // Copy and normalize field
+                mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i,j,k);
             });
         }
     }
