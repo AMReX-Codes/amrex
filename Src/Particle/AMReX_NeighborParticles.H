@@ -347,11 +347,16 @@ protected:
     void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
     
     void buildNeighborMask ();
+
+    struct NeighborCode {
+        int grid_id;
+        IntVect periodic_shift;
+    };
     
     // These are used to keep track of which particles need to be ghosted to which grids
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
-    std::map<int, std::vector<std::vector<int> > > m_grid_map;
+    std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
     std::map<int, amrex::Gpu::HostVector<int> > m_start;
     std::map<int, amrex::Gpu::HostVector<int> > m_stop;
     
