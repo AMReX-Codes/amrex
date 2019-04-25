@@ -413,7 +413,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     END SELECT
 
     !!!! --- push particle species positions a time step
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 #elif (AMREX_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
@@ -498,7 +498,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
 
     !!!! --- push particle species positions a time step
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 #elif (AMREX_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
