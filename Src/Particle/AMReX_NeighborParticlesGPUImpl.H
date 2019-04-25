@@ -117,7 +117,9 @@ buildNeighborMask()
                 
                 for (auto& isec : isecs)
                 {
-                    m_grid_map[grid][i].push_back(isec_grids[isec.first]);
+                    NeighborCode code;
+                    code.grid_id = isec_grids[isec.first];
+                    m_grid_map[grid][i].push_back(code);
                 }
             }
         }
@@ -273,8 +275,9 @@ updateNeighborsGPU ()
         int num_codes = m_grid_map[src_grid].size();
         for (int i = 1; i < num_codes + 1; ++i)
         {
-            for (auto dst_grid : m_grid_map[src_grid][i-1])
+            for (auto dst_code : m_grid_map[src_grid][i-1])
             {            
+                int dst_grid = dst_code.grid_id;
                 const int dest_proc = dmap[dst_grid];
                 const int num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
                 if ( (dest_proc != ParallelDescriptor::MyProc() ) and (num_to_add > 0) )
@@ -303,7 +306,8 @@ updateNeighborsGPU ()
         {
             const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
             if (num_to_add == 0) continue;
-            for (auto dst_grid : m_grid_map[src_grid][i-1]) {
+            for (auto dst_code : m_grid_map[src_grid][i-1]) {
+                int dst_grid = dst_code.grid_id;
                 const int dst_tile = 0;                
                 auto pair_index = std::make_pair(dst_grid, dst_tile);
                 const int dest_proc = dmap[dst_grid];
