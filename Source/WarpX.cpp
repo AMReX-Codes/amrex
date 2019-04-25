@@ -366,7 +366,7 @@ WarpX::ReadParameters ()
         pp.query("pml_delta", pml_delta);
 
         pp.query("dump_openpmd", dump_openpmd);
-        pp.query("dump_plotfiles", dump_openpmd);
+        pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         if (ParallelDescriptor::NProcs() == 1) {
