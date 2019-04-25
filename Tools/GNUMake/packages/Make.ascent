@@ -8,12 +8,13 @@ ifdef ASCENT_DIR
   INCLUDE_LOCATIONS += $(ASCENT_DIR)/include/ascent
   VPATH_LOCATIONS   += $(ASCENT_DIR)/include/ascent
   LIBRARY_LOCATIONS += $(ASCENT_DIR)/lib
-  
+  LIBRARIES += -Wl,-rpath,$(ASCENT_DIR)/lib
+
  ifeq ($(USE_MPI), TRUE)
      LIBRARIES += -lascent_mpi
   else
      LIBRARIES += -lascent
   endif
-  
+
 endif
 

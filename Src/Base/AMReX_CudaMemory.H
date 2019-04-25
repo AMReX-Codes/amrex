@@ -104,7 +104,7 @@ struct DeviceScalar
     void operator= (DeviceScalar const&) = delete;
     void operator= (DeviceScalar &&) = delete;
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
 
     DeviceScalar (T init_val) {
         if (Cuda::inLaunchRegion()) {
@@ -154,12 +154,12 @@ private:
 #endif
 };
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
 
 template <class T>
 struct SharedMemory
 {
-    AMREX_GPU_DEVICE T* dataPtr () {
+    AMREX_GPU_DEVICE T* dataPtr () noexcept {
         static_assert(sizeof(T) < 0, "We must specialize struct SharedMemory");
         return nullptr;
     }
@@ -168,7 +168,7 @@ struct SharedMemory
 template <>
 struct SharedMemory<double>
 {
-    AMREX_GPU_DEVICE double* dataPtr () {
+    AMREX_GPU_DEVICE double* dataPtr () noexcept {
         extern __shared__ double amrex_sm_double[];
         return amrex_sm_double;
     }
@@ -177,7 +177,7 @@ struct SharedMemory<double>
 template <>
 struct SharedMemory<float>
 {
-    AMREX_GPU_DEVICE float* dataPtr () {
+    AMREX_GPU_DEVICE float* dataPtr () noexcept {
         extern __shared__ float amrex_sm_float[];
         return amrex_sm_float;
     }
@@ -186,7 +186,7 @@ struct SharedMemory<float>
 template <>
 struct SharedMemory<long>
 {
-    AMREX_GPU_DEVICE long* dataPtr () {
+    AMREX_GPU_DEVICE long* dataPtr () noexcept {
         extern __shared__ long amrex_sm_long[];
         return amrex_sm_long;
     }
@@ -195,7 +195,7 @@ struct SharedMemory<long>
 template <>
 struct SharedMemory<int>
 {
-    AMREX_GPU_DEVICE int* dataPtr () {
+    AMREX_GPU_DEVICE int* dataPtr () noexcept {
         extern __shared__ int amrex_sm_int[];
         return amrex_sm_int;
     }
@@ -204,7 +204,7 @@ struct SharedMemory<int>
 template <>
 struct SharedMemory<short>
 {
-    AMREX_GPU_DEVICE short* dataPtr () {
+    AMREX_GPU_DEVICE short* dataPtr () noexcept {
         extern __shared__ short amrex_sm_short[];
         return amrex_sm_short;
     }
@@ -213,7 +213,7 @@ struct SharedMemory<short>
 template <>
 struct SharedMemory<char>
 {
-    AMREX_GPU_DEVICE char* dataPtr () {
+    AMREX_GPU_DEVICE char* dataPtr () noexcept {
         extern __shared__ char amrex_sm_char[];
         return amrex_sm_char;
     }
@@ -222,7 +222,7 @@ struct SharedMemory<char>
 template <>
 struct SharedMemory<unsigned long>
 {
-    AMREX_GPU_DEVICE unsigned long* dataPtr () {
+    AMREX_GPU_DEVICE unsigned long* dataPtr () noexcept {
         extern __shared__ unsigned long amrex_sm_ulong[];
         return amrex_sm_ulong;
     }
@@ -231,7 +231,7 @@ struct SharedMemory<unsigned long>
 template <>
 struct SharedMemory<unsigned int>
 {
-    AMREX_GPU_DEVICE unsigned int* dataPtr () {
+    AMREX_GPU_DEVICE unsigned int* dataPtr () noexcept {
         extern __shared__ unsigned int amrex_sm_uint[];
         return amrex_sm_uint;
     }
@@ -240,7 +240,7 @@ struct SharedMemory<unsigned int>
 template <>
 struct SharedMemory<unsigned short>
 {
-    AMREX_GPU_DEVICE unsigned short* dataPtr () {
+    AMREX_GPU_DEVICE unsigned short* dataPtr () noexcept {
         extern __shared__ unsigned short amrex_sm_ushort[];
         return amrex_sm_ushort;
     }
@@ -249,7 +249,7 @@ struct SharedMemory<unsigned short>
 template <>
 struct SharedMemory<unsigned char>
 {
-    AMREX_GPU_DEVICE unsigned char* dataPtr () {
+    AMREX_GPU_DEVICE unsigned char* dataPtr () noexcept {
         extern __shared__ unsigned char amrex_sm_uchar[];
         return amrex_sm_uchar;
     }
@@ -258,7 +258,7 @@ struct SharedMemory<unsigned char>
 template <>
 struct SharedMemory<bool>
 {
-    AMREX_GPU_DEVICE bool* dataPtr () {
+    AMREX_GPU_DEVICE bool* dataPtr () noexcept {
         extern __shared__ bool amrex_sm_bool[];
         return amrex_sm_bool;
     }

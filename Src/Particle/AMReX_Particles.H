@@ -107,12 +107,12 @@ struct ParticleLocData
 ///
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
-    {
-        std::array<double, NStructReal> real_struct_data;
-        std::array<int,    NStructInt > int_struct_data;
-        std::array<double, NArrayReal > real_array_data;
-        std::array<int,    NArrayInt  > int_array_data;
-    };
+{
+    std::array<double, NStructReal> real_struct_data;
+    std::array<int,    NStructInt > int_struct_data;
+    std::array<double, NArrayReal > real_array_data;
+    std::array<int,    NArrayInt  > int_array_data;
+};
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIterBase;
@@ -401,8 +401,8 @@ public:
     void SortParticlesByCell();
 
     void SortParticlesByBin(const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng,
-			    Cuda::DeviceVector<int>& bin_start,
-			    Cuda::DeviceVector<int>& bin_stop,
+			    Gpu::ManagedDeviceVector<int>& bin_start,
+			    Gpu::ManagedDeviceVector<int>& bin_stop,
 			    const IntVect& bin_size);
 
 
@@ -513,20 +513,81 @@ public:
     void ReadParticleRealData (void* data, size_t size,
                                std::istream& is, const RealDescriptor& rd);
 
-    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
-                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
-                     const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
+    /**
+     * \brief Writes a particle checkpoint to file, suitable for restarting.
+     */
+    void Checkpoint (const std::string& dir, const std::string& name) const;
 
+    /**
+     * \brief Older form of checkpoint, for reverse compatability
+     */
+    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint,
+                     const Vector<std::string>& real_comp_names = Vector<std::string>(),
+                     const Vector<std::string>& int_comp_names = Vector<std::string>()) const;
+    
+    void WriteBinaryParticleData (const std::string& dir,
+                                  const std::string& name,
+                                  const Vector<int>& write_real_comp,
+                                  const Vector<int>& write_int_comp,    
+                                  const Vector<std::string>& real_comp_names,
+                                  const Vector<std::string>&  int_comp_names) const;
+    
     void CheckpointPre ();
 
     void CheckpointPost ();
 
-    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
+    /**
+     *   Restart from checkpoint
+     */
+    void Restart (const std::string& dir, const std::string& file);
 
+    /**
+     *   Older version, for backwards compatability
+     */
+    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint);
+    
+    /**
+     *  This version of WritePlotFile writes all components and assigns component names
+     */
+    void WritePlotFile (const std::string& dir, const std::string& name) const;
+
+    /**
+     *  This version of WritePlotFile writes all components and allows the user to specify
+     *  the names of the components.
+     */
     void WritePlotFile (const std::string& dir, const std::string& name,
-                        const Vector<std::string>& real_comp_names = Vector<std::string>(),
-                        const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
+                        const Vector<std::string>& real_comp_names,
+                        const Vector<std::string>&  int_comp_names) const;
 
+    /**
+     *  This version of WritePlotFile writes all components and allows the user to specify
+     *  the names of the components.
+     */
+    void WritePlotFile (const std::string& dir, const std::string& name,
+                        const Vector<std::string>& real_comp_names) const;
+    
+    /**
+     *  This version of WritePlotFile assigns component names, but allows the user to pass
+     *  in a vector of ints that toggle on / off the writing of specfic components.
+     */
+    void WritePlotFile (const std::string& dir,
+                        const std::string& name,
+                        const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp) const;
+    
+    /**
+     * \brief This is the most general version of WritePlotFile, which takes component 
+     * names and flags for whether to write each variable as components. Note that 
+     * the user should pass in vectors containing names of all the componets, whether
+     * they are written or not.
+     */
+    void WritePlotFile (const std::string& dir,
+                        const std::string& name,
+                        const Vector<int>& write_real_comp,
+                        const Vector<int>& write_int_comp,    
+                        const Vector<std::string>& real_comp_names,
+                        const Vector<std::string>&  int_comp_names) const;
+    
     void WritePlotFilePre ();
 
     void WritePlotFilePost ();
@@ -713,24 +774,14 @@ protected:
     * \param which
     * \param count
     * \param where
-    * \param is_checkpoint
     */
-    void WriteParticles (int            level,
-                         std::ofstream& ofs,
-                         int            fnum,
-                         Vector<int>&    which,
-                         Vector<int>&    count,
-                         Vector<long>&   where,
-                         bool           is_checkpoint) const;
+    void WriteParticles (int level, std::ofstream& ofs, int fnum,
+                         Vector<int>& which, Vector<int>& count, Vector<long>& where,
+                         const Vector<int>& write_real_comp, const Vector<int>& write_int_comp) const;
 
     template <class RTYPE>
-    void ReadParticles (int            cnt,
-			int            grd,
-			int            lev,
-			bool           is_checkpoint,
-			std::ifstream& ifs);
-
-
+    void ReadParticles (int cnt, int grd, int lev, std::ifstream& ifs, int finest_level_in_file);
+    
     void SetParticleSize ();
 
     void BuildRedistributeMask(int lev, int nghost=1) const;
@@ -758,6 +809,27 @@ protected:
     mutable Vector<Vector<long>> wherePrePost;      //!< ---- [level]
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
+
+#ifdef AMREX_USE_CUDA
+    ParticleVector m_aos_r;
+    RealVector m_rdata_r;
+    IntVector  m_idata_r;
+    Gpu::ManagedDeviceVector<int> m_grids_r;
+
+    Gpu::ManagedDeviceVector<int> m_lo;
+    Gpu::ManagedDeviceVector<int> m_hi;
+    Gpu::ManagedDeviceVector<int> m_output;
+
+    Gpu::ManagedDeviceVector<int> m_grids_tmp;
+    Gpu::ManagedDeviceVector<int> m_index_sequence_tmp;
+
+    ParticleVector m_aos_to_redistribute;
+    std::array< RealVector, NArrayReal> m_real_arrays_to_redistribute;
+    std::array< IntVector,  NArrayInt > m_int_arrays_to_redistribute;
+    Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
+
+    std::map<int, SendBuffer> m_not_ours;
+#endif
 
 private:
     virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,

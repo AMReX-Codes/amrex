@@ -4,6 +4,7 @@
 #include <functional>
 
 #include <AMReX_AmrCore.H>
+#include <AMReX_MultiFab.H>
 
 namespace amrex {
 
@@ -27,6 +28,13 @@ public:
     error_est_funptr_t error_est = nullptr;
 
     void SetFinestLevel (int new_finest) { finest_level = new_finest; }
+
+    // octree stuff
+    Vector<BoxArray> octree_leaf_grids;
+    Vector<DistributionMapping> octree_leaf_dmap;
+    Vector<std::unique_ptr<MultiFab> > octree_leaf_dummy_mf;
+    Vector<Vector<int> > octree_li_full_to_leaf; // li: local index
+    Vector<Vector<int> > octree_li_leaf_to_full;
 
 protected:
 

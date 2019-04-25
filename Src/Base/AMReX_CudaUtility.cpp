@@ -7,7 +7,7 @@
 
 namespace amrex {
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
 
 std::ostream&
 operator<< (std::ostream& os, const dim3& d)
@@ -20,7 +20,7 @@ operator<< (std::ostream& os, const dim3& d)
 
 namespace Cuda {
 
-StreamIter::StreamIter (const int n, bool is_thread_safe)
+StreamIter::StreamIter (const int n, bool is_thread_safe) noexcept
     : m_n(n), m_i(0), m_threadsafe(is_thread_safe)
 {
 #if defined(AMREX_USE_CUDA)
@@ -52,7 +52,7 @@ StreamIter::~StreamIter () {
 
 #ifdef AMREX_USE_CUDA
 void
-StreamIter::operator++ ()
+StreamIter::operator++ () noexcept
 {
     ++m_i;
     if (m_threadsafe) {

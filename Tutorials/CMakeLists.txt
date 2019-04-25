@@ -1,6 +1,7 @@
 set ( AMREX_TUTORIALS_DIR ${CMAKE_CURRENT_LIST_DIR} )
 
-set ( AMREX_TUTORIALS_SUBDIRS Amr Basic ) # For now only Amr
+
+set ( AMREX_TUTORIALS_SUBDIRS Amr Basic CVODE GPU LinearSolvers ) # For now only Amr
 
 prepend ( AMREX_TUTORIALS_SUBDIRS ${AMREX_TUTORIALS_DIR})
 

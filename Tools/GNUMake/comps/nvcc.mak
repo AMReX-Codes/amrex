@@ -39,16 +39,18 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
   else
     CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
   endif
-  CFLAGS_FROM_HOST := -ccbin=gcc -Xcompiler='$(CFLAGS)'
+  CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 else ifeq ($(lowercase_nvcc_host_comp),pgi)
   CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=c++11
-  CFLAGS_FROM_HOST := -ccbin=pgcc -Xcompiler='$(CFLAGS)'
+  CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 else
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
-  CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
+  CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 endif
 
 NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
+# Unfortunately, on cori with cuda 10.0 this fails in thrust code
+# NVCC_FLAGS += --Werror=cross-execution-space-call
 
 ifeq ($(DEBUG),TRUE)
   NVCC_FLAGS += -g -G
@@ -65,10 +67,12 @@ CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
 ifeq ($(nvcc_version),9.2)
   # relaxed constexpr not supported
-  CXXFLAGS += --expt-extended-lambda
-else
-  CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+  ifeq ($(USE_EB),TRUE)
+    $(error Cuda 9.2 is not supported with USE_EB=TRUE. Use 9.1 or 10.0 instead.)
+  endif
 endif
+
+CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
 
 CXX = nvcc
 CC  = nvcc

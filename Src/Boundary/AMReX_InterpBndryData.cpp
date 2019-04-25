@@ -10,7 +10,7 @@ namespace amrex {
 //
 int InterpBndryData::IBD_max_order_DEF = 3;
 
-InterpBndryData::InterpBndryData ()
+InterpBndryData::InterpBndryData () noexcept
     :
     BndryData()
 {}

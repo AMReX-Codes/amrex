@@ -46,7 +46,7 @@ public:
     /**
     * \brief default constructor
     */
-    InterpBndryData ();
+    InterpBndryData () noexcept;
 
     /**
     * \brief constructor for given BoxArray, etc

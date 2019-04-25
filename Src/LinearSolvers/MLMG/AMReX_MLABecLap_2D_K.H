@@ -10,7 +10,7 @@ void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
                       Array4<Real const> const& bX,
                       Array4<Real const> const& bY,
                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                      Real alpha, Real beta)
+                      Real alpha, Real beta) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
     const Real dhy = beta*dxinv[1]*dxinv[1];
@@ -36,7 +36,7 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
                           Array4<Real const> const& bX,
                           Array4<Real const> const& bY,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                          Real alpha, Real beta)
+                          Real alpha, Real beta) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
     const Real dhy = beta*dxinv[1]*dxinv[1];
@@ -56,7 +56,7 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
-                       Array4<Real const> const& bx, Real fac)
+                       Array4<Real const> const& bx, Real fac) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -71,7 +71,7 @@ void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
-                           Array4<Real const> const& bx, Real fac, int xlen)
+                           Array4<Real const> const& bx, Real fac, int xlen) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -86,7 +86,7 @@ void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real c
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
-                       Array4<Real const> const& by, Real fac)
+                       Array4<Real const> const& by, Real fac) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -101,7 +101,7 @@ void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
-                           Array4<Real const> const& by, Real fac, int ylen)
+                           Array4<Real const> const& by, Real fac, int ylen) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -128,7 +128,7 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi,
                 Array4<Real const> const& f1, Array4<int const> const& m1,
                 Array4<Real const> const& f2, Array4<int const> const& m2,
                 Array4<Real const> const& f3, Array4<int const> const& m3,
-                Box const& vbox, int nc, int redblack)
+                Box const& vbox, int nc, int redblack) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

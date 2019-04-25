@@ -14,6 +14,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -30,6 +31,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -47,6 +49,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -65,6 +68,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -83,6 +87,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -103,6 +108,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -126,6 +132,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
 #else
     dynamic(false),
 #endif
+    device_sync(info.device_sync),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -154,6 +161,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 #else
     dynamic(false),
 #endif
+    device_sync(info.device_sync),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -175,13 +183,13 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 
 MFIter::~MFIter ()
 {
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
 #ifdef AMREX_USE_GPU
-    Gpu::Device::synchronize();
+    if (device_sync) Gpu::Device::synchronize();
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -299,7 +307,7 @@ MFIter::Initialize ()
 }
 
 Box 
-MFIter::tilebox () const
+MFIter::tilebox () const noexcept
 { 
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
@@ -320,7 +328,7 @@ MFIter::tilebox () const
 }
 
 Box
-MFIter::tilebox (const IntVect& nodal) const
+MFIter::tilebox (const IntVect& nodal) const noexcept
 {
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
@@ -342,7 +350,7 @@ MFIter::tilebox (const IntVect& nodal) const
 }
 
 Box
-MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
+MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept
 {
     Box bx = tilebox(nodal);
     const Box& vbx = validbox();
@@ -358,7 +366,7 @@ MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
 }
 
 Box
-MFIter::nodaltilebox (int dir) const 
+MFIter::nodaltilebox (int dir) const noexcept
 { 
     BL_ASSERT(dir < AMREX_SPACEDIM);
     BL_ASSERT(tile_array != 0);
@@ -386,7 +394,7 @@ MFIter::nodaltilebox (int dir) const
 
 // Note that a small negative ng is supported.
 Box 
-MFIter::growntilebox (int a_ng) const 
+MFIter::growntilebox (int a_ng) const noexcept
 {
     Box bx = tilebox();
     IntVect ngv{a_ng};
@@ -404,7 +412,7 @@ MFIter::growntilebox (int a_ng) const
 }
 
 Box
-MFIter::growntilebox (const IntVect& ng) const
+MFIter::growntilebox (const IntVect& ng) const noexcept
 {
     Box bx = tilebox();
     const Box& vbx = validbox();
@@ -420,7 +428,7 @@ MFIter::growntilebox (const IntVect& ng) const
 }
 
 Box
-MFIter::grownnodaltilebox (int dir, int a_ng) const
+MFIter::grownnodaltilebox (int dir, int a_ng) const noexcept
 {
     IntVect ngv(a_ng);
     if (a_ng < -100) ngv = fabArray.nGrowVect();
@@ -428,7 +436,7 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
 }
 
 Box
-MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const
+MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
     Box bx = nodaltilebox(dir);
@@ -445,7 +453,7 @@ MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const
 }
 
 void
-MFIter::operator++ ()
+MFIter::operator++ () noexcept
 {
 #ifdef _OPENMP
     int numOmpThreads = omp_get_num_threads();
@@ -482,7 +490,7 @@ MFIter::operator++ ()
             Gpu::Device::setStreamIndex(currentIndex);
             AMREX_GPU_ERROR_CHECK();
 #ifdef DEBUG
-            Gpu::Device::synchronize();
+//            Gpu::Device::synchronize();
 #endif
         }
 #endif

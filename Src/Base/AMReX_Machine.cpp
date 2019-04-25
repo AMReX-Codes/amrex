@@ -58,7 +58,7 @@ Coord read_df_node_coord (const std::string & name)
 std::string get_mpi_processor_name ()
 {
     std::string result;
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     int len;
     char name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(name, &len);
@@ -376,7 +376,7 @@ class Machine
                 if (flag_verbose) {
                     Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
                 }
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
             } else {
                 auto mpi_proc_name = get_mpi_processor_name();
                 Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;

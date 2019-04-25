@@ -7,7 +7,7 @@
 #if defined(AMREX_USE_CUDA) && !defined(AMREX_GPU_NO_ERROR_CHECK)
 
 namespace amrex { namespace Cuda {
-    inline void ErrorCheck (const char* file, int line)
+    inline void ErrorCheck (const char* file, int line) noexcept
     {
         cudaError_t err = cudaGetLastError();
         if (cudaSuccess != err) {

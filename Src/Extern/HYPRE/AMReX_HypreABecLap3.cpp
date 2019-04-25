@@ -25,7 +25,7 @@ HypreABecLap3::HypreABecLap3 (const BoxArray& grids, const DistributionMapping& 
 HypreABecLap3::~HypreABecLap3 ()
 {
     HYPRE_IJMatrixDestroy(A);
-    A= NULL;
+    A = NULL;
     HYPRE_IJVectorDestroy(b);
     b = NULL;
     HYPRE_IJVectorDestroy(x);

@@ -29,25 +29,25 @@ namespace {
     static constexpr char mainregion[] = "main";
 }
 
-TinyProfiler::TinyProfiler (std::string funcname)
+TinyProfiler::TinyProfiler (std::string funcname) noexcept
     : fname(std::move(funcname))
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (std::string funcname, bool start_)
+TinyProfiler::TinyProfiler (std::string funcname, bool start_) noexcept
     : fname(std::move(funcname))
 {
     if (start_) start();
 }
 
-TinyProfiler::TinyProfiler (const char* funcname)
+TinyProfiler::TinyProfiler (const char* funcname) noexcept
     : fname(funcname)
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (const char* funcname, bool start_)
+TinyProfiler::TinyProfiler (const char* funcname, bool start_) noexcept
     : fname(funcname)
 {
     if (start_) start();
@@ -59,7 +59,7 @@ TinyProfiler::~TinyProfiler ()
 }
 
 void
-TinyProfiler::start ()
+TinyProfiler::start () noexcept
 {
 #ifdef _OPENMP
 #pragma omp master
@@ -85,7 +85,7 @@ TinyProfiler::start ()
 }
 
 void
-TinyProfiler::stop ()
+TinyProfiler::stop () noexcept
 {
 #ifdef _OPENMP
 #pragma omp master
@@ -136,14 +136,14 @@ TinyProfiler::stop ()
 }
 
 void
-TinyProfiler::Initialize ()
+TinyProfiler::Initialize () noexcept
 {
     regionstack.push_back(mainregion);
     t_init = amrex::second();
 }
 
 void
-TinyProfiler::Finalize (bool bFlushing)
+TinyProfiler::Finalize (bool bFlushing) noexcept
 {
     static bool finalized = false;
     if (!bFlushing) {		// If flushing, don't make this the last time!
@@ -378,7 +378,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 }
 
 void
-TinyProfiler::StartRegion (std::string regname)
+TinyProfiler::StartRegion (std::string regname) noexcept
 {
     if (std::find(regionstack.begin(), regionstack.end(), regname) == regionstack.end()) {
         regionstack.emplace_back(std::move(regname));
@@ -386,14 +386,14 @@ TinyProfiler::StartRegion (std::string regname)
 }
 
 void
-TinyProfiler::StopRegion (const std::string& regname)
+TinyProfiler::StopRegion (const std::string& regname) noexcept
 {
     if (regname == regionstack.back()) {
         regionstack.pop_back();
     }
 }
 
-TinyProfileRegion::TinyProfileRegion (std::string a_regname)
+TinyProfileRegion::TinyProfileRegion (std::string a_regname) noexcept
     : regname(std::move(a_regname)),
       tprof(std::string("REG::")+regname, false)
 {
@@ -401,7 +401,7 @@ TinyProfileRegion::TinyProfileRegion (std::string a_regname)
     tprof.start();
 }
 
-TinyProfileRegion::TinyProfileRegion (const char* a_regname)
+TinyProfileRegion::TinyProfileRegion (const char* a_regname) noexcept
     : regname(a_regname),
       tprof(std::string("REG::")+std::string(a_regname), false)
 {

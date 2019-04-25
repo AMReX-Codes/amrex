@@ -112,9 +112,9 @@ public:
     */
     typedef Box (*DeriveBoxMap)(const Box&);
 
-    static Box TheSameBox (const Box& box);
+    static Box TheSameBox (const Box& box) noexcept;
 
-    static Box GrowBoxByOne (const Box& box);
+    static Box GrowBoxByOne (const Box& box) noexcept;
 
     /**
     * \brief The destructor.
@@ -124,56 +124,56 @@ public:
     /**
     * \brief The name of the derived type.
     */
-    const std::string& name () const;
+    const std::string& name () const noexcept;
 
     /**
     * \brief The names of components
     *
     * \param comp
     */
-    const std::string& variableName (int comp) const;
+    const std::string& variableName (int comp) const noexcept;
 
     /**
     * \brief The IndexType of the derived type.
     */
-    IndexType deriveType () const;
+    IndexType deriveType () const noexcept;
 
     /**
     * \brief The DeriveFunc used to calculate the derived type.
     */
-    DeriveFunc    derFunc    () const;
-    DeriveFunc3D  derFunc3D  () const;
-    DeriveFuncFab derFuncFab () const;
+    DeriveFunc    derFunc    () const noexcept;
+    DeriveFunc3D  derFunc3D  () const noexcept;
+    DeriveFuncFab derFuncFab () const noexcept;
 
     /**
     * \brief Maps state data box to derived data box.
     */
-    DeriveBoxMap boxMap () const;
+    DeriveBoxMap boxMap () const noexcept;
 
     /**
     * \brief Type of interpolater to use in computing derived type.
     */
-    Interpolater* interp () const;
+    Interpolater* interp () const noexcept;
 
     /**
     * \brief Number of components in the derived type.
     */
-    int numDerive () const;
+    int numDerive () const noexcept;
 
     /**
     * \brief Number of different chunks of state data needed for derived type.
     */
-    int numRange () const;
+    int numRange () const noexcept;
 
     /**
     * \brief Total number of state variables needed for derived type.
     */
-    int numState () const;
+    int numState () const noexcept;
 
     /**
     * \brief The boundary conditions.
     */
-    const int* getBC () const;
+    const int* getBC () const noexcept;
 
     /**
     * \brief Sets state_indx, src_comp and num_comp for the kth
@@ -341,6 +341,9 @@ public:
     */
     DeriveList ();
 
+    DeriveList (const DeriveList&) = delete;
+    DeriveList& operator= (const DeriveList&) = delete;
+
     /**
     * \brief Determines whether quantity identified by \<name\> is in the registry.
     *
@@ -455,13 +458,6 @@ public:
     void clear () { lst.clear(); }
 
 private:
-
-    /**
-    * \brief Disallowed.
-    *
-    */
-    DeriveList (const DeriveList&);
-    DeriveList& operator= (const DeriveList&);
 
     std::list<DeriveRec> lst;
 };

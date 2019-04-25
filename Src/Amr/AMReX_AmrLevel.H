@@ -66,7 +66,7 @@ public:
     * \brief Set if the Level_ directory was created or to clear the value.
     * CreateLevelDirectory sets levelDirectoryCreated = true
     */
-    void SetLevelDirectoryCreated(bool ldc) { levelDirectoryCreated = ldc; }
+    void SetLevelDirectoryCreated(bool ldc) noexcept { levelDirectoryCreated = ldc; }
     /**
     * \brief A string written as the first item in writePlotFile() at
     * level zero. 
@@ -236,37 +236,37 @@ public:
     //! Reset data to initial time by swapping new and old time data.
     void reset ();
     //! Returns this AmrLevel.
-    int Level () const { return level; }
+    int Level () const noexcept { return level; }
     //! List of grids at this level.
-    const BoxArray& boxArray () const { return grids; }
-    const BoxArray& getEdgeBoxArray (int dir) const;
-    const BoxArray& getNodalBoxArray () const;
+    const BoxArray& boxArray () const noexcept { return grids; }
+    const BoxArray& getEdgeBoxArray (int dir) const noexcept;
+    const BoxArray& getNodalBoxArray () const noexcept;
     //
-    const DistributionMapping& DistributionMap () const { return dmap; }
+    const DistributionMapping& DistributionMap () const noexcept { return dmap; }
     //
-    const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
+    const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
     //! Number of grids at this level.
-    int numGrids () const { return grids.size(); }
+    int numGrids () const noexcept { return grids.size(); }
     //! Number of states at this level.
-    int numStates () const { return state.size(); }
+    int numStates () const noexcept { return state.size(); }
     //! Returns the indices defining physical domain.
-    const Box& Domain () const { return geom.Domain(); }
+    const Box& Domain () const noexcept { return geom.Domain(); }
     //! Timestep n at this level.
-    int nStep () const { return parent->levelSteps(level); }
+    int nStep () const noexcept { return parent->levelSteps(level); }
     //! Returns the geometry object.
-    const Geometry& Geom () const { return geom; }
+    const Geometry& Geom () const noexcept { return geom; }
     //
-    const IntVect& fineRatio () const { return fine_ratio; }
+    const IntVect& fineRatio () const noexcept { return fine_ratio; }
     //! Returns number of cells on level.
-    long countCells () const;
+    long countCells () const noexcept;
 
     //! Get the area not to tag.
-    const BoxArray& getAreaNotToTag();
-    const Box& getAreaToTag();
+    const BoxArray& getAreaNotToTag() noexcept;
+    const Box& getAreaToTag() noexcept;
     //! Constuct the area not to tag.
     void constructAreaNotToTag();
     //! Set the area not to tag.
-    void setAreaNotToTag(BoxArray& ba);
+    void setAreaNotToTag(BoxArray& ba) noexcept;
 
     /**
     * \brief Error estimation for regridding. This is a pure virtual
@@ -311,23 +311,23 @@ public:
                          MultiFab&          mf,
                          int                dcomp);
     //! State data object.
-    StateData& get_state_data (int state_indx) { return state[state_indx]; }
+    StateData& get_state_data (int state_indx) noexcept { return state[state_indx]; }
     //! State data at old time.
-    MultiFab& get_old_data (int state_indx) { return state[state_indx].oldData(); }
+    MultiFab& get_old_data (int state_indx) noexcept { return state[state_indx].oldData(); }
     //! State data at old time.
-    const MultiFab& get_old_data (int state_indx) const { return state[state_indx].oldData(); }
+    const MultiFab& get_old_data (int state_indx) const noexcept { return state[state_indx].oldData(); }
     //! State data at new time.
-    MultiFab& get_new_data (int state_indx) { return state[state_indx].newData(); }
+    MultiFab& get_new_data (int state_indx) noexcept { return state[state_indx].newData(); }
     //! State data at new time.
-    const MultiFab& get_new_data (int state_indx) const { return state[state_indx].newData(); }
+    const MultiFab& get_new_data (int state_indx) const noexcept { return state[state_indx].newData(); }
     //! Returns list of Descriptors.
-    static const DescriptorList& get_desc_lst () { return desc_lst; }
+    static const DescriptorList& get_desc_lst () noexcept { return desc_lst; }
     //! Returns list of derived variables.
-    static DeriveList& get_derive_lst ();
+    static DeriveList& get_derive_lst () noexcept;
     //! Returns whether or not we want a post-timestep regrid.
-    int postStepRegrid () { return post_step_regrid; }
+    int postStepRegrid () noexcept { return post_step_regrid; }
     //! Sets a new value for the post-timestep regrid trigger.
-    void setPostStepRegrid (int new_val) { post_step_regrid = new_val; }
+    void setPostStepRegrid (int new_val) noexcept { post_step_regrid = new_val; }
 
     //! Update the distribution maps in StateData based on the size of the map
     void UpdateDistributionMaps ( DistributionMapping& dmap );
@@ -338,8 +338,7 @@ public:
 			   int scomp,
 			   int ncomp);
     //! Get state data at specified index and time.
-    MultiFab& get_data (int  state_indx,
-                        Real time);
+    MultiFab& get_data (int  state_indx, Real time) noexcept;
     //! Hack to allow override of (non-fine-fine) fillpatched boundary data
     virtual void set_preferred_boundary_values (MultiFab& S,
                                                 int       state_index,
@@ -371,8 +370,7 @@ public:
     * \brief Returns one the TimeLevel enums.
     * Asserts that time is between AmrOldTime and AmrNewTime.
     */ 
-    TimeLevel which_time (int  state_indx,
-                          Real time) const;
+    TimeLevel which_time (int  state_indx, Real time) const noexcept;
 
     //! Does the AmrLevel want Amr to write a plotfile now?
     virtual bool writePlotNow ();
@@ -404,7 +402,7 @@ public:
                              int       dcomp=0);
     
 #ifdef AMREX_USE_EB
-    static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) {
+    static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) noexcept {
         m_eb_basic_grow_cells = nbasic;
         m_eb_volume_grow_cells = nvolume;
         m_eb_full_grow_cells = nfull;
@@ -418,7 +416,7 @@ public:
 
 protected:
     //! The constructors -- for derived classes.
-    AmrLevel ();
+    AmrLevel () noexcept;
 
     AmrLevel (Amr&            papa,
               int             lev,
@@ -494,11 +492,11 @@ class FillPatchIterator
 
     ~FillPatchIterator ();
 
-    FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
+    FArrayBox& operator() () noexcept { return m_fabs[MFIter::index()]; }
 
-    Box UngrownBox () const { return MFIter::validbox(); }
+    Box UngrownBox () const noexcept { return MFIter::validbox(); }
 
-    MultiFab& get_mf() { return m_fabs; }
+    MultiFab& get_mf() noexcept { return m_fabs; }
 
 #ifdef USE_PERILLA
     FillPatchIterator (AmrLevel& amrlevel,

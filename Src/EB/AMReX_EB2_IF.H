@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_IF_H_
 #define AMREX_EB2_IF_H_
 
+#include <AMReX_EB2_IF_Base.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 #include <AMReX_EB2_IF_Box.H>
 #include <AMReX_EB2_IF_Complement.H>

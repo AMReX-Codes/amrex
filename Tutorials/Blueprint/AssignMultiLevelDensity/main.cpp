@@ -3,7 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_Particles.H>
+#include <AMReX_AmrParticles.H>
 #include <AMReX_PlotFileUtil.H>
 
 #include <AMReX_Conduit_Blueprint.H>
@@ -97,7 +97,7 @@ void test_assign_density(TestParams& parms)
         acceleration[lev]->setVal(5.0, 1);
     }
 
-    typedef ParticleContainer<1> MyParticleContainer;
+    typedef AmrParticleContainer<1> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
@@ -111,9 +111,9 @@ void test_assign_density(TestParams& parms)
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
     //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+    myPC.AssignDensity(0, partMF, 0, 1, nlevs-1);
 
-    myPC.InterpolateFort(acceleration, 0, nlevs-1);
+    myPC.Interpolate(acceleration, 0, nlevs-1);
 
     for (int lev = 0; lev < nlevs; ++lev) {
         MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
@@ -154,6 +154,12 @@ void test_assign_density(TestParams& parms)
                            level_steps,
                            outputRR,
                            bp_mesh);
+    conduit::Node bp_particles;
+    Vector<std::string> particle_int_varnames;
+    amrex::ParticleContainerToBlueprint(myPC,
+                                        particle_varnames,
+                                        particle_int_varnames,
+                                        bp_particles);
     ///////////////////////////////////////////////////////////////////////////
     // Save the Blueprint Mesh to a set of files that we can 
     // view in VisIt. 
@@ -168,9 +174,10 @@ void test_assign_density(TestParams& parms)
     // add a scene with a pseudocolor plot
     Node scenes;
     scenes["s1/plots/p1/type"] = "pseudocolor";
-    scenes["s1/plots/p1/params/field"] = "density";
+    scenes["s1/plots/p1/field"] = "density";
     // Set the output file name (ascent will add ".png")
-    scenes["s1/image_prefix"] = "ascent_render";
+    scenes["s1/image_prefix"] = "ascent_render_mesh_";
+
 
     // setup actions
     Node actions;
@@ -182,8 +189,28 @@ void test_assign_density(TestParams& parms)
 
     Ascent ascent;
     ascent.open();
+    
     ascent.publish(bp_mesh);
     ascent.execute(actions);
+    
+    // add a scene with a pseudocolor plot
+    scenes.reset();
+    scenes["s1/plots/p1/type"] = "pseudocolor";
+    scenes["s1/plots/p1/field"] = "mass";
+    // Set the output file name (ascent will add ".png")
+    scenes["s1/image_prefix"] = "ascent_render_particle_";
+
+    // setup actions
+    actions.reset();
+    Node &add_act2 = actions.append();
+    add_act2["action"] = "add_scenes";
+    add_act2["scenes"] = scenes;
+    actions.append()["action"] = "execute";
+    actions.append()["action"] = "reset";
+    
+    ascent.publish(bp_particles);
+    ascent.execute(actions);
+    
     ascent.close();
 }
 

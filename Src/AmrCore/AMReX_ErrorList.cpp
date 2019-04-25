@@ -133,19 +133,19 @@ ErrorRec::ErrorRec (const std::string&         nm,
 {}
 
 const std::string&
-ErrorRec::name () const
+ErrorRec::name () const noexcept
 {
     return derive_name;
 }
 
 int
-ErrorRec::nGrow () const
+ErrorRec::nGrow () const noexcept
 {
     return ngrow;
 }
 
 ErrorRec::ErrorType
-ErrorRec::errType () const
+ErrorRec::errType () const noexcept
 {
     return err_type;
 }
@@ -169,7 +169,7 @@ ErrorRec::~ErrorRec()
 }
 
 int
-ErrorList::size () const
+ErrorList::size () const noexcept
 {
     return vec.size();
 }
@@ -203,7 +203,7 @@ ErrorList::add (const std::string&          name,
 }
 
 const ErrorRec&
-ErrorList::operator[] (int k) const
+ErrorList::operator[] (int k) const noexcept
 {
     BL_ASSERT(k < size());
 

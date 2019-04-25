@@ -36,7 +36,11 @@ void Perilla::registerId(int tid){
 }
 
 int Perilla::tid(){//this function can be called after all threads already register their ids
+    #ifdef USE_PERILLA_ON_DEMAND
+    return omp_get_thread_num();
+    #else
     return tidTable[pthread_self()];
+    #endif
 }
 
 void Perilla::clearTagMap(){
@@ -2817,7 +2821,7 @@ void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, am
 
     multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,dstcomp,srccomp,nc,ng,ngsrc,singleT);
     if(!singleT)
-      srcGraph->worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+      srcGraph->worker[perilla::wid()]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 
     //double end_time_wtime = omp_get_wtime();
     //if(ntid==0)
@@ -2902,7 +2906,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
           { 
             if(ntid == 0)
               pthread_mutex_lock(&(cpSrc->l_con.sLock));      
-            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            srcGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
             
             //std::ofstream fout;
             //fout.open(std::to_string(myProc)+ "_" + std::to_string(tid) + ".txt", std::fstream::app);
@@ -2920,28 +2924,19 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
 
             //fout.close();
 
-            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            srcGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
             if(ntid==0)
               {
                 for(int i=0;i<cpSrc->l_con.nscpy; i++)
                   cpSrc->l_con.scpy[i].pQueue.enqueue(cpSrc->l_con.scpy[i].recycleQueue.dequeue(true));
                 pthread_mutex_unlock(&(cpSrc->l_con.sLock));
               }
-            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            srcGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
           }
 
         int np = amrex::ParallelDescriptor::NProcs();
         if(np == 1)
           return;
-
-        //if(myProc==26 && srcGraph->graphID==18  && ntid == 0)
-        //std::cout << "Notw its sgID 18,"<< f <<" turn lets see " << cpSrc->r_con.nsnd <<std::endl;
-
-        //if(myProc==28 && srcGraph->graphID==18  && ntid == 0)
-        //std::cout << "Notw its sgID 18,"<< f <<" turn lets see " << cpSrc->r_con.nsnd <<std::endl;
-
-        //if(srcGraph->graphID==18 && f ==316)   
-        //BL_ASSERT(cpSrc->r_con.nsnd == 177);
         if(singleT)
         {
             //pthread_mutex_lock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
@@ -2976,7 +2971,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
                 //pthread_mutex_lock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
                 pthread_mutex_lock(&(cpSrc->r_con.sndLock));
 	    }
-            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            srcGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 
             for(int i=0; i<cpSrc->r_con.nsnd; i++)
               if((i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
@@ -2990,7 +2985,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
                 }
 
             //fout.close();         
-            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            srcGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
             if(ntid==0)
               {
                 cpSrc->r_con.remotePushReady = true;
@@ -3005,7 +3000,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
                 pthread_mutex_unlock(&(cpSrc->r_con.sndLock));
                 //pthread_mutex_unlock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
             }
-            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            srcGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
          }
       } // if(!(*mfDst == *mfSrc))                                                                                                                    
   } // multifabCopyPush
@@ -3022,7 +3017,7 @@ exit(0);
 
     if(ntid==0)
       pthread_mutex_lock(&(graph->lMap[f]->l_con.dLock));
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads    
+    graph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads    
 
     if(perilla::LAZY_PUSH)
       { }

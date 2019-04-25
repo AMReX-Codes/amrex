@@ -2,7 +2,7 @@
 #ifndef AMREX_ABec2_H_
 #define AMREX_ABec2_H_
 
-#include <AMReX_Tuple.H>
+#include <AMReX_Array.H>
 #include <AMReX_LinOp.H>
 #include <AMReX_ABecLaplacian.H>
 

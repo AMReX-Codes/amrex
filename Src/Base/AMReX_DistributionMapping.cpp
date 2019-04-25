@@ -45,7 +45,7 @@ DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapp
 DistributionMapping::PVMF DistributionMapping::m_BuildMap = 0;
 
 const Vector<int>&
-DistributionMapping::ProcessorMap () const
+DistributionMapping::ProcessorMap () const noexcept
 {
     return m_ref->m_pmap;
 }
@@ -93,13 +93,13 @@ DistributionMapping::SFC_Threshold ()
 }
 
 bool
-DistributionMapping::operator== (const DistributionMapping& rhs) const
+DistributionMapping::operator== (const DistributionMapping& rhs) const noexcept
 {
     return m_ref == rhs.m_ref || m_ref->m_pmap == rhs.m_ref->m_pmap;
 }
 
 bool
-DistributionMapping::operator!= (const DistributionMapping& rhs) const
+DistributionMapping::operator!= (const DistributionMapping& rhs) const noexcept
 {
     return !operator==(rhs);
 }
@@ -1375,7 +1375,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
     DistributionMapping r;
 
     Vector<long> cost(weight.size());
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     {
 	Vector<Real> rcost(cost.size(), 0.0);
 #ifdef _OPENMP
@@ -1411,7 +1411,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
     DistributionMapping r;
 
     Vector<long> cost(weight.size());
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     {
 	Vector<Real> rcost(cost.size(), 0.0);
 #ifdef _OPENMP
@@ -1446,7 +1446,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
     DistributionMapping r;
 
     Vector<long> cost(weight.size());
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     {
 	Vector<Real> rcost(cost.size(), 0.0);
 #ifdef _OPENMP

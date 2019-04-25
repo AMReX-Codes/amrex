@@ -12,6 +12,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_FabArrayUtility.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -463,7 +464,7 @@ MultiFab::Finalize ()
     initialized = false;
 }
 
-MultiFab::MultiFab ()
+MultiFab::MultiFab () noexcept
 {
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -627,19 +628,19 @@ MultiFab::contains_inf (bool local) const
 }
 
 bool 
-MultiFab::is_nodal () const
+MultiFab::is_nodal () const noexcept
 {
     return boxArray().ixType().nodeCentered();
 }
 
 bool 
-MultiFab::is_nodal (int dir) const
+MultiFab::is_nodal (int dir) const noexcept
 {
     return boxArray().ixType().nodeCentered(dir);
 }
 
 bool 
-MultiFab::is_cell_centered () const
+MultiFab::is_cell_centered () const noexcept
 {
     return boxArray().ixType().cellCentered();
 }
@@ -1225,7 +1226,7 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 	// Self copy is safe only for cell-centered MultiFab
 	this->copy(*this,scomp,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
     } else {
-	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
+	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo().SetDeviceFab(false), Factory());
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
 	this->setVal(0.0, scomp, ncomp, 0);
 	this->copy(tmp,0,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
@@ -1280,48 +1281,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
 std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const
 {
-    //TODO GPU????
-    BL_PROFILE("MultiFab::OwnerMask()");
-
-    const BoxArray& ba = boxArray();
-    const DistributionMapping& dm = DistributionMap();
-
-    const int owner = 1;
-    const int nonowner = 0;
-
-    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0, MFInfo(),
-                                               DefaultFabFactory<IArrayBox>())};
-    p->setVal(owner);
-
-    const std::vector<IntVect>& pshifts = period.shiftIntVect();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        
-        for (MFIter mfi(*p); mfi.isValid(); ++mfi)
-        {
-            IArrayBox& fab = (*p)[mfi];
-            const Box& bx = fab.box();
-            const int i = mfi.index();
-            for (const auto& iv : pshifts)
-            {
-                ba.intersections(bx+iv, isects);                    
-                for (const auto& is : isects)
-                {
-                    const int oi = is.first;
-                    const Box& obx = is.second;
-                    if ((oi < i) || (oi == i && iv < IntVect::TheZeroVector())) {
-                        fab.setVal(nonowner, obx-iv, 0, 1);
-                    }
-                }
-            }
-        }
-    }
-
-    return p;
+    return amrex::OwnerMask(*this, period);
 }
 
 void
@@ -1366,31 +1326,7 @@ MultiFab::OverrideSync (const Periodicity& period)
 void
 MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 {
-    BL_PROFILE("MultiFab::OverrideSync()");
-
-    if (ixType().cellCentered()) return;
-    
-    const int ncomp = nComp();
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        auto fab = this->array(mfi);
-        auto const ifab = msk.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
-        {
-            if (!ifab(i,j,k)) fab(i,j,k,n) = 0.0;
-        });
-    }
-    
-    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
-    tmpmf.setVal(0.0);
-    tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
-
-    MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
+    amrex::OverrideSync(*this, msk, period);
 }
 
 void

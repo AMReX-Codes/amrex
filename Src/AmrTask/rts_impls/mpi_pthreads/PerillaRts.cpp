@@ -187,6 +187,7 @@ namespace perilla{
 #endif
     }
 
+
 #if 0
     const double kMicro = 1.0e-6;
     double RTS::Time()

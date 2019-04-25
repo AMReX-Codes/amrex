@@ -5,6 +5,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
 #include <AMReX_MakeType.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -24,12 +25,12 @@ struct FabInfo
     bool alloc = true;
     bool shared = false;
 
-    FabInfo& SetAlloc (bool a) {
+    FabInfo& SetAlloc (bool a) noexcept {
         alloc = a;
         return *this;
     }
 
-    FabInfo& SetShared (bool s) {
+    FabInfo& SetShared (bool s) noexcept {
         shared = s;
         return *this;
     }
@@ -44,8 +45,8 @@ public:
     virtual void destroy (FAB* fab) const = 0;
     virtual FabFactory<FAB>* clone () const = 0;
 #ifdef AMREX_USE_GPU
-    virtual FAB* createHostAlias (FAB const& src) const = 0;
-    virtual void destroyHostAlias (FAB* fab) const = 0;
+    virtual FAB* createDeviceAlias (FAB const& src) const = 0;
+    virtual void destroyDeviceAlias (FAB* fab) const = 0;
 #endif
 };
 
@@ -56,23 +57,23 @@ class DefaultFabFactory
 public:
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
     {
-        return new FAB(box, ncomps, info.alloc, info.shared);
+        return ::new FAB(box, ncomps, info.alloc, info.shared);
     }
 
     virtual void destroy (FAB* fab) const override
     {
-        delete fab;
+        ::delete fab;
     }
 
 #ifdef AMREX_USE_GPU
-    virtual FAB* createHostAlias (FAB const& src) const override
+    virtual FAB* createDeviceAlias (FAB const& src) const override
     {
-        return ::new FAB(src, amrex::make_alias);
+        return new FAB(src, amrex::make_alias, 0, src.nComp());
     }
 
-    virtual void destroyHostAlias (FAB* fab) const override
+    virtual void destroyDeviceAlias (FAB* fab) const override
     {
-        ::delete fab;
+        if (fab) delete fab;
     }
 #endif
 

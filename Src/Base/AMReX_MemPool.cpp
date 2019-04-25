@@ -20,7 +20,7 @@
 
 #include <AMReX_ParmParse.H>
 
-#ifdef USE_PERILLA
+#ifdef USE_PERILLA_PTHREADS
 #include <WorkerThread.H>
 #endif
 
@@ -54,7 +54,8 @@ void amrex_mempool_init ()
 	nthreads = omp_get_max_threads();
 #endif
 
-#ifdef USE_PERILLA
+
+#ifdef USE_PERILLA_PTHREADS
 #ifdef _OPENMP
 	//Just in case Perilla thread spawns multiple OMP threads
         nthreads *= perilla::nThreads();
@@ -103,7 +104,7 @@ void* amrex_mempool_alloc (size_t nbytes)
   tid = omp_get_thread_num();
 #endif
 
-#ifdef USE_PERILLA
+#ifdef USE_PERILLA_PTHREADS
 #ifdef _OPENMP
   tid = perilla::tid()*omp_get_max_threads()+tid;
 #else
@@ -121,7 +122,7 @@ void amrex_mempool_free (void* p)
   tid = omp_get_thread_num();
 #endif
 
-#ifdef USE_PERILLA
+#ifdef USE_PERILLA_PTHREADS
 #ifdef _OPENMP
   tid = perilla::tid()*omp_get_max_threads()+tid;
 #else
