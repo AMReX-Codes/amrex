@@ -110,6 +110,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         Real iter_start_time = amrex::second();
         bool converged = false;
 
+        // If we are using the bottom solver at the "top" MG level then
+        //    we want to solve the problem to completion
+        const int mglev_bottom = linop.NMGLevels(0) - 1;
+        if (mglev_bottom == 0) bottom_reltol = a_tol_rel;
+
         const int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
