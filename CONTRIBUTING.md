@@ -77,7 +77,7 @@ The commit message (between quotation marks) is super important in order to
 follow the developments and identify bugs.
 
 For the moment, commits are on your local repo only. You can push them to 
-the WarpX Github repo with
+your fork with
 ```
 git push -u origin <branch_name>
 ```
