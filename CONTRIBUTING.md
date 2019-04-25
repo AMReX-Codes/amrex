@@ -10,11 +10,43 @@ are new to git, you can follow one of these tutorials:
 - [Learn git with bitbucket](https://www.atlassian.com/git/tutorials/learn-git-with-bitbucket-cloud)
 - [git - the simple guide](http://rogerdudler.github.io/git-guide/)
 
-### Create your branch from the `dev` branch
+### Make your own fork and create a branch on it
 
-Follow instructions from the 
-[WarpX documentation](https://ecp-warpx.github.io/doc_versions/dev/building/building.html) 
-to install the code. Make sure you are on WarpX `dev` branch with
+This section describes the basic WarpX workflow
+- Sync your fork with the main (`upstream`) WarpX repo;
+- Implement your changes and push them on a new branch `<branch_name>` on 
+your fork;
+- Create a Pull Request from branch `<branch_name>` on your fork to branch 
+`dev` on the main WarpX repo.
+
+First, let us stup your local git repo. Make your own fork of the main 
+(`upstream`) WarpX repo (for additional information, you can visit the 
+[Github fork help page](https://help.github.com/en/articles/fork-a-repo)): 
+on the [WarpX Github page](https://github.com/ECP-WarpX/WarpX), press the 
+fork button. Then, you can
+```
+mkdir warpx_directory
+cd warpx_directory
+git clone https://bitbucket.org/berkeleylab/picsar.git
+git clone https://github.com/AMReX-Codes/amrex.git
+cd amrex && git checkout development && cd .. # switch to AMReX development branch
+# Clone your fork on your local computer. You can get this address on your fork's Github page.
+git clone https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
+cd warpx
+# Keep track of the main WarpX repo, to remain up-to-date.
+git remote add upstream https://github.com/ECP-WarpX/WarpX.git
+```
+Now you are free to play with your fork. 
+
+Note: you do not have to re-do this setup every time. 
+Instead, in the future, you need to update the `dev` branch
+on your fork with
+```
+git checkout dev
+git pull upstream dev
+```
+
+Make sure you are on WarpX `dev` branch with
 ```
 git checkout dev
 ```
@@ -26,10 +58,11 @@ of code you want to add, like `fix_spectral_solver`) with
 git checkout -b <branch_name>
 ```
 and do the coding you want. It is probably a good time to look at the 
-[AMReX documentation](https://amrex-codes.github.io/amrex/docs_html/). 
+[AMReX documentation](https://amrex-codes.github.io/amrex/docs_html/) and 
+at the [AMReX Doxygen reference](https://ccse.lbl.gov/pub/AMReX_Docs/index.html). 
 Add the files you work on to the git staging area with 
 ```
-git add file_I_created and_file_I_modified
+git add <file_I_created> <and_file_I_modified>
 ```
 ### Commit & push your changes
 
@@ -38,8 +71,8 @@ Periodically commit your changes with
 git commit -m "This is a 50-char description to explain my work"
 ```
 
-The commit message (between quotation marks) is super important to follow the 
-developments and identify bugs.
+The commit message (between quotation marks) is super important in order to 
+follow the developments and identify bugs.
 
 For the moment, commits are on your local repo only. You can push them to 
 the WarpX Github repo with
@@ -51,13 +84,14 @@ If you want to synchronize your branch with the `dev` branch (this is useful
 when the `dev` branch is being modified while you are working on 
 `<branch_name>`), you can use
 ```
-git pull --rebase origin dev
+git pull upstream dev
 ```
+and fix any conflict that may occur.
 
 ### Check that you did not break the code
 
 Once your new feature is ready, you can check that you did not break anything. 
-WarpX has automated tests running at each `git push`. For easier debugging, 
+WarpX has automated tests running for each Pull Request. For easier debugging, 
 it can be convenient to run the tests on your local machine with
 ```
 ./run_tests.sh
