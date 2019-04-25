@@ -112,8 +112,6 @@ void compute_integrals(MultiFab& intg)
        const auto& flag = flags[mfi];
        auto typ = flag.getType(bx);
 
-//       int n_count = 0;
-
        blitz::TinyVector<double,3> xmin = {-0.5,-0.5,-0.5};
        blitz::TinyVector<double,3> xmax = { 0.5, 0.5, 0.5};
 
@@ -130,6 +128,8 @@ void compute_integrals(MultiFab& intg)
           auto const& bcentarr = bcent->array(mfi);
           auto const& bnormarr = bnorm->array(mfi);
 
+          auto const& flagarr = flags.array(mfi); 
+
           const auto lo = amrex::lbound(bx);
           const auto hi = amrex::ubound(bx);
 
@@ -139,7 +139,8 @@ void compute_integrals(MultiFab& intg)
           {
              const Real volfrac = vfracarr(i,j,k);
 
-             if (volfrac >= (1.0-1.e-12) || volfrac <= 1.0e-12)
+             // if (volfrac >= (1.0-1.e-12) || volfrac <= 1.0e-12)
+             if (flagarr(i,j,k).isRegular())
              {
                  for (int n = 0; n < ncomp; ++n) {
                      garr(i,j,k,n) = 0.0;
@@ -151,7 +152,12 @@ void compute_integrals(MultiFab& intg)
                  garr(i,j,k,i_S_x2_z2) = offth;
                  garr(i,j,k,i_S_y2_z2) = offth;
              }
-             else
+             else if (flagarr(i,j,k).isCovered())
+             {
+                 for (int n = 0; n < ncomp; ++n) 
+                     garr(i,j,k,n) = 0.0;
+             } 
+             else 
              {
                  const Real centx = bcentarr(i,j,k,0);
                  const Real centy = bcentarr(i,j,k,1);
@@ -237,8 +243,6 @@ void compute_integrals(MultiFab& intg)
                  garr(i,j,k,i_S_x2_z2) = val_S_x2_z2;
                  garr(i,j,k,i_S_y2_z2) = val_S_y2_z2;
 
-//                 n_count++;
-
 #if 0
                  auto const& ccentarr = ccent->array(mfi);
                  if (std::abs(val_S_x/volume - (*ccent)[mfi](iv,0)) > 1.e-12 || 
@@ -262,7 +266,6 @@ void compute_integrals(MultiFab& intg)
              }
           }
        }
-       // std::cout << "Integrated over " << n_count << " cells " << std::endl;
     }
 #ifdef AMREX_DEBUG
     // If we want to print this, we should do mpi reduce first.
