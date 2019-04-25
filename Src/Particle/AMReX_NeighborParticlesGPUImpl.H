@@ -76,7 +76,7 @@ buildNeighborMask()
         {
             int grid = mfi.index();
             
-            std::set<std::pair<int, Box> > neighbor_grids;
+            std::set<NeighborTask> neighbor_grids;
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
             {
                 const Box box = ba[mfi] + *pit;
@@ -88,16 +88,19 @@ buildNeighborMask()
                 {
                     int nbor_grid = isec.first;
                     const Box isec_box = isec.second - *pit;
-                    if (grid != nbor_grid) neighbor_grids.insert(std::make_pair(nbor_grid, isec_box));
+                    if ( (grid == nbor_grid) and (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue; 
+                    neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, *pit));
                 }
             }
             
             BoxList isec_bl;
             std::vector<int> isec_grids;
+            std::vector<IntVect> isec_pshifts;
             for (auto nbor_grid : neighbor_grids)
             {
-                isec_grids.push_back(nbor_grid.first);
-                isec_bl.push_back(nbor_grid.second);
+                isec_grids.push_back(nbor_grid.grid_id);
+                isec_bl.push_back(nbor_grid.box);
+                isec_pshifts.push_back(nbor_grid.periodic_shift);
             }
             BoxArray isec_ba(isec_bl);
             
@@ -114,11 +117,12 @@ buildNeighborMask()
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
                 
                 if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal(i, box);
-                
+
                 for (auto& isec : isecs)
                 {
                     NeighborCode code;
                     code.grid_id = isec_grids[isec.first];
+                    code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
                 }
             }
@@ -326,6 +330,17 @@ updateNeighborsGPU ()
                         thrust::copy(thrust::device,
                                      src.begin() + m_start[src_grid][i], src.begin() + m_stop[src_grid][i], 
                                      dst().begin() + nRParticles + nNParticles);
+
+                        // apply periodic shift so that a naive distance calculation returns
+                        // the shortest distance between real and neighbor particles
+                        if (this->Geom(lev).isAnyPeriodic()) {
+                            thrust::transform(thrust::device, 
+                                              dst().begin() + nRParticles + nNParticles,
+                                              dst().begin() + nRParticles + nNParticles + num_to_add,
+                                              dst().begin() + nRParticles + nNParticles,
+                                              functors::periodicTransformation(this->Geom(lev).data(),
+                                                                               dst_code.periodic_shift));
+                        }
                     }
                 }
                 else { // this is the non-local case
