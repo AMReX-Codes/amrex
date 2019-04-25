@@ -114,8 +114,8 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
         // Fill the shift coefficients
         Real sign = 0;
         switch (shift_type){
-            case ShiftType::TransformFromCellCentered: sign = 1.; break;
-            case ShiftType::TransformToCellCentered: sign = -1.;
+            case ShiftType::TransformFromCellCentered: sign = -1.; break;
+            case ShiftType::TransformToCellCentered: sign = 1.;
         }
         constexpr Complex I{0,1};
         for (int i=0; i<k.size(); i++ ){
