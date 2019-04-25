@@ -20,10 +20,9 @@ your fork;
 `dev` on the main WarpX repo.
 
 First, let us setup your local git repo. Make your own fork of the main 
-(`upstream`) WarpX repo (for additional information, you can visit the 
-[Github fork help page](https://help.github.com/en/articles/fork-a-repo)): 
+(`upstream`) WarpX repo: 
 on the [WarpX Github page](https://github.com/ECP-WarpX/WarpX), press the 
-fork button. Then, you can
+fork button. Then, you can execute:
 ```
 # These 5 first lines are the same as for a standard WarpX install
 mkdir warpx_directory
@@ -38,7 +37,8 @@ cd warpx
 # Keep track of the main WarpX repo, to remain up-to-date.
 git remote add upstream https://github.com/ECP-WarpX/WarpX.git
 ```
-Now you are free to play with your fork. 
+Now you are free to play with your fork (for additional information, you can visit the 
+[Github fork help page](https://help.github.com/en/articles/fork-a-repo)).
 
 > Note: you do not have to re-do the setup above every time. 
 > Instead, in the future, you need to update the `dev` branch
@@ -109,10 +109,11 @@ run the tests on CPU or GPU respectively.
 
 A Pull Request (PR) is the way to efficiently visualize the changes you made 
 and to propose your new feature/improvement/fix to the WarpX project. 
-Right after you push changes, a banner should appear on the 
-[WarpX repo](https://github.com/ECP-WarpX/WarpX) with your `<branch_name>`. 
+Right after you push changes, a banner should appear on the Github page of 
+your fork, with your `<branch_name>`. 
 - Click on the `compare & pull request` button to prepare your PR. 
-- Change the PR destination from `master` to `dev`. 
+- Change the PR destination from `master` to `dev` (make sure that the PR is 
+from `<yourFork>/<branch_name>` to `ECP-WarpX/WarpX/dev`). 
 - It is time to communicate your changes: write a title and a description for 
 your PR. People who review your PR are happy to know
   * what feature/fix you propose, and why
