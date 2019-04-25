@@ -12,24 +12,26 @@ are new to git, you can follow one of these tutorials:
 
 ### Make your own fork and create a branch on it
 
-This section describes the basic WarpX workflow
-- Sync your fork with the main (`upstream`) WarpX repo;
+The basic WarpX workflow is:
+- fork the main repo (or update it if you already created it);
 - Implement your changes and push them on a new branch `<branch_name>` on 
 your fork;
 - Create a Pull Request from branch `<branch_name>` on your fork to branch 
 `dev` on the main WarpX repo.
 
-First, let us stup your local git repo. Make your own fork of the main 
+First, let us setup your local git repo. Make your own fork of the main 
 (`upstream`) WarpX repo (for additional information, you can visit the 
 [Github fork help page](https://help.github.com/en/articles/fork-a-repo)): 
 on the [WarpX Github page](https://github.com/ECP-WarpX/WarpX), press the 
 fork button. Then, you can
 ```
+# These 5 first lines are the same as for a standard WarpX install
 mkdir warpx_directory
 cd warpx_directory
 git clone https://bitbucket.org/berkeleylab/picsar.git
 git clone https://github.com/AMReX-Codes/amrex.git
 cd amrex && git checkout development && cd .. # switch to AMReX development branch
+
 # Clone your fork on your local computer. You can get this address on your fork's Github page.
 git clone https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
 cd warpx
@@ -38,13 +40,13 @@ git remote add upstream https://github.com/ECP-WarpX/WarpX.git
 ```
 Now you are free to play with your fork. 
 
-Note: you do not have to re-do this setup every time. 
-Instead, in the future, you need to update the `dev` branch
-on your fork with
-```
-git checkout dev
-git pull upstream dev
-```
+> Note: you do not have to re-do the setup above every time. 
+> Instead, in the future, you need to update the `dev` branch
+> on your fork with
+> ```
+> git checkout dev
+> git pull upstream dev
+> ```
 
 Make sure you are on WarpX `dev` branch with
 ```
@@ -190,3 +192,4 @@ created it). Reviewers will interact with you if they have comments/questions.
 
 ## Style and conventions
 - For indentation, WarpX uses four spaces (no tabs)
+- The number of characters per line should be <80
