@@ -11,9 +11,9 @@ add_library( amrex )
 set_target_properties( amrex
    PROPERTIES
    Fortran_MODULE_DIRECTORY
-   ${PROJECT_BINARY_DIR}/mod_files 
+   ${CMAKE_CURRENT_BINARY_DIR}/mod_files 
    INTERFACE_INCLUDE_DIRECTORIES
-   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/mod_files>
    )
 
 # Load Flags targets and use them if no user-defined flags is given
