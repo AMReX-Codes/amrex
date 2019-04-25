@@ -352,7 +352,30 @@ protected:
         int grid_id;
         IntVect periodic_shift;
     };
-    
+
+    struct NeighborTask {
+        int grid_id;
+        Box box;
+        IntVect periodic_shift;
+
+        NeighborTask(int a_grid_id, const Box& a_box, const IntVect& a_periodic_shift)
+            : grid_id(a_grid_id), box(a_box), periodic_shift(a_periodic_shift) {}
+
+        bool operator<(const NeighborTask& other) const {
+            if (grid_id != other.grid_id) return grid_id < other.grid_id;
+            if (box     != other.box    ) return box < other.box;
+            AMREX_D_TERM(
+            if (periodic_shift[0] != other.periodic_shift[0])
+                return periodic_shift[0] < other.periodic_shift[0];,
+            if (periodic_shift[1] != other.periodic_shift[1])
+                return periodic_shift[1] < other.periodic_shift[1];,
+            if (periodic_shift[2] != other.periodic_shift[2])
+                return periodic_shift[2] < other.periodic_shift[2];
+                )
+            return false;
+        }
+    };
+        
     // These are used to keep track of which particles need to be ghosted to which grids
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
