@@ -1223,8 +1223,6 @@ MLNodeLaplacian::buildStencil ()
             }
 
             m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
-
-            VisMF::Write(*m_stencil[0][0], "sten0");
         }
 
         for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
@@ -1271,8 +1269,6 @@ MLNodeLaplacian::buildStencil ()
             }
 
             m_stencil[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
-
-            VisMF::Write(*m_stencil[0][mglev], "sten"+std::to_string(mglev));
         }
     }
 }
