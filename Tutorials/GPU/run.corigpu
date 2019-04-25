@@ -29,10 +29,13 @@
 
 # salloc commands:
 # ================
+# Single GPU. (If you don't require an independent node, please use a shared node.)
+# Request 30GB per GPU being requested.
+# salloc -N 1 -t 2:00:00 -c 10 -C gpu --mem=30GB --gres=gpu:1 -A m1759
 # Single node:
-# salloc -N 1 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A (your_repo)
+# salloc -N 1 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A m1759 
 # Multi node:
-# salloc -N 2 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A (your_repo)
+# salloc -N 2 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A m1759
 
 # environment setup:
 # ==================
@@ -45,4 +48,10 @@
 EXE=./CNS3d.gnu.TPROF.MPI.CUDA.ex
 INPUTS=inputs
 
+# Run inside the current salloc session using available resources.
+# Change parameters to match available resources & run with "./run.corigpu"
+# srun -n 8 -c 10 --gres=gpu:8 ${EXE} ${INPUTS}
+
+# Submit with the SBATCH configuration above to the gpu queue: "sbatch run.corigpu"
+# Can also be ran with "./run.corigpu" to run with 1 CPU and 1 GPU.
 srun ${EXE} ${INPUTS}
