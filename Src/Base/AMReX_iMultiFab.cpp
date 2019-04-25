@@ -211,26 +211,6 @@ iMultiFab::define (const BoxArray&            bxs,
 {
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
 }
-    
-const IArrayBox&
-iMultiFab::operator[] (int K) const
-{
-    BL_ASSERT(defined(K));
-
-    const IArrayBox& fab = this->FabArray<IArrayBox>::get(K);
-
-    return fab;
-}
-
-IArrayBox&
-iMultiFab::operator[] (int K)
-{
-    BL_ASSERT(defined(K));
-
-    IArrayBox& fab = this->FabArray<IArrayBox>::get(K);
-
-    return fab;
-}
 
 int
 iMultiFab::min (int comp,
@@ -629,6 +609,53 @@ iMultiFab::negate (const Box& region,
     BL_ASSERT(comp+num_comp <= n_comp);
 
     FabArray<IArrayBox>::mult(-1,region,comp,num_comp,nghost);
+}
+
+std::unique_ptr<iMultiFab>
+OwnerMask (FabArrayBase const& mf, const Periodicity& period)
+{
+    //TODO GPU????
+    BL_PROFILE("OwnerMask()");
+
+    const BoxArray& ba = mf.boxArray();
+    const DistributionMapping& dm = mf.DistributionMap();
+
+    const int owner = 1;
+    const int nonowner = 0;
+
+    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0, MFInfo(),
+                                               DefaultFabFactory<IArrayBox>())};
+    p->setVal(owner);
+
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        
+        for (MFIter mfi(*p); mfi.isValid(); ++mfi)
+        {
+            IArrayBox& fab = (*p)[mfi];
+            const Box& bx = fab.box();
+            const int i = mfi.index();
+            for (const auto& iv : pshifts)
+            {
+                ba.intersections(bx+iv, isects);                    
+                for (const auto& is : isects)
+                {
+                    const int oi = is.first;
+                    const Box& obx = is.second;
+                    if ((oi < i) || (oi == i && iv < IntVect::TheZeroVector())) {
+                        fab.setVal(nonowner, obx-iv, 0, 1);
+                    }
+                }
+            }
+        }
+    }
+
+    return p;
 }
 
 }

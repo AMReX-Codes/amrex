@@ -111,7 +111,7 @@ AmrCore::regrid (int lbase, Real time, bool)
 
 
 void
-AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const
+AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noexcept
 {
     for (int lev = min_lev; lev <= max_lev; lev++)
     {

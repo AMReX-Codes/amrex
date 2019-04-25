@@ -1,4 +1,3 @@
-
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
@@ -36,7 +35,9 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+
 using std::ostringstream;
+
 
 namespace {
     const char* path_sep_str = "/";
@@ -283,7 +284,7 @@ amrex::UniqueString()
 void
 amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
@@ -306,7 +307,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 void
 amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) 
+  if(ParallelContext::IOProcessorSub()) 
   {
     if(amrex::FileExists(path)) 
     {
@@ -336,7 +337,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 void
 amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
@@ -363,6 +364,17 @@ namespace
     int nthreads;
 
     amrex::Vector<std::mt19937> generators;
+
+#ifdef AMREX_USE_CUDA
+    /**
+    * \brief The random seed array is allocated with an extra buffer space to 
+    *        reduce the computational cost of dynamic memory allocation and 
+    *        random seed generation. 
+    */
+    __device__ curandState_t *glo_RandStates;
+    amrex::Gpu::DeviceVector<curandState_t> dev_RandStates_Seed;
+#endif
+
 }
 
 void
@@ -393,29 +405,68 @@ void amrex::ResetRandomSeed(unsigned long seed)
     InitRandom(seed);
 }
 
-double
+AMREX_GPU_HOST_DEVICE double
 amrex::RandomNormal (double mean, double stddev)
 {
+
+    double rand;
+
+#ifdef __CUDA_ARCH__
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+    int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+              + (threadIdx.z * (blockDim.x * blockDim.y)) 
+              + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    rand = stddev * curand_normal_double(&glo_RandStates[tid]) + mean; 
+
+#else
+
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
 #else
     int tid = 0;
 #endif
     std::normal_distribution<double> distribution(mean, stddev);
-    return distribution(generators[tid]);
+    rand = distribution(generators[tid]);
+
+#endif
+
+    return rand;
 }
 
-double
+AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
+    double rand;
+
+#ifdef __CUDA_ARCH__
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+    int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+              + (threadIdx.z * (blockDim.x * blockDim.y)) 
+              + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    rand = curand_uniform_double(&glo_RandStates[tid]); 
+
+
+#else
+
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
 #else
     int tid = 0;
 #endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
-    return distribution(generators[tid]);
+    rand = distribution(generators[tid]);
+
+#endif
+
+    return rand;
 }
+
 
 unsigned long
 amrex::Random_int(unsigned long n)
@@ -481,6 +532,63 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
 }
 
+
+void 
+amrex::InitRandSeedOnDevice (int N)
+{
+  ResizeRandomSeed(N);
+}
+
+void 
+amrex::CheckSeedArraySizeAndResize (int N)
+{
+#ifdef AMREX_USE_CUDA
+  if ( dev_RandStates_Seed.size() < N) {
+     ResizeRandomSeed(N);
+  }
+#endif
+}
+
+void 
+amrex::ResizeRandomSeed (int N)
+{
+
+#ifdef AMREX_USE_CUDA  
+
+  int Nbuffer = N * 2;
+
+  int PrevSize = dev_RandStates_Seed.size();
+
+  const int MyProc = amrex::ParallelDescriptor::MyProc();
+  int SizeDiff = Nbuffer - PrevSize;
+
+  dev_RandStates_Seed.resize(Nbuffer);
+  curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
+  cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
+
+  AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
+  {
+     unsigned long seed = MyProc*1234567UL + 12345UL ;
+     int seqstart = idx + 10 * idx ; 
+     int loc = idx + PrevSize;
+     curand_init(seed, seqstart, 0, &glo_RandStates[loc]);
+  }); 
+
+#endif
+
+}
+
+void 
+amrex::DeallocateRandomSeedDevArray()
+{
+#ifdef AMREX_USE_CUDA  
+  dev_RandStates_Seed.resize(0);
+  dev_RandStates_Seed.shrink_to_fit();
+#endif
+}
+
+
+
 void
 amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
 {
@@ -520,79 +628,6 @@ int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
   }
   return rr;
 }
-
-// -------------------------------------------------------------------
-int amrex::HashDistributionMap(const DistributionMapping &dm, int hashSize)
-{
-  BL_ASSERT(hashSize > 0);
-
-  const Vector<int> &dmArrayMap = dm.ProcessorMap();
-  Vector<long> hash(hashSize, 0);
-
-  // Create hash by summing processer map over
-  //   a looped hash array of given size. 
-  for (int i=0; i<dmArrayMap.size(); i++)
-  {
-    int hashIndex = (i%hashSize);
-    hash[hashIndex] += dmArrayMap[i];
-  }
-
-  // Output hash is the ones digit of each element
-  //   of the hash array.
-  ostringstream outstr;
-  for (int j=0; j<hashSize; j++)
-  {
-     outstr << (hash[j]%10); 
-  }
-
-  //
-  return ( std::atoi(outstr.str().c_str()) );
-}
-
-// -------------------------------------------------------------------
-int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
-{
-  BL_ASSERT(hashSize > 0);
-
-  Vector<long> hash(hashSize, 0);
-  int hashSum(0), hashCount(0);
-
-  // Create hash by summing smallEnd, bigEnd and type
-  //   over a looped hash array of given size.
-  // For any empty boxes, skip AMREX_SPACEDIM inputs.
-  // For an empty box array, hash=0, regardless of size.
-  if (!ba.empty())
-  {
-    for (int i=0; i<ba.size(); i++)
-    {
-      if (!ba[i].isEmpty())
-      {
-        for (int j=0; j<AMREX_SPACEDIM; j++)
-        {
-           hashSum = ba[i].smallEnd(j) + ba[i].bigEnd(j) + ba[i].ixType()[j];
-           hash[(hashCount%hashSize)] += hashSum;
-           hashCount++;
-        }
-      }
-      else
-      {
-        hashCount+=AMREX_SPACEDIM;
-      }
-    }
-  }
-
-  // Output hash is the ones digit of each element
-  //   of the hash array.
-  ostringstream outstr;
-  for (int j=0; j<hashSize; j++)
-  {
-     outstr << (hash[j]%10); 
-  }
-
-  return ( std::atoi(outstr.str().c_str()) );
-} 
-
-
 
 //
 // Fortran entry points for amrex::Random().
@@ -1316,7 +1351,7 @@ namespace {
     static auto clock_time_begin = amrex::MaxResSteadyClock::now();
 }
 
-double amrex::second ()
+double amrex::second () noexcept
 {
     return std::chrono::duration_cast<std::chrono::duration<double> >
         (amrex::MaxResSteadyClock::now() - clock_time_begin).count();

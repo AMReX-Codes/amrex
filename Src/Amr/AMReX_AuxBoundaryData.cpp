@@ -8,7 +8,7 @@
 
 namespace amrex {
 
-AuxBoundaryData::AuxBoundaryData ()
+AuxBoundaryData::AuxBoundaryData () noexcept
     :
     m_ngrow(0),
     m_empty(false),

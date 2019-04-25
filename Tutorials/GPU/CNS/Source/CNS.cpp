@@ -90,7 +90,7 @@ CNS::initData ()
         auto sfab = S_new.array(mfi);
 
         amrex::ParallelFor(box,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_initdata(i, j, k, sfab, geomdata);
         });
@@ -314,7 +314,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
             auto tag = tags.array(mfi);
 
             amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 cns_tag_denerror(i, j, k, tag, rhofab, dengrad_threshold, tagval);
             });
@@ -395,7 +395,7 @@ CNS::estTimeStep ()
     const MultiFab& S = get_new_data(State_Type);
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) noexcept -> Real
     {
         return cns_estdt(bx, fab, dx);
     });
@@ -427,7 +427,7 @@ CNS::computeTemp (MultiFab& State, int ng)
         auto const& sfab = State.array(mfi);
 
         amrex::ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_compute_temperature(i,j,k,sfab);
         });

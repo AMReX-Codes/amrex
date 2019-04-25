@@ -1,15 +1,20 @@
 #include <WorkerThread.H>
 #include <PerillaConfig.H>
+#include <Perilla.H>
 #include<stdio.h>
 
 namespace perilla
 {
     void* WorkerThread::team_shared_memory[perilla::NUM_THREAD_TEAMS];
-    Barrier WorkerThread::globalBarrier;
+    Barrier* WorkerThread::globalBarrier;
     Barrier WorkerThread::localBarriers[perilla::NUM_THREAD_TEAMS];
 
+    void WorkerThread::init(){
+        WorkerThread::globalBarrier= new Barrier(perilla::NUM_THREAD_TEAMS);
+    }
+
     void WorkerThread::syncWorkers(){
-	if(isMasterWorkerThread()) WorkerThread::globalBarrier.sync(perilla::NUM_THREAD_TEAMS);
+	if(isMasterWorkerThread()) WorkerThread::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
     }
 
     void WorkerThread::syncTeamThreads(){

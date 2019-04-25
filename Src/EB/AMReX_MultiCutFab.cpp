@@ -40,27 +40,55 @@ MultiCutFab::remove ()
         {
             CutFab* p = &(m_data[mfi]);
             delete p;
-            m_data.setFab(mfi, new CutFab(), false);
+            m_data.setFab(mfi, ::new CutFab(), false);
         }
     }
 }
 
 const CutFab&
-MultiCutFab::operator[] (const MFIter& mfi) const
+MultiCutFab::operator[] (const MFIter& mfi) const noexcept
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
 }
 
 CutFab&
-MultiCutFab::operator[] (const MFIter& mfi)
+MultiCutFab::operator[] (const MFIter& mfi) noexcept
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
 }
 
+CutFab const*
+MultiCutFab::fabPtr (const MFIter& mfi) const noexcept
+{
+    AMREX_ASSERT(ok(mfi));
+    return m_data.fabPtr(mfi);
+}
+
+CutFab*
+MultiCutFab::fabPtr (const MFIter& mfi) noexcept
+{
+    AMREX_ASSERT(ok(mfi));
+    return m_data.fabPtr(mfi);
+}
+
+Array4<Real const>
+MultiCutFab::array (const MFIter& mfi) const noexcept
+{
+    AMREX_ASSERT(ok(mfi));
+    return m_data.array(mfi);
+}
+
+Array4<Real>
+MultiCutFab::array (const MFIter& mfi) noexcept
+{
+    AMREX_ASSERT(ok(mfi));
+    return m_data.array(mfi);
+}
+
 bool
-MultiCutFab::ok (const MFIter& mfi) const
+MultiCutFab::ok (const MFIter& mfi) const noexcept
 {
     return (*m_cellflags)[mfi].getType() == FabType::singlevalued;
 }

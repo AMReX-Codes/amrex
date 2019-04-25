@@ -29,7 +29,7 @@ extern "C" {
 }
 
 void
-Elixir::clear ()
+Elixir::clear () noexcept
 {
 #ifdef AMREX_USE_CUDA
     if (inLaunchRegion())

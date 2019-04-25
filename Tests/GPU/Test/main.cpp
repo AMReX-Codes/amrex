@@ -1,19 +1,16 @@
-#include <cuda_device_runtime_api.h>
-#include <thrust/device_vector.h>
+//#include <cuda_device_runtime_api.h>
+//#include <thrust/device_vector.h>
 
 #include <iostream>
 #include <AMReX.H>
 #include <AMReX_Print.H>
 
-#include <AMReX_Memory.H>
-#include <AMReX_Device.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
-#include <AMReX_BaseFab_f.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_Gpu.H>
 
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -48,14 +45,14 @@ struct PinnedData
    {
      return d_d;
    }
-
+/*
    T hostValue () const
    {
      T t;
 //     cudaMemcpy(&t, d_d, sizeof(T), cudaMemDeviceToHost);
      return t; 
    }
-
+*/
    void updateDevice(const T &t)
    {
 //       cudaMemcpy(d_d, &t, sizeof(T), cudaMemHostToDevice);
@@ -87,6 +84,8 @@ int main (int argc, char* argv[])
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
 
+    amrex::Cuda::ExecutionConfig simple_config(1,1);
+
     // Malloc
     {
 
@@ -100,8 +99,8 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << n << std::endl;
 
-      AMREX_SIMPLE_L_LAUNCH(1,1,
-      [=] AMREX_CUDA_DEVICE () mutable
+      amrex::launch_global<<<1,1>>>(
+      [=] AMREX_GPU_DEVICE () mutable
       {
          *n_d = *n_d / 10;
          printf("n during = %i\n", *n_d);
@@ -109,7 +108,7 @@ int main (int argc, char* argv[])
 
       cudaMemcpy(&n, n_d, sizeof(int), cudaMemcpyDeviceToHost);
       cudaFree(n_d);
-      Device::synchronize();
+      amrex::Gpu::Device::synchronize();
 
       std::cout << "n after = " << n << std::endl << std::endl;
     }
@@ -125,14 +124,14 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << *n << std::endl;
 
-      AMREX_SIMPLE_L_LAUNCH(1,1,
-      [=] AMREX_CUDA_DEVICE () mutable
+      amrex::launch_global<<<1,1>>>(
+      [=] AMREX_GPU_DEVICE () mutable
       {
          *n = *n / 10;
          printf("n during = %i\n", *n);
       });
 
-      Device::synchronize();
+      amrex::Gpu::Device::synchronize();
 
       std::cout << "n after = " << *n << std::endl << std::endl;
 
@@ -152,14 +151,14 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << *n << std::endl;
 
-      AMREX_SIMPLE_L_LAUNCH(1,1,
-      [=] AMREX_CUDA_DEVICE () mutable
+      amrex::launch_global<<<1,1>>>(
+      [=] AMREX_GPU_DEVICE () mutable
       {
          *n = *n / 10;
          printf("n during = %i\n", *n);
       });
 
-      Device::synchronize();
+      amrex::Gpu::Device::synchronize();
 
       std::cout << "n after = " << *n << std::endl << std::endl;
 
@@ -173,12 +172,12 @@ int main (int argc, char* argv[])
 
       PinnedData<int> n;
       PinnedData<int[5]> n5;
-      int *p  = n.data();
-      auto q  = n5.data();
+      int *p  = n.devicePtr();
+      auto q  = n5.devicePtr();
       std::cout << "n before = " << *p << std::endl;
 
-      AMREX_SIMPLE_L_LAUNCH(1,1,
-      [=] AMREX_CUDA_DEVICE () mutable
+      amrex::launch_global<<<1,1>>>(
+      [=] AMREX_GPU_DEVICE () mutable
       {
          (*q)[0] = 4;
          (*q)[1] = 3;
@@ -190,7 +189,7 @@ int main (int argc, char* argv[])
          printf("n during = %i\n", *p);
       });
 
-      Device::synchronize();
+      amrex::Gpu::Device::synchronize();
 
       for (int i=0;i<5;i++)
       {

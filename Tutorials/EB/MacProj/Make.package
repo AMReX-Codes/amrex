@@ -1,4 +1,2 @@
 
 CEXE_sources += main.cpp
-CEXE_sources += initEB.cpp
-CEXE_headers += initEB.H

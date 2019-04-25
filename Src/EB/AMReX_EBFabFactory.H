@@ -38,39 +38,39 @@ public:
     virtual void destroy (FArrayBox* fab) const final;
 
 #ifdef AMREX_USE_GPU
-    virtual FArrayBox* createHostAlias (FArrayBox const& src) const final;
-    virtual void destroyHostAlias (FArrayBox* fab) const final;
+    virtual FArrayBox* createDeviceAlias (FArrayBox const& src) const final;
+    virtual void destroyDeviceAlias (FArrayBox* fab) const final;
 #endif
 
     virtual EBFArrayBoxFactory* clone () const final;
 
-    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const
+    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const noexcept
         { return m_ebdc->getMultiEBCellFlagFab(); }
 
-    const MultiFab& getVolFrac () const { return m_ebdc->getVolFrac(); }
+    const MultiFab& getVolFrac () const noexcept { return m_ebdc->getVolFrac(); }
 
-    const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
+    const MultiCutFab& getCentroid () const noexcept { return m_ebdc->getCentroid(); }
 
-    const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
+    const MultiCutFab& getBndryCent () const noexcept { return m_ebdc->getBndryCent(); }
 
-    const MultiCutFab& getBndryNormal () const { return m_ebdc->getBndryNormal(); }
+    const MultiCutFab& getBndryNormal () const noexcept { return m_ebdc->getBndryNormal(); }
 
-    const MultiCutFab& getBndryArea () const { return m_ebdc->getBndryArea(); }
+    const MultiCutFab& getBndryArea () const noexcept { return m_ebdc->getBndryArea(); }
 
-    Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const noexcept {
         return m_ebdc->getAreaFrac();
     }
 
-    Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const noexcept {
         return m_ebdc->getFaceCent();
     }
 
-    EB2::Level const* getEBLevel () const { return m_parent; }
-    EB2::IndexSpace const* getEBIndexSpace () const;
-    int maxCoarseningLevel () const;
+    EB2::Level const* getEBLevel () const noexcept { return m_parent; }
+    EB2::IndexSpace const* getEBIndexSpace () const noexcept;
+    int maxCoarseningLevel () const noexcept;
 
-    const DistributionMapping& DistributionMap () const;
-    const BoxArray& boxArray () const;
+    const DistributionMapping& DistributionMap () const noexcept;
+    const BoxArray& boxArray () const noexcept;
 
 private:
 

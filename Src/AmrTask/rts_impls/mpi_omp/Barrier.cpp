@@ -48,7 +48,7 @@ void Barrier::sync() //sync all threads associated with this barrier
 
   while(globalSense != localSense)
     {
-#pragma omp flush (globalSense)
+#pragma omp flush
     }
 }
 
@@ -72,6 +72,6 @@ void Barrier::sync(int numthreads) //sync a subset of threads
 
   while(globalSense != localSense)
     {
-#pragma omp flush (globalSense)
+#pragma omp flush
     }
 }

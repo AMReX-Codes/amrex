@@ -5,10 +5,22 @@
 #include <cmath>
 
 #include <AMReX_AmrLevel.H>
+#include <PerillaConfig.H>
+using namespace perilla;
+#include <PerillaRts.H>
+
+#ifdef USE_PERILLA_ON_DEMAND
+    pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 namespace amrex{
 
-    RGIter::RGIter(RegionGraph* rg, bool enableAllTasks):
+    RGIter::RGIter(RegionGraph* rg
+#ifdef USE_PERILLA_ON_DEMAND
+	,std::vector<RegionGraph*> graphArray
+#endif    
+	, bool enableAllTasks
+	):
 	itrGraph(rg),
 	implicit(false),
 	ppteams(true),
@@ -21,17 +33,39 @@ namespace amrex{
 	tg = perilla::wid();
 	ntid = perilla::wtid();
 
-	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+#ifdef USE_PERILLA_ON_DEMAND
+        if(perilla::isCommunicationThread())
+        {
+            while(true){
+                Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+                {
+		    graphArray.clear();
+		    Perilla::numTeamsFinished=0;
+                    break;
+                }
+            }
+        }else{
+#endif
+	itrGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	if(perilla::isMasterWorkerThread())
 	    itrGraph->Reset();
-	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+	itrGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	if(enableAllTasks)
 	    itrGraph->enableAllRegions();
-	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+	itrGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	init();
+#ifdef USE_PERILLA_ON_DEMAND
+}
+#endif
     }
 
-    RGIter::RGIter(RegionGraph* rg, RegionGraph* drg, bool isDep):
+    RGIter::RGIter(RegionGraph* rg
+#ifdef USE_PERILLA_ON_DEMAND
+        ,std::vector<RegionGraph*> graphArray
+#endif
+	, RegionGraph* drg, bool isDep
+    ):
 	itrGraph(rg),
 	implicit(false),
 	ppteams(true),
@@ -43,10 +77,29 @@ namespace amrex{
 	tid = perilla::tid();
 	tg = perilla::wid();
 	ntid = perilla::wtid();
+
+#ifdef USE_PERILLA_ON_DEMAND
+        if(perilla::isCommunicationThread())
+        {
+            Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, graphArray);
+            while(true){
+                Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+                {
+		    graphArray.clear();
+		    Perilla::numTeamsFinished=0;
+                    break;
+                }
+            }
+        }else{
+#endif
 	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	if(perilla::isMasterWorkerThread()) itrGraph->Reset();
 	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	init();
+#ifdef USE_PERILLA_ON_DEMAND
+}   
+#endif
     }
 
     RGIter::RGIter(amrex::AsyncFillPatchIterator* afpi, bool enableAllTasks):
@@ -61,6 +114,22 @@ namespace amrex{
 	tid = perilla::tid();
 	tg = perilla::wid();
 	ntid = perilla::wtid();
+#ifdef USE_PERILLA_ON_DEMAND
+        if(perilla::isCommunicationThread())
+        {
+            std::vector<RegionGraph*> flattenedGraphArray;
+            Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, flattenedGraphArray);
+            while(true){
+                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+                {
+		    flattenedGraphArray.clear();
+		    Perilla::numTeamsFinished=0;
+                    break;
+                }
+            }
+        }else{
+#endif  
 	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	if(perilla::isMasterWorkerThread())
 	    afpi->Reset();
@@ -70,9 +139,14 @@ namespace amrex{
 	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 
 	init();
+#ifdef USE_PERILLA_ON_DEMAND
+}   
+#endif
+
     }
 
-    RGIter::RGIter(std::vector<amrex::AsyncFillPatchIterator*> afpi, std::vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
+#ifndef USE_PERILLA_ON_DEMAND
+    RGIter::RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
 	    amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr):
 	itrGraph(afpi[itr-1]->destGraph),
 	m_level_afpi(afpi),
@@ -96,6 +170,7 @@ namespace amrex{
 	tid = perilla::tid();
 	tg = perilla::wid();
 	ntid = perilla::wtid();
+        AsyncFillPatchIterator::initialSend(afpi, upper_afpi, bG, tm, ind, 0, nc, itr);
 
 	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 	if(perilla::isMasterWorkerThread())
@@ -151,6 +226,108 @@ namespace amrex{
 	    init();
 	}
     }
+
+#else
+
+    RGIter::RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
+            amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr)
+:
+        itrGraph(afpi[itr-1]->destGraph),
+        m_level_afpi(afpi),
+        m_upper_level_afpi(upper_afpi),
+        _dest(&dest),
+        boxGrow(bG),
+        time(tm),
+        index(ind),
+        scomp(sc),
+        ncomp(nc),
+        iteration(itr),
+        implicit(true),
+        ppteams(true),
+        haveDepGraph(false),
+        depGraph(NULL),
+        getFireableTime(0.)
+   {
+        int myProc = amrex::ParallelDescriptor::MyProc();
+        bool push = true;
+        tid = perilla::tid();
+        tg = perilla::wid();
+        ntid= perilla::wtid();
+
+        if(perilla::isCommunicationThread())
+        {
+            std::vector<RegionGraph*> flattenedGraphArray;
+            Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, flattenedGraphArray);
+            while(true){
+                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+                {
+		    flattenedGraphArray.clear();
+		    Perilla::numTeamsFinished=0;
+                    break;
+                }
+            }
+        }else
+{
+
+        AsyncFillPatchIterator::initialSend(m_level_afpi, m_upper_level_afpi, boxGrow, time, index, scomp, ncomp, iteration);
+
+        itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+        if(perilla::isMasterWorkerThread())
+            m_level_afpi[iteration-1]->Reset();
+        itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+
+        if(ntid == perilla::NUM_THREADS_PER_TEAM-2)
+        {
+            int f;
+            int level = m_level_afpi[iteration-1]->m_amrlevel.level;
+            double dt = m_level_afpi[iteration-1]->m_amrlevel.parent->dtLevel(level);
+            this->currentItr = 1;
+            this->totalItr = 1;
+            while(m_level_afpi[iteration-1]->destGraph->worker[tg]->completedRegionQueue->queueSize(true) != m_level_afpi[iteration-1]->destGraph->worker[tg]->totalTasks ||
+                    m_level_afpi[iteration-1]->destGraph->worker[tg]->computedTasks != m_level_afpi[iteration-1]->destGraph->worker[tg]->totalTasks)
+            {
+                f = m_level_afpi[iteration-1]->destGraph->getFireableRegion(tg);
+                if(f != -1)
+                {
+                    m_level_afpi[iteration-1]->Receive(this,*_dest,boxGrow,time,index,scomp,ncomp,f,true);
+                    m_level_afpi[iteration-1]->destGraph->setFireableRegion(f);
+                    if(m_level_afpi[iteration-1]->destGraph->worker[tg]->unfireableRegionQueue->queueSize(true) !=0 &&
+                            m_level_afpi[iteration-1]->destGraph->worker[tg]->fireableRegionQueue->queueSize(true) < 8)
+                        continue;
+                }
+
+                if(m_level_afpi[iteration-1]->destGraph->worker[tg]->computedRegionQueue->queueSize() != 0)
+                {
+                    f = m_level_afpi[iteration-1]->destGraph->worker[tg]->computedRegionQueue->removeRegion();
+
+                    if(push & level == m_level_afpi[iteration-1]->m_amrlevel.parent->finestLevel() && iteration < m_level_afpi[iteration-1]->m_amrlevel.parent->nCycle(level))
+                        m_level_afpi[iteration]->SendIntraLevel(*(this),boxGrow,time+dt,index,scomp,ncomp,iteration,f,true);
+
+                    if(push & level < m_level_afpi[iteration-1]->m_amrlevel.parent->finestLevel())
+                    {
+                        for(int i=0; i < m_level_afpi[iteration-1]->m_amrlevel.parent->nCycle(level+1); i++)
+                        {
+                            m_upper_level_afpi[i]->SendInterLevel(this,boxGrow,time+(i*m_level_afpi[iteration-1]->m_amrlevel.parent->dtLevel(level+1)),index,scomp,ncomp,i+1,f,true);
+                        }
+                    }
+                    m_level_afpi[iteration-1]->destGraph->worker[tg]->completedRegionQueue->addRegion(f,true);
+                }
+            }
+        }
+        else
+        {
+            //fout << "Calling init "<< std::endl;
+            //fout.close();
+            init();
+        }
+}
+
+    }
+
+#endif
+
+    using namespace perilla;
 
     RGIter::~RGIter()
     {
@@ -317,6 +494,7 @@ namespace amrex{
     //! Is the iterator valid, are more regions to iterate over?
     bool RGIter::isValid ()
     {
+        if(perilla::isCommunicationThread() ) return false;
 	bool valid;
 	bool do_remaining = true;
 
@@ -328,7 +506,9 @@ namespace amrex{
 	    {
 		valid = !itrGraph->isGraphEmptyV2();
 		if(valid)	      
+		{
 		    do_remaining = false;
+		}
 	    }
 
 	    if(do_remaining)
@@ -341,6 +521,7 @@ namespace amrex{
 		this->currentItr = 1;
 		this->totalItr = 1;
 
+#if 0
 		while(!itrGraph->isGraphEmpty())
 		{
 		    f = itrGraph->worker[tg]->computedRegionQueue->getFrontRegion(true);
@@ -359,28 +540,42 @@ namespace amrex{
 			}
 		    }		
 
-		    itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+		    itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1);
 		    if(perilla::isMasterWorkerThread())
 		    {
 			f = itrGraph->worker[tg]->computedRegionQueue->removeRegion();
 			itrGraph->worker[tg]->completedRegionQueue->addRegion(f,true);
 		    }	  	
 		}
-
+#endif
 
 		//m_level_afpi[iteration-1]->destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
 		if(perilla::isMasterWorkerThread())
+		{
 		    m_level_afpi[iteration-1]->completeRegionGraphs();
+#ifdef USE_PERILLA_ON_DEMAND		    
+                    pthread_mutex_lock(&teamFinishLock);
+                    Perilla::numTeamsFinished++;
+                    pthread_mutex_unlock(&teamFinishLock);
+#endif
+		}
 		valid = false;
 	    }
 	}
 	else
 	{
 	    if(itrGraph->isGraphEmpty())
+            {
 		if(perilla::isMasterWorkerThread())
 		{
 		    itrGraph->finalizeRegionGraph();
-		}
+#ifdef USE_PERILLA_ON_DEMAND		    
+                    pthread_mutex_lock(&teamFinishLock);
+                    Perilla::numTeamsFinished++;
+                    pthread_mutex_unlock(&teamFinishLock);
+#endif
+                }
+            }
 	    valid = !(itrGraph->isGraphEmpty());
 	}
 	/*

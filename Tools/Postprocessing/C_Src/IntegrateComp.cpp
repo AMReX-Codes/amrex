@@ -105,99 +105,99 @@ main (int   argc,
       char* argv[])
 {
   amrex::Initialize(argc,argv);
+  {
+    if (argc < 2)
+      print_usage(argc,argv);
 
-  if (argc < 2)
-    print_usage(argc,argv);
+    ParmParse pp;
 
-  ParmParse pp;
+    if (pp.contains("help"))
+      print_usage(argc,argv);
 
-  if (pp.contains("help"))
-    print_usage(argc,argv);
-
-  // Create the AmrData object from a pltfile on disk
-  std::string infile; pp.get("infile",infile);
-  DataServices::SetBatchMode();
-  Amrvis::FileType fileType(Amrvis::NEWPLT);
-  DataServices dataServices(infile, fileType);
-  if( ! dataServices.AmrDataOk()) {
-    DataServices::Dispatch(DataServices::ExitRequest, NULL);
-  }
-  AmrData& amrData = dataServices.AmrDataRef();
-
-  int nv = pp.countval("varNames");
-  Vector<std::string> varNames(nv); pp.getarr("varNames",varNames,0,nv);
-
-  // Make a data struct for just the variables needed
-  AMReXDataHierarchy data(amrData,varNames);
-  const AMReXMeshHierarchy& mesh = data.Mesh();
-
-
-
-  // Compute the volume integrals
-  const int nGrow = 0;
-  const int finestLevel = mesh.FinestLevel();
-  const int nLev = finestLevel + 1;
-  const int nComp = varNames.size();
-
-  Vector<Real> integrals(nComp,0); // Results, initialized to zero
-  for (int lev=0; lev<nLev; ++lev) {
-    const BoxArray ba = mesh.boxArray(lev);
-
-    // Make boxes that are projection of finer ones (if exist)
-    const BoxArray baf = lev < finestLevel
-                               ? BoxArray(mesh.boxArray(lev+1)).coarsen(mesh.RefRatio()[lev])
-                               : BoxArray();
-
-    // Compute volume of a cell at this level
-    Real vol=1.0;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      vol *= mesh.ProbSize()[d] / mesh.ProbDomain()[lev].length(d);
+    // Create the AmrData object from a pltfile on disk
+    std::string infile; pp.get("infile",infile);
+    DataServices::SetBatchMode();
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
+    DataServices dataServices(infile, fileType);
+    if( ! dataServices.AmrDataOk()) {
+      DataServices::Dispatch(DataServices::ExitRequest, NULL);
     }
+    AmrData& amrData = dataServices.AmrDataRef();
 
-    // For each component listed...
-    for (int n=0; n<nComp; ++n) {
+    int nv = pp.countval("varNames");
+    Vector<std::string> varNames(nv); pp.getarr("varNames",varNames,0,nv);
 
-      // Make copy of original data because we will modify here
-      const MultiFab &pfData = data.GetGrids(lev,varNames[n]);
-      const DistributionMapping dmap(pfData.DistributionMap());
-      MultiFab mf(ba,dmap,1,nGrow);
-      MultiFab::Copy(mf,pfData,0,0,1,nGrow);
+    // Make a data struct for just the variables needed
+    AMReXDataHierarchy data(amrData,varNames);
+    const AMReXMeshHierarchy& mesh = data.Mesh();
 
-      Real sm = 0;
+
+
+    // Compute the volume integrals
+    const int nGrow = 0;
+    const int finestLevel = mesh.FinestLevel();
+    const int nLev = finestLevel + 1;
+    const int nComp = varNames.size();
+
+    Vector<Real> integrals(nComp,0); // Results, initialized to zero
+    for (int lev=0; lev<nLev; ++lev) {
+      const BoxArray ba = mesh.boxArray(lev);
+
+      // Make boxes that are projection of finer ones (if exist)
+      const BoxArray baf = lev < finestLevel
+                                 ? BoxArray(mesh.boxArray(lev+1)).coarsen(mesh.RefRatio()[lev])
+                                 : BoxArray();
+
+      // Compute volume of a cell at this level
+      Real vol=1.0;
+      for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        vol *= mesh.ProbSize()[d] / mesh.ProbDomain()[lev].length(d);
+      }
+
+      // For each component listed...
+      for (int n=0; n<nComp; ++n) {
+
+        // Make copy of original data because we will modify here
+        const MultiFab &pfData = data.GetGrids(lev,varNames[n]);
+        const DistributionMapping dmap(pfData.DistributionMap());
+        MultiFab mf(ba,dmap,1,nGrow);
+        MultiFab::Copy(mf,pfData,0,0,1,nGrow);
+
+        Real sm = 0;
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:sm)
 #endif
-      for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
-        FArrayBox& myFab = mf[mfi];
-        const Box& box = mfi.tilebox();
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+          FArrayBox& myFab = mf[mfi];
+          const Box& box = mfi.tilebox();
 
-        // Zero out covered cells
-        if (lev < finestLevel) {
-          std::vector< std::pair<int,Box> > isects = baf.intersections(box);                
-          for (int ii = 0; ii < isects.size(); ii++) {
-            myFab.setVal(0,isects[ii].second,0,1);
+          // Zero out covered cells
+          if (lev < finestLevel) {
+            std::vector< std::pair<int,Box> > isects = baf.intersections(box);                
+            for (int ii = 0; ii < isects.size(); ii++) {
+              myFab.setVal(0,isects[ii].second,0,1);
+            }
           }
+
+          // Get sum over tile, including zeroed covered cells
+          sm += myFab.sum(box,0,1);
         }
 
-        // Get sum over tile, including zeroed covered cells
-        sm += myFab.sum(box,0,1);
+        // Accumulate to this ranks total
+        integrals[n] += sm * vol;
+
       }
-
-      // Accumulate to this ranks total
-      integrals[n] += sm * vol;
-
     }
+
+    // Accumulate over ranks
+    ParallelDescriptor::ReduceRealSum(&(integrals[0]),nComp);
+
+    // Integrals to stdout
+    for (int n=0; n<nComp; ++n) {
+      Print() << integrals[n] << " ";
+    }
+    Print() << std::endl;
   }
-
-  // Accumulate over ranks
-  ParallelDescriptor::ReduceRealSum(&(integrals[0]),nComp);
-
-  // Integrals to stdout
-  for (int n=0; n<nComp; ++n) {
-    Print() << integrals[n] << " ";
-  }
-  Print() << std::endl;
-
   amrex::Finalize();
   return 0;
 }

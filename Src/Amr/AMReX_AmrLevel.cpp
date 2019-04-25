@@ -63,7 +63,7 @@ AmrLevel::set_preferred_boundary_values (MultiFab& S,
 {}
 
 DeriveList&
-AmrLevel::get_derive_lst ()
+AmrLevel::get_derive_lst () noexcept
 {
     return derive_lst;
 }
@@ -73,7 +73,7 @@ AmrLevel::manual_tags_placement (TagBoxArray&    tags,
                                  const Vector<IntVect>& bf_lev)
 {}
 
-AmrLevel::AmrLevel ()
+AmrLevel::AmrLevel () noexcept
 {
 
    BL_PROFILE("AmrLevel::AmrLevel()");
@@ -320,12 +320,16 @@ AmrLevel::writePlotFile (const std::string& dir,
 	}
     }
 
+    amrex::prefetchToHost(plotMF);
+
     //
     // Use the Full pathname when naming the MultiFab.
     //
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     VisMF::Write(plotMF,TheFullPath,how,true);
+
+    amrex::prefetchToDevice(plotMF);
 
     levelDirectoryCreated = false;  // ---- now that the plotfile is finished
 }
@@ -454,7 +458,7 @@ AmrLevel::isStateVariable (const std::string& name, int& typ, int& n)
 }
 
 long
-AmrLevel::countCells () const
+AmrLevel::countCells () const noexcept
 {
     return grids.numPts();
 }
@@ -555,8 +559,7 @@ AmrLevel::reset ()
 }
 
 MultiFab&
-AmrLevel::get_data (int  state_indx,
-                    Real time)
+AmrLevel::get_data (int  state_indx, Real time) noexcept
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
@@ -577,7 +580,7 @@ AmrLevel::get_data (int  state_indx,
 }
 
 const BoxArray&
-AmrLevel::getEdgeBoxArray (int dir) const
+AmrLevel::getEdgeBoxArray (int dir) const noexcept
 {
     BL_ASSERT(dir >=0 && dir < AMREX_SPACEDIM);
     if (edge_grids[dir].empty()) {
@@ -588,7 +591,7 @@ AmrLevel::getEdgeBoxArray (int dir) const
 }
 
 const BoxArray&
-AmrLevel::getNodalBoxArray () const
+AmrLevel::getNodalBoxArray () const noexcept
 {
     if (nodal_grids.empty()) {
 	nodal_grids = grids;
@@ -667,7 +670,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
 
     Initialize(boxGrow,time,idx,scomp,ncomp);
 
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
@@ -1688,7 +1691,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #else
@@ -1726,7 +1729,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
 				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #endif
@@ -1837,7 +1840,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #else
@@ -1875,7 +1878,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #endif
@@ -2055,8 +2058,7 @@ AmrLevel::setSmallPlotVariables ()
 }
 
 AmrLevel::TimeLevel
-AmrLevel::which_time (int  indx,
-                      Real time) const
+AmrLevel::which_time (int  indx, Real time) const noexcept
 {
     const Real oldtime = state[indx].prevTime();
     const Real newtime = state[indx].curTime();
@@ -2108,17 +2110,17 @@ AmrLevel::writeSmallPlotNow ()
     return false;
 }
 
-const BoxArray& AmrLevel::getAreaNotToTag ()
+const BoxArray& AmrLevel::getAreaNotToTag () noexcept
 {
     return m_AreaNotToTag;
 }
 
-const Box& AmrLevel::getAreaToTag ()
+const Box& AmrLevel::getAreaToTag () noexcept
 {
     return m_AreaToTag;
 }
 
-void AmrLevel::setAreaNotToTag (BoxArray& ba)
+void AmrLevel::setAreaNotToTag (BoxArray& ba) noexcept
 {
     m_AreaNotToTag = ba;
 }
@@ -3313,7 +3315,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
 
     //InitializePush(boxGrow,time,index,scomp,ncomp,f,tid);
 
-#if BL_USE_TEAM
+#ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 

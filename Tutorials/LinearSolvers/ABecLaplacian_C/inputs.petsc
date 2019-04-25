@@ -1,0 +1,32 @@
+
+max_level = 1
+ref_ratio = 2
+n_cell = 64
+max_grid_size = 32
+
+composite_solve = 0   # composite solve or level by level?
+
+# In this tutorial, we set up two examples.
+prob_type = 1
+# prob_type = 2
+
+# For MLMG
+verbose = 2
+bottom_verbose = 0
+max_iter = 100
+max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
+linop_maxorder = 2
+agglomeration = 1    # Do agglomeration on AMR Level 0?
+consolidation = 1    # Do consolidation?
+
+#####################################################################
+
+amrex.fpe_trap_invalid = 1
+use_petsc = 1
+bottom_verbose = 2
+composite_solve = 0
+max_coarsening_level = 3  # No. of GMG coarsening level before calling petsc
+prob_type = 2
+max_level = 1
+linop_maxorder = 3
+

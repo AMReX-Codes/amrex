@@ -3,6 +3,7 @@
 #########################################################
 
 CPPFLAGS += -DAMREX_USE_CONDUIT
+include $(AMREX_HOME)/Src/Extern/Conduit/Make.package
 
 ifdef CONDUIT_DIR
   INCLUDE_LOCATIONS += $(CONDUIT_DIR)/include
@@ -10,7 +11,7 @@ ifdef CONDUIT_DIR
   VPATH_LOCATIONS   += $(CONDUIT_DIR)/include
   VPATH_LOCATIONS   += $(CONDUIT_DIR)/include/conduit
   LIBRARY_LOCATIONS += $(CONDUIT_DIR)/lib
-  LIBRARIES +=  -lconduit -lconduit_blueprint -lconduit_relay
+  LIBRARIES += -Wl,-rpath,$(CONDUIT_DIR)/lib -lconduit -lconduit_blueprint -lconduit_relay
   
   ifeq ($(USE_MPI), TRUE)
      LIBRARIES += -lconduit_relay_mpi

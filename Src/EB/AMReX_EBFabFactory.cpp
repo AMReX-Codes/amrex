@@ -28,45 +28,17 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_support == EBSupport::none)
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);
+        return ::new FArrayBox(box, ncomps, info.alloc, info.shared);
     }
     else
     {
         const EBCellFlagFab& ebcellflag = m_ebdc->getMultiEBCellFlagFab()[box_index];
-        return new EBFArrayBox(ebcellflag, box, ncomps);
+        return ::new EBFArrayBox(ebcellflag, box, ncomps);
     }
 }
 
 void
 EBFArrayBoxFactory::destroy (FArrayBox* fab) const
-{
-    if (m_support == EBSupport::none)
-    {
-        delete fab;
-    }
-    else
-    {
-        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
-        delete p;
-    }
-}
-
-#ifdef AMREX_USE_GPU
-FArrayBox*
-EBFArrayBoxFactory::createHostAlias (const FArrayBox& src) const
-{
-    if (m_support == EBSupport::none)
-    {
-        return ::new FArrayBox(src, amrex::make_alias);
-    }
-    else
-    {
-        return ::new EBFArrayBox(static_cast<EBFArrayBox const&>(src), amrex::make_alias);
-    }
-}
-
-void
-EBFArrayBoxFactory::destroyHostAlias (FArrayBox* fab) const
 {
     if (m_support == EBSupport::none)
     {
@@ -78,6 +50,34 @@ EBFArrayBoxFactory::destroyHostAlias (FArrayBox* fab) const
         ::delete p;
     }
 }
+
+#ifdef AMREX_USE_GPU
+FArrayBox*
+EBFArrayBoxFactory::createDeviceAlias (const FArrayBox& src) const
+{
+    if (m_support == EBSupport::none)
+    {
+        return new FArrayBox(src, amrex::make_alias, 0, src.nComp());
+    }
+    else
+    {
+        return new EBFArrayBox(static_cast<EBFArrayBox const&>(src), amrex::make_alias, 0, src.nComp());
+    }
+}
+
+void
+EBFArrayBoxFactory::destroyDeviceAlias (FArrayBox* fab) const
+{
+    if (m_support == EBSupport::none)
+    {
+        delete fab;
+    }
+    else
+    {
+        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
+        delete p;
+    }
+}
 #endif
 
 EBFArrayBoxFactory*
@@ -87,13 +87,13 @@ EBFArrayBoxFactory::clone () const
 }
 
 EB2::IndexSpace const*
-EBFArrayBoxFactory::getEBIndexSpace () const
+EBFArrayBoxFactory::getEBIndexSpace () const noexcept
 {
     return (m_parent) ? m_parent->getEBIndexSpace() : nullptr;
 }
 
 int
-EBFArrayBoxFactory::maxCoarseningLevel () const
+EBFArrayBoxFactory::maxCoarseningLevel () const noexcept
 {
     if (m_parent) {
         EB2::IndexSpace const* ebis = m_parent->getEBIndexSpace();
@@ -104,13 +104,13 @@ EBFArrayBoxFactory::maxCoarseningLevel () const
 }
 
 const DistributionMapping&
-EBFArrayBoxFactory::DistributionMap () const
+EBFArrayBoxFactory::DistributionMap () const noexcept
 {
     return m_ebdc->getVolFrac().DistributionMap();
 }
 
 const BoxArray&
-EBFArrayBoxFactory::boxArray () const
+EBFArrayBoxFactory::boxArray () const noexcept
 {
     return m_ebdc->getVolFrac().boxArray();
 }

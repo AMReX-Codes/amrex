@@ -1,0 +1,60 @@
+AMREX_INSTALL_DIR ?= ../../../../../tmp_install_dir
+PKG_CONFIG_PATH := $(AMREX_INSTALL_DIR)/lib/pkgconfig:$(PKG_CONFIG_PATH)
+AMREX_CXXFLAGS     := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags          amrex)
+AMREX_INCLUDEFLAGS := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags-only-I   amrex)
+AMREX_LIBFLAGS     := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs            amrex)
+AMREX_FFLAGS       := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --variable=fflags amrex)
+
+CXX = nvcc
+FC = pgfortran
+
+CINCLUDES = -I. -I../../Source
+CXXFLAGS = $(AMREX_CXXFLAGS)
+
+FINCLUDES = -I. $(AMREX_INCLUDEFLAGS)
+FFLAGS = $(AMREX_FFLAGS)
+
+LDFLAGS = $(AMREX_LIBFLAGS)
+
+vpath %.cpp . ../../Source
+vpath %.F90 .
+vpath %.H   . ../../Source
+
+default: main.exe
+
+main.exe: main.o Evolve.o EMParticleContainer.o EMParticleContainerInit.o em_pic_3d.o NodalFlags.o IO.o
+	$(FC) -o $@ $(FFLAGS) $^ $(LDFLAGS)
+
+main.o: main.cpp EMParticleContainer.H Evolve.H NodalFlags.H Constants.H IO.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+Evolve.o: Evolve.cpp Constants.H em_pic_F.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+EMParticleContainer.o: EMParticleContainer.cpp EMParticleContainer.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+EMParticleContainerInit.o: EMParticleContainerInit.cpp EMParticleContainer.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+em_pic_3d.o : em_pic_3d.F90 em_pic_F.H
+	$(FC) -o $@ -c $(FFLAGS) $(FINCLUDES) $<
+
+NodalFlags.o: NodalFlags.cpp NodalFlags.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+IO.o: IO.cpp IO.H
+	$(CXX) -o $@ -c $(CXXFLAGS) $(CINCLUDES) $<
+
+.PHONY: clean realclean
+
+clean:
+	$(RM) *.o *.mod
+
+realclean: clean
+	$(RM) main.exe
+
+print-%:
+	@echo $* is '$($*)'
+	@echo '    origin = $(origin $*)'
+	@echo '     value = $(value  $*)'```

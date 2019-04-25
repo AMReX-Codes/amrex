@@ -111,8 +111,7 @@ F90FLAGS += -WF,-C!
 
 FFLAGS   += -qfixed=72
 
-F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
-FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
+FMODULES = -qmoddir=$(fmoddir) -I $(fmoddir)
 
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
@@ -132,8 +131,8 @@ endif
 FORTLINK = LOWERCASE
 
 ifeq ($(USE_CUDA),TRUE)
-  F90FLAGS += -qcuda
-  FFLAGS += -qcuda
+  F90FLAGS += -qcuda -qtgtarch=sm_$(CUDA_ARCH)
+  FFLAGS += -qcuda -qtgtarch=sm_$(CUDA_ARCH)
 
   ifdef CUDA_MAXREGCOUNT
     F90FLAGS += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)

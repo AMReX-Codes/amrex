@@ -97,6 +97,26 @@ struct StructOfArrays {
         for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count); 
     }
 
+    GpuArray<Real*, NReal> realarray ()
+    {
+        GpuArray<Real*, NReal> arr;
+        for (int i = 0; i < NReal; ++i)
+        {
+            arr[i] = m_rdata[i].dataPtr();
+        }
+        return arr;
+    }
+
+    GpuArray<int*, NInt> intarray ()
+    {
+        GpuArray<int*, NInt> arr;
+        for (int i = 0; i < NInt; ++i)
+        {
+            arr[i] = m_rdata[i].dataPtr();
+        }
+        return arr;
+    }
+
     int m_num_neighbor_particles;
 
 private:

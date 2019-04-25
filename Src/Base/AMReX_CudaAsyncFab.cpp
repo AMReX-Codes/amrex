@@ -73,19 +73,19 @@ AsyncFab::clear ()
 }
 
 FArrayBox&
-AsyncFab::hostFab () const
+AsyncFab::hostFab () const noexcept
 {
     return m_impl->hostFab();
 }
 
 Array4<Real const>
-AsyncFab::array () const
+AsyncFab::array () const noexcept
 {
     return m_impl->hostFab().const_array();
 }
 
 Array4<Real>
-AsyncFab::array ()
+AsyncFab::array () noexcept
 {
     return m_impl->hostFab().array();
 }

@@ -2,6 +2,8 @@
 #define RGITER_H_
 
 #include <RegionGraph.H>
+//#include <AMReX_Amr.H>
+//#include <PerillaRts.H>
 #include <fstream>
 
 namespace amrex{
@@ -27,18 +29,27 @@ namespace amrex{
 	    int  boxGrow, index, scomp, ncomp, iteration;
 	    double time;
 	    double getFireableTime;
+	    amrex::MultiFab *_dest;
 
 	    IndexType     typ;
 
-	    std::vector<amrex::AsyncFillPatchIterator*> m_level_afpi; 
-	    std::vector<amrex::AsyncFillPatchIterator*> m_upper_level_afpi;
+	    Vector<amrex::AsyncFillPatchIterator*> m_level_afpi; 
+	    Vector<amrex::AsyncFillPatchIterator*> m_upper_level_afpi;
 	    std::ofstream fout;
 
 	public:
-	    RGIter(RegionGraph* rg, bool enableAllTasks=false);
-	    RGIter(RegionGraph* rg, RegionGraph* drg, bool isDep=true);
+	    RGIter(RegionGraph* rg 
+#ifdef USE_PERILLA_ON_DEMAND
+            ,std::vector<RegionGraph*> graphArray
+#endif
+	    , bool enableAllTasks=false);
+	    RGIter(RegionGraph* rg 
+#ifdef USE_PERILLA_ON_DEMAND
+            ,std::vector<RegionGraph*> graphArray
+#endif
+	    , RegionGraph* drg, bool isDep=true);
 	    RGIter(amrex::AsyncFillPatchIterator* afpi, bool enableAllTasks=false);
-	    RGIter(std::vector<amrex::AsyncFillPatchIterator*> afpi, std::vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
+	    RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi, 
 		    amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr);
 	    ~RGIter();
 
@@ -49,6 +60,7 @@ namespace amrex{
 	    //! Is the iterator valid, are more regions to iterate over?
 	    bool isValid();
 	    int LocalIndex() const { return currentRegion; }
+	    void exec();
 
 	    amrex::Box tileBox();
 	    amrex::Box validBox() const;

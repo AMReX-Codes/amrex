@@ -10,8 +10,10 @@ namespace perilla{
     class WorkerThread
     {
 	static void* team_shared_memory[perilla::NUM_THREAD_TEAMS];  
+        int tid;
 	public:
-        static Barrier globalBarrier;
+        static void init();
+        static Barrier *globalBarrier;
         static Barrier localBarriers[perilla::NUM_THREAD_TEAMS];
 	static int perilla_tid();
 	static int perilla_wtid();
@@ -35,8 +37,6 @@ namespace perilla{
         static void syncWorkerThreads(int numthreads);
         static void syncComputeWorkerThreads();
         static void syncComputeWorkerThreads(int numthreads);
-        //static Barrier* globalBarrier;
-        //Barrier* localBarrier;
     };
 
     static int tid(){return WorkerThread::perilla_tid();}

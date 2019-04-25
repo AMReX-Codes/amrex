@@ -44,8 +44,9 @@ else
 endif
 CFLAGS   += -std=c99
 
-F90FLAGS += -module $(fmoddir) -I$(fmoddir) -implicitnone
-FFLAGS   += -module $(fmoddir) -I$(fmoddir)
+F90FLAGS += -implicitnone
+
+FMODULES = -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
 

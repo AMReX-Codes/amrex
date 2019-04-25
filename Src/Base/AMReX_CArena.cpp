@@ -183,7 +183,7 @@ CArena::free (void* vp)
 }
 
 std::size_t
-CArena::heap_space_used () const
+CArena::heap_space_used () const noexcept
 {
     return m_used;
 }

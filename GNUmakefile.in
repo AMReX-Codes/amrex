@@ -3,9 +3,16 @@ AMREX_HOME := $(shell pwd)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
+ifeq ($(USE_CUDA),TRUE)
+  ALLOW_DIFFERENT_COMP = TRUE
+endif
+
 Pdirs := Base AmrCore Amr Boundary
 ifeq ($(USE_PARTICLES),TRUE)
     Pdirs += Particle
+   ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
+     Pdirs += F_Interfaces/Particle
+   endif
 endif
 ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
@@ -24,6 +31,11 @@ ifeq ($(USE_HYPRE),TRUE)
       Pdirs += Extern/HYPRE
    endif
 endif
+ifeq ($(USE_PETSC),TRUE)
+   ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+      Pdirs += Extern/PETSc
+   endif
+endif
 ifeq ($(USE_SENSEI_INSITU),TRUE)
 	Pdirs += Extern/SENSEI
 endif
@@ -38,7 +50,7 @@ all: $(amrexlib)
 distclean: realclean
 	$(SILENT) $(RM) GNUmakefile
 
-install: install_lib install_headers install_fortran_modules
+install: install_lib install_headers install_fortran_modules install_pkg_config
 
 uninstall:
 	@echo Uninstalling...
