@@ -380,13 +380,24 @@ updateNeighborsGPU ()
                         cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
                                         thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
                                         num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
+
+                        // apply periodic shift so that a naive distance calculation returns
+                        // the shortest distance between real and neighbor particles
+                        if (this->Geom(lev).isAnyPeriodic()) {
+                            thrust::transform(thrust::device, 
+                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst)),
+                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst) + num_to_add),
+                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst)),
+                                              functors::periodicTransformation(this->Geom(lev).data(),
+                                                                               dst_code.periodic_shift));
+                        }
                         dst += num_to_add*sizeof(ParticleType);
                     }
                 }
             }
         }
     }
-
+    
     if (ParallelDescriptor::NProcs() == 1) {
         BL_ASSERT(not_ours.empty());
     }
