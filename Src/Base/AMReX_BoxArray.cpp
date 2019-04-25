@@ -621,6 +621,12 @@ BoxArray::coarsen (const IntVect& iv)
 BoxArray&
 BoxArray::growcoarsen (int n, const IntVect& iv)
 {
+    return growcoarsen(IntVect(n), iv);
+}
+
+BoxArray&
+BoxArray::growcoarsen (IntVect const& ngrow, const IntVect& iv)
+{
     uniqify();
 
     const int N = m_ref->m_abox.size();
@@ -628,7 +634,7 @@ BoxArray::growcoarsen (int n, const IntVect& iv)
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++) {
-        m_ref->m_abox[i].grow(n).coarsen(iv);
+        m_ref->m_abox[i].grow(ngrow).coarsen(iv);
     }
     return *this;
 }

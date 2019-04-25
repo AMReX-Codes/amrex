@@ -15,7 +15,30 @@ set_target_properties( amrex
    INTERFACE_INCLUDE_DIRECTORIES
    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
    )
-   
+
+# Load Flags targets and use them if no user-defined flags is given
+include(AMReXFlagsTargets)
+
+if (NOT CMAKE_Fortran_FLAGS)
+   target_link_libraries(amrex
+      PUBLIC
+      $<BUILD_INTERFACE:Flags_Fortran>
+      )
+endif ()
+
+if (NOT CMAKE_CXX_FLAGS)
+   target_link_libraries(amrex
+      PUBLIC
+      $<BUILD_INTERFACE:Flags_CXX>
+      )
+endif ()
+
+if (ENABLE_FPE)
+   target_link_libraries(amrex
+      PUBLIC
+      $<BUILD_INTERFACE:Flags_FPE>
+      )
+endif ()
 
 # General configuration
 include ( AMReX_Config )
@@ -38,6 +61,10 @@ endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
    add_subdirectory(LinearSolvers)
+   target_link_libraries(amrex
+      PUBLIC
+      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
+      )
 endif ()
 
 if (ENABLE_FORTRAN_INTERFACES) 
@@ -53,6 +80,10 @@ endif ()
 # 
 if (ENABLE_AMRDATA)
    add_subdirectory(Extern/amrdata)
+   target_link_libraries(amrex
+      PUBLIC
+      $<BUILD_INTERFACE:Flags_Fortran_REQUIRED>
+      )
 endif()
 
 if (ENABLE_PROFPARSER)
@@ -125,9 +156,9 @@ endif ()
 
 
 #
-# Install amrex
+# Install amrex  -- Export 
 # 
 include(AMReXInstallHelpers)
-install_amrex()
+install_amrex(Flags_CXX Flags_Fortran Flags_FPE)
 
 

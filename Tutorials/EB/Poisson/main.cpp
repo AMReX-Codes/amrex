@@ -9,6 +9,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MLMG.H>
 
+#include "Poisson.H"
+
 using namespace amrex;
 
 int main (int argc, char* argv[])
@@ -27,12 +29,6 @@ int main (int argc, char* argv[])
             pp.query("verbose", verbose);
             pp.query("n_cell", n_cell);
             pp.query("max_grid_size", max_grid_size);
-            pp.query("is_periodic", is_periodic);
-
-            if (is_periodic == 0) {
-                Abort("This tutorial currently requires periodic boundary conditions");
-            }
-
         }
 
         Geometry geom;
@@ -40,8 +36,15 @@ int main (int argc, char* argv[])
         DistributionMapping dmap;
         {
             RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-            Array<int,AMREX_SPACEDIM> isp{AMREX_D_DECL(is_periodic,is_periodic,is_periodic)};
-            Geometry::Setup(&rb, 0, isp.data());
+
+            // periodicity
+            // note there is currently an AMReX issue with enclosed domains that do not touch the boundary
+            // you must specifiy Dirichlet domain boundary conditions so AMReX doesn't think the
+            // problem is singular
+            Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+
+            Geometry::Setup(&rb, 0, is_periodic.data());
+
             Box domain(IntVect{AMREX_D_DECL(0,0,0)},
                        IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
             geom.define(domain);
@@ -71,11 +74,11 @@ int main (int argc, char* argv[])
         EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
         // charge density and electric potential
-        MultiFab q  (grids, dmap, 2, 0, MFInfo(), factory);
-        MultiFab phi(grids, dmap, 2, 0, MFInfo(), factory);
+        MultiFab q  (grids, dmap, 1, 0, MFInfo(), factory);
+        MultiFab phi(grids, dmap, 1, 0, MFInfo(), factory);
 
-        q.setVal(1.0);
-        phi.setVal(1.0);
+        q.setVal(0.0);
+        InitData(q);
 
         LPInfo info;
 
@@ -85,9 +88,9 @@ int main (int argc, char* argv[])
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_lo;
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_hi;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            // force periodic
-            bc_lo[idim] = LinOpBCType::Periodic;
-            bc_hi[idim] = LinOpBCType::Periodic;
+            // see comment about boundary conditions above
+            bc_lo[idim] = LinOpBCType::Dirichlet;
+            bc_hi[idim] = LinOpBCType::Dirichlet;
         }
 
         // Boundary of the whole domain. This functions must be called,
@@ -127,10 +130,13 @@ int main (int argc, char* argv[])
         MLMG mlmg(mlebabec);
 
         // relative and absolute tolerances for linear solve
-        const Real tol_rel = 0.1;
+        const Real tol_rel = 1.e-10;
         const Real tol_abs = 0.0;
 
+        mlmg.setVerbose(verbose);
+        
         // Solve linear system
+        phi.setVal(0.0); // initial guess for phi
         mlmg.solve({&phi}, {&q}, tol_rel, tol_abs);
         
         // store plotfile variables; q and phi
