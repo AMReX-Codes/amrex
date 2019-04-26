@@ -33,7 +33,7 @@ template <typename T, typename U>
 CopyMemory
 makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp)
 {
-    return { src.p, dst.p, src.begin, src.end, dst.begin, dst.end, scomp, ncomp };
+    return { (void*)(src.p), (void*)(dst.p), src.begin, src.end, dst.begin, dst.end, scomp, ncomp };
 }
 
 template <typename T>
@@ -44,13 +44,24 @@ struct CudaGraph
     T* m_parms_d = nullptr;
     bool graph_is_ready = false;
 
+    CudaGraph()
+        : m_parms(0)
+    {
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+    }
     CudaGraph(int num)
         : m_parms(num)
     {
+        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
         m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     ~CudaGraph() {
         The_Device_Arena()->free(m_parms_d);
+    }
+
+    void resize(long num) {
+        m_parms.resize(num);
+        m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     void setGraph(cudaGraphExec_t const& graph) { 
         m_graph = graph;
@@ -59,12 +70,12 @@ struct CudaGraph
     void setParams(int idx, T const& a_parm) {
         m_parms[idx] = a_parm;
     }
-    T* getDevicePtr (int idx) {
-        return m_parms_d + idx;
+    T* getDevicePtr (int idx) const {
+        return (m_parms_d + idx);
     }
-    bool ready() { return graph_is_ready; }
+    bool ready() const { return graph_is_ready; }
     void executeGraph() {
-        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+//        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
         cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
                    cudaMemcpyHostToDevice);
 
