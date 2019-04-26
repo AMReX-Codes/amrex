@@ -155,7 +155,6 @@ public:
     using CharVector     = Gpu::ManagedDeviceVector<char>;
     using SendBuffer     = Gpu::PolymorphicDeviceVector<char>;
 
-
     ParticleContainer ()
       :
       communicate_real_comp(NArrayReal, true),
@@ -623,10 +622,10 @@ public:
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
 
     const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const
-        { return m_particles[lev].at(std::make_pair(grid,tile)); }
+    { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
-        { return m_particles[lev].at(std::make_pair(grid, tile)); }
+    { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     template <class Iterator>
 
@@ -638,6 +637,11 @@ public:
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
+    ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
+    {
+        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        return ParticlesAt(lev, grid, tile);
+    }
 
     /**
     * \brief Functions depending the layout of the data.  Use with caution.
@@ -862,9 +866,13 @@ protected:
     std::map<int, SendBuffer> m_not_ours;
 #endif
 
-    int NumRealComps () const { return NArrayReal + m_num_runtime_real; }
-    int NumIntComps  () const { return NArrayInt  + m_num_runtime_int;  } 
+    int NumRuntimeRealComps () const { return m_num_runtime_real; }
+    int NumRuntimeIntComps  () const { return m_num_runtime_int;  } 
+    
+    int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
+    int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
 
+    
 private:
 
     virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
