@@ -69,10 +69,6 @@ int main (int argc, char* argv[])
         pp.queryarr("is_periodic", is_periodic);
     }
 
-    amrex::Print() << std::endl;
-    amrex::Print() << " Domain size: " << n_cell << " cells." << std::endl;
-    amrex::Print() << " Max grid size: " << max_grid_size << " cells." << std::endl << std::endl;
-
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
@@ -99,19 +95,32 @@ int main (int argc, char* argv[])
     
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-  
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
+ 
+    amrex::Print() << std::endl;
+    amrex::Print() << " Domain size: " << n_cell << " cells." << std::endl;
+    amrex::Print() << " Max grid size: " << max_grid_size << " cells." << std::endl;
+    amrex::Print() << " Boxes: " << ba.size() << std::endl << std::endl;
+    amrex::Print() << "========================================================" << std::endl << std::endl;
 
-    Gpu::setLaunchRegion(true);
+    MultiFab mf_graph(ba, dm, Ncomp, Nghost);
+    MultiFab mf_gpu  (ba, dm, Ncomp, Nghost);
+    MultiFab mf_cpu  (ba, dm, Ncomp, Nghost);
+
+    Real start_time, end_time;
+    Gpu::setLaunchRegion(true); 
+    Gpu::setGraphRegion(true); 
+
+    // With GPUs and Graphs
     {
         // Setup the data outside the FillBoundary timers.
         // Ensures data is moved to GPU.
-        MultiFab x(ba, dm, Ncomp, Nghost);
-        for (MFIter mfi(x); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf_graph); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.validbox();
-            Array4<Real> phi = x[mfi].array(); 
+            Array4<Real> phi = mf_graph[mfi].array(); 
             GeometryData geomData = geom.data();
 
             amrex::launch(bx,
@@ -121,52 +130,129 @@ int main (int argc, char* argv[])
             });
          }    
 
-        Real start_time = amrex::second();
-        for (int i=0; i<nsteps; i++)
-        {
-            x.FillBoundary(geom.periodicity());
-        }
-        Real end_time = amrex::second();
+        // First FillBoundary will create graph and run.
+        // Timed separately.
+        BL_PROFILE_VAR("GRAPH: Create Graph and Run", makeandrungraph);
 
-        std::cout << ParallelDescriptor::MyProc() << " : Time for GPU to complete " << nsteps << " FillBoundary(s) " << end_time - start_time << std::endl;
+        start_time = amrex::second();
+        mf_graph.FillBoundary(geom.periodicity());
+        end_time = amrex::second();
+
+        BL_PROFILE_VAR_STOP(makeandrungraph);
+
+        std::cout << ParallelDescriptor::MyProc() << " : Time for initial FillBoundary (Create & Run Graph) = " << end_time - start_time << std::endl;
+
+        // Run the remainder of the FillBoundary's (nsteps-1)
+        BL_PROFILE_VAR("GRAPH: Run Graph", rungraph);
+
+        start_time = amrex::second();
+        for (int i=1; i<nsteps; ++i)
+        {
+            mf_graph.FillBoundary(geom.periodicity());
+        }
+        end_time = amrex::second();
+
+        BL_PROFILE_VAR_STOP(rungraph);
+
+        std::cout << ParallelDescriptor::MyProc() << " : Time for " << nsteps-1 << " subsequent FillBoundary(s) = " << end_time - start_time << std::endl;
+        std::cout << ParallelDescriptor::MyProc() << " : Average time per graph-only FillBoundary = " << (end_time - start_time)/(nsteps) << std::endl;
+        std::cout << "========================================================" << std::endl << std::endl;
     }
 
-    ParallelDescriptor::Barrier();
-
-    amrex::Print() << std::endl << "************************************************" << std::endl;
-
-    Gpu::setLaunchRegion(false);
+    Gpu::setLaunchRegion(true); 
+    Gpu::setGraphRegion(false); 
+    // With GPU and no graphs
     {
         // Setup the data outside the FillBoundary timers.
         // Ensures data is moved to GPU.
-        MultiFab x(ba, dm, Ncomp, Nghost);
-        for (MFIter mfi(x); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf_gpu); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.validbox();
-            Array4<Real> phi = x[mfi].array(); 
+            Array4<Real> phi = mf_gpu[mfi].array(); 
             GeometryData geomData = geom.data();
 
             amrex::launch(bx,
-            [=] AMREX_GPU_HOST_DEVICE (Box const& tbx)
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 initdata(tbx, phi, geomData);
             });
          }    
 
-        Real start_time = amrex::second();
-        for (int i=0; i<nsteps; i++)
+        // Run the nstep FillBoundaries
+        BL_PROFILE_VAR("GPU: FillBoundary", GPUFB);
+
+        start_time = amrex::second();
+        for (int i=0; i<nsteps; ++i)
         {
-            x.FillBoundary(geom.periodicity());
+            mf_gpu.FillBoundary(geom.periodicity());
         }
-        Real end_time = amrex::second();
+        end_time = amrex::second();
 
-        std::cout << ParallelDescriptor::MyProc() << " : Time for CPU to complete " << nsteps << " FillBoundary(s) " << end_time - start_time << std::endl;
+        BL_PROFILE_VAR_STOP(GPUFB);
 
+        std::cout << ParallelDescriptor::MyProc() << " : Time for " << nsteps << " FillBoundary(s) = " << end_time - start_time << std::endl;
+        std::cout << ParallelDescriptor::MyProc() << " : Average time per GPU FillBoundary = " << (end_time - start_time)/(nsteps) << std::endl;
+        std::cout << "========================================================" << std::endl << std::endl;
     }
 
-    ParallelDescriptor::Barrier();
+    Gpu::setLaunchRegion(false); 
+    // With CPU
+    {
+        // Setup the data outside the FillBoundary timers.
+        // Ensures data is moved to GPU.
+        for (MFIter mfi(mf_cpu); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.validbox();
+            Array4<Real> phi = mf_cpu[mfi].array(); 
+            GeometryData geomData = geom.data();
 
-    amrex::Print() << std::endl << "************************************************" << std::endl << std::endl;
+            amrex::launch(bx,
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            {
+                initdata(tbx, phi, geomData);
+            });
+         }    
+
+        // Run the remainder of the FillBoundary's (nsteps-1)
+        BL_PROFILE_VAR("CPU: FillBoundary", CPUFB);
+
+        start_time = amrex::second();
+        for (int i=0; i<nsteps; ++i)
+        {
+            mf_cpu.FillBoundary(geom.periodicity());
+        }
+        end_time = amrex::second();
+
+        BL_PROFILE_VAR_STOP(CPUFB);
+
+        std::cout << ParallelDescriptor::MyProc() << " : Time for " << nsteps << " FillBoundary(s) = " << end_time - start_time << std::endl;
+        std::cout << ParallelDescriptor::MyProc() << " : Average time per CPU FillBoundary = " << (end_time - start_time)/(nsteps) << std::endl;
+        std::cout << "========================================================" << std::endl << std::endl;
+    }
+
+    {
+        amrex::Real max_error;
+        MultiFab mf_error (ba, dm, Ncomp, Nghost);
+
+        MultiFab::Copy(mf_error, mf_cpu, 0, 0, 1, 1);
+        MultiFab::Subtract(mf_error, mf_gpu, 0, 0, 1, 1);
+        max_error = mf_error.norm0(0, 1);
+        amrex::Print() << "Max error of CPU to GPU: " << max_error << std::endl; 
+
+        MultiFab::Copy(mf_error, mf_graph, 0, 0, 1, 1);
+        MultiFab::Subtract(mf_error, mf_cpu, 0, 0, 1, 1);
+        max_error = mf_error.norm0(0, 1);
+        amrex::Print() << "Max error of CPU to Graph: " << max_error << std::endl; 
+
+        std::cout << "========================================================" << std::endl << std::endl;
+    }
+
+    // Add "Average FillBoundaries to break even" math.
+    // SegFault?
+    // CUDA 10 proofing.  Device Calls, FillBoundary, Graph Definitions.
+
+
+    amrex::Print() << std::endl << "************************************************" << std::endl;
     }
 
     amrex::Finalize();
