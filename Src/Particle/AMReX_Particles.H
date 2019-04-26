@@ -855,8 +855,8 @@ protected:
     Gpu::ManagedDeviceVector<int> m_index_sequence_tmp;
 
     ParticleVector m_aos_to_redistribute;
-    std::array< RealVector, NArrayReal> m_real_arrays_to_redistribute;
-    std::array< IntVector,  NArrayInt > m_int_arrays_to_redistribute;
+    std::vector<RealVector> m_real_arrays_to_redistribute;
+    std::vector<IntVector > m_int_arrays_to_redistribute;
     Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
 
     std::map<int, SendBuffer> m_not_ours;
