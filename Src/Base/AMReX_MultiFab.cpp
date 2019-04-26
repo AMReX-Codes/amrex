@@ -571,13 +571,22 @@ bool
 MultiFab::contains_nan (int scomp,
                         int ncomp,
                         int ngrow,
-			bool local) const
+                        bool local) const
+{
+    return contains_nan(scomp, ncomp, IntVect(ngrow), local);
+}
+
+bool 
+MultiFab::contains_nan (int scomp,
+                        int ncomp,
+                        const IntVect& ngrow,
+                        bool local) const
 {
     // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
-    BL_ASSERT(ngrow >= 0 && ngrow <= nGrow());
+    BL_ASSERT(IntVect::TheZeroVector().allLE(ngrow) && ngrow.allLE(nGrowVect()));
 
     bool r = amrex::ReduceLogicalOr(*this, ngrow,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> bool
@@ -585,8 +594,9 @@ MultiFab::contains_nan (int scomp,
         return fab.contains_nan(bx,scomp,ncomp);
     });
 
-    if (!local)
-	ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
+    if (!local) {
+        ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
+    }
 
     return r;
 }
@@ -594,7 +604,7 @@ MultiFab::contains_nan (int scomp,
 bool 
 MultiFab::contains_nan (bool local) const
 {
-    return contains_nan(0,nComp(),nGrow(),local);
+    return contains_nan(0,nComp(),nGrowVect(),local);
 }
 
 bool 
