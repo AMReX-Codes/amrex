@@ -14,7 +14,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
 
-    int n = WarpX::use_laser ? nspecies+1 : nspecies;
+    int n = nspecies + nlasers;
     allcontainers.resize(n);
     for (int i = 0; i < nspecies; ++i) {
         if (species_types[i] == PCTypes::Physical) {
@@ -25,9 +25,11 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         }
         allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
     }
-    if (WarpX::use_laser) {
-	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
+
+    for (int i = nspecies; i < nspecies+nlasers; ++i) {
+        allcontainers[i].reset(new LaserParticleContainer(amr_core,n-1, lasers_names[i]));
     }
+
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));	
 }
 
@@ -37,7 +39,7 @@ MultiParticleContainer::ReadParameters ()
     static bool initialized = false;
     if (!initialized)
     {
-	ParmParse pp("particles");
+    ParmParse pp("particles");
 
 	pp.query("nspecies", nspecies);
 	BL_ASSERT(nspecies >= 0);
@@ -70,8 +72,18 @@ MultiParticleContainer::ReadParameters ()
                 }
             }
         }
+
 	pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
 	pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
+
+	ParmParse ppl("lasers");
+	ppl.query("nlasers", nlasers);
+	BL_ASSERT(nlasers >= 0);
+    if (nlasers > 0) {
+        ppl.getarr("lasers_names", lasers_names);
+        BL_ASSERT(lasers.size() == nlasers);
+    }
+
 	initialized = true;
     }
 }

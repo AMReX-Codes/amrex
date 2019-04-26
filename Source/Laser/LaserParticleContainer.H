@@ -13,7 +13,7 @@ class LaserParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
+    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies, const std::string& name);
     virtual ~LaserParticleContainer () {}
 
     virtual void InitData () final;
@@ -43,6 +43,10 @@ public:
                         const amrex::MultiFab& ) final;
 
     virtual void PostRestart () final;
+
+protected:
+    
+    std::string laser_name;
 
 private:
 

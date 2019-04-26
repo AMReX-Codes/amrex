@@ -192,6 +192,8 @@ protected:
 
     std::vector<std::string> species_names;
 
+    std::vector<std::string> lasers_names;
+
     std::vector<int> deposit_on_main_grid;
 
     std::vector<PCTypes> species_types;
@@ -206,6 +208,7 @@ private:
     void ReadParameters ();
 
     // runtime parameters
-    int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
+    int nlasers = 0;
+    int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
 };
 #endif /*WARPX_ParticleContainer_H_*/

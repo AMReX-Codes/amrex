@@ -46,7 +46,6 @@ long WarpX::noz = 1;
 bool WarpX::use_fdtd_nci_corr = false;
 int  WarpX::l_lower_order_in_v = true;
 
-bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
 bool WarpX::refine_plasma     = false;
@@ -342,7 +341,6 @@ WarpX::ReadParameters ()
     pp.query("n_buffer", n_buffer);
     pp.query("const_dt", const_dt);
 
-	pp.query("use_laser", use_laser);
     // Read filter and fill IntVect filter_npass_each_dir with
     // proper size for AMREX_SPACEDIM
 	pp.query("use_filter", use_filter);

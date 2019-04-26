@@ -19,15 +19,14 @@ namespace
     }
 }
 
-LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
-    : WarpXParticleContainer(amr_core, ispecies)
+LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies, const std::string& name)
+    : WarpXParticleContainer(amr_core, ispecies),
+      laser_name(name)
 {
     charge = 1.0;
     mass = std::numeric_limits<Real>::max();
 
-    if (WarpX::use_laser)
-    {
-	ParmParse pp("laser");
+	ParmParse pp(laser_name);
 
 	// Parse the type of laser profile and set the corresponding flag `profile`
 	std::string laser_type_s;
@@ -160,7 +159,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
                 prob_domain.setHi(hi);
             }
         }
-    }
 }
 
 void
