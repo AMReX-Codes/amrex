@@ -611,10 +611,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
       m_LocTags(new CopyComTag::CopyComTagsContainer),
       m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
       m_RcvTags(new CopyComTag::MapOfCopyComTagContainers),
-      m_nuse(0),
-      m_localCopy(fa.local_size()),
-      m_copyToBuffer(fa.local_size()),
-      m_copyFromBuffer(fa.local_size())
+      m_nuse(0)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
 
