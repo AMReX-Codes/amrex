@@ -38,10 +38,10 @@ MultiParticleContainer::ReadParameters ()
     static bool initialized = false;
     if (!initialized)
     {
-    ParmParse pp("particles");
+        ParmParse pp("particles");
 
-	pp.query("nspecies", nspecies);
-	BL_ASSERT(nspecies >= 0);
+        pp.query("nspecies", nspecies);
+        BL_ASSERT(nspecies >= 0);
 
         if (nspecies > 0) {
             pp.getarr("species_names", species_names);
@@ -72,18 +72,18 @@ MultiParticleContainer::ReadParameters ()
             }
         }
 
-	pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
-	pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
+        pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
+        pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
 
-	ParmParse ppl("lasers");
-	ppl.query("nlasers", nlasers);
-	BL_ASSERT(nlasers >= 0);
-    if (nlasers > 0) {
-        ppl.getarr("names", lasers_names);
-        BL_ASSERT(lasers_names.size() == nlasers);
-    }
+        ParmParse ppl("lasers");
+        ppl.query("nlasers", nlasers);
+        BL_ASSERT(nlasers >= 0);
+        if (nlasers > 0) {
+            ppl.getarr("names", lasers_names);
+            BL_ASSERT(lasers_names.size() == nlasers);
+        }
 
-	initialized = true;
+        initialized = true;
     }
 }
 
@@ -91,7 +91,7 @@ void
 MultiParticleContainer::AllocData ()
 {
     for (auto& pc : allcontainers) {
-	pc->AllocData();
+        pc->AllocData();
     }
     pc_tmp->AllocData();
 }
@@ -100,7 +100,7 @@ void
 MultiParticleContainer::InitData ()
 {
     for (auto& pc : allcontainers) {
-	pc->InitData();
+        pc->InitData();
     }
     pc_tmp->InitData();
 }
@@ -112,7 +112,7 @@ MultiParticleContainer::FieldGatherES (const Vector<std::array<std::unique_ptr<M
                                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
     for (auto& pc : allcontainers) {
-	pc->FieldGatherES(E, masks);
+        pc->FieldGatherES(E, masks);
     }
 }
 

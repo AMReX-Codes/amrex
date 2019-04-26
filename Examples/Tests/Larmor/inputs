@@ -82,7 +82,4 @@ warpx.do_moving_window = 0
 # Particle Injection
 warpx.do_plasma_injection = 0
 
-# Laser
-lasers.nlasers = 0
-
 warpx.do_dive_cleaning = 1
