@@ -31,6 +31,16 @@ struct ParticleTile
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
 
+    ParticleTile()
+        : m_defined(false)
+        {}
+
+    void define(int a_num_runtime_real, int a_num_runtime_int)
+    {
+        m_defined = true;
+        GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int);
+    }
+    
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
     const AoS& GetArrayOfStructs () const { return m_aos_tile; }
 
@@ -169,6 +179,8 @@ private:
 
     AoS m_aos_tile;
     SoA m_soa_tile;
+
+    bool m_defined;
 };
 
 } // namespace amrex;

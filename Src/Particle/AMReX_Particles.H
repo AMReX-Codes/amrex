@@ -155,13 +155,15 @@ public:
     using CharVector     = Gpu::ManagedDeviceVector<char>;
     using SendBuffer     = Gpu::PolymorphicDeviceVector<char>;
 
-
     ParticleContainer ()
       :
       communicate_real_comp(NArrayReal, true),
       communicate_int_comp(NArrayInt, true),
       m_verbose(0),
-      m_gdb(nullptr)
+      m_gdb(nullptr),
+      m_runtime_comps_defined(false),
+      m_num_runtime_real(0),
+      m_num_runtime_int(0)        
     {
         Initialize ();
     }
@@ -171,7 +173,10 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
 	m_verbose(0),
-	m_gdb(gdb)
+	m_gdb(gdb),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         reserveData();
@@ -185,7 +190,10 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba)
+	m_gdb_object(geom,dmap,ba),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -202,7 +210,10 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba,rr)
+	m_gdb_object(geom,dmap,ba,rr),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -230,7 +241,10 @@ public:
 #endif
                     ref_ratio.push_back(rr[i][0]);
                 }
-                return ref_ratio;  }() )
+                return ref_ratio;  }() ),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -608,10 +622,10 @@ public:
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
 
     const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const
-        { return m_particles[lev].at(std::make_pair(grid,tile)); }
+    { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
-        { return m_particles[lev].at(std::make_pair(grid, tile)); }
+    { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     template <class Iterator>
 
@@ -623,6 +637,11 @@ public:
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
         { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
+    ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
+    {
+        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps());
+        return ParticlesAt(lev, grid, tile);
+    }
 
     /**
     * \brief Functions depending the layout of the data.  Use with caution.
@@ -729,6 +748,22 @@ public:
     void EnforcePeriodicGPU ();
 #endif
 
+    void AddRealComp (bool communicate=true)
+    {
+        m_runtime_comps_defined = true;
+        m_num_runtime_real++;
+        communicate_real_comp.push_back(communicate);
+        SetParticleSize();
+    }
+
+    void AddIntComp (bool communicate=true)
+    {
+        m_runtime_comps_defined = true;
+        m_num_runtime_int++;
+        communicate_int_comp.push_back(communicate);
+        SetParticleSize();
+    }
+    
 protected:
 
     /**
@@ -824,14 +859,22 @@ protected:
     Gpu::ManagedDeviceVector<int> m_index_sequence_tmp;
 
     ParticleVector m_aos_to_redistribute;
-    std::array< RealVector, NArrayReal> m_real_arrays_to_redistribute;
-    std::array< IntVector,  NArrayInt > m_int_arrays_to_redistribute;
+    std::vector<RealVector> m_real_arrays_to_redistribute;
+    std::vector<IntVector > m_int_arrays_to_redistribute;
     Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
 
     std::map<int, SendBuffer> m_not_ours;
 #endif
 
+    int NumRuntimeRealComps () const { return m_num_runtime_real; }
+    int NumRuntimeIntComps  () const { return m_num_runtime_int;  } 
+    
+    int NumRealComps () const { return NArrayReal + NumRuntimeRealComps(); }
+    int NumIntComps  () const { return NArrayInt  + NumRuntimeIntComps() ; } 
+
+    
 private:
+
     virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
                                     const int lev) {};
 
@@ -846,6 +889,10 @@ private:
 
     void Initialize ();
 
+    bool m_runtime_comps_defined;
+    int m_num_runtime_real;
+    int m_num_runtime_int;
+    
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
