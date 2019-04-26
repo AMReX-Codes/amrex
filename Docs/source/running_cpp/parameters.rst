@@ -225,28 +225,35 @@ Particle initialization
 Laser initialization
 --------------------
 
-* ``warpx.use_laser`` (`0 or 1`) optional (default `0`)
-    Whether to activate the injection of a laser pulse in the simulation
+* ``antennas.nantennas`` (`int`) optional (default `0`)
+    Number of laser antennas (each antenna radiates a laser pulse).
 
-* ``laser.position`` (`3 floats in 3D and 2D` ; in meters)
+* ``antennas.names`` (list of `string`. Must contain ``antennas.nantennas`` elements)
+    Name of each antenna. This is then used in the rest of the input deck ;
+    in this documentation we use `<antenna_name>` as a placeholder. The parameters below 
+    must be provided for each antenna.
+
+* ```<antenna_name>`.position`` (`3 floats in 3D and 2D` ; in meters)
     The coordinates of one of the point of the antenna that will emit the laser.
-    The plane of the antenna is entirely defined by ``laser.position`` and ``laser.direction``.
+    The plane of the antenna is entirely defined by ``<antenna_name>.position`` 
+    and ``<antenna_name>.direction``.
 
-    ``laser.position`` also corresponds to the origin of the coordinates system
+    ```<antenna_name>`.position`` also corresponds to the origin of the coordinates system
     for the laser tranverse profile. For instance, for a Gaussian laser profile,
-    the peak of intensity will be at the position given by ``laser.position``.
+    the peak of intensity will be at the position given by ``<antenna_name>.position``.
     This variable can thus be used to shift the position of the laser pulse
     transversally.
 
     .. note::
-        In 2D, ``laser.position`` is still given by 3 numbers, but the second number is ignored.
+        In 2D, ```<antenna_name>`.position`` is still given by 3 numbers, 
+        but the second number is ignored.
 
     When running a **boosted-frame simulation**, provide the value of
-    ``laser.position`` in the laboratory frame, and use ``warpx.gamma_boost``
+    ``<antenna_name>.position`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame. Note that,
     in this case, the laser antenna will be moving, in the boosted frame.
 
-* ``laser.polarization`` (`3 floats in 3D and 2D`)
+* ``<antenna_name>.polarization`` (`3 floats in 3D and 2D`)
     The coordinates of a vector that points in the direction of polarization of
     the laser. The norm of this vector is unimportant, only its direction matters.
 
@@ -254,7 +261,7 @@ Laser initialization
         Even in 2D, all the 3 components of this vectors are important (i.e.
         the polarization can be orthogonal to the plane of the simulation).
 
-*  ``laser.direction`` (`3 floats in 3D`)
+*  ``<antenna_name>.direction`` (`3 floats in 3D`)
     The coordinates of a vector that points in the propagation direction of
     the laser. The norm of this vector is unimportant, only its direction matters.
 
@@ -262,10 +269,10 @@ Laser initialization
 
     .. warning::
 
-        When running **boosted-frame simulations**, ``laser.direction`` should
+        When running **boosted-frame simulations**, ``<antenna_name>.direction`` should
         be parallel to ``warpx.boost_direction``, for now.
 
-* ``laser.e_max`` (`float` ; in V/m)
+* ``<antenna_name>.e_max`` (`float` ; in V/m)
     Peak amplitude of the laser field.
 
     For a laser with a wavelength :math:`\lambda = 0.8\,\mu m`, the peak amplitude
@@ -275,45 +282,45 @@ Laser initialization
 
         E_{max} = a_0 \frac{2 \pi m_e c}{e\lambda} = a_0 \times (4.0 \cdot 10^{12} \;V.m^{-1})
 
-    When running a **boosted-frame simulation**, provide the value of ``laser.e_max``
+    When running a **boosted-frame simulation**, provide the value of ``<antenna_name>.e_max``
     in the laboratory frame, and use ``warpx.gamma_boost`` to automatically
     perform the conversion to the boosted frame.
 
-* ``laser.wavelength`` (`float`; in meters)
+* ``<antenna_name>.wavelength`` (`float`; in meters)
     The wavelength of the laser in vacuum.
 
     When running a **boosted-frame simulation**, provide the value of
-    ``laser.wavelength`` in the laboratory frame, and use ``warpx.gamma_boost``
+    ``<antenna_name>.wavelength`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
-* ``laser.profile`` (`string`)
+* ``<antenna_name>.profile`` (`string`)
     The spatio-temporal shape of the laser. The options that are currently
     implemented are:
 
     - ``"Gaussian"``: The transverse and longitudinal profiles are Gaussian.
     - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile
-      is given by the Harris function (see ``laser.profile_duration`` for more details)
+      is given by the Harris function (see ``<antenna_name>.profile_duration`` for more details)
     - ``"parse_field_function"``: the laser electric field is given by a function in the
-      input file. It requires additional argument ``laser.field_function(X,Y,t)``, which
+      input file. It requires additional argument ``<antenna_name>.field_function(X,Y,t)``, which
       is a mathematical expression , e.g.
-      ``laser.field_function(X,Y,t) = "a0*X**2 * (X>0) * cos(omega0*t)"`` where
+      ``<antenna_name>.field_function(X,Y,t) = "a0*X**2 * (X>0) * cos(omega0*t)"`` where
       ``a0`` and ``omega0`` are a user-defined constant, see above. The profile passed
       here is the full profile, not only the laser envelope. ``t`` is time and ``X``
-      and ``Y`` are coordinates orthogonal to ``laser.direction`` (not necessarily the
+      and ``Y`` are coordinates orthogonal to ``<antenna_name>.direction`` (not necessarily the
       x and y coordinates of the simulation). All parameters above are required, but
-      none of the parameters below are used when ``laser.parse_field_function=1``. Even
-      though ``laser.wavelength`` and ``laser.e_max`` should be included in the laser
+      none of the parameters below are used when ``<antenna_name>.parse_field_function=1``. Even
+      though ``<antenna_name>.wavelength`` and ``<antenna_name>.e_max`` should be included in the laser
       function, they still have to be specified as they are used for numerical purposes.
 
-*  ``laser.profile_t_peak`` (`float`; in seconds)
+*  ``<antenna_name>.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
-    given by ``laser.position`` (only used for the ``"gaussian"`` profile)
+    given by ``<antenna_name>.position`` (only used for the ``"gaussian"`` profile)
 
     When running a **boosted-frame simulation**, provide the value of
-    ``laser.profile_t_peak`` in the laboratory frame, and use ``warpx.gamma_boost``
+    ``<antenna_name>.profile_t_peak`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
-*  ``laser.profile_duration`` (`float` ; in seconds)
+*  ``<antenna_name>.profile_duration`` (`float` ; in seconds)
 
     The duration of the laser, defined as :math:`\tau` below:
 
@@ -330,39 +337,39 @@ Laser initialization
         E(\boldsymbol{x},t) \propto \frac{1}{32}\left[10 - 15 \cos\left(\frac{2\pi t}{\tau}\right) + 6 \cos\left(\frac{4\pi t}{\tau}\right) - \cos\left(\frac{6\pi t}{\tau}\right) \right]\Theta(\tau - t)
 
     When running a **boosted-frame simulation**, provide the value of
-    ``laser.profile_duration`` in the laboratory frame, and use ``warpx.gamma_boost``
+    ``<antenna_name>.profile_duration`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
-* ``laser.profile_waist`` (`float` ; in meters)
+* ``<antenna_name>.profile_waist`` (`float` ; in meters)
     The waist of the transverse Gaussian laser profile, defined as :math:`w_0` :
 
     .. math::
 
         E(\boldsymbol{x},t) \propto \exp\left( -\frac{\boldsymbol{x}_\perp^2}{w_0^2} \right)
 
-* ``laser.profile_focal_distance`` (`float`; in meters)
+* ``<antenna_name>.profile_focal_distance`` (`float`; in meters)
     The distance from ``laser_position`` to the focal plane.
-    (where the distance is defined along the direction given by ``laser.direction``.)
+    (where the distance is defined along the direction given by ``<antenna_name>.direction``.)
 
     Use a negative number for a defocussing laser instead of a focussing laser.
 
     When running a **boosted-frame simulation**, provide the value of
-    ``laser.profile_focal_distance`` in the laboratory frame, and use ``warpx.gamma_boost``
+    ``<antenna_name>.profile_focal_distance`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
-* ``laser.stc_direction`` (`3 floats`) optional (default `1. 0. 0.`)
+* ``<antenna_name>.stc_direction`` (`3 floats`) optional (default `1. 0. 0.`)
     Direction of laser spatio-temporal couplings.
   	See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
-* ``laser.zeta`` (`float`; in meters.seconds) optional (default `0.`)
-    Spatial chirp at focus in direction ``laser.stc_direction``. See definition in
+* ``<antenna_name>.zeta`` (`float`; in meters.seconds) optional (default `0.`)
+    Spatial chirp at focus in direction ``<antenna_name>.stc_direction``. See definition in
     Akturk et al., Opt Express, vol 12, no 19 (2014).
 
-* ``laser.beta`` (`float`; in seconds) optional (default `0.`)
-    Angular dispersion (or angular chirp) at focus in direction ``laser.stc_direction``.
+* ``<antenna_name>.beta`` (`float`; in seconds) optional (default `0.`)
+    Angular dispersion (or angular chirp) at focus in direction ``<antenna_name>.stc_direction``.
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
-* ``laser.phi2`` (`float`; in seconds**2) optional (default `0.`)
+* ``<antenna_name>.phi2`` (`float`; in seconds**2) optional (default `0.`)
     Temporal chirp at focus.
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
