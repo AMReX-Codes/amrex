@@ -161,7 +161,10 @@ public:
       communicate_real_comp(NArrayReal, true),
       communicate_int_comp(NArrayInt, true),
       m_verbose(0),
-      m_gdb(nullptr)
+      m_gdb(nullptr),
+      m_runtime_comps_defined(false),
+      m_num_runtime_real(0),
+      m_num_runtime_int(0)        
     {
         Initialize ();
     }
@@ -171,7 +174,10 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
 	m_verbose(0),
-	m_gdb(gdb)
+	m_gdb(gdb),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         reserveData();
@@ -185,7 +191,10 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba)
+	m_gdb_object(geom,dmap,ba),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -202,7 +211,10 @@ public:
         communicate_real_comp(NArrayReal, true),
         communicate_int_comp(NArrayInt, true),
         m_verbose(0),
-	m_gdb_object(geom,dmap,ba,rr)
+	m_gdb_object(geom,dmap,ba,rr),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -230,7 +242,10 @@ public:
 #endif
                     ref_ratio.push_back(rr[i][0]);
                 }
-                return ref_ratio;  }() )
+                return ref_ratio;  }() ),
+        m_runtime_comps_defined(false),
+        m_num_runtime_real(0),
+        m_num_runtime_int(0)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -831,7 +846,11 @@ protected:
     std::map<int, SendBuffer> m_not_ours;
 #endif
 
+    int NumRealComps () const { return NArrayReal + m_num_runtime_real; }
+    int NumIntComps  () const { return NArrayInt  + m_num_runtime_int;  } 
+
 private:
+
     virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
                                     const int lev) {};
 
@@ -846,6 +865,10 @@ private:
 
     void Initialize ();
 
+    bool m_runtime_comps_defined;
+    int m_num_runtime_real;
+    int m_num_runtime_int;
+    
     size_t particle_size, superparticle_size;
     int num_real_comm_comps, num_int_comm_comps;
     Vector<ParticleLevel> m_particles;
