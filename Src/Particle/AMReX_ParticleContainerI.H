@@ -1964,8 +1964,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
       {
           auto index = grid_tile_ids[pit];
-          auto& aos = m_particles[lev][index].GetArrayOfStructs();
-          auto& soa = m_particles[lev][index].GetStructOfArrays();
+          auto& ptile = DefineAndReturnParticleTile(lev, index.first, index.second);
+          auto& aos = ptile.GetArrayOfStructs();
+          auto& soa = ptile.GetStructOfArrays();
           auto& aos_tmp = *(pvec_ptrs[pit]);
           auto& soa_tmp = soa_local[lev][index];
           for (int i = 0; i < num_threads; ++i) {
