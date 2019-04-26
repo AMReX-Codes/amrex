@@ -5,13 +5,10 @@
 #BSUB -J MMtest 
 #BSUB -o MMtest.%J
 #BSUB -e MMtest.%J
+#BSUB -N 1
 
 module list
 set -x
-
-# Flag to disable CUDA-aware MPI functionality.
-# Unneeded normally. Left for reference and possible testing.
-#PAMI_DISABLE_IPC=1
 
 # =====================
 # BSUB parameters
@@ -43,16 +40,36 @@ export OMP_NUM_THREADS=${omp}
 EXE="./main3d.pgi.MPI.CUDA.ex"
 JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
 INPUTS=inputs_3d
+SMPIARGS=
 
 # Runtime flags
-# --smpiargs="gpu": Allows CUDA-aware MPI functionality.
-#                   Only needed if amrex.use_gpu_aware_mpi=1.
-#                   Requires using one resource set per node.
-#                   RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
-# --alloc_flags gpumps: Turn on MPS. Needed when running multiple MPI ranks per GPU. 
+# =====================
+# Flag to disable CUDA-aware MPI functionality. 
+# Unneeded normally.
+# However, if not using CUDA-aware MPI (off by default), useful to 
+PAMI_DISABLE_IPC=1
+
+# SMPIARGS+= --smpiargs="gpu"
+# Allows CUDA-aware MPI functionality.
+# Only needed if amrex.use_gpu_aware_mpi=1.
+# Requires using one resource set per node.
+# RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
+
+SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
+# Turns off CUDA hooks required for CUDA-aware MPI. 
+# RECOMMENDED ON.
+# May eliminate intermittent finalize bug that prevents obtaining profiling data.
+
+# SMPIARGS+= --alloc_flags gpumps
+# Turn on MPS. Needed when running multiple MPI ranks per GPU. 
+# For standard runs, this is not needed. 
+
+
+# Example run lines
+# =====================
 
 # 1. Run normally
-${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+${JSRUN} ${SMPIARGS} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprov.{jobid}
 #${JSRUN} nvprof ${EXE} ${INPUTS} &> nvprof.txt
