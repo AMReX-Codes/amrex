@@ -264,24 +264,10 @@ endif()
 #
 # GPU options
 #
+
+# More CUDA options in AMReX_SetupCUDA
 option( ENABLE_CUDA "Enable GPU support via CUDA" OFF )
 print_option( ENABLE_CUDA )
-
-if (ENABLE_CUDA)
-   set(CUDA_ARCH "Auto" CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
-   
-   option( ENABLE_CUDA_FASTMATH "Enable CUDA fastmath" ON )
-   print_option(ENABLE_CUDA_FASTMATH)
-  
-   set(CUDA_MAX_THREADS "256" CACHE STRING
-      "Maximum number of CUDA threads per block" )
-   print_option(CUDA_MAX_THREADS)
-
-   set(CUDA_MAXREGCOUNT "255" CACHE STRING
-      "Limit the maximum number of registers available" )
-   print_option(CUDA_MAXREGCOUNT)
-   
-endif ()
 
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
 print_option( ENABLE_ACC )
