@@ -58,39 +58,64 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
             }
 
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+//#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+            if (Gpu::inGraphRegion()) {  // <<<=========
 
-            if ( !(TheFB.m_localCopy.ready()) ) 
+            // Create Graph if one is needed.
+            if ( !(TheFB.m_localCopy.ready()) )
             {
+                const_cast<FB&>(TheFB).m_localCopy.resize(N_loc);
+
+                // Record the graph.
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
+                    long idx = 0;
                     if (mfi.LocalIndex() == 0) {
                         amrex::Gpu::Device::startGraphStreamRecording();
                     }
 
                     const auto& tags = loc_copy_tags[mfi];
-                    auto dfab = this->array(mfi);
                     for (auto const & tag : tags)
                     {
-                        auto const sfab = tag.sfab->array();
                         const auto offset = tag.offset.dim3();
-                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                        CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
+                        AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
                         {
-                            dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
+                            // Build the Array4's.
+                            auto const dst = cmem->getDst<Real>();
+                            auto const src = cmem->getSrc<Real>();
+                            for (int n = 0; n < cmem->ncomp; ++n) {
+                                dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
+                            }
                         });
                     }
 
                     if (mfi.LocalIndex() == (this->local_size()-1)) {
-                        TheFB.m_localCopy.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
+                        const_cast<FB&>(TheFB).m_localCopy.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
                     }
                 }
             }
- 
+
             // Setup Data
+            // Additional optimization -> Check to see whether values need to be reset? 
+            // e.g. (Check first src & dst pointer. If same, must be same MFIter?)
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+            {
+                int idx = 0;
+                const auto& tags = loc_copy_tags[mfi];
+                for (auto const & tag : tags)
+                {
+                    const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
+                                                                                       this->array(mfi),
+                                                                                       scomp, ncomp));
+                }
+            }
+ 
             // Launch Graph
+            const_cast<FB&>(TheFB).m_localCopy.executeGraph();
 
-
-#else
+            } else {  // <<<========
+//#else
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -109,8 +134,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     });
                 }
             }
-
-#endif
+            } // <<<=========
+//#endif
         }
         else
         {
