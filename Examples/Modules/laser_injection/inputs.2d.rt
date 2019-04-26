@@ -32,14 +32,14 @@ algo.particle_pusher = 0
 warpx.cfl = 1.0
 
 # Laser
-warpx.use_laser    = 1
+antennas.nantennas = 1
+antennas.names     = laser
 laser.profile      = Gaussian
 laser.position     = 9.e-6  0.  0.  # This point is on the laser plane
 laser.direction    = 1.     0.  0.  # The plane normal direction
 laser.polarization = 0.     1.  0.  # The main polarization vector
 laser.e_max        = 4.e12          # Maximum amplitude of the laser field (in V/m)
 laser.wavelength   = 0.8e-6         # The wavelength of the laser (in meters)
-#
 laser.profile_waist = 5.e-6       # The waist of the laser (in meters)
 laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
 laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)

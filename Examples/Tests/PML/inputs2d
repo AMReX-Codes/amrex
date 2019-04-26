@@ -44,7 +44,8 @@ warpx.num_injected_species = 0
 warpx.injected_plasma_species = 0
 
 # Laser
-warpx.use_laser    = 1
+antennas.nantennas = 1
+antennas.names     = laser
 laser.profile      = Gaussian
 laser.position     = 0. 0. 0.e-6 # This point is on the laser plane
 laser.direction    = 1. 0. 1.     # The plane normal direction

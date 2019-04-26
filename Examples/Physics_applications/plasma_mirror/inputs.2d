@@ -69,7 +69,8 @@ ions.density_function(x,y,z) = "(z<zp)*nc*exp((z-zc)/lgrad)+(z>zp)*(z<zp2)*2.*nc
 #################################
 ############# LASER #############
 #################################
-warpx.use_laser      = 1
+antennas.nantennas = 1
+antennas.names     = laser
 laser.position     = 0. 0. 5.e-6 # This point is on the laser plane
 laser.direction    = 0. 0. 1.     # The plane normal direction
 laser.polarization = 1. 0. 0.     # The main polarization vector

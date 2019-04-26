@@ -30,7 +30,8 @@ algo.particle_pusher = 0
 warpx.cfl = 1.0
 
 # Laser
-warpx.use_laser    = 1
+antennas.nantennas = 1
+antennas.names     = laser
 laser.profile      = Gaussian
 laser.position     = 0. 0. 9.e-6 # This point is on the laser plane
 laser.direction    = 0. 0. 1.     # The plane normal direction

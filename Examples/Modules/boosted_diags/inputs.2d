@@ -87,7 +87,8 @@ ions.density = 1.
 ions.momentum_distribution_type = "constant"
 
 # Laser
-warpx.use_laser = 1
+antennas.nantennas = 1
+antennas.names     = laser
 laser.profile      = Gaussian
 laser.position     = 0. 0. -1.e-6 # This point is on the laser plane
 laser.direction    = 0. 0. 1.    # The plane normal direction

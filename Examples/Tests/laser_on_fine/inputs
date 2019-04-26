@@ -63,7 +63,8 @@ warpx.num_injected_species = 1
 warpx.injected_plasma_species = 0
 
 # Laser
-warpx.use_laser    = 1
+antennas.nantennas = 1
+antennas.names     = laser
 laser.prob_lo      = -12.e-6  -12.e-6  -5.e-6
 laser.prob_hi      =  12.e-6   12.e-6   5.e-6
 laser.profile      = Gaussian
