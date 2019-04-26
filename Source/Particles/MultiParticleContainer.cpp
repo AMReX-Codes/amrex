@@ -14,7 +14,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
 
-    allcontainers.resize(nspecies + nantennas);
+    allcontainers.resize(nspecies + nlasers);
     for (int i = 0; i < nspecies; ++i) {
         if (species_types[i] == PCTypes::Physical) {
             allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
@@ -25,8 +25,8 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
     }
     
-    for (int i = nspecies; i < nspecies+nantennas; ++i) {
-        allcontainers[i].reset(new LaserParticleContainer(amr_core,i, antennas_names[i-nspecies]));
+    for (int i = nspecies; i < nspecies+nlasers; ++i) {
+        allcontainers[i].reset(new LaserParticleContainer(amr_core,i, lasers_names[i-nspecies]));
     }
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));	
@@ -75,12 +75,12 @@ MultiParticleContainer::ReadParameters ()
 	pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
 	pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
 
-	ParmParse ppl("antennas");
-	ppl.query("nantennas", nantennas);
-	BL_ASSERT(nantennas >= 0);
-    if (nantennas > 0) {
-        ppl.getarr("names", antennas_names);
-        BL_ASSERT(antennas_names.size() == nantennas);
+	ParmParse ppl("lasers");
+	ppl.query("nlasers", nlasers);
+	BL_ASSERT(nlasers >= 0);
+    if (nlasers > 0) {
+        ppl.getarr("names", lasers_names);
+        BL_ASSERT(lasers_names.size() == nlasers);
     }
 
 	initialized = true;

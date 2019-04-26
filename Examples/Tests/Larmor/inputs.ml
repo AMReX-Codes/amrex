@@ -83,6 +83,6 @@ warpx.do_moving_window = 0
 warpx.do_plasma_injection = 0
 
 # Laser
-antennas.nantennas = 0
+lasers.nlasers = 0
 
 warpx.do_dive_cleaning = 1

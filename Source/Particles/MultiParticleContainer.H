@@ -192,7 +192,7 @@ protected:
 
     std::vector<std::string> species_names;
 
-    std::vector<std::string> antennas_names;
+    std::vector<std::string> lasers_names;
 
     std::vector<int> deposit_on_main_grid;
 
@@ -208,7 +208,7 @@ private:
     void ReadParameters ();
 
     // runtime parameters
-    int nantennas = 0;
+    int nlasers = 0;
     int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
 };
 #endif /*WARPX_ParticleContainer_H_*/
