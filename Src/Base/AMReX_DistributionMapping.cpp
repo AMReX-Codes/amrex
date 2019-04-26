@@ -305,25 +305,6 @@ DistributionMapping::DistributionMapping ()
 {
 }
 
-DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
-    :
-    m_ref(rhs.m_ref)
-{
-}
-
-DistributionMapping&
-DistributionMapping::operator= (const DistributionMapping& rhs)
-{
-    m_ref = rhs.m_ref;
-    return *this;
-}
-
-DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
-    :
-    m_ref(std::move(rhs.m_ref))
-{
-}
-
 DistributionMapping::DistributionMapping (const Vector<int>& pmap)
     :
     m_ref(std::make_shared<Ref>(pmap))
@@ -379,8 +360,6 @@ DistributionMapping::define (Vector<int>&& pmap) noexcept
     m_ref->clear();
     m_ref->m_pmap = std::move(pmap);
 }
-
-DistributionMapping::~DistributionMapping () { }
 
 void
 DistributionMapping::RoundRobinDoIt (int                  nboxes,
