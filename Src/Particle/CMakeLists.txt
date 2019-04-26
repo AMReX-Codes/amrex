@@ -1,7 +1,7 @@
-target_compile_definitions(amrex PRIVATE $<BUILD_INTERFACE:AMREX_PARTICLES>)
+target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_PARTICLES>)
 
 if (NOT ENABLE_DP_PARTICLES)
-   target_compile_definitions(amrex PRIVATE $<BUILD_INTERFACE:AMREX_SINGLE_PRECISION_PARTICLES>)
+   target_compile_definitions(amrex PUBLIC $<BUILD_INTERFACE:AMREX_SINGLE_PRECISION_PARTICLES>)
 endif ()
 
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
