@@ -22,8 +22,8 @@ namespace Cuda {
     }
 
     extern bool in_graph_region;
-    inline bool inGraphRegion () { return in_graph_region; }
-    inline bool notInGraphRegion () { return !in_graph_region; }
+    inline bool inGraphRegion () { return (in_graph_region && in_launch_region); }
+    inline bool notInGraphRegion () { return (!in_graph_region || !in_launch_region); }
 
     inline bool setGraphRegion (bool graph) {
         bool r =  in_graph_region;
@@ -45,6 +45,10 @@ namespace Cuda {
     inline static constexpr bool inLaunchRegion () { return false; }
     inline static constexpr bool notInLaunchRegion () { return true; }
     inline static constexpr bool setLaunchRegion (bool) { return false; }
+
+    inline static constexpr bool inGraphRegion () { return false; }
+    inline static constexpr bool notInGraphRegion () { return true; }
+    inline static constexpr bool setGraphRegion (bool) { return false; }
 
     struct LaunchSafeGuard
     {
