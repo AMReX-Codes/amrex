@@ -744,6 +744,22 @@ public:
     void EnforcePeriodicGPU ();
 #endif
 
+    void AddRealComp (bool communicate=true)
+    {
+        m_runtime_comps_defined = true;
+        m_num_runtime_real++;
+        communicate_real_comp.push_back(communicate);
+        SetParticleSize();
+    }
+
+    void AddIntComp (bool communicate=true)
+    {
+        m_runtime_comps_defined = true;
+        m_num_runtime_int++;
+        communicate_int_comp.push_back(communicate);
+        SetParticleSize();
+    }
+    
 protected:
 
     /**
