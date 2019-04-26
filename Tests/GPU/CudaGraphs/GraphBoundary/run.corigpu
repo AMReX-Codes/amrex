@@ -39,8 +39,8 @@
 # module purge
 # module load modules esslurm gcc cuda mvapich2 
 
-#srun ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+srun ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
 #srun nvprof -o nvprof.${SLURM_TASK_PID}.nvvp ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
 #srun nv-nsight-cu-cli -o profile ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
 #srun nsys profile ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
-srun ./profile.sh
+#srun ./profile.sh
