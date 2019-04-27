@@ -66,10 +66,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             {
                 const_cast<FB&>(TheFB).m_localCopy.resize(N_loc);
 
+                long idx = 0;
                 // Record the graph.
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    long idx = 0;
                     if (mfi.LocalIndex() == 0) {
                         amrex::Gpu::Device::startGraphStreamRecording();
                     }
@@ -99,9 +99,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             // Setup Data
             // Additional optimization -> Check to see whether values need to be reset? 
             // e.g. (Check first src & dst pointer. If same, must be same MFIter?)
+            long idx = 0;
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
-                int idx = 0;
                 const auto& tags = loc_copy_tags[mfi];
                 for (auto const & tag : tags)
                 {
