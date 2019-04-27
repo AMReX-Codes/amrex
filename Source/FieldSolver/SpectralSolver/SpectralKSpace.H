@@ -31,7 +31,7 @@ class SpectralKSpace
         amrex::BoxArray spectralspace_ba;
         SpectralKSpace( const amrex::BoxArray& realspace_ba,
                         const amrex::DistributionMapping& dm,
-                        const amrex::RealVect dx );
+                        const amrex::RealVect realspace_dx );
         KVectorComponent getKComponent(
             const amrex::DistributionMapping& dm, const int i_dim ) const;
         KVectorComponent getModifiedKComponent(

@@ -15,13 +15,11 @@ using namespace Gpu;
 SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
                                 const DistributionMapping& dm,
                                 const RealVect realspace_dx )
+    : dx(realspace_dx)  // Store the cell size as member `dx`
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         realspace_ba.ixType()==IndexType::TheCellType(),
         "SpectralKSpace expects a cell-centered box.");
-
-    // Store the cell size
-    dx = realspace_dx;
 
     // Create the box array that corresponds to spectral space
     BoxList spectral_bl; // Create empty box list
@@ -33,6 +31,7 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
         // TODO: this will be different for the real-to-complex FFT
         // TODO: this will be different for the hybrid FFT scheme
         Box realspace_bx = realspace_ba[i];
+        Print() << realspace_bx.smallEnd() << " " << realspace_bx.bigEnd() << std::endl;
         Box bx = Box( IntVect::TheZeroVector(),
                       realspace_bx.bigEnd() - realspace_bx.smallEnd() );
         spectral_bl.push_back( bx );
