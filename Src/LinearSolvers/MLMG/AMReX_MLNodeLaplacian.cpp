@@ -1200,15 +1200,18 @@ MLNodeLaplacian::buildStencil ()
                                                   dxinv);
                     }
                 }
+            }
 
-                for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     
-                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(stfab));
-                }
+                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(stfab));
             }
 
             m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
@@ -1231,26 +1234,26 @@ MLNodeLaplacian::buildStencil ()
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
             {
-                for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
-                {
-                    Box vbx = mfi.validbox();
-                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
-                    Box bx = mfi.growntilebox(1);
-                    bx &= vbx;
-                    amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(fine[mfi]));
-                }
+                Box vbx = mfi.validbox();
+                AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                Box bx = mfi.growntilebox(1);
+                bx &= vbx;
+                amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine[mfi]));
+            }
 
-                for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    FArrayBox& stfab = (*pcrse)[mfi];
-                    
-                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(stfab));
-                }
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                FArrayBox& stfab = (*pcrse)[mfi];
+                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(stfab));
             }
 
             if (need_parallel_copy) {
