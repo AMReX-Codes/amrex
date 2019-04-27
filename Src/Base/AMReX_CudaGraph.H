@@ -61,6 +61,10 @@ struct CudaGraph
 
     void resize(long num) {
         m_parms.resize(num);
+        if (m_parms_d != nullptr)
+        {
+            The_Device_Arena()->free(m_parms_d);
+        }
         m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     void setGraph(cudaGraphExec_t const& graph) { 
@@ -75,7 +79,6 @@ struct CudaGraph
     }
     bool ready() const { return graph_is_ready; }
     void executeGraph() {
-//        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
         cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
                    cudaMemcpyHostToDevice);
 
