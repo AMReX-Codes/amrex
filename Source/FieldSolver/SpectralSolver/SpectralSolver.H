@@ -31,8 +31,8 @@ class SpectralSolver
             // as well as the value of the corresponding k coordinates)
             const SpectralKSpace k_space= SpectralKSpace(realspace_ba, dm, dx);
             // - Initialize the algorithm (coefficients) over this space
-            algorithm = PsatdAlgorithm( k_space, dm, norder_x, norder_y,
-                                        norder_z, nodal, dt );
+            algorithm = std::unique_ptr<PsatdAlgorithm>( new PsatdAlgorithm(
+                    k_space, dm, norder_x, norder_y, norder_z, nodal, dt ) );
             // - Initialize arrays for fields in Fourier space + FFT plans
             field_data = SpectralFieldData( realspace_ba, k_space, dm );
         };
@@ -59,14 +59,17 @@ class SpectralSolver
         /* \brief Update the fields in spectral space, over one timestep */
         void pushSpectralFields(){
             BL_PROFILE("SpectralSolver::pushSpectralFields");
-            algorithm.pushSpectralFields( field_data );
+            algorithm->pushSpectralFields( field_data );
         };
 
     private:
         SpectralFieldData field_data; // Store field in spectral space
                                       // and perform the Fourier transforms
-        PsatdAlgorithm algorithm; // Contains Psatd coefficients
-                                  // and field update equation
+        std::unique_ptr<SpectralBaseAlgorithm> algorithm;
+        // Defines field update equation in spectral space,
+        // and the associated coefficients.
+        // SpectralBaseAlgorithm is a base class ; this pointer is meant
+        // to point an instance of a *sub-class* defining a specific algorithm
 };
 
 #endif // WARPX_SPECTRAL_SOLVER_H_

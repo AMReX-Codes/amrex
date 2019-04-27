@@ -1,3 +1,4 @@
+CEXE_headers += SpectralBaseAlgorithm.H
 CEXE_headers += PsatdAlgorithm.H
 CEXE_sources += PsatdAlgorithm.cpp
 
