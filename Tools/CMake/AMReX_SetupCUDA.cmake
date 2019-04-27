@@ -31,19 +31,20 @@ enable_language(CUDA)
 #
 #  CUDA-related options
 #
-include(AMReX_Utils)
+message(STATUS "CUDA options:")
+
 set(CUDA_ARCH "Auto" CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
 
 option( ENABLE_CUDA_FASTMATH "Enable CUDA fastmath" ON )
-print_option(ENABLE_CUDA_FASTMATH)
+message(STATUS "   ENABLE_CUDA_FASTMATH = ${ENABLE_CUDA_FASTMATH}")
 
 set(CUDA_MAX_THREADS "256" CACHE STRING
    "Maximum number of CUDA threads per block" )
-print_option(CUDA_MAX_THREADS)
+message(STATUS "   CUDA_MAX_THREADS = ${CUDA_MAX_THREADS}")
 
 set(CUDA_MAXREGCOUNT "255" CACHE STRING
    "Limit the maximum number of registers available" )
-print_option(CUDA_MAXREGCOUNT)
+message(STATUS "   CUDA_MAXREGCOUNT = ${CUDA_MAXREGCOUNT}")
 
 # 
 # Error if NVCC is too old
