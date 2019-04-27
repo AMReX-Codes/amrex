@@ -1062,7 +1062,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     const int ncomp = linop.getNComp();
 
     if (!linop_prepared) {
-        linop.prepareForSolve(this);
+        linop.prepareForSolve();
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
