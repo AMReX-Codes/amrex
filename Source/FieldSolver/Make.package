@@ -3,6 +3,7 @@ CEXE_sources += WarpXPushFieldsEM.cpp
 ifeq ($(USE_PSATD),TRUE)
   CEXE_sources += WarpXFFT.cpp
   F90EXE_sources += WarpX_fft.F90
+  include $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/Make.package
 endif
 ifeq ($(USE_OPENBC_POISSON),TRUE)
   F90EXE_sources += openbc_poisson_solver.F90
