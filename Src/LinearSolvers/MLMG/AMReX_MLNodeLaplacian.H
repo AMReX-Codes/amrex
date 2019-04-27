@@ -78,6 +78,11 @@ public :
 
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept { m_coarsening_strategy = cs; }
 
+    virtual BottomSolver getDefaultBottomSolver () const final override {
+        return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
+            BottomSolver::bicgcg : BottomSolver::bicgstab;
+    }
+
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
