@@ -48,6 +48,7 @@ class SpectralSolver
         void ForwardTransform( const amrex::MultiFab& mf,
                                const int field_index,
                                const int i_comp=0 ){
+            BL_PROFILE("SpectralSolver::ForwardTransform");
             field_data.ForwardTransform( mf, field_index, i_comp );
         };
 
@@ -56,11 +57,13 @@ class SpectralSolver
         void BackwardTransform( amrex::MultiFab& mf,
                                 const int field_index,
                                 const int i_comp=0 ){
+            BL_PROFILE("SpectralSolver::BackwardTransform");
             field_data.BackwardTransform( mf, field_index, i_comp );
         };
 
         /* \brief Update the fields in spectral space, over one timestep */
         void pushSpectralFields(){
+            BL_PROFILE("SpectralSolver::pushSpectralFields");
             algorithm.pushSpectralFields( field_data );
         };
 };
