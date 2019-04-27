@@ -957,12 +957,19 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+#ifdef WARPX_RZ
+        const Real xmin = bx.smallEnd(0)*dx[0];
+#endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data());
+                           dx.data()
+#ifdef WARPX_RZ
+                           ,&xmin
+#endif
+                           );
     }
 }
 
@@ -977,12 +984,19 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
+#ifdef WARPX_RZ
+        const Real xmin = bx.smallEnd(0)*dx[0];
+#endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data());
+                           dx.data()
+#ifdef WARPX_RZ
+                           ,&xmin
+#endif
+                           );
     }
 }
 
