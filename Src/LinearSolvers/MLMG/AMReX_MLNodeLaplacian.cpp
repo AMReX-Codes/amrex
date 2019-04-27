@@ -29,10 +29,9 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
-                                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                                  bool a_use_hypre)
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 #ifdef AMREX_USE_EB
@@ -40,10 +39,9 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
-                                  const Vector<EBFArrayBoxFactory const*>& a_factory,
-                                  bool a_use_hypre)
+                                  const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 #endif
 
@@ -54,9 +52,8 @@ void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                         bool a_use_hypre)
+                         const LPInfo& info,
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
 
@@ -66,13 +63,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    LPInfo info = a_info;
-#ifdef AMREX_USE_HYPRE
-    if (a_use_hypre) {
-        m_use_hypre = a_use_hypre;
-        info.setMaxCoarseningLevel(0);
-    }
-#endif
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, info, a_factory);
 
     m_sigma.resize(m_num_amr_levels);
@@ -117,14 +107,13 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<EBFArrayBoxFactory const*>& a_factory,
-                         bool a_use_hypre)
+                         const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
     Vector<FabFactory<FArrayBox> const*> _factory;
     for (auto x : a_factory) {
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
-    define(a_geom, a_grids, a_dmap, a_info, _factory, a_use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, _factory);
 }
 #endif
 
@@ -1291,18 +1280,6 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
                                      BL_TO_FORTRAN_ANYD(resmsk[mfi]),
                                      BL_TO_FORTRAN_ANYD(cfmask[mfi]));
     }
-}
-
-void
-MLNodeLaplacian::prepareForSolve (MLMG* mlmg)
-{
-#ifdef AMREX_USE_HYPRE
-    if (m_use_hypre) {
-        mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
-        setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
-    }
-#endif
-    prepareForSolve();
 }
 
 void
