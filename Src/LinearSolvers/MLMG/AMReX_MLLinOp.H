@@ -20,6 +20,10 @@
 
 namespace amrex {
 
+enum class BottomSolver : int {
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
+};
+
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
@@ -133,7 +137,9 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
-    virtual int getNComp() const { return 1; }
+    virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+
+    virtual int getNComp () const { return 1; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
