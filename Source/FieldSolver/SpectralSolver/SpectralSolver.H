@@ -13,11 +13,6 @@
  */
 class SpectralSolver
 {
-    private:
-        SpectralFieldData field_data; // Store field in spectral space
-                                      // and perform the Fourier transforms
-        PsatdAlgorithm algorithm; // Contains Psatd coefficients
-                                  // and field update equation
     public:
         // Inline definition of the member functions of `SpectralSolver`
         // The body of these functions is short, since the work is done in the
@@ -66,6 +61,12 @@ class SpectralSolver
             BL_PROFILE("SpectralSolver::pushSpectralFields");
             algorithm.pushSpectralFields( field_data );
         };
+
+    private:
+        SpectralFieldData field_data; // Store field in spectral space
+                                      // and perform the Fourier transforms
+        PsatdAlgorithm algorithm; // Contains Psatd coefficients
+                                  // and field update equation
 };
 
 #endif // WARPX_SPECTRAL_SOLVER_H_

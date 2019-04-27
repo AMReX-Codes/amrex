@@ -53,7 +53,7 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
                                const int i_dim ) const
 {
     // Initialize an empty ManagedVector in each box
-    KVectorComponent k_comp = KVectorComponent(spectralspace_ba, dm);
+    KVectorComponent k_comp(spectralspace_ba, dm);
     // Loop over boxes and allocate the corresponding ManagedVector
     // for each box owned by the local MPI proc
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
@@ -100,7 +100,7 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
                                         const int shift_type ) const
 {
     // Initialize an empty ManagedVector in each box
-    SpectralShiftFactor shift_factor = SpectralShiftFactor( spectralspace_ba, dm );
+    SpectralShiftFactor shift_factor( spectralspace_ba, dm );
     // Loop over boxes and allocate the corresponding ManagedVector
     // for each box owned by the local MPI proc
     for ( MFIter mfi(spectralspace_ba, dm); mfi.isValid(); ++mfi ){
@@ -144,7 +144,7 @@ SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
                                        const bool nodal ) const
 {
     // Initialize an empty ManagedVector in each box
-    KVectorComponent modified_k_comp = KVectorComponent(spectralspace_ba, dm);
+    KVectorComponent modified_k_comp(spectralspace_ba, dm);
 
     // Compute real-space stencil coefficients
     Vector<Real> stencil_coef = getFonbergStencilCoefficients(n_order, nodal);
