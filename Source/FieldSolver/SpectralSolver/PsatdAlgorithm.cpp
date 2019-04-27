@@ -10,12 +10,12 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                          const int norder_x, const int norder_y,
                          const int norder_z, const bool nodal, const Real dt)
 // Compute and assign the modified k vectors
-: modified_kx_vec(spectral_kspace.getModifiedKComponent(dm, 0, norder_x, nodal))
+: modified_kx_vec(spectral_kspace.getModifiedKComponent(dm,0,norder_x,nodal)),
 #if (AMREX_SPACEDIM==3)
-  modified_ky_vec(spectral_kspace.getModifiedKComponent(dm, 1, norder_y, nodal))
-  modified_kz_vec(spectral_kspace.getModifiedKComponent(dm, 2, norder_z, nodal))
+  modified_ky_vec(spectral_kspace.getModifiedKComponent(dm,1,norder_y,nodal)),
+  modified_kz_vec(spectral_kspace.getModifiedKComponent(dm,2,norder_z,nodal))
 #else
-  modified_kz_vec(spectral_kspace.getModifiedKComponent(dm, 1, norder_z, nodal))
+  modified_kz_vec(spectral_kspace.getModifiedKComponent(dm,1,norder_z,nodal))
 #endif
 {
     const BoxArray& ba = spectral_kspace.spectralspace_ba;
