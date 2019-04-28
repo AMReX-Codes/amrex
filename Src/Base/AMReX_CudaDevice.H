@@ -46,6 +46,7 @@ public:
                                             dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) noexcept;
     static void grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexcept;
+    static void box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept;
 
     static std::size_t totalGlobalMem () noexcept { return device_prop.totalGlobalMem; }
     static int numMultiProcessors () noexcept { return device_prop.multiProcessorCount; }
