@@ -56,8 +56,10 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                 std::pow(modified_kx[i], 2) +
 #if (AMREX_SPACEDIM==3)
                 std::pow(modified_ky[j], 2) +
-#endif
                 std::pow(modified_kz[k], 2));
+#else
+                std::pow(modified_kz[j], 2));
+#endif
 
             // Calculate coefficients
             constexpr Real c = PhysConst::c;
@@ -136,10 +138,11 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Real kx = modified_kx_arr[i];
 #if (AMREX_SPACEDIM==3)
             const Real ky = modified_ky_arr[j];
+            const Real kz = modified_kz_arr[k];
 #else
             constexpr Real ky = 0;
+            const Real kz = modified_kz_arr[j];
 #endif
-            const Real kz = modified_kz_arr[k];
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real inv_ep0 = 1./PhysConst::ep0;
             constexpr Complex I = Complex{0,1};
