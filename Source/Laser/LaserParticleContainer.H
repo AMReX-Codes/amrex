@@ -13,21 +13,21 @@ class LaserParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
+    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies, const std::string& name);
     virtual ~LaserParticleContainer () {}
 
     virtual void InitData () final;
 
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
 #endif // WARPX_DO_ELECTROSTATIC
     
     virtual void Evolve (int lev,
-			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+                         const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+                         amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab*, amrex::MultiFab*, amrex::MultiFab*,
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
@@ -43,6 +43,10 @@ public:
                         const amrex::MultiFab& ) final;
 
     virtual void PostRestart () final;
+
+protected:
+    
+    std::string laser_name;
 
 private:
 
