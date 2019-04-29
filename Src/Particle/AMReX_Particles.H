@@ -136,7 +136,7 @@ public:
 #ifdef BL_SINGLE_PRECISION_PARTICLES
     RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
 #else
-    RealDescriptor ParticleRealDescriptor = FPC::NativeRealDescriptor();
+    RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
     using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
