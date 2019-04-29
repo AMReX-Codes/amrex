@@ -14,8 +14,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
 
-    int n = WarpX::use_laser ? nspecies+1 : nspecies;
-    allcontainers.resize(n);
+    allcontainers.resize(nspecies + nlasers);
     for (int i = 0; i < nspecies; ++i) {
         if (species_types[i] == PCTypes::Physical) {
             allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
@@ -25,9 +24,11 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         }
         allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
     }
-    if (WarpX::use_laser) {
-	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
+    
+    for (int i = nspecies; i < nspecies+nlasers; ++i) {
+        allcontainers[i].reset(new LaserParticleContainer(amr_core,i, lasers_names[i-nspecies]));
     }
+
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
 
     if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
@@ -56,10 +57,10 @@ MultiParticleContainer::ReadParameters ()
     static bool initialized = false;
     if (!initialized)
     {
-	ParmParse pp("particles");
+        ParmParse pp("particles");
 
-	pp.query("nspecies", nspecies);
-	BL_ASSERT(nspecies >= 0);
+        pp.query("nspecies", nspecies);
+        BL_ASSERT(nspecies >= 0);
 
         if (nspecies > 0) {
             pp.getarr("species_names", species_names);
@@ -89,9 +90,19 @@ MultiParticleContainer::ReadParameters ()
                 }
             }
         }
-	pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
-	pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
-	initialized = true;
+
+        pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
+        pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
+
+        ParmParse ppl("lasers");
+        ppl.query("nlasers", nlasers);
+        BL_ASSERT(nlasers >= 0);
+        if (nlasers > 0) {
+            ppl.getarr("names", lasers_names);
+            BL_ASSERT(lasers_names.size() == nlasers);
+        }
+
+        initialized = true;
     }
 }
 
@@ -99,7 +110,7 @@ void
 MultiParticleContainer::AllocData ()
 {
     for (auto& pc : allcontainers) {
-	pc->AllocData();
+        pc->AllocData();
     }
     pc_tmp->AllocData();
 }
@@ -108,7 +119,7 @@ void
 MultiParticleContainer::InitData ()
 {
     for (auto& pc : allcontainers) {
-	pc->InitData();
+        pc->InitData();
     }
     pc_tmp->InitData();
 }
@@ -120,7 +131,7 @@ MultiParticleContainer::FieldGatherES (const Vector<std::array<std::unique_ptr<M
                                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
     for (auto& pc : allcontainers) {
-	pc->FieldGatherES(E, masks);
+        pc->FieldGatherES(E, masks);
     }
 }
 
@@ -138,7 +149,7 @@ MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiF
     }
 
     for (auto& pc : allcontainers) {
-	pc->EvolveES(E, rho, t, dt);
+        pc->EvolveES(E, rho, t, dt);
     }
 
     for (unsigned i = 0; i < nlevs; i++) {
@@ -167,7 +178,7 @@ MultiParticleContainer::Evolve (int lev,
     if (rho) rho->setVal(0.0);
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
-                   rho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
+               rho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
     }    
 }
 
@@ -175,7 +186,7 @@ void
 MultiParticleContainer::PushXES (Real dt)
 {
     for (auto& pc : allcontainers) {
-	pc->PushXES(dt);
+        pc->PushXES(dt);
     }
 }
 
@@ -191,7 +202,7 @@ DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
     }
 
     for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
-	allcontainers[i]->DepositCharge(rho, true);
+        allcontainers[i]->DepositCharge(rho, true);
     }
 
     if (!local) {
@@ -220,7 +231,7 @@ MultiParticleContainer::FieldGather (int lev,
                                      const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
     for (auto& pc : allcontainers) {
-	pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
+        pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
     }
 }
 
@@ -245,7 +256,7 @@ MultiParticleContainer::Evolve (int lev,
     if (crho) crho->setVal(0.0);
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
-                   rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
+               rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
     }
 }
 
@@ -253,7 +264,7 @@ void
 MultiParticleContainer::PushX (Real dt)
 {
     for (auto& pc : allcontainers) {
-	pc->PushX(dt);
+        pc->PushX(dt);
     }
 }
 
@@ -263,7 +274,7 @@ MultiParticleContainer::PushP (int lev, Real dt,
                                const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
     for (auto& pc : allcontainers) {
-       pc->PushP(lev, dt, Ex, Ey, Ez, Bx, By, Bz);
+        pc->PushP(lev, dt, Ex, Ey, Ez, Bx, By, Bz);
     }
 }
 
@@ -272,12 +283,12 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 {
     std::unique_ptr<MultiFab> rho = allcontainers[0]->GetChargeDensity(lev, true);
     for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
-	std::unique_ptr<MultiFab> rhoi = allcontainers[i]->GetChargeDensity(lev, true);
-	MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
+        std::unique_ptr<MultiFab> rhoi = allcontainers[i]->GetChargeDensity(lev, true);
+        MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
     }
     if (!local) {
-	const Geometry& gm = allcontainers[0]->Geom(lev);
-	rho->SumBoundary(gm.periodicity());
+        const Geometry& gm = allcontainers[0]->Geom(lev);
+        rho->SumBoundary(gm.periodicity());
     }
     return rho;
 }
@@ -286,7 +297,7 @@ void
 MultiParticleContainer::SortParticlesByCell ()
 {
     for (auto& pc : allcontainers) {
-	pc->SortParticlesByCell();
+        pc->SortParticlesByCell();
     }
 }
 
@@ -294,7 +305,7 @@ void
 MultiParticleContainer::Redistribute ()
 {
     for (auto& pc : allcontainers) {
-	pc->Redistribute();
+        pc->Redistribute();
     }
 }
 
@@ -302,7 +313,7 @@ void
 MultiParticleContainer::RedistributeLocal (const int num_ghost)
 {
     for (auto& pc : allcontainers) {
-	pc->Redistribute(0, 0, 0, num_ghost);
+        pc->Redistribute(0, 0, 0, num_ghost);
     }
 }
 
@@ -312,10 +323,10 @@ MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
     const bool only_valid=true, only_local=true;
     Vector<long> r = allcontainers[0]->NumberOfParticlesInGrid(lev,only_valid,only_local);
     for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
-	const auto& ri = allcontainers[i]->NumberOfParticlesInGrid(lev,only_valid,only_local);
-	for (unsigned j=0, m=ri.size(); j<m; ++j) {
-	    r[j] += ri[j];
-	}
+        const auto& ri = allcontainers[i]->NumberOfParticlesInGrid(lev,only_valid,only_local);
+        for (unsigned j=0, m=ri.size(); j<m; ++j) {
+            r[j] += ri[j];
+        }
     }
     ParallelDescriptor::ReduceLongSum(r.data(),r.size());
     return r;
@@ -325,7 +336,7 @@ void
 MultiParticleContainer::Increment (MultiFab& mf, int lev)
 {
     for (auto& pc : allcontainers) {
-	pc->Increment(mf,lev);
+        pc->Increment(mf,lev);
     }
 }
 
@@ -333,7 +344,7 @@ void
 MultiParticleContainer::SetParticleBoxArray (int lev, BoxArray& new_ba)
 {
     for (auto& pc : allcontainers) {
-	pc->SetParticleBoxArray(lev,new_ba);
+        pc->SetParticleBoxArray(lev,new_ba);
     }
 }
 
@@ -341,7 +352,7 @@ void
 MultiParticleContainer::SetParticleDistributionMap (int lev, DistributionMapping& new_dm)
 {
     for (auto& pc : allcontainers) {
-	pc->SetParticleDistributionMap(lev,new_dm);
+        pc->SetParticleDistributionMap(lev,new_dm);
     }
 }
 
@@ -349,7 +360,7 @@ void
 MultiParticleContainer::PostRestart ()
 {
     for (auto& pc : allcontainers) {
-	pc->PostRestart();
+        pc->PostRestart();
     }
     pc_tmp->PostRestart();
 }
@@ -365,16 +376,13 @@ MultiParticleContainer
 
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
     
-    for (int i = 0; i < nspecies; ++i)
-    {
+    for (int i = 0; i < nspecies; ++i){
         WarpXParticleContainer* pc = allcontainers[i].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
 
-        for (int lev = 0; lev <= pc->finestLevel(); ++lev)
-        {
-            for (auto it = diagnostic_particles[lev].begin(); it != diagnostic_particles[lev].end(); ++it)
-            {
+        for (int lev = 0; lev <= pc->finestLevel(); ++lev){
+            for (auto it = diagnostic_particles[lev].begin(); it != diagnostic_particles[lev].end(); ++it){
                 parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
                                                           it->second.GetRealData(DiagIdx::w  ).begin(),
                                                           it->second.GetRealData(DiagIdx::w  ).end());
