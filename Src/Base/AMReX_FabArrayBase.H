@@ -290,7 +290,8 @@ public:
 		const Box&          dstdomain,
 		const IntVect&      dstng,
 		const BoxConverter& coarsener,
-                const Box&          cdomain);
+                const Box&          cdomain,
+                std::unique_ptr<FabFactory<FArrayBox> > factory = nullptr);
 	~FPinfo ();
 
 	long bytes () const;
