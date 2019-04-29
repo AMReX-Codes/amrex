@@ -1145,7 +1145,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
                    put,
                    0,
                    od,
-                   FPC::NativeRealDescriptor(),
+                   FPC::Native64RealDescriptor(),
                    FPC::NativeLongDescriptor());
         os.write(bufr, od.numBytes()*put);
         nitems -= put;
@@ -1221,7 +1221,7 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
                    bufr,
                    get,
                    0,
-                   FPC::NativeRealDescriptor(),
+                   FPC::Native64RealDescriptor(),
                    id,
                    FPC::NativeLongDescriptor());
 
