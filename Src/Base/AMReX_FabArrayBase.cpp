@@ -1062,7 +1062,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 			      const Box&          dstdomain,
 			      const IntVect&      dstng,
 			      const BoxConverter& coarsener,
-                              const Box&          cdomain)
+                              const Box&          cdomain,
+                              std::unique_ptr<FabFactory<FArrayBox> > factory)
     : m_srcbdk   (srcfa.getBDKey()),
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
@@ -1111,14 +1112,18 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     if (!iprocs.empty()) {
 	ba_crse_patch.define(bl);
 	dm_crse_patch.define(std::move(iprocs));
+        if (factory) {
+            fact_crse_patch = std::move(factory);
+        } else {
 #ifdef AMREX_USE_EB
-        fact_crse_patch = makeEBFabFactory(Geometry(cdomain),
-                                           ba_crse_patch,
-                                           dm_crse_patch,
-                                           {0,0,0}, EBSupport::basic);
+            fact_crse_patch = makeEBFabFactory(Geometry(cdomain),
+                                               ba_crse_patch,
+                                               dm_crse_patch,
+                                               {0,0,0}, EBSupport::basic);
 #else
-        fact_crse_patch.reset(new FArrayBoxFactory());
+            fact_crse_patch.reset(new FArrayBoxFactory());
 #endif
+        }
     }
 }
 
