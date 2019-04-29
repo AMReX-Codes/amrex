@@ -455,16 +455,18 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
+                    
+                    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                    {
+                        auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                        particle_tile.push_back_real(particle_comps["xold"], x);
+                        particle_tile.push_back_real(particle_comps["yold"], y);
+                        particle_tile.push_back_real(particle_comps["zold"], z);
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-                    attribs[PIdx::xold] = x;
-                    attribs[PIdx::yold] = y;
-                    attribs[PIdx::zold] = z;
-
-                    attribs[PIdx::uxold] = u[0];
-                    attribs[PIdx::uyold] = u[1];
-                    attribs[PIdx::uzold] = u[2];
-#endif
+                        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+                        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+                        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+                    }
 
 		    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
@@ -695,15 +697,18 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-                    attribs[PIdx::xold] = x;
-                    attribs[PIdx::yold] = y;
-                    attribs[PIdx::zold] = z;
+                    // note - this will be slow on the GPU, need to revisit
+                    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                    {
+                        auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                        particle_tile.push_back_real(particle_comps["xold"], x);
+                        particle_tile.push_back_real(particle_comps["yold"], y);
+                        particle_tile.push_back_real(particle_comps["zold"], z);
 
-                    attribs[PIdx::uxold] = u[0];
-                    attribs[PIdx::uyold] = u[1];
-                    attribs[PIdx::uzold] = u[2];
-#endif
+                        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+                        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+                        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+                    }
 
 		    ParticleType p;
 		    p.id()  = ParticleType::NextID();
@@ -1666,20 +1671,20 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-    auto& xpold  = attribs[PIdx::xold];
-    auto& ypold  = attribs[PIdx::yold];
-    auto& zpold  = attribs[PIdx::zold];
-    auto& uxpold = attribs[PIdx::uxold];
-    auto& uypold = attribs[PIdx::uyold];
-    auto& uzpold = attribs[PIdx::uzold];
+    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    {
+        auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
+        auto& ypold    = pti.GetAttribs(particle_comps["yold"]);
+        auto& zpold    = pti.GetAttribs(particle_comps["zold"]);
+        auto& uxpold   = pti.GetAttribs(particle_comps["uxold"]);
+        auto& uypold   = pti.GetAttribs(particle_comps["uyold"]);
+        auto& uzpold   = pti.GetAttribs(particle_comps["uzold"]);
 
-    warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                       uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                       xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
-                       uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
-
-#endif
+        warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                           xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
+                           uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
+    }
 
     warpx_particle_pusher(&np,
                           xp.dataPtr(),
