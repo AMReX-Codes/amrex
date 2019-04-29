@@ -137,5 +137,5 @@ sim.add_diagnostic(part_diag1)
 sim.write_input_file(file_name = 'inputs_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
-sim.step(max_steps)
+#sim.step(max_steps)
 
