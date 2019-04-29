@@ -77,7 +77,18 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
 #ifdef WARPX_RZ
     particle_comps["theta"] = PIdx::theta;
 #endif
+
+    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    {
+        particle_comps["xold"]  = PIdx::nattribs;
+        particle_comps["yold"]  = PIdx::nattribs+1;
+        particle_comps["zold"]  = PIdx::nattribs+2;
+        particle_comps["uxold"] = PIdx::nattribs+3;
+        particle_comps["uyold"] = PIdx::nattribs+4;
+        particle_comps["uzold"] = PIdx::nattribs+5;
         
+    }
+    
     // Initialize temporary local arrays for charge/current deposition
     int num_threads = 1;
     #ifdef _OPENMP
