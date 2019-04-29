@@ -184,6 +184,18 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
 
+            if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+            {
+                auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
+                particle_tile.push_back_real(particle_comps["xold"], x);
+                particle_tile.push_back_real(particle_comps["yold"], y);
+                particle_tile.push_back_real(particle_comps["zold"], z);
+                
+                particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+                particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+                particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+            }
+            
             AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
         }

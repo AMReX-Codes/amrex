@@ -230,6 +230,15 @@ WarpXParticleContainer::AddNParticles (int lev,
 #endif
         p.pos(1) = z[i];
 #endif
+        
+        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+        {
+            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
+            particle_tile.push_back_real(particle_comps["xold"], x[i]);
+            particle_tile.push_back_real(particle_comps["yold"], y[i]);
+            particle_tile.push_back_real(particle_comps["zold"], z[i]);            
+        }
+        
         particle_tile.push_back(p);
     }
 
@@ -240,6 +249,14 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
+        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+        {
+            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
+            particle_tile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
+            particle_tile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
+            particle_tile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);            
+        }
+        
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
         {
 #ifdef WARPX_RZ
