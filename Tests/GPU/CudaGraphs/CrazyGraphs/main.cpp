@@ -71,17 +71,6 @@ int main (int argc, char* argv[])
             cudaStreamEndCapture(stream, &(graphQ));
 
 // ------------------------------------------------------------------------------- 
-//          Make an empty node
-
-            cudaGraphNode_t emptyNode = NULL;
-            {
-                cudaGraph_t empty;
-                cudaGraphCreate(&empty, 0);
-                cudaGraphAddEmptyNode(&emptyNode, empty, NULL, 0);
-                cudaGraphDestroy(empty);
-            }
-
-// ------------------------------------------------------------------------------- 
 //          Get nodes from graphs
 
             size_t numP, numQ;
@@ -90,33 +79,28 @@ int main (int argc, char* argv[])
 
             std::cout << "numP, numQ = " << numP << ", " << numQ << std::endl;
 
-            cudaGraphNode_t *nodesP[numP], *nodesQ[numQ];
-            for (int i=0; i<numP; ++i)
-            {
-                nodesP[i] = &(emptyNode);
-                nodesQ[i] = &(emptyNode);
-            }
-
-            cudaGraphGetNodes(graphP, nodesP[0], &numP);
-            cudaGraphGetNodes(graphQ, nodesQ[0], &numQ);
+            cudaGraphNode_t nodesP[numP], nodesQ[numQ];
+            cudaGraphGetNodes(graphP, nodesP, &numP);
+            cudaGraphGetNodes(graphQ, nodesQ, &numQ);
 
 // ------------------------------------------------------------------------------- 
 //          Swap params in CudaGraphExec and re-execute without instantiation.
 
             cudaKernelNodeParams knp;
-            cudaGraphKernelNodeGetParams(*nodesQ[0], &knp);
+            cudaGraphKernelNodeGetParams(nodesQ[0], &knp);
 #ifdef CRAZY
-            cudaGraphExecKernelNodeSetParams(graphExec, *nodesP[0], &knp);
+            cudaGraphExecKernelNodeSetParams(graphExec, nodesP[0], &knp);
 #endif
             cudaGraphLaunch(graphExec, stream);  
             cudaDeviceSynchronize();
 
+            // "2: p, q = 3, 3"?
             std::cout << "2: p, q = " << *p << ", " << *q << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        std::cout << "Double Test Completed." << std::endl << std::endl << std::endl;
+        std::cout << "Double Test Completed." << std::endl << std::endl; 
     }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -159,7 +143,7 @@ int main (int argc, char* argv[])
 
             cudaDeviceSynchronize();
 
-            std::cout << "1: p, q = " << *p << ", " << *q << std::endl;
+            std::cout << "1: p = " << *p << std::endl;
 
 // ------------------------------------------------------------------------------- 
 //          Make Q graph
@@ -173,16 +157,6 @@ int main (int argc, char* argv[])
             cudaStreamEndCapture(stream, &(graphQ));
 
 // ------------------------------------------------------------------------------- 
-//          Make an empty node
-
-            cudaGraphNode_t emptyNode = NULL;
-            {
-                cudaGraph_t empty;
-                cudaGraphCreate(&empty, 0);
-                cudaGraphAddEmptyNode(&emptyNode, empty, NULL, 0);
-            }
-
-// ------------------------------------------------------------------------------- 
 //          Get nodes from graphs
 
             size_t numP, numQ;
@@ -191,28 +165,23 @@ int main (int argc, char* argv[])
 
             std::cout << "numP, numQ = " << numP << ", " << numQ << std::endl;
 
-            cudaGraphNode_t *nodesP[numP], *nodesQ[numQ];
-            for (int i=0; i<numP; ++i)
-            {
-                nodesP[i] = &(emptyNode);
-                nodesQ[i] = &(emptyNode);
-            }
-
-            cudaGraphGetNodes(graphP, nodesP[0], &numP);
-            cudaGraphGetNodes(graphQ, nodesQ[0], &numQ);
+            cudaGraphNode_t nodesP[numP], nodesQ[numQ];
+            cudaGraphGetNodes(graphP, nodesP, &numP);
+            cudaGraphGetNodes(graphQ, nodesQ, &numQ);
 
 // ------------------------------------------------------------------------------- 
 //          Swap params in CudaGraphExec and re-execute without instantiation.
 
-            cudaKernelNodeParams knp;
-            cudaGraphKernelNodeGetParams(*nodesQ[0], &knp);
+            cudaKernelNodeParams knp, knpB;
+            cudaGraphKernelNodeGetParams(nodesQ[0], &knp);
+
 #ifdef CRAZY
-            cudaGraphExecKernelNodeSetParams(graphExec, *nodesP[0], &knp);
+            cudaGraphExecKernelNodeSetParams(graphExec, nodesP[0], &knp);
 #endif
             cudaGraphLaunch(graphExec, stream);  
             cudaDeviceSynchronize();
 
-            std::cout << "2: p, q = " << *p << ", " << *q << std::endl;
+            std::cout << "2: p = " << *p << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
