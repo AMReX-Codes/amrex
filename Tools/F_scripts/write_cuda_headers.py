@@ -581,12 +581,17 @@ def convert_cxx(inputs):
         if line.startswith("#pragma gpu"):
             # capture pragma options
             # they should be in the format
-            # #pragma gpu box
-            # where box is the box to loop over
+            # #pragma gpu box(bx)
+            # where
+            # box is the box to loop over
+
+            split_line = line.split()
 
             box = None
-            if len(line.split()) > 2:
-                box = line.split()[2]
+            for entry in split_line:
+                if "box(" in entry:
+                    box = entry[len("box("):-1]
+                    print(box)
 
             # we don't need to reproduce the pragma line in the
             # output, but we need to capture the whole function
