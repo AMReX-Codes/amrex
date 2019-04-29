@@ -9,9 +9,10 @@
 using SpectralField = amrex::FabArray< amrex::BaseFab <Complex> >;
 
 /* Index for the fields that will be stored in spectral space */
-enum struct SpectralFieldIndex: int
-{ Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new, n_fields };
-// n_fields is automatically the total number of fields
+struct SpectralFieldIndex {
+  enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new, n_fields };
+  // n_fields is automatically the total number of fields
+};
 
 /* \brief Class that stores the fields in spectral space, and performs the
  *  Fourier transforms between real space and spectral space
