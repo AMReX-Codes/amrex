@@ -26,6 +26,7 @@
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>
+#include <SpectralSolver.H>
 #endif
 
 #if defined(BL_USE_SENSEI_INSITU)
@@ -538,7 +539,7 @@ private:
 
     amrex::Vector<std::string> particle_plot_vars;
     amrex::Vector<int> particle_plot_flags;
-    
+
 #ifdef WARPX_USE_PSATD
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
@@ -586,6 +587,9 @@ private:
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
 
+    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
+    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
+
   // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
     amrex::Vector<amrex::BoxArray> ba_valid_cp_fft;
@@ -596,6 +600,7 @@ private:
     amrex::Vector<MPI_Comm> comm_fft;
     amrex::Vector<int>      color_fft;
 
+    bool fft_hybrid_mpi_decomposition = false;
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
     int nox_fft = 16;

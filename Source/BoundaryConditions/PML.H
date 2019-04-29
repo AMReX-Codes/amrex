@@ -63,11 +63,11 @@ namespace amrex {
             delete fab;
         }
 #ifdef AMREX_USE_GPU
-        virtual SigmaBox* createHostAlias (SigmaBox const& src) const final
+        virtual SigmaBox* createDeviceAlias (SigmaBox const& src) const final
         {
             return const_cast<SigmaBox*>(&src);
         }
-        virtual void destroyHostAlias (SigmaBox* fab) const final {}
+        virtual void destroyDeviceAlias (SigmaBox* fab) const final {}
 #endif
         virtual FabFactory<SigmaBox>* clone () const {
             return new FabFactory<SigmaBox>(*this);

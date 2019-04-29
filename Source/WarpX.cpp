@@ -206,6 +206,9 @@ WarpX::WarpX ()
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
 
+    spectral_solver_fp.resize(nlevs_max);
+    spectral_solver_cp.resize(nlevs_max);
+
     ba_valid_fp_fft.resize(nlevs_max);
     ba_valid_cp_fft.resize(nlevs_max);
 
@@ -261,12 +264,12 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
     pp.query("do_subcycling", do_subcycling);
-    
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
                                      "Subcycling method 1 only works for 2 levels.");
-    
+
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
-    
+
     pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
@@ -313,7 +316,7 @@ WarpX::ReadParameters ()
 
     pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
     if (do_boosted_frame_diagnostic) {
-        
+
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
@@ -328,8 +331,8 @@ WarpX::ReadParameters ()
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
         pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
-        
-        
+
+
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                "The moving window should be on if using the boosted frame diagnostic.");
 
@@ -352,7 +355,7 @@ WarpX::ReadParameters ()
     filter_npass_each_dir[1] = parse_filter_npass_each_dir[1];
 #if (AMREX_SPACEDIM == 3)
     filter_npass_each_dir[2] = parse_filter_npass_each_dir[2];
-#endif   
+#endif
 
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
@@ -366,7 +369,7 @@ WarpX::ReadParameters ()
         pp.query("pml_delta", pml_delta);
 
         pp.query("dump_openpmd", dump_openpmd);
-        pp.query("dump_plotfiles", dump_openpmd);
+        pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         if (ParallelDescriptor::NProcs() == 1) {
@@ -389,7 +392,7 @@ WarpX::ReadParameters ()
             }
           }
         }
-        
+
         if (plot_F){
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
                 "plot_F only works if warpx.do_dive_cleaning = 1");
@@ -432,7 +435,7 @@ WarpX::ReadParameters ()
         // select which particle comps to write
         {
             pp.queryarr("particle_plot_vars", particle_plot_vars);
-            
+
             if (particle_plot_vars.size() == 0)
             {
                 particle_plot_flags.resize(PIdx::nattribs, 1);
@@ -440,18 +443,18 @@ WarpX::ReadParameters ()
             else
             {
                 particle_plot_flags.resize(PIdx::nattribs, 0);
-                
+
                 for (const auto& var : particle_plot_vars)
                 {
                     particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
                 }
             }
         }
-        
+
         pp.query("load_balance_int", load_balance_int);
         pp.query("load_balance_with_sfc", load_balance_with_sfc);
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
-        
+
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
 
         pp.query("do_nodal", do_nodal);
@@ -509,11 +512,14 @@ WarpX::ReadParameters ()
 #ifdef WARPX_USE_PSATD
     {
         ParmParse pp("psatd");
+        pp.query("hybrid_mpi_decomposition", fft_hybrid_mpi_decomposition);
         pp.query("ngroups_fft", ngroups_fft);
         pp.query("fftw_plan_measure", fftw_plan_measure);
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
+        // Override value
+        if (fft_hybrid_mpi_decomposition==false) ngroups_fft=ParallelDescriptor::NProcs();
     }
 #endif
 
@@ -1089,4 +1095,3 @@ WarpX::PicsarVersion ()
     return std::string("Unknown");
 #endif
 }
-

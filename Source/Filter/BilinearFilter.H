@@ -15,7 +15,11 @@ public:
     amrex::IntVect npass_each_dir;
     amrex::IntVect stencil_length_each_dir;
 
-    void Filter(const amrex::Box& tbx, amrex::FArrayBox const& tmpfab, amrex::FArrayBox &dstfab, int scomp, int dcomp, int ncomp);
+    // public for cuda
+    void Filter(const amrex::Box& tbx,
+                amrex::Array4<amrex::Real const> const& tmp,
+                amrex::Array4<amrex::Real      > const& dst,
+                int scomp, int dcomp, int ncomp);
 
 private:
 
