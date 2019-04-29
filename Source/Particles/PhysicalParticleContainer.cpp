@@ -1801,7 +1801,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 {
     BL_PROFILE("PhysicalParticleContainer::GetParticleSlice");
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
     // Assume that the boost in the positive z direction.
 #if (AMREX_SPACEDIM == 2)
     AMREX_ALWAYS_ASSERT(direction == 1);
@@ -1864,12 +1863,12 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto& uyp_new = attribs[PIdx::uy   ];
                 auto& uzp_new = attribs[PIdx::uz   ];
 
-                auto&  xp_old = attribs[PIdx::xold ];
-                auto&  yp_old = attribs[PIdx::yold ];
-                auto&  zp_old = attribs[PIdx::zold ];
-                auto& uxp_old = attribs[PIdx::uxold];
-                auto& uyp_old = attribs[PIdx::uyold];
-                auto& uzp_old = attribs[PIdx::uzold];
+                auto&  xp_old = pti.GetAttribs(particle_comps["xold"]);
+                auto&  yp_old = pti.GetAttribs(particle_comps["yold"]);
+                auto&  zp_old = pti.GetAttribs(particle_comps["zold"]);
+                auto& uxp_old = pti.GetAttribs(particle_comps["uxold"]);
+                auto& uyp_old = pti.GetAttribs(particle_comps["uyold"]);
+                auto& uzp_old = pti.GetAttribs(particle_comps["uzold"]);
 
                 const long np = pti.numParticles();
 
@@ -1919,10 +1918,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
             }
         }
     }
-#else
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( false ,
-"ERROR: WarpX must be compiled with STORE_OLD_PARTICLE_ATTRIBS=TRUE to use the back-transformed diagnostics");
-#endif
 }
 
 int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Real z)
