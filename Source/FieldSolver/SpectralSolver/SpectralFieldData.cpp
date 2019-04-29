@@ -10,17 +10,9 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
     const BoxArray& spectralspace_ba = k_space.spectralspace_ba;
 
     // Allocate the arrays that contain the fields in spectral space
-    Ex = SpectralField(spectralspace_ba, dm, 1, 0);
-    Ey = SpectralField(spectralspace_ba, dm, 1, 0);
-    Ez = SpectralField(spectralspace_ba, dm, 1, 0);
-    Bx = SpectralField(spectralspace_ba, dm, 1, 0);
-    By = SpectralField(spectralspace_ba, dm, 1, 0);
-    Bz = SpectralField(spectralspace_ba, dm, 1, 0);
-    Jx = SpectralField(spectralspace_ba, dm, 1, 0);
-    Jy = SpectralField(spectralspace_ba, dm, 1, 0);
-    Jz = SpectralField(spectralspace_ba, dm, 1, 0);
-    rho_old = SpectralField(spectralspace_ba, dm, 1, 0);
-    rho_new = SpectralField(spectralspace_ba, dm, 1, 0);
+    // (one component per field)
+    fields = SpectralField(spectralspace_ba, dm,
+                            SpectralFieldIndex::n_fields, 0);
 
     // Allocate temporary arrays - in real space and spectral space
     // These arrays will store the data just before/after the FFT
@@ -147,12 +139,11 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
 #endif
 
         // Copy the spectral-space field `tmpSpectralField` to the appropriate
-        // field (specified by the input argument field_index )
+        // index of the FabArray `fields` (specified by `field_index`)
         // and apply correcting shift factor if the real space data comes
         // from a cell-centered grid in real space instead of a nodal grid.
         {
-            SpectralField& field = getSpectralField( field_index );
-            Array4<Complex> field_arr = field[mfi].array();
+            Array4<Complex> fields_arr = SpectralFieldData::fields[mfi].array();
             Array4<const Complex> tmp_arr = tmpSpectralField[mfi].array();
             const Complex* xshift_arr = xshift_FFTfromCell[mfi].dataPtr();
 #if (AMREX_SPACEDIM == 3)
@@ -170,8 +161,8 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
                 if (is_nodal_y==false) spectral_field_value *= yshift_arr[j];
 #endif
                 if (is_nodal_z==false) spectral_field_value *= zshift_arr[k];
-                // Copy field into temporary array
-                field_arr(i,j,k) = spectral_field_value;
+                // Copy field into the right index
+                fields_arr(i,j,k,field_index) = spectral_field_value;
             });
         }
     }
@@ -182,7 +173,8 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
  * real space, and store it in the component `i_comp` of `mf` */
 void
 SpectralFieldData::BackwardTransform( MultiFab& mf,
-                                      const int field_index, const int i_comp )
+                                      const int field_index,
+                                      const int i_comp )
 {
     // Check field index type, in order to apply proper shift in spectral space
     const bool is_nodal_x = mf.is_nodal(0);
@@ -202,8 +194,7 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
         // to a cell-centered grid in real space instead of a nodal grid.
         // Normalize (divide by 1/N) since the FFT+IFFT results in a factor N
         {
-            SpectralField& field = getSpectralField( field_index );
-            Array4<const Complex> field_arr = field[mfi].array();
+            Array4<const Complex> field_arr = SpectralFieldData::fields[mfi].array();
             Array4<Complex> tmp_arr = tmpSpectralField[mfi].array();
             const Complex* xshift_arr = xshift_FFTtoCell[mfi].dataPtr();
 #if (AMREX_SPACEDIM == 3)
@@ -216,7 +207,7 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
             const Real inv_N = 1./spectralspace_bx.numPts();
             ParallelFor( spectralspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                Complex spectral_field_value = field_arr(i,j,k);
+                Complex spectral_field_value = field_arr(i,j,k,field_index);
                 // Apply proper shift in each dimension
                 if (is_nodal_x==false) spectral_field_value *= xshift_arr[i];
 #if (AMREX_SPACEDIM == 3)
@@ -246,26 +237,5 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
                 mf_arr(i,j,k,i_comp) = tmp_arr(i,j,k).real();
             });
         }
-    }
-}
-
-
-SpectralField&
-SpectralFieldData::getSpectralField( const int field_index )
-{
-    switch(field_index)
-    {
-        case SpectralFieldIndex::Ex : return Ex; break;
-        case SpectralFieldIndex::Ey : return Ey; break;
-        case SpectralFieldIndex::Ez : return Ez; break;
-        case SpectralFieldIndex::Bx : return Bx; break;
-        case SpectralFieldIndex::By : return By; break;
-        case SpectralFieldIndex::Bz : return Bz; break;
-        case SpectralFieldIndex::Jx : return Jx; break;
-        case SpectralFieldIndex::Jy : return Jy; break;
-        case SpectralFieldIndex::Jz : return Jz; break;
-        case SpectralFieldIndex::rho_old : return rho_old; break;
-        case SpectralFieldIndex::rho_new : return rho_new; break;
-        default : return tmpSpectralField; // For synthax; should not occur in practice
     }
 }
