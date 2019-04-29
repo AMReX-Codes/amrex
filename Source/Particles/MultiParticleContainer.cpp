@@ -33,7 +33,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 
     if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
     {
-        for (int i = 0; i < n; ++i)
+        for (int i = 0; i < nspecies + nlaser; ++i)
         {
             allcontainers[i]->AddRealComp("xold");
             allcontainers[i]->AddRealComp("yold");
