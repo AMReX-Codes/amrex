@@ -28,7 +28,26 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
     }
-    pc_tmp.reset(new PhysicalParticleContainer(amr_core));	
+    pc_tmp.reset(new PhysicalParticleContainer(amr_core));
+
+    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    {
+        for (int i = 0; i < n; ++i)
+        {
+            allcontainers[i]->AddRealComp("xold");
+            allcontainers[i]->AddRealComp("yold");
+            allcontainers[i]->AddRealComp("zold");
+            allcontainers[i]->AddRealComp("uxold");
+            allcontainers[i]->AddRealComp("uyold");
+            allcontainers[i]->AddRealComp("uzold");
+        }
+        pc_tmp->AddRealComp("xold");
+        pc_tmp->AddRealComp("yold");
+        pc_tmp->AddRealComp("zold");
+        pc_tmp->AddRealComp("uxold");
+        pc_tmp->AddRealComp("uyold");
+        pc_tmp->AddRealComp("uzold");
+    }
 }
 
 void
