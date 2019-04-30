@@ -56,8 +56,10 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                 std::pow(modified_kx[i], 2) +
 #if (AMREX_SPACEDIM==3)
                 std::pow(modified_ky[j], 2) +
-#endif
                 std::pow(modified_kz[k], 2));
+#else
+                std::pow(modified_kz[j], 2));
+#endif
 
             // Calculate coefficients
             constexpr Real c = PhysConst::c;
@@ -85,23 +87,12 @@ void
 PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
 
     // Loop over boxes
-    for (MFIter mfi(f.Ex); mfi.isValid(); ++mfi){
+    for (MFIter mfi(f.fields); mfi.isValid(); ++mfi){
 
-        const Box& bx = f.Ex[mfi].box();
+        const Box& bx = f.fields[mfi].box();
 
         // Extract arrays for the fields to be updated
-        Array4<Complex> Ex_arr = f.Ex[mfi].array();
-        Array4<Complex> Ey_arr = f.Ey[mfi].array();
-        Array4<Complex> Ez_arr = f.Ez[mfi].array();
-        Array4<Complex> Bx_arr = f.Bx[mfi].array();
-        Array4<Complex> By_arr = f.By[mfi].array();
-        Array4<Complex> Bz_arr = f.Bz[mfi].array();
-        // Extract arrays for J and rho
-        Array4<const Complex> Jx_arr = f.Jx[mfi].array();
-        Array4<const Complex> Jy_arr = f.Jy[mfi].array();
-        Array4<const Complex> Jz_arr = f.Jz[mfi].array();
-        Array4<const Complex> rho_old_arr = f.rho_old[mfi].array();
-        Array4<const Complex> rho_new_arr = f.rho_new[mfi].array();
+        Array4<Complex> fields = f.fields[mfi].array();
         // Extract arrays for the coefficients
         Array4<const Real> C_arr = C_coef[mfi].array();
         Array4<const Real> S_ck_arr = S_ck_coef[mfi].array();
@@ -120,26 +111,28 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             // Record old values of the fields to be updated
-            const Complex Ex_old = Ex_arr(i,j,k);
-            const Complex Ey_old = Ey_arr(i,j,k);
-            const Complex Ez_old = Ez_arr(i,j,k);
-            const Complex Bx_old = Bx_arr(i,j,k);
-            const Complex By_old = By_arr(i,j,k);
-            const Complex Bz_old = Bz_arr(i,j,k);
+            using Idx = SpectralFieldIndex;
+            const Complex Ex_old = fields(i,j,k,Idx::Ex);
+            const Complex Ey_old = fields(i,j,k,Idx::Ey);
+            const Complex Ez_old = fields(i,j,k,Idx::Ez);
+            const Complex Bx_old = fields(i,j,k,Idx::Bx);
+            const Complex By_old = fields(i,j,k,Idx::By);
+            const Complex Bz_old = fields(i,j,k,Idx::Bz);
             // Shortcut for the values of J and rho
-            const Complex Jx = Jx_arr(i,j,k);
-            const Complex Jy = Jy_arr(i,j,k);
-            const Complex Jz = Jz_arr(i,j,k);
-            const Complex rho_old = rho_old_arr(i,j,k);
-            const Complex rho_new = rho_new_arr(i,j,k);
+            const Complex Jx = fields(i,j,k,Idx::Jx);
+            const Complex Jy = fields(i,j,k,Idx::Jy);
+            const Complex Jz = fields(i,j,k,Idx::Jz);
+            const Complex rho_old = fields(i,j,k,Idx::rho_old);
+            const Complex rho_new = fields(i,j,k,Idx::rho_new);
             // k vector values, and coefficients
             const Real kx = modified_kx_arr[i];
 #if (AMREX_SPACEDIM==3)
             const Real ky = modified_ky_arr[j];
+            const Real kz = modified_kz_arr[k];
 #else
             constexpr Real ky = 0;
+            const Real kz = modified_kz_arr[j];
 #endif
-            const Real kz = modified_kz_arr[k];
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real inv_ep0 = 1./PhysConst::ep0;
             constexpr Complex I = Complex{0,1};
@@ -150,23 +143,23 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Real X3 = X3_arr(i,j,k);
 
             // Update E (see WarpX online documentation: theory section)
-            Ex_arr(i,j,k) = C*Ex_old
+            fields(i,j,k,Idx::Ex) = C*Ex_old
                         + S_ck*(c2*I*(ky*Bz_old - kz*By_old) - inv_ep0*Jx)
                         - I*(X2*rho_new - X3*rho_old)*kx;
-            Ey_arr(i,j,k) = C*Ey_old
+            fields(i,j,k,Idx::Ey) = C*Ey_old
                         + S_ck*(c2*I*(kz*Bx_old - kx*Bz_old) - inv_ep0*Jy)
                         - I*(X2*rho_new - X3*rho_old)*ky;
-            Ez_arr(i,j,k) = C*Ez_old
+            fields(i,j,k,Idx::Ez) = C*Ez_old
                         + S_ck*(c2*I*(kx*By_old - ky*Bx_old) - inv_ep0*Jz)
                         - I*(X2*rho_new - X3*rho_old)*kz;
             // Update B (see WarpX online documentation: theory section)
-            Bx_arr(i,j,k) = C*Bx_old
+            fields(i,j,k,Idx::Bx) = C*Bx_old
                         - S_ck*I*(ky*Ez_old - kz*Ey_old)
                         +   X1*I*(ky*Jz     - kz*Jy);
-            By_arr(i,j,k) = C*By_old
+            fields(i,j,k,Idx::By) = C*By_old
                         - S_ck*I*(kz*Ex_old - kx*Ez_old)
                         +   X1*I*(kz*Jx     - kx*Jz);
-            Bz_arr(i,j,k) = C*Bz_old
+            fields(i,j,k,Idx::Bz) = C*Bz_old
                         - S_ck*I*(kx*Ey_old - ky*Ex_old)
                         +   X1*I*(kx*Jy     - ky*Jx);
         });

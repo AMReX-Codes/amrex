@@ -161,12 +161,13 @@ SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
 
         // Fill the modified k vector
         for (int i=0; i<k.size(); i++ ){
+            modified_k[i] = 0;
             for (int n=1; n<stencil_coef.size(); n++){
                 if (nodal){
-                    modified_k[i] = stencil_coef[n]* \
+                    modified_k[i] += stencil_coef[n]* \
                         std::sin( k[i]*n*delta_x )/( n*delta_x );
                 } else {
-                    modified_k[i] = stencil_coef[n]* \
+                    modified_k[i] += stencil_coef[n]* \
                         std::sin( k[i]*(n-0.5)*delta_x )/( (n-0.5)*delta_x );
                 }
             }
