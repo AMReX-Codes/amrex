@@ -461,16 +461,43 @@ void
 MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
                       const Array<BCType,AMREX_SPACEDIM>& a_hibc) noexcept
 {
-    m_lobc = a_lobc;
-    m_hibc = a_hibc;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(getNComp() == 1,
+                                     "This version of setDomainBC is for single component only");
+    m_lobc.clear();
+    m_hibc.clear();
+    m_lobc.resize(1,a_lobc);
+    m_hibc.resize(1,a_hibc);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
-            AMREX_ALWAYS_ASSERT(m_lobc[idim] == BCType::Periodic);
-            AMREX_ALWAYS_ASSERT(m_hibc[idim] == BCType::Periodic);
+            AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
+            AMREX_ALWAYS_ASSERT(a_hibc[idim] == BCType::Periodic);
         }
-        if (m_lobc[idim] == BCType::Periodic or
-            m_hibc[idim] == BCType::Periodic) {
+        if (a_lobc[idim] == BCType::Periodic or
+            a_hibc[idim] == BCType::Periodic) {
             AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+        }
+    }
+}
+
+void
+MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
+                      const Vector<Array<BCType,AMREX_SPACEDIM> >& a_hibc) noexcept
+{
+    const int ncomp = getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == a_lobc.size() && ncomp == a_hibc.size(),
+                                     "MLLinOp::setDomainBC: wrong size");
+    m_lobc = a_lobc;
+    m_hibc = a_hibc;
+    for (int icomp = 0; icomp < ncomp; ++icomp) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (Geometry::isPeriodic(idim)) {
+                AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic);
+                AMREX_ALWAYS_ASSERT(m_hibc[icomp][idim] == BCType::Periodic);
+            }
+            if (m_lobc[icomp][idim] == BCType::Periodic or
+                m_hibc[icomp][idim] == BCType::Periodic) {
+                AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+            }
         }
     }
 }
