@@ -110,8 +110,10 @@ int main (int argc, char* argv[])
     MultiFab mf_cpu  (ba, dm, Ncomp, Nghost);
 
     Real start_time, end_time;
+//    Real cpu_avg, gpu_avg, graph_avg, graph_init;
     Gpu::setLaunchRegion(true); 
     Gpu::setGraphRegion(true); 
+
 
     // With GPUs and Graphs
     {
@@ -248,9 +250,9 @@ int main (int argc, char* argv[])
     }
 
     // Add "Average FillBoundaries to break even" math.
-    // SegFault?
+    // SegFault? ( 256^3 & max_grid_size = 8 )
     // CUDA 10 proofing.  Device Calls, FillBoundary, Graph Definitions.
-
+    // Flag for graph per stream & graph per iter.
 
     amrex::Print() << std::endl << "************************************************" << std::endl;
     }
