@@ -166,7 +166,8 @@ MLCellLinOp::defineBC ()
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
-                                                             m_dmap[amrlev][mglev]));
+                                                             m_dmap[amrlev][mglev],
+                                                             ncomp));
         } 
     }
 }
@@ -239,7 +240,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
         m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
-                                                   m_lobc[0], m_hibc[0],
+                                                   m_lobc, m_hibc,
                                                    br_ref_ratio, m_coarse_bc_loc);
     }
 }
@@ -486,8 +487,8 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         const Box& vbx   = mfi.validbox();
         const auto& iofab = in.array(mfi);
 
-        const RealTuple & bdl = bcondloc.bndryLocs(mfi);
-        const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+        const auto & bdlv = bcondloc.bndryLocs(mfi);
+        const auto & bdcv = bcondloc.bndryConds(mfi);
 
         if (cross)
         {
@@ -500,53 +501,58 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                 const int blen = vbx.length(idim);
                 const auto& mlo = maskvals[olo].array(mfi);
                 const auto& mhi = maskvals[ohi].array(mfi);
-                const BoundCond bctlo = bdc[olo];
-                const BoundCond bcthi = bdc[ohi];
-                const Real bcllo = bdl[olo];
-                const Real bclhi = bdl[ohi];
                 const auto& bvlo = (bndry != nullptr) ? bndry->bndryValues(olo).array(mfi) : foo;
                 const auto& bvhi = (bndry != nullptr) ? bndry->bndryValues(ohi).array(mfi) : foo;
-                if (idim == 0) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                    blo, tboxlo, {
+                for (int icomp = 0; icomp < ncomp; ++icomp) {
+                    const BoundCond bctlo = bdcv[icomp][olo];
+                    const BoundCond bcthi = bdcv[icomp][ohi];
+                    const Real bcllo = bdlv[icomp][olo];
+                    const Real bclhi = bdlv[icomp][ohi];
+                    if (idim == 0) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                        blo, tboxlo, {
                         mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
                                            bctlo, bcllo, bvlo,
-                                           imaxorder, dxi, flagbc, ncomp);
-                    },
-                    bhi, tboxhi, {
+                                           imaxorder, dxi, flagbc, icomp);
+                        },
+                        bhi, tboxhi, {
                         mllinop_apply_bc_x(1, tboxhi, blen, iofab, mhi,
                                            bcthi, bclhi, bvhi,
-                                           imaxorder, dxi, flagbc, ncomp);
-                    });
-                } else if (idim == 1) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                    blo, tboxlo, {
+                                           imaxorder, dxi, flagbc, icomp);
+                        });
+                    } else if (idim == 1) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                        blo, tboxlo, {
                         mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
                                            bctlo, bcllo, bvlo,
-                                           imaxorder, dyi, flagbc, ncomp);
-                    },
-                    bhi, tboxhi, {
+                                           imaxorder, dyi, flagbc, icomp);
+                        },
+                        bhi, tboxhi, {
                         mllinop_apply_bc_y(1, tboxhi, blen, iofab, mhi,
                                            bcthi, bclhi, bvhi,
-                                           imaxorder, dyi, flagbc, ncomp);
-                    });
-                } else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                    blo, tboxlo, {
+                                           imaxorder, dyi, flagbc, icomp);
+                        });
+                    } else {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                        blo, tboxlo, {
                         mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
                                            bctlo, bcllo, bvlo,
-                                           imaxorder, dzi, flagbc, ncomp);
-                    },
-                    bhi, tboxhi, {
+                                           imaxorder, dzi, flagbc, icomp);
+                        },
+                        bhi, tboxhi, {
                         mllinop_apply_bc_z(1, tboxhi, blen, iofab, mhi,
                                            bcthi, bclhi, bvhi,
-                                           imaxorder, dzi, flagbc, ncomp);
-                    });
+                                           imaxorder, dzi, flagbc, icomp);
+                        });
+                    }
                 }
             }
         }
         else
         {
+            const RealTuple & bdl = bdlv[0];
+            const BCTuple   & bdc = bdcv[0];
+
             for (OrientationIter oitr; oitr; ++oitr)
             {
                 const Orientation ori = oitr();
@@ -804,8 +810,8 @@ MLCellLinOp::prepareForSolve ()
             {
                 const Box& vbx = mfi.validbox();
 
-                const RealTuple & bdl = bcondloc.bndryLocs(mfi);
-                const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+                const auto & bdlv = bcondloc.bndryLocs(mfi);
+                const auto & bdcv = bcondloc.bndryConds(mfi);
 
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
@@ -816,50 +822,50 @@ MLCellLinOp::prepareForSolve ()
                     const int blen = vbx.length(idim);
                     const auto& mlo = maskvals[olo].array(mfi);
                     const auto& mhi = maskvals[ohi].array(mfi);
-                    const BoundCond bctlo = bdc[olo];
-                    const BoundCond bcthi = bdc[ohi];
-                    const Real bcllo = bdl[olo];
-                    const Real bclhi = bdl[ohi];
-
                     const auto& flo = undrrelxr[olo].array(mfi);
                     const auto& fhi = undrrelxr[ohi].array(mfi);
-
-                    if (idim == 0) {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                        blo, tboxlo, {
+                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                        const BoundCond bctlo = bdcv[icomp][olo];
+                        const BoundCond bcthi = bdcv[icomp][ohi];
+                        const Real bcllo = bdlv[icomp][olo];
+                        const Real bclhi = bdlv[icomp][ohi];
+                        if (idim == 0) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
                             mllinop_comp_interp_coef0_x
                                 (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
                                  imaxorder, dxi, ncomp);
-                        },
-                        bhi, tboxhi, {
+                            },
+                            bhi, tboxhi, {
                             mllinop_comp_interp_coef0_x
                                 (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
                                  imaxorder, dxi, ncomp);
-                        });
-                    } else if (idim == 1) {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                        blo, tboxlo, {
+                            });
+                        } else if (idim == 1) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
                             mllinop_comp_interp_coef0_y
                                 (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
                                  imaxorder, dyi, ncomp);
-                        },
-                        bhi, tboxhi, {
+                            },
+                            bhi, tboxhi, {
                             mllinop_comp_interp_coef0_y
                                 (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
                                  imaxorder, dyi, ncomp);
-                        });
-                    } else {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                        blo, tboxlo, {
+                            });
+                        } else {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
                             mllinop_comp_interp_coef0_z
                                 (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
                                  imaxorder, dzi, ncomp);
-                        },
-                        bhi, tboxhi, {
+                            },
+                            bhi, tboxhi, {
                             mllinop_comp_interp_coef0_z
                                 (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
                                  imaxorder, dzi, ncomp);
-                        });
+                            });
+                        }
                     }
                 }
             }
@@ -879,19 +885,24 @@ MLCellLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     return result;
 }
 
-MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
+MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm, int ncomp)
     : bcond(ba, dm),
-      bcloc(ba, dm)
+      bcloc(ba, dm),
+      m_ncomp(ncomp)
 {
+    for (MFIter mfi(bcloc); mfi.isValid(); ++mfi) {
+        bcond[mfi].resize(ncomp);
+        bcloc[mfi].resize(ncomp);
+    }
 }
 
 void
 MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
-                                            const Array<BCType,AMREX_SPACEDIM>& lobc,
-                                            const Array<BCType,AMREX_SPACEDIM>& hibc,
+                                            const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
+                                            const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
                                             int ratio, const RealVect& a_loc)
 {
-    const Box&  domain = geom.Domain();
+    const Box& domain = geom.Domain();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -899,10 +910,11 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
     for (MFIter mfi(bcloc); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        RealTuple & bloc  = bcloc[mfi];
-        BCTuple   & bctag = bcond[mfi];
-
-        MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc, hibc, dx, ratio, a_loc);
+        for (int icomp = 0; icomp < m_ncomp; ++icomp) {
+            RealTuple & bloc  = bcloc[mfi][icomp];
+            BCTuple   & bctag = bcond[mfi][icomp];
+            MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc[icomp], hibc[icomp], dx, ratio, a_loc);
+        }
     }
 }
 
