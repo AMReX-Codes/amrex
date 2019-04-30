@@ -136,9 +136,9 @@ RealDescriptor&
 FPC::Native64RealDescriptor ()
 {
 #ifdef AMREX_LITTLE_ENDIAN
-    static const RealDescriptor n64rd(ieee_float, reverse_float_order, 8);
+    static const RealDescriptor n64rd(ieee_double, reverse_double_order, 8);
 #elif AMREX_BIG_ENDIAN
-    static const RealDescriptor n64rd(ieee_float, normal_float_order, 8);
+    static const RealDescriptor n64rd(ieee_double, normal_double_order, 8);
 #endif
 
     return n64rd;
