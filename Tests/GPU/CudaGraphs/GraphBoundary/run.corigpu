@@ -17,10 +17,10 @@
 #       (You can force lower than your full request in the srun line,
 #        or put the configuration again for safety, but shouldn't be needed.)
 # ============
-# -N =                nodes
-# -n =                tasks (MPI ranks)
-# -c =                CPU per task (full coriGPU node, c*n <= 80)
-# --gres=gpu: =       GPUs per node (full coriGPU node, 8)
+# -N                = nodes
+# -n                = tasks (MPI ranks)
+# -c                = CPU per task (full coriGPU node, c*n <= 80)
+# --gres=gpu:       = GPUs per node (full coriGPU node, 8)
 # --ntasks-per-node = number of tasks (MPI ranks) per node (full node, 8)
 #
 
@@ -39,7 +39,10 @@
 # module purge
 # module load modules esslurm gcc cuda mvapich2 
 
-srun ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+srun -n 8 -c 10 --gres=gpu:8 ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+
+#srun -n 8 -c 10 --gres=gpu:8 ./main3d.gnu.DEBUG.TPROF.MPI.CUDA.ex inputs_3d
+
 #srun nvprof -o nvprof.${SLURM_TASK_PID}.nvvp ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
 #srun nv-nsight-cu-cli -o profile ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
 #srun nsys profile ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
