@@ -26,7 +26,6 @@ RegionGraph::RegionGraph(int numtasks)
 #ifdef PERILLA_DEBUG
     memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
-
 }
 
 void RegionGraph::Initialize()

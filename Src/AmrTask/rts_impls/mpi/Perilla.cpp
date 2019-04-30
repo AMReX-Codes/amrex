@@ -1684,6 +1684,7 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 } // serviceMultipleGraphComm
 
 void Perilla::flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, std::vector<RegionGraph*> &graphArray){
+    graphArray.clear();
     int gCnt=0;
     for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
     for(int l=0; l<graphArrayHierarchy.size(); l++)
