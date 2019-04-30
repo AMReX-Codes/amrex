@@ -233,13 +233,13 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
-    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio, m_coarse_bc_loc);
+    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc[0], m_hibc[0], br_ref_ratio, m_coarse_bc_loc);
 
     const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
         m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
-                                                   m_lobc, m_hibc,
+                                                   m_lobc[0], m_hibc[0],
                                                    br_ref_ratio, m_coarse_bc_loc);
     }
 }

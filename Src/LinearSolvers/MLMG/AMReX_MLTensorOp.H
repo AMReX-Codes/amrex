@@ -12,6 +12,8 @@ namespace amrex {
 //
 // Note that what's inside [] is div dot tau + div dot ((kappa+eta/3) I (div dot v)),
 // where tau is viscous tensor, and eta and kappa are shear and bulk viscosity, respectively.
+//
+// Known limitations: Using hypre or petsc as bottom solver is not supported.
 
 class MLTensorOp
     : public MLABecLaplacian

@@ -1727,7 +1727,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
                                              0.5*dx[1]*crse_ratio,
                                              0.5*dx[2]*crse_ratio));
-            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+            hypre_bndry->setLOBndryConds(linop.m_lobc[0], linop.m_hibc[0], -1, bclocation);
         }
 
         hypre_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
@@ -1770,7 +1770,7 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
         RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
                                          0.5*dx[1]*crse_ratio,
                                          0.5*dx[2]*crse_ratio));
-        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+        petsc_bndry->setLOBndryConds(linop.m_lobc[0], linop.m_hibc[0], -1, bclocation);
     }
     petsc_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
 #endif
