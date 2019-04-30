@@ -982,6 +982,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     FArrayBox foo(Box::TheUnitBox(),ncomp);
     foo.setVal(10.0);
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp==1, "MLEBABecLap: ncomp must be 1");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -993,8 +995,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
         if (fabtyp != FabType::covered)
         {
-            const RealTuple & bdl = bcondloc.bndryLocs(mfi);
-            const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+            const RealTuple & bdl = bcondloc.bndryLocs(mfi,0);
+            const BCTuple   & bdc = bcondloc.bndryConds(mfi,0);
             
             for (OrientationIter oitr; oitr; ++oitr)
             {
