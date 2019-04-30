@@ -159,8 +159,10 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
                 if (is_nodal_x==false) spectral_field_value *= xshift_arr[i];
 #if (AMREX_SPACEDIM == 3)
                 if (is_nodal_y==false) spectral_field_value *= yshift_arr[j];
-#endif
                 if (is_nodal_z==false) spectral_field_value *= zshift_arr[k];
+#elif (AMREX_SPACEDIM == 2)
+                if (is_nodal_z==false) spectral_field_value *= zshift_arr[j];
+#endif
                 // Copy field into the right index
                 fields_arr(i,j,k,field_index) = spectral_field_value;
             });
@@ -212,8 +214,10 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
                 if (is_nodal_x==false) spectral_field_value *= xshift_arr[i];
 #if (AMREX_SPACEDIM == 3)
                 if (is_nodal_y==false) spectral_field_value *= yshift_arr[j];
-#endif
                 if (is_nodal_z==false) spectral_field_value *= zshift_arr[k];
+#elif (AMREX_SPACEDIM == 2)
+                if (is_nodal_z==false) spectral_field_value *= zshift_arr[j];
+#endif
                 // Copy field into temporary array (after normalization)
                 tmp_arr(i,j,k) = inv_N*spectral_field_value;
             });

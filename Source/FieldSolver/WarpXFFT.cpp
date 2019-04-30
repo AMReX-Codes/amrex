@@ -130,7 +130,11 @@ WarpX::AllocLevelDataFFT (int lev)
         // Allocate and initialize objects for the spectral solver
         // (all use the same distribution mapping)
         std::array<Real,3> dx = CellSize(lev);
-        RealVect dx_vect = RealVect( AMREX_D_DECL(dx[0], dx[1], dx[2]) );
+#if (AMREX_SPACEDIM == 3)
+        RealVect dx_vect(dx[0], dx[1], dx[2]);
+#elif (AMREX_SPACEDIM == 2)
+        RealVect dx_vect(dx[0], dx[2]);
+#endif
         spectral_solver_fp[lev].reset( new SpectralSolver( ba_fp_fft, dm_fp_fft,
                  nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
     }
