@@ -395,7 +395,7 @@ class GShopLSFactory {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for(MFIter mfi(* mf_impfunc, true); mfi.isValid(); ++ mfi)
+            for(MFIter mfi(* mf_impfunc); mfi.isValid(); ++ mfi)
                 m_gshop.fillFab((* mf_impfunc)[mfi], m_geom);
 
             mf_impfunc->FillBoundary(m_geom.periodicity());
