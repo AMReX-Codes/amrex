@@ -1185,7 +1185,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+			  FPC::Native32RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1226,8 +1226,8 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
                    FPC::NativeLongDescriptor());
 
         if(bAlwaysFixDenormals) {
-          PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+          PD_fixdenormals(out, get, FPC::Native64RealDescriptor().format(),
+			  FPC::Native64RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
