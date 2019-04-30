@@ -64,7 +64,7 @@ MLCellLinOp::defineAuxData ()
                 m_maskvals[amrlev][mglev][face].define(m_grids[amrlev][mglev],
                                                        m_dmap[amrlev][mglev],
                                                        m_geom[amrlev][mglev],
-                                                       face, 0, ngrow, extent, ncomp, true);
+                                                       face, 0, ngrow, extent, 1, true);
             }
         }
     }

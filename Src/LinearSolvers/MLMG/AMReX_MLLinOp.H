@@ -265,7 +265,6 @@ protected:
     RealVect m_coarse_bc_loc;
     const MultiFab* m_coarse_data_for_bc = nullptr;
 
-
     /**
     * \brief functions
     */
