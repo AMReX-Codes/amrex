@@ -4,7 +4,8 @@
 
 /* \brief TODO Description
  */
-SpectralSolver( const amrex::BoxArray& realspace_ba,
+SpectralSolver::SpectralSolver(
+                const amrex::BoxArray& realspace_ba,
                 const amrex::DistributionMapping& dm,
                 const int norder_x, const int norder_y,
                 const int norder_z, const bool nodal,
