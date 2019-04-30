@@ -292,12 +292,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if ( !(TheFB.m_copyToBuffer.ready()) )
         {
             // Set size of CudaGraph buffer.
+            // Is the conditional ever expected false?
             long launches = 0;
-            for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
-            {
-                // IS THIS EVER EXPECTED? IF NOT, MAKE IT AN ASSERT & JUST SIZE TO N_snds?
-                if (send_data[sit()] != nullptr) {
-                    launches += send_cctc[sit()]->size();
+            for (int send = 0; send < N_snds; ++send) {
+                if (send_data[send] != nullptr) {
+                    launches += send_cctc[send]->size();
                 }
             }
             const_cast<FB&>(TheFB).m_copyToBuffer.resize(launches);
@@ -339,9 +338,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
         // Setup Launch Parameters
         long idx = 0;
-        for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
+        for (int send = 0; send < N_snds; ++send)
         {
-            const int j = sit();
+            const int j = send;
             char* dptr = send_data[j];
             if (dptr != nullptr)
             {
