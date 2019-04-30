@@ -37,14 +37,14 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
-    virtual bool needsUpdate () const final override {
+    virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
     }
-    virtual void update () final override;
+    virtual void update () override;
 
-    virtual void prepareForSolve () final override;
-    virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
-    virtual bool isBottomSingular () const final override { return m_is_singular[0]; }
+    virtual void prepareForSolve () override;
+    virtual bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
+    virtual bool isBottomSingular () const override { return m_is_singular[0]; }
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const final override;
     virtual void FFlux (int amrlev, const MFIter& mfi,
@@ -81,8 +81,6 @@ public:
 protected:
 
     bool m_needs_update = true;
-
-private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
