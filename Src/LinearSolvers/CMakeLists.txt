@@ -43,6 +43,8 @@ target_sources(amrex
    MLMG/AMReX_MLNodeLap_F.H
    MLMG/AMReX_MLNodeLap_${DIM}d.F90
    MLMG/AMReX_MLNodeLap_nd.F90
+   MLMG/AMReX_MLTensorOp.H
+   MLMG/AMReX_MLTensorOp.cpp
    MLMG/AMReX_MacProjector.H
    MLMG/AMReX_MacProjector.cpp
    MLMG/AMReX_MG_K.H
