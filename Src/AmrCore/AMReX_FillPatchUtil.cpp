@@ -251,10 +251,7 @@ namespace amrex
                                                                       ngrow,
                                                                       coarsener,
                                                                       amrex::coarsen(fgeom.Domain(),ratio), 
-                                                                      makeEBFabFactory(index_space, Geometry(cdomain),
-                                                                                       ba_crse_patch,
-                                                                                       dm_crse_patch,
-                                                                                       {0,0,0}, EBSupport::basic));
+                                                                      &index_space);
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
