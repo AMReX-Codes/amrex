@@ -395,8 +395,8 @@ WarpX::ReadParameters ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
                 "plot_F only works if warpx.do_dive_cleaning = 1");
         }
+        pp.query("plot_finepatch", plot_finepatch);
         if (maxLevel() > 0) {
-            pp.query("plot_finepatch", plot_finepatch);
             pp.query("plot_crsepatch", plot_crsepatch);
         }
 
