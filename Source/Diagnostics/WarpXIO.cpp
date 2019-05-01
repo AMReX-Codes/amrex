@@ -631,15 +631,16 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("theta");
 #endif
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-    particle_varnames.push_back("xold");
-    particle_varnames.push_back("yold");
-    particle_varnames.push_back("zold");
+    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    {
+        particle_varnames.push_back("xold");
+        particle_varnames.push_back("yold");
+        particle_varnames.push_back("zold");
 
-    particle_varnames.push_back("uxold");
-    particle_varnames.push_back("uyold");
-    particle_varnames.push_back("uzold");
-#endif
+        particle_varnames.push_back("uxold");
+        particle_varnames.push_back("uyold");
+        particle_varnames.push_back("uzold");
+    }
 
     mypc->WritePlotFile(plotfilename, particle_plot_flags, particle_varnames);
 

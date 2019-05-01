@@ -14,9 +14,6 @@ struct PIdx
 #ifdef WARPX_RZ
         theta, // RZ needs all three position components
 #endif
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-        xold, yold, zold, uxold, uyold, uzold,
-#endif        
 	nattribs
     };
 };
@@ -42,15 +39,7 @@ namespace ParticleStringNames
         {"Ez",    PIdx::Ez   },
         {"Bx",    PIdx::Bx   },
         {"By",    PIdx::By   },
-        {"Bz",    PIdx::Bz   },
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS    
-        {"xold",  PIdx::xold },
-        {"yold",  PIdx::yold },
-        {"zold",  PIdx::zold },
-        {"uxold", PIdx::uxold},
-        {"uyold", PIdx::uyold},
-        {"uzold", PIdx::uzold},
-#endif
+        {"Bz",    PIdx::Bz   }
     };
 }
 
@@ -231,8 +220,25 @@ public:
     // split along axes (0) or diagonals (1)
     int split_type = 0;
 
+    using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddRealComp; 
+    using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddIntComp;
+   
+    void AddRealComp (const std::string& name, bool comm=true)
+    {
+        particle_comps[name] = NumRealComps();
+        AddRealComp(comm);
+    }
+
+    void AddIntComp (const std::string& name, bool comm=true)
+    {
+        particle_comps[name] = NumIntComps();
+        AddIntComp(comm);
+    }
+
 protected:
 
+    std::map<std::string, int> particle_comps;
+    
     int species_id;
 
     amrex::Real charge;

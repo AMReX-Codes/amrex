@@ -63,6 +63,32 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     SetParticleSize();
     ReadParameters();
 
+    // build up the map of string names to particle component numbers
+    particle_comps["w"]  = PIdx::w;
+    particle_comps["ux"] = PIdx::ux;
+    particle_comps["uy"] = PIdx::uy;
+    particle_comps["uz"] = PIdx::uz;
+    particle_comps["Ex"] = PIdx::Ex;
+    particle_comps["Ey"] = PIdx::Ey;
+    particle_comps["Ez"] = PIdx::Ez;
+    particle_comps["Bx"] = PIdx::Bx;
+    particle_comps["By"] = PIdx::By;
+    particle_comps["Bz"] = PIdx::Bz;
+#ifdef WARPX_RZ
+    particle_comps["theta"] = PIdx::theta;
+#endif
+
+    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    {
+        particle_comps["xold"]  = PIdx::nattribs;
+        particle_comps["yold"]  = PIdx::nattribs+1;
+        particle_comps["zold"]  = PIdx::nattribs+2;
+        particle_comps["uxold"] = PIdx::nattribs+3;
+        particle_comps["uyold"] = PIdx::nattribs+4;
+        particle_comps["uzold"] = PIdx::nattribs+5;
+        
+    }
+    
     // Initialize temporary local arrays for charge/current deposition
     int num_threads = 1;
     #ifdef _OPENMP
@@ -204,6 +230,15 @@ WarpXParticleContainer::AddNParticles (int lev,
 #endif
         p.pos(1) = z[i];
 #endif
+        
+        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+        {
+            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
+            particle_tile.push_back_real(particle_comps["xold"], x[i]);
+            particle_tile.push_back_real(particle_comps["yold"], y[i]);
+            particle_tile.push_back_real(particle_comps["zold"], z[i]);            
+        }
+        
         particle_tile.push_back(p);
     }
 
@@ -214,6 +249,14 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
+        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+        {
+            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
+            particle_tile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
+            particle_tile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
+            particle_tile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);            
+        }
+        
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
         {
 #ifdef WARPX_RZ

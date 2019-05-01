@@ -436,11 +436,25 @@ WarpX::ReadParameters ()
 
             if (particle_plot_vars.size() == 0)
             {
-                particle_plot_flags.resize(PIdx::nattribs, 1);
+                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                {
+                    particle_plot_flags.resize(PIdx::nattribs + 6, 1);
+                }
+                else
+                {
+                    particle_plot_flags.resize(PIdx::nattribs, 1);
+                }                
             }
             else
             {
-                particle_plot_flags.resize(PIdx::nattribs, 0);
+                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                {
+                    particle_plot_flags.resize(PIdx::nattribs + 6, 0);
+                }
+                else
+                {
+                    particle_plot_flags.resize(PIdx::nattribs, 0);
+                }                
 
                 for (const auto& var : particle_plot_vars)
                 {
