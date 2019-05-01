@@ -33,6 +33,13 @@ void Finalize ()
     IndexSpace::clear();
 }
 
+const IndexSpace* TopIndexSpaceIfPresent() noexcept {
+    if (IndexSpace::size() > 0) {
+        return &IndexSpace::top();
+    }
+    return nullptr;
+}
+
 void
 Build (const Geometry& geom, int required_coarsening_level,
        int max_coarsening_level, int ngrow)
