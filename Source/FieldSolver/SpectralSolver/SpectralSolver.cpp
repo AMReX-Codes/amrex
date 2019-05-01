@@ -2,7 +2,11 @@
 #include <SpectralSolver.H>
 #include <PsatdAlgorithm.H>
 
-/* \brief TODO Description
+/* \brief Initialize the spectral Maxwell solver
+ *
+ * This function selects the spectral algorithm to be used, allocates the
+ * corresponding coefficients for the discretized field update equation,
+ * and prepares the structures that store the fields in spectral space.
  */
 SpectralSolver::SpectralSolver(
                 const amrex::BoxArray& realspace_ba,

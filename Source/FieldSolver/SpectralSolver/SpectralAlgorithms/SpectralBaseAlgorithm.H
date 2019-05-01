@@ -6,7 +6,10 @@
 
 /* \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
- * TODO: Mention base class
+ *
+ * `SpectralBaseAlgorithm` is only a base class and cannot be used directly.
+ * Instead use its subclasses, which implement the specific field update
+ * equations for a given spectral algorithm.
  */
 class SpectralBaseAlgorithm
 {
