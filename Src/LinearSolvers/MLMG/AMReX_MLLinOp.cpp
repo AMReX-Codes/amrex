@@ -461,12 +461,11 @@ void
 MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
                       const Array<BCType,AMREX_SPACEDIM>& a_hibc) noexcept
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(getNComp() == 1,
-                                     "This version of setDomainBC is for single component only");
+    const int ncomp = getNComp();
     m_lobc.clear();
     m_hibc.clear();
-    m_lobc.resize(1,a_lobc);
-    m_hibc.resize(1,a_hibc);
+    m_lobc.resize(ncomp,a_lobc);
+    m_hibc.resize(ncomp,a_hibc);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
             AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
