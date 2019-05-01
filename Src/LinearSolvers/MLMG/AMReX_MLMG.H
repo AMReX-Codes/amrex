@@ -3,9 +3,11 @@
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_MLCGSolver.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
@@ -23,13 +25,14 @@ public:
     using BCMode = MLLinOp::BCMode;
     using Location = MLLinOp::Location;
 
-    enum class BottomSolver : int { smoother, bicgstab, cg, hypre, petsc };
+    using BottomSolver = amrex::BottomSolver;
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
+    // Optional argument checkpoint_file is for debugging only.
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-                Real a_tol_rel, Real a_tol_abs);
+                Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file = nullptr);
 
     void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
                           Location a_loc = Location::FaceCenter);
@@ -137,6 +140,8 @@ public:
 
     void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 
+    int bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type);
+
 private:
 
     int verbose = 1;
@@ -150,7 +155,7 @@ private:
 
     int max_fmg_iters = 0;
 
-    BottomSolver bottom_solver = BottomSolver::bicgstab;
+    BottomSolver bottom_solver = BottomSolver::Default;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
     Real bottom_reltol         = 1.e-4;
@@ -187,6 +192,7 @@ private:
 #endif
     std::unique_ptr<Hypre> hypre_solver;
     std::unique_ptr<MLMGBndry> hypre_bndry;
+    std::unique_ptr<HypreNodeLap> hypre_node_solver;
 #endif
 
     //! PETSc
@@ -223,6 +229,9 @@ private:
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
+
+    void checkPoint (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
+                     Real a_tol_rel, Real a_tol_abs, const char* a_file_name) const;
 };
 
 }

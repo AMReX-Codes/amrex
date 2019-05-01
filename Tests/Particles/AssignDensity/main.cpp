@@ -82,7 +82,7 @@ void test_assign_density(TestParams& parms)
                            {"density", "vx", "vy", "vz"},
                            geom, 0.0, 0);
 
-  myPC.Checkpoint("plt00000", "particle0", true);
+  myPC.Checkpoint("plt00000", "particle0");
 }
 
 int main(int argc, char* argv[])

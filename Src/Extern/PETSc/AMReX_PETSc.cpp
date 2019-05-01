@@ -14,6 +14,11 @@
 #include <algorithm>
 #include <type_traits>
 
+#ifdef AMREX_USE_HYPRE
+#include "_hypre_utilities.h"
+#endif
+
+
 namespace amrex {
 
 constexpr PetscInt PETScABecLap::regular_stencil_size;
@@ -35,7 +40,9 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
 {
     static_assert(AMREX_SPACEDIM > 1, "PETScABecLap: 1D not supported");
     static_assert(std::is_same<Real, PetscScalar>::value, "amrex::Real != PetscScalar");
+#ifdef AMREX_USE_HYPRE
     static_assert(std::is_same<HYPRE_Int, PetscInt>::value, "HYPRE_Int != PetscInt");
+#endif
 
     const int ncomp = 1;
     int ngrow = 0;
@@ -157,13 +164,10 @@ PETScABecLap::prepareSolver ()
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
     
-    static_assert(std::is_same<HYPRE_Int,PetscInt>::value,
-                  "HYPRE_Int and PetscInt must be the same!"); 
-
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
-    if (sizeof(HYPRE_Int) < sizeof(long)) {
+    if (sizeof(PetscInt) < sizeof(long)) {
         long ncells_grids = ba.numPts();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<long>(std::numeric_limits<HYPRE_Int>::max()),
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<long>(std::numeric_limits<PetscInt>::max()),
                                          "PetscInt is too short");
     }
 #endif
@@ -185,16 +189,16 @@ PETScABecLap::prepareSolver ()
     auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
 #endif
 
-    HYPRE_Int ncells_proc = 0;
+    PetscInt ncells_proc = 0;
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:ncells_proc)
 #endif
-    {  BaseFab<HYPRE_Int> ifab;
+    {  BaseFab<PetscInt> ifab;
     for (MFIter mfi(cell_id); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        BaseFab<HYPRE_Int>& cid_fab = cell_id[mfi];
-        cid_fab.setVal(std::numeric_limits<HYPRE_Int>::lowest());
+        BaseFab<PetscInt>& cid_fab = cell_id[mfi];
+        cid_fab.setVal(std::numeric_limits<PetscInt>::lowest());
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered)
@@ -217,7 +221,7 @@ PETScABecLap::prepareSolver ()
             ncells_proc += npts;
 
             ifab.resize(bx);
-            HYPRE_Int* p = ifab.dataPtr();
+            PetscInt* p = ifab.dataPtr();
             for (long i = 0; i < npts; ++i) {
                 *p++ = i;
             }
@@ -226,21 +230,21 @@ PETScABecLap::prepareSolver ()
     }
     }
 
-    Vector<HYPRE_Int> ncells_allprocs(num_procs);
-    MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
-                  ncells_allprocs.data(), sizeof(HYPRE_Int), MPI_CHAR,
+    Vector<PetscInt> ncells_allprocs(num_procs);
+    MPI_Allgather(&ncells_proc, sizeof(PetscInt), MPI_CHAR,
+                  ncells_allprocs.data(), sizeof(PetscInt), MPI_CHAR,
                   PETSC_COMM_WORLD);
-    HYPRE_Int proc_begin = 0;
+    PetscInt proc_begin = 0;
     for (int i = 0; i < myid; ++i) {
         proc_begin += ncells_allprocs[i];
     }
-    HYPRE_Int ncells_world = 0;
+    PetscInt ncells_world = 0;
     for (auto i : ncells_allprocs) {
         ncells_world += i;
     }
 
-    LayoutData<HYPRE_Int> offset(ba,dm);
-    HYPRE_Int proc_end = proc_begin;
+    LayoutData<PetscInt> offset(ba,dm);
+    PetscInt proc_end = proc_begin;
     for (MFIter mfi(ncells_grid); mfi.isValid(); ++mfi)
     {
         offset[mfi] = proc_end;
@@ -275,7 +279,7 @@ PETScABecLap::prepareSolver ()
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
-    BaseFab<HYPRE_Int> ifab;
+    BaseFab<PetscInt> ifab;
     FArrayBox foo(Box::TheUnitBox());
     const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
@@ -289,17 +293,17 @@ PETScABecLap::prepareSolver ()
 #endif
         if (fabtyp != FabType::covered)
         {
-            const HYPRE_Int max_stencil_size = (fabtyp == FabType::regular) ?
+            const PetscInt max_stencil_size = (fabtyp == FabType::regular) ?
                 regular_stencil_size : eb_stencil_size;
 
             ifab.resize(bx,(max_stencil_size+1));
             rfab.resize(bx,max_stencil_size);
 
-            const HYPRE_Int nrows = ncells_grid[mfi];
+            const PetscInt nrows = ncells_grid[mfi];
             cell_id_vec[mfi].resize(nrows);
-            HYPRE_Int* rows = cell_id_vec[mfi].data();
-            HYPRE_Int* ncols = ifab.dataPtr(0);
-            HYPRE_Int* cols  = ifab.dataPtr(1);
+            PetscInt* rows = cell_id_vec[mfi].data();
+            PetscInt* ncols = ifab.dataPtr(0);
+            PetscInt* cols  = ifab.dataPtr(1);
             Real*      mat   = rfab.dataPtr();
 
             Array<int,AMREX_SPACEDIM*2> bctype;
@@ -403,7 +407,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        const HYPRE_Int nrows = ncells_grid[mfi];
+        const PetscInt nrows = ncells_grid[mfi];
 
 #ifdef AMREX_USE_EB
         const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
@@ -451,7 +455,7 @@ PETScABecLap::getSolution (MultiFab& soln)
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
-        const HYPRE_Int nrows = ncells_grid[mfi];
+        const PetscInt nrows = ncells_grid[mfi];
 
 #ifdef AMREX_USE_EB
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;

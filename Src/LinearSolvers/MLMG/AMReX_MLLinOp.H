@@ -15,13 +15,20 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
 
+enum class BottomSolver : int {
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
+};
+
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
+
+class MLMG;
 
 struct LPInfo
 {
@@ -73,6 +80,7 @@ public:
                  const LPInfo& a_info,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
+    virtual std::string name () const { return std::string("Unspecified"); }
 
     /**
     * \brief Boundary of the whole domain. This functions must be called,
@@ -129,7 +137,9 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
-    virtual int getNComp() const { return 1; }
+    virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+
+    virtual int getNComp () const { return 1; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
@@ -187,6 +197,10 @@ public:
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const {
+        amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }
 #endif
@@ -305,6 +319,10 @@ private:
                                       int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
     void remapNeighborhoods (Vector<DistributionMapping> & dms);
+
+    virtual void checkPoint (std::string const& file_name) const {
+        amrex::Abort("MLLinOp:checkPoint: not implemented");
+    }
 };
 
 }

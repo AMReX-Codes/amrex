@@ -62,8 +62,8 @@ namespace functors
         
         AMREX_GPU_HOST_DEVICE
         assignParticleGrid(const GeometryData& a_domain,
-                       const Box&          a_box,
-                       BaseFab<int>*       a_mask_ptr) 
+                           const Box&          a_box,
+                           BaseFab<int>*       a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Particle>
@@ -105,6 +105,33 @@ namespace functors
 	    iv += domain.Domain().smallEnd();
 
 	    return (*mask_ptr)(iv, 1);
+        }
+    };
+
+    struct periodicTransformation
+    {
+        GeometryData domain;
+        IntVect pshift;
+
+        AMREX_GPU_HOST_DEVICE
+        periodicTransformation(const GeometryData& a_domain,
+                               const IntVect&      a_pshift)
+            : domain(a_domain), pshift(a_pshift) {}
+        
+        template <typename Particle>
+        AMREX_GPU_HOST_DEVICE
+        Particle operator()(const Particle& in) const {
+            Particle p = in;
+            
+            for (int dim = 0; dim < AMREX_SPACEDIM; ++dim) {
+                if (not domain.isPeriodic(dim)) continue;
+                if (pshift[dim] > 0) 
+                    p.m_rdata.pos[dim] += (domain.ProbHi()[dim]-domain.ProbLo()[dim]); 
+                else if (pshift[dim] < 0)
+                    p.m_rdata.pos[dim] -= (domain.ProbHi()[dim]-domain.ProbLo()[dim]);
+            }
+            
+            return p;
         }
     };
 

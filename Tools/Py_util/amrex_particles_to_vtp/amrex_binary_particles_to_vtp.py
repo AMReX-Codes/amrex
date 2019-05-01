@@ -100,7 +100,7 @@ def read_amrex_binary_particle_file(fn, ptype="particle0"):
     for lvl, level_grids in enumerate(header.grids):
         for (which, count, where) in level_grids:
             if count == 0: continue
-            fn = base_fn + "/Level_%d/DATA_%04d" % (lvl, which)
+            fn = base_fn + "/Level_%d/DATA_%05d" % (lvl, which)
 
             with open(fn, 'rb') as f:
                 f.seek(where)

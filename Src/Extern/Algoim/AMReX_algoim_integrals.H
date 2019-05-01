@@ -5,7 +5,7 @@
 
 namespace amrex {
 
-    void compute_integrals(amrex::MultiFab* intg);
+    void compute_integrals(amrex::MultiFab& intg);
 
 }
 

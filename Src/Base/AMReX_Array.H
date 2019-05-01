@@ -30,25 +30,15 @@ namespace amrex {
     struct Array4
     {
         T* AMREX_RESTRICT p;
-        long const jstride;
-        long const kstride;
-        long const nstride;
-        Dim3 const begin;
-        Dim3 const end;
+        long jstride;
+        long kstride;
+        long nstride;
+        Dim3 begin;
+        Dim3 end;
 
         template <class U=T, class = typename std::enable_if<std::is_const<U>::value>::type >
         AMREX_GPU_HOST_DEVICE
         constexpr Array4 (Array4<typename std::remove_const<T>::type> const& rhs) noexcept
-            : p(rhs.p),
-              jstride(rhs.jstride),
-              kstride(rhs.kstride),
-              nstride(rhs.nstride),
-              begin(rhs.begin),
-              end(rhs.end)
-            {}
-
-        AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (Array4<T> const& rhs) noexcept
             : p(rhs.p),
               jstride(rhs.jstride),
               kstride(rhs.kstride),

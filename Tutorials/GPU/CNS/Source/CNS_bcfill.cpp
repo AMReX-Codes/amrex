@@ -35,7 +35,7 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
                  const Vector<BCRec>& bcr, const int bcomp,
                  const int scomp)
 {
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     bool run_on_gpu = Gpu::inLaunchRegion();
 #else
     bool run_on_gpu = false;

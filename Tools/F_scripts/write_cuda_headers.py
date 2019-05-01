@@ -579,6 +579,25 @@ def convert_cxx(inputs):
         # if the line starts with "#pragma gpu", then we need
         # to take action
         if line.startswith("#pragma gpu"):
+            # capture pragma options
+            # they should be in the format
+            # #pragma gpu box(bx) smem(bytes)
+            # where
+            # box is the box to loop over
+            # smem is the number of bytes of dynamic shared memory to reserve
+
+            split_line = line.split()
+
+            box = None
+            for entry in split_line:
+                if "box(" in entry:
+                    box = entry[len("box("):-1]
+
+            smem = 0
+            for entry in split_line:
+                if "smem(" in entry:
+                    smem = entry[len("smem("):-1]
+
             # we don't need to reproduce the pragma line in the
             # output, but we need to capture the whole function
             # call that follows
@@ -621,11 +640,14 @@ def convert_cxx(inputs):
 
             hout.write("if (amrex::Gpu::inLaunchRegion()) {\n")
             hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
-            hout.write("    amrex::Cuda::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
+            if box:
+                hout.write("    amrex::Cuda::Device::box_threads_and_blocks({}, {}numBlocks, {}numThreads);\n".format(box, func_name, func_name))
+            else:
+                hout.write("    amrex::Cuda::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
             hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
                        "    AMREX_GPU_SAFE_CALL(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
                        "#endif\n".format(func_name))
-            hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, amrex::Cuda::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
+            hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, {}, amrex::Cuda::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, smem, args))
 
             # Catch errors in the launch configuration.
 

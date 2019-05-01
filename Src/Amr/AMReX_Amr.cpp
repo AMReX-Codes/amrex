@@ -51,7 +51,7 @@
 #ifdef USE_PERILLA
 #include <WorkerThread.H>
 #include <Perilla.H>
-#ifdef USE_PERILLA_PTHREADS
+#ifdef USE_PERILLA
     pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_USE_UPCXX
 extern struct rMsgMap_t{
@@ -2365,7 +2365,6 @@ Amr::coarseTimeStep (Real stop_time)
             while(true){
                 Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
                 Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
-                //Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
                     flattenedGraphArray.clear();
@@ -2376,7 +2375,7 @@ Amr::coarseTimeStep (Real stop_time)
         else{
             timeStep(0,cumtime,1,1,stop_time);
             if(perilla::isMasterWorkerThread()){
-#pragma omp atomic
+		#pragma omp atomic
                 Perilla::numTeamsFinished++;
             }
         }
@@ -2389,11 +2388,13 @@ Amr::coarseTimeStep (Real stop_time)
     exit(0);
 #endif
 
+#if 0
     if(!okToContinue() || (level_steps[0] == Perilla::max_step) || (stop_time -(dt_level[0] + cumTime())<=0)){
         for(int i=0; i<= finest_level; i++){
             getLevel(i).finalizePerilla(cumtime);
         }
     }
+#endif
 //end nonPthreads backends
 #endif
 //end Perilla backends
@@ -3270,7 +3271,7 @@ Amr::grid_places (int              lbase,
 void
 Amr::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
-    amr_level[lev]->errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev],ngrow);
+    amr_level[lev]->errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev][0], ngrow);
 }
 
 BoxArray

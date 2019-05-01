@@ -61,8 +61,10 @@ else ifeq ($(gcc_major_version),5)
 endif
 CFLAGS     += -std=gnu99
 
-FFLAGS   += -mismatch -mdir $(fmoddir) -I $(fmoddir)
-F90FLAGS += -mismatch -mdir $(fmoddir) -I $(fmoddir) -u
+FFLAGS   += -mismatch
+F90FLAGS += -mismatch -u
+
+FMODULES = -mdir $(fmoddir) -I $(fmoddir)
 
 ########################################################################
 

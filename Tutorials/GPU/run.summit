@@ -5,42 +5,86 @@
 #BSUB -J MMtest 
 #BSUB -o MMtest.%J
 #BSUB -e MMtest.%J
+#BSUB -N 1
 
-module load pgi
-module load cuda/9.1.85
 module list
 set -x
 
-PAMI_DISABLE_IPC=1
+# =====================
+# BSUB parameters
+# -N = number of nodes
 
+# JSRUN parameters
+# -n: number of resource sets
+#   (alternatively,
+# -r: number of resource sets per node)
+# -a: number of MPI tasks/ranks per resource set
+# -c: number of CPU cores per resource set
+# -g: number of GPUs per resource set
+
+# Summit: Each node has:
+#         2  Sockets
+#         3  GPUs per socket (6 total)
+#         21 CPUs per socket (42 total)
+#         4  Hardware Threads per CPU (168 total)
+#
+# On Summit: Recommended initial configuration:
+#             one GPU per MPI rank,
+#             one resource set per socket.
+#             (-r2 -c21 -g3 -a3)
+# =====================
+ 
 omp=1
 export OMP_NUM_THREADS=${omp}
+
 EXE="./main3d.pgi.MPI.CUDA.ex"
-#EXE="../main3d.pgi.CUDA.ex"
 JSRUN="jsrun -n 2 -a 1 -g 1 -c 1 --bind=packed:${omp}"
 INPUTS=inputs_3d
+SMPIARGS=
 
-rundir="${LSB_JOBNAME}-${LSB_JOBID}"
-#mkdir $rundir
-#cp $0 $rundir
-#cp ${INPUTS} $rundir
-#cd $rundir
+# Runtime flags
+# =====================
+# Flag to disable CUDA-aware MPI functionality. 
+# Unneeded normally.
+# However, if not using CUDA-aware MPI (off by default), useful to 
+PAMI_DISABLE_IPC=1
+
+# SMPIARGS+= --smpiargs="gpu"
+# Allows CUDA-aware MPI functionality.
+# Only needed if amrex.use_gpu_aware_mpi=1.
+# Requires using one resource set per node.
+# RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
+
+SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
+# Turns off CUDA hooks required for CUDA-aware MPI. 
+# RECOMMENDED ON.
+# May eliminate intermittent finalize bug that prevents obtaining profiling data.
+
+# SMPIARGS+= --alloc_flags gpumps
+# Turn on MPS. Needed when running multiple MPI ranks per GPU. 
+# For standard runs, this is not needed. 
+
+
+# Example run lines
+# =====================
 
 # 1. Run normally
-#${JSRUN} --smpiargs="gpu" ${EXE} ${INPUTS} >& out.${LSB_JOBID}
-${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+${JSRUN} ${SMPIARGS} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
-# 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
+# 2. Run under nvprof and direct all stdout and stderr to nvprov.{jobid}
 #${JSRUN} nvprof ${EXE} ${INPUTS} &> nvprof.txt
-#${JSRUN} nvprof --profile-child-processes ${EXE} inputs &> nvprof.txt
+#${JSRUN} nvprof --profile-child-processes ${EXE} inputs &> nvprof.${LSB_JOBID}
 
-# 3. Run under nvprof and store performance data in a nvvp file
+# 3. Run under nvprof and output trace data of gpu launches. 
+#${JSRUN} nvprof --print-gpu-trace --profile-child-processes ${EXE} ${INPUTS} >
+
+# 4. Run under nvprof and store performance data in a nvvp file
 # Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
 #${JSRUN} nvprof --profile-child-processes -o nvprof-timeline-%p.nvvp ${EXE} ${INPUTS} 
 
 # COLLECT PERFORMANCE METRICS - THIS IS MUCH SLOWER. Set nsteps=2 in the inputs files
-# 4. Run under nvprof and collect metrics for a subset of kernels
+# 5. Run under nvprof and collect metrics for a subset of kernels
 #${JSRUN} nvprof --profile-child-processes --kernels '(deposit_current|gather_\w+_field|push_\w+_boris)' --analysis-metrics -o nvprof-metrics-kernel-%p.nvvp ${EXE} ${INPUTS} 
 
-# 5. Run under nvprof and collect metrics for all kernels -- much slower!
+# 6. Run under nvprof and collect metrics for all kernels -- MUCH SLOWER!
 #${JSRUN} nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} ${INPUTS}

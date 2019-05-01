@@ -116,11 +116,6 @@ void RandomNumGen ()
     hx.shrink_to_fit();
     hy.shrink_to_fit();
     hz.shrink_to_fit();
-
-#ifdef AMREX_USE_CUDA    
-    amrex::DeallocateRandomSeedDevArray();
-#endif
-
 }
 
 

@@ -16,11 +16,9 @@ Mask::Mask (const Box& bx,
     :
     BaseFab<int>(bx,nc,alloc,shared) {}
 
-#ifdef AMREX_USE_GPU
-Mask::Mask (Mask const& rhs, MakeType make_type)
+Mask::Mask (Mask const& rhs, MakeType make_type, int scomp, int ncomp)
     :
-    BaseFab<int>(rhs,make_type) {}
-#endif
+    BaseFab<int>(rhs,make_type,scomp,ncomp) {}
 
 Mask::Mask (std::istream& is)
 {
