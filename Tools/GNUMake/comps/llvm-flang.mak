@@ -47,8 +47,7 @@ endif
 CXXFLAGS += -std=c++11
 CFLAGS   += -std=c99
 
-FFLAGS   += -J$(fmoddir) -I $(fmoddir)
-F90FLAGS += -J$(fmoddir) -I $(fmoddir)
+FMODULES = -J$(fmoddir) -I $(fmoddir)
 
 ########################################################################
 

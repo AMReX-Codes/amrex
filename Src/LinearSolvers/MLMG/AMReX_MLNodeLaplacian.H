@@ -2,6 +2,9 @@
 #define AMREX_ML_NODE_LAPLACIAN_H_
 
 #include <AMReX_MLNodeLinOp.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreNodeLap.H>
+#endif
 
 namespace amrex {
 
@@ -13,7 +16,7 @@ class MLNodeLaplacian
 {
 public :
 
-    enum struct CoarseningStrategy { Sigma, RAP };
+    enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLaplacian () noexcept {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
@@ -49,6 +52,8 @@ public :
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 #endif
 
+    virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
+
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
@@ -72,6 +77,11 @@ public :
     void setHarmonicAverage (bool flag) noexcept { m_use_harmonic_average = flag; }
 
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept { m_coarsening_strategy = cs; }
+
+    virtual BottomSolver getDefaultBottomSolver () const final override {
+        return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
+            BottomSolver::bicgcg : BottomSolver::bicgstab;
+    }
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
@@ -113,6 +123,15 @@ public :
     void buildIntegral ();
 #endif
 
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap (int bottom_verbose) const override;
+
+    void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                       Array4<int const> const& owner,
+                       Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                       Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const;
+#endif
+
 private:
 
     int m_is_rz = 0;
@@ -137,6 +156,8 @@ private:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
+
+    virtual void checkPoint (std::string const& file_name) const final;
 };
 
 }

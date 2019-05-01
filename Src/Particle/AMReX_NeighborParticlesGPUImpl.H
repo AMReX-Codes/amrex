@@ -60,6 +60,8 @@ buildNeighborMask()
     const BoxArray& ba = this->ParticleBoxArray(lev);
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+
     if (m_neighbor_mask_ptr == nullptr ||
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
         ! DistributionMapping::SameRefs(m_neighbor_mask_ptr->DistributionMap(), dmap))
@@ -74,7 +76,7 @@ buildNeighborMask()
         {
             int grid = mfi.index();
             
-            std::set<std::pair<int, Box> > neighbor_grids;
+            std::set<NeighborTask> neighbor_grids;
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
             {
                 const Box box = ba[mfi] + *pit;
@@ -86,16 +88,19 @@ buildNeighborMask()
                 {
                     int nbor_grid = isec.first;
                     const Box isec_box = isec.second - *pit;
-                    if (grid != nbor_grid) neighbor_grids.insert(std::make_pair(nbor_grid, isec_box));
+                    if ( (grid == nbor_grid) and (*pit == IntVect(AMREX_D_DECL(0, 0, 0)))) continue; 
+                    neighbor_grids.insert(NeighborTask(nbor_grid, isec_box, *pit));
                 }
             }
             
             BoxList isec_bl;
             std::vector<int> isec_grids;
+            std::vector<IntVect> isec_pshifts;
             for (auto nbor_grid : neighbor_grids)
             {
-                isec_grids.push_back(nbor_grid.first);
-                isec_bl.push_back(nbor_grid.second);
+                isec_grids.push_back(nbor_grid.grid_id);
+                isec_bl.push_back(nbor_grid.box);
+                isec_pshifts.push_back(nbor_grid.periodic_shift);
             }
             BoxArray isec_ba(isec_bl);
             
@@ -112,10 +117,13 @@ buildNeighborMask()
                 auto isecs = isec_ba.intersections(box, first_only, nGrow);
                 
                 if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal(i, box);
-                
+
                 for (auto& isec : isecs)
                 {
-                    m_grid_map[grid][i].push_back(isec_grids[isec.first]);
+                    NeighborCode code;
+                    code.grid_id = isec_grids[isec.first];
+                    code.periodic_shift = isec_pshifts[isec.first];
+                    m_grid_map[grid][i].push_back(code);
                 }
             }
         }
@@ -139,6 +147,8 @@ sortParticlesByNeighborDestGPU()
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
+
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -175,10 +185,26 @@ sortParticlesByNeighborDestGPU()
             pcodes[i] = code;
         });
 
+        Gpu::ManagedDeviceVector<int> index_sequence_tmp(np);
+        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
+
+        ParticleVector aos_r(np);
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             neighbor_codes.begin(),
                             neighbor_codes.end(),
-                            aos().begin());
+                            index_sequence_tmp.begin());
+
+        //
+        // Reorder the particle data 
+        //
+        {
+	    // reorder structs
+	    aos_r.resize(np);
+            thrust::gather(thrust::device,
+                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                           aos().begin(), aos_r.begin());
+            aos().swap(aos_r);
+        }
 
         int num_codes = m_grid_map[gid].size();
         Gpu::ManagedDeviceVector<int> neighbor_code_begin(num_codes + 1);
@@ -215,7 +241,7 @@ sortParticlesByNeighborDestGPU()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-fillNeighborsGPU()
+fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
 
@@ -229,11 +255,11 @@ fillNeighborsGPU()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-updateNeighborsGPU()
+updateNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::updateNeighborsGPU");
 
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+    AMREX_ASSERT(this->numLevels() == 1);
 
     clearNeighbors();
 
@@ -242,6 +268,8 @@ updateNeighborsGPU()
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
     
+    if (ba.size() == 1 and (not this->Geom(lev).isAnyPeriodic()) ) return;
+
     std::map<int, SendBuffer> not_ours;
     std::map<int, size_t> grid_counts;
     
@@ -251,8 +279,9 @@ updateNeighborsGPU()
         int num_codes = m_grid_map[src_grid].size();
         for (int i = 1; i < num_codes + 1; ++i)
         {
-            for (auto dst_grid : m_grid_map[src_grid][i-1])
+            for (auto dst_code : m_grid_map[src_grid][i-1])
             {            
+                int dst_grid = dst_code.grid_id;
                 const int dest_proc = dmap[dst_grid];
                 const int num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
                 if ( (dest_proc != ParallelDescriptor::MyProc() ) and (num_to_add > 0) )
@@ -281,7 +310,8 @@ updateNeighborsGPU()
         {
             const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
             if (num_to_add == 0) continue;
-            for (auto dst_grid : m_grid_map[src_grid][i-1]) {
+            for (auto dst_code : m_grid_map[src_grid][i-1]) {
+                int dst_grid = dst_code.grid_id;
                 const int dst_tile = 0;                
                 auto pair_index = std::make_pair(dst_grid, dst_tile);
                 const int dest_proc = dmap[dst_grid];
@@ -300,6 +330,17 @@ updateNeighborsGPU()
                         thrust::copy(thrust::device,
                                      src.begin() + m_start[src_grid][i], src.begin() + m_stop[src_grid][i], 
                                      dst().begin() + nRParticles + nNParticles);
+
+                        // apply periodic shift so that a naive distance calculation returns
+                        // the shortest distance between real and neighbor particles
+                        if (this->Geom(lev).isAnyPeriodic()) {
+                            thrust::transform(thrust::device, 
+                                              dst().begin() + nRParticles + nNParticles,
+                                              dst().begin() + nRParticles + nNParticles + num_to_add,
+                                              dst().begin() + nRParticles + nNParticles,
+                                              functors::periodicTransformation(this->Geom(lev).data(),
+                                                                               dst_code.periodic_shift));
+                        }
                     }
                 }
                 else { // this is the non-local case
@@ -339,13 +380,24 @@ updateNeighborsGPU()
                         cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
                                         thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
                                         num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
+
+                        // apply periodic shift so that a naive distance calculation returns
+                        // the shortest distance between real and neighbor particles
+                        if (this->Geom(lev).isAnyPeriodic()) {
+                            thrust::transform(thrust::device, 
+                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst)),
+                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst) + num_to_add),
+                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst)),
+                                              functors::periodicTransformation(this->Geom(lev).data(),
+                                                                               dst_code.periodic_shift));
+                        }
                         dst += num_to_add*sizeof(ParticleType);
                     }
                 }
             }
         }
     }
-
+    
     if (ParallelDescriptor::NProcs() == 1) {
         BL_ASSERT(not_ours.empty());
     }
@@ -363,7 +415,7 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int lev = 0;
     

@@ -23,7 +23,7 @@ ifeq ($(USE_CUDA),TRUE)
   CXX = mpic++ 
   FC  = mpif90
   F90 = mpif90
-  cori_mvapich_link_flags := $(shell mpic++ -link_info)
+  cori_mvapich_link_flags := $(shell mpic++ -link_info 2>&1)
 
 # Using OPENMPI + UCX
   ifeq ($(cori_mvapich_link_flags),)

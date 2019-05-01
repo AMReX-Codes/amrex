@@ -26,41 +26,32 @@ This will define the following variables:
   The version of the SUNDIALS library which was found.
 ``SUNDIALS_<COMP>_INCLUDE_DIRS``
   Include directories needed to use component <COMP>.
-``SUNDIALS_<COMP>_LIBRARY``
+``SUNDIALS_<COMP>_LIBRARIES``
   Libraries needed to link to component <COMP>.
 #]=======================================================================]
-
-#
-# Find package version
-#
-set(_version_file_name sundials_config.h)
-
-find_path(_version_file_path
-   NAMES          "${_version_file_name}"
-   PATH_SUFFIXES  include;sundials )
-
-if (_version_file_path)
-   file(STRINGS "${_version_file_path}/${_version_file_name}"
-      _strings_with_version_regex REGEX "SUNDIALS_VERSION")
-   list(GET _strings_with_version_regex 0 _version_string)
-   string(REGEX MATCHALL "[0-9]" _version "${_version_string}")
-   string(REPLACE ";" "." SUNDIALS_VERSION "${_version}")
-endif ()
-
-#
-# Include directory is only the top level one, i.e. "include"
-# Find path by using directory "sundials" as reference
-#
-find_path(_sundials_include_path NAMES sundials PATH_SUFFIXES include)
-
-#
-#
-#
 include(FindPackageHandleStandardArgs)
 
-#
+# Get version for config file
+find_path(_config_h_path
+   NAMES          sundials_config.h
+   PATH_SUFFIXES  sundials )
+
+if (_config_h_path)
+   file(STRINGS ${_config_h_path}/sundials_config.h
+      _version_string REGEX "SUNDIALS_VERSION ") # space at the end of SUNDIAL_VERSION is needed!
+   string(REGEX MATCHALL "[0-9]+" SUNDIALS_VERSION "${_version_string}")
+   string(REPLACE ";" "." SUNDIALS_VERSION "${SUNDIALS_VERSION}")
+endif ()
+unset(_version_file_path CACHE)
+unset(_version_string CACHE)
+
+
+# Include directory is only the top level one, i.e. "include"
+# Find path by using directory "sundials" as reference
+find_path(_sundials_include_path NAMES sundials PATH_SUFFIXES include)
+
+
 # Valid components
-# 
 set(_valid_components
    nvecserial
    nvecparallel
@@ -71,10 +62,9 @@ set(_valid_components
    arkode
    )
 
-#
+
 # Search for a default library (nvecserial) or for all the
 # required components
-# 
 if (NOT SUNDIALS_FIND_COMPONENTS)
    set(_sundials_findlist nvecserial )
 else ()
@@ -98,18 +88,17 @@ foreach(_comp IN LISTS _sundials_findlist)
    endif ()
 
    # Include path is always the path to the top-level "include" directory in the install tree
-   # App codes should include headers by using relative paths
    set(SUNDIALS_${_comp_upper}_INCLUDE_DIRS ${_sundials_include_path})
-   find_library(SUNDIALS_${_comp_upper}_LIBRARY NAMES sundials_${_comp_lower} PATH_SUFFIXES lib lib64)
+   find_library(SUNDIALS_${_comp_upper}_LIBRARIES NAMES sundials_${_comp_lower} PATH_SUFFIXES lib lib64)
 
    find_package_handle_standard_args(SUNDIALS_${_comp_upper}
       REQUIRED_VARS
-      SUNDIALS_${_comp_upper}_LIBRARY
+      SUNDIALS_${_comp_upper}_LIBRARIES
       SUNDIALS_${_comp_upper}_INCLUDE_DIRS
       VERSION_VAR SUNDIALS_VERSION
       )
 
-   mark_as_advanced(SUNDIALS_${_comp_upper}_LIBRARY SUNDIALS_${_comp_upper}_INCLUDE_DIRS)
+   mark_as_advanced(SUNDIALS_${_comp_upper}_LIBRARIES SUNDIALS_${_comp_upper}_INCLUDE_DIRS)
 
    list(APPEND _SUNDIALS_REQUIRED_VARS "SUNDIALS_${_comp_upper}_FOUND")
    
@@ -118,17 +107,22 @@ foreach(_comp IN LISTS _sundials_findlist)
    if (SUNDIALS_${_comp_upper}_FOUND AND NOT TARGET ${_target})
       add_library(${_target} UNKNOWN IMPORTED)
       set_target_properties(${_target} PROPERTIES
-         IMPORTED_LOCATION "${SUNDIALS_${_comp_upper}_LIBRARY}"
+         IMPORTED_LOCATION "${SUNDIALS_${_comp_upper}_LIBRARIES}"
          INTERFACE_INCLUDE_DIRECTORIES "${SUNDIALS_${_comp_upper}_INCLUDE_DIRS}"
          )
    endif ()  
 
 endforeach()
 
-#
-# Set 
-#
+unset(_sundials_include_path  CACHE)
+unset(_valid_components       CACHE)
+unset(_sundials_findlist      CACHE)
+
+
+# Declare full package found
 find_package_handle_standard_args(SUNDIALS
    REQUIRED_VARS ${_SUNDIALS_REQUIRED_VARS}
    VERSION_VAR   SUNDIALS_VERSION
    )
+
+unset(_SUNDIALS_REQUIRED_VARS CACHE)

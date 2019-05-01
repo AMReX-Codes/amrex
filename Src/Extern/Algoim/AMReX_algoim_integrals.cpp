@@ -9,8 +9,6 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EB2.H>
 
-#include <AMReX_MLNodeLap_F.H>
-
 #include "AMReX_algoim_integrals.H"
 
 #ifdef _OPENMP
@@ -20,6 +18,7 @@
 #include <fstream>
 #include "algoim_quad.hpp"
 
+namespace {
 struct EBshape
 {
     template<typename T>
@@ -51,11 +50,12 @@ struct EBshape
     double cent[3];
     double norm[3];
 };
+}
 
 namespace amrex 
 {
 
-void compute_integrals(MultiFab* intg)
+void compute_integrals(MultiFab& intg)
 {
     // std::cout << "Algoim computing volfrac " << std::endl;
     // std::cout << std::fixed << std::setprecision(16);
@@ -69,89 +69,105 @@ void compute_integrals(MultiFab* intg)
     // This is the degree of the underlying Gaussian quadrature scheme
     int qo = 4;
 
-    EBshape eb_phi;
-
-    const auto& my_factory = dynamic_cast<EBFArrayBoxFactory const&>(intg->Factory());
+    const auto& my_factory = dynamic_cast<EBFArrayBoxFactory const&>(intg.Factory());
 
     const MultiFab*    vfrac = &(my_factory.getVolFrac());
     const MultiCutFab* bcent = &(my_factory.getBndryCent());
-    const MultiCutFab* ccent = &(my_factory.getCentroid());
+//    const MultiCutFab* ccent = &(my_factory.getCentroid());
     const MultiCutFab* bnorm = &(my_factory.getBndryNormal());
     const auto&        flags =   my_factory.getMultiEBCellFlagFab();
 
-    int i_S_x     =  1-1;
-    int i_S_y     =  2-1;
-    int i_S_z     =  3-1;
-    int i_S_x2    =  4-1;
-    int i_S_y2    =  5-1;
-    int i_S_z2    =  6-1;
-    int i_S_x_y   =  7-1;
-    int i_S_x_z   =  8-1;
-    int i_S_y_z   =  9-1;
-    int i_S_x2_y  = 10-1;
-    int i_S_x2_z  = 11-1;
-    int i_S_x_y2  = 12-1;
-    int i_S_y2_z  = 13-1;
-    int i_S_x_z2  = 14-1;
-    int i_S_y_z2  = 15-1;
-    int i_S_x2_y2 = 16-1;
-    int i_S_x2_z2 = 17-1;
-    int i_S_y2_z2 = 18-1;
+    constexpr int i_S_x     =  1-1;
+    constexpr int i_S_y     =  2-1;
+    constexpr int i_S_z     =  3-1;
+    constexpr int i_S_x2    =  4-1;
+    constexpr int i_S_y2    =  5-1;
+    constexpr int i_S_z2    =  6-1;
+    constexpr int i_S_x_y   =  7-1;
+    constexpr int i_S_x_z   =  8-1;
+    constexpr int i_S_y_z   =  9-1;
+    constexpr int i_S_x2_y  = 10-1;
+    constexpr int i_S_x2_z  = 11-1;
+    constexpr int i_S_x_y2  = 12-1;
+    constexpr int i_S_y2_z  = 13-1;
+    constexpr int i_S_x_z2  = 14-1;
+    constexpr int i_S_y_z2  = 15-1;
+    constexpr int i_S_x2_y2 = 16-1;
+    constexpr int i_S_x2_z2 = 17-1;
+    constexpr int i_S_y2_z2 = 18-1;
 
-    // Initialize to the values they would have in a regular cell
-    // setVal (val, comp, ncomp, nghost)
-    Real twelfth = 1./12.;
-    Real   offth = 1./144.;
-    intg->setVal(0.     ,i_S_x    ,3,1); // setting S_x, S_y, S_z = 0
-    intg->setVal(twelfth,i_S_x2   ,3,1); // setting S_x^2, S_y^2, S_z^2 = 1/12
-    intg->setVal(0.     ,i_S_x_y  ,9,1); // setting S_x_y, S_x_z, S_y_z, S_x2_y, S_x2_z, S_x_y2, S_y2_z, S_x_z2, S_y_z2 = 0
-    intg->setVal(offth  ,i_S_x2_y2,3,1); // setting S_x2_y2, S_x2_z2, S_y2_z2 = 1/144
+    constexpr Real twelfth = 1./12.;
+    constexpr Real   offth = 1./144.;
 
-    int ncomp = intg->nComp();
+    int ncomp = intg.nComp();
 
-    Real vol_diff = 0.0;
+//    Real vol_diff = 0.0;
 
-    for (MFIter mfi(*intg,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(intg,true); mfi.isValid(); ++mfi)
     {
        const Box& bx = mfi.growntilebox();
 
-       const int* lo = bx.loVect();
-       const int* hi = bx.hiVect();
-
-       auto& gfab = (*intg)[mfi];
+       auto& gfab = intg[mfi];
 
        const auto& flag = flags[mfi];
        auto typ = flag.getType(bx);
-
-       int n_count = 0;
 
        blitz::TinyVector<double,3> xmin = {-0.5,-0.5,-0.5};
        blitz::TinyVector<double,3> xmax = { 0.5, 0.5, 0.5};
 
        if (typ == FabType::covered) {
-           gfab.setVal(0.,bx,0,ncomp);
+          gfab.setVal(0.,bx,0,ncomp);
        } else if (typ == FabType::regular) {
-         // Default values have been set above
+          gfab.setVal(0.,bx,0,ncomp);
+          gfab.setVal(twelfth,bx,i_S_x2   ,3); // setting S_x^2, S_y^2, S_z^2 = 1/12
+          gfab.setVal(  offth,bx,i_S_x2_y2,3); // setting S_x2_y2, S_x2_z2, S_y2_z2 = 1/144
        } else {
 
-          for (int k = lo[2]; k <= hi[2]; ++k)
-          for (int j = lo[1]; j <= hi[1]; ++j)
-          for (int i = lo[0]; i <= hi[0]; ++i)
+          auto const& garr = intg.array(mfi);
+          auto const& vfracarr = vfrac->array(mfi);
+          auto const& bcentarr = bcent->array(mfi);
+          auto const& bnormarr = bnorm->array(mfi);
+
+          auto const& flagarr = flags.array(mfi); 
+
+          const auto lo = amrex::lbound(bx);
+          const auto hi = amrex::ubound(bx);
+
+          for (int k = lo.z; k <= hi.z; ++k)
+          for (int j = lo.y; j <= hi.y; ++j)
+          for (int i = lo.x; i <= hi.x; ++i)
           {
-             IntVect iv(i,j,k);
+             const Real volfrac = vfracarr(i,j,k);
 
-             const Real volfrac = (*vfrac)[mfi](iv);
-
-             if (volfrac < (1.0-1.e-12) && volfrac > 1.0e-12) 
+             // if (volfrac >= (1.0-1.e-12) || volfrac <= 1.0e-12)
+             if (flagarr(i,j,k).isRegular())
              {
-                 const Real centx = (*bcent)[mfi](iv,0);
-                 const Real centy = (*bcent)[mfi](iv,1);
-                 const Real centz = (*bcent)[mfi](iv,2);
+                 for (int n = 0; n < ncomp; ++n) {
+                     garr(i,j,k,n) = 0.0;
+                 }
+                 garr(i,j,k,i_S_x2) = twelfth;
+                 garr(i,j,k,i_S_y2) = twelfth;
+                 garr(i,j,k,i_S_z2) = twelfth;
+                 garr(i,j,k,i_S_x2_y2) = offth;
+                 garr(i,j,k,i_S_x2_z2) = offth;
+                 garr(i,j,k,i_S_y2_z2) = offth;
+             }
+             else if (flagarr(i,j,k).isCovered())
+             {
+                 for (int n = 0; n < ncomp; ++n) 
+                     garr(i,j,k,n) = 0.0;
+             } 
+             else 
+             {
+                 const Real centx = bcentarr(i,j,k,0);
+                 const Real centy = bcentarr(i,j,k,1);
+                 const Real centz = bcentarr(i,j,k,2);
     
-                 const Real normx = (*bnorm)[mfi](iv,0);
-                 const Real normy = (*bnorm)[mfi](iv,1);
-                 const Real normz = (*bnorm)[mfi](iv,2);
+                 const Real normx = bnormarr(i,j,k,0);
+                 const Real normy = bnormarr(i,j,k,1);
+                 const Real normz = bnormarr(i,j,k,2);
 
+                 EBshape eb_phi;
                  eb_phi.setCent(centx,centy,centz);
                  eb_phi.setNormal(normx,normy,normz);
 
@@ -162,9 +178,9 @@ void compute_integrals(MultiFab* intg)
        
                  Real volume   = q([](const auto& x) { return 1.0; });
 
+#if 0
                  if (std::abs(volume - volfrac) > 1.e-12)
                  { 
-#if 0
                     std::cout << "Volume fractions don't match!" << std::endl;
                     std::cout << "VF " << iv << " " << volfrac << " " << volume << std::endl;
                     std::cout << "  Using bndry cent:" << (*bcent)[mfi](iv,0) << " " 
@@ -173,10 +189,10 @@ void compute_integrals(MultiFab* intg)
                     std::cout << "  Using bndry norm:" << (*bnorm)[mfi](iv,0) << " " 
                                                        << (*bnorm)[mfi](iv,1) << " " 
                                                        << (*bnorm)[mfi](iv,2) << std::endl;
-#endif
                     vol_diff = std::max(vol_diff,std::abs(volfrac - volume));
                     // exit(0);
                  } 
+#endif
  
                  Real val_S_x   = q([](const auto& x) { return x(0); });
                  Real val_S_y   = q([](const auto& x) { return x(1); });
@@ -202,34 +218,33 @@ void compute_integrals(MultiFab* intg)
                  Real val_S_x2_z2 = q([](const auto& x) { return x(0)*x(0)*x(2)*x(2); });
                  Real val_S_y2_z2 = q([](const auto& x) { return x(1)*x(1)*x(2)*x(2); });
 
-                 gfab(iv,i_S_x) = val_S_x;
-                 gfab(iv,i_S_y) = val_S_y;
-                 gfab(iv,i_S_z) = val_S_z;
+                 garr(i,j,k,i_S_x) = val_S_x;
+                 garr(i,j,k,i_S_y) = val_S_y;
+                 garr(i,j,k,i_S_z) = val_S_z;
 
-                 gfab(iv,i_S_x2) = val_S_x2;
-                 gfab(iv,i_S_y2) = val_S_y2;
-                 gfab(iv,i_S_z2) = val_S_z2;
+                 garr(i,j,k,i_S_x2) = val_S_x2;
+                 garr(i,j,k,i_S_y2) = val_S_y2;
+                 garr(i,j,k,i_S_z2) = val_S_z2;
 
-                 gfab(iv,i_S_x_y) = val_S_x_y;
-                 gfab(iv,i_S_y_z) = val_S_y_z;
-                 gfab(iv,i_S_x_z) = val_S_x_z;
+                 garr(i,j,k,i_S_x_y) = val_S_x_y;
+                 garr(i,j,k,i_S_y_z) = val_S_y_z;
+                 garr(i,j,k,i_S_x_z) = val_S_x_z;
 
-                 gfab(iv,i_S_x2_y) = val_S_x2_y;
-                 gfab(iv,i_S_x2_z) = val_S_x2_z;
+                 garr(i,j,k,i_S_x2_y) = val_S_x2_y;
+                 garr(i,j,k,i_S_x2_z) = val_S_x2_z;
 
-                 gfab(iv,i_S_x_y2) = val_S_x_y2;
-                 gfab(iv,i_S_y2_z) = val_S_y2_z;
+                 garr(i,j,k,i_S_x_y2) = val_S_x_y2;
+                 garr(i,j,k,i_S_y2_z) = val_S_y2_z;
 
-                 gfab(iv,i_S_x_z2) = val_S_x_z2;
-                 gfab(iv,i_S_y_z2) = val_S_y_z2;
+                 garr(i,j,k,i_S_x_z2) = val_S_x_z2;
+                 garr(i,j,k,i_S_y_z2) = val_S_y_z2;
 
-                 gfab(iv,i_S_x2_y2) = val_S_x2_y2;
-                 gfab(iv,i_S_x2_z2) = val_S_x2_z2;
-                 gfab(iv,i_S_y2_z2) = val_S_y2_z2;
-
-                 n_count++;
+                 garr(i,j,k,i_S_x2_y2) = val_S_x2_y2;
+                 garr(i,j,k,i_S_x2_z2) = val_S_x2_z2;
+                 garr(i,j,k,i_S_y2_z2) = val_S_y2_z2;
 
 #if 0
+                 auto const& ccentarr = ccent->array(mfi);
                  if (std::abs(val_S_x/volume - (*ccent)[mfi](iv,0)) > 1.e-12 || 
                      std::abs(val_S_y/volume - (*ccent)[mfi](iv,1)) > 1.e-12 || 
                      std::abs(val_S_z/volume - (*ccent)[mfi](iv,2)) > 1.e-12 )
@@ -251,10 +266,10 @@ void compute_integrals(MultiFab* intg)
              }
           }
        }
-       // std::cout << "Integrated over " << n_count << " cells " << std::endl;
     }
 #ifdef AMREX_DEBUG
-    amrex::Print() << "Maximum discrepancy in volume fraction " << vol_diff << std::endl;
+    // If we want to print this, we should do mpi reduce first.
+//    amrex::Print() << "Maximum discrepancy in volume fraction " << vol_diff << std::endl;
 #endif
 }
 }

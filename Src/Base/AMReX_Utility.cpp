@@ -284,7 +284,7 @@ amrex::UniqueString()
 void
 amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
@@ -307,7 +307,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 void
 amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) 
+  if(ParallelContext::IOProcessorSub()) 
   {
     if(amrex::FileExists(path)) 
     {
@@ -337,7 +337,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 void
 amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
@@ -405,16 +405,35 @@ void amrex::ResetRandomSeed(unsigned long seed)
     InitRandom(seed);
 }
 
-double
+AMREX_GPU_HOST_DEVICE double
 amrex::RandomNormal (double mean, double stddev)
 {
+
+    double rand;
+
+#ifdef __CUDA_ARCH__
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+    int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+              + (threadIdx.z * (blockDim.x * blockDim.y)) 
+              + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    rand = stddev * curand_normal_double(&glo_RandStates[tid]) + mean; 
+
+#else
+
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
 #else
     int tid = 0;
 #endif
     std::normal_distribution<double> distribution(mean, stddev);
-    return distribution(generators[tid]);
+    rand = distribution(generators[tid]);
+
+#endif
+
+    return rand;
 }
 
 AMREX_GPU_HOST_DEVICE double

@@ -1,5 +1,6 @@
 #include <limits>
 
+#include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
@@ -9,7 +10,7 @@
 #endif
 
 #ifdef AMREX_USE_EB
-#ifdef USE_ALGOIM
+#ifdef AMREX_USE_ALGOIM
 #include <AMReX_algoim_integrals.H>
 #endif
 #endif
@@ -51,7 +52,7 @@ void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& a_info,
+                         const LPInfo& info,
                          const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
@@ -62,7 +63,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, a_factory);
+    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, info, a_factory);
 
     m_sigma.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -130,7 +131,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
 
     if (!m_masks_built) buildMasks();
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
 #endif
 
@@ -351,7 +352,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
             }
         }
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
         // Make sure to zero out the RHS on any nodes completely surrounded by covered cells
         amrex::EB_set_covered((*rhs[ilev]),0.0);
 #endif
@@ -368,7 +369,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     if (!m_masks_built) buildMasks();
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     if (!m_integral_built) buildIntegral();
 #endif
 
@@ -1002,8 +1003,8 @@ MLNodeLaplacian::buildMasks ()
                 }
 
                 amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
-                                            BL_TO_FORTRAN_BOX(ccdom),
-                                            m_lobc.data(), m_hibc.data());
+                                          BL_TO_FORTRAN_BOX(ccdom),
+                                          m_lobc.data(), m_hibc.data());
             }
         }
 
@@ -1199,15 +1200,18 @@ MLNodeLaplacian::buildStencil ()
                                                   dxinv);
                     }
                 }
+            }
 
-                for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     
-                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(stfab));
-                }
+                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(stfab));
             }
 
             m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
@@ -1230,26 +1234,26 @@ MLNodeLaplacian::buildStencil ()
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
             {
-                for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
-                {
-                    Box vbx = mfi.validbox();
-                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
-                    Box bx = mfi.growntilebox(1);
-                    bx &= vbx;
-                    amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(fine[mfi]));
-                }
+                Box vbx = mfi.validbox();
+                AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                Box bx = mfi.growntilebox(1);
+                bx &= vbx;
+                amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine[mfi]));
+            }
 
-                for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    FArrayBox& stfab = (*pcrse)[mfi];
-                    
-                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(stfab));
-                }
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                FArrayBox& stfab = (*pcrse)[mfi];
+                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(stfab));
             }
 
             if (need_parallel_copy) {
@@ -2225,7 +2229,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          m_lobc.data(), m_hibc.data());
         }
     }
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
     // Make sure to zero out the residual on any nodes completely surrounded by covered cells
     amrex::EB_set_covered(res,0.0);
 #endif
@@ -2284,19 +2288,405 @@ MLNodeLaplacian::buildIntegral ()
         }
     }
 #else
-#ifdef USE_ALGOIM
+#ifdef AMREX_USE_ALGOIM
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        MultiFab* intg = m_integral[amrlev].get();
-        amrex::compute_integrals(intg);
-        const Geometry& geom = m_geom[amrlev][0];
-        intg->FillBoundary(geom.periodicity());
+        amrex::compute_integrals(*m_integral[amrlev]);
     }
 #else
     amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
 #endif
 #endif
 }
+#endif
+
+void
+MLNodeLaplacian::checkPoint (std::string const& file_name) const
+{
+    if (ParallelContext::IOProcessorSub())
+    {
+        UtilCreateCleanDirectory(file_name, false);
+        {
+            std::string HeaderFileName(file_name+"/Header");
+            std::ofstream HeaderFile;
+            HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                    std::ofstream::trunc |
+                                                    std::ofstream::binary);
+            if( ! HeaderFile.good()) {
+                FileOpenFailed(HeaderFileName);
+            }
+            
+            HeaderFile.precision(17);
+
+            // MLLinop stuff
+            HeaderFile << "verbose = " << verbose << "\n"
+                       << "nlevs = " << NAMRLevels() << "\n"
+                       << "do_agglomeration = " << info.do_agglomeration << "\n"
+                       << "do_consolidation = " << info.do_consolidation << "\n"
+                       << "agg_grid_size = " << info.agg_grid_size << "\n"
+                       << "con_grid_size = " << info.con_grid_size << "\n"
+                       << "has_metric_term = " << info.has_metric_term << "\n"
+                       << "max_coarsening_level = " << info.max_coarsening_level << "\n";
+#if (AMREX_SPACEDIM == 1)
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0]) << "\n";
+#elif (AMREX_SPACEDIM == 2)
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0])
+                       << " "       << static_cast<int>(m_lobc[1]) << "\n";
+#else
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0])
+                       << " "       << static_cast<int>(m_lobc[1])
+                       << " "       << static_cast<int>(m_lobc[2]) << "\n";
+#endif
+#if (AMREX_SPACEDIM == 1)
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0]) << "\n";
+#elif (AMREX_SPACEDIM == 2)
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0])
+                       << " "       << static_cast<int>(m_hibc[1]) << "\n";
+#else
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0])
+                       << " "       << static_cast<int>(m_hibc[1])
+                       << " "       << static_cast<int>(m_hibc[2]) << "\n";
+#endif
+            // m_coarse_data_for_bc: not used
+            HeaderFile << "maxorder = " << getMaxOrder() << "\n";
+
+            // MLNodeLaplacian stuff
+            HeaderFile << "is_rz = " << m_is_rz << "\n";
+            HeaderFile << "use_gauss_seidel = " << m_use_gauss_seidel << "\n";
+            HeaderFile << "use_harmonic_average = " << m_use_harmonic_average << "\n";
+            HeaderFile << "coarsen_strategy = " << static_cast<int>(m_coarsening_strategy) << "\n";
+            // No level bc multifab
+        }
+
+        for (int ilev = 0; ilev < NAMRLevels(); ++ilev)
+        {
+            UtilCreateCleanDirectory(file_name+"/Level_"+std::to_string(ilev), false);
+            std::string HeaderFileName(file_name+"/Level_"+std::to_string(ilev)+"/Header");
+            std::ofstream HeaderFile;
+            HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                    std::ofstream::trunc |
+                                                    std::ofstream::binary);
+            if( ! HeaderFile.good()) {
+                FileOpenFailed(HeaderFileName);
+            }
+            
+            HeaderFile.precision(17);
+
+            HeaderFile << Geom(ilev) << "\n";
+            m_grids[ilev][0].writeOn(HeaderFile);  HeaderFile << "\n";
+        }
+    }
+
+    ParallelContext::BarrierSub();
+
+    for (int ilev = 0; ilev < NAMRLevels(); ++ilev)
+    {
+        VisMF::Write(*m_sigma[ilev][0][0], file_name+"/Level_"+std::to_string(ilev)+"/sigma");
+    }
+}
+
+#ifdef AMREX_USE_HYPRE
+std::unique_ptr<HypreNodeLap>
+MLNodeLaplacian::makeHypreNodeLap (int bottom_verbose) const
+{
+    const BoxArray& ba = m_grids[0].back();
+    const DistributionMapping& dm = m_dmap[0].back();
+    const Geometry& geom = m_geom[0].back();
+    const auto& factory = *(m_factory[0].back());
+    const auto& owner_mask = *(m_owner_mask[0].back());
+    const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
+    MPI_Comm comm = BottomCommunicator();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(NMGLevels(0) == 1,
+                                     "MLNodeLaplacian: To use hypre, max_coarsening_level must be 0");
+
+    std::unique_ptr<HypreNodeLap> hypre_solver
+        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                 comm, this, bottom_verbose));
+
+    return hypre_solver;
+}
+
+#if (AMREX_SPACEDIM == 2)
+void
+MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Array4<int const> const& owner,
+                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+{
+    const Box& ndbx = mfi.validbox();
+    const auto lo = amrex::lbound(ndbx);
+    const auto hi = amrex::ubound(ndbx);
+
+    AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
+
+    const auto& sten = m_stencil[0][0]->array(mfi);
+
+    constexpr int k = 0;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if (nid(i,j,k) >= 0 && owner(i,j,k))
+            {
+                rows.push_back(nid(i,j,k));
+                cols.push_back(nid(i,j,k));
+                mat.push_back(sten(i,j,k,0));
+                HypreNodeLap::Int nc = 1;
+
+                if                (nid(i-1,j-1,k) >= 0) {
+                    cols.push_back(nid(i-1,j-1,k));                  
+                    mat.push_back(sten(i-1,j-1,k,3));
+                    ++nc;
+                }
+
+                if                (nid(i,j-1,k) >= 0) {
+                    cols.push_back(nid(i,j-1,k));
+                    mat.push_back(sten(i,j-1,k,2));
+                    ++nc;
+                }
+
+                if                (nid(i+1,j-1,k) >= 0) {
+                    cols.push_back(nid(i+1,j-1,k));
+                    mat.push_back(sten(i  ,j-1,k,3));
+                    ++nc;
+                }
+
+                if                (nid(i-1,j,k) >= 0) {
+                    cols.push_back(nid(i-1,j,k));
+                    mat.push_back(sten(i-1,j,k,1));
+                    ++nc;
+                }
+
+                if                (nid(i+1,j,k) >= 0) {
+                    cols.push_back(nid(i+1,j,k));
+                    mat.push_back(sten(i  ,j,k,1));
+                    ++nc;
+                }
+
+                if                (nid(i-1,j+1,k) >= 0) {
+                    cols.push_back(nid(i-1,j+1,k));
+                    mat.push_back(sten(i-1,j  ,k,3));
+                    ++nc;
+                }
+
+                if                (nid(i,j+1,k) >= 0) {
+                    cols.push_back(nid(i,j+1,k));
+                    mat.push_back(sten(i,j  ,k,2));
+                    ++nc;
+                }
+
+                if                (nid(i+1,j+1,k) >= 0) {
+                    cols.push_back(nid(i+1,j+1,k));
+                    mat.push_back(sten(i  ,j  ,k,3));
+                    ++nc;
+                }
+
+                ncols.push_back(nc);
+            }
+        }
+    }
+}
+#else
+void
+MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Array4<int const> const& owner,
+                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+{
+    AMREX_ASSERT(NMGLevels(0) == 1);
+
+    const Real* dxinv = m_geom[0][0].InvCellSize();
+
+    const Box& ndbx = mfi.validbox();
+    const auto lo = amrex::lbound(ndbx);
+    const auto hi = amrex::ubound(ndbx);
+
+    AMREX_ASSERT(m_coarsening_strategy == CoarseningStrategy::RAP);
+
+    const auto& sten = m_stencil[0][0]->array(mfi);
+
+    constexpr int ist_000 = 1-1;
+    constexpr int ist_p00 = 2-1;
+    constexpr int ist_0p0 = 3-1;
+    constexpr int ist_00p = 4-1;
+    constexpr int ist_pp0 = 5-1;
+    constexpr int ist_p0p = 6-1;
+    constexpr int ist_0pp = 7-1;
+    constexpr int ist_ppp = 8-1;
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (nid(i,j,k) >= 0 && owner(i,j,k))
+                {
+                    rows.push_back(nid(i,j,k));
+                    cols.push_back(nid(i,j,k));
+                    mat.push_back(sten(i,j,k,ist_000));
+                    HypreNodeLap::Int nc = 1;
+
+                    if                (nid(i-1,j-1,k-1) >= 0) {
+                        cols.push_back(nid(i-1,j-1,k-1));                  
+                        mat.push_back(sten(i-1,j-1,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j-1,k-1) >= 0) {
+                        cols.push_back(nid(i,j-1,k-1));
+                        mat.push_back(sten(i,j-1,k-1,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j-1,k-1) >= 0) {
+                        cols.push_back(nid(i+1,j-1,k-1));
+                        mat.push_back(sten(i,j-1,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j,k-1) >= 0) {
+                        cols.push_back(nid(i-1,j,k-1));
+                        mat.push_back(sten(i-1,j,k-1,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j,k-1) >= 0) {
+                        cols.push_back(nid(i,j,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_00p));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j,k-1) >= 0) {
+                        cols.push_back(nid(i+1,j,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j+1,k-1) >= 0) {
+                        cols.push_back(nid(i-1,j+1,k-1));
+                        mat.push_back(sten(i-1,j,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j+1,k-1) >= 0) {
+                        cols.push_back(nid(i,j+1,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j+1,k-1) >= 0) {
+                        cols.push_back(nid(i+1,j+1,k-1));
+                        mat.push_back(sten(i,j,k-1,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j-1,k) >= 0) {
+                        cols.push_back(nid(i-1,j-1,k));
+                        mat.push_back(sten(i-1,j-1,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j-1,k) >= 0) {
+                        cols.push_back(nid(i,j-1,k));
+                        mat.push_back(sten(i,j-1,k,ist_0p0));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j-1,k) >= 0) {
+                        cols.push_back(nid(i+1,j-1,k));
+                        mat.push_back(sten(i,j-1,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j,k) >= 0) {
+                        cols.push_back(nid(i-1,j,k));
+                        mat.push_back(sten(i-1,j,k,ist_p00));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j,k) >= 0) {
+                        cols.push_back(nid(i+1,j,k));
+                        mat.push_back(sten(i,j,k,ist_p00));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j+1,k) >= 0) {
+                        cols.push_back(nid(i-1,j+1,k));
+                        mat.push_back(sten(i-1,j,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j+1,k) >= 0) {
+                        cols.push_back(nid(i,j+1,k));
+                        mat.push_back(sten(i,j,k,ist_0p0));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j+1,k) >= 0) {
+                        cols.push_back(nid(i+1,j+1,k));
+                        mat.push_back(sten(i,j,k,ist_pp0));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j-1,k+1) >= 0) {
+                        cols.push_back(nid(i-1,j-1,k+1));
+                        mat.push_back(sten(i-1,j-1,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j-1,k+1) >= 0) {
+                        cols.push_back(nid(i,j-1,k+1));
+                        mat.push_back(sten(i,j-1,k,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j-1,k+1) >= 0) {
+                        cols.push_back(nid(i+1,j-1,k+1));
+                        mat.push_back(sten(i,j-1,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j,k+1) >= 0) {
+                        cols.push_back(nid(i-1,j,k+1));
+                        mat.push_back(sten(i-1,j,k,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j,k+1) >= 0) {
+                        cols.push_back(nid(i,j,k+1));
+                        mat.push_back(sten(i,j,k,ist_00p));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j,k+1) >= 0) {
+                        cols.push_back(nid(i+1,j,k+1));
+                        mat.push_back(sten(i,j,k,ist_p0p));
+                        ++nc;
+                    }
+
+                    if                (nid(i-1,j+1,k+1) >= 0) {
+                        cols.push_back(nid(i-1,j+1,k+1));
+                        mat.push_back(sten(i-1,j,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    if                (nid(i,j+1,k+1) >= 0) {
+                        cols.push_back(nid(i,j+1,k+1));
+                        mat.push_back(sten(i,j,k,ist_0pp));
+                        ++nc;
+                    }
+
+                    if                (nid(i+1,j+1,k+1) >= 0) {
+                        cols.push_back(nid(i+1,j+1,k+1));
+                        mat.push_back(sten(i,j,k,ist_ppp));
+                        ++nc;
+                    }
+
+                    ncols.push_back(nc);
+                }
+            }
+        }
+    }
+}
+#endif
+
 #endif
 
 }

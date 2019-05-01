@@ -6,7 +6,11 @@ module amrex_habec_module
   ! alpha*phi - div(beta*grad phi) + div(\vec{c}*phi) 
 
   use iso_c_binding
-  use amrex_hypre_fort_module, only : hypre_int
+#ifdef AMREX_USE_PETSC
+  use amrex_petsc_fort_module, only : it=>petsc_int
+#else
+  use amrex_hypre_fort_module, only : it=>hypre_int
+#endif
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
@@ -178,22 +182,22 @@ contains
        cell_id, clo, chi, cell_id_begin, diag, dlo, dhi, a, alo, ahi, &
        bx, xlo, xhi, by, ylo, yhi, sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpijmatrix')
-    integer(hypre_int), intent(in) :: nrows, cell_id_begin;
-    integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
-    integer(hypre_int), dimension(0:nrows*5-1), intent(out) :: cols
-    real(rt)          , dimension(0:nrows*5-1), intent(out) :: mat
+    integer(it), intent(in) :: nrows, cell_id_begin;
+    integer(it), dimension(0:nrows-1), intent(out) :: ncols, rows
+    integer(it), dimension(0:nrows*5-1), intent(out) :: cols
+    real(rt)   , dimension(0:nrows*5-1), intent(out) :: mat
     integer, dimension(2), intent(in) :: lo, hi, clo, chi, dlo, dhi, &
          alo, ahi, xlo, xhi, ylo, yhi
-    integer(hypre_int), intent(in) :: cell_id(clo(1):chi(1),clo(2):chi(2))
-    real(rt)          , intent(inout)::  diag(dlo(1):dhi(1),dlo(2):dhi(2))
-    real(rt)          , intent(in) :: a      (alo(1):ahi(1),alo(2):ahi(2))
-    real(rt)          , intent(in) :: bx     (xlo(1):xhi(1),xlo(2):xhi(2))
-    real(rt)          , intent(in) :: by     (ylo(1):yhi(1),ylo(2):yhi(2))
+    integer(it), intent(in) :: cell_id(clo(1):chi(1),clo(2):chi(2))
+    real(rt)   , intent(inout)::  diag(dlo(1):dhi(1),dlo(2):dhi(2))
+    real(rt)   , intent(in) :: a      (alo(1):ahi(1),alo(2):ahi(2))
+    real(rt)   , intent(in) :: bx     (xlo(1):xhi(1),xlo(2):xhi(2))
+    real(rt)   , intent(in) :: by     (ylo(1):yhi(1),ylo(2):yhi(2))
     integer, intent(in) :: bct(0:3), bho
     real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
 
     integer :: i,j, irow, imat, ic, cdir, idim
-    integer(hypre_int) :: cols_tmp(0:4)
+    integer(it) :: cols_tmp(0:4)
     real(rt) :: fac(2), mat_tmp(0:4)
     real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3
 
@@ -292,9 +296,9 @@ contains
        bind(c,name='amrex_hpeb_fill_cellid')
     use amrex_ebcellflag_module, only : is_covered_cell
     integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi
-    integer(hypre_int), intent(  out) :: nrows
-    integer(hypre_int), intent(inout) :: cell_id(clo(1):chi(1),clo(2):chi(2))
-    integer           , intent(in   ) :: flag   (flo(1):fhi(1),flo(2):fhi(2))
+    integer(it), intent(  out) :: nrows
+    integer(it), intent(inout) :: cell_id(clo(1):chi(1),clo(2):chi(2))
+    integer    , intent(in   ) :: flag   (flo(1):fhi(1),flo(2):fhi(2))
 
     integer :: i,j
 
@@ -313,7 +317,7 @@ contains
        bind(c,name='amrex_hpeb_copy_from_vec')
     use amrex_ebcellflag_module, only : is_covered_cell
     integer, dimension(2), intent(in) :: lo, hi, alo, ahi, flo, fhi
-    integer(hypre_int), intent(in) :: nv
+    integer(it), intent(in) :: nv
     real(rt), intent(inout) :: a   (alo(1):ahi(1),alo(2):ahi(2))
     integer , intent(in   ) :: flag(flo(1):fhi(1),flo(2):fhi(2))
     real(rt), intent(in) :: v(0:nv-1)
@@ -335,7 +339,7 @@ contains
        bind(c,name='amrex_hpeb_copy_to_vec')
     use amrex_ebcellflag_module, only : is_covered_cell
     integer, dimension(2), intent(in) :: lo, hi, alo, ahi, flo, fhi
-    integer(hypre_int), intent(in) :: nv
+    integer(it), intent(in) :: nv
     real(rt), intent(in) :: a   (alo(1):ahi(1),alo(2):ahi(2))
     integer , intent(in) :: flag(flo(1):fhi(1),flo(2):fhi(2))
     real(rt), intent(out) :: v(0:nv-1)
@@ -362,29 +366,29 @@ contains
        sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
-    use amrex_mlebabeclap_2d_module, only : dx_eb, blend_beta => amrex_blend_beta
-    integer(hypre_int), intent(in) :: nrows, cell_id_begin
-    integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
-    integer(hypre_int), dimension(0:nrows*9-1), intent(out) :: cols
-    real(rt)          , dimension(0:nrows*9-1), intent(out) :: mat
+    use amrex_mlebabeclap_2d_module, only : amrex_get_dx_eb, blend_beta => amrex_blend_beta
+    integer(it), intent(in) :: nrows, cell_id_begin
+    integer(it), dimension(0:nrows-1), intent(out) :: ncols, rows
+    integer(it), dimension(0:nrows*9-1), intent(out) :: cols
+    real(rt)   , dimension(0:nrows*9-1), intent(out) :: mat
     integer, dimension(2), intent(in) :: lo, hi, clo, chi, dlo, dhi, &
          alo, ahi, bxlo, bxhi, bylo, byhi, &
          flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, fxlo, fxhi, fylo, fyhi, &
          balo, bahi, bclo, bchi, elo, ehi
-    integer(hypre_int), intent(in) :: cell_id( clo(1): chi(1), clo(2): chi(2))
-    real(rt)          , intent(inout) :: diag( dlo(1): dhi(1), dlo(2): dhi(2))
-    real(rt)          , intent(in) :: a      ( alo(1): ahi(1), alo(2): ahi(2))
-    real(rt)          , intent(in) :: bx     (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
-    real(rt)          , intent(in) :: by     (bylo(1):byhi(1),bylo(2):byhi(2))
-    integer           , intent(in) :: flag   ( flo(1): fhi(1), flo(2): fhi(2))
-    real(rt)          , intent(in) :: vfrc   ( vlo(1): vhi(1), vlo(2): vhi(2))
-    real(rt)          , intent(in) :: apx    (axlo(1):axhi(1),axlo(2):axhi(2))
-    real(rt)          , intent(in) :: apy    (aylo(1):ayhi(1),aylo(2):ayhi(2))
-    real(rt)          , intent(in) :: fcx    (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-    real(rt)          , intent(in) :: fcy    (fylo(1):fyhi(1),fylo(2):fyhi(2))
-    real(rt)          , intent(in) :: ba     (balo(1):bahi(1),balo(2):bahi(2))
-    real(rt)          , intent(in) :: bcen   (bclo(1):bchi(1),bclo(2):bchi(2),2)
-    real(rt)          , intent(in) :: beb    ( elo(1): ehi(1), elo(2): ehi(2))
+    integer(it), intent(in) :: cell_id( clo(1): chi(1), clo(2): chi(2))
+    real(rt)   , intent(inout) :: diag( dlo(1): dhi(1), dlo(2): dhi(2))
+    real(rt)   , intent(in) :: a      ( alo(1): ahi(1), alo(2): ahi(2))
+    real(rt)   , intent(in) :: bx     (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
+    real(rt)   , intent(in) :: by     (bylo(1):byhi(1),bylo(2):byhi(2))
+    integer    , intent(in) :: flag   ( flo(1): fhi(1), flo(2): fhi(2))
+    real(rt)   , intent(in) :: vfrc   ( vlo(1): vhi(1), vlo(2): vhi(2))
+    real(rt)   , intent(in) :: apx    (axlo(1):axhi(1),axlo(2):axhi(2))
+    real(rt)   , intent(in) :: apy    (aylo(1):ayhi(1),aylo(2):ayhi(2))
+    real(rt)   , intent(in) :: fcx    (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
+    real(rt)   , intent(in) :: fcy    (fylo(1):fyhi(1),fylo(2):fyhi(2))
+    real(rt)   , intent(in) :: ba     (balo(1):bahi(1),balo(2):bahi(2))
+    real(rt)   , intent(in) :: bcen   (bclo(1):bchi(1),bclo(2):bchi(2),2)
+    real(rt)   , intent(in) :: beb    ( elo(1): ehi(1), elo(2): ehi(2))
     integer, intent(in) :: bct(0:3), bho
     real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
     integer, intent(in) :: is_eb_dirichlet
@@ -649,13 +653,13 @@ contains
                    bctx = bcen(i,j,1)
                    bcty = bcen(i,j,2)
                    if (abs(anrmx) .gt. abs(anrmy)) then
-                      dg = dx_eb / abs(anrmx)
+                      dg = amrex_get_dx_eb(vfrc(i,j)) / abs(anrmx)
                       gx = bctx - dg*anrmx
                       gy = bcty - dg*anrmy
                       sx = sign(one,anrmx)
                       sy = sign(one,anrmy)
                    else
-                      dg = dx_eb / abs(anrmy)
+                      dg = amrex_get_dx_eb(vfrc(i,j)) / abs(anrmy)
                       gx = bctx - dg*anrmx
                       gy = bcty - dg*anrmy
                       sx = sign(one,anrmx)

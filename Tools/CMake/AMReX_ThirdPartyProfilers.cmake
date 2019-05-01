@@ -31,30 +31,33 @@ function (set_amrex_profilers)
    endif ()
 
 
-if ( ${TP_PROFILE} MATCHES "CRAYPAT" )
+   if ( ${TP_PROFILE} MATCHES "CRAYPAT" )
 
-   if ( ${SITE} MATCHES "nersc" )
-      target_include_directories ( amrex PUBLIC $ENV{CRAYPAT_ROOT}/include )
+      add_amrex_define( AMREX_CRAYPAT )
+      if ( ${SITE} MATCHES "nersc" )
+         target_include_directories ( amrex PUBLIC $ENV{CRAYPAT_ROOT}/include )
+      endif ()
+
+   elseif ( ${TP_PROFILE} MATCHES "FORGE" )
+
+      add_amrex_define( AMREX_FORGE )
+      if ( ${SITE} MATCHES "nersc" )
+         target_include_directories ( amrex PUBLIC 
+	    $ENV{ALLINEA_TOOLS_DIR}/$ENV{ALLINEA_TOOLS_VERSION}/map/wrapper )
+      endif()
+
+   elseif ( ${TP_PROFILE} MATCHES "VTUNE" )
+
+      add_amrex_define( AMREX_VTUNE )
+      target_compile_options ( amrex PUBLIC -debug inline-debug-info -parallel-source-info=2 )
+
+      if ( ${SITE} MATCHES "nersc" )
+         target_compile_options ( amrex PUBLIC -dynamic )
+         target_include_directories ( amrex PUBLIC $ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include )
+         target_link_libraries ( amrex PUBLIC -L$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify )
+      endif ()
+
    endif ()
-
-elseif ( ${TP_PROFILE} MATCHES "FORGE" )
-
-   if ( ${SITE} MATCHES "nersc" )
-      target_include_directories ( amrex PUBLIC 
-	 $ENV{ALLINEA_TOOLS_DIR}/$ENV{ALLINEA_TOOLS_VERSION}/map/wrapper )
-   endif()
-
-elseif ( ${TP_PROFILE} MATCHES "VTUNE" )
-
-   target_compile_options ( amrex PUBLIC -debug inline-debug-info -parallel-source-info=2 )
-
-   if ( ${SITE} MATCHES "nersc" )
-      target_compile_options ( amrex PUBLIC -dynamic )
-      target_include_directories ( amrex PUBLIC $ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include )
-      target_link_libraries ( amrex PUBLIC -L$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify )
-   endif ()
-
-endif ()
    
 endfunction ()
 

@@ -178,12 +178,6 @@ public:
     */
     void GetVolume (FArrayBox& vol, const Box& region) const;
     /**
-    * \brief Compute cell volumes in given region and place them into
-    * new()d FAB.  It is the user's respoinsibility to delete
-    * the returned FAB.
-    */
-    FArrayBox* GetVolume (const Box& region) const;
-    /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
     * place them into input FAB.
     */
@@ -193,13 +187,6 @@ public:
     * return the results in the resize()d input FAB.
     */
     void GetDLogA (FArrayBox& dloga, const Box& region, int dir) const;
-
-    /**
-    * \brief Compute d(log(A))/dr at cell centers in given region and
-    * return the results in a new()d FAB.  It is the user's
-    * responsibility to delete the returned FAB.
-    */
-    FArrayBox* GetDLogA (const Box& region, int dir) const;
 
     //! Return the volume of the specified cell.
     Real Volume (const IntVect& point) const;
@@ -219,13 +206,6 @@ public:
     * index direction and return the result in resize()d input FAB.
     */
     void GetFaceArea (FArrayBox& area, const Box& region, int dir) const;
-
-    /**
-    * \brief Compute area of cell faces in given region and given
-    * index direction and return the result in new()d FAB.
-    * It is the user's responsibility to delete the FAB.
-    */
-    FArrayBox* GetFaceArea (const Box& region, int dir) const;
 
     //! Returns lo face area of given cell in direction dir.
     Real AreaLo (const IntVect& point, int dir) const noexcept;

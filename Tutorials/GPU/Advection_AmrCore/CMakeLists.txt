@@ -1,3 +1,6 @@
+# Disabled for now
+return()
+
 #
 # Does not work if amrex is built in shared mode
 #
@@ -8,7 +11,7 @@ endif ()
 #
 # This test works for both 2D and 3D builds 
 #
-set ( EXENAME  "Advection_AmrCore.exe" )
+set ( EXENAME  "Advection_AmrCore_GPU.exe" )
 set ( SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 set ( EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex )
 

@@ -539,7 +539,7 @@ while ( false )
 
 namespace amrex {
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
 template <class T>
 ParallelDescriptor::Message
 ParallelDescriptor::Asend (const T* buf,

@@ -24,8 +24,4 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 
-ifeq ($(USE_HYPRE),TRUE)
-    include $(AMREX_HOME)/Src/Extern/HYPRE/Make.package
-endif
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

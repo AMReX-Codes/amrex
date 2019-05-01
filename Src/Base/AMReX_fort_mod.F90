@@ -133,6 +133,116 @@ contains
 
 
 
+#ifdef AMREX_USE_CUDA_FORTRAN
+  attributes(device) function warpReduceSum(x) result(y)
+    ! Reduce within a warp.
+    ! https://devblogs.nvidia.com/faster-parallel-reductions-kepler/
+
+    implicit none
+
+    real(amrex_real), intent(in) :: x
+
+    real(amrex_real) :: y
+
+    integer :: offset
+
+    offset = warpsize / 2
+
+    y = x
+
+    do while (offset > 0)
+
+       y = y + __shfl_down(y, offset)
+
+       offset = offset / 2
+
+    end do
+
+  end function warpReduceSum
+
+
+
+  attributes(device) function blockReduceSum(x) result(y)
+    ! Reduce within a threadblock.
+    ! https://devblogs.nvidia.com/faster-parallel-reductions-kepler/
+
+    implicit none
+
+    real(amrex_real), intent(in) :: x
+
+    real(amrex_real) :: y
+
+    real(amrex_real), shared :: s(0:(AMREX_CUDA_MAX_THREADS/warpsize) - 1)
+
+    integer :: lane, wid
+
+    lane = mod(threadIdx%x-1, warpsize)
+    wid = (threadIdx%x-1) / warpsize
+
+    y = x
+    y = warpReduceSum(y)
+
+    if (lane == 0) then
+       s(wid) = y
+    end if
+
+    call syncthreads()
+
+    if ((threadIdx%x-1) < blockDim%x / warpsize) then
+       y = s(lane)
+    else
+       y = 0
+    end if
+
+    if (wid == 0) then
+       y = warpReduceSum(y)
+    end if
+
+  end function blockReduceSum
+#endif
+
+
+
+  subroutine amrex_reduce_add(x, y)
+
+    implicit none
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    x = x + y
+
+  end subroutine amrex_reduce_add
+
+
+
+#ifdef AMREX_USE_CUDA_FORTRAN
+  attributes(device) subroutine amrex_reduce_add_device(x, y)
+    ! Do a shared memory reduction within a threadblock,
+    ! then do an atomic add with a single thread in the block.
+
+    implicit none
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+    t = y
+
+    t = blockReduceSum(t)
+
+    if (threadIdx%x == 1) then
+
+       t = atomicAdd(x, t)
+
+    end if
+
+  end subroutine amrex_reduce_add_device
+#endif
+
+
+
   subroutine amrex_subtract(x, y)
 
     implicit none
