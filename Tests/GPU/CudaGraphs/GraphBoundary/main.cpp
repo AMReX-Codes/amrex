@@ -144,7 +144,7 @@ int main (int argc, char* argv[])
 
         std::cout << ParallelDescriptor::MyProc() << " : Time for initial FillBoundary (Create & Run Graph) = " << end_time - start_time << std::endl;
 
-        // Run the remainder of the FillBoundary's (nsteps-1)
+        // Run the remainder of the FillBoundarys (nsteps-1)
         BL_PROFILE_VAR("GRAPH: Run Graph", rungraph);
 
         start_time = amrex::second();
@@ -239,20 +239,23 @@ int main (int argc, char* argv[])
         MultiFab::Copy(mf_error, mf_cpu, 0, 0, 1, 1);
         MultiFab::Subtract(mf_error, mf_gpu, 0, 0, 1, 1);
         max_error = mf_error.norm0(0, 1);
-        amrex::Print() << "Max error of CPU to GPU: " << max_error << std::endl; 
+        amrex::Print() << "Max difference between CPU and GPU: " << max_error << std::endl; 
 
         MultiFab::Copy(mf_error, mf_graph, 0, 0, 1, 1);
         MultiFab::Subtract(mf_error, mf_cpu, 0, 0, 1, 1);
         max_error = mf_error.norm0(0, 1);
-        amrex::Print() << "Max error of CPU to Graph: " << max_error << std::endl; 
+        amrex::Print() << "Max difference between CPU and Graph: " << max_error << std::endl; 
 
         std::cout << "========================================================" << std::endl << std::endl;
     }
 
+    // Clean up output and timers.
     // Add "Average FillBoundaries to break even" math.
     // SegFault? ( 256^3 & max_grid_size = 8 )
     // CUDA 10 proofing.  Device Calls, FillBoundary, Graph Definitions.
     // Flag for graph per stream & graph per iter.
+    // Parallel Copy?
+    // Clean up Graph methodology.
 
     amrex::Print() << std::endl << "************************************************" << std::endl;
     }
