@@ -9,7 +9,13 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
 #include <pthread.h>
-#include <list>
+
+
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include "PerillaMemCheck.H"
+extern PerillaMemCheck memcheck;
+#endif
 
 namespace amrex{
 
@@ -43,18 +49,18 @@ namespace amrex{
 	    std::vector<Box*> tileBx;
 	    Box* validBx;
 	    pTileArray(): numTiles(0), tileBx(0){}
-	    ~pTileArray()
-	    {
+            ~pTileArray()
+            {   
                 //for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
                 tileBx.clear();
-                //delete[] validBx;
-	    }
+                //if(validBx) delete validBx;
+            }
     };
 
     class Task
     {
 	public:
-            std::vector<int> state;
+	    std::vector<int> state;
 	    bool init;
 	    FabCopyAssoc *cpAsc_srcHead;
 	    FabCopyAssoc *cpAsc_dstHead;
@@ -99,14 +105,13 @@ namespace amrex{
 	    Worker():init(false), barr(0), l_barr(0), totalTasks(0){}
 
             ~Worker(){
-                delete barr;
-                delete l_barr;
-                delete fireableRegionQueue;
-                delete unfireableRegionQueue;
-                delete computedRegionQueue;
-                delete completedRegionQueue;
-            }
-
+	        delete barr;
+        	delete l_barr;
+        	delete fireableRegionQueue;
+        	delete unfireableRegionQueue;
+        	delete computedRegionQueue;
+        	delete completedRegionQueue;
+	    }
     };
 
     //template <class FAB>
@@ -119,11 +124,13 @@ namespace amrex{
 		:
 		    next(0)
 	{
-}
+#ifdef PERILLA_DEBUG
+    	        memcheck.add(memcheck.genKey(this), (void*)this, "CopyMap");
+#endif
+	}
 
 	    void alloc_CopyMap(const MultiFab& mf)
 	    {
-
 		//Array<int> IndArr = mf.IndexArray();
 		const int n = mf.IndexArray().size();
 		//const int n = mf.size();
@@ -140,11 +147,14 @@ namespace amrex{
 	    {
                 for (int i = 0; i < map.size(); ++i)
                 {
-                    delete map[i];
+		    delete map[i];
                 }
 		map.clear();
 		if(next !=0 )
 		    delete next;
+#ifdef PERILLA_DEBUG
+    	        memcheck.remove(memcheck.genKey(this));
+#endif
 	    }
     };
 
@@ -184,7 +194,7 @@ namespace amrex{
 	    void regionGraphReset(int numfabs);
 	    void regionGraphMinReset(void);
 	    void enableAllRegions();
-	    void disableRegion(int r, int tg);
+	    void disableRegion(int r);
 	    void finalizeRegion(int r);
 	    void finalizeRegionGraph();
 	    void regionComputed(int r);
@@ -199,22 +209,22 @@ namespace amrex{
 	    int size(){return task.size();}
 
 	    int getRegion(){
-	        return worker[perilla::wid()]->computedRegionQueue->getFrontRegion(true);
-            }
+		return worker[perilla::wid()]->computedRegionQueue->getFrontRegion(true);
+	    }
 
-            void syncComputeWorkerThreads(){
-	        worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
-            }
-            void syncComputeWorkerThreads(int numthreads){
-	        worker[perilla::wid()]->barr->sync(numthreads);
-            }
+	    void syncComputeWorkerThreads(){
+		worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+	    }
+	    void syncComputeWorkerThreads(int numthreads){
+		worker[perilla::wid()]->barr->sync(numthreads);
+	    }
 
-            void syncWorkerThreads(){
-	        worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
-            }
-            void syncWorkerThreads(int numthreads){
-	        worker[perilla::wid()]->barr->sync(numthreads);
-            }
+	    void syncWorkerThreads(){
+		worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+	    }
+	    void syncWorkerThreads(int numthreads){
+		worker[perilla::wid()]->barr->sync(numthreads);
+	    }
 
 	    void alloc_lMap(const MultiFab& mf)
 	    {
@@ -285,26 +295,26 @@ namespace amrex{
 		}
 	    }
 
-            void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
-            {
-                int myProc = amrex::ParallelDescriptor::MyProc();
-                const int n = mf.indexArray.size();
-                fabTiles.resize(n);
+	    void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
+	    {
+		int myProc = amrex::ParallelDescriptor::MyProc();
+		const int n = mf.indexArray.size();
+		fabTiles.resize(n);
 
-                //typ = mf.boxArray().ixType();
+		//typ = mf.boxArray().ixType();
 
-                for (int i = 0; i < n; ++i)
-                {
-                    fabTiles[i] = new pTileArray();
-                }
-                for (amrex::MFIter mfi(mf, tilesize); mfi.isValid(); ++mfi)
-                {
-                    if( fabTiles[mfi.LocalIndex()]->numTiles == 0 )
-                        fabTiles[mfi.LocalIndex()]->validBx = new amrex::Box(mfi.validbox());
-                    fabTiles[mfi.LocalIndex()]->numTiles++;
-                    fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
-                }
-            }
+		for (int i = 0; i < n; ++i)
+		{
+		    fabTiles[i] = new pTileArray();
+		}
+		for (amrex::MFIter mfi(mf, tilesize); mfi.isValid(); ++mfi)
+		{
+		    if( fabTiles[mfi.LocalIndex()]->numTiles == 0 )
+			fabTiles[mfi.LocalIndex()]->validBx = new amrex::Box(mfi.validbox());
+		    fabTiles[mfi.LocalIndex()]->numTiles++;
+		    fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
+		}
+	    }
 
 	    ~RegionGraph();
     };

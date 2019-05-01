@@ -3,9 +3,10 @@
 #include <Perilla.H>
 #include<stdio.h>
 
-namespace perilla
-{
-    void* WorkerThread::team_shared_memory[perilla::NUM_THREAD_TEAMS];
+using namespace perilla;
+//namespace perilla
+//{
+    //void* WorkerThread::team_shared_memory[perilla::NUM_THREAD_TEAMS];
     Barrier* WorkerThread::globalBarrier;
     Barrier* WorkerThread::localBarriers[perilla::NUM_THREAD_TEAMS];
     Barrier* WorkerThread::localBarriers1[perilla::NUM_THREAD_TEAMS];
@@ -32,10 +33,17 @@ namespace perilla
         WorkerThread::localBarriers1[perilla_wid()]->sync(numthreads);
     }
 
+
+#ifdef USE_PERILLA_OMP
+    void WorkerThread::syncAllThreads(){
+        #pragma omp barrier
+    }
+#else
     void WorkerThread::syncAllThreads(){
         syncTeamThreads();
         syncWorkers();
     }
+#endif
 
     void WorkerThread::syncAllComputeThreads(){
         syncComputeWorkerThreads();
@@ -55,10 +63,16 @@ namespace perilla
 	assert(numthreads== perilla::NUM_THREADS_PER_TEAM-1);
         WorkerThread::localBarriers1[perilla_wid()]->sync(numthreads);
     }
- 
+
+#ifdef USE_PERILLA_OMP 
+    int WorkerThread::perilla_tid(){
+        return omp_get_thread_num();
+    }
+#else
     int WorkerThread::perilla_tid(){
 	return Perilla::tid();
     }
+#endif
 
     int WorkerThread::perilla_nTeamThreads(){
 	return perilla::NUM_THREADS_PER_TEAM;
@@ -108,6 +122,7 @@ namespace perilla
 	return ((regionID) % perilla::NUM_THREAD_TEAMS)==workerID;
     }
 
+#if 0
     void WorkerThread::setTeamSharedMemory(void* dummy, int tid, int tg)
     {
 	if((tid % perilla::NUM_THREADS_PER_TEAM)==1)
@@ -118,4 +133,5 @@ namespace perilla
     {    
 	return team_shared_memory[tg];
     }
-}//end namepsace
+#endif
+//}//end namepsace

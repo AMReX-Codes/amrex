@@ -64,8 +64,8 @@ namespace perilla{
 	RTS* thisRTS;
     };
 
-    void RTS::runAMR(Amr* amr, int tid, int nThreads, int max_step, Real stop_time){
-        while ( amr->okToContinue() &&
+    void RTS::runAMR(Amr* amr, int max_step, Real stop_time){
+        while (amr->okToContinue() &&
               (amr->levelSteps(0) < max_step || max_step < 0) &&
               (amr->cumTime() < stop_time || stop_time < 0.0) )
             
@@ -92,7 +92,7 @@ namespace perilla{
 	startSignal++;
         pthread_mutex_unlock(&startLock);
 	while(startSignal!= nTotalThreads){}
-        rts->runAMR(amrptr, tid, nThreads, max_step, stop_time);
+        rts->runAMR(amrptr, max_step, stop_time);
     }
 #endif
 
@@ -131,15 +131,15 @@ namespace perilla{
 	    assert(amrGraph);
 	    Perilla::max_step= max_step;
 	    amrptr= (Amr*)amrGraph;
+            WorkerThread::init();
 #ifndef USE_PERILLA_PTHREADS
-            runAMR(amrptr, 0, 1, max_step, stop_time);
+            runAMR(amrptr, max_step, stop_time);
 #else
 	    int numa_nodes= perilla::NUM_THREAD_TEAMS;
 	    int worker_per_numa = perilla::NUM_THREADS_PER_TEAM;
             int _nWrks= numa_nodes*worker_per_numa;
 	    int base=0; 
 	    int localID=-1;
-            WorkerThread::init();
 	    //create a list of persistent threads for each NUMA node
 	    cpu_set_t cpuset;
 	    pthread_attr_t attr;
@@ -182,7 +182,7 @@ namespace perilla{
 		}
 	    }
 	    while(startSignal!= _nWrks){}//wait until all threads have done the setup phase
-            runAMR(amrptr, 0, worker_per_numa, max_step, stop_time);
+            runAMR(amrptr, max_step, stop_time);
 	    for(int i=1; i<_nWrks; i++) pthread_join(dom[i/worker_per_numa]._threads[i%worker_per_numa], NULL);
 #endif
     }

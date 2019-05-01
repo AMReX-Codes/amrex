@@ -39,7 +39,7 @@ class RTS
 	void Finalize();
 //	double Time();
 	void Barrier();
-	void runAMR(Amr* amrptr, int tid, int numthreads, int max_step, Real stop_time);
+	void runAMR(Amr* amrptr, int max_step, Real stop_time);
 };
 
 }

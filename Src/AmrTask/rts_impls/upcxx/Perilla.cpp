@@ -16,16 +16,6 @@ using namespace amrex;
 using namespace perilla;
 using namespace upcxx;
 
-volatile int Perilla::numTeamsFinished = 0;
-volatile int Perilla::updateMetadata_request = 0;
-volatile int Perilla::updateMetadata_noticed = 0;
-volatile int Perilla::updateMetadata_done = 0;
-int Perilla::max_step=1;
-std::map<int,std::map<int,int>> Perilla::pTagCnt;
-int Perilla::uTags=0;
-bool Perilla::genTags=true;
-std::map<int, std::map<int, std::map<int, std::map<int, std::map<int,int> > > > > Perilla::tagMap;
-std::map<int, std::map<int, std::map<int, std::map<int, int> > > > Perilla::myTagMap;
 
 struct sMsgMap_t{
     std::map< int, std::map< int,  std::list< Package* > > > map; 
@@ -85,194 +75,7 @@ struct pendingGetList_t{
     }
 } pendingGetList;
 
-pthread_mutex_t table_lock= PTHREAD_MUTEX_INITIALIZER;
-std::map<size_t, int> tidTable;
-void Perilla::registerId(int tid){
-    pthread_mutex_lock(&table_lock);
-    tidTable[pthread_self()]= tid;
-    pthread_mutex_unlock(&table_lock);
-}
 
-int Perilla::tid(){//this function can be called after all threads already register their ids
-    return tidTable[pthread_self()];
-}
-
-void Perilla::clearTagMap(){
-    Perilla::tagMap.clear();
-}
-
-void Perilla::clearMyTagMap(){
-    Perilla::myTagMap.clear();
-}
-
-void Perilla::communicateTags()
-{
-    int myProc = ParallelDescriptor::MyProc();
-    int nPs = ParallelDescriptor::NProcs();
-    typedef std::map<int, int> tags_t;
-    typedef std::map<int, std::map<int,int>> stags_t;
-    typedef std::map<int, std::map<int,std::map<int,int>>> dstags_t; 
-    typedef std::map<int, std::map<int,std::map<int,std::map<int,int>>>> gdstags_t;
-    typedef std::map<int, std::map<int,std::map<int,std::map<int,std::map<int,int>>>>> pgdstags_t;
-
-    int** tags = new int*[nPs];
-    int** rtags = new int*[nPs];
-    int* rTagCnt = new int[nPs*2];
-    int* sTagCnt = new int[nPs*2];
-
-    MPI_Request *srrequest;
-    srrequest = new MPI_Request[nPs];
-    MPI_Request *ssrequest;
-    ssrequest = new MPI_Request[nPs];
-    MPI_Request *trrequest;
-    trrequest = new MPI_Request[nPs];
-    MPI_Request *tsrequest;
-    tsrequest = new MPI_Request[nPs];
-
-    std::vector<bool> proc_communicated;
-
-    proc_communicated.resize(nPs);
-    for(int p=0; p<nPs; p++)
-	proc_communicated[p]=false;
-
-    for(int p=0; p<nPs; p++)
-    {
-	if(p!=myProc)
-	{
-	    MPI_Irecv(&rTagCnt[p*2], 2, MPI_INT, p , 1000, MPI_COMM_WORLD, &srrequest[p]);
-	}
-    }
-
-    for(pgdstags_t::iterator it1 = Perilla::tagMap.begin(); it1  != Perilla::tagMap.end(); it1++)
-    {
-	int tac=0;
-	int ng=0;
-	for(gdstags_t::iterator it2 = it1->second.begin(); it2  != it1->second.end(); it2++)
-	{
-	    tac++;
-	    tac++;
-	    ng++;
-	    for(dstags_t::iterator it3 = it2->second.begin(); it3  != it2->second.end(); it3++)
-		for(stags_t::iterator it4 = it3->second.begin(); it4  != it3->second.end(); it4++)
-		    for(tags_t::iterator it5 = it4->second.begin(); it5  != it4->second.end(); it5++)
-		    {
-			tac+=4;
-		    }
-	}
-	sTagCnt[it1->first*2] = tac;
-	sTagCnt[it1->first*2+1] = ng;
-	tags[it1->first] = new int[sTagCnt[it1->first*2]];
-	MPI_Isend(&sTagCnt[it1->first*2], 2, MPI_INT, it1->first, 1000, MPI_COMM_WORLD, &ssrequest[it1->first]);
-	proc_communicated[it1->first]=true;
-    }
-
-    for(int p=0; p<nPs; p++)
-	if(p!=myProc)
-	    if(!proc_communicated[p])
-	    {
-		sTagCnt[p*2] = 0;
-		sTagCnt[p*2+1] = 0;
-		MPI_Isend(&sTagCnt[p*2], 2, MPI_INT, p, 1000, MPI_COMM_WORLD, &ssrequest[p]);
-	    }
-
-
-    for(pgdstags_t::iterator it1 = Perilla::tagMap.begin(); it1  != Perilla::tagMap.end(); it1++)
-    {
-	int tac=0;
-	for(gdstags_t::iterator it2 = it1->second.begin(); it2  != it1->second.end(); it2++)
-	{
-	    tags[it1->first][tac++] = it2->first;
-	    tags[it1->first][tac++] = pTagCnt[it1->first][it2->first];
-	    int gtagc = 0;
-	    for(dstags_t::iterator it3 = it2->second.begin(); it3  != it2->second.end(); it3++)
-		for(stags_t::iterator it4 = it3->second.begin(); it4  != it3->second.end(); it4++)
-		    for(tags_t::iterator it5 = it4->second.begin(); it5  != it4->second.end(); it5++)
-		    {
-			tags[it1->first][tac++] = it3->first;
-			tags[it1->first][tac++] = it4->first;
-			tags[it1->first][tac++] = it5->first;
-			tags[it1->first][tac++] = it5->second;
-			gtagc++;
-		    }
-	    BL_ASSERT(pTagCnt[it1->first][it2->first] == gtagc);
-	}
-	MPI_Isend(tags[it1->first], tac, MPI_INT, it1->first, 1001, MPI_COMM_WORLD, &tsrequest[it1->first]);
-    }
-
-
-    MPI_Status status;
-    for(int p=0; p<nPs; p++)
-    {      
-	if(p!=myProc)
-	{
-	    MPI_Wait( &srrequest[p], &status );
-	    if(rTagCnt[p*2] > 0)
-	    {
-		rtags[p] = new int[rTagCnt[p*2]];
-		MPI_Irecv(rtags[p], rTagCnt[p*2], MPI_INT, p , 1001, MPI_COMM_WORLD, &trrequest[p]);
-	    }
-	}
-    }
-
-    //      //MPI_Irecv(size) Wait
-
-
-    //MPI_recive tags arra
-    for(int p=0; p<nPs; p++)
-    {
-	if(p!=myProc)
-	{
-	    if(rTagCnt[p*2] > 0)
-	    {
-		MPI_Wait( &trrequest[p], &status );
-		int tCnt=0;
-		for(int g=0; g<rTagCnt[p*2+1];g++)
-		{
-		    int gi = rtags[p][tCnt++];
-		    int sCnt = rtags[p][tCnt++];
-		    for(int j=0; j<sCnt; j++)
-		    {
-			Perilla::myTagMap[gi][rtags[p][tCnt]][rtags[p][tCnt+1]][rtags[p][tCnt+2]]=rtags[p][tCnt+3];
-			//std::cout<< "at myP "<<myProc<<" g " << gi << " d " << rtags[p][tCnt]<< " s " << rtags[p][tCnt+1] << " t "<< rtags[p][tCnt+2]<<std::endl;
-			tCnt += 4;    
-		    }
-		}
-		//std::cout<< "at P "<< myProc <<" rCnt "<<rTagCnt[p*2]<<" " << tCnt << std::endl;
-	    }
-	}      	
-    }
-
-    for(int p=0; p<nPs; p++)
-    {
-	if(p!=myProc)
-	    if(rTagCnt[p*2] > 0)
-	    {
-		delete[] rtags[p];
-	    }
-    }
-
-
-    for(int p=0; p<nPs; p++)
-    {
-	if(p!=myProc)
-	    if(proc_communicated[p])
-	    {
-		MPI_Wait( &tsrequest[p], &status );
-		delete[] tags[p];
-	    }
-    }
-
-    delete[] srrequest;
-    delete[] ssrequest;
-    delete[] trrequest;
-    delete[] tsrequest;
-    delete[] tags;
-    delete[] rtags;
-    delete[] rTagCnt;
-    delete[] sTagCnt;
-
-    Perilla::genTags=false;
-}
 
 #if 0
 
@@ -310,6 +113,7 @@ void Perilla::syncProcesses(){
 }
 
 
+#if 0
 void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Periodicity& period)
 {
     int np = ParallelDescriptor::NProcs();
@@ -353,12 +157,12 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
         }
     }
 
-#pragma omp parallel shared(rg, mf, numfabs, np, TheFB, recv_cctc, send_cctc)
+//#pragma omp parallel shared(rg, mf, numfabs, np, TheFB, recv_cctc, send_cctc)
     {
         //int tg = omp_get_thread_num();
         int fg;
 //        if(WorkerThread::perilla_isCommunicationThread())
-#pragma omp single
+//#pragma omp single
         {
             //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
             //mf->sMap.reserve(numfabs);
@@ -368,13 +172,13 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
             rg->alloc_sMap(mf);
             rg->alloc_rMap(mf);
         }
-#pragma omp barrier      
+//#pragma omp barrier      
         //if(tid==0)                              
         {
             //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
             //mf->sMap.reserve(numfabs);
             //mf->rMap.reserve(numfabs);
-#pragma omp for
+//#pragma omp for
             for(int f=0; f<numfabs; f++) //        !create local communication metadata for each fab
             {
 //                if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
@@ -406,9 +210,9 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                 }
             }
         }
-#pragma omp barrier
+//#pragma omp barrier
         //now we know how many copying segments each fab owns as source and destination allocate memory for metadata   
-#pragma omp for
+//#pragma omp for
         for(int f=0; f<numfabs; f++)
         {
             //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);   /// need to check if computing correct ???????
@@ -427,10 +231,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                 rg->lMap[f]->l_con.dcpyCnt = 0;
             }
         }
-#pragma omp barrier
+//#pragma omp barrier
         if(np > 1)
         {
-#pragma omp for
+//#pragma omp for
             for(int f=0; f<numfabs; f++)
             {
 //                if(WorkerThread::perilla_isMasterWorkerThread() && WorkerThread::isMyRegion(tg,f))
@@ -477,7 +281,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
             }
  //           if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
             {
-#pragma omp for
+//#pragma omp for
                 for(int f=0; f<numfabs; f++)
                 {
                     rg->rMap[f]->r_con.nrcv = 0;
@@ -523,7 +327,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
     } // omp parallel
     //std::cout<< "counting done " <<std::endl;
     //    !!touch data to bind pages to the NUMA node
-#pragma omp parallel shared(mf, numfabs, TheFB, recv_cctc, send_cctc)
+//#pragma omp parallel shared(mf, numfabs, TheFB, recv_cctc, send_cctc)
     {
 //        int tg = WorkerThread::perilla_wid();
 
@@ -532,7 +336,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
         //      std::cout<< "Barr 5" <<std::endl;
         int fg, scnt, dcnt;
 
-#pragma omp for
+//#pragma omp for
         for(int f=0; f<numfabs; f++)
         {
             //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
@@ -620,10 +424,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
             }
         }// for(f<numfabs)
 
-#pragma omp barrier       
+//#pragma omp barrier       
 
  //       if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-#pragma omp for
+//#pragma omp for
             for(int f=0; f<numfabs; f++)
             {
                 for(int i=0; i<rg->lMap[f]->l_con.nscpy; i++)
@@ -862,6 +666,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 }// multifabBuildFabCon
 
 
+#endif
 
 #if 0
 #ifdef USE_PERILLA_PTHREADS
@@ -1244,6 +1049,8 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
 			    it != cctc.end(); ++it)
 		    {	      
 			//if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
+
+
 			if(mf.IndexArray()[f] == it->dstIndex)
 			{
 			    nrcv++;
@@ -1835,6 +1642,7 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, in
 } // serviceMultipleGraphComm
 
 void Perilla::flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, std::vector<RegionGraph*> &graphArray){
+    graphArray.clear();
     int gCnt=0;
     for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
     for(int l=0; l<graphArrayHierarchy.size(); l++)
@@ -2058,6 +1866,7 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f, bool sin
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if 0
 void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, const MultiFab& mfDst, const MultiFab& mfSrc, int nc, int ng, int ngSrc, const Periodicity& period)
 {
     //    MultiFab* mfSrc = gSrc->assocMF;
@@ -2716,6 +2525,7 @@ catch(std::exception& e)
 //std::cout<< "All done safely at gID " << gDst->graphID <<std::endl;   
 
 } // multifabExtractCopyAssoc
+#endif
 
 
 #if 0

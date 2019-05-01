@@ -641,7 +641,7 @@ namespace amrex{
 
     amrex::Box RGIter::growntilebox()
     {
-
+	return this->tileBox();	
     }
 
     amrex::Box RGIter::growntilebox(int ng)
