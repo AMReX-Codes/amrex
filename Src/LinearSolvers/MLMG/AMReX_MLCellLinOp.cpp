@@ -150,13 +150,11 @@ MLCellLinOp::defineBC ()
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, ncomp,
                                             m_amr_ref_ratio[amrlev-1], BCRec());
 
-        m_bndry_cor[amrlev]->setLOBndryConds({AMREX_D_DECL(BCType::Dirichlet,
-                                                           BCType::Dirichlet,
-                                                           BCType::Dirichlet)},
-                                             {AMREX_D_DECL(BCType::Dirichlet,
-                                                           BCType::Dirichlet,
-                                                           BCType::Dirichlet)},
-                                             m_amr_ref_ratio[amrlev-1], RealVect{});
+        Vector<Array<LinOpBCType,AMREX_SPACEDIM> > bclohi
+            (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{AMREX_D_DECL(BCType::Dirichlet,
+                                                                  BCType::Dirichlet,
+                                                                  BCType::Dirichlet)});
+        m_bndry_cor[amrlev]->setLOBndryConds(bclohi, bclohi, m_amr_ref_ratio[amrlev-1], RealVect{});
     }
 
     m_bcondloc.resize(m_num_amr_levels);
@@ -234,7 +232,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
-    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc[0], m_hibc[0], br_ref_ratio, m_coarse_bc_loc);
+    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio, m_coarse_bc_loc);
 
     const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
