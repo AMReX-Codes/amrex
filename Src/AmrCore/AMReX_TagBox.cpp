@@ -23,13 +23,11 @@ TagBox::TagBox (const Box& bx,
     if (alloc) setVal(TagBox::CLEAR);
 }
 
-#ifdef AMREX_USE_GPU
-TagBox::TagBox (const TagBox& rhs, MakeType make_type)
+TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
     :
-    BaseFab<TagBox::TagType>(rhs,make_type)
+    BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
 {
 }
-#endif
 
 void
 TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
@@ -661,9 +659,9 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        this->fabDevicePtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
+        this->fabHostPtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
 #ifdef AMREX_USE_GPU
-        this->fabHostPtr(mfi)->coarsen(ratio,false);
+        this->fabDevicePtr(mfi)->coarsen(ratio,false);
 #endif
     }
 

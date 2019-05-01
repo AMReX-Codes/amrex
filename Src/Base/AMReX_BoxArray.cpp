@@ -357,18 +357,6 @@ BoxArray::BoxArray (const BoxArray& rhs)
     m_ref(rhs.m_ref)
 {}
 
-BoxArray::BoxArray(BoxArray&& rhs) noexcept
-    :
-    m_transformer(std::move(rhs.m_transformer)),
-    m_typ(rhs.m_typ),
-    m_crse_ratio(rhs.m_crse_ratio),
-    m_simple(rhs.m_simple),
-    m_ref(std::move(rhs.m_ref))
-{}
-
-BoxArray::~BoxArray ()
-{}
-
 BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {

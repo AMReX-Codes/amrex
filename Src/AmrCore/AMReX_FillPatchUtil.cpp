@@ -215,6 +215,97 @@ namespace amrex
 	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc, fbccomp);
     }
 
+#ifdef AMREX_USE_EB
+    void FillPatchTwoLevels (MultiFab& mf, Real time,
+                             const EB2::IndexSpace& index_space,
+			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
+			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
+			     int scomp, int dcomp, int ncomp,
+			     const Geometry& cgeom, const Geometry& fgeom,
+			     PhysBCFunctBase& cbc, int cbccomp,
+                             PhysBCFunctBase& fbc, int fbccomp,
+			     const IntVect& ratio,
+			     Interpolater* mapper,
+                             const Vector<BCRec>& bcs, int bcscomp,
+                             const InterpHook& pre_interp,
+                             const InterpHook& post_interp)
+    {
+	BL_PROFILE("FillPatchTwoLevels");
+
+	const IntVect& ngrow = mf.nGrowVect();
+
+	if (ngrow.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
+	{
+	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+
+	    Box fdomain = fgeom.Domain();
+	    fdomain.convert(mf.boxArray().ixType());
+	    Box fdomain_g(fdomain);
+	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+		if (fgeom.isPeriodic(i)) {
+		    fdomain_g.grow(i,ngrow[i]);
+		}
+	    }
+
+	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
+                                                                      ngrow,
+                                                                      coarsener,
+                                                                      amrex::coarsen(fgeom.Domain(),ratio), 
+                                                                      &index_space);
+
+	    if ( ! fpc.ba_crse_patch.empty())
+	    {
+		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
+                                       *fpc.fact_crse_patch);
+
+                mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+
+		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
+
+		int idummy1=0, idummy2=0;
+		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
+                ignore_unused(cc);
+#ifdef _OPENMP
+#pragma omp parallel if (cc && Gpu::notInLaunchRegion())
+#endif
+                {
+                    Vector<BCRec> bcr(ncomp);
+                    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+                    {
+                        FArrayBox& sfab = mf_crse_patch[mfi];
+                        int li = mfi.LocalIndex();
+                        int gi = fpc.dst_idxs[li];
+                        FArrayBox& dfab = mf[gi];
+                        const Box& dbx = fpc.dst_boxes[li] & dfab.box();
+
+                        amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
+
+                        pre_interp(sfab, sfab.box(), 0, ncomp);
+                        
+                        FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
+                        FArrayBox* dfabp = mf.fabPtr(gi);
+                        mapper->interp(*sfabp,
+                                       0,
+                                       *dfabp,
+                                       dcomp,
+                                       ncomp,
+                                       dbx,
+                                       ratio,
+                                       cgeom,
+                                       fgeom,
+                                       bcr,
+                                       idummy1, idummy2);
+
+                        post_interp(dfab, dbx, dcomp, ncomp);
+                    }
+                }
+	    }
+	}
+
+	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc, fbccomp);
+    }
+#endif
+
     void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom,

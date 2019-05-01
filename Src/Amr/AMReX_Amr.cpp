@@ -51,7 +51,7 @@
 #ifdef USE_PERILLA
 #include <WorkerThread.H>
 #include <Perilla.H>
-#ifdef USE_PERILLA_PTHREADS
+#ifdef USE_PERILLA
     pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_USE_UPCXX
 extern struct rMsgMap_t{
@@ -2365,7 +2365,6 @@ Amr::coarseTimeStep (Real stop_time)
             while(true){
                 Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
                 Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
-                //Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
                     flattenedGraphArray.clear();
@@ -2376,7 +2375,7 @@ Amr::coarseTimeStep (Real stop_time)
         else{
             timeStep(0,cumtime,1,1,stop_time);
             if(perilla::isMasterWorkerThread()){
-#pragma omp atomic
+		#pragma omp atomic
                 Perilla::numTeamsFinished++;
             }
         }

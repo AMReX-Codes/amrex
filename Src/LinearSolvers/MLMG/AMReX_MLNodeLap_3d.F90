@@ -3036,7 +3036,7 @@ contains
                    wpp = abs(sten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
                    fine(i,j,k) = (wmm*crse(ic,jc,kc) + wpm*crse(ic,jc+1,kc) &
                         + wmp*crse(ic,jc,kc+1) + wpp*crse(ic,jc+1,kc+1)) &
-                        / (wmm+wpm+wmp+wpp+eps)                   
+                        / (wmm+wpm+wmp+wpp+eps)
                 else if (jeven) then
                    w1m = abs(sten(i-1,j,k,ist_p00)) / (abs(sten(i-1,j,k-1,ist_p0p)) &
                         &                             +abs(sten(i-1,j,k  ,ist_p0p)) + eps)
@@ -3259,17 +3259,12 @@ contains
 
                 crse(i,j,k) = fine(ii,jj,kk)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii-1,jj,kk)
-                ! *******************************************************************************************************
+                ! ************************************
 
-                ! sten_lo = abs(sten(ii-2,jj,kk,ist_p00))
-                ! sten_hi = abs(sten(ii-1,jj,kk,ist_p00))
-
-                sten_lo = abs(sten(ii-2,jj,kk,ist_p00)) + abs(sten(ii-2,jj,kk,ist_p0p)) + abs(sten(ii-2,jj,kk-1,ist_p0p)) &
-                                                        + abs(sten(ii-2,jj,kk,ist_pp0)) + abs(sten(ii-2,jj-1,kk,ist_pp0)) 
-                sten_hi = abs(sten(ii-1,jj,kk,ist_p00)) + abs(sten(ii-1,jj,kk,ist_p0p)) + abs(sten(ii-1,jj,kk-1,ist_p0p)) &
-                                                        + abs(sten(ii-1,jj,kk,ist_pp0)) + abs(sten(ii-1,jj-1,kk,ist_pp0)) 
+                sten_lo = abs(sten(ii-2,jj,kk,ist_p00))
+                sten_hi = abs(sten(ii-1,jj,kk,ist_p00))
 
                 if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii-1,jj,kk)
@@ -3277,17 +3272,12 @@ contains
                    crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk) * sten_hi / (sten_lo + sten_hi)
                 end if
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii+1,jj,kk)
-                ! *******************************************************************************************************
+                ! ************************************
 
-                ! sten_lo = abs(sten(ii  ,jj,kk,ist_p00))
-                ! sten_hi = abs(sten(ii+1,jj,kk,ist_p00))
-
-                sten_lo = abs(sten(ii  ,jj,kk,ist_p00)) + abs(sten(ii  ,jj,kk,ist_p0p)) + abs(sten(ii  ,jj  ,kk-1,ist_p0p)) &
-                                                        + abs(sten(ii  ,jj,kk,ist_pp0)) + abs(sten(ii  ,jj-1,kk  ,ist_pp0)) 
-                sten_hi = abs(sten(ii+1,jj,kk,ist_p00)) + abs(sten(ii+1,jj,kk,ist_p0p)) + abs(sten(ii+1,jj  ,kk-1,ist_p0p)) &
-                                                        + abs(sten(ii+1,jj,kk,ist_pp0)) + abs(sten(ii+1,jj-1,kk  ,ist_pp0)) 
+                sten_lo = abs(sten(ii  ,jj,kk,ist_p00))
+                sten_hi = abs(sten(ii+1,jj,kk,ist_p00))
 
                 if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii+1,jj,kk)
@@ -3295,17 +3285,12 @@ contains
                    crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk) * sten_lo / (sten_lo + sten_hi)
                 end if
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj-1,kk)
-                ! *******************************************************************************************************
+                ! ************************************
 
-                sten_lo = abs(sten(ii,jj-2,kk,ist_0p0)) + abs(sten(ii,jj-2,kk,ist_0pp)) + abs(sten(ii  ,jj-2,kk-1,ist_0pp)) &
-                                                        + abs(sten(ii,jj-2,kk,ist_pp0)) + abs(sten(ii-1,jj-2,kk  ,ist_pp0)) 
-                sten_hi = abs(sten(ii,jj-1,kk,ist_0p0)) + abs(sten(ii,jj-1,kk,ist_0pp)) + abs(sten(ii  ,jj-1,kk-1,ist_0pp)) &
-                                                        + abs(sten(ii,jj-1,kk,ist_pp0)) + abs(sten(ii-1,jj-1,kk  ,ist_pp0)) 
-
-                ! sten_lo = abs(sten(ii,jj-2,kk,ist_0p0))
-                ! sten_hi = abs(sten(ii,jj-1,kk,ist_0p0))
+                sten_lo = abs(sten(ii,jj-2,kk,ist_0p0))
+                sten_hi = abs(sten(ii,jj-1,kk,ist_0p0))
 
                 if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj-1,kk)
@@ -3313,17 +3298,12 @@ contains
                    crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk) * sten_hi / (sten_lo + sten_hi)
                 end if
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj+1,kk)
-                ! *******************************************************************************************************
+                ! ************************************
 
-                sten_lo = abs(sten(ii,jj  ,kk,ist_0p0)) + abs(sten(ii,jj  ,kk,ist_0pp)) + abs(sten(ii  ,jj  ,kk-1,ist_0pp)) &
-                                                        + abs(sten(ii,jj  ,kk,ist_pp0)) + abs(sten(ii-1,jj  ,kk  ,ist_pp0)) 
-                sten_hi = abs(sten(ii,jj+1,kk,ist_0p0)) + abs(sten(ii,jj+1,kk,ist_0pp)) + abs(sten(ii  ,jj+1,kk-1,ist_0pp)) &
-                                                        + abs(sten(ii,jj+1,kk,ist_pp0)) + abs(sten(ii-1,jj+1,kk  ,ist_pp0)) 
-
-                ! sten_lo = abs(sten(ii,jj  ,kk,ist_0p0))
-                ! sten_hi = abs(sten(ii,jj+1,kk,ist_0p0))
+                sten_lo = abs(sten(ii,jj  ,kk,ist_0p0))
+                sten_hi = abs(sten(ii,jj+1,kk,ist_0p0))
 
                 if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj+1,kk)
@@ -3331,17 +3311,12 @@ contains
                    crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk) * sten_lo / (sten_lo + sten_hi)
                 end if
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj,kk-1)
-                ! *******************************************************************************************************
+                ! ************************************
 
-                sten_lo = abs(sten(ii,jj,kk-2,ist_00p)) + abs(sten(ii,jj,kk-2,ist_0pp)) + abs(sten(ii  ,jj-1,kk-2,ist_0pp)) &
-                                                        + abs(sten(ii,jj,kk-2,ist_p0p)) + abs(sten(ii-1,jj  ,kk-2,ist_p0p)) 
-                sten_hi = abs(sten(ii,jj,kk-1,ist_00p)) + abs(sten(ii,jj,kk-1,ist_0pp)) + abs(sten(ii  ,jj-1,kk-1,ist_0pp)) &
-                                                        + abs(sten(ii,jj,kk-1,ist_p0p)) + abs(sten(ii-1,jj  ,kk-1,ist_p0p)) 
-
-                ! sten_lo = abs(sten(ii,jj,kk-2,ist_00p))
-                ! sten_hi = abs(sten(ii,jj,kk-1,ist_00p))
+                sten_lo = abs(sten(ii,jj,kk-2,ist_00p))
+                sten_hi = abs(sten(ii,jj,kk-1,ist_00p))
 
                 if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj,kk-1)
@@ -3349,17 +3324,12 @@ contains
                    crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk-1)*sten_hi / (sten_lo + sten_hi)
                 end if
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj,kk+1)
-                ! *******************************************************************************************************
+                ! ************************************
 
-                sten_lo = abs(sten(ii,jj,kk  ,ist_00p)) + abs(sten(ii,jj,kk  ,ist_0pp)) + abs(sten(ii  ,jj-1,kk  ,ist_0pp)) &
-                                                        + abs(sten(ii,jj,kk  ,ist_p0p)) + abs(sten(ii-1,jj  ,kk  ,ist_p0p)) 
-                sten_hi = abs(sten(ii,jj,kk+1,ist_00p)) + abs(sten(ii,jj,kk+1,ist_0pp)) + abs(sten(ii  ,jj-1,kk+1,ist_0pp)) &
-                                                        + abs(sten(ii,jj,kk+1,ist_p0p)) + abs(sten(ii-1,jj  ,kk+1,ist_p0p)) 
-
-                ! sten_lo = abs(sten(ii,jj,kk  ,ist_00p))
-                ! sten_hi = abs(sten(ii,jj,kk+1,ist_00p))
+                sten_lo = abs(sten(ii,jj,kk  ,ist_00p))
+                sten_hi = abs(sten(ii,jj,kk+1,ist_00p))
 
                 if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj,kk+1)
@@ -3367,9 +3337,9 @@ contains
                    crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk+1)*sten_lo  / (sten_lo + sten_hi)
                 end if
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii-1,jj-1,kk)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 ! keven
                 w1m = abs(sten(ii-2,jj-1,kk,ist_p00)) / (abs(sten(ii-2,jj-2,kk,ist_pp0)) &
@@ -3386,9 +3356,9 @@ contains
                 wpp = abs(sten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj-1,kk)*wpp/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii+1,jj-1,kk)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii  ,jj-1,kk,ist_p00)) / (abs(sten(ii  ,jj-2,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps)
@@ -3404,9 +3374,9 @@ contains
                 wpp = abs(sten(ii+1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj-1,kk)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
-                ! Adding fine(i-1,jj+1,kk)
-                ! *******************************************************************************************************
+                ! ************************************
+                ! Adding fine(ii-1,jj+1,kk)
+                ! ************************************
 
                 w1m = abs(sten(ii-2,jj+1,kk,ist_p00)) / (abs(sten(ii-2,jj  ,kk,ist_pp0)) &
                      &                                  +abs(sten(ii-2,jj+1,kk,ist_pp0)) + eps)
@@ -3422,9 +3392,9 @@ contains
                 wpp = abs(sten(ii-1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj+1,kk)*wpm/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
-                ! Adding fine(i+1,jj+1,kk)
-                ! *******************************************************************************************************
+                ! ************************************
+                ! Adding fine(ii+1,jj+1,kk)
+                ! ************************************
 
                 w1m = abs(sten(ii  ,jj+1,kk,ist_p00)) / (abs(sten(ii  ,jj+1,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps)
@@ -3440,9 +3410,9 @@ contains
                 wpp = abs(sten(ii+1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj+1,kk)*wmm/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii-1,jj,kk-1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 ! jeven
                 w1m = abs(sten(ii-2,jj,kk-1,ist_p00)) / (abs(sten(ii-2,jj,kk-2,ist_p0p)) &
@@ -3459,9 +3429,9 @@ contains
                 wpp = abs(sten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii+1,jj,kk-1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii  ,jj,kk-1,ist_p00)) / (abs(sten(ii  ,jj,kk-2,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps)
@@ -3477,9 +3447,9 @@ contains
                 wpp = abs(sten(ii+1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii-1,jj,kk+1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii-2,jj,kk+1,ist_p00)) / (abs(sten(ii-2,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii-2,jj,kk  ,ist_p0p)) + eps)
@@ -3495,9 +3465,9 @@ contains
                 wpp = abs(sten(ii-1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii+1,jj,kk+1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii  ,jj,kk+1,ist_p00)) / (abs(sten(ii  ,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps)
@@ -3513,9 +3483,9 @@ contains
                 wpp = abs(sten(ii+1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj-1,kk-1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 ! ieven
                 w1m = abs(sten(ii,jj-2,kk-1,ist_0p0)) / (abs(sten(ii,jj-2,kk-2,ist_0pp)) &
@@ -3532,9 +3502,9 @@ contains
                 wpp = abs(sten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj+1,kk-1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii,jj  ,kk-1,ist_0p0)) / (abs(sten(ii,jj  ,kk-2,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps)
@@ -3551,9 +3521,9 @@ contains
 
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj-1,kk+1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii,jj-2,kk+1,ist_0p0)) / (abs(sten(ii,jj-2,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-2,kk  ,ist_0pp)) + eps)
@@ -3569,9 +3539,9 @@ contains
                 wpp = abs(sten(ii,jj-1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine(ii,jj+1,kk+1)
-                ! *******************************************************************************************************
+                ! ************************************
 
                 w1m = abs(sten(ii,jj  ,kk+1,ist_0p0)) / (abs(sten(ii,jj  ,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps)
@@ -3587,9 +3557,9 @@ contains
                 wpp = abs(sten(ii,jj+1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps)
 
-                ! *******************************************************************************************************
+                ! ************************************
                 ! Adding fine at corners
-                ! *******************************************************************************************************
+                ! ************************************
 
                 wmmm = 1.d0 &
                      +   abs(sten(ii  ,jj+1,kk+1,ist_p00)) / &
@@ -3834,6 +3804,7 @@ contains
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),n_sten)
 
     integer :: i,j,k,ii,jj,kk
+    real(amrex_real) :: ap(-1:1,-1:1,-1:1), p(-1:1,-1:1,-1:1)
 
     do k = lo(3), hi(3)
        kk = 2*k
@@ -3842,18 +3813,2220 @@ contains
           do i = lo(1), hi(1)
              ii = 2*i
 
-             ! for testing only!!!!! this works for constant sigma only
-             csten(i,j,k,ist_p00) = fsten(ii,jj,kk,ist_p00) * 0.25d0
-             csten(i,j,k,ist_0p0) = fsten(ii,jj,kk,ist_0p0) * 0.25d0
-             csten(i,j,k,ist_00p) = fsten(ii,jj,kk,ist_00p) * 0.25d0
-             csten(i,j,k,ist_pp0) = fsten(ii,jj,kk,ist_pp0) * 0.25d0
-             csten(i,j,k,ist_p0p) = fsten(ii,jj,kk,ist_p0p) * 0.25d0
-             csten(i,j,k,ist_0pp) = fsten(ii,jj,kk,ist_0pp) * 0.25d0
-             csten(i,j,k,ist_ppp) = fsten(ii,jj,kk,ist_ppp) * 0.25d0
+             ! csten(i,j,k,ist_p00)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj-1,kk-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj-1,kk-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj  ,kk-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj  ,kk-1)
+             p(-1, 1,-1) = interp_from_pmp_to(ii+2-1,jj+1,kk-1)
+             p( 0, 1,-1) = interp_from_0mp_to(ii+2  ,jj+1,kk-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj-1,kk  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj-1,kk  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj  ,kk  )
+             p( 0, 0, 0) = 1.d0
+             p(-1, 1, 0) = interp_from_pm0_to(ii+2-1,jj+1,kk  )
+             p( 0, 1, 0) = interp_from_0m0_to(ii+2  ,jj+1,kk  )
+             !
+             p(-1,-1, 1) = interp_from_ppm_to(ii+2-1,jj-1,kk+1)
+             p( 0,-1, 1) = interp_from_0pm_to(ii+2  ,jj-1,kk+1)
+             p(-1, 0, 1) = interp_from_p0m_to(ii+2-1,jj  ,kk+1)
+             p( 0, 0, 1) = interp_from_00m_to(ii+2  ,jj  ,kk+1)
+             p(-1, 1, 1) = interp_from_pmm_to(ii+2-1,jj+1,kk+1)
+             p( 0, 1, 1) = interp_from_0mm_to(ii+2  ,jj+1,kk+1)
+
+             ap(0,-1,-1) = &
+               &              Ap00(ii,jj-1,kk-1) * p(-1,-1,-1) &
+               +              App0(ii,jj-1,kk-1) * p(-1, 0,-1) &
+               +              Ap0p(ii,jj-1,kk-1) * p(-1,-1, 0) &
+               +              Appp(ii,jj-1,kk-1) * p(-1, 0, 0)
+             ap(1,-1,-1) = &
+               &              A000(ii+1,jj-1,kk-1) * p(-1,-1,-1) &
+               +              Ap00(ii+1,jj-1,kk-1) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj-1,kk-1) * p(-1, 0,-1) &
+               +              App0(ii+1,jj-1,kk-1) * p( 0, 0,-1) &
+               +              A00p(ii+1,jj-1,kk-1) * p(-1,-1, 0) &
+               +              Ap0p(ii+1,jj-1,kk-1) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj-1,kk-1) * p(-1, 0, 0) &
+               +              Appp(ii+1,jj-1,kk-1) * p( 0, 0, 0)
+             ap(0,0,-1) = &
+               &              Apm0(ii,jj,kk-1) * p(-1,-1,-1) &
+               +              Ap00(ii,jj,kk-1) * p(-1, 0,-1) &
+               +              App0(ii,jj,kk-1) * p(-1,+1,-1) &
+               +              Apmp(ii,jj,kk-1) * p(-1,-1, 0) &
+               +              Ap0p(ii,jj,kk-1) * p(-1, 0, 0) &
+               +              Appp(ii,jj,kk-1) * p(-1,+1, 0)
+             ap(1,0,-1) = &
+               &              A0m0(ii+1,jj,kk-1) * p(-1,-1,-1) &
+               +              Apm0(ii+1,jj,kk-1) * p( 0,-1,-1) &
+               +              A000(ii+1,jj,kk-1) * p(-1, 0,-1) &
+               +              Ap00(ii+1,jj,kk-1) * p( 0, 0,-1) &
+               +              A0p0(ii+1,jj,kk-1) * p(-1,+1,-1) &
+               +              App0(ii+1,jj,kk-1) * p( 0,+1,-1) &
+               +              A0mp(ii+1,jj,kk-1) * p(-1,-1, 0) &
+               +              Apmp(ii+1,jj,kk-1) * p( 0,-1, 0) &
+               +              A00p(ii+1,jj,kk-1) * p(-1, 0, 0) &
+               +              Ap0p(ii+1,jj,kk-1) * p( 0, 0, 0) &
+               +              A0pp(ii+1,jj,kk-1) * p(-1,+1, 0) &
+               +              Appp(ii+1,jj,kk-1) * p( 0,+1, 0)
+             ap(0,1,-1) = &
+               &              Apm0(ii,jj+1,kk-1) * p(-1, 0,-1) &
+               +              Ap00(ii,jj+1,kk-1) * p(-1,+1,-1) &
+               +              Apmp(ii,jj+1,kk-1) * p(-1, 0, 0) &
+               +              Ap0p(ii,jj+1,kk-1) * p(-1,+1, 0)
+             ap(1,1,-1) = &
+               &              A0m0(ii+1,jj+1,kk-1) * p(-1, 0,-1) &
+               +              Apm0(ii+1,jj+1,kk-1) * p( 0, 0,-1) &
+               +              A000(ii+1,jj+1,kk-1) * p(-1,+1,-1) &
+               +              Ap00(ii+1,jj+1,kk-1) * p( 0,+1,-1) &
+               +              A0mp(ii+1,jj+1,kk-1) * p(-1, 0, 0) &
+               +              Apmp(ii+1,jj+1,kk-1) * p( 0, 0, 0) &
+               +              A00p(ii+1,jj+1,kk-1) * p(-1,+1, 0) &
+               +              Ap0p(ii+1,jj+1,kk-1) * p( 0,+1, 0)
+             ap(0,-1,0) = &
+               &              Ap0m(ii,jj-1,kk) * p(-1,-1,-1) &
+               +              Appm(ii,jj-1,kk) * p(-1, 0,-1) &
+               +              Ap00(ii,jj-1,kk) * p(-1,-1, 0) &
+               +              App0(ii,jj-1,kk) * p(-1, 0, 0) &
+               +              Ap0p(ii,jj-1,kk) * p(-1,-1,+1) &
+               +              Appp(ii,jj-1,kk) * p(-1, 0,+1)
+             ap(1,-1,0) = &
+               &              A00m(ii+1,jj-1,kk) * p(-1,-1,-1) &
+               +              Ap0m(ii+1,jj-1,kk) * p( 0,-1,-1) &
+               +              A0pm(ii+1,jj-1,kk) * p(-1, 0,-1) &
+               +              Appm(ii+1,jj-1,kk) * p( 0, 0,-1) &
+               +              A000(ii+1,jj-1,kk) * p(-1,-1, 0) &
+               +              Ap00(ii+1,jj-1,kk) * p( 0,-1, 0) &
+               +              A0p0(ii+1,jj-1,kk) * p(-1, 0, 0) &
+               +              App0(ii+1,jj-1,kk) * p( 0, 0, 0) &
+               +              A00p(ii+1,jj-1,kk) * p(-1,-1,+1) &
+               +              Ap0p(ii+1,jj-1,kk) * p( 0,-1,+1) &
+               +              A0pp(ii+1,jj-1,kk) * p(-1, 0,+1) &
+               +              Appp(ii+1,jj-1,kk) * p( 0, 0,+1)
+             ap(0,0,0) = &
+               &              Apmm(ii,jj,kk) * p(-1,-1,-1) &
+               +              Ap0m(ii,jj,kk) * p(-1, 0,-1) &
+               +              Appm(ii,jj,kk) * p(-1,+1,-1) &
+               +              Apm0(ii,jj,kk) * p(-1,-1, 0) &
+               +              Ap00(ii,jj,kk) * p(-1, 0, 0) &
+               +              App0(ii,jj,kk) * p(-1,+1, 0) &
+               +              Apmp(ii,jj,kk) * p(-1,-1,+1) &
+               +              Ap0p(ii,jj,kk) * p(-1, 0,+1) &
+               +              Appp(ii,jj,kk) * p(-1,+1,+1)
+             ap(1,0,0) = &
+               &              A0mm(ii+1,jj,kk) * p(-1,-1,-1) &
+               +              Apmm(ii+1,jj,kk) * p( 0,-1,-1) &
+               +              A00m(ii+1,jj,kk) * p(-1, 0,-1) &
+               +              Ap0m(ii+1,jj,kk) * p( 0, 0,-1) &
+               +              A0pm(ii+1,jj,kk) * p(-1,+1,-1) &
+               +              Appm(ii+1,jj,kk) * p( 0,+1,-1) &
+               +              A0m0(ii+1,jj,kk) * p(-1,-1, 0) &
+               +              Apm0(ii+1,jj,kk) * p( 0,-1, 0) &
+               +              A000(ii+1,jj,kk) * p(-1, 0, 0) &
+               +              Ap00(ii+1,jj,kk) * p( 0, 0, 0) &
+               +              A0p0(ii+1,jj,kk) * p(-1,+1, 0) &
+               +              App0(ii+1,jj,kk) * p( 0,+1, 0) &
+               +              A0mp(ii+1,jj,kk) * p(-1,-1,+1) &
+               +              Apmp(ii+1,jj,kk) * p( 0,-1,+1) &
+               +              A00p(ii+1,jj,kk) * p(-1, 0,+1) &
+               +              Ap0p(ii+1,jj,kk) * p( 0, 0,+1) &
+               +              A0pp(ii+1,jj,kk) * p(-1,+1,+1) &
+               +              Appp(ii+1,jj,kk) * p( 0,+1,+1)
+             ap(0,1,0) = &
+               &              Apmm(ii,jj+1,kk) * p(-1, 0,-1) &
+               +              Ap0m(ii,jj+1,kk) * p(-1,+1,-1) &
+               +              Apm0(ii,jj+1,kk) * p(-1, 0, 0) &
+               +              Ap00(ii,jj+1,kk) * p(-1,+1, 0) &
+               +              Apmp(ii,jj+1,kk) * p(-1, 0,+1) &
+               +              Ap0p(ii,jj+1,kk) * p(-1,+1,+1)
+             ap(1,1,0) = &
+               &              A0mm(ii+1,jj+1,kk) * p(-1, 0,-1) &
+               +              Apmm(ii+1,jj+1,kk) * p( 0, 0,-1) &
+               +              A00m(ii+1,jj+1,kk) * p(-1,+1,-1) &
+               +              Ap0m(ii+1,jj+1,kk) * p( 0,+1,-1) &
+               +              A0m0(ii+1,jj+1,kk) * p(-1, 0, 0) &
+               +              Apm0(ii+1,jj+1,kk) * p( 0, 0, 0) &
+               +              A000(ii+1,jj+1,kk) * p(-1,+1, 0) &
+               +              Ap00(ii+1,jj+1,kk) * p( 0,+1, 0) &
+               +              A0mp(ii+1,jj+1,kk) * p(-1, 0,+1) &
+               +              Apmp(ii+1,jj+1,kk) * p( 0, 0,+1) &
+               +              A00p(ii+1,jj+1,kk) * p(-1,+1,+1) &
+               +              Ap0p(ii+1,jj+1,kk) * p( 0,+1,+1)
+             ap(0,-1,1) = &
+               &              Ap0m(ii,jj-1,kk+1) * p(-1,-1, 0) &
+               +              Appm(ii,jj-1,kk+1) * p(-1, 0, 0) &
+               +              Ap00(ii,jj-1,kk+1) * p(-1,-1,+1) &
+               +              App0(ii,jj-1,kk+1) * p(-1, 0,+1)
+             ap(1,-1,1) = &
+               &              A00m(ii+1,jj-1,kk+1) * p(-1,-1, 0) &
+               +              Ap0m(ii+1,jj-1,kk+1) * p( 0,-1, 0) &
+               +              A0pm(ii+1,jj-1,kk+1) * p(-1, 0, 0) &
+               +              Appm(ii+1,jj-1,kk+1) * p( 0, 0, 0) &
+               +              A000(ii+1,jj-1,kk+1) * p(-1,-1,+1) &
+               +              Ap00(ii+1,jj-1,kk+1) * p( 0,-1,+1) &
+               +              A0p0(ii+1,jj-1,kk+1) * p(-1, 0,+1) &
+               +              App0(ii+1,jj-1,kk+1) * p( 0, 0,+1)
+             ap(0,0,1) = &
+               &              Apmm(ii,jj,kk+1) * p(-1,-1, 0) &
+               +              Ap0m(ii,jj,kk+1) * p(-1, 0, 0) &
+               +              Appm(ii,jj,kk+1) * p(-1,+1, 0) &
+               +              Apm0(ii,jj,kk+1) * p(-1,-1,+1) &
+               +              Ap00(ii,jj,kk+1) * p(-1, 0,+1) &
+               +              App0(ii,jj,kk+1) * p(-1,+1,+1)
+             ap(1,0,1) = &
+               &              A0mm(ii+1,jj,kk+1) * p(-1,-1, 0) &
+               +              Apmm(ii+1,jj,kk+1) * p( 0,-1, 0) &
+               +              A00m(ii+1,jj,kk+1) * p(-1, 0, 0) &
+               +              Ap0m(ii+1,jj,kk+1) * p( 0, 0, 0) &
+               +              A0pm(ii+1,jj,kk+1) * p(-1,+1, 0) &
+               +              Appm(ii+1,jj,kk+1) * p( 0,+1, 0) &
+               +              A0m0(ii+1,jj,kk+1) * p(-1,-1,+1) &
+               +              Apm0(ii+1,jj,kk+1) * p( 0,-1,+1) &
+               +              A000(ii+1,jj,kk+1) * p(-1, 0,+1) &
+               +              Ap00(ii+1,jj,kk+1) * p( 0, 0,+1) &
+               +              A0p0(ii+1,jj,kk+1) * p(-1,+1,+1) &
+               +              App0(ii+1,jj,kk+1) * p( 0,+1,+1)
+             ap(0,1,1) = &
+               &              Apmm(ii,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Ap0m(ii,jj+1,kk+1) * p(-1,+1, 0) &
+               +              Apm0(ii,jj+1,kk+1) * p(-1, 0,+1) &
+               +              Ap00(ii,jj+1,kk+1) * p(-1,+1,+1)
+             ap(1,1,1) = &
+               &              A0mm(ii+1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Apmm(ii+1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A00m(ii+1,jj+1,kk+1) * p(-1,+1, 0) &
+               +              Ap0m(ii+1,jj+1,kk+1) * p( 0,+1, 0) &
+               +              A0m0(ii+1,jj+1,kk+1) * p(-1, 0,+1) &
+               +              Apm0(ii+1,jj+1,kk+1) * p( 0, 0,+1) &
+               +              A000(ii+1,jj+1,kk+1) * p(-1,+1,+1) &
+               +              Ap00(ii+1,jj+1,kk+1) * p( 0,+1,+1)
+
+             csten(i,j,k,ist_p00) = 0.125d0 * &
+               ( restrict_from_0mm_to(ii,jj,kk) * ap( 0,-1,-1) &
+               + restrict_from_pmm_to(ii,jj,kk) * ap(+1,-1,-1) &
+               + restrict_from_00m_to(ii,jj,kk) * ap( 0, 0,-1) &
+               + restrict_from_p0m_to(ii,jj,kk) * ap(+1, 0,-1) &
+               + restrict_from_0pm_to(ii,jj,kk) * ap( 0,+1,-1) &
+               + restrict_from_ppm_to(ii,jj,kk) * ap(+1,+1,-1) &
+               + restrict_from_0m0_to(ii,jj,kk) * ap( 0,-1, 0) &
+               + restrict_from_pm0_to(ii,jj,kk) * ap(+1,-1, 0) &
+               + restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_0mp_to(ii,jj,kk) * ap( 0,-1,+1) &
+               + restrict_from_pmp_to(ii,jj,kk) * ap(+1,-1,+1) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
+
+             ! csten(i,j,k,ist_0p0)
+             p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj+2-1,kk-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj+2-1,kk-1)
+             p( 1,-1,-1) = interp_from_mpp_to(ii+1,jj+2-1,kk-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii-1,jj+2  ,kk-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii  ,jj+2  ,kk-1)
+             p( 1, 0,-1) = interp_from_m0p_to(ii+1,jj+2  ,kk-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii-1,jj+2-1,kk  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii  ,jj+2-1,kk  )
+             p( 1,-1, 0) = interp_from_mp0_to(ii+1,jj+2-1,kk  )
+             p(-1, 0, 0) = interp_from_p00_to(ii-1,jj+2  ,kk  )
+             p( 0, 0, 0) = 1.d0
+             p( 1, 0, 0) = interp_from_m00_to(ii+1,jj+2  ,kk  )
+             !
+             p(-1,-1, 1) = interp_from_ppm_to(ii-1,jj+2-1,kk+1)
+             p( 0,-1, 1) = interp_from_0pm_to(ii  ,jj+2-1,kk+1)
+             p( 1,-1, 1) = interp_from_mpm_to(ii+1,jj+2-1,kk+1)
+             p(-1, 0, 1) = interp_from_p0m_to(ii-1,jj+2  ,kk+1)
+             p( 0, 0, 1) = interp_from_00m_to(ii  ,jj+2  ,kk+1)
+             p( 1, 0, 1) = interp_from_m0m_to(ii+1,jj+2  ,kk+1)
+
+             ap(-1,0,-1) = &
+               &              A0p0(ii-1,jj,kk-1) * p(-1,-1,-1) &
+               +              App0(ii-1,jj,kk-1) * p( 0,-1,-1) &
+               +              A0pp(ii-1,jj,kk-1) * p(-1,-1, 0) &
+               +              Appp(ii-1,jj,kk-1) * p( 0,-1, 0)
+             ap(0,0,-1) = &
+               &              Amp0(ii,jj,kk-1) * p(-1,-1,-1) &
+               +              A0p0(ii,jj,kk-1) * p( 0,-1,-1) &
+               +              App0(ii,jj,kk-1) * p(+1,-1,-1) &
+               +              Ampp(ii,jj,kk-1) * p(-1,-1, 0) &
+               +              A0pp(ii,jj,kk-1) * p( 0,-1, 0) &
+               +              Appp(ii,jj,kk-1) * p(+1,-1, 0)
+             ap(1,0,-1) = &
+               &              Amp0(ii+1,jj,kk-1) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj,kk-1) * p(+1,-1,-1) &
+               +              Ampp(ii+1,jj,kk-1) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj,kk-1) * p(+1,-1, 0)
+             ap(-1,1,-1) = &
+               &              A000(ii-1,jj+1,kk-1) * p(-1,-1,-1) &
+               +              Ap00(ii-1,jj+1,kk-1) * p( 0,-1,-1) &
+               +              A0p0(ii-1,jj+1,kk-1) * p(-1, 0,-1) &
+               +              App0(ii-1,jj+1,kk-1) * p( 0, 0,-1) &
+               +              A00p(ii-1,jj+1,kk-1) * p(-1,-1, 0) &
+               +              Ap0p(ii-1,jj+1,kk-1) * p( 0,-1, 0) &
+               +              A0pp(ii-1,jj+1,kk-1) * p(-1, 0, 0) &
+               +              Appp(ii-1,jj+1,kk-1) * p( 0, 0, 0)
+             ap(0,1,-1) = &
+               &              Am00(ii,jj+1,kk-1) * p(-1,-1,-1) &
+               +              A000(ii,jj+1,kk-1) * p( 0,-1,-1) &
+               +              Ap00(ii,jj+1,kk-1) * p(+1,-1,-1) &
+               +              Amp0(ii,jj+1,kk-1) * p(-1, 0,-1) &
+               +              A0p0(ii,jj+1,kk-1) * p( 0, 0,-1) &
+               +              App0(ii,jj+1,kk-1) * p(+1, 0,-1) &
+               +              Am0p(ii,jj+1,kk-1) * p(-1,-1, 0) &
+               +              A00p(ii,jj+1,kk-1) * p( 0,-1, 0) &
+               +              Ap0p(ii,jj+1,kk-1) * p(+1,-1, 0) &
+               +              Ampp(ii,jj+1,kk-1) * p(-1, 0, 0) &
+               +              A0pp(ii,jj+1,kk-1) * p( 0, 0, 0) &
+               +              Appp(ii,jj+1,kk-1) * p(+1, 0, 0)
+             ap(1,1,-1) = &
+               &              Am00(ii+1,jj+1,kk-1) * p( 0,-1,-1) &
+               +              A000(ii+1,jj+1,kk-1) * p(+1,-1,-1) &
+               +              Amp0(ii+1,jj+1,kk-1) * p( 0, 0,-1) &
+               +              A0p0(ii+1,jj+1,kk-1) * p(+1, 0,-1) &
+               +              Am0p(ii+1,jj+1,kk-1) * p( 0,-1, 0) &
+               +              A00p(ii+1,jj+1,kk-1) * p(+1,-1, 0) &
+               +              Ampp(ii+1,jj+1,kk-1) * p( 0, 0, 0) &
+               +              A0pp(ii+1,jj+1,kk-1) * p(+1, 0, 0)
+             ap(-1,0,0) = &
+               &              A0pm(ii-1,jj,kk) * p(-1,-1,-1) &
+               +              Appm(ii-1,jj,kk) * p( 0,-1,-1) &
+               +              A0p0(ii-1,jj,kk) * p(-1,-1, 0) &
+               +              App0(ii-1,jj,kk) * p( 0,-1, 0) &
+               +              A0pp(ii-1,jj,kk) * p(-1,-1,+1) &
+               +              Appp(ii-1,jj,kk) * p( 0,-1,+1)
+             ap(0,0,0) = &
+               &              Ampm(ii,jj,kk) * p(-1,-1,-1) &
+               +              A0pm(ii,jj,kk) * p( 0,-1,-1) &
+               +              Appm(ii,jj,kk) * p(+1,-1,-1) &
+               +              Amp0(ii,jj,kk) * p(-1,-1, 0) &
+               +              A0p0(ii,jj,kk) * p( 0,-1, 0) &
+               +              App0(ii,jj,kk) * p(+1,-1, 0) &
+               +              Ampp(ii,jj,kk) * p(-1,-1,+1) &
+               +              A0pp(ii,jj,kk) * p( 0,-1,+1) &
+               +              Appp(ii,jj,kk) * p(+1,-1,+1)
+             ap(1,0,0) = &
+               &              Ampm(ii+1,jj,kk) * p( 0,-1,-1) &
+               +              A0pm(ii+1,jj,kk) * p(+1,-1,-1) &
+               +              Amp0(ii+1,jj,kk) * p( 0,-1, 0) &
+               +              A0p0(ii+1,jj,kk) * p(+1,-1, 0) &
+               +              Ampp(ii+1,jj,kk) * p( 0,-1,+1) &
+               +              A0pp(ii+1,jj,kk) * p(+1,-1,+1)
+             ap(-1,1,0) = &
+               &              A00m(ii-1,jj+1,kk) * p(-1,-1,-1) &
+               +              Ap0m(ii-1,jj+1,kk) * p( 0,-1,-1) &
+               +              A0pm(ii-1,jj+1,kk) * p(-1, 0,-1) &
+               +              Appm(ii-1,jj+1,kk) * p( 0, 0,-1) &
+               +              A000(ii-1,jj+1,kk) * p(-1,-1, 0) &
+               +              Ap00(ii-1,jj+1,kk) * p( 0,-1, 0) &
+               +              A0p0(ii-1,jj+1,kk) * p(-1, 0, 0) &
+               +              App0(ii-1,jj+1,kk) * p( 0, 0, 0) &
+               +              A00p(ii-1,jj+1,kk) * p(-1,-1,+1) &
+               +              Ap0p(ii-1,jj+1,kk) * p( 0,-1,+1) &
+               +              A0pp(ii-1,jj+1,kk) * p(-1, 0,+1) &
+               +              Appp(ii-1,jj+1,kk) * p( 0, 0,+1)
+             ap(0,1,0) = &
+               &              Am0m(ii,jj+1,kk) * p(-1,-1,-1) &
+               +              A00m(ii,jj+1,kk) * p( 0,-1,-1) &
+               +              Ap0m(ii,jj+1,kk) * p(+1,-1,-1) &
+               +              Ampm(ii,jj+1,kk) * p(-1, 0,-1) &
+               +              A0pm(ii,jj+1,kk) * p( 0, 0,-1) &
+               +              Appm(ii,jj+1,kk) * p(+1, 0,-1) &
+               +              Am00(ii,jj+1,kk) * p(-1,-1, 0) &
+               +              A000(ii,jj+1,kk) * p( 0,-1, 0) &
+               +              Ap00(ii,jj+1,kk) * p(+1,-1, 0) &
+               +              Amp0(ii,jj+1,kk) * p(-1, 0, 0) &
+               +              A0p0(ii,jj+1,kk) * p( 0, 0, 0) &
+               +              App0(ii,jj+1,kk) * p(+1, 0, 0) &
+               +              Am0p(ii,jj+1,kk) * p(-1,-1,+1) &
+               +              A00p(ii,jj+1,kk) * p( 0,-1,+1) &
+               +              Ap0p(ii,jj+1,kk) * p(+1,-1,+1) &
+               +              Ampp(ii,jj+1,kk) * p(-1, 0,+1) &
+               +              A0pp(ii,jj+1,kk) * p( 0, 0,+1) &
+               +              Appp(ii,jj+1,kk) * p(+1, 0,+1)
+             ap(1,1,0) = &
+               &              Am0m(ii+1,jj+1,kk) * p( 0,-1,-1) &
+               +              A00m(ii+1,jj+1,kk) * p(+1,-1,-1) &
+               +              Ampm(ii+1,jj+1,kk) * p( 0, 0,-1) &
+               +              A0pm(ii+1,jj+1,kk) * p(+1, 0,-1) &
+               +              Am00(ii+1,jj+1,kk) * p( 0,-1, 0) &
+               +              A000(ii+1,jj+1,kk) * p(+1,-1, 0) &
+               +              Amp0(ii+1,jj+1,kk) * p( 0, 0, 0) &
+               +              A0p0(ii+1,jj+1,kk) * p(+1, 0, 0) &
+               +              Am0p(ii+1,jj+1,kk) * p( 0,-1,+1) &
+               +              A00p(ii+1,jj+1,kk) * p(+1,-1,+1) &
+               +              Ampp(ii+1,jj+1,kk) * p( 0, 0,+1) &
+               +              A0pp(ii+1,jj+1,kk) * p(+1, 0,+1)
+             ap(-1,0,1) = &
+               &              A0pm(ii-1,jj,kk+1) * p(-1,-1, 0) &
+               +              Appm(ii-1,jj,kk+1) * p( 0,-1, 0) &
+               +              A0p0(ii-1,jj,kk+1) * p(-1,-1,+1) &
+               +              App0(ii-1,jj,kk+1) * p( 0,-1,+1)
+             ap(0,0,1) = &
+               &              Ampm(ii,jj,kk+1) * p(-1,-1, 0) &
+               +              A0pm(ii,jj,kk+1) * p( 0,-1, 0) &
+               +              Appm(ii,jj,kk+1) * p(+1,-1, 0) &
+               +              Amp0(ii,jj,kk+1) * p(-1,-1,+1) &
+               +              A0p0(ii,jj,kk+1) * p( 0,-1,+1) &
+               +              App0(ii,jj,kk+1) * p(+1,-1,+1)
+             ap(1,0,1) = &
+               &              Ampm(ii+1,jj,kk+1) * p( 0,-1, 0) &
+               +              A0pm(ii+1,jj,kk+1) * p(+1,-1, 0) &
+               +              Amp0(ii+1,jj,kk+1) * p( 0,-1,+1) &
+               +              A0p0(ii+1,jj,kk+1) * p(+1,-1,+1)
+             ap(-1,1,1) = &
+               &              A00m(ii-1,jj+1,kk+1) * p(-1,-1, 0) &
+               +              Ap0m(ii-1,jj+1,kk+1) * p( 0,-1, 0) &
+               +              A0pm(ii-1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Appm(ii-1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A000(ii-1,jj+1,kk+1) * p(-1,-1,+1) &
+               +              Ap00(ii-1,jj+1,kk+1) * p( 0,-1,+1) &
+               +              A0p0(ii-1,jj+1,kk+1) * p(-1, 0,+1) &
+               +              App0(ii-1,jj+1,kk+1) * p( 0, 0,+1)
+             ap(0,1,1) = &
+               &              Am0m(ii,jj+1,kk+1) * p(-1,-1, 0) &
+               +              A00m(ii,jj+1,kk+1) * p( 0,-1, 0) &
+               +              Ap0m(ii,jj+1,kk+1) * p(+1,-1, 0) &
+               +              Ampm(ii,jj+1,kk+1) * p(-1, 0, 0) &
+               +              A0pm(ii,jj+1,kk+1) * p( 0, 0, 0) &
+               +              Appm(ii,jj+1,kk+1) * p(+1, 0, 0) &
+               +              Am00(ii,jj+1,kk+1) * p(-1,-1,+1) &
+               +              A000(ii,jj+1,kk+1) * p( 0,-1,+1) &
+               +              Ap00(ii,jj+1,kk+1) * p(+1,-1,+1) &
+               +              Amp0(ii,jj+1,kk+1) * p(-1, 0,+1) &
+               +              A0p0(ii,jj+1,kk+1) * p( 0, 0,+1) &
+               +              App0(ii,jj+1,kk+1) * p(+1, 0,+1)
+             ap(1,1,1) = &
+               &              Am0m(ii+1,jj+1,kk+1) * p( 0,-1, 0) &
+               +              A00m(ii+1,jj+1,kk+1) * p(+1,-1, 0) &
+               +              Ampm(ii+1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A0pm(ii+1,jj+1,kk+1) * p(+1, 0, 0) &
+               +              Am00(ii+1,jj+1,kk+1) * p( 0,-1,+1) &
+               +              A000(ii+1,jj+1,kk+1) * p(+1,-1,+1) &
+               +              Amp0(ii+1,jj+1,kk+1) * p( 0, 0,+1) &
+               +              A0p0(ii+1,jj+1,kk+1) * p(+1, 0,+1)
+
+             csten(i,j,k,ist_0p0) = 0.125d0 * &
+               ( restrict_from_m0m_to(ii,jj,kk) * ap(-1, 0,-1) &
+               + restrict_from_00m_to(ii,jj,kk) * ap( 0, 0,-1) &
+               + restrict_from_p0m_to(ii,jj,kk) * ap(+1, 0,-1) &
+               + restrict_from_mpm_to(ii,jj,kk) * ap(-1,+1,-1) &
+               + restrict_from_0pm_to(ii,jj,kk) * ap( 0,+1,-1) &
+               + restrict_from_ppm_to(ii,jj,kk) * ap(+1,+1,-1) &
+               + restrict_from_m00_to(ii,jj,kk) * ap(-1, 0, 0) &
+               + restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_mp0_to(ii,jj,kk) * ap(-1,+1, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_m0p_to(ii,jj,kk) * ap(-1, 0,+1) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_mpp_to(ii,jj,kk) * ap(-1,+1,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
+
+             ! csten(i,j,k,ist_00p)
+             p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj-1,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj-1,kk+2-1)
+             p( 1,-1,-1) = interp_from_mpp_to(ii+1,jj-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii-1,jj  ,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii  ,jj  ,kk+2-1)
+             p( 1, 0,-1) = interp_from_m0p_to(ii+1,jj  ,kk+2-1)
+             p(-1, 1,-1) = interp_from_pmp_to(ii-1,jj+1,kk+2-1)
+             p( 0, 1,-1) = interp_from_0mp_to(ii  ,jj+1,kk+2-1)
+             p( 1, 1,-1) = interp_from_mmp_to(ii+1,jj+1,kk+2-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii-1,jj-1,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii  ,jj-1,kk+2  )
+             p( 1,-1, 0) = interp_from_mp0_to(ii+1,jj-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii-1,jj  ,kk+2  )
+             p( 0, 0, 0) = 1.d0
+             p( 1, 0, 0) = interp_from_m00_to(ii+1,jj  ,kk+2  )
+             p(-1, 1, 0) = interp_from_pm0_to(ii-1,jj+1,kk+2  )
+             p( 0, 1, 0) = interp_from_0m0_to(ii  ,jj+1,kk+2  )
+             p( 1, 1, 0) = interp_from_mm0_to(ii+1,jj+1,kk+2  )
+
+             ap(-1,-1,0) = &
+               &              A00p(ii-1,jj-1,kk) * p(-1,-1,-1) &
+               +              Ap0p(ii-1,jj-1,kk) * p( 0,-1,-1) &
+               +              A0pp(ii-1,jj-1,kk) * p(-1, 0,-1) &
+               +              Appp(ii-1,jj-1,kk) * p( 0, 0,-1)
+             ap(0,-1,0) = &
+               &              Am0p(ii,jj-1,kk) * p(-1,-1,-1) &
+               +              A00p(ii,jj-1,kk) * p( 0,-1,-1) &
+               +              Ap0p(ii,jj-1,kk) * p(+1,-1,-1) &
+               +              Ampp(ii,jj-1,kk) * p(-1, 0,-1) &
+               +              A0pp(ii,jj-1,kk) * p( 0, 0,-1) &
+               +              Appp(ii,jj-1,kk) * p(+1, 0,-1)
+             ap(1,-1,0) = &
+               &              Am0p(ii+1,jj-1,kk) * p( 0,-1,-1) &
+               +              A00p(ii+1,jj-1,kk) * p(+1,-1,-1) &
+               +              Ampp(ii+1,jj-1,kk) * p( 0, 0,-1) &
+               +              A0pp(ii+1,jj-1,kk) * p(+1, 0,-1)
+             ap(-1,0,0) = &
+               &              A0mp(ii-1,jj,kk) * p(-1,-1,-1) &
+               +              Apmp(ii-1,jj,kk) * p( 0,-1,-1) &
+               +              A00p(ii-1,jj,kk) * p(-1, 0,-1) &
+               +              Ap0p(ii-1,jj,kk) * p( 0, 0,-1) &
+               +              A0pp(ii-1,jj,kk) * p(-1,+1,-1) &
+               +              Appp(ii-1,jj,kk) * p( 0,+1,-1)
+             ap(0,0,0) = &
+               &              Ammp(ii,jj,kk) * p(-1,-1,-1) &
+               +              A0mp(ii,jj,kk) * p( 0,-1,-1) &
+               +              Apmp(ii,jj,kk) * p(+1,-1,-1) &
+               +              Am0p(ii,jj,kk) * p(-1, 0,-1) &
+               +              A00p(ii,jj,kk) * p( 0, 0,-1) &
+               +              Ap0p(ii,jj,kk) * p(+1, 0,-1) &
+               +              Ampp(ii,jj,kk) * p(-1,+1,-1) &
+               +              A0pp(ii,jj,kk) * p( 0,+1,-1) &
+               +              Appp(ii,jj,kk) * p(+1,+1,-1)
+             ap(1,0,0) = &
+               &              Ammp(ii+1,jj,kk) * p( 0,-1,-1) &
+               +              A0mp(ii+1,jj,kk) * p(+1,-1,-1) &
+               +              Am0p(ii+1,jj,kk) * p( 0, 0,-1) &
+               +              A00p(ii+1,jj,kk) * p(+1, 0,-1) &
+               +              Ampp(ii+1,jj,kk) * p( 0,+1,-1) &
+               +              A0pp(ii+1,jj,kk) * p(+1,+1,-1)
+             ap(-1,1,0) = &
+               &              A0mp(ii-1,jj+1,kk) * p(-1, 0,-1) &
+               +              Apmp(ii-1,jj+1,kk) * p( 0, 0,-1) &
+               +              A00p(ii-1,jj+1,kk) * p(-1,+1,-1) &
+               +              Ap0p(ii-1,jj+1,kk) * p( 0,+1,-1)
+             ap(0,1,0) = &
+               &              Ammp(ii,jj+1,kk) * p(-1, 0,-1) &
+               +              A0mp(ii,jj+1,kk) * p( 0, 0,-1) &
+               +              Apmp(ii,jj+1,kk) * p(+1, 0,-1) &
+               +              Am0p(ii,jj+1,kk) * p(-1,+1,-1) &
+               +              A00p(ii,jj+1,kk) * p( 0,+1,-1) &
+               +              Ap0p(ii,jj+1,kk) * p(+1,+1,-1)
+             ap(1,1,0) = &
+               &              Ammp(ii+1,jj+1,kk) * p( 0, 0,-1) &
+               +              A0mp(ii+1,jj+1,kk) * p(+1, 0,-1) &
+               +              Am0p(ii+1,jj+1,kk) * p( 0,+1,-1) &
+               +              A00p(ii+1,jj+1,kk) * p(+1,+1,-1)
+             ap(-1,-1,1) = &
+               &              A000(ii-1,jj-1,kk+1) * p(-1,-1,-1) &
+               +              Ap00(ii-1,jj-1,kk+1) * p( 0,-1,-1) &
+               +              A0p0(ii-1,jj-1,kk+1) * p(-1, 0,-1) &
+               +              App0(ii-1,jj-1,kk+1) * p( 0, 0,-1) &
+               +              A00p(ii-1,jj-1,kk+1) * p(-1,-1, 0) &
+               +              Ap0p(ii-1,jj-1,kk+1) * p( 0,-1, 0) &
+               +              A0pp(ii-1,jj-1,kk+1) * p(-1, 0, 0) &
+               +              Appp(ii-1,jj-1,kk+1) * p( 0, 0, 0)
+             ap(0,-1,1) = &
+               &              Am00(ii,jj-1,kk+1) * p(-1,-1,-1) &
+               +              A000(ii,jj-1,kk+1) * p( 0,-1,-1) &
+               +              Ap00(ii,jj-1,kk+1) * p(+1,-1,-1) &
+               +              Amp0(ii,jj-1,kk+1) * p(-1, 0,-1) &
+               +              A0p0(ii,jj-1,kk+1) * p( 0, 0,-1) &
+               +              App0(ii,jj-1,kk+1) * p(+1, 0,-1) &
+               +              Am0p(ii,jj-1,kk+1) * p(-1,-1, 0) &
+               +              A00p(ii,jj-1,kk+1) * p( 0,-1, 0) &
+               +              Ap0p(ii,jj-1,kk+1) * p(+1,-1, 0) &
+               +              Ampp(ii,jj-1,kk+1) * p(-1, 0, 0) &
+               +              A0pp(ii,jj-1,kk+1) * p( 0, 0, 0) &
+               +              Appp(ii,jj-1,kk+1) * p(+1, 0, 0)
+             ap(1,-1,1) = &
+               &              Am00(ii+1,jj-1,kk+1) * p( 0,-1,-1) &
+               +              A000(ii+1,jj-1,kk+1) * p(+1,-1,-1) &
+               +              Amp0(ii+1,jj-1,kk+1) * p( 0, 0,-1) &
+               +              A0p0(ii+1,jj-1,kk+1) * p(+1, 0,-1) &
+               +              Am0p(ii+1,jj-1,kk+1) * p( 0,-1, 0) &
+               +              A00p(ii+1,jj-1,kk+1) * p(+1,-1, 0) &
+               +              Ampp(ii+1,jj-1,kk+1) * p( 0, 0, 0) &
+               +              A0pp(ii+1,jj-1,kk+1) * p(+1, 0, 0)
+             ap(-1,0,1) = &
+               &              A0m0(ii-1,jj,kk+1) * p(-1,-1,-1) &
+               +              Apm0(ii-1,jj,kk+1) * p( 0,-1,-1) &
+               +              A000(ii-1,jj,kk+1) * p(-1, 0,-1) &
+               +              Ap00(ii-1,jj,kk+1) * p( 0, 0,-1) &
+               +              A0p0(ii-1,jj,kk+1) * p(-1,+1,-1) &
+               +              App0(ii-1,jj,kk+1) * p( 0,+1,-1) &
+               +              A0mp(ii-1,jj,kk+1) * p(-1,-1, 0) &
+               +              Apmp(ii-1,jj,kk+1) * p( 0,-1, 0) &
+               +              A00p(ii-1,jj,kk+1) * p(-1, 0, 0) &
+               +              Ap0p(ii-1,jj,kk+1) * p( 0, 0, 0) &
+               +              A0pp(ii-1,jj,kk+1) * p(-1,+1, 0) &
+               +              Appp(ii-1,jj,kk+1) * p( 0,+1, 0)
+             ap(0,0,1) = &
+               &              Amm0(ii,jj,kk+1) * p(-1,-1,-1) &
+               +              A0m0(ii,jj,kk+1) * p( 0,-1,-1) &
+               +              Apm0(ii,jj,kk+1) * p(+1,-1,-1) &
+               +              Am00(ii,jj,kk+1) * p(-1, 0,-1) &
+               +              A000(ii,jj,kk+1) * p( 0, 0,-1) &
+               +              Ap00(ii,jj,kk+1) * p(+1, 0,-1) &
+               +              Amp0(ii,jj,kk+1) * p(-1,+1,-1) &
+               +              A0p0(ii,jj,kk+1) * p( 0,+1,-1) &
+               +              App0(ii,jj,kk+1) * p(+1,+1,-1) &
+               +              Ammp(ii,jj,kk+1) * p(-1,-1, 0) &
+               +              A0mp(ii,jj,kk+1) * p( 0,-1, 0) &
+               +              Apmp(ii,jj,kk+1) * p(+1,-1, 0) &
+               +              Am0p(ii,jj,kk+1) * p(-1, 0, 0) &
+               +              A00p(ii,jj,kk+1) * p( 0, 0, 0) &
+               +              Ap0p(ii,jj,kk+1) * p(+1, 0, 0) &
+               +              Ampp(ii,jj,kk+1) * p(-1,+1, 0) &
+               +              A0pp(ii,jj,kk+1) * p( 0,+1, 0) &
+               +              Appp(ii,jj,kk+1) * p(+1,+1, 0)
+             ap(1,0,1) = &
+               &              Amm0(ii+1,jj,kk+1) * p( 0,-1,-1) &
+               +              A0m0(ii+1,jj,kk+1) * p(+1,-1,-1) &
+               +              Am00(ii+1,jj,kk+1) * p( 0, 0,-1) &
+               +              A000(ii+1,jj,kk+1) * p(+1, 0,-1) &
+               +              Amp0(ii+1,jj,kk+1) * p( 0,+1,-1) &
+               +              A0p0(ii+1,jj,kk+1) * p(+1,+1,-1) &
+               +              Ammp(ii+1,jj,kk+1) * p( 0,-1, 0) &
+               +              A0mp(ii+1,jj,kk+1) * p(+1,-1, 0) &
+               +              Am0p(ii+1,jj,kk+1) * p( 0, 0, 0) &
+               +              A00p(ii+1,jj,kk+1) * p(+1, 0, 0) &
+               +              Ampp(ii+1,jj,kk+1) * p( 0,+1, 0) &
+               +              A0pp(ii+1,jj,kk+1) * p(+1,+1, 0)
+             ap(-1,1,1) = &
+               &              A0m0(ii-1,jj+1,kk+1) * p(-1, 0,-1) &
+               +              Apm0(ii-1,jj+1,kk+1) * p( 0, 0,-1) &
+               +              A000(ii-1,jj+1,kk+1) * p(-1,+1,-1) &
+               +              Ap00(ii-1,jj+1,kk+1) * p( 0,+1,-1) &
+               +              A0mp(ii-1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Apmp(ii-1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A00p(ii-1,jj+1,kk+1) * p(-1,+1, 0) &
+               +              Ap0p(ii-1,jj+1,kk+1) * p( 0,+1, 0)
+             ap(0,1,1) = &
+               &              Amm0(ii,jj+1,kk+1) * p(-1, 0,-1) &
+               +              A0m0(ii,jj+1,kk+1) * p( 0, 0,-1) &
+               +              Apm0(ii,jj+1,kk+1) * p(+1, 0,-1) &
+               +              Am00(ii,jj+1,kk+1) * p(-1,+1,-1) &
+               +              A000(ii,jj+1,kk+1) * p( 0,+1,-1) &
+               +              Ap00(ii,jj+1,kk+1) * p(+1,+1,-1) &
+               +              Ammp(ii,jj+1,kk+1) * p(-1, 0, 0) &
+               +              A0mp(ii,jj+1,kk+1) * p( 0, 0, 0) &
+               +              Apmp(ii,jj+1,kk+1) * p(+1, 0, 0) &
+               +              Am0p(ii,jj+1,kk+1) * p(-1,+1, 0) &
+               +              A00p(ii,jj+1,kk+1) * p( 0,+1, 0) &
+               +              Ap0p(ii,jj+1,kk+1) * p(+1,+1, 0)
+             ap(1,1,1) = &
+               &              Amm0(ii+1,jj+1,kk+1) * p( 0, 0,-1) &
+               +              A0m0(ii+1,jj+1,kk+1) * p(+1, 0,-1) &
+               +              Am00(ii+1,jj+1,kk+1) * p( 0,+1,-1) &
+               +              A000(ii+1,jj+1,kk+1) * p(+1,+1,-1) &
+               +              Ammp(ii+1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A0mp(ii+1,jj+1,kk+1) * p(+1, 0, 0) &
+               +              Am0p(ii+1,jj+1,kk+1) * p( 0,+1, 0) &
+               +              A00p(ii+1,jj+1,kk+1) * p(+1,+1, 0)
+
+             csten(i,j,k,ist_00p) = 0.125d0 * &
+               ( restrict_from_mm0_to(ii,jj,kk) * ap(-1,-1, 0) &
+               + restrict_from_0m0_to(ii,jj,kk) * ap( 0,-1, 0) &
+               + restrict_from_pm0_to(ii,jj,kk) * ap(+1,-1, 0) &
+               + restrict_from_m00_to(ii,jj,kk) * ap(-1, 0, 0) &
+               + restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_mp0_to(ii,jj,kk) * ap(-1,+1, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_mmp_to(ii,jj,kk) * ap(-1,-1,+1) &
+               + restrict_from_0mp_to(ii,jj,kk) * ap( 0,-1,+1) &
+               + restrict_from_pmp_to(ii,jj,kk) * ap(+1,-1,+1) &
+               + restrict_from_m0p_to(ii,jj,kk) * ap(-1, 0,+1) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_mpp_to(ii,jj,kk) * ap(-1,+1,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
+
+             ! csten(i,j,k,ist_pp0)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj+2-1,kk-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj+2-1,kk-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj+2  ,kk-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj+2  ,kk-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj+2-1,kk  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj+2-1,kk  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj+2  ,kk  )
+             p( 0, 0, 0) = 1.d0
+             !
+             p(-1,-1, 1) = interp_from_ppm_to(ii+2-1,jj+2-1,kk+1)
+             p( 0,-1, 1) = interp_from_0pm_to(ii+2  ,jj+2-1,kk+1)
+             p(-1, 0, 1) = interp_from_p0m_to(ii+2-1,jj+2  ,kk+1)
+             p( 0, 0, 1) = interp_from_00m_to(ii+2  ,jj+2  ,kk+1)
+
+             ap(0,0,-1) = &
+               &              App0(ii,jj,kk-1) * p(-1,-1,-1) &
+               +              Appp(ii,jj,kk-1) * p(-1,-1, 0)
+             ap(1,0,-1) = &
+               &              A0p0(ii+1,jj,kk-1) * p(-1,-1,-1) &
+               +              App0(ii+1,jj,kk-1) * p( 0,-1,-1) &
+               +              A0pp(ii+1,jj,kk-1) * p(-1,-1, 0) &
+               +              Appp(ii+1,jj,kk-1) * p( 0,-1, 0)
+             ap(0,1,-1) = &
+               &              Ap00(ii,jj+1,kk-1) * p(-1,-1,-1) &
+               +              App0(ii,jj+1,kk-1) * p(-1, 0,-1) &
+               +              Ap0p(ii,jj+1,kk-1) * p(-1,-1, 0) &
+               +              Appp(ii,jj+1,kk-1) * p(-1, 0, 0)
+             ap(1,1,-1) = &
+               &              A000(ii+1,jj+1,kk-1) * p(-1,-1,-1) &
+               +              Ap00(ii+1,jj+1,kk-1) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj+1,kk-1) * p(-1, 0,-1) &
+               +              App0(ii+1,jj+1,kk-1) * p( 0, 0,-1) &
+               +              A00p(ii+1,jj+1,kk-1) * p(-1,-1, 0) &
+               +              Ap0p(ii+1,jj+1,kk-1) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj+1,kk-1) * p(-1, 0, 0) &
+               +              Appp(ii+1,jj+1,kk-1) * p( 0, 0, 0)
+             ap(0,0,0) = &
+               &              Appm(ii,jj,kk) * p(-1,-1,-1) &
+               +              App0(ii,jj,kk) * p(-1,-1, 0) &
+               +              Appp(ii,jj,kk) * p(-1,-1,+1)
+             ap(1,0,0) = &
+               &              A0pm(ii+1,jj,kk) * p(-1,-1,-1) &
+               +              Appm(ii+1,jj,kk) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj,kk) * p(-1,-1, 0) &
+               +              App0(ii+1,jj,kk) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj,kk) * p(-1,-1,+1) &
+               +              Appp(ii+1,jj,kk) * p( 0,-1,+1)
+             ap(0,1,0) = &
+               &              Ap0m(ii,jj+1,kk) * p(-1,-1,-1) &
+               +              Appm(ii,jj+1,kk) * p(-1, 0,-1) &
+               +              Ap00(ii,jj+1,kk) * p(-1,-1, 0) &
+               +              App0(ii,jj+1,kk) * p(-1, 0, 0) &
+               +              Ap0p(ii,jj+1,kk) * p(-1,-1,+1) &
+               +              Appp(ii,jj+1,kk) * p(-1, 0,+1)
+             ap(1,1,0) = &
+               &              A00m(ii+1,jj+1,kk) * p(-1,-1,-1) &
+               +              Ap0m(ii+1,jj+1,kk) * p( 0,-1,-1) &
+               +              A0pm(ii+1,jj+1,kk) * p(-1, 0,-1) &
+               +              Appm(ii+1,jj+1,kk) * p( 0, 0,-1) &
+               +              A000(ii+1,jj+1,kk) * p(-1,-1, 0) &
+               +              Ap00(ii+1,jj+1,kk) * p( 0,-1, 0) &
+               +              A0p0(ii+1,jj+1,kk) * p(-1, 0, 0) &
+               +              App0(ii+1,jj+1,kk) * p( 0, 0, 0) &
+               +              A00p(ii+1,jj+1,kk) * p(-1,-1,+1) &
+               +              Ap0p(ii+1,jj+1,kk) * p( 0,-1,+1) &
+               +              A0pp(ii+1,jj+1,kk) * p(-1, 0,+1) &
+               +              Appp(ii+1,jj+1,kk) * p( 0, 0,+1)
+             ap(0,0,1) = &
+               &              Appm(ii,jj,kk+1) * p(-1,-1, 0) &
+               +              App0(ii,jj,kk+1) * p(-1,-1,+1)
+             ap(1,0,1) = &
+               &              A0pm(ii+1,jj,kk+1) * p(-1,-1, 0) &
+               +              Appm(ii+1,jj,kk+1) * p( 0,-1, 0) &
+               +              A0p0(ii+1,jj,kk+1) * p(-1,-1,+1) &
+               +              App0(ii+1,jj,kk+1) * p( 0,-1,+1)
+             ap(0,1,1) = &
+               &              Ap0m(ii,jj+1,kk+1) * p(-1,-1, 0) &
+               +              Appm(ii,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Ap00(ii,jj+1,kk+1) * p(-1,-1,+1) &
+               +              App0(ii,jj+1,kk+1) * p(-1, 0,+1)
+             ap(1,1,1) = &
+               &              A00m(ii+1,jj+1,kk+1) * p(-1,-1, 0) &
+               +              Ap0m(ii+1,jj+1,kk+1) * p( 0,-1, 0) &
+               +              A0pm(ii+1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Appm(ii+1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A000(ii+1,jj+1,kk+1) * p(-1,-1,+1) &
+               +              Ap00(ii+1,jj+1,kk+1) * p( 0,-1,+1) &
+               +              A0p0(ii+1,jj+1,kk+1) * p(-1, 0,+1) &
+               +              App0(ii+1,jj+1,kk+1) * p( 0, 0,+1)
+
+             csten(i,j,k,ist_pp0) = 0.125d0 * &
+               ( restrict_from_00m_to(ii,jj,kk) * ap( 0, 0,-1) &
+               + restrict_from_p0m_to(ii,jj,kk) * ap(+1, 0,-1) &
+               + restrict_from_0pm_to(ii,jj,kk) * ap( 0,+1,-1) &
+               + restrict_from_ppm_to(ii,jj,kk) * ap(+1,+1,-1) &
+               + restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
+
+             ! csten(i,j,k,ist_p0p)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj-1,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj  ,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj  ,kk+2-1)
+             p(-1, 1,-1) = interp_from_pmp_to(ii+2-1,jj+1,kk+2-1)
+             p( 0, 1,-1) = interp_from_0mp_to(ii+2  ,jj+1,kk+2-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj-1,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj  ,kk+2  )
+             p( 0, 0, 0) = 1.d0
+             p(-1, 1, 0) = interp_from_pm0_to(ii+2-1,jj+1,kk+2  )
+             p( 0, 1, 0) = interp_from_0m0_to(ii+2  ,jj+1,kk+2  )
+
+             ap(0,-1,0) = &
+               &              Ap0p(ii,jj-1,kk) * p(-1,-1,-1) &
+               +              Appp(ii,jj-1,kk) * p(-1, 0,-1)
+             ap(1,-1,0) = &
+               &              A00p(ii+1,jj-1,kk) * p(-1,-1,-1) &
+               +              Ap0p(ii+1,jj-1,kk) * p( 0,-1,-1) &
+               +              A0pp(ii+1,jj-1,kk) * p(-1, 0,-1) &
+               +              Appp(ii+1,jj-1,kk) * p( 0, 0,-1)
+             ap(0,0,0) = &
+               &              Apmp(ii,jj,kk) * p(-1,-1,-1) &
+               +              Ap0p(ii,jj,kk) * p(-1, 0,-1) &
+               +              Appp(ii,jj,kk) * p(-1,+1,-1)
+             ap(1,0,0) = &
+               &              A0mp(ii+1,jj,kk) * p(-1,-1,-1) &
+               +              Apmp(ii+1,jj,kk) * p( 0,-1,-1) &
+               +              A00p(ii+1,jj,kk) * p(-1, 0,-1) &
+               +              Ap0p(ii+1,jj,kk) * p( 0, 0,-1) &
+               +              A0pp(ii+1,jj,kk) * p(-1,+1,-1) &
+               +              Appp(ii+1,jj,kk) * p( 0,+1,-1)
+             ap(0,1,0) = &
+               &              Apmp(ii,jj+1,kk) * p(-1, 0,-1) &
+               +              Ap0p(ii,jj+1,kk) * p(-1,+1,-1)
+             ap(1,1,0) = &
+               &              A0mp(ii+1,jj+1,kk) * p(-1, 0,-1) &
+               +              Apmp(ii+1,jj+1,kk) * p( 0, 0,-1) &
+               +              A00p(ii+1,jj+1,kk) * p(-1,+1,-1) &
+               +              Ap0p(ii+1,jj+1,kk) * p( 0,+1,-1)
+             ap(0,-1,1) = &
+               &              Ap00(ii,jj-1,kk+1) * p(-1,-1,-1) &
+               +              App0(ii,jj-1,kk+1) * p(-1, 0,-1) &
+               +              Ap0p(ii,jj-1,kk+1) * p(-1,-1, 0) &
+               +              Appp(ii,jj-1,kk+1) * p(-1, 0, 0)
+             ap(1,-1,1) = &
+               &              A000(ii+1,jj-1,kk+1) * p(-1,-1,-1) &
+               +              Ap00(ii+1,jj-1,kk+1) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj-1,kk+1) * p(-1, 0,-1) &
+               +              App0(ii+1,jj-1,kk+1) * p( 0, 0,-1) &
+               +              A00p(ii+1,jj-1,kk+1) * p(-1,-1, 0) &
+               +              Ap0p(ii+1,jj-1,kk+1) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj-1,kk+1) * p(-1, 0, 0) &
+               +              Appp(ii+1,jj-1,kk+1) * p( 0, 0, 0)
+             ap(0,0,1) = &
+               &              Apm0(ii,jj,kk+1) * p(-1,-1,-1) &
+               +              Ap00(ii,jj,kk+1) * p(-1, 0,-1) &
+               +              App0(ii,jj,kk+1) * p(-1,+1,-1) &
+               +              Apmp(ii,jj,kk+1) * p(-1,-1, 0) &
+               +              Ap0p(ii,jj,kk+1) * p(-1, 0, 0) &
+               +              Appp(ii,jj,kk+1) * p(-1,+1, 0)
+             ap(1,0,1) = &
+               &              A0m0(ii+1,jj,kk+1) * p(-1,-1,-1) &
+               +              Apm0(ii+1,jj,kk+1) * p( 0,-1,-1) &
+               +              A000(ii+1,jj,kk+1) * p(-1, 0,-1) &
+               +              Ap00(ii+1,jj,kk+1) * p( 0, 0,-1) &
+               +              A0p0(ii+1,jj,kk+1) * p(-1,+1,-1) &
+               +              App0(ii+1,jj,kk+1) * p( 0,+1,-1) &
+               +              A0mp(ii+1,jj,kk+1) * p(-1,-1, 0) &
+               +              Apmp(ii+1,jj,kk+1) * p( 0,-1, 0) &
+               +              A00p(ii+1,jj,kk+1) * p(-1, 0, 0) &
+               +              Ap0p(ii+1,jj,kk+1) * p( 0, 0, 0) &
+               +              A0pp(ii+1,jj,kk+1) * p(-1,+1, 0) &
+               +              Appp(ii+1,jj,kk+1) * p( 0,+1, 0)
+             ap(0,1,1) = &
+               &              Apm0(ii,jj+1,kk+1) * p(-1, 0,-1) &
+               +              Ap00(ii,jj+1,kk+1) * p(-1,+1,-1) &
+               +              Apmp(ii,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Ap0p(ii,jj+1,kk+1) * p(-1,+1, 0)
+             ap(1,1,1) = &
+               &              A0m0(ii+1,jj+1,kk+1) * p(-1, 0,-1) &
+               +              Apm0(ii+1,jj+1,kk+1) * p( 0, 0,-1) &
+               +              A000(ii+1,jj+1,kk+1) * p(-1,+1,-1) &
+               +              Ap00(ii+1,jj+1,kk+1) * p( 0,+1,-1) &
+               +              A0mp(ii+1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Apmp(ii+1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A00p(ii+1,jj+1,kk+1) * p(-1,+1, 0) &
+               +              Ap0p(ii+1,jj+1,kk+1) * p( 0,+1, 0)
+
+             csten(i,j,k,ist_p0p) = 0.125d0 * &
+               ( restrict_from_0m0_to(ii,jj,kk) * ap( 0,-1, 0) &
+               + restrict_from_pm0_to(ii,jj,kk) * ap(+1,-1, 0) &
+               + restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_0mp_to(ii,jj,kk) * ap( 0,-1,+1) &
+               + restrict_from_pmp_to(ii,jj,kk) * ap(+1,-1,+1) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
+
+             ! csten(i,j,k,ist_0pp)
+             p(-1,-1,-1) = interp_from_ppp_to(ii-1,jj+2-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii-1,jj+2  ,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii  ,jj+2-1,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii  ,jj+2  ,kk+2-1)
+             p( 1,-1,-1) = interp_from_mpp_to(ii+1,jj+2-1,kk+2-1)
+             p( 1, 0,-1) = interp_from_m0p_to(ii+1,jj+2  ,kk+2-1)
+             !
+             p(-1,-1, 0) = interp_from_pp0_to(ii-1,jj+2-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii-1,jj+2  ,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii  ,jj+2-1,kk+2  )
+             p( 0, 0, 0) = 1.d0
+             p( 1,-1, 0) = interp_from_mp0_to(ii+1,jj+2-1,kk+2  )
+             p( 1, 0, 0) = interp_from_m00_to(ii+1,jj+2  ,kk+2  )
+
+             ap(-1,0,0) = &
+               &              A0pp(ii-1,jj,kk) * p(-1,-1,-1) &
+               +              Appp(ii-1,jj,kk) * p( 0,-1,-1)
+             ap(0,0,0) = &
+               &              Ampp(ii,jj,kk) * p(-1,-1,-1) &
+               +              A0pp(ii,jj,kk) * p( 0,-1,-1) &
+               +              Appp(ii,jj,kk) * p(+1,-1,-1)
+             ap(1,0,0) = &
+               &              Ampp(ii+1,jj,kk) * p( 0,-1,-1) &
+               +              A0pp(ii+1,jj,kk) * p(+1,-1,-1)
+             ap(-1,1,0) = &
+               &              A00p(ii-1,jj+1,kk) * p(-1,-1,-1) &
+               +              Ap0p(ii-1,jj+1,kk) * p( 0,-1,-1) &
+               +              A0pp(ii-1,jj+1,kk) * p(-1, 0,-1) &
+               +              Appp(ii-1,jj+1,kk) * p( 0, 0,-1)
+             ap(0,1,0) = &
+               &              Am0p(ii,jj+1,kk) * p(-1,-1,-1) &
+               +              A00p(ii,jj+1,kk) * p( 0,-1,-1) &
+               +              Ap0p(ii,jj+1,kk) * p(+1,-1,-1) &
+               +              Ampp(ii,jj+1,kk) * p(-1, 0,-1) &
+               +              A0pp(ii,jj+1,kk) * p( 0, 0,-1) &
+               +              Appp(ii,jj+1,kk) * p(+1, 0,-1)
+             ap(1,1,0) = &
+               &              Am0p(ii+1,jj+1,kk) * p( 0,-1,-1) &
+               +              A00p(ii+1,jj+1,kk) * p(+1,-1,-1) &
+               +              Ampp(ii+1,jj+1,kk) * p( 0, 0,-1) &
+               +              A0pp(ii+1,jj+1,kk) * p(+1, 0,-1)
+             ap(-1,0,1) = &
+               &              A0p0(ii-1,jj,kk+1) * p(-1,-1,-1) &
+               +              App0(ii-1,jj,kk+1) * p( 0,-1,-1) &
+               +              A0pp(ii-1,jj,kk+1) * p(-1,-1, 0) &
+               +              Appp(ii-1,jj,kk+1) * p( 0,-1, 0)
+             ap(0,0,1) = &
+               &              Amp0(ii,jj,kk+1) * p(-1,-1,-1) &
+               +              A0p0(ii,jj,kk+1) * p( 0,-1,-1) &
+               +              App0(ii,jj,kk+1) * p(+1,-1,-1) &
+               +              Ampp(ii,jj,kk+1) * p(-1,-1, 0) &
+               +              A0pp(ii,jj,kk+1) * p( 0,-1, 0) &
+               +              Appp(ii,jj,kk+1) * p(+1,-1, 0)
+             ap(1,0,1) = &
+               &              Amp0(ii+1,jj,kk+1) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj,kk+1) * p(+1,-1,-1) &
+               +              Ampp(ii+1,jj,kk+1) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj,kk+1) * p(+1,-1, 0)
+             ap(-1,1,1) = &
+               &              A000(ii-1,jj+1,kk+1) * p(-1,-1,-1) &
+               +              Ap00(ii-1,jj+1,kk+1) * p( 0,-1,-1) &
+               +              A0p0(ii-1,jj+1,kk+1) * p(-1, 0,-1) &
+               +              App0(ii-1,jj+1,kk+1) * p( 0, 0,-1) &
+               +              A00p(ii-1,jj+1,kk+1) * p(-1,-1, 0) &
+               +              Ap0p(ii-1,jj+1,kk+1) * p( 0,-1, 0) &
+               +              A0pp(ii-1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Appp(ii-1,jj+1,kk+1) * p( 0, 0, 0)
+             ap(0,1,1) = &
+               &              Am00(ii,jj+1,kk+1) * p(-1,-1,-1) &
+               +              A000(ii,jj+1,kk+1) * p( 0,-1,-1) &
+               +              Ap00(ii,jj+1,kk+1) * p(+1,-1,-1) &
+               +              Amp0(ii,jj+1,kk+1) * p(-1, 0,-1) &
+               +              A0p0(ii,jj+1,kk+1) * p( 0, 0,-1) &
+               +              App0(ii,jj+1,kk+1) * p(+1, 0,-1) &
+               +              Am0p(ii,jj+1,kk+1) * p(-1,-1, 0) &
+               +              A00p(ii,jj+1,kk+1) * p( 0,-1, 0) &
+               +              Ap0p(ii,jj+1,kk+1) * p(+1,-1, 0) &
+               +              Ampp(ii,jj+1,kk+1) * p(-1, 0, 0) &
+               +              A0pp(ii,jj+1,kk+1) * p( 0, 0, 0) &
+               +              Appp(ii,jj+1,kk+1) * p(+1, 0, 0)
+             ap(1,1,1) = &
+               &              Am00(ii+1,jj+1,kk+1) * p( 0,-1,-1) &
+               +              A000(ii+1,jj+1,kk+1) * p(+1,-1,-1) &
+               +              Amp0(ii+1,jj+1,kk+1) * p( 0, 0,-1) &
+               +              A0p0(ii+1,jj+1,kk+1) * p(+1, 0,-1) &
+               +              Am0p(ii+1,jj+1,kk+1) * p( 0,-1, 0) &
+               +              A00p(ii+1,jj+1,kk+1) * p(+1,-1, 0) &
+               +              Ampp(ii+1,jj+1,kk+1) * p( 0, 0, 0) &
+               +              A0pp(ii+1,jj+1,kk+1) * p(+1, 0, 0)
+
+             csten(i,j,k,ist_0pp) = 0.125d0 * &
+               ( restrict_from_m00_to(ii,jj,kk) * ap(-1, 0, 0) &
+               + restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_mp0_to(ii,jj,kk) * ap(-1,+1, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_m0p_to(ii,jj,kk) * ap(-1, 0,+1) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_mpp_to(ii,jj,kk) * ap(-1,+1,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
+
+             ! csten(i,j,k,ist_ppp)
+             p(-1,-1,-1) = interp_from_ppp_to(ii+2-1,jj+2-1,kk+2-1)
+             p( 0,-1,-1) = interp_from_0pp_to(ii+2  ,jj+2-1,kk+2-1)
+             p(-1, 0,-1) = interp_from_p0p_to(ii+2-1,jj+2  ,kk+2-1)
+             p( 0, 0,-1) = interp_from_00p_to(ii+2  ,jj+2  ,kk+2-1)
+             p(-1,-1, 0) = interp_from_pp0_to(ii+2-1,jj+2-1,kk+2  )
+             p( 0,-1, 0) = interp_from_0p0_to(ii+2  ,jj+2-1,kk+2  )
+             p(-1, 0, 0) = interp_from_p00_to(ii+2-1,jj+2  ,kk+2  )
+             p( 0, 0, 0) = 1.d0
+
+             ap(0,0,0) = &
+               &              Appp(ii,jj,kk) * p(-1,-1,-1)
+             ap(1,0,0) = &
+               &              A0pp(ii+1,jj,kk) * p(-1,-1,-1) &
+               +              Appp(ii+1,jj,kk) * p( 0,-1,-1)
+             ap(0,1,0) = &
+               &              Ap0p(ii,jj+1,kk) * p(-1,-1,-1) &
+               +              Appp(ii,jj+1,kk) * p(-1, 0,-1)
+             ap(1,1,0) = &
+               &              A00p(ii+1,jj+1,kk) * p(-1,-1,-1) &
+               +              Ap0p(ii+1,jj+1,kk) * p( 0,-1,-1) &
+               +              A0pp(ii+1,jj+1,kk) * p(-1, 0,-1) &
+               +              Appp(ii+1,jj+1,kk) * p( 0, 0,-1)
+             ap(0,0,1) = &
+               &              App0(ii,jj,kk+1) * p(-1,-1,-1) &
+               +              Appp(ii,jj,kk+1) * p(-1,-1, 0)
+             ap(1,0,1) = &
+               &              A0p0(ii+1,jj,kk+1) * p(-1,-1,-1) &
+               +              App0(ii+1,jj,kk+1) * p( 0,-1,-1) &
+               +              A0pp(ii+1,jj,kk+1) * p(-1,-1, 0) &
+               +              Appp(ii+1,jj,kk+1) * p( 0,-1, 0)
+             ap(0,1,1) = &
+               &              Ap00(ii,jj+1,kk+1) * p(-1,-1,-1) &
+               +              App0(ii,jj+1,kk+1) * p(-1, 0,-1) &
+               +              Ap0p(ii,jj+1,kk+1) * p(-1,-1, 0) &
+               +              Appp(ii,jj+1,kk+1) * p(-1, 0, 0)
+             ap(1,1,1) = &
+               &              A000(ii+1,jj+1,kk+1) * p(-1,-1,-1) &
+               +              Ap00(ii+1,jj+1,kk+1) * p( 0,-1,-1) &
+               +              A0p0(ii+1,jj+1,kk+1) * p(-1, 0,-1) &
+               +              App0(ii+1,jj+1,kk+1) * p( 0, 0,-1) &
+               +              A00p(ii+1,jj+1,kk+1) * p(-1,-1, 0) &
+               +              Ap0p(ii+1,jj+1,kk+1) * p( 0,-1, 0) &
+               +              A0pp(ii+1,jj+1,kk+1) * p(-1, 0, 0) &
+               +              Appp(ii+1,jj+1,kk+1) * p( 0, 0, 0)
+
+             csten(i,j,k,ist_ppp) = 0.125d0 * &
+               ( restrict_from_000_to(ii,jj,kk) * ap( 0, 0, 0) &
+               + restrict_from_p00_to(ii,jj,kk) * ap(+1, 0, 0) &
+               + restrict_from_0p0_to(ii,jj,kk) * ap( 0,+1, 0) &
+               + restrict_from_pp0_to(ii,jj,kk) * ap(+1,+1, 0) &
+               + restrict_from_00p_to(ii,jj,kk) * ap( 0, 0,+1) &
+               + restrict_from_p0p_to(ii,jj,kk) * ap(+1, 0,+1) &
+               + restrict_from_0pp_to(ii,jj,kk) * ap( 0,+1,+1) &
+               + restrict_from_ppp_to(ii,jj,kk) * ap(+1,+1,+1))
 
           end do
        end do
     end do
+
+  contains
+
+    elemental function interp_from_mmm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p      + abs(fsten(i-1,j  ,k  ,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j-1,k  ,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p      + abs(fsten(i-1,j-1,k  ,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i-1,j  ,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j-1,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j-1,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mmm_to
+
+    elemental function interp_from_pmm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j-1,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_pmm_to
+
+    elemental function interp_from_mpm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i-1,j,k,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j  ,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mpm_to
+
+    elemental function interp_from_ppm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k-1,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j,k-1,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j  ,k-1,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_ppm_to
+
+    elemental function interp_from_mmp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i-1,j,k,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i-1,j,k,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j-1,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mmp_to
+
+    elemental function interp_from_pmp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p + abs(fsten(i,j,k,ist_p00)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_pp0)) / &
+           &     ( abs(fsten(i,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i,j-1,k  ,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j,k,ist_p0p)) / &
+           &     ( abs(fsten(i,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i,j  ,k,ist_ppp)) + eps)
+      p = p + abs(fsten(i,j-1,k,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j-1,k,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k,ist_ppp)) + eps)
+      p = p * abs(fsten(i  ,j-1,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_pmp_to
+
+    elemental function interp_from_mpp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p      + abs(fsten(i-1,j  ,k  ,ist_p00)) / &
+           &     ( abs(fsten(i-1,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i-1,j  ,k  ,ist_pp0)) / &
+           &     ( abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i-1,j  ,k  ,ist_p0p)) / &
+           &     ( abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j  ,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p * abs(fsten(i-1,j  ,k  ,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_mpp_to
+
+    elemental function interp_from_ppp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p
+      p = 1.d0
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_p00)) / &
+           &     ( abs(fsten(i  ,j-1,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_0p0)) / &
+           &     ( abs(fsten(i-1,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_00p)) / &
+           &     ( abs(fsten(i-1,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i-1,j  ,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_pp0)) / &
+           &     ( abs(fsten(i  ,j  ,k-1,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_p0p)) / &
+           &     ( abs(fsten(i  ,j-1,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p      + abs(fsten(i  ,j  ,k  ,ist_0pp)) / &
+           &     ( abs(fsten(i-1,j  ,k  ,ist_ppp)) &
+           &     + abs(fsten(i  ,j  ,k  ,ist_ppp)) + eps)
+      p = p * abs(fsten(i,j,k,ist_ppp)) * fsten(i,j,k,ist_inv)
+    end function interp_from_ppp_to
+
+    elemental function interp_from_0mm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0mm_to
+
+    elemental function interp_from_0mp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0mp_to
+
+    elemental function interp_from_0pm_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0pm_to
+
+    elemental function interp_from_0pp_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j-1,k  ,ist_0pp)) + eps)
+      w1p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i,j  ,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i,j-1,k-1,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k-1,ist_0pp)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i,j-1,k  ,ist_0pp)) &
+           &                              +abs(fsten(i,j  ,k  ,ist_0pp)) + eps)
+      wmm = abs(fsten(i,j-1,k-1,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i,j  ,k-1,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i,j-1,k  ,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i,j  ,k  ,ist_0pp)) * (1.d0 + w1p + w2p)
+      p = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_0pp_to
+
+    elemental function interp_from_m0m_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_m0m_to
+
+    elemental function interp_from_p0m_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_p0m_to
+
+    elemental function interp_from_m0p_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_m0p_to
+
+    elemental function interp_from_p0p_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i-1,j,k  ,ist_p0p)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      w2m = abs(fsten(i,j,k-1,ist_00p)) / (abs(fsten(i-1,j,k-1,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k-1,ist_p0p)) + eps)
+      w2p = abs(fsten(i,j,k  ,ist_00p)) / (abs(fsten(i-1,j,k  ,ist_p0p)) &
+           &                              +abs(fsten(i  ,j,k  ,ist_p0p)) + eps)
+      wmm = abs(fsten(i-1,j,k-1,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j,k-1,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j,k  ,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j,k  ,ist_p0p)) * (1.d0 + w1p + w2p)
+      p = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_p0p_to
+
+    elemental function interp_from_mm0_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i-1,j  ,k,ist_pp0)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      w2m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j-1,k,ist_pp0)) + eps)
+      w2p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i-1,j  ,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      wmm = abs(fsten(i-1,j-1,k,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j-1,k,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j  ,k,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j  ,k,ist_pp0)) * (1.d0 + w1p + w2p)
+      p = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_mm0_to
+
+    elemental function interp_from_mp0_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i-1,j  ,k,ist_pp0)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      w2m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j-1,k,ist_pp0)) + eps)
+      w2p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i-1,j  ,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      wmm = abs(fsten(i-1,j-1,k,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j-1,k,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j  ,k,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j  ,k,ist_pp0)) * (1.d0 + w1p + w2p)
+      p = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_mp0_to
+
+    elemental function interp_from_pm0_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i-1,j  ,k,ist_pp0)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      w2m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j-1,k,ist_pp0)) + eps)
+      w2p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i-1,j  ,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      wmm = abs(fsten(i-1,j-1,k,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j-1,k,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j  ,k,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j  ,k,ist_pp0)) * (1.d0 + w1p + w2p)
+      p = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_pm0_to
+
+    elemental function interp_from_pp0_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1m, w2m, w1p, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(i-1,j,k,ist_p00)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i-1,j  ,k,ist_pp0)) + eps)
+      w1p = abs(fsten(i  ,j,k,ist_p00)) / (abs(fsten(i  ,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      w2m = abs(fsten(i,j-1,k,ist_0p0)) / (abs(fsten(i-1,j-1,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j-1,k,ist_pp0)) + eps)
+      w2p = abs(fsten(i,j  ,k,ist_0p0)) / (abs(fsten(i-1,j  ,k,ist_pp0)) &
+           &                              +abs(fsten(i  ,j  ,k,ist_pp0)) + eps)
+      wmm = abs(fsten(i-1,j-1,k,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(i  ,j-1,k,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(i-1,j  ,k,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(i  ,j  ,k,ist_pp0)) * (1.d0 + w1p + w2p)
+      p = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function interp_from_pp0_to
+
+    elemental function interp_from_00m_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1, w2
+      w1 = abs(fsten(i,j,k-1,ist_00p))
+      w2 = abs(fsten(i,j,k  ,ist_00p))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         p = 0.5d0
+      else
+         p = w1 / (w1+w2)
+      end if
+    end function interp_from_00m_to
+
+    elemental function interp_from_00p_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1, w2
+      w1 = abs(fsten(i,j,k-1,ist_00p))
+      w2 = abs(fsten(i,j,k  ,ist_00p))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         p = 0.5d0
+      else
+         p = w2 / (w1+w2)
+      end if
+    end function interp_from_00p_to
+
+    elemental function interp_from_0m0_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1, w2
+      w1 = abs(fsten(i,j-1,k,ist_0p0))
+      w2 = abs(fsten(i,j  ,k,ist_0p0))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         p = 0.5d0
+      else
+         p = w1 / (w1+w2)
+      end if
+    end function interp_from_0m0_to
+
+    elemental function interp_from_0p0_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1, w2
+      w1 = abs(fsten(i,j-1,k,ist_0p0))
+      w2 = abs(fsten(i,j  ,k,ist_0p0))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         p = 0.5d0
+      else
+         p = w2 / (w1+w2)
+      end if
+    end function interp_from_0p0_to
+
+    elemental function interp_from_m00_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1, w2
+      w1 = abs(fsten(i-1,j,k,ist_p00))
+      w2 = abs(fsten(i  ,j,k,ist_p00))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         p = 0.5d0
+      else
+         p = w1 / (w1+w2)
+      end if
+    end function interp_from_m00_to
+
+    elemental function interp_from_p00_to (i,j,k) result(p)
+      integer, intent(in) :: i,j,k
+      real(amrex_real) :: p, w1, w2
+      w1 = abs(fsten(i-1,j,k,ist_p00))
+      w2 = abs(fsten(i  ,j,k,ist_p00))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         p = 0.5d0
+      else
+         p = w2 / (w1+w2)
+      end if
+    end function interp_from_p00_to
+
+    elemental real(amrex_real) function Ammm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ammm = fsten(i-1,j-1,k-1,ist_ppp)
+    end function Ammm
+
+    elemental real(amrex_real) function A0mm (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0mm = fsten(i  ,j-1,k-1,ist_0pp)
+    end function A0mm
+
+    elemental real(amrex_real) function Apmm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Apmm = fsten(i  ,j-1,k-1,ist_ppp)
+    end function Apmm
+
+    elemental real(amrex_real) function Am0m (i,j,k)
+      integer, intent(in) :: i,j,k
+      Am0m = fsten(i-1,j  ,k-1,ist_p0p)
+    end function Am0m
+
+    elemental real(amrex_real) function A00m (i,j,k)
+      integer, intent(in) :: i,j,k
+      A00m = fsten(i  ,j  ,k-1,ist_00p)
+    end function A00m
+
+    elemental real(amrex_real) function Ap0m (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ap0m = fsten(i  ,j  ,k-1,ist_p0p)
+    end function Ap0m
+
+    elemental real(amrex_real) function Ampm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ampm = fsten(i-1,j  ,k-1,ist_ppp)
+    end function Ampm
+
+    elemental real(amrex_real) function A0pm (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0pm = fsten(i  ,j  ,k-1,ist_0pp)
+    end function A0pm
+
+    elemental real(amrex_real) function Appm (i,j,k)
+      integer, intent(in) :: i,j,k
+      Appm = fsten(i  ,j  ,k-1,ist_ppp)
+    end function Appm
+
+    elemental real(amrex_real) function Amm0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Amm0 = fsten(i-1,j-1,k  ,ist_pp0)
+    end function Amm0
+
+    elemental real(amrex_real) function A0m0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0m0 = fsten(i  ,j-1,k  ,ist_0p0)
+    end function A0m0
+
+    elemental real(amrex_real) function Apm0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Apm0 = fsten(i  ,j-1,k  ,ist_pp0)
+    end function Apm0
+
+    elemental real(amrex_real) function Am00 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Am00 = fsten(i-1,j  ,k  ,ist_p00)
+    end function Am00
+
+    elemental real(amrex_real) function A000 (i,j,k)
+      integer, intent(in) :: i,j,k
+      A000 = fsten(i  ,j  ,k  ,ist_000)
+    end function A000
+
+    elemental real(amrex_real) function Ap00 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ap00 = fsten(i  ,j  ,k  ,ist_p00)
+    end function Ap00
+
+    elemental real(amrex_real) function Amp0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      Amp0 = fsten(i-1,j  ,k  ,ist_pp0)
+    end function Amp0
+
+    elemental real(amrex_real) function A0p0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0p0 = fsten(i  ,j  ,k  ,ist_0p0)
+    end function A0p0
+
+    elemental real(amrex_real) function App0 (i,j,k)
+      integer, intent(in) :: i,j,k
+      App0 = fsten(i  ,j  ,k  ,ist_pp0)
+    end function App0
+
+    elemental real(amrex_real) function Ammp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ammp = fsten(i-1,j-1,k  ,ist_ppp)
+    end function Ammp
+
+    elemental real(amrex_real) function A0mp (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0mp = fsten(i  ,j-1,k  ,ist_0pp)
+    end function A0mp
+
+    elemental real(amrex_real) function Apmp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Apmp = fsten(i  ,j-1,k  ,ist_ppp)
+    end function Apmp
+
+    elemental real(amrex_real) function Am0p (i,j,k)
+      integer, intent(in) :: i,j,k
+      Am0p = fsten(i-1,j  ,k  ,ist_p0p)
+    end function Am0p
+
+    elemental real(amrex_real) function A00p (i,j,k)
+      integer, intent(in) :: i,j,k
+      A00p = fsten(i  ,j  ,k  ,ist_00p)
+    end function A00p
+
+    elemental real(amrex_real) function Ap0p (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ap0p = fsten(i  ,j  ,k  ,ist_p0p)
+    end function Ap0p
+
+    elemental real(amrex_real) function Ampp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Ampp = fsten(i-1,j  ,k  ,ist_ppp)
+    end function Ampp
+
+    elemental real(amrex_real) function A0pp (i,j,k)
+      integer, intent(in) :: i,j,k
+      A0pp = fsten(i  ,j  ,k  ,ist_0pp)
+    end function A0pp
+
+    elemental real(amrex_real) function Appp (i,j,k)
+      integer, intent(in) :: i,j,k
+      Appp = fsten(i  ,j  ,k  ,ist_ppp)
+    end function Appp
+
+    elemental function restrict_from_mmm_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii-1,jj-1,kk-1,ist_p00)) / &
+           &     ( abs(fsten(ii-1,jj-2,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk-1,ist_0p0)) / &
+           &     ( abs(fsten(ii-2,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj-1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk-1,ist_00p)) / &
+           &     ( abs(fsten(ii-2,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj-1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk-1,ist_pp0)) / &
+           &     ( abs(fsten(ii-1,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk-1,ist_p0p)) / &
+           &     ( abs(fsten(ii-1,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk-1,ist_0pp)) / &
+           &     ( abs(fsten(ii-2,jj-1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r * abs(fsten(ii-1,jj-1,kk-1,ist_ppp)) * fsten(ii-1,jj-1,kk-1,ist_inv)
+    end function restrict_from_mmm_to
+
+    elemental function restrict_from_0mm_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii,jj-2,kk-1,ist_0p0)) / (abs(fsten(ii,jj-2,kk-2,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-2,kk-1,ist_0pp)) + eps)
+      w1p = abs(fsten(ii,jj-1,kk-1,ist_0p0)) / (abs(fsten(ii,jj-1,kk-2,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-1,kk-1,ist_0pp)) + eps)
+      w2m = abs(fsten(ii,jj-1,kk-2,ist_00p)) / (abs(fsten(ii,jj-2,kk-2,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-1,kk-2,ist_0pp)) + eps)
+      w2p = abs(fsten(ii,jj-1,kk-1,ist_00p)) / (abs(fsten(ii,jj-2,kk-1,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-1,kk-1,ist_0pp)) + eps)
+      wmm = abs(fsten(ii,jj-2,kk-2,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii,jj-1,kk-2,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii,jj-2,kk-1,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
+      r = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_0mm_to
+
+    elemental function restrict_from_pmm_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii  ,jj-1,kk-1,ist_p00)) / &
+           &     ( abs(fsten(ii  ,jj-2,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj-1,kk-1,ist_0p0)) / &
+           &     ( abs(fsten(ii  ,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj-1,kk-1,ist_00p)) / &
+           &     ( abs(fsten(ii  ,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj-1,kk-1,ist_pp0)) / &
+           &     ( abs(fsten(ii  ,jj-1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj-1,kk-1,ist_p0p)) / &
+           &     ( abs(fsten(ii  ,jj-2,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj-1,kk-1,ist_0pp)) / &
+           &     ( abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk-1,ist_ppp)) + eps)
+      r = r * abs(fsten(ii  ,jj-1,kk-1,ist_ppp)) * fsten(ii+1,jj-1,kk-1,ist_inv)
+    end function restrict_from_pmm_to
+
+    elemental function restrict_from_m0m_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii-2,jj,kk-1,ist_p00)) / (abs(fsten(ii-2,jj,kk-2,ist_p0p)) &
+           &                                   +abs(fsten(ii-2,jj,kk-1,ist_p0p)) + eps)
+      w1p = abs(fsten(ii-1,jj,kk-1,ist_p00)) / (abs(fsten(ii-1,jj,kk-2,ist_p0p)) &
+           &                                   +abs(fsten(ii-1,jj,kk-1,ist_p0p)) + eps)
+      w2m = abs(fsten(ii-1,jj,kk-2,ist_00p)) / (abs(fsten(ii-2,jj,kk-2,ist_p0p)) &
+           &                                   +abs(fsten(ii-1,jj,kk-2,ist_p0p)) + eps)
+      w2p = abs(fsten(ii-1,jj,kk-1,ist_00p)) / (abs(fsten(ii-2,jj,kk-1,ist_p0p)) &
+           &                                   +abs(fsten(ii-1,jj,kk-1,ist_p0p)) + eps)
+      wmm = abs(fsten(ii-2,jj,kk-2,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii-1,jj,kk-2,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii-2,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
+      r = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_m0m_to
+
+    elemental function restrict_from_00m_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1, w2
+      w1 = abs(fsten(ii,jj,kk-2,ist_00p))
+      w2 = abs(fsten(ii,jj,kk-1,ist_00p))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         r = 0.5d0
+      else
+         r = w2 / (w1+w2)
+      end if
+    end function restrict_from_00m_to
+
+    elemental function restrict_from_p0m_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii  ,jj,kk-1,ist_p00)) / (abs(fsten(ii  ,jj,kk-2,ist_p0p)) &
+           &                                   +abs(fsten(ii  ,jj,kk-1,ist_p0p)) + eps)
+      w1p = abs(fsten(ii+1,jj,kk-1,ist_p00)) / (abs(fsten(ii+1,jj,kk-2,ist_p0p)) &
+           &                                   +abs(fsten(ii+1,jj,kk-1,ist_p0p)) + eps)
+      w2m = abs(fsten(ii+1,jj,kk-2,ist_00p)) / (abs(fsten(ii  ,jj,kk-2,ist_p0p)) &
+           &                                   +abs(fsten(ii+1,jj,kk-2,ist_p0p)) + eps)
+      w2p = abs(fsten(ii+1,jj,kk-1,ist_00p)) / (abs(fsten(ii  ,jj,kk-1,ist_p0p)) &
+           &                                   +abs(fsten(ii+1,jj,kk-1,ist_p0p)) + eps)
+      wmm = abs(fsten(ii  ,jj,kk-2,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii+1,jj,kk-2,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii  ,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii+1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
+      r = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_p0m_to
+
+    elemental function restrict_from_mpm_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii-1,jj+1,kk-1,ist_p00)) / &
+           &     ( abs(fsten(ii-1,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj  ,kk-1,ist_0p0)) / &
+           &     ( abs(fsten(ii-2,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj+1,kk-1,ist_00p)) / &
+           &     ( abs(fsten(ii-2,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj+1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj  ,kk-1,ist_pp0)) / &
+           &     ( abs(fsten(ii-1,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj+1,kk-1,ist_p0p)) / &
+           &     ( abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj  ,kk-1,ist_0pp)) / &
+           &     ( abs(fsten(ii-2,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) + eps)
+      r = r * abs(fsten(ii-1,jj  ,kk-1,ist_ppp)) * fsten(ii-1,jj+1,kk-1,ist_inv)
+    end function restrict_from_mpm_to
+
+    elemental function restrict_from_0pm_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii,jj  ,kk-1,ist_0p0)) / (abs(fsten(ii,jj  ,kk-2,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj  ,kk-1,ist_0pp)) + eps)
+      w1p = abs(fsten(ii,jj+1,kk-1,ist_0p0)) / (abs(fsten(ii,jj+1,kk-2,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj+1,kk-1,ist_0pp)) + eps)
+      w2m = abs(fsten(ii,jj+1,kk-2,ist_00p)) / (abs(fsten(ii,jj  ,kk-2,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj+1,kk-2,ist_0pp)) + eps)
+      w2p = abs(fsten(ii,jj+1,kk-1,ist_00p)) / (abs(fsten(ii,jj  ,kk-1,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj+1,kk-1,ist_0pp)) + eps)
+      wmm = abs(fsten(ii,jj  ,kk-2,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii,jj+1,kk-2,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii,jj  ,kk-1,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii,jj+1,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
+      r = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_0pm_to
+
+    elemental function restrict_from_ppm_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii  ,jj+1,kk-1,ist_p00)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj  ,kk-1,ist_0p0)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj+1,kk-1,ist_00p)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj+1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj  ,kk-1,ist_pp0)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk-2,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj+1,kk-1,ist_p0p)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk-1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj  ,kk-1,ist_0pp)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk-1,ist_ppp)) + eps)
+      r = r * abs(fsten(ii  ,jj  ,kk-1,ist_ppp)) * fsten(ii+1,jj+1,kk-1,ist_inv)
+    end function restrict_from_ppm_to
+
+    elemental function restrict_from_mm0_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii-2,jj-1,kk,ist_p00)) / (abs(fsten(ii-2,jj-2,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-2,jj-1,kk,ist_pp0)) + eps)
+      w1p = abs(fsten(ii-1,jj-1,kk,ist_p00)) / (abs(fsten(ii-1,jj-2,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-1,jj-1,kk,ist_pp0)) + eps)
+      w2m = abs(fsten(ii-1,jj-2,kk,ist_0p0)) / (abs(fsten(ii-2,jj-2,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-1,jj-2,kk,ist_pp0)) + eps)
+      w2p = abs(fsten(ii-1,jj-1,kk,ist_0p0)) / (abs(fsten(ii-2,jj-1,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-1,jj-1,kk,ist_pp0)) + eps)
+      wmm = abs(fsten(ii-2,jj-2,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii-1,jj-2,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii-2,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+      r = wpp / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_mm0_to
+
+    elemental function restrict_from_0m0_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1, w2
+      w1 = abs(fsten(ii,jj-2,kk,ist_0p0))
+      w2 = abs(fsten(ii,jj-1,kk,ist_0p0))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         r = 0.5d0
+      else
+         r = w2 / (w1+w2)
+      end if
+    end function restrict_from_0m0_to
+
+    elemental function restrict_from_pm0_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii  ,jj-1,kk,ist_p00)) / (abs(fsten(ii  ,jj-2,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii  ,jj-1,kk,ist_pp0)) + eps)
+      w1p = abs(fsten(ii+1,jj-1,kk,ist_p00)) / (abs(fsten(ii+1,jj-2,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii+1,jj-1,kk,ist_pp0)) + eps)
+      w2m = abs(fsten(ii+1,jj-2,kk,ist_0p0)) / (abs(fsten(ii  ,jj-2,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii+1,jj-2,kk,ist_pp0)) + eps)
+      w2p = abs(fsten(ii+1,jj-1,kk,ist_0p0)) / (abs(fsten(ii  ,jj-1,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii+1,jj-1,kk,ist_pp0)) + eps)
+      wmm = abs(fsten(ii  ,jj-2,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii+1,jj-2,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii  ,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii+1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+      r = wmp / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_pm0_to
+
+    elemental function restrict_from_m00_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1, w2
+      w1 = abs(fsten(ii-2,jj,kk,ist_p00))
+      w2 = abs(fsten(ii-1,jj,kk,ist_p00))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         r = 0.5d0
+      else
+         r = w2 / (w1+w2)
+      end if
+    end function restrict_from_m00_to
+
+    elemental function restrict_from_000_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+    end function restrict_from_000_to
+
+    elemental function restrict_from_p00_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1, w2
+      w1 = abs(fsten(ii  ,jj,kk,ist_p00))
+      w2 = abs(fsten(ii+1,jj,kk,ist_p00))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         r = 0.5d0
+      else
+         r = w1 / (w1+w2)
+      end if
+    end function restrict_from_p00_to
+
+    elemental function restrict_from_mp0_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii-2,jj+1,kk,ist_p00)) / (abs(fsten(ii-2,jj  ,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-2,jj+1,kk,ist_pp0)) + eps)
+      w1p = abs(fsten(ii-1,jj+1,kk,ist_p00)) / (abs(fsten(ii-1,jj  ,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-1,jj+1,kk,ist_pp0)) + eps)
+      w2m = abs(fsten(ii-1,jj  ,kk,ist_0p0)) / (abs(fsten(ii-2,jj  ,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-1,jj  ,kk,ist_pp0)) + eps)
+      w2p = abs(fsten(ii-1,jj+1,kk,ist_0p0)) / (abs(fsten(ii-2,jj+1,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii-1,jj+1,kk,ist_pp0)) + eps)
+      wmm = abs(fsten(ii-2,jj  ,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii-1,jj  ,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii-2,jj+1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii-1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+      r = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_mp0_to
+
+    elemental function restrict_from_0p0_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1, w2
+      w1 = abs(fsten(ii,jj  ,kk,ist_0p0))
+      w2 = abs(fsten(ii,jj+1,kk,ist_0p0))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         r = 0.5d0
+      else
+         r = w1 / (w1+w2)
+      end if
+    end function restrict_from_0p0_to
+
+    elemental function restrict_from_pp0_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii  ,jj+1,kk,ist_p00)) / (abs(fsten(ii  ,jj  ,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii  ,jj+1,kk,ist_pp0)) + eps)
+      w1p = abs(fsten(ii+1,jj+1,kk,ist_p00)) / (abs(fsten(ii+1,jj  ,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii+1,jj+1,kk,ist_pp0)) + eps)
+      w2m = abs(fsten(ii+1,jj  ,kk,ist_0p0)) / (abs(fsten(ii  ,jj  ,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii+1,jj  ,kk,ist_pp0)) + eps)
+      w2p = abs(fsten(ii+1,jj+1,kk,ist_0p0)) / (abs(fsten(ii  ,jj+1,kk,ist_pp0)) &
+           &                                   +abs(fsten(ii+1,jj+1,kk,ist_pp0)) + eps)
+      wmm = abs(fsten(ii  ,jj  ,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii+1,jj  ,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii  ,jj+1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii+1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+      r = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_pp0_to
+
+    elemental function restrict_from_mmp_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii-1,jj-1,kk+1,ist_p00)) / &
+           &     ( abs(fsten(ii-1,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-2,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk+1,ist_0p0)) / &
+           &     ( abs(fsten(ii-2,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj-1,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk  ,ist_00p)) / &
+           &     ( abs(fsten(ii-2,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk+1,ist_pp0)) / &
+           &     ( abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk  ,ist_p0p)) / &
+           &     ( abs(fsten(ii-1,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj-1,kk  ,ist_0pp)) / &
+           &     ( abs(fsten(ii-2,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) + eps)
+      r = r * abs(fsten(ii-1,jj-1,kk  ,ist_ppp)) * fsten(ii-1,jj-1,kk+1,ist_inv)
+    end function restrict_from_mmp_to
+
+    elemental function restrict_from_0mp_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii,jj-2,kk+1,ist_0p0)) / (abs(fsten(ii,jj-2,kk  ,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-2,kk+1,ist_0pp)) + eps)
+      w1p = abs(fsten(ii,jj-1,kk+1,ist_0p0)) / (abs(fsten(ii,jj-1,kk  ,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-1,kk+1,ist_0pp)) + eps)
+      w2m = abs(fsten(ii,jj-1,kk  ,ist_00p)) / (abs(fsten(ii,jj-2,kk  ,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-1,kk  ,ist_0pp)) + eps)
+      w2p = abs(fsten(ii,jj-1,kk+1,ist_00p)) / (abs(fsten(ii,jj-2,kk+1,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj-1,kk+1,ist_0pp)) + eps)
+      wmm = abs(fsten(ii,jj-2,kk  ,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii,jj-1,kk  ,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii,jj-2,kk+1,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii,jj-1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
+      r = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_0mp_to
+
+    elemental function restrict_from_pmp_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii  ,jj-1,kk+1,ist_p00)) / &
+           &     ( abs(fsten(ii  ,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-2,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj-1,kk+1,ist_0p0)) / &
+           &     ( abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj-1,kk  ,ist_00p)) / &
+           &     ( abs(fsten(ii  ,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj-1,kk+1,ist_pp0)) / &
+           &     ( abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj-1,kk  ,ist_p0p)) / &
+           &     ( abs(fsten(ii  ,jj-2,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj-1,kk  ,ist_0pp)) / &
+           &     ( abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj-1,kk  ,ist_ppp)) + eps)
+      r = r * abs(fsten(ii  ,jj-1,kk  ,ist_ppp)) * fsten(ii+1,jj-1,kk+1,ist_inv)
+    end function restrict_from_pmp_to
+
+    elemental function restrict_from_m0p_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii-2,jj,kk+1,ist_p00)) / (abs(fsten(ii-2,jj,kk  ,ist_p0p)) &
+           &                                   +abs(fsten(ii-2,jj,kk+1,ist_p0p)) + eps)
+      w1p = abs(fsten(ii-1,jj,kk+1,ist_p00)) / (abs(fsten(ii-1,jj,kk  ,ist_p0p)) &
+           &                                   +abs(fsten(ii-1,jj,kk+1,ist_p0p)) + eps)
+      w2m = abs(fsten(ii-1,jj,kk  ,ist_00p)) / (abs(fsten(ii-2,jj,kk  ,ist_p0p)) &
+           &                                   +abs(fsten(ii-1,jj,kk  ,ist_p0p)) + eps)
+      w2p = abs(fsten(ii-1,jj,kk+1,ist_00p)) / (abs(fsten(ii-2,jj,kk+1,ist_p0p)) &
+           &                                   +abs(fsten(ii-1,jj,kk+1,ist_p0p)) + eps)
+      wmm = abs(fsten(ii-2,jj,kk  ,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii-1,jj,kk  ,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii-2,jj,kk+1,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii-1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
+      r = wpm / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_m0p_to
+
+    elemental function restrict_from_00p_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1, w2
+      w1 = abs(fsten(ii,jj,kk  ,ist_00p))
+      w2 = abs(fsten(ii,jj,kk+1,ist_00p))
+      if (w1 .eq. 0.d0 .and. w2 .eq. 0.d0) then
+         r = 0.5d0
+      else
+         r = w1 / (w1+w2)
+      end if
+    end function restrict_from_00p_to
+
+    elemental function restrict_from_p0p_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii  ,jj,kk+1,ist_p00)) / (abs(fsten(ii  ,jj,kk  ,ist_p0p)) &
+           &                                   +abs(fsten(ii  ,jj,kk+1,ist_p0p)) + eps)
+      w1p = abs(fsten(ii+1,jj,kk+1,ist_p00)) / (abs(fsten(ii+1,jj,kk  ,ist_p0p)) &
+           &                                   +abs(fsten(ii+1,jj,kk+1,ist_p0p)) + eps)
+      w2m = abs(fsten(ii+1,jj,kk  ,ist_00p)) / (abs(fsten(ii  ,jj,kk  ,ist_p0p)) &
+           &                                   +abs(fsten(ii+1,jj,kk  ,ist_p0p)) + eps)
+      w2p = abs(fsten(ii+1,jj,kk+1,ist_00p)) / (abs(fsten(ii  ,jj,kk+1,ist_p0p)) &
+           &                                   +abs(fsten(ii+1,jj,kk+1,ist_p0p)) + eps)
+      wmm = abs(fsten(ii  ,jj,kk  ,ist_p0p)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii+1,jj,kk  ,ist_p0p)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii  ,jj,kk+1,ist_p0p)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii+1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
+      r = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_p0p_to
+
+    elemental function restrict_from_mpp_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii-1,jj+1,kk+1,ist_p00)) / &
+           &     ( abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj  ,kk+1,ist_0p0)) / &
+           &     ( abs(fsten(ii-2,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj  ,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj+1,kk  ,ist_00p)) / &
+           &     ( abs(fsten(ii-2,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-2,jj+1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj  ,kk+1,ist_pp0)) / &
+           &     ( abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj+1,kk  ,ist_p0p)) / &
+           &     ( abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj+1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii-1,jj  ,kk  ,ist_0pp)) / &
+           &     ( abs(fsten(ii-2,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) + eps)
+      r = r * abs(fsten(ii-1,jj  ,kk  ,ist_ppp)) * fsten(ii-1,jj+1,kk+1,ist_inv)
+    end function restrict_from_mpp_to
+
+    elemental function restrict_from_0pp_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r, w1m, w1p, w2m, w2p, wmm, wpm, wmp, wpp
+      w1m = abs(fsten(ii,jj  ,kk+1,ist_0p0)) / (abs(fsten(ii,jj  ,kk  ,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj  ,kk+1,ist_0pp)) + eps)
+      w1p = abs(fsten(ii,jj+1,kk+1,ist_0p0)) / (abs(fsten(ii,jj+1,kk  ,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj+1,kk+1,ist_0pp)) + eps)
+      w2m = abs(fsten(ii,jj+1,kk  ,ist_00p)) / (abs(fsten(ii,jj  ,kk  ,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj+1,kk  ,ist_0pp)) + eps)
+      w2p = abs(fsten(ii,jj+1,kk+1,ist_00p)) / (abs(fsten(ii,jj  ,kk+1,ist_0pp)) &
+           &                                   +abs(fsten(ii,jj+1,kk+1,ist_0pp)) + eps)
+      wmm = abs(fsten(ii,jj  ,kk  ,ist_0pp)) * (1.d0 + w1m + w2m)
+      wpm = abs(fsten(ii,jj+1,kk  ,ist_0pp)) * (1.d0 + w1p + w2m)
+      wmp = abs(fsten(ii,jj  ,kk+1,ist_0pp)) * (1.d0 + w1m + w2p)
+      wpp = abs(fsten(ii,jj+1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
+      r = wmm / (wmm+wpm+wmp+wpp+eps)
+    end function restrict_from_0pp_to
+
+    elemental function restrict_from_ppp_to (ii,jj,kk) result(r)
+      integer, intent(in) :: ii,jj,kk
+      real(amrex_real) :: r
+      r = 1.d0
+      r = r      + abs(fsten(ii  ,jj+1,kk+1,ist_p00)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj  ,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj  ,kk+1,ist_0p0)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj  ,kk+1,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj+1,kk  ,ist_00p)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj+1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj  ,kk+1,ist_pp0)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj  ,kk+1,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii  ,jj+1,kk  ,ist_p0p)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii  ,jj+1,kk  ,ist_ppp)) + eps)
+      r = r      + abs(fsten(ii+1,jj  ,kk  ,ist_0pp)) / &
+           &     ( abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) &
+           &     + abs(fsten(ii+1,jj  ,kk  ,ist_ppp)) + eps)
+      r = r * abs(fsten(ii  ,jj  ,kk  ,ist_ppp)) * fsten(ii+1,jj+1,kk+1,ist_inv)
+    end function restrict_from_ppp_to
+
   end subroutine amrex_mlndlap_stencil_rap
 
 
@@ -4184,101 +6357,101 @@ contains
           if (msk(i,j,k) .ne. dirichlet) then
 
              rhs(i,j,k) = facx*( &
-                  &              vel(i-1,j-1,k  ,1)*(-vfrac(i-1,j-1,k  ) &
+                  &              vel(i-1,j-1,k  ,1)*(    -vfrac(i-1,j-1,k  ) &
                   &                                  -2.d0*intg(i-1,j-1,k  ,i_S_y) &
                   &                                  +2.d0*intg(i-1,j-1,k  ,i_S_z) &
                   &                                  +4.d0*intg(i-1,j-1,k  ,i_S_y_z)) &
-                  &             +vel(i  ,j-1,k  ,1)*( vfrac(i  ,j-1,k  ) &
+                  &             +vel(i  ,j-1,k  ,1)*(     vfrac(i  ,j-1,k  ) &
                   &                                  +2.d0*intg(i  ,j-1,k  ,i_S_y) &
                   &                                  -2.d0*intg(i  ,j-1,k  ,i_S_z) &
                   &                                  -4.d0*intg(i  ,j-1,k  ,i_S_y_z)) &
-                  &             +vel(i-1,j  ,k  ,1)*(-vfrac(i-1,j  ,k  ) &
+                  &             +vel(i-1,j  ,k  ,1)*(    -vfrac(i-1,j  ,k  ) &
                   &                                  +2.d0*intg(i-1,j  ,k  ,i_S_y) &
                   &                                  +2.d0*intg(i-1,j  ,k  ,i_S_z) &
                   &                                  -4.d0*intg(i-1,j  ,k  ,i_S_y_z)) &
-                  &             +vel(i  ,j  ,k  ,1)*( vfrac(i  ,j  ,k  ) &
+                  &             +vel(i  ,j  ,k  ,1)*(     vfrac(i  ,j  ,k  ) &
                   &                                  -2.d0*intg(i  ,j  ,k  ,i_S_y) &
                   &                                  -2.d0*intg(i  ,j  ,k  ,i_S_z) &
                   &                                  +4.d0*intg(i  ,j  ,k  ,i_S_y_z)) &
-                  &             +vel(i-1,j-1,k-1,1)*(-vfrac(i-1,j-1,k-1) &
+                  &             +vel(i-1,j-1,k-1,1)*(    -vfrac(i-1,j-1,k-1) &
                   &                                  -2.d0*intg(i-1,j-1,k-1,i_S_y) &
                   &                                  -2.d0*intg(i-1,j-1,k-1,i_S_z) &
                   &                                  -4.d0*intg(i-1,j-1,k-1,i_S_y_z)) &
-                  &             +vel(i  ,j-1,k-1,1)*( vfrac(i  ,j-1,k-1) &
+                  &             +vel(i  ,j-1,k-1,1)*(     vfrac(i  ,j-1,k-1) &
                   &                                  +2.d0*intg(i  ,j-1,k-1,i_S_y) &
                   &                                  +2.d0*intg(i  ,j-1,k-1,i_S_z) &
                   &                                  +4.d0*intg(i  ,j-1,k-1,i_S_y_z)) &
-                  &             +vel(i-1,j  ,k-1,1)*(-vfrac(i-1,j  ,k-1) &
+                  &             +vel(i-1,j  ,k-1,1)*(    -vfrac(i-1,j  ,k-1) &
                   &                                  +2.d0*intg(i-1,j  ,k-1,i_S_y) &
                   &                                  -2.d0*intg(i-1,j  ,k-1,i_S_z) &
                   &                                  +4.d0*intg(i-1,j  ,k-1,i_S_y_z)) &
-                  &             +vel(i  ,j  ,k-1,1)*( vfrac(i  ,j  ,k-1) &
+                  &             +vel(i  ,j  ,k-1,1)*(     vfrac(i  ,j  ,k-1) &
                   &                                  -2.d0*intg(i  ,j  ,k-1,i_S_y) &
                   &                                  +2.d0*intg(i  ,j  ,k-1,i_S_z) &
                   &                                  -4.d0*intg(i  ,j  ,k-1,i_S_y_z)) ) &
                   &     + facy*( &
-                  &              vel(i-1,j-1,k  ,2)*(-vfrac(i-1,j-1,k  ) &
+                  &              vel(i-1,j-1,k  ,2)*(    -vfrac(i-1,j-1,k  ) &
                   &                                  -2.d0*intg(i-1,j-1,k  ,i_S_x) &
                   &                                  +2.d0*intg(i-1,j-1,k  ,i_S_z) &
                   &                                  +4.d0*intg(i-1,j-1,k  ,i_S_x_z)) &
-                  &             +vel(i  ,j-1,k  ,2)*(-vfrac(i  ,j-1,k  ) &
+                  &             +vel(i  ,j-1,k  ,2)*(    -vfrac(i  ,j-1,k  ) &
                   &                                  +2.d0*intg(i  ,j-1,k  ,i_S_x) &
                   &                                  +2.d0*intg(i  ,j-1,k  ,i_S_z) &
                   &                                  -4.d0*intg(i  ,j-1,k  ,i_S_x_z)) &
-                  &             +vel(i-1,j  ,k  ,2)*( vfrac(i-1,j  ,k  ) &
+                  &             +vel(i-1,j  ,k  ,2)*(     vfrac(i-1,j  ,k  ) &
                   &                                  +2.d0*intg(i-1,j  ,k  ,i_S_x) &
                   &                                  -2.d0*intg(i-1,j  ,k  ,i_S_z) &
                   &                                  -4.d0*intg(i-1,j  ,k  ,i_S_x_z)) &
-                  &             +vel(i  ,j  ,k  ,2)*( vfrac(i  ,j  ,k  ) &
+                  &             +vel(i  ,j  ,k  ,2)*(     vfrac(i  ,j  ,k  ) &
                   &                                  -2.d0*intg(i  ,j  ,k  ,i_S_x) &
                   &                                  -2.d0*intg(i  ,j  ,k  ,i_S_z) &
                   &                                  +4.d0*intg(i  ,j  ,k  ,i_S_x_z)) &
-                  &             +vel(i-1,j-1,k-1,2)*(-vfrac(i-1,j-1,k-1) &
+                  &             +vel(i-1,j-1,k-1,2)*(    -vfrac(i-1,j-1,k-1) &
                   &                                  -2.d0*intg(i-1,j-1,k-1,i_S_x) &
                   &                                  -2.d0*intg(i-1,j-1,k-1,i_S_z) &
                   &                                  -4.d0*intg(i-1,j-1,k-1,i_S_x_z)) &
-                  &             +vel(i  ,j-1,k-1,2)*(-vfrac(i  ,j-1,k-1) &
+                  &             +vel(i  ,j-1,k-1,2)*(    -vfrac(i  ,j-1,k-1) &
                   &                                  +2.d0*intg(i  ,j-1,k-1,i_S_x) &
                   &                                  -2.d0*intg(i  ,j-1,k-1,i_S_z) &
                   &                                  +4.d0*intg(i  ,j-1,k-1,i_S_x_z)) &
-                  &             +vel(i-1,j  ,k-1,2)*( vfrac(i-1,j  ,k-1) &
+                  &             +vel(i-1,j  ,k-1,2)*(     vfrac(i-1,j  ,k-1) &
                   &                                  +2.d0*intg(i-1,j  ,k-1,i_S_x) &
                   &                                  +2.d0*intg(i-1,j  ,k-1,i_S_z) &
                   &                                  +4.d0*intg(i-1,j  ,k-1,i_S_x_z)) &
-                  &             +vel(i  ,j  ,k-1,2)*( vfrac(i  ,j  ,k-1) &
+                  &             +vel(i  ,j  ,k-1,2)*(     vfrac(i  ,j  ,k-1) &
                   &                                  -2.d0*intg(i  ,j  ,k-1,i_S_x) &
                   &                                  +2.d0*intg(i  ,j  ,k-1,i_S_z) &
                   &                                  -4.d0*intg(i  ,j  ,k-1,i_S_x_z)) ) &
                   &     + facz*( &
-                  &              vel(i-1,j-1,k  ,3)*( vfrac(i-1,j-1,k  ) &
+                  &              vel(i-1,j-1,k  ,3)*(     vfrac(i-1,j-1,k  ) &
                   &                                  +2.d0*intg(i-1,j-1,k  ,i_S_x) &
                   &                                  +2.d0*intg(i-1,j-1,k  ,i_S_y) &
                   &                                  +4.d0*intg(i-1,j-1,k  ,i_S_x_y)) &
-                  &             +vel(i  ,j-1,k  ,3)*( vfrac(i  ,j-1,k  ) &
+                  &             +vel(i  ,j-1,k  ,3)*(     vfrac(i  ,j-1,k  ) &
                   &                                  -2.d0*intg(i  ,j-1,k  ,i_S_x) &
                   &                                  +2.d0*intg(i  ,j-1,k  ,i_S_y) &
                   &                                  -4.d0*intg(i  ,j-1,k  ,i_S_x_y)) &
-                  &             +vel(i-1,j  ,k  ,3)*( vfrac(i-1,j  ,k  ) &
+                  &             +vel(i-1,j  ,k  ,3)*(     vfrac(i-1,j  ,k  ) &
                   &                                  +2.d0*intg(i-1,j  ,k  ,i_S_x) &
                   &                                  -2.d0*intg(i-1,j  ,k  ,i_S_y) &
                   &                                  -4.d0*intg(i-1,j  ,k  ,i_S_x_y)) &
-                  &             +vel(i  ,j  ,k  ,3)*( vfrac(i  ,j  ,k  ) &
+                  &             +vel(i  ,j  ,k  ,3)*(     vfrac(i  ,j  ,k  ) &
                   &                                  -2.d0*intg(i  ,j  ,k  ,i_S_x) &
                   &                                  -2.d0*intg(i  ,j  ,k  ,i_S_y) &
                   &                                  +4.d0*intg(i  ,j  ,k  ,i_S_x_y)) &
-                  &             +vel(i-1,j-1,k-1,3)*(-vfrac(i-1,j-1,k-1) &
+                  &             +vel(i-1,j-1,k-1,3)*(    -vfrac(i-1,j-1,k-1) &
                   &                                  -2.d0*intg(i-1,j-1,k-1,i_S_x) &
                   &                                  -2.d0*intg(i-1,j-1,k-1,i_S_y) &
                   &                                  -4.d0*intg(i-1,j-1,k-1,i_S_x_y)) &
-                  &             +vel(i  ,j-1,k-1,3)*(-vfrac(i  ,j-1,k-1) &
+                  &             +vel(i  ,j-1,k-1,3)*(    -vfrac(i  ,j-1,k-1) &
                   &                                  +2.d0*intg(i  ,j-1,k-1,i_S_x) &
                   &                                  -2.d0*intg(i  ,j-1,k-1,i_S_y) &
                   &                                  +4.d0*intg(i  ,j-1,k-1,i_S_x_y)) &
-                  &             +vel(i-1,j  ,k-1,3)*(-vfrac(i-1,j  ,k-1) &
+                  &             +vel(i-1,j  ,k-1,3)*(    -vfrac(i-1,j  ,k-1) &
                   &                                  -2.d0*intg(i-1,j  ,k-1,i_S_x) &
                   &                                  +2.d0*intg(i-1,j  ,k-1,i_S_y) &
                   &                                  +4.d0*intg(i-1,j  ,k-1,i_S_x_y)) &
-                  &             +vel(i  ,j  ,k-1,3)*(-vfrac(i  ,j  ,k-1) &
+                  &             +vel(i  ,j  ,k-1,3)*(    -vfrac(i  ,j  ,k-1) &
                   &                                  +2.d0*intg(i  ,j  ,k-1,i_S_x) &
                   &                                  +2.d0*intg(i  ,j  ,k-1,i_S_y) &
                   &                                  -4.d0*intg(i  ,j  ,k-1,i_S_x_y)) )

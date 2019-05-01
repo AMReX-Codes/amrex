@@ -20,6 +20,10 @@
 
 namespace amrex {
 
+enum class BottomSolver : int {
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
+};
+
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
@@ -133,7 +137,9 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
-    virtual int getNComp() const { return 1; }
+    virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+
+    virtual int getNComp () const { return 1; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
@@ -169,7 +175,6 @@ public:
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
     virtual void prepareForSolve () = 0;
-    virtual void prepareForSolve (MLMG* mlmg) { prepareForSolve(); }
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
@@ -207,11 +212,7 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
-#ifdef AMREX_USE_EB
-    static constexpr int mg_box_min_width = 4;
-#else
     static constexpr int mg_box_min_width = 2;
-#endif
 
     LPInfo info;
 

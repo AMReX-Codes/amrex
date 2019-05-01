@@ -3,6 +3,7 @@
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_MLCGSolver.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
@@ -24,7 +25,7 @@ public:
     using BCMode = MLLinOp::BCMode;
     using Location = MLLinOp::Location;
 
-    enum class BottomSolver : int { smoother, bicgstab, cg, hypre, petsc };
+    using BottomSolver = amrex::BottomSolver;
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -139,6 +140,8 @@ public:
 
     void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 
+    int bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type);
+
 private:
 
     int verbose = 1;
@@ -152,7 +155,7 @@ private:
 
     int max_fmg_iters = 0;
 
-    BottomSolver bottom_solver = BottomSolver::bicgstab;
+    BottomSolver bottom_solver = BottomSolver::Default;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
     Real bottom_reltol         = 1.e-4;

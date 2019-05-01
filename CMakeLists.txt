@@ -69,7 +69,10 @@ add_subdirectory(Src)
 #
 # Tutorials and "test_install" target
 #
-add_subdirectory(Tutorials)
+option(ENABLE_TUTORIALS "Enable Tutorials" ON)
 
+if (ENABLE_TUTORIALS)
+   add_subdirectory(Tutorials)
+endif ()
 
 

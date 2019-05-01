@@ -47,7 +47,7 @@ MyTest::solve ()
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory), use_hypre);
+    MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
 
     if (sigma) {
         mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
@@ -78,6 +78,10 @@ MyTest::solve ()
     mlmg.setBottomVerbose(bottom_verbose);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
+
+#ifdef AMREX_USE_HYPRE
+    if (use_hypre) mlmg.setBottomSolver(BottomSolver::hypre);
+#endif
 
     Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
                                1.e-11, 0.0);
