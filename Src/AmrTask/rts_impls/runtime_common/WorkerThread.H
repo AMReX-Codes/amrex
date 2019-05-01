@@ -8,7 +8,7 @@ namespace perilla{
 
     class WorkerThread
     {
-	static void* team_shared_memory[perilla::NUM_THREAD_TEAMS];  
+	//static void* team_shared_memory[perilla::NUM_THREAD_TEAMS];  
         int tid;
 	public:
         static void init();
@@ -49,8 +49,8 @@ namespace perilla{
     static bool isMasterThread(){return WorkerThread::perilla_isMasterThread();}
     static bool isCommunicationThread(){return WorkerThread::perilla_isCommunicationThread();}
     static bool isMyRegion(int workerID, int regionID){return WorkerThread::isMyRegion(workerID, regionID);}
-    static void setTeamSharedMemory(void* dummy, int tid, int tg){WorkerThread::setTeamSharedMemory(dummy, tid, tg);}
-    static void* getTeamSharedMemory(int tg){WorkerThread::getTeamSharedMemory(tg);}
+    //static void setTeamSharedMemory(void* dummy, int tid, int tg){WorkerThread::setTeamSharedMemory(dummy, tid, tg);}
+    //static void* getTeamSharedMemory(int tg){WorkerThread::getTeamSharedMemory(tg);}
     static void syncWorkers(){WorkerThread::syncWorkers();}
     static void syncThreads(){WorkerThread::syncThreads();}
     static void syncComputeThreads(){WorkerThread::syncComputeThreads();}
