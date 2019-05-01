@@ -17,6 +17,10 @@ class SpectralBaseAlgorithm
         // Member function that updates the fields in spectral space ;
         // meant to be overridden in subclasses
         virtual void pushSpectralFields(SpectralFieldData& f) const = 0;
+        // The destructor should also be a virtual function, so that
+        // a pointer to subclass of `SpectraBaseAlgorithm` actually
+        // calls the subclass's destructor.
+        virtual ~SpectralBaseAlgorithm() {};
 
     protected: // Meant to be used in the subclasses
 
