@@ -49,9 +49,7 @@ public:
     */
     explicit TagBox (const Box& bx, int n = 1, bool alloc = true, bool shared = false);
 
-#ifdef AMREX_USE_GPU
-    TagBox (const TagBox& rhs, MakeType make_type);
-#endif
+    TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp);
 
     ~TagBox () = default;
 

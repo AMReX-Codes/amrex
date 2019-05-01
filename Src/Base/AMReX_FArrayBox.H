@@ -216,10 +216,6 @@ public:
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
-#ifdef AMREX_USE_GPU
-    FArrayBox (const FArrayBox& rhs, MakeType make_type);
-#endif
-
     FArrayBox (const Box& b, int ncomp, Real* p) noexcept;
 
     //!  The destructor.

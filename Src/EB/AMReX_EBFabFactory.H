@@ -38,8 +38,8 @@ public:
     virtual void destroy (FArrayBox* fab) const final;
 
 #ifdef AMREX_USE_GPU
-    virtual FArrayBox* createHostAlias (FArrayBox const& src) const final;
-    virtual void destroyHostAlias (FArrayBox* fab) const final;
+    virtual FArrayBox* createDeviceAlias (FArrayBox const& src) const final;
+    virtual void destroyDeviceAlias (FArrayBox* fab) const final;
 #endif
 
     virtual EBFArrayBoxFactory* clone () const final;

@@ -10,7 +10,7 @@
 #endif
 
 #ifdef AMREX_USE_EB
-#ifdef USE_ALGOIM
+#ifdef AMREX_USE_ALGOIM
 #include <AMReX_algoim_integrals.H>
 #endif
 #endif
@@ -29,10 +29,9 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
-                                  const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                                  bool a_use_hypre)
+                                  const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 #ifdef AMREX_USE_EB
@@ -40,10 +39,9 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
                                   const Vector<DistributionMapping>& a_dmap,
                                   const LPInfo& a_info,
-                                  const Vector<EBFArrayBoxFactory const*>& a_factory,
-                                  bool a_use_hypre)
+                                  const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
-    define(a_geom, a_grids, a_dmap, a_info, a_factory, a_use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 #endif
 
@@ -54,9 +52,8 @@ void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& a_info,
-                         const Vector<FabFactory<FArrayBox> const*>& a_factory,
-                         bool a_use_hypre)
+                         const LPInfo& info,
+                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
 
@@ -66,13 +63,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    LPInfo info = a_info;
-#ifdef AMREX_USE_HYPRE
-    if (a_use_hypre) {
-        m_use_hypre = a_use_hypre;
-        info.setMaxCoarseningLevel(0);
-    }
-#endif
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, info, a_factory);
 
     m_sigma.resize(m_num_amr_levels);
@@ -117,14 +107,13 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
                          const LPInfo& a_info,
-                         const Vector<EBFArrayBoxFactory const*>& a_factory,
-                         bool a_use_hypre)
+                         const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
     Vector<FabFactory<FArrayBox> const*> _factory;
     for (auto x : a_factory) {
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
-    define(a_geom, a_grids, a_dmap, a_info, _factory, a_use_hypre);
+    define(a_geom, a_grids, a_dmap, a_info, _factory);
 }
 #endif
 
@@ -1014,8 +1003,8 @@ MLNodeLaplacian::buildMasks ()
                 }
 
                 amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
-                                            BL_TO_FORTRAN_BOX(ccdom),
-                                            m_lobc.data(), m_hibc.data());
+                                          BL_TO_FORTRAN_BOX(ccdom),
+                                          m_lobc.data(), m_hibc.data());
             }
         }
 
@@ -1211,15 +1200,18 @@ MLNodeLaplacian::buildStencil ()
                                                   dxinv);
                     }
                 }
+            }
 
-                for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
                     
-                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(stfab));
-                }
+                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(stfab));
             }
 
             m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
@@ -1242,26 +1234,26 @@ MLNodeLaplacian::buildStencil ()
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
             {
-                for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
-                {
-                    Box vbx = mfi.validbox();
-                    AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
-                    Box bx = mfi.growntilebox(1);
-                    bx &= vbx;
-                    amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(fine[mfi]));
-                }
+                Box vbx = mfi.validbox();
+                AMREX_D_TERM(vbx.growLo(0,1);, vbx.growLo(1,1);, vbx.growLo(2,1));
+                Box bx = mfi.growntilebox(1);
+                bx &= vbx;
+                amrex_mlndlap_stencil_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine[mfi]));
+            }
 
-                for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    FArrayBox& stfab = (*pcrse)[mfi];
-                    
-                    amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                                 BL_TO_FORTRAN_ANYD(stfab));
-                }
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                FArrayBox& stfab = (*pcrse)[mfi];
+                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(stfab));
             }
 
             if (need_parallel_copy) {
@@ -1291,18 +1283,6 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
                                      BL_TO_FORTRAN_ANYD(resmsk[mfi]),
                                      BL_TO_FORTRAN_ANYD(cfmask[mfi]));
     }
-}
-
-void
-MLNodeLaplacian::prepareForSolve (MLMG* mlmg)
-{
-#ifdef AMREX_USE_HYPRE
-    if (m_use_hypre) {
-        mlmg->setBottomSolver(MLMG::BottomSolver::hypre);
-        setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
-    }
-#endif
-    prepareForSolve();
 }
 
 void
@@ -2308,13 +2288,10 @@ MLNodeLaplacian::buildIntegral ()
         }
     }
 #else
-#ifdef USE_ALGOIM
+#ifdef AMREX_USE_ALGOIM
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        MultiFab* intg = m_integral[amrlev].get();
-        amrex::compute_integrals(intg);
-        const Geometry& geom = m_geom[amrlev][0];
-        intg->FillBoundary(geom.periodicity());
+        amrex::compute_integrals(*m_integral[amrlev]);
     }
 #else
     amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");

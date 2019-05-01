@@ -1,2 +1,5 @@
 CEXE_sources += AMReX_algoim_integrals.cpp
 CEXE_headers += AMReX_algoim_integrals.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/Algoim
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/Algoim

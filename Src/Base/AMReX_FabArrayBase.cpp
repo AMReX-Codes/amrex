@@ -13,6 +13,7 @@
 #endif
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>
 #endif
 
@@ -1062,7 +1063,12 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 			      const Box&          dstdomain,
 			      const IntVect&      dstng,
 			      const BoxConverter& coarsener,
+#ifdef AMREX_USE_EB
+                              const Box&          cdomain,
+                              const EB2::IndexSpace* index_space)
+#else
                               const Box&          cdomain)
+#endif
     : m_srcbdk   (srcfa.getBDKey()),
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
@@ -1071,7 +1077,6 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
       m_nuse     (0)
 { 
     BL_PROFILE("FPinfo::FPinfo()");
-
     const BoxArray& srcba = srcfa.boxArray();
     const BoxArray& dstba = dstfa.boxArray();
     BL_ASSERT(srcba.ixType() == dstba.ixType());
@@ -1090,32 +1095,36 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     for (int i = 0, N = dstba.size(); i < N; ++i)
     {
-	Box bx = dstba[i];
-	bx.grow(m_dstng);
-	bx &= m_dstdomain;
+        Box bx = dstba[i];
+        bx.grow(m_dstng);
+        bx &= m_dstdomain;
 
-	BoxList leftover = srcba.complementIn(bx);
+        BoxList leftover = srcba.complementIn(bx);
 
-	bool ismybox = (dstdm[i] == myproc);
-	for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
-	{
-	    bl.push_back(m_coarsener->doit(*bli));
-	    if (ismybox) {
-		dst_boxes.push_back(*bli);
-		dst_idxs.push_back(i);
-	    }
-	    iprocs.push_back(dstdm[i]);
-	}
+        bool ismybox = (dstdm[i] == myproc);
+        for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
+        {
+            bl.push_back(m_coarsener->doit(*bli));
+            if (ismybox) {
+                dst_boxes.push_back(*bli);
+                dst_idxs.push_back(i);
+            }
+            iprocs.push_back(dstdm[i]);
+        }
     }
 
     if (!iprocs.empty()) {
-	ba_crse_patch.define(bl);
-	dm_crse_patch.define(std::move(iprocs));
+        ba_crse_patch.define(bl);
+        dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
-        fact_crse_patch = makeEBFabFactory(Geometry(cdomain),
-                                           ba_crse_patch,
-                                           dm_crse_patch,
-                                           {0,0,0}, EBSupport::basic);
+        if (index_space) {
+                fact_crse_patch = makeEBFabFactory(index_space, Geometry(cdomain),
+                                               ba_crse_patch,
+                                               dm_crse_patch,
+                                               {0,0,0}, EBSupport::basic);
+        } else {
+                fact_crse_patch.reset(new FArrayBoxFactory());
+        }
 #else
         fact_crse_patch.reset(new FArrayBoxFactory());
 #endif
@@ -1138,11 +1147,16 @@ FabArrayBase::FPinfo::bytes () const
 
 const FabArrayBase::FPinfo&
 FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
-			 const FabArrayBase& dstfa,
-			 const Box&          dstdomain,
-			 const IntVect&      dstng,
-			 const BoxConverter& coarsener,
+                         const FabArrayBase& dstfa,
+                         const Box&          dstdomain,
+                         const IntVect&      dstng,
+                         const BoxConverter& coarsener,
+#ifdef AMREX_USE_EB
+                         const Box&          cdomain,
+                         const EB2::IndexSpace* index_space)
+#else 
                          const Box&          cdomain)
+#endif
 {
     BL_PROFILE("FabArrayBase::TheFPinfo()");
 
@@ -1167,7 +1181,12 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     }
 
     // Have to build a new one
+#ifdef AMREX_USE_EB
+    FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain, index_space);
+#else
     FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain);
+#endif
+
 
 #ifdef BL_MEM_PROFILING
     m_FPinfo_stats.bytes += new_fpc->bytes();

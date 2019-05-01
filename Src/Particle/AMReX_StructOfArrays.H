@@ -16,7 +16,16 @@ struct StructOfArrays {
     using IntVector = Gpu::ManagedDeviceVector<int>;    
 
     StructOfArrays()
-        : m_num_neighbor_particles(0) {}
+        : m_num_neighbor_particles(0),
+          m_defined(false)
+        {}
+
+    void define(int a_num_runtime_real, int a_num_runtime_int)
+    {
+        m_defined = true;
+        m_runtime_rdata.resize(a_num_runtime_real);
+        m_runtime_idata.resize(a_num_runtime_int );
+    }
     
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
@@ -25,23 +34,39 @@ struct StructOfArrays {
     const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
     RealVector& GetRealData (const int index) {
-        AMREX_ASSERT(index < NReal);
-        return m_rdata[index];
+        AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
+        if (index < NReal) return m_rdata[index];
+        else {
+            AMREX_ASSERT(m_defined);
+            return m_runtime_rdata[index - NReal];
+        }
     }
     
     const RealVector& GetRealData (const int index) const {
-        AMREX_ASSERT(index < NReal);
-        return m_rdata[index];
+        AMREX_ASSERT(index < NReal + m_runtime_rdata.size());
+        if (index < NReal) return m_rdata[index];
+        else {
+            AMREX_ASSERT(m_defined);
+            return m_runtime_rdata[index - NReal];
+        }
     }
 
     IntVector& GetIntData (const int index) {
-        AMREX_ASSERT(index < NInt);
-        return m_idata[index];
-    }
+        AMREX_ASSERT(index < NInt + m_runtime_idata.size());
+        if (index < NInt) return m_idata[index];
+        else {
+            AMREX_ASSERT(m_defined);
+            return m_runtime_idata[index - NInt];
+        }
+   }
     
     const IntVector& GetIntData (const int index) const {
-        AMREX_ASSERT(index < NInt);
-        return m_idata[index];
+        AMREX_ASSERT(index < NInt + m_runtime_idata.size());
+        if (index < NInt) return m_idata[index];
+        else {
+            AMREX_ASSERT(m_defined);
+            return m_runtime_idata[index - NInt];
+        }
     }
 
     /**
@@ -54,6 +79,10 @@ struct StructOfArrays {
             return m_rdata[0].size();
         else if (NInt > 0) 
             return m_idata[0].size();
+        else if (m_runtime_rdata.size() > 0)
+            return m_runtime_rdata[0].size();
+        else if (m_runtime_idata.size() > 0)
+            return m_runtime_idata[0].size();
         else
             return 0;
     }
@@ -95,6 +124,8 @@ struct StructOfArrays {
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
         for (int i = 0; i < NInt;  ++i) m_idata[i].resize(count); 
+        for (int i = 0; i < (int) m_runtime_rdata.size(); ++i) m_runtime_rdata[i].resize(count);
+        for (int i = 0; i < (int) m_runtime_idata.size(); ++i) m_runtime_idata[i].resize(count);
     }
 
     GpuArray<Real*, NReal> realarray ()
@@ -121,7 +152,12 @@ struct StructOfArrays {
 
 private:
     std::array<RealVector, NReal> m_rdata;
-    std::array< IntVector,  NInt> m_idata;    
+    std::array< IntVector,  NInt> m_idata;
+
+    std::vector<RealVector> m_runtime_rdata;
+    std::vector<IntVector > m_runtime_idata;
+    
+    bool m_defined;
 };
 
 } // namespace amrex

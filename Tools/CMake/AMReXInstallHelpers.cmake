@@ -6,7 +6,7 @@ function ( generate_amrex_config_header )
    get_target_property(_defines amrex COMPILE_DEFINITIONS)
    evaluate_genex(_defines _defines_list )
 
-   set(_config_fname "${CMAKE_BINARY_DIR}/AMReX_Config.H")
+   set(_config_fname "${CMAKE_CURRENT_BINARY_DIR}/AMReX_Config.H")
 
    file(WRITE  "${_config_fname}" "#ifndef AMREX_CONFIG_H_\n")
    file(APPEND "${_config_fname}" "#define AMREX_CONFIG_H_\n" )
@@ -60,14 +60,25 @@ endfunction ()
 
 #
 # Manage AMReX installation process
+# Extra arguments are the targets to install
 #
 function (install_amrex)
+
+   # Check if the given arguments are vvalid targets
+   set(_targets amrex)
+   foreach (_arg IN LISTS ARGV)
+      if (TARGET ${_arg})
+         set(_targets ${_targets} ${_arg})
+      else ()
+         message(WARNING "Target ${_arg} does not exist: skipping installation")
+      endif ()
+   endforeach ()
    
    # Write and install configure file 
    include(CMakePackageConfigHelpers)
 
    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
-      ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
+      ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
       INSTALL_DESTINATION bin/cmake/AMReX )
 
 
@@ -80,23 +91,25 @@ function (install_amrex)
       string(SUBSTRING "${_pkg_version}" 0 "${_idx}" _pkg_version )
       string(REPLACE "-" "." _pkg_version "${_pkg_version}")
    endif ()
-   
-   write_basic_package_version_file( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+
+   write_basic_package_version_file( ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
       VERSION ${_pkg_version}
       COMPATIBILITY AnyNewerVersion )
 
    install( FILES
-      ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
-      ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+      ${PROJECT_BINARY_DIR}/export/AMReXConfig.cmake
+      ${PROJECT_BINARY_DIR}/export/AMReXConfigVersion.cmake
       DESTINATION lib/cmake/AMReX ) 
 
    # Setup for target amrex installation
-   install( TARGETS amrex
+   install(
+      TARGETS       ${_targets}
       EXPORT        AMReXTargets
       ARCHIVE       DESTINATION lib 
       LIBRARY       DESTINATION lib 
       INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
-      PUBLIC_HEADER DESTINATION include )
+      PUBLIC_HEADER DESTINATION include
+      )
 
    # Setup for export AMReXtargets installation
    install( EXPORT AMReXTargets
@@ -107,9 +120,9 @@ function (install_amrex)
    get_target_property(_mod_dir amrex Fortran_MODULE_DIRECTORY )
    install( DIRECTORY ${_mod_dir}/ DESTINATION include ) # Trailing backslash is crucial here!
 
-   # This header in a weird path has to be copied to install includes
-   install( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
-      DESTINATION include )
+   # # This header in a weird path has to be copied to install includes
+   # install( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
+   #    DESTINATION include )
 
    # Generate config header
    generate_amrex_config_header()

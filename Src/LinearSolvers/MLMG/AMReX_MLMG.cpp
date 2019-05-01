@@ -1,7 +1,6 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_MLMG_F.H>
 #include <AMReX_MLMG_K.H>
@@ -58,6 +57,10 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
     if (checkpoint_file != nullptr) {
         checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
+    }
+
+    if (bottom_solver == BottomSolver::Default) {
+        bottom_solver = linop.getDefaultBottomSolver();
     }
 
     if (bottom_solver == BottomSolver::hypre) {
@@ -863,7 +866,7 @@ MLMG::actualBottomSolve ()
     if (bottom_solver == BottomSolver::smoother)
     {
 
-      bool skip_fillboundary = true;
+        bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
             linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
             skip_fillboundary = false;
@@ -885,7 +888,7 @@ MLMG::actualBottomSolve ()
 
         if (bottom_solver == BottomSolver::hypre)
         {
-          bottomSolveWithHypre(x, *bottom_b);
+            bottomSolveWithHypre(x, *bottom_b);
         }
         else if (bottom_solver == BottomSolver::petsc)
         {
@@ -893,25 +896,37 @@ MLMG::actualBottomSolve ()
         }
         else
         {
-            MLCGSolver cg_solver(this, linop);
-            if (bottom_solver == BottomSolver::bicgstab) {
-                cg_solver.setSolver(MLCGSolver::Type::BiCGStab);
-            } else if (bottom_solver == BottomSolver::cg) {
-                cg_solver.setSolver(MLCGSolver::Type::CG);
+            MLCGSolver::Type cg_type;
+            if (bottom_solver == BottomSolver::cg ||
+                bottom_solver == BottomSolver::cgbicg) {
+                cg_type = MLCGSolver::Type::CG;
+            } else {
+                cg_type = MLCGSolver::Type::BiCGStab;
             }
-            cg_solver.setVerbose(bottom_verbose);
-            cg_solver.setMaxIter(bottom_maxiter);
-            
-            const Real cg_rtol = bottom_reltol;
-            const Real cg_atol = -1.0;
-            int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
-            if (ret != 0 && verbose > 1) {
-                amrex::Print() << "MLMG: Bottom solve failed.\n";
-            }
+            int ret = bottomSolveWithCG(x, *bottom_b, cg_type);
             // If the MLMG solve failed then set the correction to zero 
-            if (ret != 0)
+            if (ret != 0) {
                 cor[amrlev][mglev]->setVal(0.0);
-            const int n = ret==0 ? nub : nuf;
+                if (bottom_solver == BottomSolver::cgbicg ||
+                    bottom_solver == BottomSolver::bicgcg) {
+                    if (bottom_solver == BottomSolver::cgbicg) {
+                        cg_type = MLCGSolver::Type::BiCGStab; // switch to bicg
+                    } else {
+                        cg_type = MLCGSolver::Type::CG; // switch to cg
+                    }
+                    ret = bottomSolveWithCG(x, *bottom_b, cg_type);
+                    if (ret != 0) {
+                        cor[amrlev][mglev]->setVal(0.0);
+                    } else { // switch permanently
+                        if (cg_type == MLCGSolver::Type::CG) {
+                            bottom_solver = BottomSolver::cg;
+                        } else {
+                            bottom_solver = BottomSolver::bicgstab;
+                        }
+                    }
+                }
+            }
+            const int n = (ret==0) ? nub : nuf;
             for (int i = 0; i < n; ++i) {
                 linop.smooth(amrlev, mglev, x, b);
             }
@@ -921,6 +936,23 @@ MLMG::actualBottomSolve ()
     ParallelContext::pop();
 
     timer[bottom_time] += amrex::second() - bottom_start_time;
+}
+
+int
+MLMG::bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type)
+{
+    MLCGSolver cg_solver(this, linop);
+    cg_solver.setSolver(type);
+    cg_solver.setVerbose(bottom_verbose);
+    cg_solver.setMaxIter(bottom_maxiter);
+
+    const Real cg_rtol = bottom_reltol;
+    const Real cg_atol = -1.0;
+    int ret = cg_solver.solve(x, b, cg_rtol, cg_atol);
+    if (ret != 0 && verbose > 1) {
+        amrex::Print() << "MLMG: Bottom solve failed.\n";
+    }
+    return ret;
 }
 
 // Compute single-level masked inf-norm of Residual (res).
@@ -1062,7 +1094,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     const int ncomp = linop.getNComp();
 
     if (!linop_prepared) {
-        linop.prepareForSolve(this);
+        linop.prepareForSolve();
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();

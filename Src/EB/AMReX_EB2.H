@@ -28,11 +28,11 @@ public:
     virtual ~IndexSpace() {}
 
     static void push (IndexSpace* ispace) { m_instance.emplace_back(ispace); }
-    static void pop () { m_instance.pop_back(); }
-    static void clear () { m_instance.clear(); }
+    static void pop () noexcept { m_instance.pop_back(); }
+    static void clear () noexcept { m_instance.clear(); }
     static const IndexSpace& top () { return *(m_instance.back()); }
-    static bool empty () { return m_instance.empty(); }
-    static int size () { return m_instance.size(); }
+    static bool empty () noexcept { return m_instance.empty(); }
+    static int size () noexcept { return m_instance.size(); }
 
     virtual const Level& getLevel (const Geometry & geom) const = 0;
     virtual const Box& coarsestDomain () const = 0;
@@ -40,6 +40,8 @@ public:
 protected:
     static Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
+
+const IndexSpace* TopIndexSpaceIfPresent() noexcept;
 
 template <typename G>
 class IndexSpaceImp

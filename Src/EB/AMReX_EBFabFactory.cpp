@@ -28,45 +28,17 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_support == EBSupport::none)
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);
+        return ::new FArrayBox(box, ncomps, info.alloc, info.shared);
     }
     else
     {
         const EBCellFlagFab& ebcellflag = m_ebdc->getMultiEBCellFlagFab()[box_index];
-        return new EBFArrayBox(ebcellflag, box, ncomps);
+        return ::new EBFArrayBox(ebcellflag, box, ncomps);
     }
 }
 
 void
 EBFArrayBoxFactory::destroy (FArrayBox* fab) const
-{
-    if (m_support == EBSupport::none)
-    {
-        delete fab;
-    }
-    else
-    {
-        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
-        delete p;
-    }
-}
-
-#ifdef AMREX_USE_GPU
-FArrayBox*
-EBFArrayBoxFactory::createHostAlias (const FArrayBox& src) const
-{
-    if (m_support == EBSupport::none)
-    {
-        return ::new FArrayBox(src, amrex::make_alias);
-    }
-    else
-    {
-        return ::new EBFArrayBox(static_cast<EBFArrayBox const&>(src), amrex::make_alias);
-    }
-}
-
-void
-EBFArrayBoxFactory::destroyHostAlias (FArrayBox* fab) const
 {
     if (m_support == EBSupport::none)
     {
@@ -76,6 +48,34 @@ EBFArrayBoxFactory::destroyHostAlias (FArrayBox* fab) const
     {
         EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
         ::delete p;
+    }
+}
+
+#ifdef AMREX_USE_GPU
+FArrayBox*
+EBFArrayBoxFactory::createDeviceAlias (const FArrayBox& src) const
+{
+    if (m_support == EBSupport::none)
+    {
+        return new FArrayBox(src, amrex::make_alias, 0, src.nComp());
+    }
+    else
+    {
+        return new EBFArrayBox(static_cast<EBFArrayBox const&>(src), amrex::make_alias, 0, src.nComp());
+    }
+}
+
+void
+EBFArrayBoxFactory::destroyDeviceAlias (FArrayBox* fab) const
+{
+    if (m_support == EBSupport::none)
+    {
+        delete fab;
+    }
+    else
+    {
+        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
+        delete p;
     }
 }
 #endif
