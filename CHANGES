@@ -1,3 +1,27 @@
+# 19.05
+
+  -- Interface of virtual function Interpolater::interp has changed.
+
+  -- Add Fortran funcntions for shared memory reductions.
+
+  -- EB nodal linear solver: The default bottom solver is now bicgcg.
+     It starts with bicgstab and switches cg if bicgstab fails.
+
+  -- EB nodal linear solver: Finished the implementation of matrix
+     coarsening with RAP.
+
+  -- Particle: Option for adding runtime struct of array components.
+
+  -- Add a trilinear interpolation option for 3D.
+
+  -- Add more support for non-uniform grow vectors to MultiFab and
+     FabArray.
+
+  -- AmrMesh: n_error_buf is now IntVect.  This allows for different
+     number of error buffer cells in different directions.
+
+  -- Using PETSc as bottom solver no longer requires Hypre.
+ 
 # 19.04
 
   -- SUNDIALS 4 support.
