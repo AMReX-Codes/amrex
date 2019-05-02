@@ -86,7 +86,7 @@ set(AMREX_ENABLE_HYPRE              @ENABLE_HYPRE@)
 # Find dependencies if needed
 #
 if (AMREX_ENABLE_MPI)
-   set( _mpi_components CXX )
+   set( _mpi_components "C" )
    if (AMREX_ENABLE_FORTRAN_INTERFACES)
          set( _mpi_components "${_mpi_components} Fortran" )
    endif ()
