@@ -1,0 +1,348 @@
+#ifndef AMREX_PODVECTOR_H_
+#define AMREX_PODVECTOR_H_
+
+#include <type_traits>
+#include <utility>
+#include <memory>
+#include <cstring>
+
+namespace amrex
+{
+    template <class T, class Allocator = std::allocator<T> >
+	class PODVector : public Allocator
+	{
+			
+		static_assert(std::is_standard_layout<T>(), "PODVector can only hold standard layout types");
+		static_assert(std::is_trivial<T>(), "PODVector can only hold trivial types");
+            
+		using Allocator::allocate;
+		using Allocator::deallocate;
+            
+	public:
+            
+		typedef T value_type;
+		typedef Allocator allocator_type;
+		typedef std::size_t size_t;
+		typedef std::size_t size_type;
+		typedef std::ptrdiff_t difference_type;
+    
+		typedef T& reference;
+		typedef T* pointer;
+		typedef T* iterator;
+		typedef std::reverse_iterator<iterator> reverse_iterator;
+    
+		typedef const T& const_reference;
+		typedef const T* const_pointer;
+		typedef const T* const_iterator;
+		typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+
+	private:
+	
+		pointer m_data;
+		size_type m_size, m_capacity;
+
+	public:
+	
+		explicit PODVector (const allocator_type& a_allocator = Allocator()) noexcept :
+		Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0)
+		{}
+
+		explicit PODVector (size_type a_size) :
+			m_data(nullptr), m_size(0), m_capacity(0) 
+		{
+			AllocateBuffer(GetNewCapacity(a_size));
+			m_size = a_size;
+		}
+	
+		PODVector (size_type a_size, const value_type& a_value,
+				const allocator_type& a_allocator = Allocator()) :
+			Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0) 
+		{
+			AllocateBuffer(GetNewCapacity(a_size));
+			m_size = a_size;		
+			std::uninitialized_fill_n<T*, size_type>(m_data, a_size, a_value);
+		}
+	
+		PODVector (std::initializer_list<T> a_initializer_list,
+				const allocator_type& a_allocator = Allocator()) :
+			Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0) 
+		{
+			size_type size = a_initializer_list.size();
+			AllocateBuffer(GetNewCapacity(size));
+			m_size = size;
+		
+			// copy the initializer list
+			pointer dst = m_data;
+			for (const auto& value : a_initializer_list) { *(dst++) = value; }
+		}
+	
+		PODVector (const PODVector<T, Allocator>& a_vector) :
+			Allocator(a_vector), m_data(nullptr), m_size(0), m_capacity(0)
+		{
+			std::cout << "calling copy \n";
+			AllocateBuffer(a_vector.capacity());
+			m_size = a_vector.size();
+			memcpy(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
+		}
+
+		PODVector (PODVector<T, Allocator>&& a_vector) noexcept :
+		Allocator(std::move(a_vector)),
+						 m_data(a_vector.m_data),
+						 m_size(a_vector.m_size),
+						 m_capacity(a_vector.m_capacity)
+		{
+			std::cout << "calling move \n";
+			a_vector.m_data = nullptr;
+			a_vector.m_size = 0;
+			a_vector.m_capacity = 0;
+		}
+
+		PODVector (PODVector<T, Allocator>&& a_vector, const allocator_type& a_allocator) noexcept :
+		Allocator(a_allocator),
+						 m_data(a_vector.m_data),
+						 m_size(a_vector.m_size),
+						 m_capacity(a_vector.m_capacity)
+		{
+			std::cout << "calling move \n";
+			a_vector.m_data = nullptr;
+			a_vector.m_size = 0;
+			a_vector.m_capacity = 0;
+		}
+	
+		~PODVector () noexcept { deallocate(m_data, capacity()); }
+	
+		PODVector& operator= (const PODVector<T, Allocator>& a_vector)
+		{
+			return CopyAssignmentDoIt(a_vector, typename std::allocator_traits<Allocator>::
+									  propagate_on_container_copy_assignment());
+		}
+	
+		PODVector& operator= (const PODVector<T, Allocator>&& a_vector)
+		noexcept(std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
+		{
+			return MoveAssignmentDoIt(a_vector, typename std::allocator_traits<Allocator>::
+									  propagate_on_container_move_assignment());
+		}
+		
+		// need assign, insert, erase, emplace, but not sure
+		// how often we use those.
+
+		allocator_type get_allocator () const noexcept { return *this; }
+	
+		void push_back (const T& a_value)
+		{
+			if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
+			m_data[m_size] = a_value;
+			++m_size;
+		}
+
+		void push_back (T&& a_value)
+		{
+			if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
+			m_data[m_size] = std::move(a_value);
+			++m_size;
+		}
+		
+		void pop_back () { --m_size; }
+
+		void clear () { m_size = 0; }
+	
+		size_type size () const noexcept { return m_size; }
+
+		size_type max_size () const noexcept { return Allocator::max_size(); }
+	
+		size_type capacity () const noexcept { return m_capacity; }
+
+		bool empty () const noexcept { return m_size == 0; }
+	
+		T& operator[] (size_type a_index) noexcept { return m_data[a_index]; }
+	
+		const T& operator[] (size_type a_index) const noexcept { return m_data[a_index]; }
+
+		T& front () noexcept { return *m_data; }
+	
+		const T& front () const noexcept { return *m_data; }
+	
+		T& back () noexcept { return *(m_data + m_size - 1); }
+	
+		const T& back () const noexcept { return *(m_data + m_size - 1); }
+	
+		T* data () noexcept { return m_data; }
+	
+		const T* data () const noexcept { return m_data; }
+
+		iterator begin () noexcept { return m_data; }
+	
+		const_iterator begin () const noexcept { return m_data; }
+	
+		iterator end () noexcept { return m_data + m_size; }
+	
+		const_iterator end () const noexcept { return m_data + m_size; }
+	
+		reverse_iterator rbegin () noexcept { return reverse_iterator(end()); }
+	
+		const_reverse_iterator rbegin () const noexcept { return const_reverse_iterator(end()); }
+	
+		reverse_iterator rend () noexcept { return reverse_iterator(begin()); }
+	
+		const_reverse_iterator rend () const noexcept { return const_reverse_iterator(begin()); }
+	
+		const_iterator cbegin () const noexcept { return m_data; }
+	
+		const_iterator cend () const noexcept { return m_data + m_size; }
+	
+		const_reverse_iterator crbegin () const noexcept { return const_reverse_iterator(end()); }
+	
+		const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
+
+		void resize (size_type a_new_size)
+		{
+			if (capacity() < a_new_size) AllocateBuffer(GetNewCapacity(a_new_size - capacity()));
+			m_size = a_new_size;
+		}
+	
+		void resize (size_type a_new_size, const T& a_val)
+		{
+			size_type old_size = size();
+			resize(a_new_size);
+			if(old_size < a_new_size)
+				std::uninitialized_fill<T*,size_type>(m_data + old_size, m_data + size(), a_val);
+		}
+
+		void reserve (size_type a_capacity)
+		{
+			if(capacity() < a_capacity) AllocateBuffer(a_capacity);
+		}
+
+		void shrink_to_fit ()
+		{
+			const size_type current_size = size();
+			if ( current_size == 0 )
+			{
+				deallocate(m_data, capacity());
+				m_data = nullptr;
+				m_size = 0;
+				m_capacity = 0;
+			}
+			else if ( current_size < capacity() )
+			{
+				AllocateBuffer(current_size);
+			}
+		}
+
+		void swap (PODVector<T, Allocator>& a_vector) noexcept
+		{
+			using std::swap;
+			swap(m_data, a_vector.m_data);
+			swap(m_size, a_vector.m_size);
+			swap(m_capacity, a_vector.m_capacity);
+			swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
+		}
+	
+	private:
+
+		// this is where we would change the growth strategy
+		size_type GetNewCapacity (size_type a_num_to_be_added) const noexcept
+		{
+			size_type new_capacity = capacity();
+			if (capacity() == 0)
+			{
+				new_capacity = std::max(64 / sizeof(T), size_type(1));
+			}
+		
+			while (new_capacity < size() + a_num_to_be_added)
+			{
+				new_capacity = (3 * new_capacity + 1)/2;
+			}
+		
+			return new_capacity;
+		}
+
+		// this is where we would play games with the allocator
+		void AllocateBuffer (size_type a_capacity)
+		{
+			pointer new_data = allocate(a_capacity);
+			memcpy(new_data, m_data, size() * sizeof(T));
+			deallocate(m_data, capacity());
+			m_data = new_data;
+			m_capacity = a_capacity;
+		}
+
+		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type)
+		{
+			const size_t other_size = a_vector.size();
+
+			if ( other_size > capacity() ) { AllocateBuffer(other_size); }
+
+			m_size = other_size;
+		
+			memcpy(m_data, a_vector.m_data, size() * sizeof(T));
+		
+			return *this;
+		}
+
+		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type)
+		{
+			if (static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
+			{
+				CopyAssignmentDoIt(a_vector, std::false_type());
+			}
+			else
+			{
+				const size_t other_size = a_vector.size();
+			
+				if ( other_size > capacity() ) { AllocateBuffer(other_size); }
+
+				m_size = other_size;
+
+				memcpy(m_data, a_vector.m_data, size() * sizeof(T));
+
+				Allocator::operator=(static_cast<Allocator&>(a_vector));
+
+				return *this;
+			}
+		}
+
+		PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::false_type)
+		{
+			if(static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
+			{
+				deallocate(m_data, capacity());
+
+				m_data = a_vector.m_data;
+				m_size = a_vector.m_size;
+				m_capacity = a_vector.m_capacity;
+
+				a_vector.m_begin = nullptr;
+				a_vector.m_end = nullptr;
+				a_vector.m_endOfMemory = nullptr;
+			}
+			else
+			{
+				// if the allocators are not the same we give up and copy
+				CopyAssignmentDoIt(a_vector, std::false_type());
+			}
+		
+			return *this;
+		}
+
+		PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::true_type)
+		{
+			deallocate(m_data, capacity());
+
+			Allocator::operator=(std::move(static_cast<Allocator&>(a_vector)));
+
+			m_data = a_vector.m_data;
+			m_size = a_vector.m_size;
+			m_capacity = a_vector.m_capacity;
+
+			a_vector.m_begin = nullptr;
+			a_vector.m_end = nullptr;
+			a_vector.m_endOfMemory = nullptr;
+		
+			return *this;
+		}
+	};
+}
+
+#endif
