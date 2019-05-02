@@ -373,6 +373,25 @@ Laser initialization
     Temporal chirp at focus.
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
+* ``warpx.num_mirrors`` (`int`) optional (default `0`)
+    Users can input perfect mirror condition inside the simulation domain.
+    The number of mirrors is given by ``warpx.num_mirrors``. The mirrors are 
+    orthogonal to the `z` direction. The following parameters are required 
+    when ``warpx.num_mirrors`` is >0.
+
+* ``warpx.mirror_z`` (list of `float`) required if ``warpx.num_mirrors>0``
+    ``z`` location of the front of the mirrors.
+
+* ``warpx.mirror_z_width`` (list of `float`) required if ``warpx.num_mirrors>0``
+    ``z`` width of the mirrors.
+
+* ``warpx.mirror_z_npoints`` (list of `int`) required if ``warpx.num_mirrors>0``
+    In the boosted frame, depending on `gamma_boost`, ``warpx.mirror_z_width`` 
+    can be smaller than the cell size, so that the mirror would not work. This 
+    parameter is the minimum number of points for the mirror. If 
+    ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased 
+    so that it contains at least ``mirror_z_npoints``.
+
 Numerics and algorithms
 -----------------------
 
