@@ -2,6 +2,7 @@
 #define AMREX_CUDA_CONTAINERS_H_
 
 #include <AMReX_Vector.H>
+#include <AMReX_PODVector.H>
 #include <AMReX_CudaAllocators.H>
 
 namespace amrex {
@@ -18,18 +19,16 @@ namespace Cuda {
 template <class T>
 class DeviceVector
   :
-        public thrust::device_vector<T, ThrustDeviceAllocator<T> >
+        public PODVector<T, ThrustDeviceAllocator<T> >
 {
 public:
 
-    using thrust::device_vector<T, ThrustDeviceAllocator<T> >::device_vector;
-
     //! get access to the underlying data pointer
-    T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
+    T* dataPtr () { return this->data(); }
     //! get access to the underlying data pointer
-    const T* dataPtr () const { return thrust::raw_pointer_cast(this->data()); }
+    const T* dataPtr () const { return this->data(); }
 
-    void assign(typename thrust::device_vector<T>::size_type count, const T& value )
+    void assign(typename PODVector<T>::size_type count, const T& value )
     {
         thrust::fill(thrust::device, dataPtr(), dataPtr() + count, value);
     }
