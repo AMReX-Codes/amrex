@@ -455,7 +455,7 @@ WarpX::ReadParameters ()
                 else
                 {
                     particle_plot_flags.resize(PIdx::nattribs, 1);
-                }                
+                }
             }
             else
             {
@@ -466,7 +466,7 @@ WarpX::ReadParameters ()
                 else
                 {
                     particle_plot_flags.resize(PIdx::nattribs, 0);
-                }                
+                }
 
                 for (const auto& var : particle_plot_vars)
                 {
@@ -711,11 +711,19 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
 #ifdef WARPX_USE_PSATD
     if (fft_hybrid_mpi_decomposition == false){
-        // All boxes should have the same number of guard cells (to avoid temporary parallel copies)
+        // All boxes should have the same number of guard cells
+        // (to avoid temporary parallel copies)
         // Thus take the max of the required number of guards for each field
-        // Minimum required for the spectral solver itself TODO: nodal requires even more guard cells
-        IntVect ngFFT( AMREX_D_DECL( nox_fft/2, noy_fft/2, noz_fft/2 ) );
-        // Determine number of guard cells in each dimension
+        // Also: the number of guard cell should be enough to contain
+        // the stencil of the FFT solver. Here, this number (`ngFFT`)
+        // is determined *empirically* to be the order of the solver
+        // for nodal, and half the order of the solver for staggered.
+        IntVect ngFFT;
+        if (do_nodal) {
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
+        } else {
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
+        }
         for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
             int ng_required = ngFFT[i_dim];
             // Get the max
