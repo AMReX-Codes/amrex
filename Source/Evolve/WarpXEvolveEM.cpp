@@ -522,7 +522,7 @@ WarpX::applyMirrors(Real time){
             Real dz = WarpX::CellSize(lev)[2];
             Real z_max = std::max(z_max_tmp, 
                                  z_min+mirror_z_npoints[i_mirror]*dz);
-            // Get field MultiFabs
+            // Get fine patch field MultiFabs
             MultiFab& Ex = *Efield_fp[lev][0].get();
             MultiFab& Ey = *Efield_fp[lev][1].get();
             MultiFab& Ez = *Efield_fp[lev][2].get();
@@ -536,6 +536,22 @@ WarpX::applyMirrors(Real time){
             NullifyMF(Bx, lev, z_min, z_max);
             NullifyMF(By, lev, z_min, z_max);
             NullifyMF(Bz, lev, z_min, z_max);
+            if (lev>0){
+            // Get fine patch field MultiFabs
+            MultiFab& Ex = *Efield_cp[lev][0].get();
+            MultiFab& Ey = *Efield_cp[lev][1].get();
+            MultiFab& Ez = *Efield_cp[lev][2].get();
+            MultiFab& Bx = *Bfield_cp[lev][0].get();
+            MultiFab& By = *Bfield_cp[lev][1].get();
+            MultiFab& Bz = *Bfield_cp[lev][2].get();
+            // Set each field to zero between z_min and z_max
+            NullifyMF(Ex, lev, z_min, z_max);
+            NullifyMF(Ey, lev, z_min, z_max);
+            NullifyMF(Ez, lev, z_min, z_max);
+            NullifyMF(Bx, lev, z_min, z_max);
+            NullifyMF(By, lev, z_min, z_max);
+            NullifyMF(Bz, lev, z_min, z_max);
+            }
         }
     }
 }

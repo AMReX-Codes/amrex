@@ -125,14 +125,13 @@ void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax)
             ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept{
 #if (AMREX_SPACEDIM==3)
-                    if (zmin<zmin_box+(k-lo_ind)*dz || zmax>zmin_box+(k-lo_ind)*dz){
-                        arr(i,j,k) = 0.;
-                    }
+                    const Real z_gridpoint = zmin_box+(k-lo_ind)*dz;
 #else
-                    if (zmin<zmin_box+(j-lo_ind)*dz && zmax>zmin_box+(j-lo_ind)*dz){
+                    const Real z_gridpoint = zmin_box+(j-lo_ind)*dz;
+#endif 
+                    if ( (z_gridpoint >= zmin) && (z_gridpoint < zmax) ) {
                         arr(i,j,k) = 0.;
-                    } 
-#endif
+                    };
                 }
             );
         }
