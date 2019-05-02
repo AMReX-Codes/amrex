@@ -1226,7 +1226,7 @@ MultiFab::negate (const Box& region,
 }
 
 void
-MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
     BL_PROFILE("MultiFab::SumBoundary()");
 
@@ -1234,19 +1234,25 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 
     if (boxArray().ixType().cellCentered()) {
 	// Self copy is safe only for cell-centered MultiFab
-	this->copy(*this,scomp,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
+	this->copy(*this,scomp,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
     } else {
 	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo().SetDeviceFab(false), Factory());
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
-	this->setVal(0.0, scomp, ncomp, 0);
-	this->copy(tmp,0,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
+	this->setVal(0.0, scomp, ncomp, nghost);
+	this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
     }
+}
+
+void
+MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary(scomp, ncomp, IntVect(0), period);
 }
 
 void
 MultiFab::SumBoundary (const Periodicity& period)
 {
-    SumBoundary(0, n_comp, period);
+    SumBoundary(0, n_comp, IntVect(0), period);
 }
 
 std::unique_ptr<MultiFab>
