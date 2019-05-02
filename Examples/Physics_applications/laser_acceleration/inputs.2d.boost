@@ -48,12 +48,6 @@ warpx.dt_snapshots_lab = 1.6678204759907604e-12
 #################################
 ############ PLASMA #############
 #################################
-my_constants.zmax = 30.e-2
-my_constants.rc   = 50.e-6
-my_constants.rmax = 110.e-6
-my_constants.n0   = 3.5e24
-my_constants.kp   = 353352.
-
 particles.nspecies = 3
 particles.species_names = electrons ions beam
 particles.use_fdtd_nci_corr = 1
@@ -68,8 +62,10 @@ electrons.xmin = -120.e-6
 electrons.xmax =  120.e-6
 electrons.zmin = 0.e-6
 electrons.zmax = .003
-electrons.profile                 = "parse_density_function"
-electrons.density_function(x,y,z) = "((x**2+y**2)<rmax**2)*n0*(1+4*(x**2+y**2)/(kp**2*rc**4))"
+electrons.profile                 = "predefined"
+electrons.predefined_profile_name = "parabolic_channel"
+#         predefined_profile_params = ramp_up   plateau   ramp_down   rc       n0
+electrons.predefined_profile_params = .5e-3     2.e-3     .5e-3       50.e-6   3.5e24
 
 ions.charge = q_e
 ions.mass = m_p
@@ -80,8 +76,10 @@ ions.xmin = -120.e-6
 ions.xmax =  120.e-6
 ions.zmin = 0.
 ions.zmax = .003
-ions.profile                 = "parse_density_function"
-ions.density_function(x,y,z) = "((x**2+y**2)<rmax**2)*n0*(1+4*(x**2+y**2)/(kp**2*rc**4))"
+ions.profile                 = "predefined"
+ions.predefined_profile_name = "parabolic_channel"
+#    predefined_profile_params = ramp_up   plateau   ramp_down   rc       n0
+ions.predefined_profile_params = .5e-3     2.e-3     .5e-3       50.e-6   3.5e24
 
 beam.charge = -q_e
 beam.mass = m_e
