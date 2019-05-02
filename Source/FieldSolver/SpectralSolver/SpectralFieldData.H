@@ -47,7 +47,8 @@ class SpectralFieldData
         SpectralField fields;
         // tmpRealField and tmpSpectralField store fields
         // right before/after the Fourier transform
-        SpectralField tmpRealField, tmpSpectralField;
+        SpectralField tmpSpectralField; // contains Complexs
+        amrex::MultiFab tmpRealField; // contains Reals
         FFTplans forward_plan, backward_plan;
         // Correcting "shift" factors when performing FFT from/to
         // a cell-centered grid in real space, instead of a nodal grid
