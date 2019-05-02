@@ -30,13 +30,14 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
         // (cell-centered) real space box
         // TODO: this will be different for the hybrid FFT scheme
         Box realspace_bx = realspace_ba[i];
-        IntVect spectral_bx_size = realspace_bx.length();
+        IntVect fft_size = realspace_bx.length();
         // Because the spectral solver uses real-to-complex FFTs, we only
         // need the positive k values along the fastest axis
         // (first axis for AMReX Fortran-order arrays) in spectral space.
         // This effectively reduces the size of the spectral space by half
         // see e.g. the FFTW documentation for real-to-complex FFTs
-        spectral_bx_size[0] = spectral_bx_size[0]/2 + 1;
+        IntVect spectral_bx_size = fft_size;
+        spectral_bx_size[0] = fft_size[0]/2 + 1;
         // Define the corresponding box
         Box spectral_bx = Box( IntVect::TheZeroVector(),
                                spectral_bx_size - IntVect::TheUnitVector() );
@@ -48,13 +49,12 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
     bool only_positive_k;
     for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++) {
         if (i_dim==0) {
-            // For real-to-complex FFTs, the first axis contains
-            // only the positive k
+            // Real-to-complex FFTs: first axis contains only the positive k
             only_positive_k = true;
         } else {
             only_positive_k = false;
         }
-        k_vec[i_dim] = getKComponent( dm, i_dim, only_positive_k );
+        k_vec[i_dim] = getKComponent(dm, realspace_ba, i_dim, only_positive_k);
     }
 }
 
@@ -64,6 +64,7 @@ SpectralKSpace::SpectralKSpace( const BoxArray& realspace_ba,
  */
 KVectorComponent
 SpectralKSpace::getKComponent( const DistributionMapping& dm,
+                               const BoxArray& realspace_ba,
                                const int i_dim,
                                const bool only_positive_k ) const
 {
@@ -80,7 +81,8 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
         k.resize( N );
 
         // Fill the k vector
-        const Real dk = 2*MathConst::pi/(N*dx[i_dim]);
+        IntVect fft_size = realspace_ba[mfi].length();
+        const Real dk = 2*MathConst::pi/(fft_size[i_dim]*dx[i_dim]);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.smallEnd(i_dim) == 0,
             "Expected box to start at 0, in spectral space.");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
