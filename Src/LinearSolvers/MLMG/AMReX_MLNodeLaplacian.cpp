@@ -1112,10 +1112,11 @@ MLNodeLaplacian::buildStencil ()
     {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
+            const int nghost = (0 == amrlev && mglev+1 == m_num_mg_levels[amrlev]) ? 1 : 4;
             m_stencil[amrlev][mglev].reset
                 (new MultiFab(amrex::convert(m_grids[amrlev][mglev],
                                              IntVect::TheNodeVector()),
-                              m_dmap[amrlev][mglev], ncomp_s, 4));
+                              m_dmap[amrlev][mglev], ncomp_s, nghost));
             m_stencil[amrlev][mglev]->setVal(0.0);
         }
 
