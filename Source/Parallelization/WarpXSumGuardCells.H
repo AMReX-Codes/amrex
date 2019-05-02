@@ -19,21 +19,13 @@ void
 WarpXSumGuardCells(amrex::MultiFab& mf, const amrex::Periodicity& period,
                    const int icomp=0, const int ncomp=1){
 #ifdef WARPX_USE_PSATD
-    // Update both valid cells and guard cells
-    const int n_grow = mf.nGrow();
-    // Create temporary MultiFab, for safe summation
-    // (The MFInfo and Factory are similar to those used inside `SumBounday`)
-    amrex::MultiFab tmp(mf.boxArray(), mf.DistributionMap(), ncomp, n_grow,
-            amrex::MFInfo().SetDeviceFab(false), mf.Factory());
-    amrex::MultiFab::Copy(tmp, mf, icomp, 0, ncomp, n_grow); // Local copy
-    mf.setVal(0.0, icomp, ncomp, 0);
-    // Perform summation on overlapping grid points
-    mf.ParallelCopy(tmp, 0, icomp, ncomp, n_grow, n_grow,
-                    period, amrex::FabArrayBase::ADD);
+   // Update both valid cells and guard cells
+   const amrex::IntVect n_updated_guards = mf.nGrowVect();
 #else
-    // Update only the valid cells
-    mf.SumBoundary(icomp, ncomp, period);
+   // Update only the valid cells
+   const amrex::IntVect n_updated_guards = amrex::IntVect::TheZeroVector();
 #endif
+    mf.SumBoundary(icomp, ncomp, n_updated_guards, period);
 }
 
 /* \brief Sum the values of `src` where the different boxes overlap
@@ -52,19 +44,18 @@ WarpXSumGuardCells(amrex::MultiFab& mf, const amrex::Periodicity& period,
  *       The component from which we copy in `src` is always 0.
  */
 void
-WarpXSumGuardCells(amrex::MultiFab& dst, const amrex::MultiFab& src,
+WarpXSumGuardCells(amrex::MultiFab& dst, amrex::MultiFab& src,
                    const amrex::Periodicity& period,
                    const int icomp=0, const int ncomp=1){
 #ifdef WARPX_USE_PSATD
     // Update both valid cells and guard cells
-    const int n_updated_guards = dst.nGrow();
+    const amrex::IntVect n_updated_guards = dst.nGrowVect();
 #else
     // Update only the valid cells
-    const int n_updated_guards = 0;
+    const amrex::IntVect n_updated_guards = amrex::IntVect::TheZeroVector();
 #endif
-    dst.setVal(0.0, icomp, ncomp, 0);
-    dst.ParallelCopy( src, 0, icomp, ncomp, n_updated_guards,
-                      dst.nGrow(), period, amrex::FabArrayBase::ADD );
+    src.SumBoundary(icomp, ncomp, n_updated_guards, period);
+    amrex::Copy( dst, src, 0, icomp, ncomp, n_updated_guards );
 }
 
 #endif // WARPX_SUM_GUARD_CELLS_H_
