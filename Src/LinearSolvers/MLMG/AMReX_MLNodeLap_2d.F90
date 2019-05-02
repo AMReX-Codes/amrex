@@ -1777,7 +1777,7 @@ contains
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),5)
     
     integer :: i,j, ii, jj
-    real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1), cross1 !, cross2
+    real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1), cross1, cross2
 
     do    j = lo(2), hi(2)
        jj = 2*j
@@ -1855,24 +1855,23 @@ contains
                + restrict_from_0p_to(ii,jj)*ap(0,1) &
                + restrict_from_pp_to(ii,jj)*ap(1,1))
 
-!          p(0,-1) = interp_from_0p_to(ii,jj+1)
-!          p(1,-1) = interp_from_mp_to(ii+1,jj+1)
-!          p(0, 0) = 1.d0
-!          p(1, 0) = interp_from_m0_to(ii+1,jj+2)
-!
-!          ap(-1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
-!          ap( 0,0) = Amp(ii+2,jj)*p(1,-1)
-!          ap(-1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) + Amp(ii+1,jj+1)*p(0,0) &
-!               + A0p(ii+1,jj+1)*p(1,0)
-!          ap( 0,1) = Am0(ii+2,jj+1)*p(1,-1) + Amp(ii+2,jj+1)*p(1,0)
-!
-!          cross2 = 0.25*(ap(0,0) &
-!               + restrict_from_m0_to(ii+2,jj)*ap(-1,0) &
-!               + restrict_from_mp_to(ii+2,jj)*ap(-1,1) &
-!               + restrict_from_0p_to(ii+2,jj)*ap( 0,1))
+          p(0,-1) = interp_from_0p_to(ii,jj+1)
+          p(1,-1) = interp_from_mp_to(ii+1,jj+1)
+          p(0, 0) = 1.d0
+          p(1, 0) = interp_from_m0_to(ii+1,jj+2)
 
-          csten(i,j,4) = cross1
-          ! csten(i,j,4) = 0.5d0*(cross1+cross2)
+          ap(-1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
+          ap( 0,0) = Amp(ii+2,jj)*p(1,-1)
+          ap(-1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) + Amp(ii+1,jj+1)*p(0,0) &
+               + A0p(ii+1,jj+1)*p(1,0)
+          ap( 0,1) = Am0(ii+2,jj+1)*p(1,-1) + Amp(ii+2,jj+1)*p(1,0)
+
+          cross2 = 0.25*(ap(0,0) &
+               + restrict_from_m0_to(ii+2,jj)*ap(-1,0) &
+               + restrict_from_mp_to(ii+2,jj)*ap(-1,1) &
+               + restrict_from_0p_to(ii+2,jj)*ap( 0,1))
+
+          csten(i,j,4) = 0.5d0*(cross1+cross2)
 
        end do
     end do
