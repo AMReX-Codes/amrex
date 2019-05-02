@@ -742,6 +742,8 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[amrlev].get());
 
+    const int ncomp = getNComp();
+
     AMREX_D_TERM(const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);,
                  const Real dyi = m_geom[amrlev][mglev].InvCellSize(1);,
                  const Real dzi = m_geom[amrlev][mglev].InvCellSize(2););
@@ -758,20 +760,20 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                      const auto& gy = grad[1]->array(mfi);,
                      const auto& gz = grad[2]->array(mfi););
 
-        AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
+        AMREX_HOST_DEVICE_FOR_4D ( xbx, ncomp, i, j, k, n,
         {
-            gx(i,j,k) = dxi*(s(i,j,k) - s(i-1,j,k));
+            gx(i,j,k,n) = dxi*(s(i,j,k,n) - s(i-1,j,k,n));
         });
 #if (AMREX_SPACEDIM >= 2)
-        AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
+        AMREX_HOST_DEVICE_FOR_4D ( ybx, ncomp, i, j, k, n,
         {
-            gy(i,j,k) = dyi*(s(i,j,k) - s(i,j-1,k));
+            gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
+        AMREX_HOST_DEVICE_FOR_4D ( zbx, ncomp, i, j, k, n,
         {
-            gz(i,j,k) = dzi*(s(i,j,k) - s(i,j,k-1));
+            gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
         });
 #endif
     }
@@ -832,36 +834,36 @@ MLCellLinOp::prepareForSolve ()
                             blo, tboxlo, {
                             mllinop_comp_interp_coef0_x
                                 (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                 imaxorder, dxi, ncomp);
+                                 imaxorder, dxi, icomp);
                             },
                             bhi, tboxhi, {
                             mllinop_comp_interp_coef0_x
                                 (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                 imaxorder, dxi, ncomp);
+                                 imaxorder, dxi, icomp);
                             });
                         } else if (idim == 1) {
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                             blo, tboxlo, {
                             mllinop_comp_interp_coef0_y
                                 (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                 imaxorder, dyi, ncomp);
+                                 imaxorder, dyi, icomp);
                             },
                             bhi, tboxhi, {
                             mllinop_comp_interp_coef0_y
                                 (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                 imaxorder, dyi, ncomp);
+                                 imaxorder, dyi, icomp);
                             });
                         } else {
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                             blo, tboxlo, {
                             mllinop_comp_interp_coef0_z
                                 (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
-                                 imaxorder, dzi, ncomp);
+                                 imaxorder, dzi, icomp);
                             },
                             bhi, tboxhi, {
                             mllinop_comp_interp_coef0_z
                                 (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
-                                 imaxorder, dzi, ncomp);
+                                 imaxorder, dzi, icomp);
                             });
                         }
                     }
