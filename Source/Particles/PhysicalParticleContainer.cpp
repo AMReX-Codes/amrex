@@ -163,7 +163,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
        std::array<Real, 3> u;
        Real weight;
        for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 | WARPX_RZ)
             weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
@@ -184,6 +184,18 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
 
+            if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+            {
+                auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
+                particle_tile.push_back_real(particle_comps["xold"], x);
+                particle_tile.push_back_real(particle_comps["yold"], y);
+                particle_tile.push_back_real(particle_comps["zold"], z);
+                
+                particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+                particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+                particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+            }
+            
             AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
         }
@@ -257,6 +269,9 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
+#ifdef WARPX_RZ
+    Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
+#endif
 
     const Real* dx = geom.CellSize();
 
@@ -382,6 +397,19 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
+                    // Save the x and y values to use in the insideBounds checks.
+                    // This is needed with WARPX_RZ since x and y are modified.
+                    Real xb = x;
+                    Real yb = y;
+
+#ifdef WARPX_RZ
+                    // Replace the x and y, choosing the angle randomly.
+                    // These x and y are used to get the momentum and density
+                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    y = x*std::sin(theta);
+                    x = x*std::cos(theta);
+#endif
+
                     Real dens;
                     std::array<Real, 3> u;
                     if (WarpX::gamma_boost == 1.){
@@ -389,7 +417,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       // If the particle is not within the species's
                       // xmin, xmax, ymin, ymax, zmin, zmax, go to
                       // the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z)) continue;
                       plasma_injector->getMomentum(u, x, y, z);
                       dens = plasma_injector->getDensity(x, y, z);
                     } else {
@@ -416,7 +444,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab) - c*t*(betaz_lab-beta_boost) );
                       // If the particle is not within the lab-frame zmin, zmax, etc.
                       // go to the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z0_lab)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z0_lab)) continue;
                       // call `getDensity` with lab-frame parameters
                       dens = plasma_injector->getDensity(x, y, z0_lab);
                       // At this point u and dens are the lab-frame quantities
@@ -424,20 +452,33 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+#ifdef WARPX_RZ
+                    if (plasma_injector->radially_weighted) {
+                      weight *= 2*MathConst::pi*xb;
+                    } else {
+                      // This is not correct since it might shift the particle
+                      // out of the local grid
+                      x = std::sqrt(xb*rmax);
+                      weight *= dx[0];
+                    }
+#endif
+                    attribs[PIdx::w ] = weight;
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
+                    
+                    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                    {
+                        auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                        particle_tile.push_back_real(particle_comps["xold"], x);
+                        particle_tile.push_back_real(particle_comps["yold"], y);
+                        particle_tile.push_back_real(particle_comps["zold"], z);
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-                    attribs[PIdx::xold] = x;
-                    attribs[PIdx::yold] = y;
-                    attribs[PIdx::zold] = z;
-
-                    attribs[PIdx::uxold] = u[0];
-                    attribs[PIdx::uyold] = u[1];
-                    attribs[PIdx::uzold] = u[2];
-#endif
+                        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+                        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+                        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+                    }
 
 		    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
@@ -466,6 +507,9 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
+#ifdef WARPX_RZ
+    Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
+#endif
 
     const Real* dx = geom.CellSize();
 
@@ -594,6 +638,19 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
+                    // Save the x and y values to use in the insideBounds checks.
+                    // This is needed with WARPX_RZ since x and y are modified.
+                    Real xb = x;
+                    Real yb = y;
+
+#ifdef WARPX_RZ
+                    // Replace the x and y, choosing the angle randomly.
+                    // These x and y are used to get the momentum and density
+                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    x = xb*std::cos(theta);
+                    y = xb*std::sin(theta);
+#endif
+
                     Real dens;
                     std::array<Real, 3> u;
                     if (WarpX::gamma_boost == 1.){
@@ -601,7 +658,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       // If the particle is not within the species's
                       // xmin, xmax, ymin, ymax, zmin, zmax, go to
                       // the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z)) continue;
                       plasma_injector->getMomentum(u, x, y, z);
                       dens = plasma_injector->getDensity(x, y, z);
                     } else {
@@ -628,7 +685,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab) - c*t*(betaz_lab-beta_boost) );
                       // If the particle is not within the lab-frame zmin, zmax, etc.
                       // go to the next generated particle.
-                      if (!plasma_injector->insideBounds(x, y, z0_lab)) continue;
+                      if (!plasma_injector->insideBounds(xb, yb, z0_lab)) continue;
                       // call `getDensity` with lab-frame parameters
                       dens = plasma_injector->getDensity(x, y, z0_lab);
                       // At this point u and dens are the lab-frame quantities
@@ -636,20 +693,34 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+#ifdef WARPX_RZ
+                    if (plasma_injector->radially_weighted) {
+                      weight *= 2*MathConst::pi*xb;
+                    } else {
+                      // This is not correct since it might shift the particle
+                      // out of the local grid
+                      x = std::sqrt(xb*rmax);
+                      weight *= dx[0];
+                    }
+#endif
+                    attribs[PIdx::w ] = weight;
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-                    attribs[PIdx::xold] = x;
-                    attribs[PIdx::yold] = y;
-                    attribs[PIdx::zold] = z;
+                    // note - this will be slow on the GPU, need to revisit
+                    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                    {
+                        auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                        particle_tile.push_back_real(particle_comps["xold"], x);
+                        particle_tile.push_back_real(particle_comps["yold"], y);
+                        particle_tile.push_back_real(particle_comps["zold"], z);
 
-                    attribs[PIdx::uxold] = u[0];
-                    attribs[PIdx::uyold] = u[1];
-                    attribs[PIdx::uzold] = u[2];
-#endif
+                        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+                        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+                        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+                    }
 
 		    ParticleType p;
 		    p.id()  = ParticleType::NextID();
@@ -659,7 +730,10 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
 		    p.pos(1) = y;
 		    p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
-		    p.pos(0) = x;
+#ifdef WARPX_RZ
+                    attribs[PIdx::theta] = theta;
+#endif
+		    p.pos(0) = xb;
 		    p.pos(1) = z;
 #endif
 
@@ -927,7 +1001,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp;
+        Cuda::ManagedDeviceVector<Real> xp, yp, zp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -1048,10 +1122,6 @@ PhysicalParticleContainer::Evolve (int lev,
 #else
         int thread_num = 0;
 #endif
-	if (local_rho[thread_num] == nullptr) local_rho[thread_num].reset( new amrex::FArrayBox());
-	if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset(  new amrex::FArrayBox());
-	if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
-	if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
@@ -1444,7 +1514,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
 {
     auto& mypc = WarpX::GetInstance().GetPartContainer();
     auto& pctmp_split = mypc.GetPCtmp();
-    Cuda::DeviceVector<Real> xp, yp, zp;
+    Cuda::ManagedDeviceVector<Real> xp, yp, zp;
     RealVector psplit_x, psplit_y, psplit_z, psplit_w;
     RealVector psplit_ux, psplit_uy, psplit_uz;
     long np_split_to_add = 0;
@@ -1593,10 +1663,10 @@ PhysicalParticleContainer::SplitParticles(int lev)
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-	                          Cuda::DeviceVector<Real>& xp,
-                                  Cuda::DeviceVector<Real>& yp,
-                                  Cuda::DeviceVector<Real>& zp,
-                                  Cuda::DeviceVector<Real>& giv,
+	                          Cuda::ManagedDeviceVector<Real>& xp,
+                                  Cuda::ManagedDeviceVector<Real>& yp,
+                                  Cuda::ManagedDeviceVector<Real>& zp,
+                                  Cuda::ManagedDeviceVector<Real>& giv,
                                   Real dt)
 {
 
@@ -1613,20 +1683,20 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-    auto& xpold  = attribs[PIdx::xold];
-    auto& ypold  = attribs[PIdx::yold];
-    auto& zpold  = attribs[PIdx::zold];
-    auto& uxpold = attribs[PIdx::uxold];
-    auto& uypold = attribs[PIdx::uyold];
-    auto& uzpold = attribs[PIdx::uzold];
+    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    {
+        auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
+        auto& ypold    = pti.GetAttribs(particle_comps["yold"]);
+        auto& zpold    = pti.GetAttribs(particle_comps["zold"]);
+        auto& uxpold   = pti.GetAttribs(particle_comps["uxold"]);
+        auto& uypold   = pti.GetAttribs(particle_comps["uyold"]);
+        auto& uzpold   = pti.GetAttribs(particle_comps["uzold"]);
 
-    warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                       uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                       xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
-                       uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
-
-#endif
+        warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                           xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
+                           uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
+    }
 
     warpx_particle_pusher(&np,
                           xp.dataPtr(),
@@ -1748,7 +1818,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 {
     BL_PROFILE("PhysicalParticleContainer::GetParticleSlice");
 
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
     // Assume that the boost in the positive z direction.
 #if (AMREX_SPACEDIM == 2)
     AMREX_ALWAYS_ASSERT(direction == 1);
@@ -1811,12 +1880,12 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto& uyp_new = attribs[PIdx::uy   ];
                 auto& uzp_new = attribs[PIdx::uz   ];
 
-                auto&  xp_old = attribs[PIdx::xold ];
-                auto&  yp_old = attribs[PIdx::yold ];
-                auto&  zp_old = attribs[PIdx::zold ];
-                auto& uxp_old = attribs[PIdx::uxold];
-                auto& uyp_old = attribs[PIdx::uyold];
-                auto& uzp_old = attribs[PIdx::uzold];
+                auto&  xp_old = pti.GetAttribs(particle_comps["xold"]);
+                auto&  yp_old = pti.GetAttribs(particle_comps["yold"]);
+                auto&  zp_old = pti.GetAttribs(particle_comps["zold"]);
+                auto& uxp_old = pti.GetAttribs(particle_comps["uxold"]);
+                auto& uyp_old = pti.GetAttribs(particle_comps["uyold"]);
+                auto& uzp_old = pti.GetAttribs(particle_comps["uzold"]);
 
                 const long np = pti.numParticles();
 
@@ -1866,10 +1935,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
             }
         }
     }
-#else
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( false ,
-"ERROR: WarpX must be compiled with STORE_OLD_PARTICLE_ATTRIBS=TRUE to use the back-transformed diagnostics");
-#endif
 }
 
 int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Real z)

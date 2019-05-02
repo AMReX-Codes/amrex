@@ -41,6 +41,8 @@ int main(int argc, char* argv[])
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
 	if (warpx.Verbose()) {
             amrex::Print() << "Total Time                     : " << end_total << '\n';
+            amrex::Print() << "WarpX Version: " << WarpX::Version() << '\n';
+            amrex::Print() << "PICSAR Version: " << WarpX::PicsarVersion() << '\n';
 	}
     }
 

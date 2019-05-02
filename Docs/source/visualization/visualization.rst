@@ -8,3 +8,5 @@ Visualizing the simulation results
    visit
    picviewer
    sensei
+   ascent
+   advanced

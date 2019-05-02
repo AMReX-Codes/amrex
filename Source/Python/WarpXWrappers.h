@@ -52,7 +52,9 @@ extern "C" {
                              double* x, double* y, double* z,
                              double* vx, double* vy, double* vz,
                              int nattr, double* attr, int uniqueparticles);
-    
+
+    void warpx_ConvertLabParamsToBoost();
+  
     double warpx_getProbLo(int dir);
     
     double warpx_getProbHi(int dir);

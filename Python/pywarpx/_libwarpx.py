@@ -174,6 +174,7 @@ def initialize(argv=None):
     if argv is None:
         argv = sys.argv
     amrex_init(argv)
+    libwarpx.warpx_ConvertLabParamsToBoost()
     libwarpx.warpx_init()
 
 

@@ -1,6 +1,8 @@
 CEXE_sources += WarpXIO.cpp
 CEXE_sources += BoostedFrameDiagnostic.cpp
 CEXE_sources += ParticleIO.cpp
+CEXE_sources += FieldIO.cpp
+CEXE_headers += FieldIO.H
 CEXE_headers += BoostedFrameDiagnostic.H
 CEXE_headers += ElectrostaticIO.cpp
 F90EXE_sources += BoostedFrame_module.F90

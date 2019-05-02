@@ -1,0 +1,12 @@
+CEXE_headers += WarpX_Complex.H
+CEXE_headers += SpectralSolver.H
+CEXE_sources += SpectralSolver.cpp
+CEXE_headers += SpectralFieldData.H
+CEXE_sources += SpectralFieldData.cpp
+CEXE_headers += SpectralKSpace.H
+CEXE_sources += SpectralKSpace.cpp
+
+include $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralAlgorithms/Make.package
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver

@@ -82,9 +82,18 @@ Advanced building instructions
 .. toctree::
    :maxdepth: 1
 
+   openpmd
    spectral
+   rzgeometry
    gpu_local
    python
    spack
+
+Building for specific plateforms
+--------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
    cori
    summit

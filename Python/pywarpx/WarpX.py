@@ -1,11 +1,11 @@
 from .Bucket import Bucket
-from .Constants import constants
+from .Constants import my_constants
 from .Amr import amr
 from .Geometry import geometry
 from .Algo import algo
 from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
-from .Laser import laser
+from .Lasers import lasers, lasers_list
 from . import Particles
 from .Particles import particles, particles_list
 
@@ -18,14 +18,14 @@ class WarpX(Bucket):
     def create_argv_list(self):
         argv = []
         argv += warpx.attrlist()
-        argv += constants.attrlist()
+        argv += my_constants.attrlist()
         argv += amr.attrlist()
         argv += geometry.attrlist()
         argv += algo.attrlist()
         argv += langmuirwave.attrlist()
         argv += interpolation.attrlist()
         argv += particles.attrlist()
-        argv += laser.attrlist()
+        argv += lasers.attrlist()
 
         # --- Search through species_names and add any predefined particle objects in the list.
         particles_list_names = [p.instancename for p in particles_list]
@@ -42,6 +42,9 @@ class WarpX(Bucket):
 
         for particle in particles_list:
             argv += particle.attrlist()
+
+        for laser in lasers_list:
+            argv += laser.attrlist()
 
         return argv
 

@@ -5,6 +5,7 @@
 
 #include <WarpXParticleContainer.H>
 #include <WarpXConst.H>
+#include <WarpXParser.H>
 
 enum class laser_t { Null, Gaussian, Harris, parse_field_function };
 
@@ -12,21 +13,21 @@ class LaserParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
+    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies, const std::string& name);
     virtual ~LaserParticleContainer () {}
 
     virtual void InitData () final;
 
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
 #endif // WARPX_DO_ELECTROSTATIC
     
     virtual void Evolve (int lev,
-			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+                         const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+                         amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab*, amrex::MultiFab*, amrex::MultiFab*,
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
@@ -43,7 +44,9 @@ public:
 
     virtual void PostRestart () final;
 
-    UserConstants my_constants;
+protected:
+    
+    std::string laser_name;
 
 private:
 
@@ -77,7 +80,7 @@ private:
     amrex::Real theta_stc = 0.;
 
     // parse_field_function profile
-    int parser_instance_number = 0;
+    WarpXParser parser;
     std::string field_function;
 
     // laser particle domain

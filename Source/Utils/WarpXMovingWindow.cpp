@@ -189,7 +189,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 
     AMREX_ALWAYS_ASSERT(ng.min() >= num_shift);
 
-    MultiFab tmpmf(ba, dm, nc, ng);
+    MultiFab tmpmf(ba, dm, nc, ng, MFInfo().SetDeviceFab(false));
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
 
@@ -217,29 +217,35 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
         }
     }
 
+    IntVect shiftiv(0);
+    shiftiv[dir] = num_shift;
+    Dim3 shift = shiftiv.dim3();
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
     {
-      FArrayBox* dstfab = mf.fabPtr(mfi);
-      FArrayBox* srcfab = tmpmf.fabPtr(mfi);
-      Box outbox = mfi.fabbox();
-      outbox &= adjBox;
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(outbox, toutbox,
-      {
-	srcfab->setVal(0.0, toutbox, 0, nc);
-      });
-      Box dstBox = mf[mfi].box();
-      if (num_shift > 0) {
-	dstBox.growHi(dir, -num_shift);
-      } else {
-	dstBox.growLo(dir,  num_shift);
-      }
-      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(dstBox, tdstBox,
-      {
-        dstfab->setVal(0.0, tdstBox, 0, nc);
-        dstfab->copy(*srcfab, amrex::shift(tdstBox,dir,num_shift), 0, tdstBox, 0, nc);
-      });
+        auto const& dstfab = mf.array(mfi);
+        auto const& srcfab = tmpmf.array(mfi);
+
+        const Box& outbox = mfi.fabbox() & adjBox;
+        if (outbox.ok()) {
+            AMREX_PARALLEL_FOR_4D ( outbox, nc, i, j, k, n,
+            {
+                srcfab(i,j,k,n) = 0.0;
+            });
+        }
+
+        Box dstBox = mf[mfi].box();
+        if (num_shift > 0) {
+            dstBox.growHi(dir, -num_shift);
+        } else {
+            dstBox.growLo(dir,  num_shift);
+        }
+        AMREX_PARALLEL_FOR_4D ( dstBox, nc, i, j, k, n,
+        {
+            dstfab(i,j,k,n) = srcfab(i+shift.x,j+shift.y,k+shift.z,n);
+        });
     }
 }

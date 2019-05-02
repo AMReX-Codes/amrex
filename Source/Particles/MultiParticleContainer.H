@@ -127,10 +127,12 @@ public:
     ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void Checkpoint (const std::string& dir,
-		     bool is_checkpoint,
-                     const amrex::Vector<std::string>& varnames = amrex::Vector<std::string>()) const;
+    void Checkpoint (const std::string& dir) const;
 
+    void WritePlotFile( const std::string& dir,
+                        const amrex::Vector<int>& real_flags, 
+                        const amrex::Vector<std::string>& real_names) const;
+    
     void Restart (const std::string& dir);
 
     void PostRestart ();
@@ -190,6 +192,8 @@ protected:
 
     std::vector<std::string> species_names;
 
+    std::vector<std::string> lasers_names;
+
     std::vector<int> deposit_on_main_grid;
 
     std::vector<PCTypes> species_types;
@@ -204,6 +208,7 @@ private:
     void ReadParameters ();
 
     // runtime parameters
-    int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
+    int nlasers = 0;
+    int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
 };
 #endif /*WARPX_ParticleContainer_H_*/

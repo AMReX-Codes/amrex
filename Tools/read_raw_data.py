@@ -259,7 +259,8 @@ def _read_field(raw_file, field_name):
         shape = hi - lo + 1
         with open(raw_file + fn, "rb") as f:
             f.seek(offset)
-#            f.readline()  # always skip the first line
+            if (header.version == 1):
+                f.readline()  # skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
             data[[slice(l,h+1) for l, h in zip(lo, hi)]] = arr
@@ -286,7 +287,8 @@ def _read_buffer(snapshot, header_fn):
         size = np.product(shape)
         with open(snapshot + "/Level_0/" + fn, "rb") as f:
             f.seek(offset)
-#            f.readline()  # always skip the first line
+            if (header.version == 1):
+                f.readline()  # skip the first line
             arr = np.fromfile(f, 'float64', header.ncomp*size)
             for i in range(header.ncomp):
                 comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')

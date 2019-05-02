@@ -11,9 +11,9 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
-#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
-        xold, yold, zold, uxold, uyold, uzold,
-#endif        
+#ifdef WARPX_RZ
+        theta, // RZ needs all three position components
+#endif
 	nattribs
     };
 };
@@ -27,6 +27,22 @@ struct DiagIdx
     };
 };
 
+namespace ParticleStringNames
+{
+    const std::map<std::string, int> to_index = {
+        {"w",     PIdx::w    },
+        {"ux",    PIdx::ux   },
+        {"uy",    PIdx::uy   },
+        {"uz",    PIdx::uz   },
+        {"Ex",    PIdx::Ex   },
+        {"Ey",    PIdx::Ey   },
+        {"Ez",    PIdx::Ez   },
+        {"Bx",    PIdx::Bx   },
+        {"By",    PIdx::By   },
+        {"Bz",    PIdx::Bz   }
+    };
+}
+
 class WarpXParIter
     : public amrex::ParIter<0,0,PIdx::nattribs>
 {
@@ -36,12 +52,12 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Cuda::DeviceVector<amrex::Real>& x,
-                      amrex::Cuda::DeviceVector<amrex::Real>& y,
-                      amrex::Cuda::DeviceVector<amrex::Real>& z) const;
-    void SetPosition (const amrex::Cuda::DeviceVector<amrex::Real>& x,
-                      const amrex::Cuda::DeviceVector<amrex::Real>& y,
-                      const amrex::Cuda::DeviceVector<amrex::Real>& z);
+    void GetPosition (amrex::Cuda::ManagedDeviceVector<amrex::Real>& x,
+                      amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
+                      amrex::Cuda::ManagedDeviceVector<amrex::Real>& z) const;
+    void SetPosition (const amrex::Cuda::ManagedDeviceVector<amrex::Real>& x,
+                      const amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
+                      const amrex::Cuda::ManagedDeviceVector<amrex::Real>& z);
 #endif
 
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
@@ -185,11 +201,11 @@ public:
 
     void AddOneParticle (int lev, int grid, int tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,
-                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+                         std::array<amrex::Real,PIdx::nattribs>& attribs);
 
     void AddOneParticle (ParticleTileType& particle_tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,
-                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+                         std::array<amrex::Real,PIdx::nattribs>& attribs);
 
     void ReadHeader (std::istream& is);
 
@@ -204,8 +220,25 @@ public:
     // split along axes (0) or diagonals (1)
     int split_type = 0;
 
+    using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddRealComp; 
+    using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddIntComp;
+   
+    void AddRealComp (const std::string& name, bool comm=true)
+    {
+        particle_comps[name] = NumRealComps();
+        AddRealComp(comm);
+    }
+
+    void AddIntComp (const std::string& name, bool comm=true)
+    {
+        particle_comps[name] = NumIntComps();
+        AddIntComp(comm);
+    }
+
 protected:
 
+    std::map<std::string, int> particle_comps;
+    
     int species_id;
 
     amrex::Real charge;
@@ -215,12 +248,12 @@ protected:
 
     static int do_not_push;
 
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_rho;
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jx;
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jy;
-  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jz;
+    amrex::Vector<amrex::FArrayBox> local_rho;
+    amrex::Vector<amrex::FArrayBox> local_jx;
+    amrex::Vector<amrex::FArrayBox> local_jy;
+    amrex::Vector<amrex::FArrayBox> local_jz;
 
-  amrex::Vector<amrex::Cuda::DeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
+    amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
 
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,

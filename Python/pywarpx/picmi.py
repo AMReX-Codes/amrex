@@ -188,7 +188,7 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         species.__setattr__('density_function(x,y,z)', self.density_expression)
 
         for k,v in self.user_defined_kw.items():
-            setattr(pywarpx.constants, k, v)
+            setattr(pywarpx.my_constants, k, v)
 
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
@@ -251,15 +251,52 @@ class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
 
 
 class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
+    """This assumes that WarpX was compiled with USE_RZ = TRUE
+    """
     def init(self, kw):
-        raise Exception('WarpX does not support CylindricalGrid')
+        self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
+        self.blocking_factor = kw.pop('warpx_blocking_factor', None)
+
+    def initialize_inputs(self):
+        pywarpx.amr.n_cell = self.number_of_cells
+
+        # Maximum allowable size of each subdomain in the problem domain;
+        #    this is used to decompose the domain for parallel calculations.
+        pywarpx.amr.max_grid_size = self.max_grid_size
+
+        assert self.lower_bound[0] >= 0., Exception('Lower radial boundary must be >= 0.')
+        assert self.bc_rmin != 'periodic' and self.bc_rmax != 'periodic', Exception('Radial boundaries can not be periodic')
+        assert self.n_azimuthal_modes is None or self.n_azimuthal_modes == 1, Exception('Only one azimuthal mode supported')
+
+        # Geometry
+        pywarpx.geometry.coord_sys = 1  # RZ
+        pywarpx.geometry.is_periodic = '0 %d'%(self.bc_zmin=='periodic')  # Is periodic?
+        pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
+        pywarpx.geometry.prob_hi = self.upper_bound
+
+        if self.moving_window_velocity is not None and np.any(np.not_equal(self.moving_window_velocity, 0.)):
+            pywarpx.warpx.do_moving_window = 1
+            if self.moving_window_velocity[0] != 0.:
+                raise Exception('In cylindrical coordinates, a moving window in r can not be done')
+            if self.moving_window_velocity[1] != 0.:
+                pywarpx.warpx.moving_window_dir = 'z'
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+
+        if self.refined_regions:
+            assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
+            assert self.refined_regions[0][0] == 1, Exception('The one refined region can only be level 1')
+            pywarpx.amr.max_level = 1
+            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
+            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
+            # The refinement_factor is ignored (assumed to be [2,2])
+        else:
+            pywarpx.amr.max_level = 0
 
 
 class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.blocking_factor = kw.pop('warpx_blocking_factor', None)
-        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -269,7 +306,7 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
         pywarpx.amr.max_grid_size = self.max_grid_size
 
         # Geometry
-        pywarpx.geometry.coord_sys = self.coord_sys
+        pywarpx.geometry.coord_sys = 0  # Cartesian
         pywarpx.geometry.is_periodic = '%d %d'%(self.bc_xmin=='periodic', self.bc_ymin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
@@ -298,7 +335,6 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.blocking_factor = kw.pop('warpx_blocking_factor', None)
-        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -310,7 +346,7 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
         pywarpx.amr.blocking_factor = self.blocking_factor
 
         # Geometry
-        pywarpx.geometry.coord_sys = self.coord_sys
+        pywarpx.geometry.coord_sys = 0  # Cartesian
         pywarpx.geometry.is_periodic = '%d %d %d'%(self.bc_xmin=='periodic', self.bc_ymin=='periodic', self.bc_zmin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
@@ -370,24 +406,28 @@ class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
 
 class GaussianLaser(picmistandard.PICMI_GaussianLaser):
     def initialize_inputs(self):
-        pywarpx.warpx.use_laser = 1
-        pywarpx.laser.profile = "Gaussian"
-        pywarpx.laser.wavelength = self.wavelength  # The wavelength of the laser (in meters)
-        pywarpx.laser.e_max = self.E0  # Maximum amplitude of the laser field (in V/m)
-        pywarpx.laser.polarization = [np.cos(self.polarization_angle), np.sin(self.polarization_angle), 0.]  # The main polarization vector
-        pywarpx.laser.profile_waist = self.waist  # The waist of the laser (in meters)
-        pywarpx.laser.profile_duration = self.duration  # The duration of the laser (in seconds)
-        pywarpx.laser.zeta = self.zeta
-        pywarpx.laser.beta = self.beta
-        pywarpx.laser.phi2 = self.phi2
+        self.laser_number = pywarpx.lasers.nlasers + 1
+        self.name = 'laser{}'.format(self.laser_number)
+
+        self.laser = pywarpx.Lasers.newlaser(self.name)
+
+        self.laser.profile = "Gaussian"
+        self.laser.wavelength = self.wavelength  # The wavelength of the laser (in meters)
+        self.laser.e_max = self.E0  # Maximum amplitude of the laser field (in V/m)
+        self.laser.polarization = [np.cos(self.polarization_angle), np.sin(self.polarization_angle), 0.]  # The main polarization vector
+        self.laser.profile_waist = self.waist  # The waist of the laser (in meters)
+        self.laser.profile_duration = self.duration  # The duration of the laser (in seconds)
+        self.laser.zeta = self.zeta
+        self.laser.beta = self.beta
+        self.laser.phi2 = self.phi2
 
 
 class LaserAntenna(picmistandard.PICMI_LaserAntenna):
     def initialize_inputs(self, laser):
-        pywarpx.laser.position = self.position  # This point is on the laser plane
-        pywarpx.laser.direction = self.normal_vector  # The plane normal direction
-        pywarpx.laser.profile_focal_distance = laser.focal_position[2] - self.position[2]  # Focal distance from the antenna (in meters)
-        pywarpx.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/c  # The time at which the laser reaches its peak (in seconds)
+        laser.laser.position = self.position  # This point is on the laser plane
+        laser.laser.direction = self.normal_vector  # The plane normal direction
+        laser.laser.profile_focal_distance = laser.focal_position[2] - self.position[2]  # Focal distance from the antenna (in meters)
+        laser.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/c  # The time at which the laser reaches its peak (in seconds)
 
 
 class Simulation(picmistandard.PICMI_Simulation):
