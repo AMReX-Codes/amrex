@@ -1,10 +1,10 @@
-
 #include <cmath>
 #include <limits>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
+#include <WarpXUtil.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -95,6 +95,10 @@ WarpX::EvolveEM (int numsteps)
         } else {
             amrex::Print() << "Error: do_subcycling = " << do_subcycling << std::endl;
             amrex::Abort("Unsupported do_subcycling type");
+        }
+
+        if (num_mirrors>0){
+            applyMirrors(cur_time);
         }
 
 #ifdef WARPX_USE_PY
@@ -491,5 +495,47 @@ WarpX::ComputeDt ()
 
     if (do_electrostatic) {
         dt[0] = const_dt;
+    }
+}
+
+/* \brief Apply perfect mirror condition inside the box (not at a boundary).
+ * In practice, set all fields to 0 on a section of the simulation domain
+ * (as for a perfect conductor with a given thickness). 
+ * The mirror normal direction has to be parallel to the z axis.
+ */
+void
+WarpX::applyMirrors(Real time){
+    // Loop over the mirrors
+    for(int i_mirror=0; i_mirror<num_mirrors; ++i_mirror){
+        // Get mirror properties (lower and upper z bounds)
+        Real z_min = mirror_z[i_mirror];
+        Real z_max_tmp = z_min + mirror_z_width[i_mirror];
+        // Boost quantities for boosted frame simulations
+        if (gamma_boost>1){
+            z_min = z_min/gamma_boost - PhysConst::c*beta_boost*time;
+            z_max_tmp = z_max_tmp/gamma_boost - PhysConst::c*beta_boost*time;
+        }
+        // Loop over levels
+        for(int lev=0; lev<=finest_level; lev++){
+            // Make sure that the mirror contains at least 
+            // mirror_z_npoints[i_mirror] cells
+            Real dz = WarpX::CellSize(lev)[2];
+            Real z_max = std::max(z_max_tmp, 
+                                 z_min+mirror_z_npoints[i_mirror]*dz);
+            // Get field MultiFabs
+            MultiFab& Ex = *Efield_fp[lev][0].get();
+            MultiFab& Ey = *Efield_fp[lev][1].get();
+            MultiFab& Ez = *Efield_fp[lev][2].get();
+            MultiFab& Bx = *Bfield_fp[lev][0].get();
+            MultiFab& By = *Bfield_fp[lev][1].get();
+            MultiFab& Bz = *Bfield_fp[lev][2].get();
+            // Set each field to zero between z_min and z_max
+            NullifyMF(Ex, lev, z_min, z_max);
+            NullifyMF(Ey, lev, z_min, z_max);
+            NullifyMF(Ez, lev, z_min, z_max);
+            NullifyMF(Bx, lev, z_min, z_max);
+            NullifyMF(By, lev, z_min, z_max);
+            NullifyMF(Bz, lev, z_min, z_max);
+        }
     }
 }

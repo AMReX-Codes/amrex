@@ -144,6 +144,13 @@ public:
     static amrex::IntVect filter_npass_each_dir;
     BilinearFilter bilinear_filter;
 
+    static int num_mirrors;
+    amrex::Vector<amrex::Real> mirror_z;
+    amrex::Vector<amrex::Real> mirror_z_width;
+    amrex::Vector<int> mirror_z_npoints;
+    
+    void applyMirrors(amrex::Real time);
+
     void ComputeDt ();
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);

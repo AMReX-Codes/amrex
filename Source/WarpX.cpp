@@ -50,6 +50,8 @@ bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
 bool WarpX::refine_plasma     = false;
 
+int WarpX::num_mirrors = 0;
+
 int  WarpX::sort_int = -1;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
@@ -354,6 +356,16 @@ WarpX::ReadParameters ()
 #if (AMREX_SPACEDIM == 3)
     filter_npass_each_dir[2] = parse_filter_npass_each_dir[2];
 #endif
+
+    pp.query("num_mirrors", num_mirrors);
+    if (num_mirrors>0){
+        mirror_z.resize(num_mirrors);
+        pp.getarr("mirror_z", mirror_z, 0, num_mirrors);
+        mirror_z_width.resize(num_mirrors);
+        pp.getarr("mirror_z_width", mirror_z_width, 0, num_mirrors);
+        mirror_z_npoints.resize(num_mirrors);
+        pp.getarr("mirror_z_npoints", mirror_z_npoints, 0, num_mirrors);
+    }
 
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
