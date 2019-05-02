@@ -537,7 +537,7 @@ WarpX::applyMirrors(Real time){
             NullifyMF(By, lev, z_min, z_max);
             NullifyMF(Bz, lev, z_min, z_max);
             if (lev>0){
-            // Get fine patch field MultiFabs
+            // Get coarse patch field MultiFabs
             MultiFab& Ex = *Efield_cp[lev][0].get();
             MultiFab& Ey = *Efield_cp[lev][1].get();
             MultiFab& Ez = *Efield_cp[lev][2].get();
