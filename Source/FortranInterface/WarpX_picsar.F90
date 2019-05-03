@@ -18,7 +18,8 @@
 
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2drz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jrjtjz_generic_rz
-#define WRPX_PXR_RZ_VOLUME_SCALING        apply_rz_volume_scaling
+#define WRPX_PXR_RZ_VOLUME_SCALING_RHO    apply_rz_volume_scaling_rho
+#define WRPX_PXR_RZ_VOLUME_SCALING_J      apply_rz_volume_scaling_j
 #define WRPX_PXR_PUSH_BVEC                pxrpush_emrz_bvec
 #define WRPX_PXR_PUSH_EVEC                pxrpush_emrz_evec
 
@@ -227,13 +228,57 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! Dimension 2
 #elif (AMREX_SPACEDIM==2)
 
+#ifdef WARPX_RZ
+  logical(pxr_logical) :: l_2drz = .TRUE._c_long
+#else
+  logical(pxr_logical) :: l_2drz = .FALSE._c_long
+#endif
+
   CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
        nxguard,nzguard,nox,noz, &
-       .TRUE._c_long, .FALSE._c_long, .FALSE._c_long, 0_c_long)
+       .TRUE._c_long, .FALSE._c_long, l_2drz, 0_c_long)
 
 #endif
 
  end subroutine warpx_charge_deposition
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
+  !> Applies the inverse volume scaling for RZ charge deposition
+  !>
+  !> @details
+  !> The scaling is done for both single mode (FDTD) and
+  !> multi mode (spectral) (todo)
+  !
+  !> @param[inout] rho charge array
+  !> @param[in] rmin tile grid minimum radius
+  !> @param[in] dr radial space discretization steps
+  !> @param[in] nx,ny,nz number of cells
+  !> @param[in] nxguard,nyguard,nzguard number of guard cells
+  !>
+  subroutine warpx_charge_deposition_rz_volume_scaling(rho,rho_ng,rho_ntot,rmin,dr) &
+    bind(C, name="warpx_charge_deposition_rz_volume_scaling")
+
+    integer, intent(in) :: rho_ntot(AMREX_SPACEDIM)
+    integer(c_long), intent(in) :: rho_ng
+    real(amrex_real), intent(IN OUT):: rho(*)
+    real(amrex_real), intent(IN) :: rmin, dr
+
+    integer(c_long) :: type_rz_depose = 1
+
+    ! Compute the number of valid cells and guard cells
+    integer(c_long) :: rho_nvalid(AMREX_SPACEDIM), rho_nguards(AMREX_SPACEDIM)
+    rho_nvalid = rho_ntot - 2*rho_ng
+    rho_nguards = rho_ng
+
+#ifdef WARPX_RZ
+    CALL WRPX_PXR_RZ_VOLUME_SCALING_RHO(   &
+                 rho,rho_nguards,rho_nvalid, &
+                 rmin,dr,type_rz_depose)
+#endif
+
+  end subroutine warpx_charge_deposition_rz_volume_scaling
 
   ! _________________________________________________________________
   !>
@@ -353,7 +398,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     jz_nguards = jz_ng
 
 #ifdef WARPX_RZ
-    CALL WRPX_PXR_RZ_VOLUME_SCALING(   &
+    CALL WRPX_PXR_RZ_VOLUME_SCALING_J(   &
                  jx,jx_nguards,jx_nvalid, &
                  jy,jy_nguards,jy_nvalid, &
                  jz,jz_nguards,jz_nvalid, &
@@ -413,7 +458,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     END SELECT
 
     !!!! --- push particle species positions a time step
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 #elif (AMREX_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
@@ -498,7 +543,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
 
     !!!! --- push particle species positions a time step
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 #elif (AMREX_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
