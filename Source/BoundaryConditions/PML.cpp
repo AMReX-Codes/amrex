@@ -343,10 +343,30 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     DistributionMapping dm{ba};
 
-    int nge = 2;
-    int ngb = 2;
-    int ngf = (do_moving_window) ? 2 : 0;
-    if (WarpX::maxwell_fdtd_solver_id == 1) ngf = std::max( ngf, 1 );
+    // Define the number of guard cells in each direction, for E, B, and F
+    IntVect nge = IntVect(AMREX_D_DECL(2, 2, 2));
+    IntVect ngb = IntVect(AMREX_D_DECL(2, 2, 2));
+    int ngf_int = (do_moving_window) ? 2 : 0;
+    if (WarpX::maxwell_fdtd_solver_id == 1) ngf_int = std::max( ngf_int, 1 );
+    IntVect ngf = IntVect(AMREX_D_DECL(ngf_int, ngf_int, ngf_int));
+#ifdef WARPX_USE_PSATD
+    // Increase the number of guard cells, in order to fit the extent
+    // of the stencil for the spectral solver
+    IntVect ngFFT;
+    if (do_nodal) {
+        ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
+    } else {
+        ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
+    }
+    // Set the number of guard cells to the maximum of each field
+    // (all fields should have the same number of guard cells)
+    ngFFT = ngFFT.max(nge);
+    ngFFT = ngFFT.max(ngb);
+    ngFFT = ngFFT.max(ngf);
+    nge = ngFFT;
+    ngb = ngFFT;
+    ngf = ngFFT;
+ #endif
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 3, nge));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 3, nge));
@@ -372,9 +392,10 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     if (cgeom)
     {
-
-        nge = 1;
-        ngb = 1;
+#ifndef WARPX_USE_PSATD
+        nge = IntVect(AMREX_D_DECL(1, 1, 1));
+        ngb = IntVect(AMREX_D_DECL(1, 1, 1));
+#endif
 
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
