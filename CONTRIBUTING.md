@@ -24,15 +24,14 @@ First, let us setup your local git repo. Make your own fork of the main
 on the [WarpX Github page](https://github.com/ECP-WarpX/WarpX), press the 
 fork button. Then, you can execute:
 ```
-# These 5 first lines are the same as for a standard WarpX install
+# These 4 first lines are the same as for a standard WarpX install
 mkdir warpx_directory
 cd warpx_directory
-git clone https://bitbucket.org/berkeleylab/picsar.git
-git clone https://github.com/AMReX-Codes/amrex.git
-cd amrex && git checkout development && cd .. # switch to AMReX development branch
+git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+git clone --branch development https://github.com/AMReX-Codes/amrex.git
 
 # Clone your fork on your local computer. You can get this address on your fork's Github page.
-git clone https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
+git clone --branch dev https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
 cd warpx
 # Keep track of the main WarpX repo, to remain up-to-date.
 git remote add upstream https://github.com/ECP-WarpX/WarpX.git
