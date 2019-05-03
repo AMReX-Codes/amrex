@@ -29,4 +29,10 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
     setScalars(1.0,1.0);
 }
 
+void
+MLTensorOp::prepareForSolve ()
+{
+    MLABecLaplacian::prepareForSolve();
+}
+
 }
