@@ -48,7 +48,7 @@ public:
         amrex::Abort("MLTensorOp: update TODO");
     }
 
-    virtual void prepareForSolve () final override {}
+    virtual void prepareForSolve () final override;
     virtual bool isSingular (int armlev) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
