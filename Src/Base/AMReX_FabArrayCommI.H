@@ -70,9 +70,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 // Record the graph.
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    if (mfi.LocalIndex() == 0) {
-                        amrex::Gpu::Device::startGraphStreamRecording();
-                    }
+                    amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
 
                     const auto& tags = loc_copy_tags[mfi];
                     for (auto const & tag : tags)
@@ -90,9 +88,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         });
                     }
 
-                    if (mfi.LocalIndex() == (this->local_size()-1)) {
-                        const_cast<FB&>(TheFB).m_localCopy.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                    }
+                    bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                    const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
                 }
             }
 
@@ -305,9 +302,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             int idx = 0;
             for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
             {
-                if (sit() == 0) {
-                    amrex::Gpu::Device::startGraphStreamRecording();
-                }
+                amrex::Gpu::Device::startGraphRecording( sit() == 0 );
 
                 const int j = sit();
                 char* dptr = send_data[j];
@@ -330,9 +325,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     }
                 }
 
-                if ( sit() == (N_snds-1) ) {
-                    const_cast<FB&>(TheFB).m_copyToBuffer.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                }
+                bool last_iter( sit() == (N_snds-1) ); 
+                const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
             }
         }
 
@@ -454,9 +448,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 int cuda_stream = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    if (mfi.LocalIndex() == 0) {
-                        amrex::Gpu::Device::startGraphStreamRecording();
-                    }
+                    amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
 
                     const auto& tags = loc_copy_tags[mfi];
                     for (auto const & tag : tags)
@@ -475,9 +467,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         });
                     }
 
-                    if (mfi.LocalIndex() == (this->local_size()-1)) {
-                        const_cast<FB&>(TheFB).m_localCopy.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                    }
+                    bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                    const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
                 }
             }
             
@@ -632,9 +623,7 @@ FabArray<FAB>::FillBoundary_finish ()
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    if (mfi.LocalIndex() == 0) {
-                        amrex::Gpu::Device::startGraphStreamRecording();
-                    }
+                    amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
 
                     const auto& tags = recv_copy_tags[mfi];
                     for (auto const & tag : tags)
@@ -651,9 +640,8 @@ FabArray<FAB>::FillBoundary_finish ()
                         });
                     }
 
-                    if (mfi.LocalIndex() == (this->local_size()-1)) {
-                        const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
-                    }
+                    bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                    const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
                 }
             }
 
