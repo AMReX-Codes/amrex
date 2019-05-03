@@ -93,7 +93,6 @@ namespace amrex
 						 m_size(a_vector.m_size),
 						 m_capacity(a_vector.m_capacity)
 		{
-			std::cout << "calling move \n";
 			a_vector.m_data = nullptr;
 			a_vector.m_size = 0;
 			a_vector.m_capacity = 0;
@@ -105,7 +104,6 @@ namespace amrex
 						 m_size(a_vector.m_size),
 						 m_capacity(a_vector.m_capacity)
 		{
-			std::cout << "calling move \n";
 			a_vector.m_data = nullptr;
 			a_vector.m_size = 0;
 			a_vector.m_capacity = 0;
@@ -125,10 +123,149 @@ namespace amrex
 			return MoveAssignmentDoIt(a_vector, typename std::allocator_traits<Allocator>::
 									  propagate_on_container_move_assignment());
 		}
-		
-		// need assign, insert, erase, emplace, but not sure
-		// how often we use those.
 
+		iterator erase (const_iterator a_pos)
+		{
+			--m_size;
+			memmove(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T));
+			return const_cast<iterator>(a_pos);
+		}
+
+		iterator erase (const_iterator a_first, const_iterator a_last)
+		{
+			size_type num_to_erase = a_last - a_first;
+			m_size -= num_to_erase;
+			memmove(const_cast<iterator>(a_first), a_first+num_to_erase, (end() - a_first)*sizeof(T));
+			return const_cast<iterator>(a_first);
+		}
+
+		iterator insert (const_iterator a_pos, const T& a_item)
+		{
+			if(m_size == m_capacity)
+			{
+				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+				AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
+				a_pos = m_data;
+				std::advance(a_pos, insert_index);
+			}
+			else
+			{
+				memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
+				++m_size;
+			}
+
+			*const_cast<iterator>(a_pos) = a_item;
+
+			return const_cast<iterator>(a_pos);
+		}
+
+		iterator insert (const_iterator a_pos, size_type a_count, const T& a_value)
+		{
+			if( capacity() < size() + a_count)
+			{
+				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+				AllocateBufferForInsert(GetNewCapacity(a_count), insert_index, a_count);
+				a_pos = m_data;
+				std::advance(a_pos, insert_index);
+			}
+			else
+			{
+				memmove(const_cast<iterator>(a_pos)+a_count, a_pos, (end() - a_pos) * sizeof(T));
+				m_size += a_count;
+			}
+
+			std::uninitialized_fill_n<T*, size_type>(const_cast<iterator>(a_pos), a_count, a_value);
+
+			return const_cast<iterator>(a_pos);
+		}
+
+		iterator insert (const_iterator a_pos, T&& a_item)
+		{
+			if(m_size == m_capacity)
+			{
+				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+				AllocateBufferForInsert(GetNewCapacity(1), insert_index, 1);
+				a_pos = m_data;
+				std::advance(a_pos, insert_index);
+			}
+			else
+			{
+				memmove(const_cast<iterator>(a_pos)+1, a_pos, (end() - a_pos) * sizeof(T));
+				++m_size;
+			}
+
+			*const_cast<iterator>(a_pos) = a_item;
+
+			return const_cast<iterator>(a_pos);
+		}
+
+		iterator insert (const_iterator a_pos, std::initializer_list<T> a_initializer_list)
+		{
+			size_type count = a_initializer_list.size();
+			if( capacity() < size() + count)
+			{
+				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+				AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
+				a_pos = m_data;
+				std::advance(a_pos, insert_index);
+			}
+			else
+			{
+				memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+				m_size += count;
+			}        // copy the initializer list
+			pointer dst = const_cast<iterator>(a_pos);
+			for (const auto& value : a_initializer_list) { *(dst++) = value; }        
+			return const_cast<iterator>(a_pos);
+		}    
+
+		template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
+		iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last)
+		{
+			size_type count = std::distance(a_first, a_last);
+			if( capacity() < size() + count)
+			{
+				size_t insert_index = std::distance(m_data, const_cast<iterator>(a_pos));
+				AllocateBufferForInsert(GetNewCapacity(count), insert_index, count);
+				a_pos = m_data;
+				std::advance(a_pos, insert_index);
+			}
+			else
+			{
+				memmove(const_cast<iterator>(a_pos)+count, a_pos, (end() - a_pos) * sizeof(T));
+				m_size += count;
+			}        pointer dst = const_cast<iterator>(a_pos);
+			while(a_first != a_last) { *(dst++) = *(a_first++); }
+			return const_cast<iterator>(a_pos);
+		}
+
+		void assign (size_type a_count, const T& a_value)
+		{
+			if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
+			m_size = a_count;
+			std::uninitialized_fill_n<T*, size_type>(m_data, a_count, a_value);
+		}    
+
+		void assign (std::initializer_list<T> a_initializer_list)
+		{
+			if(a_initializer_list.size() > capacity())
+				AllocateBuffer(GetNewCapacity(a_initializer_list.size()));
+			m_size = a_initializer_list.size();        // copy the initializer list
+			pointer dst = const_cast<iterator>(m_data);
+			for (const auto& value : a_initializer_list) { *(dst++) = value; }
+		}    
+
+		template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
+		void assign (InputIt a_first, InputIt a_last)
+		{
+			size_t count = std::distance(a_first, a_last);
+			if (count > capacity()) AllocateBuffer(GetNewCapacity(count));
+			m_size = count;        pointer dst = const_cast<iterator>(m_data);
+			while(a_first != a_last) { *(dst++) = *(a_first++); }
+		}
+
+		// don't have the emplace methods, but not sure how often we use those.
+		
 		allocator_type get_allocator () const noexcept { return *this; }
 	
 		void push_back (const T& a_value)
@@ -271,6 +408,18 @@ namespace amrex
 			memcpy(new_data, m_data, size() * sizeof(T));
 			deallocate(m_data, capacity());
 			m_data = new_data;
+			m_capacity = a_capacity;
+		}
+
+		// need to have this version too
+		void AllocateBufferForInsert(size_type a_capacity, size_type a_index, size_type a_count)
+		{
+			pointer new_data = allocate(a_capacity);
+			memcpy(new_data, m_data, a_index * sizeof(T));
+			memcpy(new_data + a_index + a_count, m_data + a_index, (size() - a_index)*sizeof(T));
+			deallocate(m_data, capacity());
+			m_data = new_data;
+			m_size = size() + a_count;
 			m_capacity = a_capacity;
 		}
 
