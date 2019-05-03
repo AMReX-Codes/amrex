@@ -1,6 +1,8 @@
 #ifndef AMREX_PODVECTOR_H_
 #define AMREX_PODVECTOR_H_
 
+#include <AMReX_TypeTraits.H>
+
 #include <type_traits>
 #include <utility>
 #include <memory>
@@ -12,8 +14,8 @@ namespace amrex
 	class PODVector : public Allocator
 	{
 			
-		static_assert(std::is_standard_layout<T>(), "PODVector can only hold standard layout types");
-		static_assert(std::is_trivial<T>(), "PODVector can only hold trivial types");
+		static_assert(std::is_standard_layout<T>(),"PODVector can only hold standard layout types");
+		static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T),"PODVector can only hold trivially copyable types");
             
 		using Allocator::allocate;
 		using Allocator::deallocate;
@@ -170,6 +172,10 @@ namespace amrex
 		T* data () noexcept { return m_data; }
 	
 		const T* data () const noexcept { return m_data; }
+
+		T* dataPtr () noexcept { return m_data; }
+	
+		const T* dataPtr () const noexcept { return m_data; }
 
 		iterator begin () noexcept { return m_data; }
 	
