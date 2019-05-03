@@ -84,11 +84,14 @@ private:
     std::string field_function;
 
     // laser particle domain
-    amrex::RealBox prob_domain;
+    amrex::RealBox laser_prob_domain;
+
+    amrex::Real z_antenna_th;
 
     void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
     void InitData (int lev);
+    void ContinuousInjection(amrex::Real dt, const amrex::RealBox& prob_domain) override;
 };
 
 #endif

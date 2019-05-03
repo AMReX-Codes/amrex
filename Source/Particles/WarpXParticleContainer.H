@@ -183,7 +183,12 @@ public:
                               int thread_num,
                               int lev,
                               amrex::Real dt );
-  
+
+    virtual void ContinuousInjection(amrex::Real dt,
+                                     const amrex::RealBox& prob_domain) {}
+//                                     amrex::Vector<amrex::Real> prob_lo, 
+//                                     amrex::Vector<amrex::Real> prob_hi) {}
+
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
@@ -248,6 +253,9 @@ protected:
 
     static int do_not_push;
 
+    int do_continuous_injection = 0;
+    int done_injecting = 1;
+
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;
     amrex::Vector<amrex::FArrayBox> local_jy;
@@ -258,6 +266,7 @@ protected:
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;
+
 };
 
 #endif

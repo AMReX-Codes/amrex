@@ -49,6 +49,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 	pp.query("pusher_algo", pusher_algo);
 	pp.get("wavelength", wavelength);
 	pp.get("e_max", e_max);
+    pp.query("do_continuous_injection", do_continuous_injection);
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
@@ -148,14 +149,87 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 	u_Y = {0., 1., 0.};
 #endif
 
-    prob_domain = Geometry::ProbDomain();
+    laser_prob_domain = Geometry::ProbDomain();
     {
         Vector<Real> lo, hi;
         if (pp.queryarr("prob_lo", lo)) {
-            prob_domain.setLo(lo);
+            laser_prob_domain.setLo(lo);
         }
         if (pp.queryarr("prob_hi", hi)) {
-            prob_domain.setHi(hi);
+            laser_prob_domain.setHi(hi);
+        }
+    }
+
+    if (do_continuous_injection){
+        z_antenna_th = position[2];
+        Print()<<"z_antenna_th "<<z_antenna_th<<std::endl;
+        const Real prob_lo_z = laser_prob_domain.lo()[AMREX_SPACEDIM-1];
+        const Real prob_hi_z = laser_prob_domain.hi()[AMREX_SPACEDIM-1];
+        if ( z_antenna_th<prob_lo_z || z_antenna_th>prob_hi_z ){
+            done_injecting = 0;
+            Print()<<"z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z"<<std::endl;
+        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  
+            (nvec[0]-0)*(nvec[0]-0) + 
+            (nvec[1]-0)*(nvec[1]-0) + 
+            (nvec[2]-1)*(nvec[2]-1) < 1.e-12,
+            "do_continous_injection for laser particle only works if " + 
+            "laser.direction = 0 0 1 (laser along z). TODO: all directions.");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            WarpX::moving_window_dir == AMREX_SPACEDIM-1,
+            "do_continous_injection for laser particle only works if " + 
+            "moving window along z. TODO: all directions.");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            maxLevel() == 0,
+            "do_continous_injection for laser particle only works if " + 
+            "max level = 0.");
+        if ( WarpX::gamma_boost>1 ){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) + 
+                (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) + 
+                (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
+                "do_continous_injection for laser particle only works if " + 
+                "warpx.boost_direction = z. TODO: all directions.");
+        }
+    }
+}
+
+void
+LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain)
+{
+    if (WarpX::gamma_boost>1){
+        z_antenna_th -= PhysConst::c * WarpX::beta_boost * dt;
+    }
+    Print()<<"LaserParticleContainer::ContinuousInjection"<<std::endl;
+    Print()<<" done injecting "<<done_injecting<<std::endl;
+    if (done_injecting==0)
+    {
+        Print()<<"do_continuous_injection && done_injecting==0"<<std::endl;
+/*
+#if (AMREX_SPACEDIM == 3)
+        const Real prob_lo_z = prob_domain.lo()[2];
+        const Real prob_hi_z = prob_domain.hi()[2];
+#else
+        const Real prob_lo_z = prob_domain.lo()[1];
+        const Real prob_hi_z = prob_domain.hi()[1];
+#endif
+        Print()<<" prob_lo_z "<<prob_lo_z<<
+            " prob_hi_z "<<prob_hi_z<<
+            " z_antenna_th "<<z_antenna_th<<std::endl; 
+        if ( z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z ){
+*/
+        const Real prob_lo_z = prob_domain.lo()[AMREX_SPACEDIM-1];
+        const Real prob_hi_z = prob_domain.hi()[AMREX_SPACEDIM-1];
+        Print()<<" prob_lo_z "<<prob_lo_z<<
+            " prob_hi_z "<<prob_hi_z<<
+            " z_antenna_th "<<z_antenna_th<<std::endl; 
+        if ( z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z ){
+            Print()<<"z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z"<<std::endl;
+//            Print()<<"prob_lo "<<prob_lo[0]<<' '<<prob_lo[1]<<' '<<prob_lo[2]<<std::endl;
+//            Print()<<"prob_hi "<<prob_hi[0]<<' '<<prob_hi[1]<<' '<<prob_hi[2]<<std::endl;
+            laser_prob_domain = prob_domain;
+            InitData(maxLevel());
+            done_injecting = 1;
         }
     }
 }
@@ -168,7 +242,11 @@ LaserParticleContainer::InitData ()
 
 void
 LaserParticleContainer::InitData (int lev)
+//                                  const Real* prob_lo, 
+//                                  const Real* prob_hi)
 {
+    Print()<<"-----------------------------------"<<std::endl;
+
     // spacing of laser particles in the laser plane.
     // has to be done after geometry is set up.
     Real S_X, S_Y;
@@ -210,8 +288,8 @@ LaserParticleContainer::InitData (int lev)
             plane_hi[1] = std::max(plane_hi[1], j);
         };
 
-        const Real* prob_lo = prob_domain.lo();
-        const Real* prob_hi = prob_domain.hi();
+        const Real* prob_lo = laser_prob_domain.lo();
+        const Real* prob_hi = laser_prob_domain.hi();
 #if (AMREX_SPACEDIM == 3)
         compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
         compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
@@ -272,7 +350,7 @@ LaserParticleContainer::InitData (int lev)
 #else
             const Real x[2] = {pos[0], pos[2]};
 #endif
-            if (prob_domain.contains(x))
+            if (laser_prob_domain.contains(x))
             {
                 for (int k = 0; k<2; ++k) {
                     particle_x.push_back(pos[0]);
@@ -291,6 +369,13 @@ LaserParticleContainer::InitData (int lev)
     RealVector particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
+
+    amrex::Print()<<" np "<<np<<std::endl;
+    
+    if (np>0){
+    Print()<<"particle_z.dataPtr() "<<particle_z.dataPtr()[0]<<std::endl;
+    }
+
     AddNParticles(lev,
                   np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
                   particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
@@ -313,6 +398,8 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
     BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
+
+    Print()<<"In laser evolve with z_antenna_th "<<z_antenna_th<<std::endl;
 
     Real t_lab = t;
     if (WarpX::gamma_boost > 1) {
@@ -338,8 +425,10 @@ LaserParticleContainer::Evolve (int lev,
 
         Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
+        Print()<<"before for loop "<<z_antenna_th<<std::endl;
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
+            std::cout<<"in for loop "<<z_antenna_th<<std::endl;
             Real wt = amrex::second();
 
             const Box& box = pti.validbox();
@@ -352,6 +441,8 @@ LaserParticleContainer::Evolve (int lev,
             auto& uzp = attribs[PIdx::uz];
 
             const long np  = pti.numParticles();
+            Print()<< " np " << np << std::endl;
+
             // For now, laser particles do not take the current buffers into account
             const long np_current = np;
 

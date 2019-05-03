@@ -169,6 +169,11 @@ public:
                          const amrex::Real z_old, const amrex::Real z_new,
                          const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
                          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
+
+    void ContinuousInjection(amrex::Real dt,
+                             const amrex::RealBox& prob_domain) const;
+//                             amrex::Vector<amrex::Real> prob_lo, 
+//                             amrex::Vector<amrex::Real> prob_hi) const;
     
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.
