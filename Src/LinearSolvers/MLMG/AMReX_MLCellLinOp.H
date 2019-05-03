@@ -113,7 +113,7 @@ public:
                          bool skip_fillboundary=false) const final override;
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) final override;
+                                   const MultiFab* crse_bcdata=nullptr) override;
 
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final override;
