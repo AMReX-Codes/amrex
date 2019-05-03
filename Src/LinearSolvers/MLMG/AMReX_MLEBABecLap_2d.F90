@@ -70,7 +70,7 @@ contains
     real(amrex_real), intent(in   ) ::phieb( plo(1): phi(1), plo(2): phi(2))
     integer :: i,j, ii, jj
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
-    real(amrex_real) :: phib, anrmx, anrmy, anorm, anorminv
+    real(amrex_real) :: feb, phib, anrmx, anrmy, anorm, anorminv
     logical :: is_inhomogeneous
 
     real(amrex_real) :: dphidn
@@ -119,52 +119,42 @@ contains
                 fyp = (one-fracx)*fyp + fracx*bY(ii,j+1)*(x(ii,j+1)-x(ii,j))
              end if
 
+             if (is_ho_dirichlet .ne. 0 .or. is_dirichlet .ne. 0) then
+                anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)-apy(i,j+1))**2)
+                anorminv = one/anorm
+                anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
+                anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
+
+                if (is_inhomogeneous) then
+                   phib = phieb(i,j)
+                else
+                   phib = zero
+                end if
+
+                if (is_ho_dirichlet .ne. 0) then
+                   call compute_dphidn_2d_ho(dphidn, dxinv, i, j,  &
+                                             x,    xlo,  xhi, &
+                                             flag, flo,  fhi, &
+                                             bc(i,j,:),  phib, &
+                                             anrmx, anrmy)
+                else if (is_dirichlet .ne. 0) then
+                   call compute_dphidn_2d(dphidn, dxinv, i, j,  &
+                                          x,    xlo,  xhi, &
+                                          flag, flo,  fhi, &
+                                          bc(i,j,:),  phib, &
+                                          anrmx, anrmy, vfrc(i,j))
+                end if
+                feb = dphidn * ba(i,j) * beb(i,j)
+             else
+                feb = zero
+             end if
+
              y(i,j) = alpha*a(i,j)*x(i,j) + (one/vfrc(i,j)) * &
-                  (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp))
+                  (dhx*(apx(i,j)*fxm-apx(i+1,j)*fxp) + dhy*(apy(i,j)*fym-apy(i,j+1)*fyp) &
+                  -dhx*feb)
           end if
        end do
     end do
-
-    if (is_ho_dirichlet .ne. 0 .or. is_dirichlet .ne. 0) then
-       do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-
-          if (is_single_valued_cell(flag(i,j))) then
-
-            anorm = sqrt((apx(i,j)-apx(i+1,j))**2 + (apy(i,j)-apy(i,j+1))**2)
-            anorminv = one/anorm
-            anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
-            anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
-
-            if (is_inhomogeneous) then
-               phib = phieb(i,j)
-            else
-               phib = zero
-            end if
-
-            if (is_ho_dirichlet .ne. 0) then
-               call compute_dphidn_2d_ho(dphidn, dxinv, i, j,  &
-                                         x,    xlo,  xhi, &
-                                         flag, flo,  fhi, &
-                                         bc(i,j,:),  phib, &
-                                         anrmx, anrmy)
-            else if (is_dirichlet .ne. 0) then
-               call compute_dphidn_2d(dphidn, dxinv, i, j,  &
-                                      x,    xlo,  xhi, &
-                                      flag, flo,  fhi, &
-                                      bc(i,j,:),  phib, &
-                                      anrmx, anrmy, vfrc(i,j))
-
-            end if 
-
-            y(i,j) = y(i,j) - (one/vfrc(i,j)) * dhx * dphidn * ba(i,j) * beb(i,j)
-
-          end if
-
-       end do
-       end do
-    end if
-
   end subroutine amrex_mlebabeclap_adotx
 
   subroutine amrex_mlebabeclap_gsrb(lo, hi, phi, hlo, hhi, rhs, rlo, rhi, a, alo, ahi, &

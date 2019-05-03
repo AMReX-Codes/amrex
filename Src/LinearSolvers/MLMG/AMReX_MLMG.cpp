@@ -983,7 +983,7 @@ MLMG::ResNormInf (int alev, bool local)
 	} else {
             newnorm = pmf->norm0(n,0,true);
 	}
-	if (newnorm > norm) norm = newnorm;
+        norm = std::max(norm, newnorm);
     }
     if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
     return norm;
@@ -1044,15 +1044,13 @@ MLMG::buildFineMask ()
 
     if (!fine_mask.empty()) return;
 
-    const int ncomp = linop.getNComp();
-
     fine_mask.clear();
     fine_mask.resize(namrlevs);
     
     const auto& amrrr = linop.AMRRefRatio();
     for (int alev = 0; alev < finest_amr_lev; ++alev)
     {
-        fine_mask[alev].reset(new iMultiFab(rhs[alev].boxArray(), rhs[alev].DistributionMap(), ncomp, 0));
+        fine_mask[alev].reset(new iMultiFab(rhs[alev].boxArray(), rhs[alev].DistributionMap(), 1, 0));
         fine_mask[alev]->setVal(1);
 
         BoxArray baf = rhs[alev+1].boxArray();
@@ -1727,7 +1725,7 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
                                              0.5*dx[1]*crse_ratio,
                                              0.5*dx[2]*crse_ratio));
-            hypre_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+            hypre_bndry->setLOBndryConds(linop.m_lobc[0], linop.m_hibc[0], -1, bclocation);
         }
 
         hypre_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *hypre_bndry, linop.getMaxOrder());
@@ -1770,7 +1768,7 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
         RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
                                          0.5*dx[1]*crse_ratio,
                                          0.5*dx[2]*crse_ratio));
-        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+        petsc_bndry->setLOBndryConds(linop.m_lobc[0], linop.m_hibc[0], -1, bclocation);
     }
     petsc_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
 #endif
