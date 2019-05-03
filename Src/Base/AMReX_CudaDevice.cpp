@@ -39,6 +39,7 @@ dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 
 cudaDeviceProp Device::device_prop;
 
+bool Device::graph_per_stream = true;
 Vector<cudaGraph_t> Device::cuda_graphs;
 #endif
 
@@ -319,6 +320,38 @@ Device::streamSynchronize ()
 }
 
 #ifdef AMREX_USE_CUDA
+
+void 
+Device::startGraphRecording(bool first_iter)
+{
+    if (isGraphPerStream())
+    {
+        if (first_iter) {
+            startGraphStreamRecording();
+        }
+    } else {
+        startGraphIterRecording();
+    }
+}
+
+cudaGraphExec_t
+Device::stopGraphRecording(bool last_iter)
+{
+    if (isGraphPerStream())
+    {
+        if (last_iter) {
+            return stopGraphStreamRecording();
+        }
+    } else {
+        stopGraphIterRecording();
+        if (last_iter) {
+            return assembleGraphIter();
+        }
+    }
+
+    return NULL;
+}
+
 
 void
 Device::startGraphIterRecording()

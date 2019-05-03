@@ -33,6 +33,10 @@ public:
     static void streamSynchronize ();
 
 #if defined(AMREX_USE_CUDA)
+    // Generic graph selection. These should be called by users. 
+    static void startGraphRecording(bool first_iter);
+    static cudaGraphExec_t stopGraphRecording(bool last_iter);
+
     // Capture graphs per iteration
     static void startGraphIterRecording();
     static void stopGraphIterRecording();
@@ -47,6 +51,27 @@ public:
 
     // Execute an instantiated cudaGraphExec
     static void executeGraph(cudaGraphExec_t &graphExec);
+
+    // Set type of graph recording.
+    // Currently 2 options, so bool used. Change later if needed. 
+    static inline bool isGraphPerStream() { return graph_per_stream; }
+    static inline bool isNotGraphPerIter() { return graph_per_stream; }
+
+    static inline bool isGraphPerIter() { return !graph_per_stream; }
+    static inline bool isNotGraphPerStream() { return !graph_per_stream; }
+
+    static inline bool setGraphPerStream () {
+        bool r = graph_per_stream;
+        graph_per_stream = true;
+        return r;
+    }
+
+    static inline bool setGraphPerIter () {
+        bool r = graph_per_stream;
+        graph_per_stream = false;
+        return r;
+    }
+
 #endif
 
     static void htod_memcpy       (void* p_d, const void* p_h, const std::size_t sz);
@@ -93,6 +118,7 @@ private:
 
     static cudaDeviceProp device_prop;
 
+    static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
 #endif
 };
