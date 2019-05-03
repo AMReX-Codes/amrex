@@ -6,6 +6,10 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+#ifdef WARPX_USE_PSATD
+#include <SpectralSolver.H>
+#endif
+
 #if (AMREX_SPACEDIM == 3)
 
 #define WRPX_PML_TO_FORTRAN(x)                              \
@@ -160,6 +164,11 @@ private:
 
     std::unique_ptr<MultiSigmaBox> sigba_fp;
     std::unique_ptr<MultiSigmaBox> sigba_cp;
+
+#ifdef WARPX_USE_PSATD
+    std::unique_ptr<SpectralSolver> spectral_solver_fp;
+    std::unique_ptr<SpectralSolver> spectral_solver_cp;
+#endif
 
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
                                          const amrex::BoxArray& grid_ba, int ncell);

@@ -425,7 +425,6 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
     }
-
 }
 
 BoxArray
