@@ -97,7 +97,7 @@ namespace amrex
 			a_vector.m_size = 0;
 			a_vector.m_capacity = 0;
 		}
-
+		
 		PODVector (PODVector<T, Allocator>&& a_vector, const allocator_type& a_allocator) noexcept :
 		Allocator(a_allocator),
 						 m_data(a_vector.m_data),
@@ -117,10 +117,10 @@ namespace amrex
 									  propagate_on_container_copy_assignment());
 		}
 	
-		PODVector& operator= (const PODVector<T, Allocator>&& a_vector)
+		PODVector& operator= (PODVector<T, Allocator>&& a_vector)
 		noexcept(std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
 		{
-			return MoveAssignmentDoIt(a_vector, typename std::allocator_traits<Allocator>::
+			return MoveAssignmentDoIt(std::move(a_vector), typename std::allocator_traits<Allocator>::
 									  propagate_on_container_move_assignment());
 		}
 
@@ -468,9 +468,9 @@ namespace amrex
 				m_size = a_vector.m_size;
 				m_capacity = a_vector.m_capacity;
 
-				a_vector.m_begin = nullptr;
-				a_vector.m_end = nullptr;
-				a_vector.m_endOfMemory = nullptr;
+				a_vector.m_data = nullptr;
+				a_vector.m_size = 0;
+				a_vector.m_capacity = 0;
 			}
 			else
 			{
@@ -491,10 +491,10 @@ namespace amrex
 			m_size = a_vector.m_size;
 			m_capacity = a_vector.m_capacity;
 
-			a_vector.m_begin = nullptr;
-			a_vector.m_end = nullptr;
-			a_vector.m_endOfMemory = nullptr;
-		
+			a_vector.m_data = nullptr;
+			a_vector.m_size = 0;
+			a_vector.m_capacity = 0;
+			
 			return *this;
 		}
 	};
