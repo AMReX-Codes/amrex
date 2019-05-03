@@ -1356,8 +1356,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             search_begin + num_grids + 1,
                             grid_end.begin());
         
-        thrust::host_vector<int> start(grid_begin);
-        thrust::host_vector<int> stop(grid_end);
+		Gpu::HostVector<int> start(grid_begin);
+		Gpu::HostVector<int> stop(grid_end);
         
         std::map<int, size_t> grid_counts;
         for (int i = 0; i < num_grids; ++i)
