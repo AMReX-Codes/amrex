@@ -12,21 +12,21 @@ namespace Cuda {
 
     extern bool in_launch_region;
 
-    inline bool inLaunchRegion () noexcept { return in_launch_region; }
-    inline bool notInLaunchRegion () noexcept { return !in_launch_region; }
+    inline bool inLaunchRegion() noexcept { return in_launch_region; }
+    inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
 
     inline bool setLaunchRegion (bool launch) noexcept {
-        bool r =  in_launch_region;
+        bool r = in_launch_region;
         in_launch_region = launch;
         return r;
     }
 
     extern bool in_graph_region;
-    inline bool inGraphRegion () { return (in_graph_region && in_launch_region); }
-    inline bool notInGraphRegion () { return (!in_graph_region || !in_launch_region); }
+    inline bool inGraphRegion() { return (in_graph_region && in_launch_region); }
+    inline bool notInGraphRegion() { return (!in_graph_region || !in_launch_region); }
 
     inline bool setGraphRegion (bool graph) {
-        bool r =  in_graph_region;
+        bool r = in_graph_region;
         in_graph_region = graph;
         return r;
     }
