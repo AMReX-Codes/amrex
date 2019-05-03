@@ -52,9 +52,14 @@ public:
     virtual bool isSingular (int armlev) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
+    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                                   const MultiFab* crse_bcdata=nullptr) final override;
+
 protected:
 
     bool m_needs_update = true;
+
+    Vector<MultiFab> m_gradeta;
 
 };
 
