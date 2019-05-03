@@ -418,8 +418,6 @@ MultiParticleContainer
 void
 MultiParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain) const
 {
-//    Print()<<"prob_lo "<<prob_lo[0]<<' '<<prob_lo[1]<<' '<<prob_lo[2]<<std::endl;
-//    Print()<<"prob_hi "<<prob_hi[0]<<' '<<prob_hi[1]<<' '<<prob_hi[2]<<std::endl;
     for (int i=nspecies; i<nspecies+nlasers; i++){
         auto& pc = allcontainers[i];
         if (pc->do_continuous_injection)
@@ -427,4 +425,4 @@ MultiParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain)
             pc->ContinuousInjection(dt, prob_domain);
         }
     }
-};
+}

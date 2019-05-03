@@ -178,12 +178,6 @@ WarpXParticleContainer::AddNParticles (int lev,
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
 
-    Print()<< "in WarpXParticleContainer::AddNParticles"<<std::endl;
-
-    Print()<< "n = "<<n<<std::endl;
-
-    Print()<< "here 1"<<std::endl;
-
     int ibegin, iend;
     if (uniqueparticles) {
 	ibegin = 0;
@@ -247,9 +241,6 @@ WarpXParticleContainer::AddNParticles (int lev,
         
         particle_tile.push_back(p);
     }
-
-    Print()<< "in addnpart np = "<<np<<std::endl;
-
 
     if (np > 0)
     {

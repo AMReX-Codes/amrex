@@ -88,7 +88,6 @@ WarpX::EvolveEM (int numsteps)
             UpdateAuxilaryData();
         }
 
-//        mypc->ContinuousInjection(dt[0], geom[0].ProbLo(), geom[0].ProbHi());
         mypc->ContinuousInjection(dt[0], geom[0].ProbDomain());
 
         if (do_subcycling == 0 || finest_level == 0) {

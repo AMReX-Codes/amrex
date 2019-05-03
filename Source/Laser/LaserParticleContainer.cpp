@@ -162,12 +162,10 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 
     if (do_continuous_injection){
         z_antenna_th = position[2];
-        Print()<<"z_antenna_th "<<z_antenna_th<<std::endl;
         const Real prob_lo_z = laser_prob_domain.lo()[AMREX_SPACEDIM-1];
         const Real prob_hi_z = laser_prob_domain.hi()[AMREX_SPACEDIM-1];
         if ( z_antenna_th<prob_lo_z || z_antenna_th>prob_hi_z ){
             done_injecting = 0;
-            Print()<<"z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z"<<std::endl;
         }
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  
             (nvec[0]-0)*(nvec[0]-0) + 
@@ -200,33 +198,11 @@ LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain
     if (WarpX::gamma_boost>1){
         z_antenna_th -= PhysConst::c * WarpX::beta_boost * dt;
     }
-    Print()<<"LaserParticleContainer::ContinuousInjection"<<std::endl;
-    Print()<<" done injecting "<<done_injecting<<std::endl;
     if (done_injecting==0)
     {
-        Print()<<"do_continuous_injection && done_injecting==0"<<std::endl;
-/*
-#if (AMREX_SPACEDIM == 3)
-        const Real prob_lo_z = prob_domain.lo()[2];
-        const Real prob_hi_z = prob_domain.hi()[2];
-#else
-        const Real prob_lo_z = prob_domain.lo()[1];
-        const Real prob_hi_z = prob_domain.hi()[1];
-#endif
-        Print()<<" prob_lo_z "<<prob_lo_z<<
-            " prob_hi_z "<<prob_hi_z<<
-            " z_antenna_th "<<z_antenna_th<<std::endl; 
-        if ( z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z ){
-*/
         const Real prob_lo_z = prob_domain.lo()[AMREX_SPACEDIM-1];
         const Real prob_hi_z = prob_domain.hi()[AMREX_SPACEDIM-1];
-        Print()<<" prob_lo_z "<<prob_lo_z<<
-            " prob_hi_z "<<prob_hi_z<<
-            " z_antenna_th "<<z_antenna_th<<std::endl; 
         if ( z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z ){
-            Print()<<"z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z"<<std::endl;
-//            Print()<<"prob_lo "<<prob_lo[0]<<' '<<prob_lo[1]<<' '<<prob_lo[2]<<std::endl;
-//            Print()<<"prob_hi "<<prob_hi[0]<<' '<<prob_hi[1]<<' '<<prob_hi[2]<<std::endl;
             laser_prob_domain = prob_domain;
             InitData(maxLevel());
             done_injecting = 1;
@@ -242,13 +218,7 @@ LaserParticleContainer::InitData ()
 
 void
 LaserParticleContainer::InitData (int lev)
-//                                  const Real* prob_lo, 
-//                                  const Real* prob_hi)
 {
-    Print()<<"-----------------------------------"<<std::endl;
-
-    // spacing of laser particles in the laser plane.
-    // has to be done after geometry is set up.
     Real S_X, S_Y;
     ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
@@ -370,12 +340,6 @@ LaserParticleContainer::InitData (int lev)
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
 
-    amrex::Print()<<" np "<<np<<std::endl;
-    
-    if (np>0){
-    Print()<<"particle_z.dataPtr() "<<particle_z.dataPtr()[0]<<std::endl;
-    }
-
     AddNParticles(lev,
                   np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
                   particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
@@ -398,8 +362,6 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
     BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
-
-    Print()<<"In laser evolve with z_antenna_th "<<z_antenna_th<<std::endl;
 
     Real t_lab = t;
     if (WarpX::gamma_boost > 1) {
@@ -425,10 +387,8 @@ LaserParticleContainer::Evolve (int lev,
 
         Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
-        Print()<<"before for loop "<<z_antenna_th<<std::endl;
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            std::cout<<"in for loop "<<z_antenna_th<<std::endl;
             Real wt = amrex::second();
 
             const Box& box = pti.validbox();
@@ -441,7 +401,6 @@ LaserParticleContainer::Evolve (int lev,
             auto& uzp = attribs[PIdx::uz];
 
             const long np  = pti.numParticles();
-            Print()<< " np " << np << std::endl;
 
             // For now, laser particles do not take the current buffers into account
             const long np_current = np;
