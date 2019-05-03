@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <limits>
+#include <memory>
 
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
@@ -149,9 +150,29 @@ namespace amrex {
         inline void deallocate(pointer ptr, size_t)
         {
             The_Device_Arena()->free(ptr);
-	}
-    };
-
+		}
+	};
+		
+	template<class T>
+    class ManagedAllocator : public std::allocator<T>
+    {
+    public:
+        using value_type = T;
+    
+        typedef T* pointer;
+        inline pointer allocate(size_t n)
+        {
+			value_type* result = nullptr;
+			result = (value_type*) The_Arena()->alloc(n * sizeof(T));  
+			return result;
+		}
+		
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Arena()->free(ptr);
+		}
+	};
+		
     /**
 
        This is a polymorphic memory allocator that uses either the 
@@ -178,7 +199,7 @@ namespace amrex {
                 result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
             }
 	    return thrust::device_pointer_cast(result);
-	}
+		}
   
         inline void deallocate(pointer ptr, size_t)
         {
