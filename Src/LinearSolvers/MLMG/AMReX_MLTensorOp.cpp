@@ -1,5 +1,6 @@
 #include <AMReX_MLTensorOp.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_MLTensor_K.H>
 
 namespace amrex {
 
@@ -50,15 +51,24 @@ MLTensorOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const Mu
                            const MultiFab* crse_bcdata)
 {
     BL_PROFILE("MLTensorOp::solutionResidual()");
-    const int ncomp = AMREX_SPACEDIM;
+
     MLABecLaplacian::solutionResidual(amrlev, resid, x, b, crse_bcdata);
+
+    const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(resid, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-
+        const Box& bx = mfi.tilebox();
+        Array4<Real> const rfab = resid.array(mfi);
+        Array4<Real const> const vfab = x.array(mfi);
+        Array4<Real const> const gradetafab = m_gradeta[amrlev].array(mfi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mltensor_resid_add_extra(bx, rfab, vfab, gradetafab, dxinv);
+        });
     }
 }
 

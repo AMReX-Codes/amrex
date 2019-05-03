@@ -329,8 +329,7 @@ void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const auto lo = lbound(bx);
-    const auto hi = lbound(bx);
-
+    const auto hi = ubound(bx);
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
 
