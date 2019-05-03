@@ -713,7 +713,30 @@ namespace amrex
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
-                amrex_compute_divergence(bx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+                amrex_compute_divergence(tbx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+            });
+        }
+    }
+
+    void computeGradient (MultiFab& grad,  const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                          const Geometry& geom)
+    {
+        AMREX_ASSERT(grad.nComp() >= AMREX_SPACEDIM);
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(grad,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& gradfab = grad.array(mfi);
+            AMREX_D_TERM(const auto& ufab = umac[0]->array(mfi);,
+                         const auto& vfab = umac[1]->array(mfi);,
+                         const auto& wfab = umac[2]->array(mfi););
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                amrex_compute_gradient(tbx,gradfab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
             });
         }
     }
