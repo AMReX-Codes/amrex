@@ -32,7 +32,7 @@ public:
     static void synchronize ();
     static void streamSynchronize ();
 
-#if defined(AMREX_USE_CUDA)
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     // Generic graph selection. These should be called by users. 
     static void startGraphRecording(bool first_iter);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
@@ -117,9 +117,10 @@ private:
     static dim3 numBlocksOverride, numThreadsOverride;
 
     static cudaDeviceProp device_prop;
-
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
+#endif
 #endif
 };
 

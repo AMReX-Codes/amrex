@@ -58,7 +58,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
             }
 
-//#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
             if (Gpu::inGraphRegion()) {  // <<<=========
 
             // Create Graph if one is needed.
@@ -114,7 +114,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const_cast<FB&>(TheFB).m_localCopy.executeGraph();
 
             } else {  // <<<========
-//#else
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -133,8 +133,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     });
                 }
             }
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
             } // <<<=========
-//#endif
+#endif
         }
         else
         {
@@ -284,6 +285,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     {
         bool is_thread_safe = FAB::isCopyOMPSafe();
 
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
         if (Gpu::inGraphRegion()) {   // <<<=========
 
         if ( !(TheFB.m_copyToBuffer.ready()) )
@@ -357,6 +359,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
         } else {     // <<<=========
 
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
@@ -381,9 +385,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     BL_ASSERT(dptr == send_data[j] + send_size[j]); 
                 }
             }
-
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         }      // <<<=========
-
+#endif
         int send_counter = 0;
         while (send_counter < N_snds)
         {
@@ -438,6 +442,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
             FillBoundary_test();
 
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+
             if (Gpu::inGraphRegion()) { // <<<=============
 
             if ( !(TheFB.m_localCopy.ready()) )
@@ -491,6 +497,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
             } else { // <<<===============
 
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -513,7 +521,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     }
                 }
             }
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             }       // <<<===================
+#endif
+
         }
         else
         {
@@ -608,6 +619,8 @@ FabArray<FAB>::FillBoundary_finish ()
     {
         if (!recv_copy_tags.empty())
         {
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             if (Gpu::inGraphRegion()) {     // <<<================
 
             if ( !(TheFB.m_copyFromBuffer.ready()) )
@@ -662,6 +675,8 @@ FabArray<FAB>::FillBoundary_finish ()
 
 
             } else {    // <<<==================
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -680,7 +695,9 @@ FabArray<FAB>::FillBoundary_finish ()
                     });
                 }
             }
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             }    // <<<===============
+#endif
         }
         else
         {
