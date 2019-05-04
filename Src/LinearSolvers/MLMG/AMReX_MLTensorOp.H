@@ -39,6 +39,9 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
+    // They are always 1 and 1.
+    void setScalars (Real a, Real b) noexcept = delete;
+
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
     virtual bool needsUpdate () const final override {
