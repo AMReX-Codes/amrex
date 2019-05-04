@@ -48,7 +48,6 @@
 #elif (AMREX_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
-#define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
 #define WRPX_SYNC_CURRENT                warpx_sync_current_2d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
 
@@ -73,6 +72,12 @@
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
+
+#ifdef WARPX_RZ
+#define WRPX_COMPUTE_DIVE                warpx_compute_dive_rz
+#else
+#define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
+#endif
 
 #endif
 
@@ -101,6 +106,12 @@ extern "C"
 			const long* nxguard, const long* nyguard, const long* nzguard,
 			const long* nox, const long* noy,const long* noz,
 			const long* lvect, const long* charge_depo_algo);
+
+        // Charge deposition finalize for RZ
+        void warpx_charge_deposition_rz_volume_scaling(
+			amrex::Real* rho, const long* rho_ng, const int* rho_ntot,
+			const amrex::Real* rmin,
+			const amrex::Real* dr);
 
 	// Current deposition
 	void warpx_current_deposition(
@@ -362,7 +373,11 @@ extern "C"
                              const BL_FORT_FAB_ARG_ANYD(ex),
                              const BL_FORT_FAB_ARG_ANYD(ey),
                              const BL_FORT_FAB_ARG_ANYD(ez),
-                             const amrex::Real* dx);
+                             const amrex::Real* dx
+#ifdef WARPX_RZ
+                             ,const amrex::Real* rmin
+#endif
+                             );
 
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,

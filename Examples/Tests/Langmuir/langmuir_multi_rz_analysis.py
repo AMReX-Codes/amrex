@@ -18,7 +18,7 @@ from scipy.constants import e, m_e, epsilon_0, c
 fn = sys.argv[1]
 
 # Parameters (these parameters must match the parameters in `inputs.multi.rz.rt`)
-epsilon = 0.001
+epsilon = 0.01
 n = 2.e24
 w0 = 5.e-6
 n_osc_z = 2
