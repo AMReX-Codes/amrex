@@ -27,7 +27,7 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 
     MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
-    setScalars(1.0,1.0);
+    MLABecLaplacian::setScalars(1.0,1.0);
 
     m_gradeta.clear();
     m_gradeta.resize(NAMRLevels());
