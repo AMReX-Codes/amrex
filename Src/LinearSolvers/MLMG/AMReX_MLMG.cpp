@@ -983,7 +983,7 @@ MLMG::ResNormInf (int alev, bool local)
 	} else {
             newnorm = pmf->norm0(n,0,true);
 	}
-	if (newnorm > norm) norm = newnorm;
+        norm = std::max(norm, newnorm);
     }
     if (!local) ParallelAllReduce::Max(norm, ParallelContext::CommunicatorSub());
     return norm;
@@ -1044,15 +1044,13 @@ MLMG::buildFineMask ()
 
     if (!fine_mask.empty()) return;
 
-    const int ncomp = linop.getNComp();
-
     fine_mask.clear();
     fine_mask.resize(namrlevs);
     
     const auto& amrrr = linop.AMRRefRatio();
     for (int alev = 0; alev < finest_amr_lev; ++alev)
     {
-        fine_mask[alev].reset(new iMultiFab(rhs[alev].boxArray(), rhs[alev].DistributionMap(), ncomp, 0));
+        fine_mask[alev].reset(new iMultiFab(rhs[alev].boxArray(), rhs[alev].DistributionMap(), 1, 0));
         fine_mask[alev]->setVal(1);
 
         BoxArray baf = rhs[alev+1].boxArray();

@@ -341,9 +341,9 @@ MLEBABecLap::prepareForSolve ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
@@ -395,6 +395,8 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     const int is_ho_dirichlet = ( (is_eb_dirichlet == 1) && isHOEBDirichlet() && (mglev == 0));
     const int is_dirichlet    = ( (is_eb_dirichlet == 1) && (is_ho_dirichlet == 0) );
 
+    const int ncomp = getNComp();
+
     FArrayBox foo(Box::TheUnitBox());
 
     const Real ascalar = m_a_scalar;
@@ -422,7 +424,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                             AMREX_D_DECL(bxfab.array(),
                                          byfab.array(),
                                          bzfab.array()),
-                            dxinvarr, ascalar, bscalar);
+                            dxinvarr, ascalar, bscalar, ncomp);
         } else {
 
             FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
@@ -665,6 +667,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
     const int mglev = 0; 
     const Box& box = mfi.tilebox();
+    const int ncomp = getNComp();
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
@@ -683,7 +686,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     } else if (fabtyp == FabType::regular || !at_centroid) {
         MLABecLaplacian::FFlux(box, dxinv, m_b_scalar,
                                Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&bx,&by,&bz)},
-                               flux, sol, face_only);
+                               flux, sol, face_only, ncomp);
         if (fabtyp != FabType::regular && !face_only) {
             const auto& area = factory->getAreaFrac();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -838,6 +841,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
+    const int ncomp = getNComp();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -859,7 +863,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                 AMREX_D_DECL(bxfab.array(),
                                              byfab.array(),
                                              bzfab.array()),
-                                dxinvarray, ascalar, bscalar);
+                                dxinvarray, ascalar, bscalar, ncomp);
         }
         else if (fabtyp == FabType::singlevalued)
         {
@@ -982,6 +986,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     FArrayBox foo(Box::TheUnitBox(),ncomp);
     foo.setVal(10.0);
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp==1, "MLEBABecLap: ncomp must be 1");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -993,8 +999,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
         if (fabtyp != FabType::covered)
         {
-            const RealTuple & bdl = bcondloc.bndryLocs(mfi);
-            const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+            const RealTuple & bdl = bcondloc.bndryLocs(mfi,0);
+            const BCTuple   & bdc = bcondloc.bndryConds(mfi,0);
             
             for (OrientationIter oitr; oitr; ++oitr)
             {
@@ -1053,9 +1059,9 @@ MLEBABecLap::update ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
