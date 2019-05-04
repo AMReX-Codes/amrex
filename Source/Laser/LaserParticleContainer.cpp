@@ -223,6 +223,10 @@ LaserParticleContainer::InitData (int lev)
     ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
+    if (do_continuous_injection){
+        position[2] = z_antenna_th;
+    }
+
     auto Transform = [&](int i, int j) -> Vector<Real>{
 #if (AMREX_SPACEDIM == 3)
         return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
