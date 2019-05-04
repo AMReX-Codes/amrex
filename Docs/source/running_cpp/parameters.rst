@@ -58,6 +58,22 @@ Setting up the field mesh
     This patch is rectangular, and thus its extent is given here by the coordinates
     of the lower corner (``warpx.fine_tag_lo``) and upper corner (``warpx.fine_tag_hi``).
 
+* ``n_field_gather_buffer`` (`integer`; 0 by default)
+    When using mesh refinement: the particles that are located inside
+    a refinement patch, but within ``n_field_gather_buffer`` cells of
+    the edge of this patch, will gather the fields from the lower refinement
+    level, instead of gathering the fields from the refinement patch itself.
+    This avoids some of the spurious effects that can occur inside the
+    refinement patch, close to its edge. See the section
+    :doc:`../../theory/warpx_theory` for more details.
+
+* ``n_current_deposition_buffer`` (`integer`)
+    When using mesh refinement: the particles that are located inside
+    a refinement patch, but within ``n_field_gather_buffer`` cells of
+    the edge of this patch, will deposit their charge and current to the
+    lower refinement level, instead of depositing to the refinement patch
+    itself. See the section :doc:`../../theory/warpx_theory` for more details.
+
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
 
@@ -91,7 +107,8 @@ Distribution across MPI ranks and parallelization
     (see ``max_grid_size``).
 
 * ``warpx.load_balance_with_sfc`` (`0` or `1`) optional (default `0`)
-    If this is `1`: use a Space-Filling Curve (SFC) algorithm in order to perform load-balancing of the simulation.
+    If this is `1`: use a Space-Filling Curve (SFC) algorithm in order to
+    perform load-balancing of the simulation.
     If this is `0`: the Knapsack algorithm is used instead.
 
 * ``warpx.do_dynamic_scheduling`` (`0` or `1`) optional (default `1`)
@@ -172,7 +189,7 @@ Particle initialization
     The only valid value is true.
 
     * ``predefined``: use one of WarpX predefined plasma profiles. It requires additional
-      arguments ``<species_name>.predefined_profile_name`` and 
+      arguments ``<species_name>.predefined_profile_name`` and
       ``<species_name>.predefined_profile_params`` (see below).
 
 * ``<species_name>.momentum_distribution_type`` (`string`)
@@ -201,7 +218,7 @@ Particle initialization
     Injection plane when using the rigid injection method.
     See ``particles.rigid_injected_species`` above.
 
-* ``<species_name>.rigid_avance`` (`bool`)
+* ``<species_name>.rigid_advance`` (`bool`)
     Only read if ``<species_name>`` is in ``particles.rigid_injected_species``.
 
     * If ``false``, each particle is advanced with its
@@ -226,19 +243,19 @@ Particle initialization
 
           n(x,y) = 1 + 4\frac{x^2+y^2}{k_p^2 R_c^4}
 
-      where :math:`k_p` is the plasma wavenumber associated with density :math:`n_0`. 
-      Here, :math:`n(z)` is a linear up-ramp from :math:`0` to :math:`L_{ramp,up}`, 
+      where :math:`k_p` is the plasma wavenumber associated with density :math:`n_0`.
+      Here, :math:`n(z)` is a linear up-ramp from :math:`0` to :math:`L_{ramp,up}`,
       constant to :math:`1` from :math:`L_{ramp,up}` to :math:`L_{ramp,up} + L_{plateau}`
-      and a linear down-ramp from :math:`L_{ramp,up} + L_{plateau}` to 
+      and a linear down-ramp from :math:`L_{ramp,up} + L_{plateau}` to
       :math:`L_{ramp,up} + L_{plateau}+L_{ramp,down}`. All parameters are given
       in ``predefined_profile_params``.
 
 * ``<species_name>.predefined_profile_params`` (list of `float`)
     Parameters for the predefined profiles.
 
-    * If ``species_name.predefined_profile_name`` is ``parabolic_channel``, 
-      ``predefined_profile_params`` contains a space-separated list of the 
-      following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}` 
+    * If ``species_name.predefined_profile_name`` is ``parabolic_channel``,
+      ``predefined_profile_params`` contains a space-separated list of the
+      following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}`
       :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
 * ``<species_name>.do_backward_injection`` (`bool`)
@@ -265,12 +282,12 @@ Laser initialization
 
 * ``lasers.names`` (list of `string`. Must contain ``lasers.nlasers`` elements)
     Name of each laser. This is then used in the rest of the input deck ;
-    in this documentation we use `<laser_name>` as a placeholder. The parameters below 
+    in this documentation we use `<laser_name>` as a placeholder. The parameters below
     must be provided for each laser pulse.
 
 * ```<laser_name>`.position`` (`3 floats in 3D and 2D` ; in meters)
     The coordinates of one of the point of the antenna that will emit the laser.
-    The plane of the antenna is entirely defined by ``<laser_name>.position`` 
+    The plane of the antenna is entirely defined by ``<laser_name>.position``
     and ``<laser_name>.direction``.
 
     ```<laser_name>`.position`` also corresponds to the origin of the coordinates system
@@ -280,7 +297,7 @@ Laser initialization
     transversally.
 
     .. note::
-        In 2D, ```<laser_name>`.position`` is still given by 3 numbers, 
+        In 2D, ```<laser_name>`.position`` is still given by 3 numbers,
         but the second number is ignored.
 
     When running a **boosted-frame simulation**, provide the value of
@@ -410,8 +427,8 @@ Laser initialization
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
     Users can input perfect mirror condition inside the simulation domain.
-    The number of mirrors is given by ``warpx.num_mirrors``. The mirrors are 
-    orthogonal to the `z` direction. The following parameters are required 
+    The number of mirrors is given by ``warpx.num_mirrors``. The mirrors are
+    orthogonal to the `z` direction. The following parameters are required
     when ``warpx.num_mirrors`` is >0.
 
 * ``warpx.mirror_z`` (list of `float`) required if ``warpx.num_mirrors>0``
@@ -421,10 +438,10 @@ Laser initialization
     ``z`` width of the mirrors.
 
 * ``warpx.mirror_z_npoints`` (list of `int`) required if ``warpx.num_mirrors>0``
-    In the boosted frame, depending on `gamma_boost`, ``warpx.mirror_z_width`` 
-    can be smaller than the cell size, so that the mirror would not work. This 
-    parameter is the minimum number of points for the mirror. If 
-    ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased 
+    In the boosted frame, depending on `gamma_boost`, ``warpx.mirror_z_width``
+    can be smaller than the cell size, so that the mirror would not work. This
+    parameter is the minimum number of points for the mirror. If
+    ``mirror_z_width < dz/cell_size``, the upper bound of the mirror is increased
     so that it contains at least ``mirror_z_npoints``.
 
 Numerics and algorithms
@@ -493,6 +510,11 @@ Numerics and algorithms
 
     Note that the implementation in WarpX is more efficient when these 3 numbers are equal,
     and when they are between 1 and 3.
+
+* ``warpx.do_nodal`` (`0` or `1` ; default: 0)
+    Whether to use a nodal grid (i.e. all fields are defined at the
+    same points in space) or a staggered grid (i.e. Yee grid ; different
+    fields are defined at different points in space)
 
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
