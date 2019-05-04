@@ -4,11 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-.. _ss:managinggrid:
-
-Managing the Grid Hierarchy
-===========================
-
 .. _ss:grid_creation:
 
 Grid Creation
