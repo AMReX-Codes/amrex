@@ -415,6 +415,12 @@ MultiParticleContainer
     }
 }
 
+/* \brief Continuous injection for particles initially outside of the domain.
+ * \param dt: timestep (so far, this only works without MR)
+ * \param prob_domain: current boundaries of the full domain.
+ * Loop over all WarpXParticleContainer in MultiParticleContainer and 
+ * calls virtual function ContinuousInjection.
+ */
 void
 MultiParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain) const
 {

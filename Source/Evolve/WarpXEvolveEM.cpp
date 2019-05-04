@@ -88,6 +88,8 @@ WarpX::EvolveEM (int numsteps)
             UpdateAuxilaryData();
         }
 
+        // Performs continuous injection of all WarpXParticleContainer
+        // in mypc. 
         mypc->ContinuousInjection(dt[0], geom[0].ProbDomain());
 
         if (do_subcycling == 0 || finest_level == 0) {

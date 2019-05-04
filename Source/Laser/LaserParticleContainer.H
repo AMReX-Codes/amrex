@@ -85,12 +85,15 @@ private:
 
     // laser particle domain
     amrex::RealBox laser_prob_domain;
-
+    // Theoretical position of the antenna. Used if do_continuous_injection=1.
+    // Track the position of the antenna until it enters the simulation domain.
     amrex::Real z_antenna_th;
 
     void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
     void InitData (int lev);
+    // Inject the laser antenna during the simulation, if it started 
+    // outside of the simulation domain and enters it.
     void ContinuousInjection(amrex::Real dt, const amrex::RealBox& prob_domain) override;
 };
 

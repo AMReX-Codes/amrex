@@ -184,10 +184,15 @@ public:
                               int lev,
                               amrex::Real dt );
 
+    // If particles start outside of the domain, ContinuousInjection 
+    // makes sure that they are initialized when they enter the domain, and 
+    // NOT before. Virtual function, overriden by derived classes. 
+    // Current status:
+    // PhysicalParticleContainer: not implemented.
+    // LaserParticleContainer: implemented.
+    // RigidInjectedParticleContainer: not implemented.
     virtual void ContinuousInjection(amrex::Real dt,
                                      const amrex::RealBox& prob_domain) {}
-//                                     amrex::Vector<amrex::Real> prob_lo, 
-//                                     amrex::Vector<amrex::Real> prob_hi) {}
 
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.
@@ -253,6 +258,10 @@ protected:
 
     static int do_not_push;
 
+    // Whether to allow particles outside of the simulation domain to be 
+    // initialized when they enter the domain.
+    // This is currently required because continuous injection does not 
+    // support all features allowed by direct injection.
     int do_continuous_injection = 0;
     int done_injecting = 1;
 
