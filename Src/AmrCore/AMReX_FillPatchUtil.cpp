@@ -231,9 +231,15 @@ namespace amrex
                              const InterpHook& pre_interp,
                              const InterpHook& post_interp)
     {
+#ifdef AMREX_USE_EB
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
+#else
+        EB2::IndexSpace const* index_space = nullptr;
+#endif
+
         FillPatchTwoLevels_doit(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
                                 cbc,cbccomp,fbc,fbccomp,ratio,mapper,bcs,bcscomp,
-                                pre_interp,post_interp,nullptr);
+                                pre_interp,post_interp,index_space);
     }
 
 #ifdef AMREX_USE_EB
