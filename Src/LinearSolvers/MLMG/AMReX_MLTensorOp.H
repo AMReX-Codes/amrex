@@ -55,8 +55,8 @@ public:
     virtual bool isSingular (int armlev) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
-    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) final override;
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
 protected:
 
