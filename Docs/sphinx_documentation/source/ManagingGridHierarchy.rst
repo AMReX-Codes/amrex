@@ -21,6 +21,8 @@ Another popular input is :cpp:`blocking_factor`.  The value of :cpp:`blocking_fa
 constrains grid creation in that in that each grid must be divisible by :cpp:`blocking_factor`.  
 Note that both the domain (at each level) and :cpp:`max_grid_size` must be divisible by :cpp:`blocking_factor`
 If not specified by the user, :cpp:`blocking_factor` defaults to 8 in each coordinate direction.
+The typical purpose of :cpp:`blocking_factor` is to ensure that the grids will be 
+sufficiently coarsenable for good multigrid performance.
 
 There is one more default behavior to be aware of.  There is a boolean :cpp:`refine_grid_layout` 
 that defaults to true but can be over-ridden at run-time.
@@ -53,31 +55,21 @@ Additional notes:
  - note that :cpp:`max_grid_size` is just an upper bound; with :cpp:`n_cell = 48` 
    and :cpp:`max_grid_size = 32`, we will typically have one grid of length 32 and one of length 16.
 
-The gridding algorithm proceeds as follows:
+The grid creation proceeds as follows:
 
-#. If at level 0, the domain is initially defined by :cpp:`n_cell`
-   as specified in the inputs file. If at level greater than 0,
-   grids are created using the Berger-Rigoutsis clustering algorithm applied to the
-   tagged cells from the section on :ref:`ss:regridding`, modified to ensure that
-   all new fine grids are divisible by :cpp:`blocking_factor`.
+#. The domain is initially defined by a single grid of size :cpp:`n_cell`.
 
-#. Next, the grid list is chopped up if any grids are larger than :cpp::`max_grid_size`.
-   Note that because :cpp:`max_grid_size` is a multiple of :cpp:`blocking_factor`
-   (as long as :cpp:`max_grid_size` is greater than :cpp:`blocking_factor`),
-   the blocking_factor criterion is still satisfied.
+#. If :cpp:`n_cell` is greater than :cpp::`max_grid_size` then the grids are subdivided until
+each grid is no longer than  :cpp::`max_grid_size` cells on each side.  The :cpp:`blocking_factor` criterion
+(ie that the length of each side of each grid is divisible by :cpp:`blocking_factor` in that direction)
+is satisfied during this process.
 
-#. Next, if ``refine_grid_layout = 1`` and there are more processors than grids
+#. Next, if :cpp:`refine_grid_layout = true` and there are more processors than grids
    at this level, then the grids at this level are further divided in order to ensure that
-   no processors has less than one grid (at each level).
-   In :cpp:`AmrMesh::ChopGrids`,
+   no processors has less than one grid (at each level). (as long as the :cpp:`blocking_factor` criterion
+   is not violated).
 
-   -  if :cpp:`max_grid_size / 2` in the :cpp:`BL_SPACEDIM` direction is a multiple of
-      :cpp:`blocking_factor`, then chop the grids in the :cpp:`BL_SPACEDIM` direction
-      so that none of the grids are longer in that direction than :cpp:`max_grid_size / 2`
-
-   -  If there are still fewer grids than processes, repeat the procedure in the
-      :cpp:`BL_SPACEDIM-1` direction, and again in the :cpp:`BL_SPACEDIM-2` direction if necessary
-
-   -  If after completing a sweep in all coordinate directions with :cpp:`max_grid_size / 2`,
-      there are still fewer grids than processes, repeat the steps above with :cpp:`max_grid_size / 4`.
+#. The creation of grids at higher levels begins by tagging cells at the coarser level and follows
+   the Berger-Rigoutsis clustering algorithm with the additional constraint of satisfying 
+   the :cpp:`blocking_factor` criterion.
 
