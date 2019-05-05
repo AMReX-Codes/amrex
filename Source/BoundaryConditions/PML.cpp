@@ -329,7 +329,9 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window)
+          int ncell, int delta, int ref_ratio, Real dt,
+          int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
+          int do_dive_cleaning, int do_moving_window)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
@@ -390,6 +392,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell, delta));
 
+#ifdef WARPX_USE_PSATD
+    const bool in_pml = true; // Tells spectral solver to use split-PML equations
+    const RealVect dx{AMREX_D_DECL(geom->CellSize(0), geom->CellSize(1), geom->CellSize(2))};
+    spectral_solver_fp.reset( new SpectralSolver( ba, dm,
+        nox_fft, noy_fft, noz_fft, do_nodal, dx, dt, in_pml ) );
+#endif
+
     if (cgeom)
     {
 #ifndef WARPX_USE_PSATD
@@ -424,6 +433,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         }
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
+
+        #ifdef WARPX_USE_PSATD
+            const bool in_pml = true; // Tells spectral solver to use split-PML equations
+            const RealVect cdx{AMREX_D_DECL(cgeom->CellSize(0), cgeom->CellSize(1), cgeom->CellSize(2))};
+            spectral_solver_fp.reset( new SpectralSolver( cba, cdm,
+                nox_fft, noy_fft, noz_fft, do_nodal, cdx, dt, in_pml ) );
+        #endif
     }
 }
 

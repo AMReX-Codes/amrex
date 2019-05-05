@@ -1,6 +1,7 @@
 #include <SpectralKSpace.H>
 #include <SpectralSolver.H>
 #include <PsatdAlgorithm.H>
+#include <PMLPsatdAlgorithm.H>
 
 /* \brief Initialize the spectral Maxwell solver
  *
