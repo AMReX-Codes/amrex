@@ -69,11 +69,11 @@ The grid creation process at level 0 proceeds as follows (if not using the KD-tr
    (unless doing so would violate the :cpp:`blocking_factor` criterion).
 
 The creation of grids at levels > 0 begins by tagging cells at the coarser level and follows
-   the Berger-Rigoutsis clustering algorithm with the additional constraints of satisfying 
-   the :cpp:`blocking_factor` and :cpp:`max_grid_size` criteria.  An additional parameter 
-   becomes relevant here: the "grid efficiency", specified as :cpp:`amr.grid_eff` in the inputs file. 
-   This threshhold value, which defaults to 0.7 (or 70%), is used to ensure that 
-   grids do not contain too large a fraction of un-tagged cells.   We note that the grid creation
-   process attempts to satisfy the :cpp:`amr.grid_eff` constraint but will not do so if it means
-   violating the :cpp:`blocking_factor` criterion.
+the Berger-Rigoutsis clustering algorithm with the additional constraints of satisfying 
+the :cpp:`blocking_factor` and :cpp:`max_grid_size` criteria.  An additional parameter 
+becomes relevant here: the "grid efficiency", specified as :cpp:`amr.grid_eff` in the inputs file. 
+This threshhold value, which defaults to 0.7 (or 70%), is used to ensure that 
+grids do not contain too large a fraction of un-tagged cells.   We note that the grid creation
+process attempts to satisfy the :cpp:`amr.grid_eff` constraint but will not do so if it means
+violating the :cpp:`blocking_factor` criterion.
 
