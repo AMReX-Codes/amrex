@@ -60,14 +60,13 @@ The grid creation proceeds as follows:
 #. The domain is initially defined by a single grid of size :cpp:`n_cell`.
 
 #. If :cpp:`n_cell` is greater than :cpp::`max_grid_size` then the grids are subdivided until
-each grid is no longer than  :cpp::`max_grid_size` cells on each side.  The :cpp:`blocking_factor` criterion
-(ie that the length of each side of each grid is divisible by :cpp:`blocking_factor` in that direction)
-is satisfied during this process.
+   each grid is no longer than  :cpp:`max_grid_size` cells on each side.  The :cpp:`blocking_factor` criterion
+   (ie that the length of each side of each grid is divisible by :cpp:`blocking_factor` in that direction)
+   is satisfied during this process.
 
 #. Next, if :cpp:`refine_grid_layout = true` and there are more processors than grids
-   at this level, then the grids at this level are further divided in order to ensure that
-   no processors has less than one grid (at each level). (as long as the :cpp:`blocking_factor` criterion
-   is not violated).
+   at this level, then the grids at this level are further divided until Ngrids >= Nprocs
+   (unless doing so would violate the:cpp:`blocking_factor` criterion).
 
 #. The creation of grids at higher levels begins by tagging cells at the coarser level and follows
    the Berger-Rigoutsis clustering algorithm with the additional constraint of satisfying 
