@@ -27,7 +27,7 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 
     MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
-    setScalars(1.0,1.0);
+    MLABecLaplacian::setScalars(1.0,1.0);
 
     m_gradeta.clear();
     m_gradeta.resize(NAMRLevels());
@@ -47,28 +47,32 @@ MLTensorOp::prepareForSolve ()
 }
 
 void
-MLTensorOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                           const MultiFab* crse_bcdata)
+MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                   StateMode s_mode, const MLMGBndry* bndry) const
 {
-    BL_PROFILE("MLTensorOp::solutionResidual()");
+    BL_PROFILE("MLTensorOp::apply()");
 
-    MLABecLaplacian::solutionResidual(amrlev, resid, x, b, crse_bcdata);
+    MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-    const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
+    // Note that we cannot have inhomog bc_mode at mglev>0.
+    if (mglev == 0 && bc_mode == BCMode::Inhomogeneous && s_mode == StateMode::Solution)
+    {
+        const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(resid, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> const rfab = resid.array(mfi);
-        Array4<Real const> const vfab = x.array(mfi);
-        Array4<Real const> const gradetafab = m_gradeta[amrlev].array(mfi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            mltensor_resid_add_extra(bx, rfab, vfab, gradetafab, dxinv);
-        });
+            const Box& bx = mfi.tilebox();
+            Array4<Real> const axfab = out.array(mfi);
+            Array4<Real const> const xfab = in.array(mfi);
+            Array4<Real const> const gradetafab = m_gradeta[amrlev].array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mltensor_adotx_add_extra(bx, axfab, xfab, gradetafab, dxinv);
+            });
+        }
     }
 }
 

@@ -6,12 +6,17 @@
 
 namespace amrex {
 
-// Tensor solver for high Reynolds flows with near constant shear viscosity.
-// 
-// a v + [-div dot (eta grad v) + (grad eta) (div dot v) - (grad eta) dot (grad v)^T] = rhs
+// Tensor solver for high Reynolds flows with small gradient in shear viscosity.
+//
+// The system it solves is
+//
+//   a v + [-div dot (eta grad v) + (grad eta) (div dot v) - (grad eta) dot (grad v)^T] = rhs
 //
 // Note that what's inside [] is div dot tau + div dot ((kappa+eta/3) I (div dot v)),
 // where tau is viscous tensor, and eta and kappa are shear and bulk viscosity, respectively.
+// For incompressible flow, div dot v = 0, the system becomes
+//
+//   a v + div dot tau = rhs
 //
 // Known limitations: Using hypre or petsc as bottom solver is not supported.
 
@@ -39,6 +44,9 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
+    // They are always 1 and 1.
+    void setScalars (Real a, Real b) noexcept = delete;
+
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
     virtual bool needsUpdate () const final override {
@@ -52,8 +60,8 @@ public:
     virtual bool isSingular (int armlev) const final override { return false; }
     virtual bool isBottomSingular () const final override { return false; }
 
-    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) final override;
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
 protected:
 
