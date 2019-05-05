@@ -434,12 +434,12 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
 
-        #ifdef WARPX_USE_PSATD
-            const bool in_pml = true; // Tells spectral solver to use split-PML equations
-            const RealVect cdx{AMREX_D_DECL(cgeom->CellSize(0), cgeom->CellSize(1), cgeom->CellSize(2))};
-            spectral_solver_fp.reset( new SpectralSolver( cba, cdm,
-                nox_fft, noy_fft, noz_fft, do_nodal, cdx, dt, in_pml ) );
-        #endif
+#ifdef WARPX_USE_PSATD
+        const bool in_pml = true; // Tells spectral solver to use split-PML equations
+        const RealVect cdx{AMREX_D_DECL(cgeom->CellSize(0), cgeom->CellSize(1), cgeom->CellSize(2))};
+        spectral_solver_fp.reset( new SpectralSolver( cba, cdm,
+            nox_fft, noy_fft, noz_fft, do_nodal, cdx, dt, in_pml ) );
+#endif
     }
 }
 
@@ -789,3 +789,41 @@ PML::Restart (const std::string& dir)
         VisMF::Read(*pml_B_cp[2], dir+"_Bz_cp");
     }
 }
+
+#ifdef WARPX_USE_PSATD
+void
+PML::PushPSATD() {
+    SpectralSolver& solver = *(spectral_solver_fp);
+
+    using Idx = SpectralPMLIndex;
+
+    // Perform forward Fourier transform
+    solver.ForwardTransform(*pml_E_fp[0], Idx::Exy, 0);
+    solver.ForwardTransform(*pml_E_fp[0], Idx::Exz, 1);
+    solver.ForwardTransform(*pml_E_fp[1], Idx::Eyx, 0);
+    solver.ForwardTransform(*pml_E_fp[1], Idx::Eyz, 1);
+    solver.ForwardTransform(*pml_E_fp[2], Idx::Ezx, 0);
+    solver.ForwardTransform(*pml_E_fp[2], Idx::Ezy, 1);
+    solver.ForwardTransform(*pml_B_fp[0], Idx::Bxy, 0);
+    solver.ForwardTransform(*pml_B_fp[0], Idx::Bxz, 1);
+    solver.ForwardTransform(*pml_B_fp[1], Idx::Byx, 0);
+    solver.ForwardTransform(*pml_B_fp[1], Idx::Byz, 1);
+    solver.ForwardTransform(*pml_B_fp[2], Idx::Bzx, 0);
+    solver.ForwardTransform(*pml_B_fp[2], Idx::Bzy, 1);
+    // Advance fields in spectral space
+    solver.pushSpectralFields();
+    // Perform backward Fourier Transform
+    solver.BackwardTransform(*pml_E_fp[0], Idx::Exy, 0);
+    solver.BackwardTransform(*pml_E_fp[0], Idx::Exz, 1);
+    solver.BackwardTransform(*pml_E_fp[1], Idx::Eyx, 0);
+    solver.BackwardTransform(*pml_E_fp[1], Idx::Eyz, 1);
+    solver.BackwardTransform(*pml_E_fp[2], Idx::Ezx, 0);
+    solver.BackwardTransform(*pml_E_fp[2], Idx::Ezy, 1);
+    solver.BackwardTransform(*pml_B_fp[0], Idx::Bxy, 0);
+    solver.BackwardTransform(*pml_B_fp[0], Idx::Bxz, 1);
+    solver.BackwardTransform(*pml_B_fp[1], Idx::Byx, 0);
+    solver.BackwardTransform(*pml_B_fp[1], Idx::Byz, 1);
+    solver.BackwardTransform(*pml_B_fp[2], Idx::Bzx, 0);
+    solver.BackwardTransform(*pml_B_fp[2], Idx::Bzy, 1);
+}
+#endif

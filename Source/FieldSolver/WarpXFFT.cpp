@@ -367,17 +367,24 @@ WarpX::PushPSATD (amrex::Real a_dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
+
+        // Evolve the fields in the regular boxes
         if (fft_hybrid_mpi_decomposition){
             PushPSATD_hybridFFT(lev, a_dt);
         } else {
             PushPSATD_localFFT(lev, a_dt);
+        }
+
+        // Evolve the fields in the PML boxes
+        if (do_pml) {
+            pml[lev]->PushPSATD();
         }
     }
 }
 
 void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
 {
-    auto& solver = *spectral_solver_fp[lev];
+    SpectralSolver& solver = *spectral_solver_fp[lev];
 
     // Perform forward Fourier transform
     solver.ForwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);

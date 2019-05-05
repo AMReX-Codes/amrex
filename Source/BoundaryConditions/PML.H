@@ -124,6 +124,10 @@ public:
     const MultiSigmaBox& GetMultiSigmaBox_cp () const
         { return *sigba_cp; }
 
+#ifdef WARPX_USE_PSATD
+    void PushPSATD ();
+#endif
+
     void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
                     const std::array<amrex::MultiFab*,3>& B_cp);
     void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
