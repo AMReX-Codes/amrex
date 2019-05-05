@@ -18,7 +18,7 @@ Computational load balancing is based on several different steps:
    particle tiles (by defining :cpp:`particle.tile_size`).  We must also specify 
    the strategy for assigning tiles to OpenMP threads.
 
-We note that we can load balance the mesh and particle data separately; see :ref:`dual_grid`
+We note that we can load balance the mesh and particle data separately; see :ref:`ss:dual_grid`
 
 .. toctree::
    :maxdepth: 1
