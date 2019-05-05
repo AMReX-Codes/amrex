@@ -25,3 +25,4 @@ We note that we can load balance the mesh and particle data separately; see :ref
 
    GridCreation
    DualGrid
+   LoadBalancing
