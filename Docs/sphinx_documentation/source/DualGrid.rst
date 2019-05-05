@@ -4,7 +4,7 @@
 .. role:: fortran(code)
    :language: fortran
 
-.. _ss:dual_grid:
+.. _sec:dual_grid:
 
 Dual Grid Approach
 ------------------

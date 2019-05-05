@@ -4,7 +4,7 @@
 .. role:: fortran(code)
    :language: fortran
 
-.. _ss:grid_creation:
+.. _sec:grid_creation:
 
 Grid Creation
 -------------
@@ -70,5 +70,9 @@ The grid creation proceeds as follows:
 
 #. The creation of grids at higher levels begins by tagging cells at the coarser level and follows
    the Berger-Rigoutsis clustering algorithm with the additional constraint of satisfying 
-   the :cpp:`blocking_factor` criterion.
+   the :cpp:`blocking_factor` criterion.   An additional parameter becomes relevant here: the 
+   "grid efficiency", specified as :cpp:`amr.grid_eff` in the inputs file, which attempts to ensure
+   that grids do not contain a large fraction of un-tagged cells.   We note that the grid creation
+   process attempts to satisfy the :cpp:`amr.grid_eff` constraint but will not do so if it means
+   violating the :cpp:`blocking_factor` criterion.
 
