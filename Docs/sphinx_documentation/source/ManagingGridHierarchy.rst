@@ -21,18 +21,23 @@ constrains grid creation in that in that each grid must be divisible by :cpp`blo
 
 Notes: 
  - :cpp`n_cell` must be given as three separate integers, one for each coordinate direction.
- - if :cpp`max_grid_size` is specified as a single integer m then each grid at each level must 
-   be no larger than m in each coordinate direction
+ - if :cpp`max_grid_size` is specified as a single integer *m* then each grid at each level must 
+   be no larger than *m* in each coordinate direction
  - if :cpp`max_grid_size` is specified as multiple integers then the first 
-   integer applies to level 0, the second to level 1, etc.
+   integer applies to level 0, the second to level 1, etc.  If you don't specify as many
+   integers as there are levels, the final value will be used for the remaining levels.
  - if different values of :cpp`max_grid_size` are wanted for different coordinate directions, 
    then :cpp`max_grid_size_x`, :cpp`max_grid_size_y` and :cpp`max_grid_size_z` must be used.  
+   If you don't specify as many integers as there are levels, the final value will be used for the remaining levels.
  - The value of :cpp`blocking_factor` also constrains the size of each grid in that all
    grids must be divisible by :cpp`blocking_factor`.  
  - The original domain (as specified by :cpp`n_cell`) must be divisible by :cpp`blocking_factor`
- * :cpp`max_grid_size` is not allowed to be less than :cpp`blocking_factor`.
-
-[QUESTION – can we specify only one value or can we have one per level]
+ - :cpp`max_grid_size` is not allowed to be less than :cpp`blocking_factor`.
+ - to create identical grids of a specific size, e.g. of length *m* in each direction, 
+   then set :cpp`max_grid_size` = *m* and :cpp`clocking_factor` = *m*.
+ - note that :cpp`max_grid_size` is just an upper bound; if :cpp`n_cell = 48` 
+   and :cpp`max_grid_size = 32`, then we will typically have one grid of length 32
+   and one of length 16.
 
 The gridding algorithm proceeds as follows:
 
