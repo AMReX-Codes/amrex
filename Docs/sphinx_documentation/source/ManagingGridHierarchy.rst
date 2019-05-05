@@ -19,6 +19,15 @@ domain in every direction so that each grid is no longer than :cpp:`max_grid_siz
 Another popular input is :cpp:`blocking_factor`.  The value of :cpp:`blocking_factor` 
 constrains grid creation in that in that each grid must be divisible by :cpp:`blocking_factor`.  
 
+There is one more default behavior to be aware of.  There is a Boolean in [Amr.cpp; also in AmrCore??] 
+called :cpp:`refine_grid_layout` that defaults to true but can be over-ridden in the inputs file. 
+If :cpp:`refine_grid_layout` is true and the number of grids created is lower than the number of processors 
+(Ngrids < Nprocs), then grids will be further subdivided until Ngrids >= Nprocs.
+
+Caveat: if subdividing the grids to achieve Ngrids >= Nprocs would violate the 
+:cpp:`blocking_factor` criterion then additional grids are not created and the 
+number of grids will remain less than the number of processors
+
 Notes: 
  - :cpp:`n_cell` must be given as three separate integers, one for each coordinate direction.
  - if :cpp:`max_grid_size` is specified as a single integer *m* then each grid at each level must 
