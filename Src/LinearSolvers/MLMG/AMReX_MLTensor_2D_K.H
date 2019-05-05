@@ -4,7 +4,7 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void mltensor_resid_add_extra (Box const& box, Array4<Real> const& resid,
+void mltensor_adotx_add_extra (Box const& box, Array4<Real> const& Ax,
                                Array4<Real const> const& vel,
                                Array4<Real const> const& gradeta,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
@@ -26,8 +26,8 @@ void mltensor_resid_add_extra (Box const& box, Array4<Real> const& resid,
             Real detady = gradeta(i,j,0,1);
             Real t0 = detadx * div - detadx*dudx - detady*dudy;
             Real t1 = detady * div - detadx*dvdx - detady*dvdy;
-            resid(i,j,0,0) -= t0;
-            resid(i,j,0,1) -= t1;
+            Ax(i,j,0,0) += t0;
+            Ax(i,j,0,1) += t1;
         }
     }
 }
