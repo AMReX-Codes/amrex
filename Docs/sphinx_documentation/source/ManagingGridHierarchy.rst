@@ -59,7 +59,7 @@ The grid creation proceeds as follows:
 
 #. The domain is initially defined by a single grid of size :cpp:`n_cell`.
 
-#. If :cpp:`n_cell` is greater than :cpp::`max_grid_size` then the grids are subdivided until
+#. If :cpp:`n_cell` is greater than :cpp:`max_grid_size` then the grids are subdivided until
    each grid is no longer than  :cpp:`max_grid_size` cells on each side.  The :cpp:`blocking_factor` criterion
    (ie that the length of each side of each grid is divisible by :cpp:`blocking_factor` in that direction)
    is satisfied during this process.
