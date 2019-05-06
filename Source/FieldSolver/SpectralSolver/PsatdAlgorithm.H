@@ -19,6 +19,9 @@ class PsatdAlgorithm
         PsatdAlgorithm() = default; // Default constructor
         PsatdAlgorithm& operator=(PsatdAlgorithm&& algorithm) = default;
         void pushSpectralFields(SpectralFieldData& f) const;
+        void InitializeCoefficience(const SpectralKSpace& spectral_kspace,
+                                    const amrex::DistributionMapping& dm, 
+                                    const amrex::Real dt);
 
     private:
         // Modified finite-order vectors

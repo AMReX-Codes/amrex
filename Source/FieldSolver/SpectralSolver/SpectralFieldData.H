@@ -26,6 +26,7 @@ class SpectralFieldData
     // the local MPI rank)
 #ifdef AMREX_USE_GPU
     // Add cuFFT-specific code
+    using FFTplans = amrex::LayoutData<cufftHandle>;
 #else
     using FFTplans = amrex::LayoutData<fftw_plan>;
 #endif
