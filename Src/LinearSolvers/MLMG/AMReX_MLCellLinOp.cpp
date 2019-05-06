@@ -452,6 +452,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     const int ncomp = getNComp();
     const int cross = isCrossStencil();
+    const int tensorop = isTensorOp();
     if (!skip_fillboundary) {
         in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross);
     }

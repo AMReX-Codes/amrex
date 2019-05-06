@@ -91,6 +91,7 @@ public:
 #endif
 
     virtual bool isCrossStencil () const { return true; }
+    virtual bool isTensorOp () const { return false; }
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
     void updateCorBC (int amrlev, const MultiFab& crse_bcdata) const;
