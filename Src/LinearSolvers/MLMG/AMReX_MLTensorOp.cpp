@@ -83,7 +83,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-            FArrayBox fluxfab_cpu[AMREX_SPACEDIM];
+            FArrayBox fluxfab_tmp[AMREX_SPACEDIM];
             for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
@@ -95,31 +95,18 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
                 AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
                              Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
                              Array4<Real const> const kapzfab = kapmf[2].array(mfi););
-                FArrayBox fluxfab_gpu[AMREX_SPACEDIM];
-                FArrayBox* fluxfab[AMREX_SPACEDIM];
-                Elixir fluxeli[AMREX_SPACEDIM];
-                const Array<Box,AMREX_SPACEDIM> nbx{AMREX_D_DECL(amrex::surroundingNodes(bx,0),
-                                                                 amrex::surroundingNodes(bx,1),
-                                                                 amrex::surroundingNodes(bx,2))};
-                if (Gpu::inLaunchRegion()) {
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        fluxfab_gpu[idim].resize(nbx[idim],AMREX_SPACEDIM);
-                        fluxfab[idim] = &(fluxfab_gpu[idim]);
-                        fluxeli[idim] = fluxfab_gpu[idim].elixir();
-                    }
-                } else {
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                        fluxfab_cpu[idim].resize(nbx[idim],AMREX_SPACEDIM);
-                        fluxfab[idim] = &(fluxfab_cpu[idim]);
-                    }
-                }
-                AMREX_D_TERM(Array4<Real> const fxfab = fluxfab[0]->array();,
-                             Array4<Real> const fyfab = fluxfab[1]->array();,
-                             Array4<Real> const fzfab = fluxfab[2]->array(););
-                AMREX_D_TERM(Box const xbx = nbx[0];,
-                             Box const ybx = nbx[1];,
-                             Box const zbx = nbx[2];);
-
+                AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
+                             Box const ybx = amrex::surroundingNodes(bx,1);,
+                             Box const zbx = amrex::surroundingNodes(bx,2););
+                AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
+                             fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
+                             fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
+                AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
+                             Elixir fyeli = fluxfab_tmp[1].elixir();,
+                             Elixir fzeli = fluxfab_tmp[2].elixir(););
+                AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
+                             Array4<Real> const fyfab = fluxfab_tmp[1].array();,
+                             Array4<Real> const fzfab = fluxfab_tmp[2].array(););
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA
                 ( xbx, txbx,
                   {

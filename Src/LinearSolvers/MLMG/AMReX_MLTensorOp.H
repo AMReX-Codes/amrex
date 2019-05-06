@@ -47,7 +47,8 @@ public:
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
-    virtual bool isCrossStencil () const { return false; }
+    virtual bool isCrossStencil () const final override { return false; }
+    virtual bool isTensorOp () const final override { return true; }
 
     virtual bool needsUpdate () const final override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
