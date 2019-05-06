@@ -29,11 +29,30 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
 
     MLABecLaplacian::setScalars(1.0,1.0);
 
-    m_gradeta.clear();
-    m_gradeta.resize(NAMRLevels());
+    m_kappa.clear();
+    m_kappa.resize(NAMRLevels());
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-        m_gradeta[amrlev].define(m_grids[amrlev][0], m_dmap[amrlev][0], AMREX_SPACEDIM, 0,
-                                    MFInfo(), *m_factory[amrlev][0]);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            m_kappa[amrlev][idim].define(amrex::convert(m_grids[amrlev][0],
+                                                        IntVect::TheDimensionVector(idim)),
+                                         m_dmap[amrlev][0], 1, 0,
+                                         MFInfo(), *m_factory[amrlev][0]);
+            m_kappa[amrlev][idim].setVal(0.0);
+        }
+    }
+}
+
+void
+MLTensorOp::setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta)
+{
+    MLABecLaplacian::setBCoeffs(amrlev, eta);
+}
+
+void
+MLTensorOp::setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiFab::Copy(m_kappa[amrlev][idim], *kappa[idim], 0, 0, 1, 0);
     }
 }
 
@@ -41,15 +60,13 @@ void
 MLTensorOp::prepareForSolve ()
 {
     MLABecLaplacian::prepareForSolve();
-    for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-        amrex::computeGradient(m_gradeta[amrlev], getBCoeffs(amrlev,0), m_geom[amrlev][0]);
-    }
 }
 
 void
 MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                    StateMode s_mode, const MLMGBndry* bndry) const
 {
+#if (AMREX_SPACEDIM > 1)
     BL_PROFILE("MLTensorOp::apply()");
 
     MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
@@ -59,21 +76,75 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
     {
         const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 
+        Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][0];
+        Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev];
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.tilebox();
-            Array4<Real> const axfab = out.array(mfi);
-            Array4<Real const> const xfab = in.array(mfi);
-            Array4<Real const> const gradetafab = m_gradeta[amrlev].array(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            FArrayBox fluxfab_cpu[AMREX_SPACEDIM];
+            for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                mltensor_adotx_add_extra(bx, axfab, xfab, gradetafab, dxinv);
-            });
+                const Box& bx = mfi.tilebox();
+                Array4<Real> const axfab = out.array(mfi);
+                Array4<Real const> const vfab = in.array(mfi);
+                AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
+                             Array4<Real const> const etayfab = etamf[1].array(mfi);,
+                             Array4<Real const> const etazfab = etamf[2].array(mfi););
+                AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
+                             Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
+                             Array4<Real const> const kapzfab = kapmf[2].array(mfi););
+                FArrayBox fluxfab_gpu[AMREX_SPACEDIM];
+                FArrayBox* fluxfab[AMREX_SPACEDIM];
+                Elixir fluxeli[AMREX_SPACEDIM];
+                const Array<Box,AMREX_SPACEDIM> nbx{AMREX_D_DECL(amrex::surroundingNodes(bx,0),
+                                                                 amrex::surroundingNodes(bx,1),
+                                                                 amrex::surroundingNodes(bx,2))};
+                if (Gpu::inLaunchRegion()) {
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        fluxfab_gpu[idim].resize(nbx[idim],AMREX_SPACEDIM);
+                        fluxfab[idim] = &(fluxfab_gpu[idim]);
+                        fluxeli[idim] = fluxfab_gpu[idim].elixir();
+                    }
+                } else {
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                        fluxfab_cpu[idim].resize(nbx[idim],AMREX_SPACEDIM);
+                        fluxfab[idim] = &(fluxfab_cpu[idim]);
+                    }
+                }
+                AMREX_D_TERM(Array4<Real> const fxfab = fluxfab[0]->array();,
+                             Array4<Real> const fyfab = fluxfab[1]->array();,
+                             Array4<Real> const fzfab = fluxfab[2]->array(););
+                AMREX_D_TERM(Box const xbx = nbx[0];,
+                             Box const ybx = nbx[1];,
+                             Box const zbx = nbx[2];);
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+                ( xbx, txbx,
+                  {
+                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                  }
+                , ybx, tybx,
+                  {
+                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                  }
+#if (AMREX_SPACEDIM == 3)
+                , zbx, tzbx,
+                  {
+                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                  }
+#endif
+                );
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                });
+            }
         }
     }
+#endif
 }
 
 }
