@@ -6,19 +6,17 @@
 
 namespace amrex {
 
-// Tensor solver for high Reynolds flows with small gradient in shear viscosity.
-//
+// Tensor solver for high Reynolds flows with small gradient in viscosity.
 // The system it solves is
 //
-//   a v + [-div dot (eta grad v) + (grad eta) (div dot v) - (grad eta) dot (grad v)^T] = rhs
+//   a v - div dot tau = rhs
 //
-// Note that what's inside [] is div dot tau + div dot ((kappa+eta/3) I (div dot v)),
-// where tau is viscous tensor, and eta and kappa are shear and bulk viscosity, respectively.
-// For incompressible flow, div dot v = 0, the system becomes
+// where tau = eta [grad v + (grad v)^T] +  (kappa-(2/3)eta) (div v) I.
+// Here eta and kappa are shear and bulk viscosity, and I is identity tensor.
 //
-//   a v + div dot tau = rhs
-//
-// Known limitations: Using hypre or petsc as bottom solver is not supported.
+// The user needs to provide `a` by `setACoeffs`, eta by `setShearViscosity`,
+// and kappa by `setBulkViscosity`.  If `setBuldViscosity` is not called,
+// kappa is set to zero.
 
 class MLTensorOp
     : public MLABecLaplacian
@@ -44,10 +42,12 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    // They are always 1 and 1.
-    void setScalars (Real a, Real b) noexcept = delete;
+    void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
+    void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
+
+    virtual bool isCrossStencil () const { return false; }
 
     virtual bool needsUpdate () const final override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
@@ -67,8 +67,11 @@ protected:
 
     bool m_needs_update = true;
 
-    Vector<MultiFab> m_gradeta;
+    Vector<Array<MultiFab,AMREX_SPACEDIM> > m_kappa;
 
+    // They are always 1 and 1.
+    void setScalars (Real a, Real b) noexcept = delete;
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 };
 
 }
