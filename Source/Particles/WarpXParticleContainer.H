@@ -193,6 +193,7 @@ public:
     // RigidInjectedParticleContainer: not implemented.
     virtual void ContinuousInjection(amrex::Real dt,
                                      const amrex::RealBox& prob_domain) {}
+    virtual void UpdateContinuousInjectionPosition(amrex::Real dt) {}
 
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.

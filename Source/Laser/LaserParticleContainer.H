@@ -96,6 +96,7 @@ private:
     // Inject the laser antenna during the simulation, if it started 
     // outside of the simulation domain and enters it.
     void ContinuousInjection(amrex::Real dt, const amrex::RealBox& prob_domain) override;
+    void UpdateContinuousInjectionPosition(amrex::Real dt) override;
 };
 
 #endif

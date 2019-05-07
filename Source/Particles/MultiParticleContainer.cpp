@@ -434,3 +434,27 @@ MultiParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain)
         }
     }
 }
+
+void
+MultiParticleContainer::UpdateContinuousInjectionPosition(Real dt) const
+{
+    for (int i=0; i<nspecies+nlasers; i++){
+        auto& pc = allcontainers[i];
+        Print()<<"i "<<i<<" pc->do_continuous_injection "<<pc->do_continuous_injection<<std::endl;
+        if (pc->do_continuous_injection)
+        {
+            Print()<<"i "<<i<<" pc->do_continuous_injection "<<pc->do_continuous_injection<<std::endl;
+            pc->UpdateContinuousInjectionPosition(dt);
+        }
+    }
+    /*
+    for (int i=nspecies; i<nspecies+nlasers; i++){
+        // WarpXParticleContainer& pc = allcontainers[i];
+        WarpXParticleContainer& pc = GetParticleContainer(i);
+        auto& lpc = dynamic_cast<LaserParticleContainer&>(pc);
+        // auto& pc = allcontainers[i];
+        // auto& lpc = dynamic_cast<LaserParticleContainer&>(pc);
+        lpc.UpdateContinuousInjectionPosition(dt);
+    }
+    */
+}

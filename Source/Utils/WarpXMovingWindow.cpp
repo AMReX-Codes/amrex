@@ -33,8 +33,10 @@ WarpX::MoveWindow (bool move_j)
     // and of the plasma injection
     moving_window_x += moving_window_v * dt[0];
     int dir = moving_window_dir;
-    UpdatePlasmaInjectionPosition( dt[0] );
 
+    UpdatePlasmaInjectionPosition( dt[0] );
+    mypc->UpdateContinuousInjectionPosition( dt[0] );
+    
     // compute the number of cells to shift on the base level
     Real new_lo[AMREX_SPACEDIM];
     Real new_hi[AMREX_SPACEDIM];

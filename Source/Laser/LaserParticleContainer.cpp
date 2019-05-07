@@ -207,10 +207,6 @@ LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain
 {
     Print()<<"   ---   In LaserParticleContainer::ContinuousInjection"<<std::endl;
     Print()<<"z_antenna_th "<<z_antenna_th<<std::endl;
-    // update position of the antenna (outside of the box)
-    if (WarpX::gamma_boost>1){
-        z_antenna_th -= PhysConst::c * WarpX::beta_boost * dt;
-    }
     // If laser antenna particles have not been injected yet, 
     // check if they should be injected at this iteration. If 
     // so, inject them and set done_injecting to 0 (false).
@@ -238,6 +234,48 @@ LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain
         }
     }
 }
+
+void
+LaserParticleContainer::UpdateContinuousInjectionPosition(Real dt)
+{
+    int dir = WarpX::moving_window_dir;
+    // update position of the antenna (outside of the box)
+    // Continuously inject plasma in new cells (by default only on level 0)
+    if (do_continuous_injection and (WarpX::gamma_boost > 1)){
+        // In boosted-frame simulations, the plasma has moved since the last
+        // call to this function, and injection position needs to be updated
+        z_antenna_th -= WarpX::beta_boost *
+#if ( AMREX_SPACEDIM == 3 )
+            WarpX::boost_direction[dir] * PhysConst::c * dt;
+#elif ( AMREX_SPACEDIM == 2 )
+            // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
+            // This needs to be converted in order to index `boost_direction`
+            // which has 3 components, for both 2D and 3D simulations.
+            WarpX::boost_direction[2*dir] * PhysConst::c * dt;
+#endif
+    }
+
+    /*
+    if (WarpX::do_plasma_injection and (WarpX::gamma_boost > 1){
+        z_antenna_th -= PhysConst::c * WarpX::beta_boost * dt;
+    }
+    */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void
 LaserParticleContainer::InitData ()
