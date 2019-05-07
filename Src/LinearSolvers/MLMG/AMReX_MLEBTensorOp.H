@@ -1,8 +1,7 @@
-#ifndef AMREX_ML_TENSOR_OP_H_
-#define AMREX_ML_TENSOR_OP_H_
+#ifndef AMREX_ML_EB_TENSOROP_H_
+#define AMREX_ML_EB_TENSOROP_H_
 
-#include <AMReX_MLABecLaplacian.H>
-#include <AMReX_Array.H>
+#include <AMReX_MLEBABecLap.H>
 
 namespace amrex {
 
@@ -18,29 +17,30 @@ namespace amrex {
 // and kappa by `setBulkViscosity`.  If `setBuldViscosity` is not called,
 // kappa is set to zero.
 
-class MLTensorOp
-    : public MLABecLaplacian
+class MLEBTensorOp
+    : public MLEBABecLap
 {
 public:
 
-    MLTensorOp () {}
-    MLTensorOp (const Vector<Geometry>& a_geom,
-                const Vector<BoxArray>& a_grids,
-                const Vector<DistributionMapping>& a_dmap,
-                const LPInfo& a_info = LPInfo(),
-                const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
-    virtual ~MLTensorOp ();
+    MLEBTensorOp () {}
+    MLEBTensorOp (const Vector<Geometry>& a_geom,
+                  const Vector<BoxArray>& a_grids,
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info,
+                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
-    MLTensorOp (const MLTensorOp&) = delete;
-    MLTensorOp (MLTensorOp&&) = delete;
-    MLTensorOp& operator= (const MLTensorOp&) = delete;
-    MLTensorOp& operator= (MLTensorOp&&) = delete;
+    virtual ~MLEBTensorOp ();
+
+    MLEBTensorOp (const MLEBTensorOp&) = delete;
+    MLEBTensorOp (MLEBTensorOp&&) = delete;
+    MLEBTensorOp& operator= (const MLEBTensorOp&) = delete;
+    MLEBTensorOp& operator= (MLEBTensorOp&&) = delete;
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+                 const LPInfo& a_info,
+                 const Vector<EBFArrayBoxFactory const*>& a_factory);
 
     void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
     void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
@@ -51,10 +51,10 @@ public:
     virtual bool isTensorOp () const final override { return true; }
 
     virtual bool needsUpdate () const final override {
-        return (m_needs_update || MLABecLaplacian::needsUpdate());
+        return (m_needs_update || MLEBABecLap::needsUpdate());
     }
     virtual void update () final override {
-        amrex::Abort("MLTensorOp: update TODO");
+        amrex::Abort("MLEBTensorOp: update TODO");
     }
 
     virtual void prepareForSolve () final override;
