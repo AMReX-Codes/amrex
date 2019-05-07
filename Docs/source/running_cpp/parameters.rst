@@ -424,9 +424,6 @@ Laser initialization
     moving window and laser propagation directions to be the same (`x`, `y` 
     or `z`)
 
-Currently only works if boost direction, laser direction 
-    and moving window are all in the `z` direction.
-
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
     Users can input perfect mirror condition inside the simulation domain.
     The number of mirrors is given by ``warpx.num_mirrors``. The mirrors are 
