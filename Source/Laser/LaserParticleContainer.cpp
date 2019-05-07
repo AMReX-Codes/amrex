@@ -164,12 +164,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         // If laser antenna initially outside of the box, store its theoretical
         // position in z_antenna_th
         updated_position = position;
-        // Convert updated position to Real* to use RealBox.contains()
-#if (AMREX_SPACEDIM == 3)
-        const Real* p_pos = updated_position.dataPtr();
-#else
-        const Real p_pos[2] = {updated_position[0], updated_position[2]};
-#endif            
         
         // Sanity checks
         int dir = WarpX::moving_window_dir;
