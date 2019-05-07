@@ -39,6 +39,8 @@ long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
 int WarpX::maxwell_fdtd_solver_id = 0;
 
+long WarpX::nmodes = 1;
+
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
@@ -495,6 +497,10 @@ WarpX::ReadParameters ()
             // Use same shape factors in all directions, for gathering
             l_lower_order_in_v = false;
         }
+
+        // Only needs to be set with WARPX_RZ, otherwise defaults to 1.
+        pp.query("nmodes", nmodes);
+
     }
 
     {

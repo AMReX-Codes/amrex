@@ -89,6 +89,7 @@ contains
        ex,ey,ez,bx,by,bz,ixyzmin,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
        exg,exg_lo,exg_hi,eyg,eyg_lo,eyg_hi,ezg,ezg_lo,ezg_hi, &
        bxg,bxg_lo,bxg_hi,byg,byg_lo,byg_hi,bzg,bzg_lo,bzg_hi, &
+       nmodes, &
        ll4symtry,l_lower_order_in_v, l_nodal,&
        lvect,field_gathe_algo) &
        bind(C, name="warpx_geteb_energy_conserving")
@@ -100,12 +101,22 @@ contains
     integer, intent(in) :: ixyzmin(AMREX_SPACEDIM)
     real(amrex_real), intent(in) :: xmin,ymin,zmin,dx,dy,dz
     integer(c_long), intent(in) :: field_gathe_algo
-    integer(c_long), intent(in) :: np,nox,noy,noz
+    integer(c_long), intent(in) :: np,nmodes,nox,noy,noz
     integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v, l_nodal
     integer(c_long),intent(in)   :: lvect
     real(amrex_real), intent(in), dimension(np) :: xp,yp,zp
     real(amrex_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
+#ifdef WARPX_RZ
+    real(amrex_real),intent(in):: exg(exg_lo(1):exg_hi(1),exg_lo(2):exg_hi(2),2*nmodes)
+    real(amrex_real),intent(in):: eyg(eyg_lo(1):eyg_hi(1),eyg_lo(2):eyg_hi(2),2*nmodes)
+    real(amrex_real),intent(in):: ezg(ezg_lo(1):ezg_hi(1),ezg_lo(2):ezg_hi(2),2*nmodes)
+    real(amrex_real),intent(in):: bxg(bxg_lo(1):bxg_hi(1),bxg_lo(2):bxg_hi(2),2*nmodes)
+    real(amrex_real),intent(in):: byg(byg_lo(1):byg_hi(1),byg_lo(2):byg_hi(2),2*nmodes)
+    real(amrex_real),intent(in):: bzg(bzg_lo(1):bzg_hi(1),bzg_lo(2):bzg_hi(2),2*nmodes)
+#else
     real(amrex_real),intent(in):: exg(*), eyg(*), ezg(*), bxg(*), byg(*), bzg(*)
+#endif
+
     logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v, pxr_l_nodal
 
     ! Compute the number of valid cells and guard cells
@@ -113,6 +124,11 @@ contains
                        bxg_nvalid(AMREX_SPACEDIM), byg_nvalid(AMREX_SPACEDIM), bzg_nvalid(AMREX_SPACEDIM),    &
                        exg_nguards(AMREX_SPACEDIM), eyg_nguards(AMREX_SPACEDIM), ezg_nguards(AMREX_SPACEDIM), &
                        bxg_nguards(AMREX_SPACEDIM), byg_nguards(AMREX_SPACEDIM), bzg_nguards(AMREX_SPACEDIM)
+
+#ifdef WARPX_RZ
+    complex(amrex_real), allocatable, dimension(:,:,:) :: erg_c, etg_c, ezg_c, brg_c, btg_c, bzg_c
+    integer :: alloc_status
+#endif
 
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
@@ -131,6 +147,40 @@ contains
     byg_nvalid = byg_lo + byg_hi - 2_c_long*ixyzmin + 1_c_long
     bzg_nvalid = bzg_lo + bzg_hi - 2_c_long*ixyzmin + 1_c_long
 
+#ifdef WARPX_RZ
+    if (nmodes > 1) then
+
+      allocate(erg_c(exg_lo(1):exg_hi(1),exg_lo(2):exg_hi(2),nmodes), &
+               etg_c(eyg_lo(1):eyg_hi(1),eyg_lo(2):eyg_hi(2),nmodes), &
+               ezg_c(ezg_lo(1):ezg_hi(1),ezg_lo(2):ezg_hi(2),nmodes), &
+               brg_c(bxg_lo(1):bxg_hi(1),bxg_lo(2):bxg_hi(2),nmodes), &
+               btg_c(byg_lo(1):byg_hi(1),byg_lo(2):byg_hi(2),nmodes), &
+               bzg_c(bzg_lo(1):bzg_hi(1),bzg_lo(2):bzg_hi(2),nmodes), stat=alloc_status)
+      if (alloc_status /= 0) then
+        print*,"Error: warpx_geteb_energy_conserving: complex arrays could not be allocated"
+        stop
+      endif
+
+      erg_c(:,:,:) = cmplx(exg(:,:,1::2), exg(:,:,2::2))
+      etg_c(:,:,:) = cmplx(eyg(:,:,1::2), eyg(:,:,2::2))
+      ezg_c(:,:,:) = cmplx(ezg(:,:,1::2), ezg(:,:,2::2))
+      brg_c(:,:,:) = cmplx(bxg(:,:,1::2), bxg(:,:,2::2))
+      btg_c(:,:,:) = cmplx(byg(:,:,1::2), byg(:,:,2::2))
+      bzg_c(:,:,:) = cmplx(bzg(:,:,1::2), bzg(:,:,2::2))
+
+      call geteb2dcirc_energy_conserving_generic(np, xp, yp, zp, ex, ey, ez, bx, by, bz, &
+                                                 xmin, zmin, dx, dz, nmodes, nox, noz, &
+                                                 erg_c, exg_nguards, exg_nvalid, &
+                                                 etg_c, eyg_nguards, eyg_nvalid, &
+                                                 ezg_c, ezg_nguards, ezg_nvalid, &
+                                                 brg_c, bxg_nguards, bxg_nvalid, &
+                                                 btg_c, byg_nguards, byg_nvalid, &
+                                                 bzg_c, bzg_nguards, bzg_nvalid)
+
+      deallocate(erg_c, etg_c, ezg_c, brg_c, btg_c, bzg_c)
+
+    else
+#endif
     CALL WRPX_PXR_GETEB_ENERGY_CONSERVING(np,xp,yp,zp, &
          ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
          exg,exg_nguards,exg_nvalid,&
@@ -141,6 +191,9 @@ contains
          bzg,bzg_nguards,bzg_nvalid,&
 	 pxr_ll4symtry, pxr_l_lower_order_in_v, pxr_l_nodal, &
 	 lvect, field_gathe_algo )
+#ifdef WARPX_RZ
+     endif
+#endif
 
   end subroutine warpx_geteb_energy_conserving
 
@@ -306,17 +359,24 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !> @param[in] charge_depo_algo algorithm choice for the charge deposition
   !>
   subroutine warpx_current_deposition( &
-    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot, &
+    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot,nmodes, &
     np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin,dt,dx,dy,dz,nox,noy,noz,&
     lvect,current_depo_algo) &
     bind(C, name="warpx_current_deposition")
 
     integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
     integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
+    integer(c_long), intent(IN) :: nmodes
     integer(c_long), intent(IN)                                  :: np
     integer(c_long), intent(IN)                                  :: nox,noy,noz
 
+#ifdef WARPX_RZ
+    real(amrex_real), intent(IN OUT):: jx(jx_ntot(1),jx_ntot(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: jy(jy_ntot(1),jy_ntot(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2*nmodes)
+#else
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
+#endif
     real(amrex_real), intent(IN)                                     :: q
     real(amrex_real), intent(IN)                                     :: dx,dy,dz
     real(amrex_real), intent(IN)                                     :: dt
@@ -326,6 +386,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN),  dimension(np)                     :: gaminv
     integer(c_long), intent(IN)                                   :: lvect
     integer(c_long), intent(IN)                                   :: current_depo_algo
+
+#ifdef WARPX_RZ
+    logical(pxr_logical) :: l_particles_weight = .true.
+    integer(c_long) :: type_rz_depose = 1
+    complex(amrex_real), allocatable, dimension(:,:,:) :: jr_c, jt_c, jz_c
+    integer :: alloc_status
+#endif
 
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
@@ -348,13 +415,53 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         nox,noy,noz,current_depo_algo)
 ! Dimension 2
 #elif (AMREX_SPACEDIM==2)
-        CALL WRPX_PXR_CURRENT_DEPOSITION(   &
+#ifdef WARPX_RZ
+   if (nmodes > 1) then
+
+      allocate(jr_c(jx_ntot(1),jx_ntot(2),nmodes), &
+               jt_c(jy_ntot(1),jy_ntot(2),nmodes), &
+               jz_c(jz_ntot(1),jz_ntot(2),nmodes), stat=alloc_status)
+      if (alloc_status /= 0) then
+        print*,"Error: warpx_current_deposition: complex arrays could not be allocated"
+        stop
+      endif
+
+      jr_c = 0._amrex_real
+      jt_c = 0._amrex_real
+      jz_c = 0._amrex_real
+
+      CALL pxr_depose_jrjtjz_esirkepov_n_2d_circ( &
+              jr_c,jx_nguards,jx_nvalid, &
+              jt_c,jy_nguards,jy_nvalid, &
+              jz_c,jz_nguards,jz_nvalid, &
+              nmodes, &
+              np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
+              xmin,zmin,dt,dx,dz, &
+              nox,noz,l_particles_weight,type_rz_depose)
+
+      jx(:,:,1::2) = jx(:,:,1::2) + real(jr_c)
+      jx(:,:,2::2) = jx(:,:,2::2) + aimag(jr_c)
+      jy(:,:,1::2) = jy(:,:,1::2) + real(jt_c)
+      jy(:,:,2::2) = jy(:,:,2::2) + aimag(jt_c)
+      jz(:,:,1::2) = jz(:,:,1::2) + real(jz_c)
+      jz(:,:,2::2) = jz(:,:,2::2) + aimag(jz_c)
+
+      deallocate(jr_c)
+      deallocate(jt_c)
+      deallocate(jz_c)
+
+   else
+#endif
+   CALL WRPX_PXR_CURRENT_DEPOSITION(   &
         jx,jx_nguards,jx_nvalid,            &
         jy,jy_nguards,jy_nvalid,            &
         jz,jz_nguards,jz_nvalid,            &
         np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
         xmin,zmin,dt,dx,dz,nox,noz,lvect,   &
         current_depo_algo)
+#ifdef WARPX_RZ
+    endif
+#endif
 #endif
 
   end subroutine warpx_current_deposition
@@ -365,45 +472,84 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !> Applies the inverse volume scaling for RZ current deposition
   !>
   !> @details
-  !> The scaling is done for single mode only
+  !> The scaling is done for all modes
   !
-  !> @param[inout] jx,jy,jz current arrays
-  !> @param[in] jx_ntot,jy_ntot,jz_ntot vectors with total number of
+  !> @param[inout] jr,jt,jz current arrays
+  !> @param[in] jr_ntot,jt_ntot,jz_ntot vectors with total number of
   !>            cells (including guard cells) along each axis for each current
-  !> @param[in] jx_ng,jy_ng,jz_ng vectors with number of guard cells along each
+  !> @param[in] jr_ng,jt_ng,jz_ng vectors with number of guard cells along each
   !>            axis for each current
   !> @param[in] rmin tile grid minimum radius
   !> @param[in] dr radial space discretization steps
   !>
   subroutine warpx_current_deposition_rz_volume_scaling( &
-    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot, &
-    rmin,dr) &
+    jr,jr_ng,jr_ntot,jt,jt_ng,jt_ntot,jz,jz_ng,jz_ntot, &
+    nmodes,rmin,dr) &
     bind(C, name="warpx_current_deposition_rz_volume_scaling")
 
-    integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
-    integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
-    real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
+    integer, intent(in) :: jr_ntot(AMREX_SPACEDIM), jt_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
+    integer(c_long), intent(in) :: jr_ng, jt_ng, jz_ng
+    integer(c_long), intent(in) :: nmodes
+    real(amrex_real), intent(IN OUT):: jr(jr_ntot(1),jr_ntot(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: jt(jt_ntot(1),jt_ntot(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2*nmodes)
     real(amrex_real), intent(IN) :: rmin, dr
+
+    complex(amrex_real), allocatable, dimension(:,:,:) :: jr_c, jt_c, jz_c
+    integer :: alloc_status
 
     integer(c_long) :: type_rz_depose = 1
 
     ! Compute the number of valid cells and guard cells
-    integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
-                       jx_nguards(AMREX_SPACEDIM), jy_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)
-    jx_nvalid = jx_ntot - 2*jx_ng
-    jy_nvalid = jy_ntot - 2*jy_ng
+    integer(c_long) :: jr_nvalid(AMREX_SPACEDIM), jt_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
+                       jr_nguards(AMREX_SPACEDIM), jt_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)
+    jr_nvalid = jr_ntot - 2*jr_ng
+    jt_nvalid = jt_ntot - 2*jt_ng
     jz_nvalid = jz_ntot - 2*jz_ng
-    jx_nguards = jx_ng
-    jy_nguards = jy_ng
+    jr_nguards = jr_ng
+    jt_nguards = jt_ng
     jz_nguards = jz_ng
 
-#ifdef WARPX_RZ
-    CALL WRPX_PXR_RZ_VOLUME_SCALING_J(   &
-                 jx,jx_nguards,jx_nvalid, &
-                 jy,jy_nguards,jy_nvalid, &
+    if (nmodes > 1) then
+
+      allocate(jr_c(jr_ntot(1),jr_ntot(2),nmodes), &
+               jt_c(jt_ntot(1),jt_ntot(2),nmodes), &
+               jz_c(jz_ntot(1),jz_ntot(2),nmodes), stat=alloc_status)
+      if (alloc_status /= 0) then
+        print*,"Error: warpx_current_deposition_rz_volume_scaling: complex arrays could not be allocated"
+        stop
+      endif
+
+      jr_c = cmplx(jr(:,:,1::2), jr(:,:,2::2))
+      jt_c = cmplx(jt(:,:,1::2), jt(:,:,2::2))
+      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2))
+
+      CALL apply_2dcirc_volume_scaling_j( &
+              jr_c, jr_nguards, jr_nvalid, &
+              jt_c, jt_nguards, jt_nvalid, &
+              jz_c, jz_nguards, jz_nvalid, &
+              nmodes, &
+              rmin,dr, &
+              type_rz_depose)
+
+      jr(:,:,1::2) = jr(:,:,1::2) + real(jr_c)
+      jr(:,:,2::2) = jr(:,:,2::2) + aimag(jr_c)
+      jt(:,:,1::2) = jt(:,:,1::2) + real(jt_c)
+      jt(:,:,2::2) = jt(:,:,2::2) + aimag(jt_c)
+      jz(:,:,1::2) = jz(:,:,1::2) + real(jz_c)
+      jz(:,:,2::2) = jz(:,:,2::2) + aimag(jz_c)
+
+      deallocate(jr_c)
+      deallocate(jt_c)
+      deallocate(jz_c)
+
+    else
+      CALL apply_rz_volume_scaling_j(   &
+                 jr,jr_nguards,jr_nvalid, &
+                 jt,jt_nguards,jt_nvalid, &
                  jz,jz_nguards,jz_nvalid, &
                  rmin,dr,type_rz_depose)
-#endif
+    endif
 
   end subroutine warpx_current_deposition_rz_volume_scaling
 
@@ -570,6 +716,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !> @param[in] dtsdx, dtsdy, dtsdz factors c**2 * dt/(dx, dy, dz)
   subroutine warpx_push_evec( &
     xlo, xhi, ylo, yhi, zlo, zhi, &
+    nmodes, &
     ex, exlo, exhi, &
     ey, eylo, eyhi, &
     ez, ezlo, ezhi, &
@@ -589,31 +736,115 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
       jxlo(BL_SPACEDIM), jxhi(BL_SPACEDIM), jylo(BL_SPACEDIM), jyhi(BL_SPACEDIM), &
       jzlo(BL_SPACEDIM), jzhi(BL_SPACEDIM)
 
-    real(amrex_real), intent(IN OUT):: ex(*), ey(*), ez(*)
+    integer(c_long), intent(in) :: nmodes
 
-    real(amrex_real), intent(IN):: bx(*), by(*), bz(*), jx(*), jy(*), jz(*)
+#ifdef WARPX_RZ
+    real(amrex_real), intent(IN OUT):: ex(exlo(1):exhi(1),exlo(2):exhi(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: by(bylo(1):byhi(1),bylo(2):byhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),2*nmodes)
+#else
+    real(amrex_real), intent(IN OUT):: ex(*)
+    real(amrex_real), intent(IN OUT):: ey(*)
+    real(amrex_real), intent(IN OUT):: ez(*)
+    real(amrex_real), intent(IN):: bx(*)
+    real(amrex_real), intent(IN):: by(*)
+    real(amrex_real), intent(IN):: bz(*)
+    real(amrex_real), intent(IN):: jx(*)
+    real(amrex_real), intent(IN):: jy(*)
+    real(amrex_real), intent(IN):: jz(*)
+#endif
 
     real(amrex_real), intent(IN) :: mudt, dtsdx, dtsdy, dtsdz
 
     real(amrex_real), intent(IN) :: xmin, dx
 
-    CALL WRPX_PXR_PUSH_EVEC(&
-        xlo, xhi, ylo, yhi, zlo, zhi, &
-        ex, exlo, exhi,&
-        ey, eylo, eyhi,&
-        ez, ezlo, ezhi,&
-        bx, bxlo, bxhi,&
-        by, bylo, byhi,&
-        bz, bzlo, bzhi,&
-        jx, jxlo, jxhi,&
-        jy, jylo, jyhi,&
-        jz, jzlo, jzhi,&
-        mudt, dtsdx, dtsdy, dtsdz &
 #ifdef WARPX_RZ
-        ,xmin,dx &
-#endif
-        )
+    complex(amrex_real), allocatable, dimension(:,:,:) :: er_c, et_c, ez_c
+    complex(amrex_real), allocatable, dimension(:,:,:) :: br_c, bt_c, bz_c
+    complex(amrex_real), allocatable, dimension(:,:,:) :: jr_c, jt_c, jz_c
+    integer :: alloc_status
 
+    if (nmodes == 1) then
+#endif
+      CALL WRPX_PXR_PUSH_EVEC(&
+          xlo, xhi, ylo, yhi, zlo, zhi, &
+          ex, exlo, exhi,&
+          ey, eylo, eyhi,&
+          ez, ezlo, ezhi,&
+          bx, bxlo, bxhi,&
+          by, bylo, byhi,&
+          bz, bzlo, bzhi,&
+          jx, jxlo, jxhi,&
+          jy, jylo, jyhi,&
+          jz, jzlo, jzhi,&
+          mudt, dtsdx, dtsdy, dtsdz &
+#ifdef WARPX_RZ
+          ,xmin, dx &
+#endif
+          )
+
+#ifdef WARPX_RZ
+    else
+
+      allocate(er_c(exlo(1):exhi(1),exlo(2):exhi(2),nmodes), &
+               et_c(eylo(1):eyhi(1),eylo(2):eyhi(2),nmodes), &
+               ez_c(ezlo(1):ezhi(1),ezlo(2):ezhi(2),nmodes), &
+               br_c(bxlo(1):bxhi(1),bxlo(2):bxhi(2),nmodes), &
+               bt_c(bylo(1):byhi(1),bylo(2):byhi(2),nmodes), &
+               bz_c(bzlo(1):bzhi(1),bzlo(2):bzhi(2),nmodes), &
+               jr_c(jxlo(1):jxhi(1),jxlo(2):jxhi(2),nmodes), &
+               jt_c(jylo(1):jyhi(1),jylo(2):jyhi(2),nmodes), &
+               jz_c(jzlo(1):jzhi(1),jzlo(2):jzhi(2),nmodes), stat=alloc_status)
+      if (alloc_status /= 0) then
+        print*,"Error: warpx_push_evec: complex arrays could not be allocated"
+        stop
+      endif
+
+      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2))
+      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2))
+      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2))
+      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2))
+      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2))
+      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2))
+      jr_c = cmplx(jx(:,:,1::2), jx(:,:,2::2))
+      jt_c = cmplx(jy(:,:,1::2), jy(:,:,2::2))
+      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2))
+
+      CALL pxrpush_emrz_evec_multimode(&
+          xlo, xhi, ylo, yhi, zlo, zhi, &
+          nmodes, &
+          er_c, exlo, exhi,&
+          et_c, eylo, eyhi,&
+          ez_c, ezlo, ezhi,&
+          br_c, bxlo, bxhi,&
+          bt_c, bylo, byhi,&
+          bz_c, bzlo, bzhi,&
+          jr_c, jxlo, jxhi,&
+          jt_c, jylo, jyhi,&
+          jz_c, jzlo, jzhi,&
+          mudt, dtsdx, dtsdy, dtsdz, xmin, dx &
+          )
+
+      ! Only E needs to be copied back
+      ex(:,:,1::2) = real(er_c)
+      ex(:,:,2::2) = aimag(er_c)
+      ey(:,:,1::2) = real(et_c)
+      ey(:,:,2::2) = aimag(et_c)
+      ez(:,:,1::2) = real(ez_c)
+      ez(:,:,2::2) = aimag(ez_c)
+
+      deallocate(er_c, et_c, ez_c)
+      deallocate(br_c, bt_c, bz_c)
+      deallocate(jr_c, jt_c, jz_c)
+
+    endif
+#endif
   end subroutine warpx_push_evec
 
   ! _________________________________________________________________
@@ -632,6 +863,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !> @param[in] dtsdx, dtsdy, dtsdz factors 0.5 * dt/(dx, dy, dz)
   subroutine warpx_push_bvec( &
     xlo, xhi, ylo, yhi, zlo, zhi, &
+    nmodes, &
     ex, exlo, exhi, &
     ey, eylo, eyhi, &
     ez, ezlo, ezhi, &
@@ -648,41 +880,110 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
       bylo(BL_SPACEDIM), byhi(BL_SPACEDIM), bzlo(BL_SPACEDIM), bzhi(BL_SPACEDIM), &
       maxwell_fdtd_solver_id
 
-    real(amrex_real), intent(IN OUT):: ex(*), ey(*), ez(*)
+    integer(c_long), intent(in) :: nmodes
 
-    real(amrex_real), intent(IN):: bx(*), by(*), bz(*)
+#ifdef WARPX_RZ
+    real(amrex_real), intent(IN):: ex(exlo(1):exhi(1),exlo(2):exhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),2*nmodes)
+    real(amrex_real), intent(IN):: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: by(bylo(1):byhi(1),bylo(2):byhi(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),2*nmodes)
+#else
+    real(amrex_real), intent(IN):: ex(*)
+    real(amrex_real), intent(IN):: ey(*)
+    real(amrex_real), intent(IN):: ez(*)
+    real(amrex_real), intent(IN OUT):: bx(*)
+    real(amrex_real), intent(IN OUT):: by(*)
+    real(amrex_real), intent(IN OUT):: bz(*)
+#endif
 
     real(amrex_real), intent(IN) :: dtsdx, dtsdy, dtsdz
 
     real(amrex_real), intent(IN) :: xmin, dx
 
-    IF (maxwell_fdtd_solver_id .eq. 0) THEN
-      ! Yee FDTD solver
-      CALL WRPX_PXR_PUSH_BVEC( &
-        xlo, xhi, ylo, yhi, zlo, zhi, &
-      	ex, exlo, exhi, &
-      	ey, eylo, eyhi, &
-      	ez, ezlo, ezhi, &
-      	bx, bxlo, bxhi, &
-      	by, bylo, byhi, &
-      	bz, bzlo, bzhi, &
-      	dtsdx,dtsdy,dtsdz &
 #ifdef WARPX_RZ
-        ,xmin,dx &
+    complex(amrex_real), allocatable, dimension(:,:,:) :: er_c, et_c, ez_c
+    complex(amrex_real), allocatable, dimension(:,:,:) :: br_c, bt_c, bz_c
+    integer :: alloc_status
 #endif
-        )
-    ELSE IF (maxwell_fdtd_solver_id .eq. 1) THEN
-      ! Cole-Karkkainen FDTD solver
-      CALL WRPX_PXR_PUSH_BVEC_CKC( &
-        xlo, xhi, ylo, yhi, zlo, zhi, &
-      	ex, exlo, exhi, &
-      	ey, eylo, eyhi, &
-      	ez, ezlo, ezhi, &
-      	bx, bxlo, bxhi, &
-      	by, bylo, byhi, &
-      	bz, bzlo, bzhi, &
-      	dtsdx,dtsdy,dtsdz)
-    ENDIF
+
+    if (nmodes == 1) then
+
+      IF (maxwell_fdtd_solver_id .eq. 0) THEN
+        ! Yee FDTD solver
+        CALL WRPX_PXR_PUSH_BVEC( &
+          xlo, xhi, ylo, yhi, zlo, zhi, &
+      	  ex, exlo, exhi, &
+      	  ey, eylo, eyhi, &
+      	  ez, ezlo, ezhi, &
+      	  bx, bxlo, bxhi, &
+      	  by, bylo, byhi, &
+      	  bz, bzlo, bzhi, &
+      	  dtsdx,dtsdy,dtsdz &
+#ifdef WARPX_RZ
+          ,xmin,dx &
+#endif
+          )
+      ELSE IF (maxwell_fdtd_solver_id .eq. 1) THEN
+        ! Cole-Karkkainen FDTD solver
+        CALL WRPX_PXR_PUSH_BVEC_CKC( &
+          xlo, xhi, ylo, yhi, zlo, zhi, &
+      	  ex, exlo, exhi, &
+      	  ey, eylo, eyhi, &
+      	  ez, ezlo, ezhi, &
+      	  bx, bxlo, bxhi, &
+      	  by, bylo, byhi, &
+      	  bz, bzlo, bzhi, &
+      	  dtsdx,dtsdy,dtsdz)
+      ENDIF
+
+#ifdef WARPX_RZ
+    else
+
+      allocate(er_c(exlo(1):exhi(1),exlo(2):exhi(2),nmodes), &
+               et_c(eylo(1):eyhi(1),eylo(2):eyhi(2),nmodes), &
+               ez_c(ezlo(1):ezhi(1),ezlo(2):ezhi(2),nmodes), &
+               br_c(bxlo(1):bxhi(1),bxlo(2):bxhi(2),nmodes), &
+               bt_c(bylo(1):byhi(1),bylo(2):byhi(2),nmodes), &
+               bz_c(bzlo(1):bzhi(1),bzlo(2):bzhi(2),nmodes), stat=alloc_status)
+      if (alloc_status /= 0) then
+        print*,"Error: warpx_push_bvec: complex arrays could not be allocated"
+        stop
+      endif
+
+      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2))
+      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2))
+      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2))
+      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2))
+      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2))
+      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2))
+
+      CALL pxrpush_emrz_bvec_multimode(&
+          xlo, xhi, ylo, yhi, zlo, zhi, &
+          nmodes, &
+          er_c, exlo, exhi,&
+          et_c, eylo, eyhi,&
+          ez_c, ezlo, ezhi,&
+          br_c, bxlo, bxhi,&
+          bt_c, bylo, byhi,&
+          bz_c, bzlo, bzhi,&
+          dtsdx, dtsdy, dtsdz, xmin, dx &
+          )
+
+      ! Only B needs to be copied back
+      bx(:,:,1::2) = real(br_c)
+      bx(:,:,2::2) = aimag(br_c)
+      by(:,:,1::2) = real(bt_c)
+      by(:,:,2::2) = aimag(bt_c)
+      bz(:,:,1::2) = real(bz_c)
+      bz(:,:,2::2) = aimag(bz_c)
+
+      deallocate(er_c, et_c, ez_c)
+      deallocate(br_c, bt_c, bz_c)
+
+#endif
+    endif
   end subroutine warpx_push_bvec
 
   ! _________________________________________________________________

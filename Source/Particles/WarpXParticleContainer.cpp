@@ -403,6 +403,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                jx_ptr, &ngJ, jxntot.getVect(),
                                jy_ptr, &ngJ, jyntot.getVect(),
                                jz_ptr, &ngJ, jzntot.getVect(),
+                               &WarpX::nmodes,
                                &np_current,
                                m_xp[thread_num].dataPtr(),
                                m_yp[thread_num].dataPtr(),
@@ -420,6 +421,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   jx_ptr, &ngJ, jxntot.getVect(),
                                   jy_ptr, &ngJ, jyntot.getVect(),
                                   jz_ptr, &ngJ, jzntot.getVect(),
+                                  &WarpX::nmodes,
                                   &xyzmin[0], &dx[0]);
 #endif
       }
@@ -545,6 +547,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                jx_ptr, &ngJ, jxntot.getVect(),
                                jy_ptr, &ngJ, jyntot.getVect(),
                                jz_ptr, &ngJ, jzntot.getVect(),
+                               &WarpX::nmodes,
                                &ncrse,
                                m_xp[thread_num].dataPtr() +np_current,
                                m_yp[thread_num].dataPtr() +np_current,
@@ -563,6 +566,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   jx_ptr, &ngJ, jxntot.getVect(),
                                   jy_ptr, &ngJ, jyntot.getVect(),
                                   jz_ptr, &ngJ, jzntot.getVect(),
+                                  &WarpX::nmodes,
                                   &xyzmin[0], &dx[0]);
 #endif
       }
