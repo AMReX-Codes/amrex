@@ -489,7 +489,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         const auto & bdlv = bcondloc.bndryLocs(mfi);
         const auto & bdcv = bcondloc.bndryConds(mfi);
 
-        if (cross)
+        if (cross || tensorop)
         {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
