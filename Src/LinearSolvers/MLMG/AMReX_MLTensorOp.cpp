@@ -74,6 +74,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
     // Note that we cannot have inhomog bc_mode at mglev>0.
     if (mglev == 0 && bc_mode == BCMode::Inhomogeneous && s_mode == StateMode::Solution)
     {
+        applyBCTensor(amrlev, in, bndry);
+
         const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 
         Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][0];
@@ -131,6 +133,111 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
             }
         }
     }
+#endif
+}
+
+void
+MLTensorOp::applyBCTensor (int amrlev, MultiFab& vel, const MLMGBndry* bndry) const
+{
+#if (AMREX_SPACEDIM > 1)
+    const int mglev = 0;
+    const int imaxorder = maxorder;
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+    const auto& maskvals = m_maskvals[amrlev][mglev];
+
+    FArrayBox foofab(Box::TheUnitBox(),3);
+    const auto& foo = foofab.array();
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    const Box& domain = m_geom[amrlev][mglev].Domain();
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+
+        const auto& velfab = vel.array(mfi);
+
+        const auto & bdlv = bcondloc.bndryLocs(mfi);
+        const auto & bdcv = bcondloc.bndryConds(mfi);
+
+        GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> bct;
+        GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> bcl;
+        for (OrientationIter face; face; ++face) {
+            Orientation ori = face();
+            const int iface = ori;
+            const int idir = ori.coordDir();
+            for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
+                bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
+                bcl[iface*AMREX_SPACEDIM+icomp] = bdlv[icomp][ori];
+            }
+        }
+
+#if (AMREX_SPACEDIM == 2)
+        const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
+        const auto& mylo = maskvals[Orientation(1,Orientation::low )].array(mfi);
+        const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
+        const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
+
+        const auto& bvxlo = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(0,Orientation::low )).array(mfi) : foo;
+        const auto& bvylo = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(1,Orientation::low )).array(mfi) : foo;
+        const auto& bvxhi = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(0,Orientation::high)).array(mfi) : foo;
+        const auto& bvyhi = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
+
+        AMREX_FOR_1D ( 4, icorner,
+        {
+            mltensor_fill_corners(icorner, vbx, velfab,
+                                  mxlo, mylo, mxhi, myhi,
+                                  bvxlo, bvylo, bvxhi, bvyhi,
+                                  bct, bcl, imaxorder, dxinv, domain);
+        });
+#else
+        const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
+        const auto& mylo = maskvals[Orientation(1,Orientation::low )].array(mfi);
+        const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
+        const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
+        const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
+        const auto& mzhi = maskvals[Orientation(2,Orientation::high)].array(mfi);
+
+        const auto& bvxlo = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(0,Orientation::low )).array(mfi) : foo;
+        const auto& bvylo = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(1,Orientation::low )).array(mfi) : foo;
+        const auto& bvzlo = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(2,Orientation::low )).array(mfi) : foo;
+        const auto& bvxhi = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(0,Orientation::high)).array(mfi) : foo;
+        const auto& bvyhi = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
+        const auto& bvzhi = (bndry != nullptr) ?
+            bndry->bndryValues(Orientation(2,Orientation::high)).array(mfi) : foo;
+
+        AMREX_FOR_1D ( 12, iedge,
+        {
+            mltensor_fill_edges(iedge, vbx, velfab,
+                                mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+                                bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
+                                bct, bcl, imaxorder, dxinv, domain);
+        });
+
+        AMREX_FOR_1D ( 8, icorner,
+        {
+            mltensor_fill_corners(icorner, vbx, velfab,
+                                  mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+                                  bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
+                                  bct, bcl, imaxorder, dxinv, domain);
+        });
+#endif
+    }
+
 #endif
 }
 
