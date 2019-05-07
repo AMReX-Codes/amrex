@@ -223,6 +223,9 @@ WarpX::WarpX ()
 #ifdef BL_USE_SENSEI_INSITU
     insitu_bridge = nullptr;
 #endif
+
+    nci_godfrey_filter_exeybz.resize(nlevs_max);
+    nci_godfrey_filter_bxbyez.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -865,8 +868,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
-
-
 }
 
 std::array<Real,3>

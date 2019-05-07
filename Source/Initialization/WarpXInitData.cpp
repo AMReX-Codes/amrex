@@ -7,6 +7,7 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -165,6 +166,9 @@ WarpX::InitNCICorrector ()
         mypc->fdtd_nci_stencilz_by.resize(max_level+1);
         for (int lev = 0; lev <= max_level; ++lev)
         {
+            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz) );
+            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez) );
+
             const Geometry& gm = Geom(lev);
             const Real* dx = gm.CellSize();
             amrex::Real dz, cdtodz;
@@ -174,6 +178,7 @@ WarpX::InitNCICorrector ()
                 dz = dx[1];
             }
             cdtodz = PhysConst::c * dt[lev] / dz;
+
             WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
                                     (mypc->fdtd_nci_stencilz_by)[lev].data(),
                                     mypc->nstencilz_fdtd_nci_corr, cdtodz,
