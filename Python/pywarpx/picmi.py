@@ -153,14 +153,6 @@ class UniformDistribution(picmistandard.PICMI_UniformDistribution):
             species.uy = self.directed_velocity[1]
             species.uz = self.directed_velocity[2]
 
-        if self.fill_in:
-            pywarpx.warpx.do_plasma_injection = 1
-            if not hasattr(pywarpx.warpx, 'injected_plasma_species'):
-                pywarpx.warpx.injected_plasma_species = []
-
-            pywarpx.warpx.injected_plasma_species.append(species_number)
-            pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
-
 
 class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
     def initialize_inputs(self, species_number, layout, species):
@@ -203,14 +195,6 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
             species.ux = self.directed_velocity[0]
             species.uy = self.directed_velocity[1]
             species.uz = self.directed_velocity[2]
-
-        if self.fill_in:
-            pywarpx.warpx.do_plasma_injection = 1
-            if not hasattr(pywarpx.warpx, 'injected_plasma_species'):
-                pywarpx.warpx.injected_plasma_species = []
-
-            pywarpx.warpx.injected_plasma_species.append(species_number)
-            pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
 
 
 class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
