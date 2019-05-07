@@ -28,6 +28,9 @@ Overall simulation parameters
     The direction of the Lorentz-transform for boosted-frame simulations
     (The direction ``y`` cannot be used in 2D simulations.)
 
+* ``warpx.verbose`` (`0` or `1`)
+    Controls how much information is printed to the terminal, when running WarpX.
+
 Setting up the field mesh
 -------------------------
 
@@ -453,8 +456,8 @@ Numerics and algorithms
 
 * ``warpx.cfl`` (`float`)
     The ratio between the actual timestep that is used in the simulation
-    and the CFL limit. (e.g. for `warpx.cfl=1`, the timestep will be
-    exactly equal to the CFL limit.)
+    and the Courant-Friedrichs-Lewy (CFL) limit. (e.g. for `warpx.cfl=1`,
+    the timestep will be exactly equal to the CFL limit.)
 
 * ``warpx.use_filter`` (`0 or 1`)
     Whether to smooth the charge and currents on the mesh, after depositing
@@ -515,6 +518,14 @@ Numerics and algorithms
     Note that the implementation in WarpX is more efficient when these 3 numbers are equal,
     and when they are between 1 and 3.
 
+* ``warpx.do_dive_cleaning`` (`0` or `1` ; default: 0)
+    Whether to use modified Maxwell equations that progressively eliminate
+    the error in :math:`div(E)-\rho`. This can be useful when using a current
+    deposition algorithm which is not strictly charge-conserving, or when
+    using mesh refinement. These modified Maxwell equation will cause the error
+    to propagate (at the speed of light) to the boundaries of the simulation
+    domain, where it can be absorbed.
+
 * ``warpx.do_nodal`` (`0` or `1` ; default: 0)
     Whether to use a nodal grid (i.e. all fields are defined at the
     same points in space) or a staggered grid (i.e. Yee grid ; different
@@ -543,6 +554,20 @@ Numerics and algorithms
     See `this section of the FFTW documentation <http://www.fftw.org/fftw3_doc/Planner-Flags.html>`__
     for more information.
 
+Boundary conditions
+-------------------
+
+* ``warpx.do_pml`` (`0` or `1`; default: 1)
+    Whether to add Perfectly Matched Layers (PML) around the simulation box,
+    and around the refinement patches. See the section :doc:`../../theory/PML`
+    for more details.
+
+* ``warpx.pml_ncells`` (`int`; default: 10)
+    The depth of the PML, in number of cells.
+
+* ``warpx.pml_delta`` (`int`; default: 10)
+    The characteristic depth, in number of cells, over which
+    the absorption coefficients of the PML increases.
 
 Diagnostics and output
 ----------------------
