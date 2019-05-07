@@ -170,9 +170,11 @@ public:
                          const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
                          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
 
-    void ContinuousInjection(amrex::Real dt,
-                             const amrex::RealBox& prob_domain) const;
-
+    // Inject particles during the simulation (for particles entering the 
+    // simulation domain after some iterations, due to flowing plasma and/or
+    // moving window).
+    void ContinuousInjection(const amrex::RealBox& injection_box) const;
+    // Update injection position for continuously-injected species.
     void UpdateContinuousInjectionPosition(amrex::Real dt) const;
 
     // 

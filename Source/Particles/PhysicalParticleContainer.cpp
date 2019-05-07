@@ -24,7 +24,6 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
     for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
     {
         int fac;
-        // 	if (injected) {
 	if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
 	    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
@@ -363,9 +362,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
             {
                 int fac;
-                //                if (injected) {
                 if (do_continuous_injection) {
-                    Print()<<"in AddPlasmaCPU if do_continuous_injection"<<std::endl;
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -606,7 +603,6 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
             {
                 int fac;
-                // if (injected) {
                 if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
@@ -2010,10 +2006,13 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     return ref_fac;
 }
 
+/* \brief Inject particles during the simulation
+ * \param injection_box: domain where particles should be injected.
+ */
 void
-PhysicalParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain)
+PhysicalParticleContainer::ContinuousInjection(const RealBox& injection_box)
 {
+    // Inject plasma on level 0. Paticles will be redistributed.
     const int lev=0;
-    Print()<<"in PhysicalParticleContainer::ContinuousInjection"<<std::endl;
-    AddPlasma(lev, prob_domain);
+    AddPlasma(lev, injection_box);
 }

@@ -416,45 +416,33 @@ MultiParticleContainer
 }
 
 /* \brief Continuous injection for particles initially outside of the domain.
- * \param dt: timestep (so far, this only works without MR)
- * \param prob_domain: current boundaries of the full domain.
+ * \param injection_box: Domain where new particles should be injected.
  * Loop over all WarpXParticleContainer in MultiParticleContainer and 
  * calls virtual function ContinuousInjection.
  */
 void
-MultiParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain) const
+MultiParticleContainer::ContinuousInjection(const RealBox& injection_box) const
 {
     for (int i=0; i<nspecies+nlasers; i++){
         auto& pc = allcontainers[i];
-        Print()<<"i "<<i<<" pc->do_continuous_injection "<<pc->do_continuous_injection<<std::endl;
-        if (pc->do_continuous_injection)
-        {
-            Print()<<"i "<<i<<" pc->do_continuous_injection "<<pc->do_continuous_injection<<std::endl;
-            pc->ContinuousInjection(dt, prob_domain);
+        if (pc->do_continuous_injection){
+            pc->ContinuousInjection(injection_box);
         }
     }
 }
 
+/* \brief Update position of continuous injection parameters.
+ * \param dt: simulation time step (level 0)
+ * All classes inherited from WarpXParticleContainer do not have 
+ * a position to update (PhysicalParticleContainer does not do anything).
+ */
 void
 MultiParticleContainer::UpdateContinuousInjectionPosition(Real dt) const
 {
     for (int i=0; i<nspecies+nlasers; i++){
         auto& pc = allcontainers[i];
-        Print()<<"i "<<i<<" pc->do_continuous_injection "<<pc->do_continuous_injection<<std::endl;
-        if (pc->do_continuous_injection)
-        {
-            Print()<<"i "<<i<<" pc->do_continuous_injection "<<pc->do_continuous_injection<<std::endl;
+        if (pc->do_continuous_injection){
             pc->UpdateContinuousInjectionPosition(dt);
         }
     }
-    /*
-    for (int i=nspecies; i<nspecies+nlasers; i++){
-        // WarpXParticleContainer& pc = allcontainers[i];
-        WarpXParticleContainer& pc = GetParticleContainer(i);
-        auto& lpc = dynamic_cast<LaserParticleContainer&>(pc);
-        // auto& pc = allcontainers[i];
-        // auto& lpc = dynamic_cast<LaserParticleContainer&>(pc);
-        lpc.UpdateContinuousInjectionPosition(dt);
-    }
-    */
 }

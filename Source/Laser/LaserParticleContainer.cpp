@@ -149,42 +149,42 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 	u_Y = {0., 1., 0.};
 #endif
 
-    laser_prob_domain = Geometry::ProbDomain();
+    laser_injection_box= Geometry::ProbDomain();
     {
         Vector<Real> lo, hi;
         if (pp.queryarr("prob_lo", lo)) {
-            laser_prob_domain.setLo(lo);
+            laser_injection_box.setLo(lo);
         }
         if (pp.queryarr("prob_hi", hi)) {
-            laser_prob_domain.setHi(hi);
+            laser_injection_box.setHi(hi);
         }
     }
 
     if (do_continuous_injection){
         // If laser antenna initially outside of the box, store its theoretical
         // position in z_antenna_th, and set done_injecting to 0.
-        z_antenna_th = position[2];
-        const Real prob_lo_z = laser_prob_domain.lo()[AMREX_SPACEDIM-1];
-        const Real prob_hi_z = laser_prob_domain.hi()[AMREX_SPACEDIM-1];
-        if ( z_antenna_th<prob_lo_z || z_antenna_th>prob_hi_z ){
+        updated_position = position;
+        // Convert updated position to Real* to use RealBox.contains()
+#if (AMREX_SPACEDIM == 3)
+        const Real* p_pos = updated_position.dataPtr();
+#else
+        const Real p_pos[2] = {updated_position[0], updated_position[2]};
+#endif            
+        if ( not laser_injection_box.contains(p_pos) ){
             done_injecting = 0;
         }
-        // Sanity checks: do_continuous_injection can be used only if the
-        // laser, the moving window and the boost are all in z direction.
+        
+        // Sanity checks
+        std::Vector<Real> windir(3, 0.0);
+#if (AMREX_SPACEDIM==2)
+        windir[2*dir] = 1.0;
+#else
+        windir[dir] = 1.0;
+#endif
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  
-            (nvec[0]-0)*(nvec[0]-0) + 
-            (nvec[1]-0)*(nvec[1]-0) + 
-            (nvec[2]-1)*(nvec[2]-1) < 1.e-12,
-            "do_continous_injection for laser particle only works if " + 
-            "laser.direction = 0 0 1 (laser along z). TODO: all directions.");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            WarpX::moving_window_dir == AMREX_SPACEDIM-1,
-            "do_continous_injection for laser particle only works if " + 
-            "moving window along z. TODO: all directions.");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            maxLevel() == 0,
-            "do_continous_injection for laser particle only works if " + 
-            "max level = 0.");
+            (nvec[0]-windir[0]) + (nvec[1]-windor[1]) + (nvec[2]-windor[2]) 
+            < 1.e-12, "do_continous_injection for laser particle only works" +
+            " if moving window direction and laser propagation direction are the same");
         if ( WarpX::gamma_boost>1 ){
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) + 
@@ -197,85 +197,59 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 }
 
 /* \brief Check if laser particles enter the box, and inject if necessary.
- * \param dt: time step (assume no MR for now)
- * \param prob_domain: a RealBox that contains current simulation boundaries.
- * This function checks if the laser antenna should be injected at this
- * iteration. If so, it injects it and set done_injecting to 1.
+ * \param injection_box: a RealBox where particles should be injected.
  */ 
 void
-LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain)
+LaserParticleContainer::ContinuousInjection (const RealBox& injection_box)
 {
-    Print()<<"   ---   In LaserParticleContainer::ContinuousInjection"<<std::endl;
-    Print()<<"z_antenna_th "<<z_antenna_th<<std::endl;
-    // If laser antenna particles have not been injected yet, 
-    // check if they should be injected at this iteration. If 
-    // so, inject them and set done_injecting to 0 (false).
     if (done_injecting==0)
     {
-        // Input parameter prob_domain contains up-to-date properties of the 
-        // simulation domain (i.e. including moving window shift).
-        // So far, LaserParticleContainer::laser_prob_domain contains the 
-        // outdated prob_domain at t=0.
+        // Input parameter injection_box contains small box where injection
+        // should occur.
+        // So far, LaserParticleContainer::laser_injection_box contains the 
+        // outdated full problem domain at t=0.
 
-        // Get domain boundaries in the z direction
-        const Real prob_lo_z = prob_domain.lo()[AMREX_SPACEDIM-1];
-        const Real prob_hi_z = prob_domain.hi()[AMREX_SPACEDIM-1];
-        Print()<<"prob_lo_z "<<prob_lo_z<<std::endl;
-        Print()<<"prob_hi_z "<<prob_hi_z<<std::endl;
-        if ( z_antenna_th>=prob_lo_z && z_antenna_th<prob_hi_z ){
-            // Update laser_prob_domain with current value
-            laser_prob_domain = prob_domain;
+        // Convert updated_position to Real* to use RealBox::contains().
+#if (AMREX_SPACEDIM == 3)
+        const Real* p_pos = updated_position.dataPtr();
+#else
+        const Real p_pos[2] = {updated_position[0], updated_position[2]};
+#endif
+        if ( injection_box.contains(p_pos) ){
+            // Update laser_injection_box with current value
+            laser_injection_box = injection_box;
             // Inject laser particles. LaserParticleContainer::InitData
             // is called only once, when the antenna enters the simulation
             // domain.
-            InitData(maxLevel());
-            // Set done_injecting to 1, to avoid re-injecting particles.
+            InitData();
             done_injecting = 1;
         }
     }
 }
 
+/* \brief update position of the antenna if running in boosted frame.
+ * \param dt time step (level 0).
+ * The up-to-date antenna position is stored in updated_position.
+ */
 void
 LaserParticleContainer::UpdateContinuousInjectionPosition(Real dt)
 {
     int dir = WarpX::moving_window_dir;
-    // update position of the antenna (outside of the box)
-    // Continuously inject plasma in new cells (by default only on level 0)
     if (do_continuous_injection and (WarpX::gamma_boost > 1)){
-        // In boosted-frame simulations, the plasma has moved since the last
+        // In boosted-frame simulations, the antenna has moved since the last
         // call to this function, and injection position needs to be updated
-        z_antenna_th -= WarpX::beta_boost *
 #if ( AMREX_SPACEDIM == 3 )
+        updated_position[dir] -= WarpX::beta_boost *
             WarpX::boost_direction[dir] * PhysConst::c * dt;
 #elif ( AMREX_SPACEDIM == 2 )
-            // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
-            // This needs to be converted in order to index `boost_direction`
-            // which has 3 components, for both 2D and 3D simulations.
+        // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
+        // This needs to be converted in order to index `boost_direction`
+        // which has 3 components, for both 2D and 3D simulations.
+        updated_position[2*dir] -= WarpX::beta_boost *
             WarpX::boost_direction[2*dir] * PhysConst::c * dt;
 #endif
     }
-
-    /*
-    if (WarpX::do_plasma_injection and (WarpX::gamma_boost > 1){
-        z_antenna_th -= PhysConst::c * WarpX::beta_boost * dt;
-    }
-    */
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void
 LaserParticleContainer::InitData ()
@@ -294,9 +268,9 @@ LaserParticleContainer::InitData (int lev)
 
     // LaserParticleContainer::position contains the initial position of the 
     // laser antenna. In the boosted frame, the antenna is moving.
-    // Update its position.
+    // Update its position with updated_position.
     if (do_continuous_injection){
-        position[2] = z_antenna_th;
+        position = updated_position;
     }
 
     auto Transform = [&](int i, int j) -> Vector<Real>{
@@ -334,8 +308,8 @@ LaserParticleContainer::InitData (int lev)
             plane_hi[1] = std::max(plane_hi[1], j);
         };
 
-        const Real* prob_lo = laser_prob_domain.lo();
-        const Real* prob_hi = laser_prob_domain.hi();
+        const Real* prob_lo = laser_injection_box.lo();
+        const Real* prob_hi = laser_injection_box.hi();
 #if (AMREX_SPACEDIM == 3)
         compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
         compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
@@ -396,7 +370,7 @@ LaserParticleContainer::InitData (int lev)
 #else
             const Real x[2] = {pos[0], pos[2]};
 #endif
-            if (laser_prob_domain.contains(x))
+            if (laser_injection_box.contains(x))
             {
                 for (int k = 0; k<2; ++k) {
                     particle_x.push_back(pos[0]);

@@ -188,11 +188,11 @@ public:
     // makes sure that they are initialized when they enter the domain, and 
     // NOT before. Virtual function, overriden by derived classes. 
     // Current status:
-    // PhysicalParticleContainer: not implemented.
+    // PhysicalParticleContainer: implemented.
     // LaserParticleContainer: implemented.
     // RigidInjectedParticleContainer: not implemented.
-    virtual void ContinuousInjection(amrex::Real dt,
-                                     const amrex::RealBox& prob_domain) {}
+    virtual void ContinuousInjection(const amrex::RealBox& injection_box) {}
+    // Update optional sub-class-specific injection location.
     virtual void UpdateContinuousInjectionPosition(amrex::Real dt) {}
 
     /// 
@@ -264,7 +264,6 @@ protected:
     // This is currently required because continuous injection does not 
     // support all features allowed by direct injection.
     int do_continuous_injection = 0;
-    // int done_injecting = 1;
 
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;
