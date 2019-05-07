@@ -608,7 +608,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
 #ifdef AMREX_USE_GPU
-      data_ptr = (*rhomf)[pti].dataPtr();
+      data_ptr = (*rhomf)[pti].dataPtr(icomp);
       auto rholen = (*rhomf)[pti].length();
 #else
       tile_box.grow(ngRho);

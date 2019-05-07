@@ -80,12 +80,32 @@ WarpX::EvolveEM (int numsteps)
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
             is_synchronized = false;
+
+            for (MFIter mfi(*rho_fp[0]); mfi.isValid(); ++mfi)
+            {
+               MultiFab &mf = *rho_fp[0];
+               Box realspace_bx = mf[mfi].box(); // Copy the box
+               Array4<const Real> mf_arr = mf[mfi].array();
+               amrex::Print() << " at if synchronized rho " << mf_arr(0,0,0,0) ;
+               amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+            }
+
+
         } else {
            // Beyond one step, we have E^{n} and B^{n}.
            // Particles have p^{n-1/2} and x^{n}.
             FillBoundaryE();
             FillBoundaryB();
             UpdateAuxilaryData();
+
+            for (MFIter mfi(*rho_fp[0]); mfi.isValid(); ++mfi)
+            {
+               MultiFab &mf = *rho_fp[0];
+               Box realspace_bx = mf[mfi].box(); // Copy the box
+               Array4<const Real> mf_arr = mf[mfi].array();
+               amrex::Print() << " at if synchronized rho " << mf_arr(0,0,0,0) ;
+               amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+            }
         }
 
         if (do_subcycling == 0 || finest_level == 0) {
@@ -258,15 +278,48 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_particlescraper) warpx_py_particlescraper();
     if (warpx_py_beforedeposition) warpx_py_beforedeposition();
 #endif
+
+    for (MFIter mfi(*rho_fp[0]); mfi.isValid(); ++mfi)
+    {
+       MultiFab &mf = *rho_fp[0];
+       Box realspace_bx = mf[mfi].box(); // Copy the box
+       Array4<const Real> mf_arr = mf[mfi].array();
+       amrex::Print() << " at before pushf particles and depose rho " << mf_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+    }
     PushParticlesandDepose(cur_time);
+    for (MFIter mfi(*rho_fp[0]); mfi.isValid(); ++mfi)
+    {
+       MultiFab &mf = *rho_fp[0];
+       Box realspace_bx = mf[mfi].box(); // Copy the box
+       Array4<const Real> mf_arr = mf[mfi].array();
+       amrex::Print() << " at after pushf particles and depose rho " << mf_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+    }
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 #endif
 
     SyncCurrent();
+    for (MFIter mfi(*rho_fp[0]); mfi.isValid(); ++mfi)
+    {
+       MultiFab &mf = *rho_fp[0];
+       Box realspace_bx = mf[mfi].box(); // Copy the box
+       Array4<const Real> mf_arr = mf[mfi].array();
+       amrex::Print() << " before sync rho " << mf_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+    }
 
     SyncRho(rho_fp, rho_cp);
 
+    for (MFIter mfi(*rho_fp[0]); mfi.isValid(); ++mfi)
+    {
+       MultiFab &mf = *rho_fp[0];
+       Box realspace_bx = mf[mfi].box(); // Copy the box
+       Array4<const Real> mf_arr = mf[mfi].array();
+       amrex::Print() << " after sync rho " << mf_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+    }
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD

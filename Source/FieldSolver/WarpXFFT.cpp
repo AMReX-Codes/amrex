@@ -405,6 +405,20 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, 0, 0, period_fp);
     BL_PROFILE_VAR_STOP(blp_copy);
 
+
+    for (MFIter mfi(*rho_fp_fft[lev]); mfi.isValid(); ++mfi)
+    {
+       MultiFab &mf = *rho_fp_fft[lev];
+       Box realspace_bx = mf[mfi].box(); // Copy the box
+       Array4<const Real> mf_arr = mf[mfi].array();
+       amrex::Print() << " at begin Push PSATD rho " << mf_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+       MultiFab &mf_orig = *rho_fp[lev];
+       Array4<const Real> mforig_arr = mf_orig[mfi].array();
+       amrex::Print() << " at begin Push PSATD rho " << mforig_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mforig_arr(0,0,0,1) << "\n";
+    }
+
     BL_PROFILE_VAR_START(blp_push_eb);
     if (fft_hybrid_mpi_decomposition){
         if (Efield_fp_fft[lev][0]->local_size() == 1)

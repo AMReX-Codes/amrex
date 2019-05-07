@@ -342,6 +342,15 @@ WarpX::InitLevelDataFFT (int lev, Real time)
         current_cp_fft[lev][2]->setVal(0.0);
         rho_cp_fft[lev]->setVal(0.0);
     }
+
+    for (MFIter mfi(*rho_fp_fft[lev]); mfi.isValid(); ++mfi)
+    {
+       MultiFab &mf = *rho_fp_fft[lev];
+       Box realspace_bx = mf[mfi].box(); // Copy the box
+       Array4<const Real> mf_arr = mf[mfi].array();
+       amrex::Print() << " at initialization rho " << mf_arr(0,0,0,0) ;
+       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
+    }
 }
 
 #endif
