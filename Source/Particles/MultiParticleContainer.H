@@ -172,7 +172,9 @@ public:
 
     void ContinuousInjection(amrex::Real dt,
                              const amrex::RealBox& prob_domain) const;
-    
+
+    void UpdateContinuousInjectionPosition(amrex::Real dt) const;
+
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.
     // Both stencils are calculated ar runtime.

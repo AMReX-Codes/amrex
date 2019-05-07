@@ -101,8 +101,9 @@ public:
                                   const amrex::Real t_lab, const amrex::Real dt,
                                   DiagnosticParticles& diagnostic_particles) final;
 
-    bool injected = false;
-    
+    //    bool injected = false;
+    // int do_continuous_injection = false;
+
 protected:
 
     std::string species_name;
@@ -121,6 +122,8 @@ protected:
   
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
+
+    void ContinuousInjection(amrex::Real dt, const amrex::RealBox& prob_domain) override;
 
 };
 

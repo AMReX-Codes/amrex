@@ -90,7 +90,7 @@ WarpX::EvolveEM (int numsteps)
 
         // Performs continuous injection of all WarpXParticleContainer
         // in mypc. 
-        mypc->ContinuousInjection(dt[0], geom[0].ProbDomain());
+        // mypc->ContinuousInjection(dt[0], geom[0].ProbDomain());
 
         if (do_subcycling == 0 || finest_level == 0) {
             OneStep_nosub(cur_time);

@@ -33,8 +33,10 @@ WarpX::MoveWindow (bool move_j)
     // and of the plasma injection
     moving_window_x += moving_window_v * dt[0];
     int dir = moving_window_dir;
-    UpdatePlasmaInjectionPosition( dt[0] );
 
+    UpdatePlasmaInjectionPosition( dt[0] );
+    mypc->UpdateContinuousInjectionPosition( dt[0] );
+    
     // compute the number of cells to shift on the base level
     Real new_lo[AMREX_SPACEDIM];
     Real new_hi[AMREX_SPACEDIM];
@@ -163,13 +165,19 @@ WarpX::MoveWindow (bool move_j)
             particleBox.setHi( dir, current_injection_position );
         }
         // Perform the injection of new particles in particleBox
+        // Performs continuous injection of all WarpXParticleContainer
+        // in mypc. 
+        
         if (particleBox.ok() and (current_injection_position != new_injection_position)){
+            mypc->ContinuousInjection(dt[0], particleBox);
+            /*
             for (int i = 0; i < num_injected_species; ++i) {
                 int ispecies = injected_plasma_species[i];
                 WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
                 auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
                 ppc.AddPlasma(lev, particleBox);
             }
+            */
             // Update the injection position
             current_injection_position = new_injection_position;
         }
