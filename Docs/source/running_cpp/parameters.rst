@@ -418,7 +418,13 @@ Laser initialization
     If the antenna starts outside of the simulation domain but enters it 
     at some point (due to moving window or moving antenna in the boosted 
     frame), use this so that the laser antenna is injected when it reaches 
-    the box boundary. Currently only works if boost direction, laser direction 
+    the box boundary. If running in a boosted frame, this requires the 
+    boost direction, moving window direction and laser propagation direction 
+    to be along `z`. If not running in a boosted frame, this requires the 
+    moving window and laser propagation directions to be the same (`x`, `y` 
+    or `z`)
+
+Currently only works if boost direction, laser direction 
     and moving window are all in the `z` direction.
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
