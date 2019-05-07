@@ -476,7 +476,8 @@ private:
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
-    int do_plasma_injection  = 0;
+    // int do_plasma_injection  = 0;
+    int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
     

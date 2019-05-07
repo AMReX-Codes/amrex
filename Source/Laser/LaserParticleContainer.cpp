@@ -175,14 +175,15 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         }
         
         // Sanity checks
-        std::Vector<Real> windir(3, 0.0);
+        int dir = WarpX::moving_window_dir;
+        std::vector<Real> windir(3, 0.0);
 #if (AMREX_SPACEDIM==2)
         windir[2*dir] = 1.0;
 #else
         windir[dir] = 1.0;
 #endif
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  
-            (nvec[0]-windir[0]) + (nvec[1]-windor[1]) + (nvec[2]-windor[2]) 
+            (nvec[0]-windir[0]) + (nvec[1]-windir[1]) + (nvec[2]-windir[2]) 
             < 1.e-12, "do_continous_injection for laser particle only works" +
             " if moving window direction and laser propagation direction are the same");
         if ( WarpX::gamma_boost>1 ){

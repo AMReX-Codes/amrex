@@ -176,6 +176,7 @@ public:
     void ContinuousInjection(const amrex::RealBox& injection_box) const;
     // Update injection position for continuously-injected species.
     void UpdateContinuousInjectionPosition(amrex::Real dt) const;
+    int doContinuousInjection() const;
 
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.

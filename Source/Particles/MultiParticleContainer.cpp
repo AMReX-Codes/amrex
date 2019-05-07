@@ -446,3 +446,16 @@ MultiParticleContainer::UpdateContinuousInjectionPosition(Real dt) const
         }
     }
 }
+
+int
+MultiParticleContainer::doContinuousInjection() const
+{
+    int warpx_do_continuous_injection = 0;
+    for (int i=0; i<nspecies+nlasers; i++){
+        auto& pc = allcontainers[i];
+        if (pc->do_continuous_injection){
+            warpx_do_continuous_injection = 1;
+        }
+    }
+    return warpx_do_continuous_injection;
+}
