@@ -1,5 +1,9 @@
 \input{newcommands}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Boundary conditions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \subsection{Open boundary condition for electromagnetic waves}
 
 For the TE case, the original Berenger's Perfectly Matched Layer (PML) writes
@@ -10,7 +14,7 @@ For the TE case, the original Berenger's Perfectly Matched Layer (PML) writes
 \varepsilon _{0}\frac{\partial E_{y}}{\partial t}+\sigma _{x}E_{y} = & -\frac{\partial H_{z}}{\partial x}\label{PML_def_2} \\
 \mu _{0}\frac{\partial H_{zx}}{\partial t}+\sigma ^{*}_{x}H_{zx} = & -\frac{\partial E_{y}}{\partial x}\label{PML_def_3} \\
 \mu _{0}\frac{\partial H_{zy}}{\partial t}+\sigma ^{*}_{y}H_{zy} = & \frac{\partial E_{x}}{\partial y}\label{PML_def_4} \\
-H_{z}  = & H_{zx}+H_{zy}\label{PML_def_5} 
+H_{z}  = & H_{zx}+H_{zy}\label{PML_def_5}
 \end{eqnarray}
 
 This can be generalized to
@@ -21,7 +25,7 @@ This can be generalized to
 \varepsilon _{0}\frac{\partial E_{y}}{\partial t}+\sigma _{x}E_{y} = & -\frac{c_{x}}{c}\frac{\partial H_{z}}{\partial x}+\overline{\sigma }_{x}H_{z}\label{APML_def_2} \\
 \mu _{0}\frac{\partial H_{zx}}{\partial t}+\sigma ^{*}_{x}H_{zx} = & -\frac{c^{*}_{x}}{c}\frac{\partial E_{y}}{\partial x}+\overline{\sigma }_{x}^{*}E_{y}\label{APML_def_3} \\
 \mu _{0}\frac{\partial H_{zy}}{\partial t}+\sigma ^{*}_{y}H_{zy} = & \frac{c^{*}_{y}}{c}\frac{\partial E_{x}}{\partial y}+\overline{\sigma }_{y}^{*}E_{x}\label{APML_def_4} \\
-H_{z} = & H_{zx}+H_{zy}\label{APML_def_5} 
+H_{z} = & H_{zx}+H_{zy}\label{APML_def_5}
 \end{eqnarray}
 
 For $c_{x}=c_{y}=c^{*}_{x}=c^{*}_{y}=c$ and $\overline{\sigma }_{x}=\overline{\sigma }_{y}=\overline{\sigma }_{x}^{*}=\overline{\sigma }_{y}^{*}=0$,
@@ -39,7 +43,7 @@ angle $\varphi$ relative to the x axis
 E_{x} = & -E_{0}\sin \varphi e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_1} \\
 E_{y} = & E_{0}\cos \varphi e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_2} \\
 H_{zx} = & H_{zx0}e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_AMPL_def_3} \\
-H_{zy} = & H_{zy0}e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_4} 
+H_{zy} = & H_{zy0}e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_4}
 \end{eqnarray}
 
 
@@ -55,7 +59,7 @@ and (\ref{APML_def_4}) gives
 \varepsilon _{0}E_{0}\sin \varphi -i\frac{\sigma _{y}}{\omega }E_{0}\sin \varphi  = & \beta \frac{c_{y}}{c}\left( H_{zx0}+H_{zy0}\right) +i\frac{\overline{\sigma }_{y}}{\omega }\left( H_{zx0}+H_{zy0}\right) \label{Plane_wave_APML_1_1} \\
 \varepsilon _{0}E_{0}\cos \varphi -i\frac{\sigma _{x}}{\omega }E_{0}\cos \varphi  = & \alpha \frac{c_{x}}{c}\left( H_{zx0}+H_{zy0}\right) -i\frac{\overline{\sigma }_{x}}{\omega }\left( H_{zx0}+H_{zy0}\right) \label{Plane_wave_APML_1_2} \\
 \mu _{0}H_{zx0}-i\frac{\sigma ^{*}_{x}}{\omega }H_{zx0} = & \alpha \frac{c^{*}_{x}}{c}E_{0}\cos \varphi -i\frac{\overline{\sigma }^{*}_{x}}{\omega }E_{0}\cos \varphi \label{Plane_wave_APML_1_3} \\
-\mu _{0}H_{zy0}-i\frac{\sigma ^{*}_{y}}{\omega }H_{zy0} = & \beta \frac{c^{*}_{y}}{c}E_{0}\sin \varphi +i\frac{\overline{\sigma }^{*}_{y}}{\omega }E_{0}\sin \varphi \label{Plane_wave_APML_1_4} 
+\mu _{0}H_{zy0}-i\frac{\sigma ^{*}_{y}}{\omega }H_{zy0} = & \beta \frac{c^{*}_{y}}{c}E_{0}\sin \varphi +i\frac{\overline{\sigma }^{*}_{y}}{\omega }E_{0}\sin \varphi \label{Plane_wave_APML_1_4}
 \end{eqnarray}
 
 
@@ -64,7 +68,7 @@ and (\ref{Plane_wave_APML_1_2}), we get
 
 \begin{eqnarray}
 \beta  = & \left[ Z\left( \varepsilon _{0}-i\frac{\sigma _{y}}{\omega }\right) \sin \varphi -i\frac{\overline{\sigma }_{y}}{\omega }\right] \frac{c}{c_{y}}\label{Plane_wave_APML_beta_of_g} \\
-\alpha  = & \left[ Z\left( \varepsilon _{0}-i\frac{\sigma _{x}}{\omega }\right) \cos \varphi +i\frac{\overline{\sigma }_{x}}{\omega }\right] \frac{c}{c_{x}}\label{Plane_wave_APML_alpha_of_g} 
+\alpha  = & \left[ Z\left( \varepsilon _{0}-i\frac{\sigma _{x}}{\omega }\right) \cos \varphi +i\frac{\overline{\sigma }_{x}}{\omega }\right] \frac{c}{c_{x}}\label{Plane_wave_APML_alpha_of_g}
 \end{eqnarray}
 
 
@@ -75,14 +79,14 @@ and (\ref{Plane_wave_APML_alpha_of_g}) yields
 
 \begin{eqnarray}
 \frac{1}{Z} = & \frac{Z\left( \varepsilon _{0}-i\frac{\sigma _{x}}{\omega }\right) \cos \varphi \frac{c^{*}_{x}}{c_{x}}+i\frac{\overline{\sigma }_{x}}{\omega }\frac{c^{*}_{x}}{c_{x}}-i\frac{\overline{\sigma }^{*}_{x}}{\omega }}{\mu _{0}-i\frac{\sigma ^{*}_{x}}{\omega }}\cos \varphi \nonumber \\
- + & \frac{Z\left( \varepsilon _{0}-i\frac{\sigma _{y}}{\omega }\right) \sin \varphi \frac{c^{*}_{y}}{c_{y}}-i\frac{\overline{\sigma }_{y}}{\omega }\frac{c^{*}_{y}}{c_{y}}+i\frac{\overline{\sigma }^{*}_{y}}{\omega }}{\mu _{0}-i\frac{\sigma ^{*}_{y}}{\omega }}\sin \varphi 
+ + & \frac{Z\left( \varepsilon _{0}-i\frac{\sigma _{y}}{\omega }\right) \sin \varphi \frac{c^{*}_{y}}{c_{y}}-i\frac{\overline{\sigma }_{y}}{\omega }\frac{c^{*}_{y}}{c_{y}}+i\frac{\overline{\sigma }^{*}_{y}}{\omega }}{\mu _{0}-i\frac{\sigma ^{*}_{y}}{\omega }}\sin \varphi
 \end{eqnarray}
 
 
 If $c_{x}=c^{*}_{x}$, $c_{y}=c^{*}_{y}$, $\overline{\sigma }_{x}=\overline{\sigma }^{*}_{x}$, $\overline{\sigma }_{y}=\overline{\sigma }^{*}_{y}$, $\frac{\sigma _{x}}{\varepsilon _{0}}=\frac{\sigma ^{*}_{x}}{\mu _{0}}$ and $\frac{\sigma _{y}}{\varepsilon _{0}}=\frac{\sigma ^{*}_{y}}{\mu _{0}}$ then
 
 \begin{eqnarray}
-Z = & \pm \sqrt{\frac{\mu _{0}}{\varepsilon _{0}}}\label{APML_impedance} 
+Z = & \pm \sqrt{\frac{\mu _{0}}{\varepsilon _{0}}}\label{APML_impedance}
 \end{eqnarray}
 
 
@@ -93,7 +97,7 @@ retained after discretization, as shown subsequently in this paper.
 
 Calling $\psi$ any component of the field and $\psi _{0}$
 its magnitude, we get from (\ref{Plane_wave_APML_def_1}), (\ref{Plane_wave_APML_beta_of_g}),
-(\ref{Plane_wave_APML_alpha_of_g}) and (\ref{APML_impedance}) that 
+(\ref{Plane_wave_APML_alpha_of_g}) and (\ref{APML_impedance}) that
 
 \begin{equation}
 \label{Plane_wave_absorption}
@@ -104,7 +108,7 @@ its magnitude, we get from (\ref{Plane_wave_APML_def_1}), (\ref{Plane_wave_APML_
 We assume that we have an APML layer of thickness $\delta$ (measured
 along $x$) and that $\sigma _{y}=\overline{\sigma }_{y}=0$
 and $c_{y}=c.$ Using (\ref{Plane_wave_absorption}), we determine
-that the coefficient of reflection given by this layer is 
+that the coefficient of reflection given by this layer is
 
 \begin{eqnarray}
 R_{APML}\left( \theta \right)  = & e^{-\left( \sigma _{x}\cos \varphi /\varepsilon _{0}c_{x}+\overline{\sigma }_{x}c/c_{x}\right) \delta }e^{-\left( \sigma _{x}\cos \varphi /\varepsilon _{0}c_{x}-\overline{\sigma }_{x}c/c_{x}\right) \delta }\nonumber \\
@@ -187,7 +191,7 @@ H_z = & H_{zx}+H_{zy}
 c_x = & c e^{-\sigma_x\Delta t} \frac{\sigma_x \Delta x}{1-e^{-\sigma_x\Delta t}} \\
 c_y = & c e^{-\sigma_y\Delta t} \frac{\sigma_y \Delta y}{1-e^{-\sigma_y\Delta t}} \\
 c^*_x = & c e^{-\sigma^*_x\Delta t} \frac{\sigma^*_x \Delta x}{1-e^{-\sigma^*_x\Delta t}} \\
-c^*_y = & c e^{-\sigma^*_y\Delta t} \frac{\sigma^*_y \Delta y}{1-e^{-\sigma^*_y\Delta t}} 
+c^*_y = & c e^{-\sigma^*_y\Delta t} \frac{\sigma^*_y \Delta y}{1-e^{-\sigma^*_y\Delta t}}
 \end{align}
 \end{subequations}
 
