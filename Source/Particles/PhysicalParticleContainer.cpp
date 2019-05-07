@@ -24,7 +24,8 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
     for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
     {
         int fac;
-	if (injected) {
+        // 	if (injected) {
+	if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
 	    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
 	    Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -81,6 +82,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_backward_propagation", do_backward_propagation);
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
+    pp.query("do_continuous_injection", do_continuous_injection);
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
@@ -361,7 +363,9 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
             {
                 int fac;
-                if (injected) {
+                //                if (injected) {
+                if (do_continuous_injection) {
+                    Print()<<"in AddPlasmaCPU if do_continuous_injection"<<std::endl;
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -602,7 +606,8 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
             {
                 int fac;
-                if (injected) {
+                // if (injected) {
+                if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -2003,4 +2008,12 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     (*m_refined_injection_mask)(iv2) = ref_fac;
 
     return ref_fac;
+}
+
+void
+PhysicalParticleContainer::ContinuousInjection(Real dt, const RealBox& prob_domain)
+{
+    const int lev=0;
+    Print()<<"in PhysicalParticleContainer::ContinuousInjection"<<std::endl;
+    AddPlasma(lev, prob_domain);
 }

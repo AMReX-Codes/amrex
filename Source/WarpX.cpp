@@ -146,14 +146,17 @@ WarpX::WarpX ()
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
 
+    /*
     if (do_plasma_injection) {
         for (int i = 0; i < num_injected_species; ++i) {
             int ispecies = injected_plasma_species[i];
             WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
             auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-            ppc.injected = true;
+            // ppc.injected = true;
+            ppc.do_continuous_injection = 1;
         }
     }
+    */
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
@@ -302,10 +305,10 @@ WarpX::ReadParameters ()
 
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
-        pp.get("num_injected_species", num_injected_species);
-        injected_plasma_species.resize(num_injected_species);
-        pp.getarr("injected_plasma_species", injected_plasma_species,
-                  0, num_injected_species);
+        // pp.get("num_injected_species", num_injected_species);
+        // injected_plasma_species.resize(num_injected_species);
+        // pp.getarr("injected_plasma_species", injected_plasma_species,
+        //           0, num_injected_species);
         if (moving_window_v >= 0){
             // Inject particles continuously from the right end of the box
             current_injection_position = geom[0].ProbHi(moving_window_dir);

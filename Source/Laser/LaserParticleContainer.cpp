@@ -205,6 +205,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 void
 LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain)
 {
+    Print()<<"   ---   In LaserParticleContainer::ContinuousInjection"<<std::endl;
+    Print()<<"z_antenna_th "<<z_antenna_th<<std::endl;
     // update position of the antenna (outside of the box)
     if (WarpX::gamma_boost>1){
         z_antenna_th -= PhysConst::c * WarpX::beta_boost * dt;
@@ -222,7 +224,9 @@ LaserParticleContainer::ContinuousInjection (Real dt, const RealBox& prob_domain
         // Get domain boundaries in the z direction
         const Real prob_lo_z = prob_domain.lo()[AMREX_SPACEDIM-1];
         const Real prob_hi_z = prob_domain.hi()[AMREX_SPACEDIM-1];
-        if ( z_antenna_th>prob_lo_z && z_antenna_th<prob_hi_z ){
+        Print()<<"prob_lo_z "<<prob_lo_z<<std::endl;
+        Print()<<"prob_hi_z "<<prob_hi_z<<std::endl;
+        if ( z_antenna_th>=prob_lo_z && z_antenna_th<prob_hi_z ){
             // Update laser_prob_domain with current value
             laser_prob_domain = prob_domain;
             // Inject laser particles. LaserParticleContainer::InitData
