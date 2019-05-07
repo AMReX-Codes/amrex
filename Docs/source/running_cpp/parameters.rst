@@ -65,14 +65,14 @@ Setting up the field mesh
     level, instead of gathering the fields from the refinement patch itself.
     This avoids some of the spurious effects that can occur inside the
     refinement patch, close to its edge. See the section
-    :doc:`../../theory/warpx_theory` for more details.
+    :doc:`../../theory/amr` for more details.
 
 * ``n_current_deposition_buffer`` (`integer`)
     When using mesh refinement: the particles that are located inside
     a refinement patch, but within ``n_field_gather_buffer`` cells of
     the edge of this patch, will deposit their charge and current to the
     lower refinement level, instead of depositing to the refinement patch
-    itself. See the section :doc:`../../theory/warpx_theory` for more details.
+    itself. See the section :doc:`../../theory/amr` for more details.
 
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
@@ -150,10 +150,14 @@ Particle initialization
     Whether to activate the FDTD Numerical Cherenkov Instability corrector.
 
 * ``particles.rigid_injected_species`` (`strings`, separated by spaces)
-    List of species injected using the rigid injection method. For species injected
-    using this method, particles are translated along the `+z` axis with constant velocity
-    as long as their ``z`` coordinate verifies ``z<zinject_plane``. When ``z>zinject_plane``,
+    List of species injected using the rigid injection method. The rigid injection
+    method is useful when injecting a relativistic particle beam, in boosted-frame
+    simulation ; see the section :doc:`../../theory/input_output` for more details.
+    For species injected using this method, particles are translated along the `+z`
+    axis with constant velocity as long as their ``z`` coordinate verifies
+    ``z<zinject_plane``. When ``z>zinject_plane``,
     particles are pushed in a standard way, using the specified pusher.
+    (see the parameter ``<species_name>.zinject_plane`` below)
 
 * ``<species_name>.charge`` (`float`)
     The charge of one `physical` particle of this species.
