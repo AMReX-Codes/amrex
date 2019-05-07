@@ -154,6 +154,11 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+* ``<species_name>.do_continuous_injection`` (`0` or `1`)
+    Whether to inject particles during the simulation, and not only at 
+    initialization. This can be required whith a moving window and/or when 
+    running in a boosted frame.
+
 * ``<species_name>.profile`` (`string`)
     Density profile for this species. The options are:
 
