@@ -20,6 +20,8 @@ In order to build WarpX with GPU support, it necessary to install:
     export SPACK_ROOT=/path/to/spack
     . $SPACK_ROOT/share/spack/setup-env.sh
 
+(You may want to add the last 2 lines to your ``.bashrc`` file.)
+
 Next, you will to install of version of MPI which is compatible with the PGI
 compiler (using Spack). First of all, make sure that Spack is aware of the PGI
 compiler:
