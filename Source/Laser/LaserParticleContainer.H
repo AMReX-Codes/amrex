@@ -88,9 +88,7 @@ private:
     // Theoretical position of the antenna. Used if do_continuous_injection=1.
     // Track the position of the antenna until it enters the simulation domain.
     amrex::Vector<amrex::Real> updated_position;
-    // Avoid injecting the antenna several times.
-    int done_injecting=1;
-
+    
     void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
     void InitData (int lev);

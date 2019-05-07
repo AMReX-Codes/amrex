@@ -162,7 +162,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 
     if (do_continuous_injection){
         // If laser antenna initially outside of the box, store its theoretical
-        // position in z_antenna_th, and set done_injecting to 0.
+        // position in z_antenna_th
         updated_position = position;
         // Convert updated position to Real* to use RealBox.contains()
 #if (AMREX_SPACEDIM == 3)
@@ -170,9 +170,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 #else
         const Real p_pos[2] = {updated_position[0], updated_position[2]};
 #endif            
-        if ( not laser_injection_box.contains(p_pos) ){
-            done_injecting = 0;
-        }
         
         // Sanity checks
         int dir = WarpX::moving_window_dir;
@@ -203,28 +200,24 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 void
 LaserParticleContainer::ContinuousInjection (const RealBox& injection_box)
 {
-    if (done_injecting==0)
-    {
-        // Input parameter injection_box contains small box where injection
-        // should occur.
-        // So far, LaserParticleContainer::laser_injection_box contains the 
-        // outdated full problem domain at t=0.
+    // Input parameter injection_box contains small box where injection
+    // should occur.
+    // So far, LaserParticleContainer::laser_injection_box contains the 
+    // outdated full problem domain at t=0.
 
-        // Convert updated_position to Real* to use RealBox::contains().
+    // Convert updated_position to Real* to use RealBox::contains().
 #if (AMREX_SPACEDIM == 3)
-        const Real* p_pos = updated_position.dataPtr();
+    const Real* p_pos = updated_position.dataPtr();
 #else
-        const Real p_pos[2] = {updated_position[0], updated_position[2]};
+    const Real p_pos[2] = {updated_position[0], updated_position[2]};
 #endif
-        if ( injection_box.contains(p_pos) ){
-            // Update laser_injection_box with current value
-            laser_injection_box = injection_box;
-            // Inject laser particles. LaserParticleContainer::InitData
-            // is called only once, when the antenna enters the simulation
-            // domain.
-            InitData();
-            done_injecting = 1;
-        }
+    if ( injection_box.contains(p_pos) ){
+        // Update laser_injection_box with current value
+        laser_injection_box = injection_box;
+        // Inject laser particles. LaserParticleContainer::InitData
+        // is called only once, when the antenna enters the simulation
+        // domain.
+        InitData();
     }
 }
 
