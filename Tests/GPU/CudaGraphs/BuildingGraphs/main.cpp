@@ -392,7 +392,7 @@ int main (int argc, char* argv[])
 
             amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
 
-            BL_PROFILE_VAR("cudaGraph-linked-stream-launch", cgrl);
+            BL_PROFILE_VAR("cudaGraph-linked-stream-relaunch", cgrl);
 
             *val = 10.0;
 
