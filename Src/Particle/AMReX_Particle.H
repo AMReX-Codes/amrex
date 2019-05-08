@@ -25,10 +25,6 @@ namespace
 template<int NReal, int NInt=0>
 struct Particle
 {
-
-    AMREX_GPU_HOST_DEVICE
-    Particle() {};
-
     //
     //! The floating point type used for the particles.
 #ifdef BL_SINGLE_PRECISION_PARTICLES

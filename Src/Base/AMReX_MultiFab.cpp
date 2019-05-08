@@ -607,17 +607,17 @@ MultiFab::contains_nan (bool local) const
     return contains_nan(0,nComp(),nGrowVect(),local);
 }
 
-bool 
+bool
 MultiFab::contains_inf (int scomp,
                         int ncomp,
-                        int ngrow,
+                        IntVect const& ngrow,
 			bool local) const
 {
     // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
-    BL_ASSERT(ngrow >= 0 && ngrow <= nGrow());
+    BL_ASSERT(IntVect::TheZeroVector().allLE(ngrow) && ngrow.allLE(nGrowVect()));
 
     bool r = amrex::ReduceLogicalOr(*this, ngrow,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> bool
@@ -629,6 +629,15 @@ MultiFab::contains_inf (int scomp,
 	ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
 
     return r;
+}
+
+bool 
+MultiFab::contains_inf (int scomp,
+                        int ncomp,
+                        int ngrow,
+			bool local) const
+{
+    return contains_inf(0,ncomp,IntVect(ngrow),local);
 }
 
 bool 
@@ -1226,7 +1235,7 @@ MultiFab::negate (const Box& region,
 }
 
 void
-MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
     BL_PROFILE("MultiFab::SumBoundary()");
 
@@ -1234,19 +1243,25 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 
     if (boxArray().ixType().cellCentered()) {
 	// Self copy is safe only for cell-centered MultiFab
-	this->copy(*this,scomp,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
+	this->copy(*this,scomp,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
     } else {
 	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo().SetDeviceFab(false), Factory());
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
-	this->setVal(0.0, scomp, ncomp, 0);
-	this->copy(tmp,0,scomp,ncomp,n_grow,IntVect::TheZeroVector(),period,FabArrayBase::ADD);
+	this->setVal(0.0, scomp, ncomp, nghost);
+	this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
     }
+}
+
+void
+MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundary(scomp, ncomp, IntVect(0), period);
 }
 
 void
 MultiFab::SumBoundary (const Periodicity& period)
 {
-    SumBoundary(0, n_comp, period);
+    SumBoundary(0, n_comp, IntVect(0), period);
 }
 
 std::unique_ptr<MultiFab>

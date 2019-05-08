@@ -51,9 +51,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
         }
         if ( ( not std::is_standard_layout<ParticleType>::value    ) or 
-             ( not AMREX_IS_TRIVIALLY_COPYABLE(ParticleType)       )  )
+             ( not std::is_trivial<ParticleType>::value            )    )
         {
-            amrex::Abort("Particle type must be standard layout and trivially copyable.");
+            amrex::Abort("Particle type must be standard layout and trivial.");
         }
 
         pp.query("use_prepost", usePrePost);

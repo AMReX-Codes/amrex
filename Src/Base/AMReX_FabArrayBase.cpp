@@ -1063,12 +1063,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 			      const Box&          dstdomain,
 			      const IntVect&      dstng,
 			      const BoxConverter& coarsener,
-#ifdef AMREX_USE_EB
                               const Box&          cdomain,
                               const EB2::IndexSpace* index_space)
-#else
-                              const Box&          cdomain)
-#endif
     : m_srcbdk   (srcfa.getBDKey()),
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
@@ -1117,17 +1113,18 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
         ba_crse_patch.define(bl);
         dm_crse_patch.define(std::move(iprocs));
 #ifdef AMREX_USE_EB
-        if (index_space) {
-                fact_crse_patch = makeEBFabFactory(index_space, Geometry(cdomain),
+        if (index_space)
+        {
+            fact_crse_patch = makeEBFabFactory(index_space, Geometry(cdomain),
                                                ba_crse_patch,
                                                dm_crse_patch,
                                                {0,0,0}, EBSupport::basic);
-        } else {
-                fact_crse_patch.reset(new FArrayBoxFactory());
         }
-#else
-        fact_crse_patch.reset(new FArrayBoxFactory());
+        else
 #endif
+        {
+            fact_crse_patch.reset(new FArrayBoxFactory());
+        }
     }
 }
 
@@ -1151,12 +1148,8 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
                          const Box&          dstdomain,
                          const IntVect&      dstng,
                          const BoxConverter& coarsener,
-#ifdef AMREX_USE_EB
                          const Box&          cdomain,
                          const EB2::IndexSpace* index_space)
-#else 
-                         const Box&          cdomain)
-#endif
 {
     BL_PROFILE("FabArrayBase::TheFPinfo()");
 
@@ -1181,12 +1174,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     }
 
     // Have to build a new one
-#ifdef AMREX_USE_EB
     FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain, index_space);
-#else
-    FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain);
-#endif
-
 
 #ifdef BL_MEM_PROFILING
     m_FPinfo_stats.bytes += new_fpc->bytes();
