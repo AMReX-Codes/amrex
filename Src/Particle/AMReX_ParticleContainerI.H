@@ -1100,11 +1100,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         m_hi.resize(old_np);
         m_output.resize(old_np);
 
-        int* grids_ptr  = thrust::raw_pointer_cast(m_grids_tmp.data());
-        int* index_ptr  = thrust::raw_pointer_cast(m_index_sequence_tmp.data());
-        int* lo_ptr     = thrust::raw_pointer_cast(m_lo.data());
-        int* hi_ptr     = thrust::raw_pointer_cast(m_hi.data());
-        int* output_ptr = thrust::raw_pointer_cast(m_output.data());
+        int* grids_ptr  = m_grids_tmp.data();
+        int* index_ptr  = m_index_sequence_tmp.data();
+        int* lo_ptr     = m_lo.data();
+        int* hi_ptr     = m_hi.data();
+        int* output_ptr = m_output.data();
         BaseFab<int>* mask_ptr = redistribute_mask_ptr->fabPtr(mfi);
         ParticleType* p_ptr = &(aos[0]);
 
@@ -1171,7 +1171,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         old_size = m_aos_to_redistribute.size();
         new_size = old_size + num_moved;
 
-        } 
+        }
         else 
         {
             thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
@@ -1228,7 +1228,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             m_grids_tmp.swap(m_grids_r);
             
             // reorder real arrays
-	    m_rdata_r.resize(old_np);
+			m_rdata_r.resize(old_np);
             for (int j = 0; j < NumRealComps(); ++j)
             {
                 auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
@@ -1239,7 +1239,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
 
             // reorder int arrays
-	    m_idata_r.resize(old_np);
+			m_idata_r.resize(old_np);
             for (int j = 0; j < NumIntComps(); ++j)
             {
 	        auto& idata = ptile.GetStructOfArrays().GetIntData(j);
