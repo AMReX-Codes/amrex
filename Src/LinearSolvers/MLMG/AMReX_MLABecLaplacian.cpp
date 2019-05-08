@@ -137,6 +137,8 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& crse_geom     = m_geom    [flev-1][0];
 
     if (m_a_scalar != 0.0) {
+        // We coarsen from the back of flev to the front of flev-1.
+        // So we use mg_coarsen_ratio.
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
     }
      
