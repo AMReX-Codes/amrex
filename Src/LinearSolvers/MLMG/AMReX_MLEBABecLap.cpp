@@ -58,6 +58,8 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
 
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, _factory);
 
+    const int ncomp = getNComp();
+
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
     m_cc_mask.resize(m_num_amr_levels);
@@ -81,7 +83,7 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
                 const int ng = 1;
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
-                                                       1, ng, MFInfo(), *m_factory[amrlev][mglev]);
+                                                       ncomp, ng, MFInfo(), *m_factory[amrlev][mglev]);
                 m_b_coeffs[amrlev][mglev][idim].setVal(0.0);
             }
 
@@ -147,8 +149,11 @@ MLEBABecLap::setACoeffs (int amrlev, const MultiFab& alpha)
 void
 MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
+    const int ncomp = getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
+        for (int icomp = 0; icomp < ncomp; ++icomp) {
+            MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
+        }
     }
     m_needs_update = true;
 }
@@ -157,16 +162,17 @@ void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
 {
     // todo: gpu
+    const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            1, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
                                                             m_dmap[amrlev][mglev],
-                                                            1, 0, MFInfo(),
+                                                            ncomp, 0, MFInfo(),
                                                             *m_factory[amrlev][mglev]));
         }
     }
@@ -184,15 +190,16 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
         FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (FabType::regular == t or FabType::covered == t) {
-            phifab.setVal(0.0, bx, 0, 1);
-            betafab.setVal(0.0, bx, 0, 1);
+            phifab.setVal(0.0, bx, 0, ncomp);
+            betafab.setVal(0.0, bx, 0, ncomp);
         } else {
             amrex_eb_copy_dirichlet(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(phifab),
                                     BL_TO_FORTRAN_ANYD(phi[mfi]),
                                     BL_TO_FORTRAN_ANYD(betafab),
                                     BL_TO_FORTRAN_ANYD(beta[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                    ncomp);
         }
     }
 }
@@ -201,16 +208,17 @@ void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
     // todo: gpu
+    const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
         m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                            1, 0, MFInfo(), *m_factory[amrlev][mglev]));
+                                            ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]));
     }
     if (m_eb_b_coeffs[amrlev][0] == nullptr) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
                                                             m_dmap[amrlev][mglev],
-                                                            1, 0, MFInfo(),
+                                                            ncomp, 0, MFInfo(),
                                                             *m_factory[amrlev][mglev]));
         }
     }
@@ -228,14 +236,15 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (FabType::regular == t or FabType::covered == t) {
-            phifab.setVal(0.0, bx, 0, 1);
-            betafab.setVal(0.0, bx, 0, 1);
+            phifab.setVal(0.0, bx, 0, ncomp);
+            betafab.setVal(0.0, bx, 0, ncomp);
         } else {
             amrex_eb_homog_dirichlet(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(phifab),
                                      BL_TO_FORTRAN_ANYD(betafab),
                                      BL_TO_FORTRAN_ANYD(beta[mfi]),
-                                     BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+                                     BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                     ncomp);
         }
     }
 }
@@ -410,7 +419,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
         if (fabtyp == FabType::covered) {
-            yfab.setVal(0.0, bx, 0, 1);
+            yfab.setVal(0.0, bx, 0, ncomp);
         } else if (fabtyp == FabType::regular) {
             mlabeclap_adotx(bx, yfab.array(), xfab.array(), afab.array(),
                             AMREX_D_DECL(bxfab.array(),
@@ -443,7 +452,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     BL_TO_FORTRAN_ANYD(bebfab), 
                                     is_eb_dirichlet,
                                     BL_TO_FORTRAN_ANYD(phiebfab), m_is_eb_inhomog,
-                                    dxinv, m_a_scalar, m_b_scalar);
+                                    dxinv, m_a_scalar, m_b_scalar, ncomp);
         }
     }
 }
@@ -486,7 +495,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 #endif
 #endif
 
-    const int nc = 1;
+    const int nc = getNComp();
     const Real* h = m_geom[amrlev][mglev].CellSize();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
@@ -642,7 +651,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                    BL_TO_FORTRAN_ANYD(bebfab), 
                                    is_eb_dirichlet,
-                                   dxinv, m_a_scalar, m_b_scalar, redblack);
+                                   dxinv, m_a_scalar, m_b_scalar, redblack, nc);
         }
     }
 }
@@ -671,7 +680,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     const auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
     if (fabtyp == FabType::covered) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            flux[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, 1);
+            flux[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, ncomp);
         }
     } else if (fabtyp == FabType::regular || !at_centroid) {
         MLABecLaplacian::FFlux(box, dxinv, m_b_scalar,
@@ -683,7 +692,8 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                 const Box& fbx = amrex::surroundingNodes(box,idim);
                 amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx),
                                            BL_TO_FORTRAN_ANYD(*flux[idim]),
-                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]),
+                                           &ncomp);
             }
         }
     } else {               
@@ -706,7 +716,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                                             BL_TO_FORTRAN_ANYD(bz)),
                                BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                               dxinv, m_b_scalar, face_only);
+                               dxinv, m_b_scalar, face_only, ncomp);
     }
 }
 
@@ -718,6 +728,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
     Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::compGrad()");
 
+    const int ncomp = getNComp();
     const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
     const int mglev = 0;
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
@@ -748,34 +759,35 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                                                    mfi.nodaltilebox(2))};
         if (fabtyp == FabType::covered) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                grad[idim]->setVal(0.0, fbx[idim], 0, 1);
+                grad[idim]->setVal(0.0, fbx[idim], 0, ncomp);
             }
         } else if(fabtyp == FabType::regular || !at_centroid) {
             const auto& s = sol.array(mfi);
             AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
                          const auto& gy = grad[1]->array(mfi);,
                          const auto& gz = grad[2]->array(mfi););
-            AMREX_HOST_DEVICE_FOR_3D ( fbx[0], i, j, k,
+            AMREX_HOST_DEVICE_FOR_4D ( fbx[0], ncomp, i, j, k, n,
             {
-                gx(i,j,k) = dxi*(s(i,j,k) - s(i-1,j,k));
+                gx(i,j,k,n) = dxi*(s(i,j,k,n) - s(i-1,j,k,n));
             });
 #if (AMREX_SPACEDIM >= 2)
-            AMREX_HOST_DEVICE_FOR_3D ( fbx[1], i, j, k,
+            AMREX_HOST_DEVICE_FOR_4D ( fbx[1], ncomp, i, j, k, n,
             {
-                gy(i,j,k) = dyi*(s(i,j,k) - s(i,j-1,k));
+                gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
             });
 #endif
 #if (AMREX_SPACEDIM == 3)
-            AMREX_HOST_DEVICE_FOR_3D ( fbx[2], i, j, k,
+            AMREX_HOST_DEVICE_FOR_4D ( fbx[2], ncomp, i, j, k, n,
             {
-                gz(i,j,k) = dzi*(s(i,j,k) - s(i,j,k-1));
+                gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
             });
 #endif
             if (fabtyp != FabType::regular) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx[idim]),
                                                BL_TO_FORTRAN_ANYD((*grad[idim])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+                                               BL_TO_FORTRAN_ANYD((*area[idim])[mfi]),
+                                               &ncomp);
                 }
             }
         } else {
@@ -793,7 +805,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                                                BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
                                   BL_TO_FORTRAN_ANYD(ccmask[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv);
+                                  BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv, ncomp);
 
         }
     }
@@ -876,7 +888,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                         BL_TO_FORTRAN_ANYD(bebfab),
                                         is_eb_dirichlet,
-                                        dxinv, m_a_scalar, m_b_scalar);
+                                        dxinv, m_a_scalar, m_b_scalar, ncomp);
         }
     }
 }
