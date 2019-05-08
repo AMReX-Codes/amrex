@@ -55,7 +55,7 @@ contains
    real(amrex_real), intent(in   ) ::phieb( plo(1): phi(1), plo(2): phi(2), plo(3): phi(3))
    integer  :: i, j, k, ii, jj, kk 
    real(amrex_real) :: dhx, dhy, dhz, fxm, fxp, fym, fyp, fzm, fzp, fracx, fracy, fracz
-   real(amrex_real) :: phib
+   real(amrex_real) :: phib, feb
    real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv
    logical :: is_inhomogeneous
 
@@ -157,62 +157,49 @@ contains
                          & fracy*(one-fracx)*bZ(i ,jj,k+1)*(x(i ,jj,k+1)-x(i ,jj,k)) + &
                          & fracx*     fracy *bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
                 endif 
+
+                if (is_ho_dirichlet .ne. 0 .or. is_dirichlet .ne. 0)  then
+                   anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
+                        +       (apy(i,j,k)-apy(i,j+1,k))**2 &
+                        +       (apz(i,j,k)-apz(i,j,k+1))**2)
+                   anorminv = one/anorm
+                   anrmx = (apx(i,j,k)-apx(i+1,j,k)) * anorminv
+                   anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
+                   anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
+
+                   if (is_inhomogeneous) then
+                      phib = phieb(i,j,k)
+                   else
+                      phib = zero
+                   end if
+
+                   if (is_ho_dirichlet .ne. 0) then
+                      call compute_dphidn_3d_ho(dphidn, dxinv, i, j, k, &
+                                                x,    xlo,  xhi, &
+                                                flag, flo,  fhi, &
+                                                bc(i,j,k,:),  phib, &
+                                                anrmx, anrmy, anrmz)
+                   else if (is_dirichlet .ne. 0) then
+                      call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
+                                             x,    xlo,  xhi, &
+                                             flag, flo,  fhi, &
+                                             bc(i,j,k,:),  phib, &
+                                             anrmx, anrmy, anrmz, vfrc(i,j,k))
+                   end if
+                   feb = dphidn * ba(i,j,k) * beb(i,j,k)
+                else
+                   feb = zero
+                end if
                    
                 y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) + (one/vfrc(i,j,k))*&
                        (dhx*(apx(i,j,k)*fxm - apx(i+1,j,k)*fxp) + &
                         dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
-                        dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp) )
+                        dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp) &
+                        - dhx*feb)
               endif
           enddo
-       enddo 
-   enddo 
-
-   if (is_ho_dirichlet .ne. 0 .or. is_dirichlet .ne. 0)  then
-
-       do k = lo(3), hi(3) 
-       do j = lo(2), hi(2) 
-       do i = lo(1), hi(1) 
-
-         if (is_single_valued_cell(flag(i,j,k))) then
-
-            anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
-                 +       (apy(i,j,k)-apy(i,j+1,k))**2 &
-                 +       (apz(i,j,k)-apz(i,j,k+1))**2)
-            anorminv = one/anorm
-            anrmx = (apx(i,j,k)-apx(i+1,j,k)) * anorminv
-            anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
-            anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
-
-            if (is_inhomogeneous) then
-               phib = phieb(i,j,k)
-            else
-               phib = zero
-            end if
-
-            if (is_ho_dirichlet .ne. 0) then
-               call compute_dphidn_3d_ho(dphidn, dxinv, i, j, k, &
-                                         x,    xlo,  xhi, &
-                                         flag, flo,  fhi, &
-                                         bc(i,j,k,:),  phib, &
-                                         anrmx, anrmy, anrmz)
-            else if (is_dirichlet .ne. 0) then
-               call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
-                                      x,    xlo,  xhi, &
-                                      flag, flo,  fhi, &
-                                      bc(i,j,k,:),  phib, &
-                                      anrmx, anrmy, anrmz, vfrc(i,j,k))
-            end if
-
-            y(i,j,k) = y(i,j,k) - (one/vfrc(i,j,k)) * dhx * dphidn * ba(i,j,k) * beb(i,j,k)
-
-          endif
-
-       enddo 
-       enddo 
-       enddo 
-   
-   end if
-
+       enddo
+    enddo
   end subroutine amrex_mlebabeclap_adotx
 
   subroutine amrex_mlebabeclap_gsrb(lo, hi, phi, hlo, hhi, rhs, rlo, rhi, a, alo, ahi, & 

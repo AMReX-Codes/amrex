@@ -27,14 +27,7 @@ class Perilla;
 class RegionGraph;
 #endif
 
-namespace EB2 {
-class IndexSpace;
-#ifdef AMREX_USE_EB
-const IndexSpace* TopIndexSpaceIfPresent() noexcept;
-#else
-inline const IndexSpace* TopIndexSpaceIfPresent() noexcept { return nullptr; }
-#endif
-}
+namespace EB2 { class IndexSpace; }
 
 class FabArrayBase
 {
@@ -300,7 +293,7 @@ public:
                 const IntVect&      dstng,
                 const BoxConverter& coarsener,
                 const Box&          cdomain,
-                const EB2::IndexSpace* index_space = EB2::TopIndexSpaceIfPresent());
+                const EB2::IndexSpace* index_space);
 
 	~FPinfo ();
 
@@ -334,7 +327,7 @@ public:
                                     const IntVect&      dstng,
                                     const BoxConverter& coarsener,
                                     const Box&          cdomain,
-                                    const EB2::IndexSpace* index_space = EB2::TopIndexSpaceIfPresent());
+                                    const EB2::IndexSpace*);
 
     void flushFPinfo (bool no_assertion=false);
 

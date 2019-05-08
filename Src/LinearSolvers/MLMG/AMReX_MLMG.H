@@ -171,7 +171,6 @@ private:
     bool linop_prepared = false;
     long solve_called = 0;
 
-
     //! N Solve
     int do_nsolve = false;
     int nsolve_grid_size = 16;
@@ -201,7 +200,6 @@ private:
     std::unique_ptr<MLMGBndry> petsc_bndry;
 #endif
 
-
     /**
     * \brief To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     * in the frame of the original equation, not the correction form
@@ -209,17 +207,17 @@ private:
     Vector<std::unique_ptr<MultiFab> > sol_raii;
     Vector<MultiFab*>         sol;      //!< alias to argument a_sol
     Vector<MultiFab>          rhs;      //!< Copy of original rhs
-                                    //! L(sol) = rhs
-
+                                        //! L(sol) = rhs
 
     /**
     * \brief First Vector: Amr levels.  0 is the coarest level
     * Second Vector: MG levels.  0 is the finest level
     */
-    Vector<Vector<MultiFab> >                   res; //! = rhs - L(sol)
+    Vector<Vector<MultiFab> >                   res;     //! = rhs - L(sol)
     Vector<Vector<std::unique_ptr<MultiFab> > > cor;     //!< L(cor) = res
     Vector<Vector<std::unique_ptr<MultiFab> > > cor_hold;
-    Vector<Vector<MultiFab> >                rescor;     //!< = res - L(cor)  Residual of the correction form
+    Vector<Vector<MultiFab> >                   rescor;  //!< = res - L(cor)
+                                                         //!  Residual of the correction form
 
     Vector<std::unique_ptr<iMultiFab> > fine_mask;
 
