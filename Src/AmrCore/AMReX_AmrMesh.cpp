@@ -105,13 +105,12 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, Vector<Int
     if (cnt > 0) {
         Vector<int> neb;
         pp.getarr("n_error_buf",neb);
-        int n = std::min(cnt, max_level);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) 
-        {
-            for (int i = 0; i < n; ++i) 
-               n_error_buf[i][idim] = neb[i];
-            for (int i = n; i < max_level; ++i) 
-               n_error_buf[i][idim] = neb[cnt-1];
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            n_error_buf[i] = IntVect(neb[i]);
+        }
+        for (int i = n; i <= max_level; ++i) {
+            n_error_buf[i] = IntVect(neb[cnt-1]);
         }
     }
 

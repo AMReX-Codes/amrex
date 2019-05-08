@@ -13,8 +13,8 @@ MLMGBndry::MLMGBndry (const BoxArray& _grids,
 MLMGBndry::~MLMGBndry () {}
 
 void
-MLMGBndry::setLOBndryConds (const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
-                            const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
+MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
+                            const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
                             int ratio, const RealVect& a_loc)
 {
     const BoxArray& ba     = boxes();
@@ -31,12 +31,12 @@ MLMGBndry::setLOBndryConds (const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
         RealTuple&                 bloc  = bcloc[fsi];
         Vector< Vector<BoundCond> >& bctag = bcond[fsi];
 
-        BCTuple bct;
-        setBoxBC(bloc, bct, grd, domain, lo, hi, dx, ratio, a_loc);
-
-        const int comp = 0;
-        for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
-            bctag[idim][comp] = bct[idim];
+        for (int icomp = 0; icomp < nComp(); ++icomp) {
+            BCTuple bct;
+            setBoxBC(bloc, bct, grd, domain, lo[icomp], hi[icomp], dx, ratio, a_loc);
+            for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
+                bctag[idim][icomp] = bct[idim];
+            }
         }
     }
 }
