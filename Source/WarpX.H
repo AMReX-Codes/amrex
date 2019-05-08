@@ -146,7 +146,7 @@ public:
     BilinearFilter bilinear_filter;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
-
+    
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;

@@ -10,13 +10,13 @@ public:
     Filter () = default;
 
     virtual void ComputeStencils() = 0;
+
     void ApplyStencil(amrex::MultiFab& dstmf, 
                               const amrex::MultiFab& srcmf, int scomp=0, 
                               int dcomp=0, int ncomp=10000);
 
     void ApplyStencil (amrex::FArrayBox& dstfab, 
                        const amrex::FArrayBox& srcfab, const amrex::Box& tbx, 
-                       const amrex::Box& srcbx, 
                        int scomp=0, int dcomp=0, int ncomp=10000);
 
     // public for cuda
@@ -28,8 +28,8 @@ public:
     amrex::IntVect stencil_length_each_dir;
 
 protected:
-    amrex::Dim3 slen;
     amrex::Gpu::ManagedVector<amrex::Real> stencil_x, stencil_y, stencil_z;
+    amrex::Dim3 slen;
 
 private:
 

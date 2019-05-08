@@ -26,6 +26,7 @@ void NCIGodfreyFilter::ComputeStencils(){
     Print()<<"slen.x "<<slen.x<<std::endl;
     Print()<<"slen.y "<<slen.y<<std::endl;
     Print()<<"slen.z "<<slen.z<<std::endl;
+    Print()<<"cdtodz "<<cdtodz<<std::endl;
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
 #if ( AMREX_SPACEDIM == 3 )
@@ -63,9 +64,15 @@ void NCIGodfreyFilter::ComputeStencils(){
     stencil_z[2] =  (                          16*prestencil[1] + 24*prestencil[2] + 28*prestencil[3]) / 256;
     stencil_z[3] = -(                                              4*prestencil[2] +  8*prestencil[3]) / 256;
     stencil_z[4] =  (                                                                 1*prestencil[3]) / 256;
+    stencil_z[0] /= 2.;
 
     stencil_x.resize(1);
-    stencil_x[0] = 0;
+    stencil_x[0] = 1.;
+    stencil_x[0] /= 2.;
+#if (AMREX_SPACEDIM == 3)
     stencil_y.resize(1);
-    stencil_y[0] = 0;
+    stencil_y[0] = 1.;
+    stencil_y[0] /= 2.;
+#endif
+    
 }

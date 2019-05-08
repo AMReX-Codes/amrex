@@ -9,15 +9,9 @@ class NCIGodfreyFilter : public Filter
 {
 public:
 
+    NCIGodfreyFilter () = default;
+
     NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v);
-        /*
-    {
-        : coeff_set( coeff_set_ ),
-          cdtodz( cdtodz_ ),
-          l_lower_order_in_v( l_lower_order_in_v_ ),
-          slen
-    };
-        */
 
     virtual void ComputeStencils() override final;
 
@@ -28,7 +22,6 @@ private:
     godfrey_coeff_set coeff_set;
     amrex::Real cdtodz;
     int l_lower_order_in_v;
-    //    amrex::Real* coeff_table;
 
 };
 
