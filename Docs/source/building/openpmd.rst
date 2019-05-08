@@ -12,6 +12,17 @@ using spack (first section below). If this fails, a back-up solution
 is to install parallel HDF5 with spack, and then install the openPMD-api
 library from source.
 
+In order to install spack, you can simply do:
+
+::
+
+  git clone https://github.com/spack/spack.git
+  export SPACK_ROOT=/path/to/spack
+  . $SPACK_ROOT/share/spack/setup-env.sh
+
+(You may want to add the last 2 lines to your ``.bashrc`` file.)
+
+
 Building openPMD support, by installing openPMD-api directly from spack
 -----------------------------------------------------------------------
 

@@ -54,7 +54,7 @@ For instance, in order to plot the field ``Ex`` in a slice orthogonal to ``y`` (
 
 ::
 
-    yt.SlicePlot( ds, 1, 'Ex' )
+    yt.SlicePlot( ds, 1, 'Ex', origin='native' )
 
 .. note::
 
