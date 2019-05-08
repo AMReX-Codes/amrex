@@ -241,12 +241,6 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 }
 
 void
-MLEBABecLap::setEBHODirichlet ()
-{
-     m_is_eb_ho_dir= true;
-}
-
-void
 MLEBABecLap::averageDownCoeffs ()
 {
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -392,8 +386,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     const int is_eb_dirichlet =  isEBDirichlet();
-    const int is_ho_dirichlet = ( (is_eb_dirichlet == 1) && isHOEBDirichlet() && (mglev == 0));
-    const int is_dirichlet    = ( (is_eb_dirichlet == 1) && (is_ho_dirichlet == 0) );
 
     const int ncomp = getNComp();
 
@@ -449,7 +441,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                     BL_TO_FORTRAN_ANYD((*barea)[mfi]),
                                     BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                     BL_TO_FORTRAN_ANYD(bebfab), 
-                                    is_dirichlet, is_ho_dirichlet, 
+                                    is_eb_dirichlet,
                                     BL_TO_FORTRAN_ANYD(phiebfab), m_is_eb_inhomog,
                                     dxinv, m_a_scalar, m_b_scalar);
         }
@@ -509,8 +501,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     const int is_eb_dirichlet =  isEBDirichlet();
-    const int is_ho_dirichlet = ( (is_eb_dirichlet == 1) && isHOEBDirichlet() && (mglev == 0));
-    const int is_dirichlet    = ( (is_eb_dirichlet == 1) && (is_ho_dirichlet == 0) );
 
     FArrayBox foo(Box::TheUnitBox());
 
@@ -651,7 +641,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]),
                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                    BL_TO_FORTRAN_ANYD(bebfab), 
-                                   is_dirichlet, is_ho_dirichlet,
+                                   is_eb_dirichlet,
                                    dxinv, m_a_scalar, m_b_scalar, redblack);
         }
     }
@@ -834,8 +824,6 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
     const int is_eb_dirichlet =  isEBDirichlet();
-    const int is_ho_dirichlet = ( (is_eb_dirichlet == 1) && isHOEBDirichlet() && (mglev == 0));
-    const int is_dirichlet    = ( (is_eb_dirichlet == 1) && (is_ho_dirichlet == 0) );
 
     FArrayBox foo(Box::TheUnitBox());
 
@@ -887,7 +875,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
                                         BL_TO_FORTRAN_ANYD((*barea)[mfi]),
                                         BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                         BL_TO_FORTRAN_ANYD(bebfab),
-                                        is_dirichlet, is_ho_dirichlet,
+                                        is_eb_dirichlet,
                                         dxinv, m_a_scalar, m_b_scalar);
         }
     }
