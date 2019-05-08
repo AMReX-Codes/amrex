@@ -18,7 +18,7 @@ or with the `Anaconda distribution <https://anaconda.org/>`__ of python (recomme
 
 ::
 
-    conda install -c atmyers yt
+    conda install yt
 
 Visualizing the data
 --------------------
@@ -49,6 +49,18 @@ For instance, in order to plot the field ``Ex`` in a slice orthogonal to ``y`` (
 ::
 
     yt.SlicePlot( ds, 1, 'Ex' )
+
+.. note::
+
+    `yt.SlicePlot` creates a 2D plot with the same aspect ratio as the physical
+    size of the simulation box. Sometimes this can lead to very elongated plots
+    that are difficult to read. You can modify the aspect ratio with the
+    `aspect` argument ; for instance:
+
+    ::
+
+        yt.SlicePlot( ds, 1, 'Ex', aspect=1./10 )
+
 
 Alternatively, the data can be obtained as a `numpy <http://www.numpy.org/>`__ array.
 
