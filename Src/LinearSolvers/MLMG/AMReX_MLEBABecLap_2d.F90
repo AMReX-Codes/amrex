@@ -10,7 +10,7 @@ module amrex_mlebabeclap_2d_module
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
-            amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad, amrex_blend_beta, &
+            amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad, &
             compute_dphidn_2d, compute_dphidn_2d_ho, amrex_get_dx_eb
 
 contains
@@ -20,24 +20,6 @@ contains
     real(amrex_real) :: amrex_get_dx_eb
     amrex_get_dx_eb = max(0.3d0, (kappa*kappa-0.25d0)/(2.d0*kappa))
   end function amrex_get_dx_eb
-
-  pure function amrex_blend_beta (kappa) result(beta)
-    real(amrex_real), intent(in) :: kappa
-    real(amrex_real) :: beta
-#if 1
-    real(amrex_real),parameter :: blend_kappa = -1.d-4
-    if (kappa .lt. blend_kappa) then
-       beta = zero
-    else
-       beta = one
-    end if
-#else
-    real(amrex_real),parameter :: blend_kappa = half
-    real(amrex_real),parameter :: kapinv = one/(one-blend_kappa)
-    beta = kapinv*(kappa-blend_kappa)
-    beta = min(one,max(zero,beta))
-#endif
-  end function amrex_blend_beta
 
   subroutine amrex_mlebabeclap_adotx(lo, hi, y, ylo, yhi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
@@ -204,10 +186,10 @@ contains
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res, vfrcinv
     real(amrex_real) :: dhx, dhy, fxm, fxp, fym, fyp, fracx, fracy
     real(amrex_real) :: sxm, sxp, sym, syp, oxm, oxp, oym, oyp
-    real(amrex_real) :: feb, phib, phig, phig1, phig2, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
-    real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
+    real(amrex_real) :: feb, phib, phig, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
+    real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-    real(amrex_real) :: w1, w2, dg, dx_eb
+    real(amrex_real) :: dg, dx_eb
     real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     real(amrex_real), parameter :: omega = 1._amrex_real
 
@@ -337,52 +319,10 @@ contains
                    ii = i - int(sx)
                    jj = j - int(sy)
                    
-                   w1 = amrex_blend_beta(vfrc(i,j))
-                   w2 = one-w1
-
-                   if (w1.eq.zero) then
-                      phig1_gamma = zero
-                      phig1 = zero
-                   else
-                      phig1_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
-                      phig1 = (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j,n) &
-                           +  (            - gy*sy - gx*gy*sx*sy) * phi(i,jj,n) &
-                           +  (                    + gx*gy*sx*sy) * phi(ii,jj,n)
-                   end if
-
-                   if (w2.eq.zero) then
-                      phig2 = zero
-                   else
-                      bsxinv = one/(bctx+sx)
-                      bsyinv = one/(bcty+sy)
-                   
-                      ! c_0(0,0) = sx*sy*bsxinv*bsyinv
-                      c_0(-1,0) = bctx*bsxinv
-                      c_0(0,-1) = bcty*bsyinv
-                      c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
-                   
-                      ! c_x(0,0) = sy*bsxinv*bsyinv
-                      c_x(-1,0) = -bsxinv
-                      c_x(0,-1) = sx*bcty*bsyinv
-                      c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-                      
-                      ! c_y(0,0) = sx*bsxinv*bsyinv
-                      c_y(-1,0) = sy*bctx*bsxinv
-                      c_y(0,-1) = -bsyinv
-                      c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-                      
-                      ! c_xy(0,0) = bsxinv*bsyinv
-                      c_xy(-1,0) = -sy*bsxinv
-                      c_xy(0,-1) = -sx*bsyinv
-                      c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
-                      
-                      phig2 = (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0))*phi(ii,j,n) &
-                           +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1))*phi(i,jj,n) &
-                           +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1))*phi(ii,jj,n)
-                   end if
-
-                   phig_gamma = w1*phig1_gamma
-                   phig = w1*phig1 + w2*phig2
+                   phig_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
+                   phig = (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j,n) &
+                       +  (            - gy*sy - gx*gy*sx*sy) * phi(i,jj,n) &
+                       +  (                    + gx*gy*sx*sy) * phi(ii,jj,n)
 
                    dphidn =  (    -phig)/dg
 
@@ -436,9 +376,9 @@ contains
     integer :: i,j,ii,jj,n
     real(amrex_real) :: dhx, dhy, sxm, sxp, sym, syp, gamma, fracx, fracy, vfrcinv
     real(amrex_real) :: gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
-    real(amrex_real) :: feb_gamma, phig_gamma, phig1_gamma
+    real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: bctx, bcty
-    real(amrex_real) :: w1, w2, dg, dx_eb
+    real(amrex_real) :: dg, dx_eb
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -509,18 +449,8 @@ contains
                 ii = i - int(sx)
                 jj = j - int(sy)
                 
-                w1 = amrex_blend_beta(vfrc(i,j))
-                w2 = one-w1
-                
-                if (w1.eq.zero) then
-                   phig1_gamma = zero
-                else
-                   phig1_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
-                end if
-                
-                phig_gamma = w1*phig1_gamma
+                phig_gamma = (one + gx*sx + gy*sy + gx*gy*sx*sy)
                 feb_gamma = -phig_gamma * (ba(i,j) * beb(i,j,n) / dg)
-                
                 gamma = gamma + vfrcinv*(-dhx)*feb_gamma
              end if
 
@@ -733,9 +663,9 @@ contains
        real(amrex_real),        intent(  out) :: dphidn
  
        real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
-       real(amrex_real) :: w1, w2, dg, dx_eb
+       real(amrex_real) :: dg, dx_eb
        real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
-       real(amrex_real) :: phig, phig1, phig2, gx, gy, sx, sy
+       real(amrex_real) :: phig, gx, gy, sx, sy
        integer          :: ii, jj
 
        bctx = bct(1)
@@ -759,51 +689,11 @@ contains
        ii = i - int(sx)
        jj = j - int(sy)
                
-       w1 = amrex_blend_beta(vf)
-       w2 = one-w1
+       phig = (one + gx*sx + gy*sy + gx*gy*sx*sy) * phi(i,j) &
+           +  (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j) &
+           +  (            - gy*sy - gx*gy*sx*sy) * phi(i,jj) &
+           +  (                    + gx*gy*sx*sy) * phi(ii,jj) 
 
-       if (w1.eq.zero) then
-          phig1 = zero
-       else
-          phig1 = (one + gx*sx + gy*sy + gx*gy*sx*sy) * phi(i,j) &
-               +  (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j) &
-               +  (            - gy*sy - gx*gy*sx*sy) * phi(i,jj) &
-               +  (                    + gx*gy*sx*sy) * phi(ii,jj) 
-       end if
-
-       if (w2.eq.zero) then
-          phig2 = zero
-       else
-          bsxinv = one/(bctx+sx)
-          bsyinv = one/(bcty+sy)
-          
-          c_0(0,0) = sx*sy*bsxinv*bsyinv
-          c_0(-1,0) = bctx*bsxinv
-          c_0(0,-1) = bcty*bsyinv
-          c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
-
-          c_x(0,0) = sy*bsxinv*bsyinv
-          c_x(-1,0) = -bsxinv
-          c_x(0,-1) = sx*bcty*bsyinv
-          c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-
-          c_y(0,0) = sx*bsxinv*bsyinv
-          c_y(-1,0) = sy*bctx*bsxinv
-          c_y(0,-1) = -bsyinv
-          c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-
-          c_xy(0,0) = bsxinv*bsyinv
-          c_xy(-1,0) = -sy*bsxinv
-          c_xy(0,-1) = -sx*bsyinv
-          c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
-
-          phig2 = (c_0( 0, 0) + gx*c_x( 0, 0) + gy*c_y( 0, 0) + gx*gy*c_xy( 0, 0)) * phib &
-               +  (c_0(-1, 0) + gx*c_x(-1, 0) + gy*c_y(-1, 0) + gx*gy*c_xy(-1, 0)) * phi(ii,j) &
-               +  (c_0( 0,-1) + gx*c_x( 0,-1) + gy*c_y( 0,-1) + gx*gy*c_xy( 0,-1)) * phi(i,jj) &
-               +  (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1)) * phi(ii,jj)
-       end if
-
-       phig = w1*phig1 + w2*phig2
        dphidn = (phib-phig) / dg  
 
   end subroutine compute_dphidn_2d
