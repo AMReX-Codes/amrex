@@ -107,8 +107,6 @@ protected:
 
     bool m_needs_update = true;
 
-private:
-
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
