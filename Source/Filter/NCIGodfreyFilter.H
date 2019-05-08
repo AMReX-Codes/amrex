@@ -1,5 +1,4 @@
 #include <Filter.H>
-#include <NCIGodfreyTables.H>
 
 #ifndef WARPX_GODFREY_FILTER_H_
 #define WARPX_GODFREY_FILTER_H_
@@ -10,16 +9,15 @@ class NCIGodfreyFilter : public Filter
 {
 public:
 
-    NCIGodfreyFilter(godfrey_coeff_set coeff_set_in)
-        : Filter(),
-        coeff_set(coeff_set_in)
+    NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v);
+        /*
     {
-        if        (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
-            coeff_table = (amrex::Real*) table_nci_godfrey_Ex_Ey_Bz;
-        } else if (coeff_set == godfrey_coeff_set::Bx_By_Ez){
-            coeff_table = (amrex::Real*) table_nci_godfrey_Bx_By_Ez;
-        }
+        : coeff_set( coeff_set_ ),
+          cdtodz( cdtodz_ ),
+          l_lower_order_in_v( l_lower_order_in_v_ ),
+          slen
     };
+        */
 
     virtual void ComputeStencils() override final;
 
@@ -28,7 +26,9 @@ public:
 private:
     
     godfrey_coeff_set coeff_set;
-    amrex::Real* coeff_table;
+    amrex::Real cdtodz;
+    int l_lower_order_in_v;
+    //    amrex::Real* coeff_table;
 
 };
 

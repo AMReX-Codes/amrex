@@ -3,7 +3,10 @@
 #ifndef WARPX_GODFREY_COEFF_TABLE_H_
 #define WARPX_GODFREY_COEFF_TABLE_H_
 
-const amrex::Real table_nci_godfrey_Ex_Ey_Bz[4][100]{
+const int tab_width = 4;
+const int tab_length = 100;
+
+const amrex::Real table_nci_godfrey_Ex_Ey_Bz[tab_length][tab_width]{
         -2.47536,2.04288,-0.598163,0.0314711,  
         -2.47545,2.04309,-0.598307,0.0315029,  
         -2.4756,2.04342,-0.598549,0.0315558,  
@@ -106,7 +109,7 @@ const amrex::Real table_nci_godfrey_Ex_Ey_Bz[4][100]{
         -2.98769,3.19374,-1.41463,0.208607
             };
 
-const amrex::Real table_nci_godfrey_Bx_By_Ez[4][100]{
+const amrex::Real table_nci_godfrey_Bx_By_Ez[tab_length][tab_width]{
         -2.80862,2.80104,-1.14615,0.154077,  
         -2.80851,2.80078,-1.14595,0.154027,  
         -2.80832,2.80034,-1.14561,0.153945,  

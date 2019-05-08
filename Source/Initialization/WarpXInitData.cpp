@@ -166,9 +166,6 @@ WarpX::InitNCICorrector ()
         mypc->fdtd_nci_stencilz_by.resize(max_level+1);
         for (int lev = 0; lev <= max_level; ++lev)
         {
-            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz) );
-            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez) );
-
             const Geometry& gm = Geom(lev);
             const Real* dx = gm.CellSize();
             amrex::Real dz, cdtodz;
@@ -179,10 +176,16 @@ WarpX::InitNCICorrector ()
             }
             cdtodz = PhysConst::c * dt[lev] / dz;
 
-            WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
-                                    (mypc->fdtd_nci_stencilz_by)[lev].data(),
-                                    mypc->nstencilz_fdtd_nci_corr, cdtodz,
-                                    WarpX::l_lower_order_in_v);
+            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, WarpX::l_lower_order_in_v) );
+            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, WarpX::l_lower_order_in_v) );
+
+            nci_godfrey_filter_exeybz[lev]->ComputeStencils();
+            nci_godfrey_filter_bxbyez[lev]->ComputeStencils();
+
+            //WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
+            //                        (mypc->fdtd_nci_stencilz_by)[lev].data(),
+            //                        mypc->nstencilz_fdtd_nci_corr, cdtodz,
+            //                        WarpX::l_lower_order_in_v);
         }
     }
 }
