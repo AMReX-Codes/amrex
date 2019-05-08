@@ -96,8 +96,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 // Setup Launch Parameters
                 // This is perfectly threadable, right?
                 // Additional optimization -> Check to see whether values need to be reset? 
-                // e.g. (Check first src & dst pointer. If same, must be same MFIter?)
-                // Can then remove memcpy from executeGraph.
+                // Can then remove this setup and memcpy from CudaGraph::executeGraph.
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
@@ -333,7 +332,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             }
     
             // Setup Launch Parameters
-            // This is perfectly threadable, right?
             int idx = 0;
             for (int send = 0; send < N_snds; ++send)
             {
