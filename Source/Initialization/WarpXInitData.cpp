@@ -318,16 +318,28 @@ WarpX::InitLevelData (int lev, Real time)
 void
 WarpX::InitLevelDataFFT (int lev, Real time)
 {
+ 
+    amrex::Print() << " print out pointer  " << &Efield_fp_fft[lev][0] << "\n";
     Efield_fp_fft[lev][0]->setVal(0.0);
+    amrex::Print() << " ex set \n";
     Efield_fp_fft[lev][1]->setVal(0.0);
+    amrex::Print() << " ey set \n";
     Efield_fp_fft[lev][2]->setVal(0.0);
+    amrex::Print() << " ez set \n";
     Bfield_fp_fft[lev][0]->setVal(0.0);
+    amrex::Print() << " bx set \n";
     Bfield_fp_fft[lev][1]->setVal(0.0);
+    amrex::Print() << " by set \n";
     Bfield_fp_fft[lev][2]->setVal(0.0);
+    amrex::Print() << " bz set \n";
     current_fp_fft[lev][0]->setVal(0.0);
+    amrex::Print() << " jx set \n";
     current_fp_fft[lev][1]->setVal(0.0);
+    amrex::Print() << " jy set \n";
     current_fp_fft[lev][2]->setVal(0.0);
+    amrex::Print() << " jz set \n";
     rho_fp_fft[lev]->setVal(0.0);
+    amrex::Print() << " rhofp set \n";
 
     if (lev > 0)
     {
@@ -343,14 +355,6 @@ WarpX::InitLevelDataFFT (int lev, Real time)
         rho_cp_fft[lev]->setVal(0.0);
     }
 
-    for (MFIter mfi(*rho_fp_fft[lev]); mfi.isValid(); ++mfi)
-    {
-       MultiFab &mf = *rho_fp_fft[lev];
-       Box realspace_bx = mf[mfi].box(); // Copy the box
-       Array4<const Real> mf_arr = mf[mfi].array();
-       amrex::Print() << " at initialization rho " << mf_arr(0,0,0,0) ;
-       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
-    }
 }
 
 #endif

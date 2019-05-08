@@ -405,20 +405,6 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, 0, 0, period_fp);
     BL_PROFILE_VAR_STOP(blp_copy);
 
-
-    for (MFIter mfi(*rho_fp_fft[lev]); mfi.isValid(); ++mfi)
-    {
-       MultiFab &mf = *rho_fp_fft[lev];
-       Box realspace_bx = mf[mfi].box(); // Copy the box
-       Array4<const Real> mf_arr = mf[mfi].array();
-       amrex::Print() << " at begin Push PSATD rho " << mf_arr(0,0,0,0) ;
-       amrex::Print() << " new rho " << mf_arr(0,0,0,1) << "\n";
-       MultiFab &mf_orig = *rho_fp[lev];
-       Array4<const Real> mforig_arr = mf_orig[mfi].array();
-       amrex::Print() << " at begin Push PSATD rho " << mforig_arr(0,0,0,0) ;
-       amrex::Print() << " new rho " << mforig_arr(0,0,0,1) << "\n";
-    }
-
     BL_PROFILE_VAR_START(blp_push_eb);
     if (fft_hybrid_mpi_decomposition){
         if (Efield_fp_fft[lev][0]->local_size() == 1)
@@ -465,44 +451,29 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         // Not using the hybrid decomposition
         auto& solver = *spectral_solver_fp[lev];
 
-        //// Perform forward Fourier transform
-        //amrex::Print() << " FTT of Ex \n";
-        //solver.ForwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
-        //amrex::Print() << " FTT of Ey \n";
-        //solver.ForwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
-        //amrex::Print() << " FTT of Ez \n";
-        //solver.ForwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
-        //amrex::Print() << " FTT of Bx \n";
-        //solver.ForwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
-        //amrex::Print() << " FTT of By \n";
-        //solver.ForwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
-        //amrex::Print() << " FTT of Bz \n";
-        //solver.ForwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
-        //amrex::Print() << " FTT of Jx \n";
-        //solver.ForwardTransform(*current_fp_fft[lev][0], SpectralFieldIndex::Jx);
-        //amrex::Print() << " FTT of Jy \n";
-        //solver.ForwardTransform(*current_fp_fft[lev][1], SpectralFieldIndex::Jy);
-        //amrex::Print() << " FTT of Jz \n";
-        //solver.ForwardTransform(*current_fp_fft[lev][2], SpectralFieldIndex::Jz);
+        // Perform forward Fourier transform
+        solver.ForwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
+        solver.ForwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
+        solver.ForwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
+        solver.ForwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
+        solver.ForwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
+        solver.ForwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
+        solver.ForwardTransform(*current_fp_fft[lev][0], SpectralFieldIndex::Jx);
+        solver.ForwardTransform(*current_fp_fft[lev][1], SpectralFieldIndex::Jy);
+        solver.ForwardTransform(*current_fp_fft[lev][2], SpectralFieldIndex::Jz);
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_old, 0);
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_new, 1);
 
-        ////// Advance fields in spectral space
-        //solver.pushSpectralFields();
+        // Advance fields in spectral space
+        solver.pushSpectralFields();
 
-        ////// Perform backward Fourier Transform
-        //amrex::Print() << " BT of Ex \n";
-        //solver.BackwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
-        //amrex::Print() << " BT of Ey \n";
-        //solver.BackwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
-        //amrex::Print() << " BT of Ez \n";
-        //solver.BackwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
-        //amrex::Print() << " BT of Bx \n";
-        //solver.BackwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
-        //amrex::Print() << " BT of By \n";
-        //solver.BackwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
-        //amrex::Print() << " BT of Bz \n";
-        //solver.BackwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
+        // Perform backward Fourier Transform
+        solver.BackwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
+        solver.BackwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
+        solver.BackwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
+        solver.BackwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
+        solver.BackwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
+        solver.BackwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
@@ -519,4 +490,5 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
+    amrex::Print() << " coped data from fft to valid \n";
 }
