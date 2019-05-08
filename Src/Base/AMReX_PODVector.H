@@ -81,7 +81,6 @@ namespace amrex
 		PODVector (const PODVector<T, Allocator>& a_vector) :
 			Allocator(a_vector), m_data(nullptr), m_size(0), m_capacity(0)
 		{
-			std::cout << "calling copy \n";
 			AllocateBuffer(a_vector.capacity());
 			m_size = a_vector.size();
 			memcpy(m_data, a_vector.m_data, a_vector.size() * sizeof(T));
