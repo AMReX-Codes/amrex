@@ -225,6 +225,8 @@ WarpX::WarpX ()
     insitu_bridge = nullptr;
 #endif
 
+    // NCI Godfrey filters can have different stencils
+    // at different levels (the stencil depends on c*dt/dz)
     nci_godfrey_filter_exeybz.resize(nlevs_max);
     nci_godfrey_filter_bxbyez.resize(nlevs_max);
 }

@@ -3,9 +3,14 @@
 #ifndef WARPX_GODFREY_COEFF_TABLE_H_
 #define WARPX_GODFREY_COEFF_TABLE_H_
 
+// Table width. This is related to the stencil length
 const int tab_width = 4;
+// table length. Each line correspond to 1 value of cdtodz
+// (here 101 values).
 const int tab_length = 101;
 
+// Table of coefficient for Ex, Ey abd Bz
+// We typically interpolate between two lines
 const amrex::Real table_nci_godfrey_Ex_Ey_Bz[tab_length][tab_width]{
         -2.47536,2.04288,-0.598163,0.0314711,  
         -2.47536,2.04288,-0.598163,0.0314711,  
@@ -110,6 +115,8 @@ const amrex::Real table_nci_godfrey_Ex_Ey_Bz[tab_length][tab_width]{
         -2.98769,3.19374,-1.41463,0.208607
             };
 
+// Table of coefficient for Bx, By and Ez
+// We typically interpolate between two lines
 const amrex::Real table_nci_godfrey_Bx_By_Ez[tab_length][tab_width]{
         -2.80862,2.80104,-1.14615,0.154077,  
         -2.80862,2.80104,-1.14615,0.154077,  

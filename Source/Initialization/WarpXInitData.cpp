@@ -177,9 +177,10 @@ WarpX::InitNCICorrector ()
             cdtodz = PhysConst::c * dt[lev] / dz;
 
             // Initialize Godfrey filters
+            // Same filter for fields Ex, Ey and Bz
             nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, WarpX::l_lower_order_in_v) );
+            // Same filter for fields Bx, By and Ez
             nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, WarpX::l_lower_order_in_v) );
-
             // Compute Godfrey filters stencils
             nci_godfrey_filter_exeybz[lev]->ComputeStencils();
             nci_godfrey_filter_bxbyez[lev]->ComputeStencils();

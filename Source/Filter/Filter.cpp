@@ -9,6 +9,13 @@ using namespace amrex;
 
 #ifdef AMREX_USE_CUDA
 
+/* \brief Apply stencil on MultiFab (GPU version, 2D/3D).
+ * \param dstmf Destination MultiFab
+ * \param srcmf source MultiFab
+ * \param scomp first component of srcmf on which the filter is applied
+ * \param dcomp first component of dstmf on which the filter is applied
+ * \param ncomp Number of components on which the filter is applied.
+ */
 void
 Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
@@ -43,6 +50,14 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
     }
 }
 
+/* \brief Apply stencil on FArrayBox (GPU version, 2D/3D).
+ * \param dstfab Destination FArrayBox
+ * \param srcmf source FArrayBox
+ * \param tbx Grown box on which srcfab is defined.
+ * \param scomp first component of srcfab on which the filter is applied
+ * \param dcomp first component of dstfab on which the filter is applied
+ * \param ncomp Number of components on which the filter is applied.
+ */
 void
 Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab, 
                       const Box& tbx, int scomp, int dcomp, int ncomp)
@@ -72,6 +87,8 @@ Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
     DoFilter(tbx, tmp, dst, 0, dcomp, ncomp);
 }
 
+/* \brief Apply stencil (2D/3D, CPU/GPU)
+ */
 void Filter::DoFilter (const Box& tbx,
                        Array4<Real const> const& tmp,
                        Array4<Real      > const& dst,
@@ -118,6 +135,13 @@ void Filter::DoFilter (const Box& tbx,
 
 #else
 
+/* \brief Apply stencil on MultiFab (CPU version, 2D/3D).
+ * \param dstmf Destination MultiFab
+ * \param srcmf source MultiFab
+ * \param scomp first component of srcmf on which the filter is applied
+ * \param dcomp first component of dstmf on which the filter is applied
+ * \param ncomp Number of components on which the filter is applied.
+ */
 void
 Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
@@ -145,6 +169,14 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
     }
 }
 
+/* \brief Apply stencil on FArrayBox (CPU version, 2D/3D).
+ * \param dstfab Destination FArrayBox
+ * \param srcmf source FArrayBox
+ * \param tbx Grown box on which srcfab is defined.
+ * \param scomp first component of srcfab on which the filter is applied
+ * \param dcomp first component of dstfab on which the filter is applied
+ * \param ncomp Number of components on which the filter is applied.
+ */
 void
 Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab, 
                       const Box& tbx, int scomp, int dcomp, int ncomp)
