@@ -11,7 +11,7 @@ public:
 
     NCIGodfreyFilter () = default;
 
-    NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v);
+    NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_);
 
     virtual void ComputeStencils() override final;
 
