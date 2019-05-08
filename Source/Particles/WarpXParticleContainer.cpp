@@ -1023,8 +1023,6 @@ void
 WarpXParticleContainer::PushX (int lev, Real dt)
 {
     BL_PROFILE("WPC::PushX()");
-    BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("WPC:PushX::Push", blp_pp);
 
     if (do_not_push) return;
 
@@ -1034,27 +1032,18 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 #pragma omp parallel
 #endif
     {
-        Cuda::ManagedDeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             Real wt = amrex::second();
 
             //
-            // copy data from particle container to temp arrays
-            //
-            BL_PROFILE_VAR_START(blp_copy);
-            pti.GetPosition(xp, yp, zp);
-            BL_PROFILE_VAR_STOP(blp_copy);
-
-            //
             // Particle Push
             //
-            BL_PROFILE_VAR_START(blp_pp);
             // Extract pointers to particle position and momenta, for this particle tile
-            Real* AMREX_RESTRICT x = xp.dataPtr();
-            Real* AMREX_RESTRICT y = yp.dataPtr();
-            Real* AMREX_RESTRICT z = zp.dataPtr();
+            // - positions are stored as an array of struct, in `ParticleType`
+            ParticleType * AMREX_RESTRICT pstructs = &(pti.GetArrayOfStructs()[0]);
+            // - momenta are stored as a struct of array, in `attribs`
             auto& attribs = pti.GetAttribs();
             Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
@@ -1068,21 +1057,13 @@ WarpXParticleContainer::PushX (int lev, Real dt)
                     const Real inv_gamma = 1./std::sqrt(
                         1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_c2);
                     // Update positions over one time step
-                    x[i] += ux[i] * inv_gamma * dt;
+                    pstructs[i].pos(0) += ux[i] * inv_gamma * dt;
 #if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ) // RZ pushes particles in 3D
-                    y[i] += uy[i] * inv_gamma * dt;
+                    pstructs[i].pos(1) += uy[i] * inv_gamma * dt;
 #endif
-                    z[i] += uz[i] * inv_gamma * dt;
+                    pstructs[i].pos(2) += uz[i] * inv_gamma * dt;
                 }
             );
-            BL_PROFILE_VAR_STOP(blp_pp);
-
-            //
-            // copy particle data back
-            //
-            BL_PROFILE_VAR_START(blp_copy);
-            pti.SetPosition(xp, yp, zp);
-            BL_PROFILE_VAR_STOP(blp_copy);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
