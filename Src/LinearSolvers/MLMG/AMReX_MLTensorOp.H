@@ -15,7 +15,7 @@ namespace amrex {
 // Here eta and kappa are shear and bulk viscosity, and I is identity tensor.
 //
 // The user needs to provide `a` by `setACoeffs`, eta by `setShearViscosity`,
-// and kappa by `setBulkViscosity`.  If `setBuldViscosity` is not called,
+// and kappa by `setBulkViscosity`.  If `setBulkViscosity` is not called,
 // kappa is set to zero.
 
 class MLTensorOp
