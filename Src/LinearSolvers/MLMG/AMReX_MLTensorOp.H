@@ -68,13 +68,15 @@ protected:
 
     bool m_needs_update = true;
 
-    Vector<Array<MultiFab,AMREX_SPACEDIM> > m_kappa;
+    bool m_has_kappa = false;
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
 
     // They are always 1 and 1.
     void setScalars (Real a, Real b) noexcept = delete;
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 
-    void applyBCTensor (int amrlev, MultiFab& vel, const MLMGBndry* bndry) const;
+    void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
+                        BCMode bc_mode, const MLMGBndry* bndry) const;
 };
 
 }

@@ -18,7 +18,8 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real const> const& bcvalyhi,
                             GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bct,
                             GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bcl,
-                            int maxorder, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                            int inhomog, int maxorder,
+                            GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
                             Box const& domain) noexcept
 {
     constexpr int oxlo = 0;
@@ -41,13 +42,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxlo, maxorder, dxinv[xdir], 1, icomp);
+                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
             }
             if (vlo.y == dlo.y) {
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalylo, maxorder, dxinv[ydir], 1, icomp);
+                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
             }
             break;
         }
@@ -58,13 +59,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxhi, maxorder, dxinv[xdir], 1, icomp);
+                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
             }
             if (vlo.y == dlo.y) {
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalylo, maxorder, dxinv[ydir], 1, icomp);
+                                   bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
             }
             break;
         }
@@ -75,13 +76,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxlo, maxorder, dxinv[xdir], 1, icomp);
+                                   bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
             }
             if (vhi.y == dhi.y) {
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalyhi, maxorder, dxinv[ydir], 1, icomp);
+                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
             }
             break;
         }
@@ -92,13 +93,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalxhi, maxorder, dxinv[xdir], 1, icomp);
+                                   bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
             }
             if (vhi.y == dhi.y) {
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
-                                   bcvalyhi, maxorder, dxinv[ydir], 1, icomp);
+                                   bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
             }
             break;
         }
