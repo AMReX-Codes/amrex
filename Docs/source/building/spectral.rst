@@ -20,3 +20,5 @@ In order to run the code with a spectral solver, you need to:
         ::
 
            make -j 4 USE_PSATD=TRUE
+
+Note that this is not compatible with USE_RZ yet.
