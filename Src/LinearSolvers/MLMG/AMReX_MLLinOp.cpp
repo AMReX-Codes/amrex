@@ -23,6 +23,7 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
+constexpr int MLLinOp::mg_domain_min_width;
 
 namespace {
     // experimental features
@@ -262,7 +263,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         domainboxes.push_back(dbx);
         boundboxes.push_back(bbx);
         agg_flag.push_back(false);
-        while (    dbx.coarsenable(mg_coarsen_ratio,mg_box_min_width)
+        while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
                and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
         {
             dbx.coarsen(mg_coarsen_ratio);
@@ -345,7 +346,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             }
         }
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1
-               and a_geom[0].Domain().coarsenable(rr)
+               and a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
