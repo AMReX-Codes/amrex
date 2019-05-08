@@ -20,7 +20,7 @@ irrevocable, worldwide license in the Software to reproduce,
 distribute copies to the public, prepare derivative works, and perform
 publicly and display publicly, and to permit other to do so.
 
-License for AMReX can be found at [license.txt](license.txt).
+License for AMReX can be found at [LICENSE](LICENSE).
 
 ## Development Model
 
@@ -47,6 +47,14 @@ Development generally follows the following ideas:
          wish to squash commits upon merge to have a clean history.
          *Please ensure that your PR title and first post are descriptive,
          since these will be used for a squashed commit message.*
+
+         Please note the following:
+            If you choose to make contributions to the code 
+            then you hereby grant a non-exclusive, royalty-free perpetual license 
+            to install, use, modify, prepare derivative works, 
+            incorporate into other computer software,
+            distribute, and sublicense such enhancements or derivative works
+            thereof, in binary and source code form.
 
   * On the first workday of each month, we perform a merge of
     `development` into `master`.  For this merge to take place, we
