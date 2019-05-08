@@ -567,7 +567,6 @@ public:
     * This version checks all components and grow cells.
     */
     bool contains_nan (bool local=false) const;
-
     bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     bool contains_nan (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
     /**
@@ -577,6 +576,8 @@ public:
     * This version checks all components and grow cells.
     */
     bool contains_inf (bool local=false) const;
+    bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
+    bool contains_inf (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
 
     /**
     * \brief This tests on whether the MultiFab is fully nodal.
@@ -591,13 +592,18 @@ public:
     */
     bool is_cell_centered () const noexcept;
 
-    bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     /**
-    * \brief Sum ghost cells that are covered by valid cells into the valid cells.
+    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
     */
     void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
 
     void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+
+    /**
+    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& ngrow,
+                      const Periodicity& period = Periodicity::NonPeriodic());
 
     /**
      * \brief Return a mask indicating how many duplicates are in each point.

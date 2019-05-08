@@ -52,7 +52,7 @@ void
 MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& info,
+                         const LPInfo& a_info,
                          const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLNodeLaplacian::define()");
@@ -63,7 +63,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, info, a_factory);
+    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info, a_factory);
 
     m_sigma.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -204,7 +204,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                 amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
                                                 BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
                                                 BL_TO_FORTRAN_BOX(nddom),
-                                                m_lobc.data(), m_hibc.data());
+                                                m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -245,13 +245,13 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                 Box b = bx_vel & cc_fvbx;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
-                    if (m_lobc[idim] == LinOpBCType::inflow)
+                    if (m_lobc[0][idim] == LinOpBCType::inflow)
                     {
                         if (b.smallEnd(idim) == cccdom.smallEnd(idim)) {
                             b.growLo(idim, 1);
                         }
                     }
-                    if (m_hibc[idim] == LinOpBCType::inflow)
+                    if (m_hibc[0][idim] == LinOpBCType::inflow)
                     {
                         if (b.bigEnd(idim) == cccdom.bigEnd(idim)) {
                             b.growHi(idim, 1);
@@ -348,7 +348,7 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                                               BL_TO_FORTRAN_ANYD(c_cc_mask[mfi]),
                                               BL_TO_FORTRAN_ANYD(crhs[mfi]),
                                               cdxinv, BL_TO_FORTRAN_BOX(cnddom),
-                                              m_lobc.data(), m_hibc.data());
+                                              m_lobc[0].data(), m_hibc[0].data());
             }
         }
 
@@ -454,7 +454,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
                                                 BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
                                                 BL_TO_FORTRAN_BOX(nddom),
-                                                m_lobc.data(), m_hibc.data());
+                                                m_lobc[0].data(), m_hibc[0].data());
             }
 
             if (rhcc[ilev])
@@ -468,7 +468,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                     amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),
                                                     BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
                                                     BL_TO_FORTRAN_BOX(nddom),
-                                                    m_lobc.data(), m_hibc.data());
+                                                    m_lobc[0].data(), m_hibc[0].data());
                 }
             }
         }
@@ -510,13 +510,13 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 Box b = bx_vel & cc_fvbx;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
-                    if (m_lobc[idim] == LinOpBCType::inflow)
+                    if (m_lobc[0][idim] == LinOpBCType::inflow)
                     {
                         if (b.smallEnd(idim) == cccdom.smallEnd(idim)) {
                             b.growLo(idim, 1);
                         }
                     }
-                    if (m_hibc[idim] == LinOpBCType::inflow)
+                    if (m_hibc[0][idim] == LinOpBCType::inflow)
                     {
                         if (b.bigEnd(idim) == cccdom.bigEnd(idim)) {
                             b.growHi(idim, 1);
@@ -610,7 +610,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                               BL_TO_FORTRAN_ANYD(c_cc_mask[mfi]),
                                               BL_TO_FORTRAN_ANYD(crhs[mfi]),
                                               cdxinv, BL_TO_FORTRAN_BOX(cnddom),
-                                              m_lobc.data(), m_hibc.data());
+                                              m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -883,7 +883,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
             {
                 amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
                                         BL_TO_FORTRAN_BOX(domain),
-                                        m_lobc.data(), m_hibc.data());
+                                        m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -900,9 +900,9 @@ MLNodeLaplacian::buildMasks ()
     m_masks_built = true;
 
     m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         m_is_bottom_singular = m_domain_covered[0];
     }
@@ -958,7 +958,7 @@ MLNodeLaplacian::buildMasks ()
                         amrex_mlndlap_set_dirichlet_mask(BL_TO_FORTRAN_ANYD(mskfab),
                                                          BL_TO_FORTRAN_ANYD(ccfab),
                                                          BL_TO_FORTRAN_BOX(nddomain),
-                                                         m_lobc.data(), m_hibc.data());
+                                                         m_lobc[0].data(), m_hibc[0].data());
                     }
                 }
             }
@@ -1004,7 +1004,7 @@ MLNodeLaplacian::buildMasks ()
 
                 amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
                                           BL_TO_FORTRAN_BOX(ccdom),
-                                          m_lobc.data(), m_hibc.data());
+                                          m_lobc[0].data(), m_hibc[0].data());
             }
         }
 
@@ -1054,7 +1054,7 @@ MLNodeLaplacian::buildMasks ()
                                        BL_TO_FORTRAN_ANYD(dfab),
                                        BL_TO_FORTRAN_ANYD(sfab),
                                        BL_TO_FORTRAN_BOX(nddomain),
-                                       m_lobc.data(), m_hibc.data());
+                                       m_lobc[0].data(), m_hibc[0].data());
         }
     }
 
@@ -1084,7 +1084,7 @@ MLNodeLaplacian::buildMasks ()
                                        BL_TO_FORTRAN_ANYD(dfab),
                                        BL_TO_FORTRAN_ANYD(sfab),
                                        BL_TO_FORTRAN_BOX(nddomain),
-                                       m_lobc.data(), m_hibc.data());
+                                       m_lobc[0].data(), m_hibc[0].data());
         }
     }
 }
@@ -1112,10 +1112,11 @@ MLNodeLaplacian::buildStencil ()
     {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
+            const int nghost = (0 == amrlev && mglev+1 == m_num_mg_levels[amrlev]) ? 1 : 4;
             m_stencil[amrlev][mglev].reset
                 (new MultiFab(amrex::convert(m_grids[amrlev][mglev],
                                              IntVect::TheNodeVector()),
-                              m_dmap[amrlev][mglev], ncomp_s, 4));
+                              m_dmap[amrlev][mglev], ncomp_s, nghost));
             m_stencil[amrlev][mglev]->setVal(0.0);
         }
 
@@ -1411,7 +1412,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                                                             BL_TO_FORTRAN_ANYD(szfab)),
                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                                BL_TO_FORTRAN_BOX(nd_domain),
-                                               m_lobc.data(), m_hibc.data());
+                                               m_lobc[0].data(), m_hibc[0].data());
             }
             else
             {
@@ -1422,7 +1423,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                                                BL_TO_FORTRAN_ANYD(sfab),
                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                                BL_TO_FORTRAN_BOX(nd_domain),
-                                               m_lobc.data(), m_hibc.data());
+                                               m_lobc[0].data(), m_hibc[0].data());
             }
             fine[mfi].plus(tmpfab,fbx,fbx,0,0,1);
         }
@@ -1546,7 +1547,7 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
             {
                 amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
                                       BL_TO_FORTRAN_BOX(nd_domain),
-                                      m_lobc.data(), m_hibc.data());
+                                      m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -1596,7 +1597,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                                 BL_TO_FORTRAN_ANYD(szfab)),
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                    dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                   m_lobc.data(), m_hibc.data());
+                                   m_lobc[0].data(), m_hibc[0].data());
         }
         else
         {
@@ -1608,7 +1609,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                    BL_TO_FORTRAN_ANYD(sfab),
                                    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                    dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                   m_lobc.data(), m_hibc.data());
+                                   m_lobc[0].data(), m_hibc[0].data());
         }
     }
 }
@@ -1664,7 +1665,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                                            BL_TO_FORTRAN_ANYD(szfab)),
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                              m_lobc.data(), m_hibc.data());
+                                              m_lobc[0].data(), m_hibc[0].data());
             }
         }
         else
@@ -1683,7 +1684,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                               BL_TO_FORTRAN_ANYD(sfab),
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                              m_lobc.data(), m_hibc.data());
+                                              m_lobc[0].data(), m_hibc[0].data());
             }
         }
 
@@ -1737,7 +1738,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                                      BL_TO_FORTRAN_ANYD(szfab)),
                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                         dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                        m_lobc.data(), m_hibc.data());
+                                        m_lobc[0].data(), m_hibc[0].data());
             }
         }
         else
@@ -1757,7 +1758,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                         BL_TO_FORTRAN_ANYD(sfab),
                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                         dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                        m_lobc.data(), m_hibc.data());
+                                        m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -1866,7 +1867,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
             amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
                                       BL_TO_FORTRAN_BOX(ccdom),
-                                      m_lobc.data(), m_hibc.data());
+                                      m_lobc[0].data(), m_hibc[0].data());
         }
     }
 
@@ -1900,7 +1901,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
             {
                 amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
                                       BL_TO_FORTRAN_BOX(nddom),
-                                      m_lobc.data(), m_hibc.data());
+                                      m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -1932,13 +1933,13 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 Box b = ccbxg1 & ccvbx;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
-                    if (m_lobc[idim] == LinOpBCType::inflow)
+                    if (m_lobc[0][idim] == LinOpBCType::inflow)
                     {
                         if (b.smallEnd(idim) == ccdom.smallEnd(idim)) {
                             b.growLo(idim, 1);
                         }
                     }
-                    if (m_hibc[idim] == LinOpBCType::inflow)
+                    if (m_hibc[0][idim] == LinOpBCType::inflow)
                     {
                         if (b.bigEnd(idim) == ccdom.bigEnd(idim)) {
                             b.growHi(idim, 1);
@@ -1986,14 +1987,14 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                        BL_TO_FORTRAN_ANYD(sigma),
                                        BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                        dxinv, BL_TO_FORTRAN_BOX(nddom),
-                                       m_lobc.data(), m_hibc.data());
+                                       m_lobc[0].data(), m_hibc[0].data());
 
                 amrex_mlndlap_crse_resid(BL_TO_FORTRAN_BOX(bx),
                                          BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
                                          BL_TO_FORTRAN_ANYD(rhs),
                                          BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
                                          BL_TO_FORTRAN_BOX(nddom),
-                                         m_lobc.data(), m_hibc.data());
+                                         m_lobc[0].data(), m_hibc[0].data());
             }
         }
     }
@@ -2040,13 +2041,13 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
             Box ovlp = ccvbx & ccbxg1;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                if (m_lobc[idim] == LinOpBCType::inflow)
+                if (m_lobc[0][idim] == LinOpBCType::inflow)
                 {
                     if (ovlp.smallEnd(idim) == ccdom.smallEnd(idim)) {
                         ovlp.growLo(idim, 1);
                     }
                 }
-                if (m_hibc[idim] == LinOpBCType::inflow)
+                if (m_hibc[0][idim] == LinOpBCType::inflow)
                 {
                     if (ovlp.bigEnd(idim) == ccdom.bigEnd(idim)) {
                         ovlp.growHi(idim, 1);
@@ -2097,7 +2098,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                                    BL_TO_FORTRAN_ANYD(*sigma),
                                    BL_TO_FORTRAN_ANYD(tmpmask),
                                    dxinv, BL_TO_FORTRAN_BOX(nddom),
-                                   m_lobc.data(), m_hibc.data());
+                                   m_lobc[0].data(), m_hibc[0].data());
 
             sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
 
@@ -2226,7 +2227,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          BL_TO_FORTRAN_ANYD((*cc_mask)[mfi]),
                                          BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
                                          cdxinv, BL_TO_FORTRAN_BOX(c_nd_domain),
-                                         m_lobc.data(), m_hibc.data());
+                                         m_lobc[0].data(), m_hibc[0].data());
         }
     }
 #ifdef AMREX_USE_EB
@@ -2328,24 +2329,24 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
                        << "has_metric_term = " << info.has_metric_term << "\n"
                        << "max_coarsening_level = " << info.max_coarsening_level << "\n";
 #if (AMREX_SPACEDIM == 1)
-            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0]) << "\n";
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0][0]) << "\n";
 #elif (AMREX_SPACEDIM == 2)
-            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0])
-                       << " "       << static_cast<int>(m_lobc[1]) << "\n";
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0][0])
+                       << " "       << static_cast<int>(m_lobc[0][1]) << "\n";
 #else
-            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0])
-                       << " "       << static_cast<int>(m_lobc[1])
-                       << " "       << static_cast<int>(m_lobc[2]) << "\n";
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0][0])
+                       << " "       << static_cast<int>(m_lobc[0][1])
+                       << " "       << static_cast<int>(m_lobc[0][2]) << "\n";
 #endif
 #if (AMREX_SPACEDIM == 1)
-            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0]) << "\n";
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0][0]) << "\n";
 #elif (AMREX_SPACEDIM == 2)
-            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0])
-                       << " "       << static_cast<int>(m_hibc[1]) << "\n";
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0][0])
+                       << " "       << static_cast<int>(m_hibc[0][1]) << "\n";
 #else
-            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0])
-                       << " "       << static_cast<int>(m_hibc[1])
-                       << " "       << static_cast<int>(m_hibc[2]) << "\n";
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0][0])
+                       << " "       << static_cast<int>(m_hibc[0][1])
+                       << " "       << static_cast<int>(m_hibc[0][2]) << "\n";
 #endif
             // m_coarse_data_for_bc: not used
             HeaderFile << "maxorder = " << getMaxOrder() << "\n";
