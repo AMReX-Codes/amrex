@@ -14,8 +14,10 @@ namespace amrex {
 // Here eta and kappa are shear and bulk viscosity, and I is identity tensor.
 //
 // The user needs to provide `a` by `setACoeffs`, eta by `setShearViscosity`,
-// and kappa by `setBulkViscosity`.  If `setBuldViscosity` is not called,
-// kappa is set to zero.
+// and kappa by `setBulkViscosity`.  If `setBulkViscosity` is not called,
+// kappa is set to zero.  The user must also call `setEBShearViscosity` to set
+// viscosity on EB.  Optionally, `setEBBulkViscosity` can be used to set
+// bulk viscosity on EB.
 
 class MLEBTensorOp
     : public MLEBABecLap
@@ -44,6 +46,8 @@ public:
 
     void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
     void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
+//    void setEBShearViscosity
+//    void setEBBulkViscosity 
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
@@ -73,6 +77,9 @@ protected:
     // They are always 1 and 1.
     void setScalars (Real a, Real b) noexcept = delete;
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
+    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
+    void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
+    void setEBHODirichlet () = delete;
 
     void applyBCTensor (int amrlev, MultiFab& vel, const MLMGBndry* bndry) const;
 };
