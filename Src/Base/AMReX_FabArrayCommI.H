@@ -59,82 +59,82 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             }
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
-            if (Gpu::inGraphRegion()) {  // <<<=========
+            if (Gpu::inGraphRegion()) {
 
-            // Create Graph if one is needed.
-            if ( !(TheFB.m_localCopy.ready()) )
-            {
-                const_cast<FB&>(TheFB).m_localCopy.resize(N_loc);
-
+                // Create Graph if one is needed.
+                if ( !(TheFB.m_localCopy.ready()) )
+                {
+                    const_cast<FB&>(TheFB).m_localCopy.resize(N_loc);
+    
+                    int idx = 0;
+                    // Record the graph.
+                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    {
+                        amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
+    
+                        const auto& tags = loc_copy_tags[mfi];
+                        for (auto const & tag : tags)
+                        {
+                            const auto offset = tag.offset.dim3();
+                            CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
+                            AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
+                            {
+                                // Build the Array4's.
+                                auto const dst = cmem->getDst<Real>();
+                                auto const src = cmem->getSrc<Real>();
+                                for (int n = 0; n < cmem->ncomp; ++n) {
+                                    dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
+                                }
+                            });
+                        }
+    
+                        bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                        const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                    }
+                }
+    
+                // Setup Launch Parameters
+                // This is perfectly threadable, right?
+                // Additional optimization -> Check to see whether values need to be reset? 
+                // e.g. (Check first src & dst pointer. If same, must be same MFIter?)
+                // Can then remove memcpy from executeGraph.
                 int idx = 0;
-                // Record the graph.
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
-
                     const auto& tags = loc_copy_tags[mfi];
                     for (auto const & tag : tags)
                     {
-                        const auto offset = tag.offset.dim3();
-                        CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
-                        AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
-                        {
-                            // Build the Array4's.
-                            auto const dst = cmem->getDst<Real>();
-                            auto const src = cmem->getSrc<Real>();
-                            for (int n = 0; n < cmem->ncomp; ++n) {
-                                dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
-                            }
-                        });
+                        const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
+                                                                                           this->array(mfi),
+                                                                                           scomp, ncomp));
                     }
-
-                    bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
-                    const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
                 }
-            }
+     
+                // Launch Graph
+                const_cast<FB&>(TheFB).m_localCopy.executeGraph();
 
-            // Setup Launch Parameters
-            // This is perfectly threadable, right?
-            // Additional optimization -> Check to see whether values need to be reset? 
-            // e.g. (Check first src & dst pointer. If same, must be same MFIter?)
-            // Can then remove memcpy from executeGraph.
-            int idx = 0;
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                const auto& tags = loc_copy_tags[mfi];
-                for (auto const & tag : tags)
-                {
-                    const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
-                                                                                       this->array(mfi),
-                                                                                       scomp, ncomp));
-                }
-            }
- 
-            // Launch Graph
-            const_cast<FB&>(TheFB).m_localCopy.executeGraph();
-
-            } else {  // <<<========
+            } else { 
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                const auto& tags = loc_copy_tags[mfi];
-                auto dfab = this->array(mfi);
-                for (auto const & tag : tags)
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    auto const sfab = tag.sfab->array();
-                    const auto offset = tag.offset.dim3();
-                    AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                    const auto& tags = loc_copy_tags[mfi];
+                    auto dfab = this->array(mfi);
+                    for (auto const & tag : tags)
                     {
-                        dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
-                    });
+                        auto const sfab = tag.sfab->array();
+                        const auto offset = tag.offset.dim3();
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
+                        });
+                    }
                 }
-            }
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
-            } // <<<=========
+            }
 #endif
         }
         else
@@ -286,78 +286,78 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         bool is_thread_safe = FAB::isCopyOMPSafe();
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
-        if (Gpu::inGraphRegion()) {   // <<<=========
+        if (Gpu::inGraphRegion()) {
 
-        if ( !(TheFB.m_copyToBuffer.ready()) )
-        {
-            // Set size of CudaGraph buffer.
-            // Is the conditional ever expected false?
-            int launches = 0;
-            for (int send = 0; send < N_snds; ++send) {
-                if (send_data[send] != nullptr) {
-                    launches += send_cctc[send]->size();
+            if ( !(TheFB.m_copyToBuffer.ready()) )
+            {
+                // Set size of CudaGraph buffer.
+                // Is the conditional ever expected false?
+                int launches = 0;
+                for (int send = 0; send < N_snds; ++send) {
+                    if (send_data[send] != nullptr) {
+                        launches += send_cctc[send]->size();
+                    }
+                }
+                const_cast<FB&>(TheFB).m_copyToBuffer.resize(launches);
+    
+                // Record the graph.
+                int idx = 0;
+                for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
+                {
+                    amrex::Gpu::Device::startGraphRecording( sit() == 0 );
+    
+                    const int j = sit();
+                    char* dptr = send_data[j];
+                    if (dptr != nullptr)
+                    {
+                        auto const& cctc = *send_cctc[j];
+                        for (auto const& tag : cctc)
+                        {
+                            const Box& bx = tag.sbox;
+                            CopyMemory* cmem = TheFB.m_copyToBuffer.getDevicePtr(idx++);
+                            AMREX_HOST_DEVICE_FOR_3D (bx, ii, jj, kk,
+                            {
+                                auto const pfab = cmem->getDst<Real>();
+                                auto const sfab = cmem->getSrc<Real>();
+                                for (int n = 0; n < cmem->ncomp; ++n)
+                                {
+                                    pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+(cmem->scomp));
+                                }
+                            });
+                        }
+                    }
+    
+                    bool last_iter( sit() == (N_snds-1) ); 
+                    const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
                 }
             }
-            const_cast<FB&>(TheFB).m_copyToBuffer.resize(launches);
-
-            // Record the graph.
+    
+            // Setup Launch Parameters
+            // This is perfectly threadable, right?
             int idx = 0;
-            for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
+            for (int send = 0; send < N_snds; ++send)
             {
-                amrex::Gpu::Device::startGraphRecording( sit() == 0 );
-
-                const int j = sit();
+                const int j = send;
                 char* dptr = send_data[j];
                 if (dptr != nullptr)
                 {
                     auto const& cctc = *send_cctc[j];
                     for (auto const& tag : cctc)
                     {
-                        const Box& bx = tag.sbox;
-                        CopyMemory* cmem = TheFB.m_copyToBuffer.getDevicePtr(idx++);
-                        AMREX_HOST_DEVICE_FOR_3D (bx, ii, jj, kk,
-                        {
-                            auto const pfab = cmem->getDst<Real>();
-                            auto const sfab = cmem->getSrc<Real>();
-                            for (int n = 0; n < cmem->ncomp; ++n)
-                            {
-                                pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+(cmem->scomp));
-                            }
-                        });
+                        const_cast<FB&>(TheFB).m_copyToBuffer.setParams(idx++, makeCopyMemory(this->array(tag.srcIndex),
+                                                                                 amrex::makeArray4((value_type*)(dptr), tag.sbox),
+                                                                                 scomp, ncomp));
+    
+                        dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
                     }
+                    BL_ASSERT(dptr == send_data[j] + send_size[j]); 
                 }
-
-                bool last_iter( sit() == (N_snds-1) ); 
-                const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
             }
-        }
+    
+            // Launch Graph
+            const_cast<FB&>(TheFB).m_copyToBuffer.executeGraph();
 
-        // Setup Launch Parameters
-        // This is perfectly threadable, right?
-        int idx = 0;
-        for (int send = 0; send < N_snds; ++send)
-        {
-            const int j = send;
-            char* dptr = send_data[j];
-            if (dptr != nullptr)
-            {
-                auto const& cctc = *send_cctc[j];
-                for (auto const& tag : cctc)
-                {
-                    const_cast<FB&>(TheFB).m_copyToBuffer.setParams(idx++, makeCopyMemory(this->array(tag.srcIndex),
-                                                                             amrex::makeArray4((value_type*)(dptr), tag.sbox),
-                                                                             scomp, ncomp));
-
-                    dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
-                }
-                BL_ASSERT(dptr == send_data[j] + send_size[j]); 
-            }
-        }
-
-        // Launch Graph
-        const_cast<FB&>(TheFB).m_copyToBuffer.executeGraph();
-
-        } else {     // <<<=========
+        } else {
 
 #endif
 
@@ -386,7 +386,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
             }
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-        }      // <<<=========
+        }
 #endif
         int send_counter = 0;
         while (send_counter < N_snds)
@@ -444,85 +444,85 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
-            if (Gpu::inGraphRegion()) { // <<<=============
+            if (Gpu::inGraphRegion()) {
 
-            if ( !(TheFB.m_localCopy.ready()) )
-            {
-                const_cast<FB&>(TheFB).m_localCopy.resize(launches);
-
+                if ( !(TheFB.m_localCopy.ready()) )
+                {
+                    const_cast<FB&>(TheFB).m_localCopy.resize(launches);
+    
+                    int idx = 0;
+                    int cuda_stream = 0;
+                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    {
+                        amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
+    
+                        const auto& tags = loc_copy_tags[mfi];
+                        for (auto const & tag : tags)
+                        {
+                            const Dim3 offset = tag.offset.dim3();
+    
+                            Gpu::Device::setStreamIndex(cuda_stream++);
+                            CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
+                            AMREX_HOST_DEVICE_FOR_3D(tag.dbox, i, j, k,
+                            {
+                                auto const dst = cmem->getDst<Real>();
+                                auto const src = cmem->getSrc<Real>();
+                                for (int n = 0; n < cmem->ncomp; ++n) {
+                                    dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
+                                }
+                            });
+                        }
+    
+                        bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                        const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                    }
+                }
+                
+                // Setup Launch Parameters
+                // This is perfectly threadable, right?
                 int idx = 0;
-                int cuda_stream = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
-
-                    const auto& tags = loc_copy_tags[mfi];
+                    const auto& tags = loc_copy_tags[mfi]; 
                     for (auto const & tag : tags)
                     {
-                        const Dim3 offset = tag.offset.dim3();
-
-                        Gpu::Device::setStreamIndex(cuda_stream++);
-                        CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
-                        AMREX_HOST_DEVICE_FOR_3D(tag.dbox, i, j, k,
-                        {
-                            auto const dst = cmem->getDst<Real>();
-                            auto const src = cmem->getSrc<Real>();
-                            for (int n = 0; n < cmem->ncomp; ++n) {
-                                dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
-                            }
-                        });
+                        const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
+                                                                                           this->array(mfi),
+                                                                                           scomp, ncomp)); 
                     }
-
-                    bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
-                    const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
                 }
-            }
-            
-            // Setup Launch Parameters
-            // This is perfectly threadable, right?
-            int idx = 0;
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                const auto& tags = loc_copy_tags[mfi]; 
-                for (auto const & tag : tags)
-                {
-                    const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
-                                                                                       this->array(mfi),
-                                                                                       scomp, ncomp)); 
-                }
-            }
+    
+                // Launch Graph
+                const_cast<FB&>(TheFB).m_localCopy.executeGraph();            
 
-            // Launch Graph
-            const_cast<FB&>(TheFB).m_localCopy.executeGraph();            
-
-            } else { // <<<===============
+            } else {
 
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            {
-                int cuda_stream = 0;
-                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    const auto& tags = loc_copy_tags[mfi];
-                    const auto& dfab = this->array(mfi);
-                    for (const auto& tag : tags ) {
-                        const Dim3 offset = tag.offset.dim3();
-                        const auto sfab = tag.sfab->array();
+                    int cuda_stream = 0;
+                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    {
+                        const auto& tags = loc_copy_tags[mfi];
+                        const auto& dfab = this->array(mfi);
+                        for (const auto& tag : tags ) {
+                            const Dim3 offset = tag.offset.dim3();
+                            const auto sfab = tag.sfab->array();
 #ifdef AMREX_USE_GPU
-                        Gpu::Device::setStreamIndex(cuda_stream++);
+                            Gpu::Device::setStreamIndex(cuda_stream++);
 #endif
-                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
-                        {
-                            dfab(i,j,k,scomp+n) = sfab(i+offset.x,j+offset.y,k+offset.z,scomp+n);
-                        });
+                            AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                            {
+                                dfab(i,j,k,scomp+n) = sfab(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                            });
+                        }
                     }
                 }
-            }
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-            }       // <<<===================
+            }
 #endif
 
         }
@@ -621,82 +621,82 @@ FabArray<FAB>::FillBoundary_finish ()
         {
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-            if (Gpu::inGraphRegion()) {     // <<<================
+            if (Gpu::inGraphRegion()) { 
 
-            if ( !(TheFB.m_copyFromBuffer.ready()) )
-            {
-                // Set size of copyFromBuffer
-                int launches = 0;
-                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                if ( !(TheFB.m_copyFromBuffer.ready()) )
                 {
-                    launches += recv_copy_tags[mfi].size();
-                }        
-                const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
-
+                    // Set size of copyFromBuffer
+                    int launches = 0;
+                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    {
+                        launches += recv_copy_tags[mfi].size();
+                    }        
+                    const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
+    
+                    int idx = 0;
+                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    {
+                        amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
+    
+                        const auto& tags = recv_copy_tags[mfi];
+                        for (auto const & tag : tags)
+                        {
+                            CopyMemory* cmem = TheFB.m_copyFromBuffer.getDevicePtr(idx++);
+                            AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
+                            {
+                                auto const pfab = cmem->getSrc<Real>();
+                                auto const dfab = cmem->getDst<Real>();
+                                for (int n = 0; n < cmem->ncomp; ++n)
+                                {
+                                    dfab(i,j,k,n+(cmem->scomp)) = pfab(i,j,k,n);
+                                }
+                            });
+                        }
+    
+                        bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                        const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                    }
+                }
+    
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
-
-                    const auto& tags = recv_copy_tags[mfi];
+                    const auto & tags = recv_copy_tags[mfi];
                     for (auto const & tag : tags)
                     {
-                        CopyMemory* cmem = TheFB.m_copyFromBuffer.getDevicePtr(idx++);
-                        AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
-                        {
-                            auto const pfab = cmem->getSrc<Real>();
-                            auto const dfab = cmem->getDst<Real>();
-                            for (int n = 0; n < cmem->ncomp; ++n)
-                            {
-                                dfab(i,j,k,n+(cmem->scomp)) = pfab(i,j,k,n);
-                            }
-                        });
-                    }
-
-                    bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
-                    const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                        const_cast<FB&>(TheFB).m_copyFromBuffer.setParams(idx++, makeCopyMemory(amrex::makeArray4((value_type*)(tag.p), tag.dbox),
+                                                                                                this->array(mfi),
+                                                                                                fb_scomp, fb_ncomp));
+                    } 
                 }
-            }
-
-            int idx = 0;
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                const auto & tags = recv_copy_tags[mfi];
-                for (auto const & tag : tags)
-                {
-                    const_cast<FB&>(TheFB).m_copyFromBuffer.setParams(idx++, makeCopyMemory(amrex::makeArray4((value_type*)(tag.p), tag.dbox),
-                                                                                            this->array(mfi),
-                                                                                            fb_scomp, fb_ncomp));
-                } 
-            }
-
-            // Launch Graph
-            const_cast<FB&>(TheFB).m_copyFromBuffer.executeGraph();
+    
+                // Launch Graph
+                const_cast<FB&>(TheFB).m_copyFromBuffer.executeGraph();
 
 
-            } else {    // <<<==================
+            } else {
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                const auto& tags = recv_copy_tags[mfi];
-                auto dfab = this->array(mfi);
-                const int scomp = fb_scomp;
-                const int ncomp = fb_ncomp;
-                for (auto const & tag : tags)
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox);
-                    AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                    const auto& tags = recv_copy_tags[mfi];
+                    auto dfab = this->array(mfi);
+                    const int scomp = fb_scomp;
+                    const int ncomp = fb_ncomp;
+                    for (auto const & tag : tags)
                     {
-                        dfab(i,j,k,n+scomp) = pfab(i,j,k,n);
-                    });
+                        auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox);
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,n+scomp) = pfab(i,j,k,n);
+                        });
+                    }
                 }
-            }
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
-            }    // <<<===============
+            } 
 #endif
         }
         else
