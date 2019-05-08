@@ -38,11 +38,6 @@ warpx.do_moving_window = 0
 
 warpx.maxwell_fdtd_solver = yee
 
-# Particle Injection
-warpx.do_plasma_injection = 0
-warpx.num_injected_species = 0
-warpx.injected_plasma_species = 0
-
 # Laser
 lasers.nlasers      = 1
 lasers.names        = laser1

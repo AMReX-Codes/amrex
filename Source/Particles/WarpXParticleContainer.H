@@ -183,7 +183,18 @@ public:
                               int thread_num,
                               int lev,
                               amrex::Real dt );
-  
+
+    // If particles start outside of the domain, ContinuousInjection 
+    // makes sure that they are initialized when they enter the domain, and 
+    // NOT before. Virtual function, overriden by derived classes. 
+    // Current status:
+    // PhysicalParticleContainer: implemented.
+    // LaserParticleContainer: implemented.
+    // RigidInjectedParticleContainer: not implemented.
+    virtual void ContinuousInjection(const amrex::RealBox& injection_box) {}
+    // Update optional sub-class-specific injection location.
+    virtual void UpdateContinuousInjectionPosition(amrex::Real dt) {}
+
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
@@ -248,6 +259,12 @@ protected:
 
     static int do_not_push;
 
+    // Whether to allow particles outside of the simulation domain to be 
+    // initialized when they enter the domain.
+    // This is currently required because continuous injection does not 
+    // support all features allowed by direct injection.
+    int do_continuous_injection = 0;
+
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;
     amrex::Vector<amrex::FArrayBox> local_jy;
@@ -258,6 +275,7 @@ protected:
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;
+
 };
 
 #endif

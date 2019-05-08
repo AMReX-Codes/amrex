@@ -1,5 +1,11 @@
-Visualization with Visit
-========================
+Visualization with Visit (for plotfiles)
+========================================
+
+.. note::
+
+    The openPMD format can also be visualized with Visit, but requires the
+    installation of a specific plugin: see
+    `this link <https://github.com/openPMD/openPMD-visit-plugin>`_.
 
 WarpX results can also be visualized by VisIt, an open source visualization and analysis software. VisIT can be downloaded and installed from https://wci.llnl.gov/simulation/computer-codes/visit.
 

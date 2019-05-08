@@ -1,5 +1,5 @@
-PyQt-based visualization GUI: PICViewer
-=========================================
+PyQt-based visualization GUI: PICViewer (for both plotfiles and openPMD)
+========================================================================
 
 .. figure:: sample_image.png
    :alt: picture

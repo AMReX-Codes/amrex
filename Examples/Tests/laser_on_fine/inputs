@@ -57,11 +57,6 @@ warpx.do_moving_window = 0
 warpx.moving_window_dir = z
 warpx.moving_window_v = 1.0 # in units of the speed of light
 
-# Particle Injection
-warpx.do_plasma_injection = 0
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 0
-
 # Laser
 lasers.nlasers      = 1
 lasers.names        = laser1
