@@ -1179,6 +1179,7 @@ PhysicalParticleContainer::Evolve (int lev,
             FArrayBox const* byfab = &(By[pti]);
             FArrayBox const* bzfab = &(Bz[pti]);
 
+            Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
             if (WarpX::use_fdtd_nci_corr)
             {
 #if (AMREX_SPACEDIM == 2)
@@ -1194,7 +1195,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 // bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
 
                 filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
-                nci_godfrey_filter_exeybz[lev]->ApplyStencil(Ex[pti], filtered_Ex)
+                exeli = filtered_Ex.elixir();
+                //nci_godfrey_filter_exeybz[lev]->ApplyStencil(Ex[pti], filtered_Ex)
+                nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Ex, Ex[pti], tbox, box);
                 /*
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
                                         BL_TO_FORTRAN_ANYD(filtered_Ex),
@@ -1205,7 +1208,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 exfab = &filtered_Ex;
 
                 filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
-                nci_godfrey_filter_bxbyez[lev]->ApplyStencil(Ez[pti], filtered_Ez)
+                ezeli = filtered_Ez.elixir();
+                //nci_godfrey_filter_bxbyez[lev]->ApplyStencil(Ez[pti], filtered_Ez)
+                nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_Ez, Ez[pti], tbox, box);
                 /*
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
                                         BL_TO_FORTRAN_ANYD(filtered_Ez),
@@ -1216,7 +1221,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 ezfab = &filtered_Ez;
 
                 filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
-                nci_godfrey_filter_bxbyez[lev]->ApplyStencil(By[pti], filtered_By)
+                byeli = filtered_By.elixir();
+                //nci_godfrey_filter_bxbyez[lev]->ApplyStencil(By[pti], filtered_By)
+                nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_By, By[pti], tbox, box);
                 /*
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
                                         BL_TO_FORTRAN_ANYD(filtered_By),
@@ -1228,7 +1235,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
 #if (AMREX_SPACEDIM == 3)
                 filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
-                nci_godfrey_filter_exeybz[lev]->ApplyStencil(Ey[pti], filtered_Ey)
+                eyeli = filtered_Ey.elixir();
+                //nci_godfrey_filter_exeybz[lev]->ApplyStencil(Ey[pti], filtered_Ey)
+                nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Ey, Ey[pti], tbox, box);
                 /*
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
                                         BL_TO_FORTRAN_ANYD(filtered_Ey),
@@ -1239,7 +1248,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 eyfab = &filtered_Ey;
 
                 filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
-                nci_godfrey_filter_bxbyez[lev]->ApplyStencil(Bx[pti], filtered_Bx)
+                bxeli = filtered_Bx.elixir();
+                //nci_godfrey_filter_bxbyez[lev]->ApplyStencil(Bx[pti], filtered_Bx)
+                nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_Bx, Bx[pti], tbox, box);
                 /*
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
                                         BL_TO_FORTRAN_ANYD(filtered_Bx),
@@ -1250,7 +1261,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 bxfab = &filtered_Bx;
 
                 filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
-                nci_godfrey_filter_exeybz[lev]->ApplyStencil(Bz[pti], filtered_Bz)
+                bzeli = filtered_Bz.elixir();
+                //nci_godfrey_filter_exeybz[lev]->ApplyStencil(Bz[pti], filtered_Bz)
+                nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Bz, Bz[pti], tbox, box);
                 /*
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
                                         BL_TO_FORTRAN_ANYD(filtered_Bz),
@@ -1422,6 +1435,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     const FArrayBox* cbyfab = &(*cBy)[pti];
                     const FArrayBox* cbzfab = &(*cBz)[pti];
 
+                    Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
                     if (WarpX::use_fdtd_nci_corr)
                     {
 #if (AMREX_SPACEDIM == 2)
@@ -1435,51 +1449,75 @@ PhysicalParticleContainer::Evolve (int lev,
 
                         // both 2d and 3d
                         filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
+                        exeli = filtered_Ex.elixir();
+                        nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Ex, Ex[pti], tbox, cbox);
+                        /*
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
                                                 BL_TO_FORTRAN_ANYD(filtered_Ex),
                                                 BL_TO_FORTRAN_ANYD((*cEx)[pti]),
                                                 mypc.fdtd_nci_stencilz_ex[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
+                        */
                         cexfab = &filtered_Ex;
 
                         filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
+                        ezeli = filtered_Ez.elixir();
+                        nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_Ez, Ez[pti], tbox, cbox);
+                        /*
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
                                                 BL_TO_FORTRAN_ANYD(filtered_Ez),
                                                 BL_TO_FORTRAN_ANYD((*cEz)[pti]),
                                                 mypc.fdtd_nci_stencilz_by[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
                         cezfab = &filtered_Ez;
+                        */
                         filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
+                        byeli = filtered_By.elixir();
+                        nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_By, By[pti], tbox, cbox);
+                        /*
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
                                                 BL_TO_FORTRAN_ANYD(filtered_By),
                                                 BL_TO_FORTRAN_ANYD((*cBy)[pti]),
                                                 mypc.fdtd_nci_stencilz_by[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
+                        */
                         cbyfab = &filtered_By;
 
 #if (AMREX_SPACEDIM == 3)
                         filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
+                        eyeli = filtered_Ey.elixir();
+                        nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Ey, Ey[pti], tbox, cbox);
+                        /*
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
                                                 BL_TO_FORTRAN_ANYD(filtered_Ey),
                                                 BL_TO_FORTRAN_ANYD((*cEy)[pti]),
                                                 mypc.fdtd_nci_stencilz_ex[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
+                        */
                         ceyfab = &filtered_Ey;
                         
                         filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
+                        bxeli = filtered_Bx.elixir();
+                        nci_godfrey_filter_bxbyez[lev]->ApplyStencil(filtered_Bx, Bx[pti], tbox, cbox);
+                        /*
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
                                                 BL_TO_FORTRAN_ANYD(filtered_Bx),
                                                 BL_TO_FORTRAN_ANYD((*cBx)[pti]),
                                                 mypc.fdtd_nci_stencilz_by[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
+                        */
                         cbxfab = &filtered_Bx;
                         
                         filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
+                        bzeli = filtered_Bz.elixir();
+                        nci_godfrey_filter_exeybz[lev]->ApplyStencil(filtered_Bz, Bz[pti], tbox, cbox);
+                        /*
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
                                                 BL_TO_FORTRAN_ANYD(filtered_Bz),
                                                 BL_TO_FORTRAN_ANYD((*cBz)[pti]),
                                                 mypc.fdtd_nci_stencilz_ex[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
+                        */
                         cbzfab = &filtered_Bz;
 #endif
                     }

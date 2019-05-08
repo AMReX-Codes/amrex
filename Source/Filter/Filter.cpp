@@ -12,7 +12,7 @@ using namespace amrex;
 void
 Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
-    BL_PROFILE("BilinearFilter::ApplyStencil()");
+    BL_PROFILE("BilinearFilter::ApplyStencil(MultiFab)");
     ncomp = std::min(ncomp, srcmf.nComp());
 
     for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
@@ -41,6 +41,43 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
         // Apply filter
         DoFilter(tbx, tmp, dst, 0, dcomp, ncomp);
     }
+}
+
+void
+Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab, const Box& tbx, 
+                      const Box& srcbx, int scomp, int dcomp, int ncomp)
+{
+    BL_PROFILE("BilinearFilter::ApplyStencil(FArrayBox)");
+    ncomp = std::min(ncomp, srcfab.nComp());
+
+    //    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
+    //{
+        const auto& src = srcfab.array(mfi);
+        const auto& dst = dstfab.array(mfi);
+        // const Box& tbx = mfi.growntilebox();
+        const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
+
+        // tmpfab has enough ghost cells for the stencil
+        FArrayBox tmp_fab(gbx,ncomp);
+        Elixir tmp_eli = tmp_fab.elixir();  // Prevent the tmp data from being deleted too early
+        auto const& tmp = tmp_fab.array();
+
+        // Copy values in srcfab into tmpfab
+        // const Box& ibx = gbx & srcmf[mfi].box();
+        const Box& ibx = gbx & srcbx;
+        
+        AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
+        {
+            if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                tmp(i,j,k,n) = src(i,j,k,n+scomp);
+            } else {
+                tmp(i,j,k,n) = 0.0;
+            }
+        });
+
+        // Apply filter
+        DoFilter(tbx, tmp, dst, 0, dcomp, ncomp);
+        //}
 }
 
 void Filter::DoFilter (const Box& tbx,
@@ -114,6 +151,36 @@ Filter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dco
             DoFilter(tbx, tmpfab.array(), dstfab.array(), 0, dcomp, ncomp);
         }
     }
+}
+
+void
+Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab, const Box& tbx, const Box& srcbx, int scomp, int dcomp, int ncomp)
+{
+    BL_PROFILE("BilinearFilter::ApplyStencil(FArrayBox)");
+    ncomp = std::min(ncomp, srcfab.nComp());
+    //#ifdef _OPENMP
+    //#pragma omp parallel
+    //#endif
+    //{
+        FArrayBox tmpfab;
+        //for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi){
+        //const auto& srcfab = srcmf[mfi];
+        //   auto& dstfab = dstmf[mfi];
+        //const auto& srcfab = srcmf[mfi];
+        //  auto& dstfab = dstmf[mfi];
+        //  const Box& tbx = mfi.growntilebox();
+            const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
+            // tmpfab has enough ghost cells for the stencil
+            tmpfab.resize(gbx,ncomp);
+            tmpfab.setVal(0.0, gbx, 0, ncomp);
+            // Copy values in srcfab into tmpfab
+            //const Box& ibx = gbx & srcfab.box();
+            const Box& ibx = gbx & srcbx;
+            tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
+            // Apply filter
+            DoFilter(tbx, tmpfab.array(), dstfab.array(), 0, dcomp, ncomp);
+            //}
+        //}
 }
 
 void Filter::DoFilter (const Box& tbx,

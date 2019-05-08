@@ -13,8 +13,10 @@ NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdt
     cdtodz = cdtodz_;
     l_lower_order_in_v = l_lower_order_in_v_;
 #if (AMREX_SPACEDIM == 3)
+    stencil_length_each_dir = {1,1,5};
     slen = {1,1,5};
 #else
+    stencil_length_each_dir = {1,5};
     slen = {1,5,1};
 #endif    
 }

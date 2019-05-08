@@ -14,6 +14,11 @@ public:
                               const amrex::MultiFab& srcmf, int scomp=0, 
                               int dcomp=0, int ncomp=10000);
 
+    void ApplyStencil (amrex::FArrayBox& dstfab, 
+                       const amrex::FArrayBox& srcfab, const amrex::Box& tbx, 
+                       const amrex::Box& srcbx, 
+                       int scomp=0, int dcomp=0, int ncomp=10000);
+
     // public for cuda
     void DoFilter(const amrex::Box& tbx,
                           amrex::Array4<amrex::Real const> const& tmp,
