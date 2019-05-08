@@ -3,11 +3,12 @@
 
 #include <SpectralKSpace.H>
 #include <SpectralFieldData.H>
+#include <SpectralBaseAlgorithm.H>
 
 /* \brief Class that updates the field in spectral space
  * and stores the coefficients of the corresponding update equation.
  */
-class PsatdAlgorithm
+class PsatdAlgorithm : public SpectralBaseAlgorithm
 {
     using SpectralCoefficients = amrex::FabArray< amrex::BaseFab <amrex::Real> >;
 

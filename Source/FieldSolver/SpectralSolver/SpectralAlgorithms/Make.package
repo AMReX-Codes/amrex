@@ -1,0 +1,6 @@
+CEXE_headers += SpectralBaseAlgorithm.H
+CEXE_headers += PsatdAlgorithm.H
+CEXE_sources += PsatdAlgorithm.cpp
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralAlgorithms
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/SpectralAlgorithms

@@ -144,6 +144,13 @@ public:
     static amrex::IntVect filter_npass_each_dir;
     BilinearFilter bilinear_filter;
 
+    static int num_mirrors;
+    amrex::Vector<amrex::Real> mirror_z;
+    amrex::Vector<amrex::Real> mirror_z_width;
+    amrex::Vector<int> mirror_z_npoints;
+    
+    void applyMirrors(amrex::Real time);
+
     void ComputeDt ();
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
@@ -469,10 +476,10 @@ private:
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
-    int do_plasma_injection  = 0;
+    int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
-
+    
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;

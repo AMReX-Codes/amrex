@@ -17,25 +17,9 @@ single directory (e.g. ``warpx_directory``):
 
     mkdir warpx_directory
     cd warpx_directory
-    git clone https://github.com/ECP-WarpX/WarpX.git
-    git clone https://bitbucket.org/berkeleylab/picsar.git
-    git clone https://github.com/AMReX-Codes/amrex.git
-
-Then switch to the branch ``development`` of AMReX
-
-::
-
-    cd amrex/
-    git checkout development
-    cd ..
-
-and to the branch ``dev`` of WarpX
-
-::
-
-    cd WarpX/
-    git checkout dev
-    cd ..
+    git clone --branch dev https://github.com/ECP-WarpX/WarpX.git
+    git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+    git clone --branch developement https://github.com/AMReX-Codes/amrex.git
 
 Basic compilation
 -----------------
@@ -60,7 +44,7 @@ This will generate an executable file in the ``Bin`` directory.
         * Choose a given compiler
 
     For a description of these different options, see the `corresponding page
-    <https://amrex-codes.github.io/amrex/BuildingAMReX.html#building-with-gnu-make>`__ in
+    <https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html>`__ in
     the AMReX documentation.
 
     Alternatively, instead of modifying the file ``GNUmakefile``, you can

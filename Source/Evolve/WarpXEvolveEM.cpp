@@ -1,10 +1,10 @@
-
 #include <cmath>
 #include <limits>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
+#include <WarpXUtil.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -38,7 +38,7 @@ WarpX::EvolveEM (int numsteps)
     {
         Real walltime_beg_step = amrex::second();
 
-	// Start loop on time steps
+        // Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 #ifdef WARPX_USE_PY
         if (warpx_py_beforestep) warpx_py_beforestep();
@@ -53,16 +53,16 @@ WarpX::EvolveEM (int numsteps)
             if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
-		// Reset the costs to 0
-		for (int lev = 0; lev <= finest_level; ++lev) {
-		  costs[lev]->setVal(0.0);
-		}
+                // Reset the costs to 0
+                for (int lev = 0; lev <= finest_level; ++lev) {
+                    costs[lev]->setVal(0.0);
+                }
             }
 
             for (int lev = 0; lev <= finest_level; ++lev) {
-	      // Perform running average of the costs
-	      // (Giving more importance to most recent costs)
-	      (*costs[lev].get()).mult( (1. - 2./load_balance_int) );
+                // Perform running average of the costs
+                // (Giving more importance to most recent costs)
+                (*costs[lev].get()).mult( (1. - 2./load_balance_int) );
             }
         }
 
@@ -85,8 +85,8 @@ WarpX::EvolveEM (int numsteps)
             amrex::Print() << " in evolve after pushP \n";
 
         } else {
-           // Beyond one step, we have E^{n} and B^{n}.
-           // Particles have p^{n-1/2} and x^{n}.
+            // Beyond one step, we have E^{n} and B^{n}.
+            // Particles have p^{n-1/2} and x^{n}.
             FillBoundaryE();
             FillBoundaryB();
             UpdateAuxilaryData();
@@ -104,6 +104,10 @@ WarpX::EvolveEM (int numsteps)
         }
         amrex::Print() << " in evolve after onestep no sub  \n";
 
+        if (num_mirrors>0){
+            applyMirrors(cur_time);
+        }
+
 #ifdef WARPX_USE_PY
         if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
 #endif
@@ -112,8 +116,10 @@ WarpX::EvolveEM (int numsteps)
             UpdateAuxilaryData();
             for (int lev = 0; lev <= finest_level; ++lev) {
                 mypc->PushP(lev, 0.5*dt[lev],
-                    *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-                    *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+                            *Efield_aux[lev][0],*Efield_aux[lev][1],
+                            *Efield_aux[lev][2],
+                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],
+                            *Bfield_aux[lev][2]);
             }
             is_synchronized = true;
         }
@@ -125,18 +131,18 @@ WarpX::EvolveEM (int numsteps)
             ++istep[lev];
         }
 
-	cur_time += dt[0];
+        cur_time += dt[0];
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
         bool do_insitu = ((step+1) >= insitu_start) &&
-             (insitu_int > 0) && ((step+1) % insitu_int == 0);
+            (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
         bool move_j = is_synchronized || to_make_plot || do_insitu;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
 
-	int num_moved = MoveWindow(move_j);
+        int num_moved = MoveWindow(move_j);
         
         if (max_level == 0) {
             int num_redistribute_ghost = num_moved + 1;
@@ -146,11 +152,11 @@ WarpX::EvolveEM (int numsteps)
             mypc->Redistribute();
         }
 
-	bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
-	if (to_sort) {
-	    amrex::Print() << "re-sorting particles \n";
-	    mypc->SortParticlesByCell();
-	}
+        bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
+        if (to_sort) {
+            amrex::Print() << "re-sorting particles \n";
+            mypc->SortParticlesByCell();
+        }
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
@@ -160,10 +166,10 @@ WarpX::EvolveEM (int numsteps)
                       << " s; This step = " << walltime_end_step-walltime_beg_step
                       << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
-	// sync up time
-	for (int i = 0; i <= max_level; ++i) {
-	    t_new[i] = cur_time;
-	}
+        // sync up time
+        for (int i = 0; i <= max_level; ++i) {
+            t_new[i] = cur_time;
+        }
 
         if (do_boosted_frame_diagnostic) {
             std::unique_ptr<MultiFab> cell_centered_data = nullptr;
@@ -173,7 +179,7 @@ WarpX::EvolveEM (int numsteps)
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
-	if (to_make_plot || do_insitu)
+        if (to_make_plot || do_insitu)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -185,34 +191,34 @@ WarpX::EvolveEM (int numsteps)
                                   *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
 
-	    last_plot_file_step = step+1;
-	    last_insitu_step = step+1;
+            last_plot_file_step = step+1;
+            last_insitu_step = step+1;
 
-        if (to_make_plot)
-    	    WritePlotFile();
+            if (to_make_plot)
+                WritePlotFile();
 
-        if (do_insitu)
-            UpdateInSitu();
-	}
+            if (do_insitu)
+                UpdateInSitu();
+        }
 
+        if (check_int > 0 && (step+1) % check_int == 0) {
+            last_check_file_step = step+1;
+            WriteCheckPointFile();
+        }
 
-	if (check_int > 0 && (step+1) % check_int == 0) {
-	    last_check_file_step = step+1;
-	    WriteCheckPointFile();
-	}
-
-	if (cur_time >= stop_time - 1.e-3*dt[0]) {
-	    max_time_reached = true;
-	    break;
-	}
+        if (cur_time >= stop_time - 1.e-3*dt[0]) {
+            max_time_reached = true;
+            break;
+        }
 
 #ifdef WARPX_USE_PY
         if (warpx_py_afterstep) warpx_py_afterstep();
 #endif
-	// End loop on time steps
+        // End loop on time steps
     }
 
-    bool write_plot_file = plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step);
+    bool write_plot_file = plot_int > 0 && istep[0] > last_plot_file_step 
+        && (max_time_reached || istep[0] >= max_step);
 
     bool do_insitu = (insitu_start >= istep[0]) && (insitu_int > 0) &&
         (istep[0] > last_insitu_step) && (max_time_reached || istep[0] >= max_step);
@@ -225,8 +231,10 @@ WarpX::EvolveEM (int numsteps)
 
         for (int lev = 0; lev <= finest_level; ++lev) {
             mypc->FieldGather(lev,
-                              *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-                              *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+                              *Efield_aux[lev][0],*Efield_aux[lev][1],
+                              *Efield_aux[lev][2],
+                              *Bfield_aux[lev][0],*Bfield_aux[lev][1],
+                              *Bfield_aux[lev][2]);
         }
 
         if (write_plot_file)
@@ -236,8 +244,9 @@ WarpX::EvolveEM (int numsteps)
             UpdateInSitu();
     }
 
-    if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
-	WriteCheckPointFile();
+    if (check_int > 0 && istep[0] > last_check_file_step && 
+        (max_time_reached || istep[0] >= max_step)) {
+        WriteCheckPointFile();
     }
 
     if (do_boosted_frame_diagnostic) {
@@ -265,8 +274,9 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_particlescraper) warpx_py_particlescraper();
     if (warpx_py_beforedeposition) warpx_py_beforedeposition();
 #endif
-
+    amrex::Print() << " before push \n";
     PushParticlesandDepose(cur_time);
+    amrex::Print() << " after push \n";
 
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
@@ -473,23 +483,23 @@ WarpX::ComputeDt ()
     Real deltat = 0.;
 
     if (maxwell_fdtd_solver_id == 0) {
-      // CFL time step Yee solver
+        // CFL time step Yee solver
 #ifdef WARPX_RZ
-      // Derived semi-analytically by R. Lehe
-      deltat  = cfl * 1./( std::sqrt((1+0.2105)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
+        // Derived semi-analytically by R. Lehe
+        deltat  = cfl * 1./( std::sqrt((1+0.2105)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
 #else
-      deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
-                                                  + 1./(dx[1]*dx[1]),
-                                                  + 1./(dx[2]*dx[2]))) * PhysConst::c );
+        deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
+                                                      + 1./(dx[1]*dx[1]),
+                                                      + 1./(dx[2]*dx[2]))) * PhysConst::c );
 #endif
     } else {
-      // CFL time step CKC solver
+        // CFL time step CKC solver
 #if (BL_SPACEDIM == 3)
-      const Real delta = std::min(dx[0],std::min(dx[1],dx[2]));
+        const Real delta = std::min(dx[0],std::min(dx[1],dx[2]));
 #elif (BL_SPACEDIM == 2)
-      const Real delta = std::min(dx[0],dx[1]);
+        const Real delta = std::min(dx[0],dx[1]);
 #endif
-      deltat = cfl*delta/PhysConst::c;
+        deltat = cfl*delta/PhysConst::c;
     }
     dt.resize(0);
     dt.resize(max_level+1,deltat);
@@ -502,5 +512,63 @@ WarpX::ComputeDt ()
 
     if (do_electrostatic) {
         dt[0] = const_dt;
+    }
+}
+
+/* \brief Apply perfect mirror condition inside the box (not at a boundary).
+ * In practice, set all fields to 0 on a section of the simulation domain
+ * (as for a perfect conductor with a given thickness). 
+ * The mirror normal direction has to be parallel to the z axis.
+ */
+void
+WarpX::applyMirrors(Real time){
+    // Loop over the mirrors
+    for(int i_mirror=0; i_mirror<num_mirrors; ++i_mirror){
+        // Get mirror properties (lower and upper z bounds)
+        Real z_min = mirror_z[i_mirror];
+        Real z_max_tmp = z_min + mirror_z_width[i_mirror];
+        // Boost quantities for boosted frame simulations
+        if (gamma_boost>1){
+            z_min = z_min/gamma_boost - PhysConst::c*beta_boost*time;
+            z_max_tmp = z_max_tmp/gamma_boost - PhysConst::c*beta_boost*time;
+        }
+        // Loop over levels
+        for(int lev=0; lev<=finest_level; lev++){
+            // Make sure that the mirror contains at least 
+            // mirror_z_npoints[i_mirror] cells
+            Real dz = WarpX::CellSize(lev)[2];
+            Real z_max = std::max(z_max_tmp, 
+                                  z_min+mirror_z_npoints[i_mirror]*dz);
+            // Get fine patch field MultiFabs
+            MultiFab& Ex = *Efield_fp[lev][0].get();
+            MultiFab& Ey = *Efield_fp[lev][1].get();
+            MultiFab& Ez = *Efield_fp[lev][2].get();
+            MultiFab& Bx = *Bfield_fp[lev][0].get();
+            MultiFab& By = *Bfield_fp[lev][1].get();
+            MultiFab& Bz = *Bfield_fp[lev][2].get();
+            // Set each field to zero between z_min and z_max
+            NullifyMF(Ex, lev, z_min, z_max);
+            NullifyMF(Ey, lev, z_min, z_max);
+            NullifyMF(Ez, lev, z_min, z_max);
+            NullifyMF(Bx, lev, z_min, z_max);
+            NullifyMF(By, lev, z_min, z_max);
+            NullifyMF(Bz, lev, z_min, z_max);
+            if (lev>0){
+                // Get coarse patch field MultiFabs
+                MultiFab& Ex = *Efield_cp[lev][0].get();
+                MultiFab& Ey = *Efield_cp[lev][1].get();
+                MultiFab& Ez = *Efield_cp[lev][2].get();
+                MultiFab& Bx = *Bfield_cp[lev][0].get();
+                MultiFab& By = *Bfield_cp[lev][1].get();
+                MultiFab& Bz = *Bfield_cp[lev][2].get();
+                // Set each field to zero between z_min and z_max
+                NullifyMF(Ex, lev, z_min, z_max);
+                NullifyMF(Ey, lev, z_min, z_max);
+                NullifyMF(Ez, lev, z_min, z_max);
+                NullifyMF(Bx, lev, z_min, z_max);
+                NullifyMF(By, lev, z_min, z_max);
+                NullifyMF(Bz, lev, z_min, z_max);
+            }
+        }
     }
 }

@@ -608,6 +608,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
 #ifdef AMREX_USE_GPU
+      amrex::Print() << " before icomp data ptr " << icomp << "\n";
       data_ptr = (*rhomf)[pti].dataPtr(icomp);
       auto rholen = (*rhomf)[pti].length();
 #else
@@ -630,6 +631,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const long nz = rholen[1]-1-2*ngRho;
 #endif
       BL_PROFILE_VAR_START(blp_pxr_chd);
+      amrex::Print() << " before warpxcharge deposition \n";
       warpx_charge_deposition(data_ptr, &np_current,
                               m_xp[thread_num].dataPtr(),
                               m_yp[thread_num].dataPtr(),
@@ -641,6 +643,11 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &ngRho, &ngRho, &ngRho,
                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
                               &lvect, &WarpX::charge_deposition_algo);
+#ifdef WARPX_RZ
+      warpx_charge_deposition_rz_volume_scaling(
+                               data_ptr, &ngRho, rholen.getVect(),
+                               &xyzmin[0], &dx[0]);
+#endif
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
 #ifndef AMREX_USE_GPU            
@@ -696,6 +703,11 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &ngRho, &ngRho, &ngRho,
                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
                               &lvect, &WarpX::charge_deposition_algo);
+#ifdef WARPX_RZ
+      warpx_charge_deposition_rz_volume_scaling(
+                               data_ptr, &ngRho, rholen.getVect(),
+                               &cxyzmin_tile[0], &cdx[0]);
+#endif
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
 #ifndef AMREX_USE_GPU            
@@ -852,6 +864,12 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
                                     &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
                                     &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                     &lvect, &WarpX::charge_deposition_algo);
+#ifdef WARPX_RZ
+            long ngRho = WarpX::nox;
+            warpx_charge_deposition_rz_volume_scaling(
+                                     data_ptr, &ngRho, rholen.getVect(),
+                                     &xyzmin[0], &dx[0]);
+#endif
 
 #ifdef _OPENMP
             rhofab.atomicAdd(local_rho);

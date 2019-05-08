@@ -55,11 +55,7 @@ electrons.zmin =  10.e-6
 electrons.profile = constant
 electrons.density = 2.e23  # number of electrons per m^3
 electrons.momentum_distribution_type = "constant"
-
-# Particle Injection
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 0
+electrons.do_continuous_injection = 1
 
 #################################
 ############ PLASMA #############

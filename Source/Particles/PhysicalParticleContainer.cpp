@@ -24,7 +24,7 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
     for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
     {
         int fac;
-	if (injected) {
+	if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
 	    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
 	    Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -81,6 +81,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_backward_propagation", do_backward_propagation);
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
+    pp.query("do_continuous_injection", do_continuous_injection);
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
@@ -361,7 +362,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
             {
                 int fac;
-                if (injected) {
+                if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -602,7 +603,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
             for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
             {
                 int fac;
-                if (injected) {
+                if (do_continuous_injection) {
 #if ( AMREX_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
@@ -1331,7 +1332,9 @@ PhysicalParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
+            amrex::Print() << " before deposit chage \n";
             if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
+            amrex::Print() << " after deposit chage \n";
             
             if (! do_not_push)
             {
@@ -2003,4 +2006,15 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     (*m_refined_injection_mask)(iv2) = ref_fac;
 
     return ref_fac;
+}
+
+/* \brief Inject particles during the simulation
+ * \param injection_box: domain where particles should be injected.
+ */
+void
+PhysicalParticleContainer::ContinuousInjection(const RealBox& injection_box)
+{
+    // Inject plasma on level 0. Paticles will be redistributed.
+    const int lev=0;
+    AddPlasma(lev, injection_box);
 }

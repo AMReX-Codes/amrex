@@ -50,6 +50,8 @@ bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
 bool WarpX::refine_plasma     = false;
 
+int WarpX::num_mirrors = 0;
+
 int  WarpX::sort_int = -1;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
@@ -143,13 +145,14 @@ WarpX::WarpX ()
 
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
-
-    if (do_plasma_injection) {
-        for (int i = 0; i < num_injected_species; ++i) {
-            int ispecies = injected_plasma_species[i];
-            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-            ppc.injected = true;
+    warpx_do_continuous_injection = mypc->doContinuousInjection();
+    if (warpx_do_continuous_injection){
+        if (moving_window_v >= 0){
+            // Inject particles continuously from the right end of the box
+            current_injection_position = geom[0].ProbHi(moving_window_dir);
+        } else {
+            // Inject particles continuously from the left end of the box
+            current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
 
@@ -298,21 +301,6 @@ WarpX::ReadParameters ()
 	    moving_window_v *= PhysConst::c;
 	}
 
-	pp.query("do_plasma_injection", do_plasma_injection);
-	if (do_plasma_injection) {
-        pp.get("num_injected_species", num_injected_species);
-        injected_plasma_species.resize(num_injected_species);
-        pp.getarr("injected_plasma_species", injected_plasma_species,
-                  0, num_injected_species);
-        if (moving_window_v >= 0){
-            // Inject particles continuously from the right end of the box
-            current_injection_position = geom[0].ProbHi(moving_window_dir);
-        } else {
-            // Inject particles continuously from the left end of the box
-            current_injection_position = geom[0].ProbLo(moving_window_dir);
-        }
-	}
-
     pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
     if (do_boosted_frame_diagnostic) {
 
@@ -354,6 +342,16 @@ WarpX::ReadParameters ()
 #if (AMREX_SPACEDIM == 3)
     filter_npass_each_dir[2] = parse_filter_npass_each_dir[2];
 #endif
+
+    pp.query("num_mirrors", num_mirrors);
+    if (num_mirrors>0){
+        mirror_z.resize(num_mirrors);
+        pp.getarr("mirror_z", mirror_z, 0, num_mirrors);
+        mirror_z_width.resize(num_mirrors);
+        pp.getarr("mirror_z_width", mirror_z_width, 0, num_mirrors);
+        mirror_z_npoints.resize(num_mirrors);
+        pp.getarr("mirror_z_npoints", mirror_z_npoints, 0, num_mirrors);
+    }
 
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
@@ -977,12 +975,19 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+#ifdef WARPX_RZ
+        const Real xmin = bx.smallEnd(0)*dx[0];
+#endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data());
+                           dx.data()
+#ifdef WARPX_RZ
+                           ,&xmin
+#endif
+                           );
     }
 }
 
@@ -997,12 +1002,19 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
+#ifdef WARPX_RZ
+        const Real xmin = bx.smallEnd(0)*dx[0];
+#endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data());
+                           dx.data()
+#ifdef WARPX_RZ
+                           ,&xmin
+#endif
+                           );
     }
 }
 

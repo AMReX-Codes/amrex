@@ -169,7 +169,15 @@ public:
                          const amrex::Real z_old, const amrex::Real z_new,
                          const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
                          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
-    
+
+    // Inject particles during the simulation (for particles entering the 
+    // simulation domain after some iterations, due to flowing plasma and/or
+    // moving window).
+    void ContinuousInjection(const amrex::RealBox& injection_box) const;
+    // Update injection position for continuously-injected species.
+    void UpdateContinuousInjectionPosition(amrex::Real dt) const;
+    int doContinuousInjection() const;
+
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.
     // Both stencils are calculated ar runtime.

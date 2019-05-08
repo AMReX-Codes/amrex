@@ -414,3 +414,48 @@ MultiParticleContainer
         }
     }
 }
+
+/* \brief Continuous injection for particles initially outside of the domain.
+ * \param injection_box: Domain where new particles should be injected.
+ * Loop over all WarpXParticleContainer in MultiParticleContainer and 
+ * calls virtual function ContinuousInjection.
+ */
+void
+MultiParticleContainer::ContinuousInjection(const RealBox& injection_box) const
+{
+    for (int i=0; i<nspecies+nlasers; i++){
+        auto& pc = allcontainers[i];
+        if (pc->do_continuous_injection){
+            pc->ContinuousInjection(injection_box);
+        }
+    }
+}
+
+/* \brief Update position of continuous injection parameters.
+ * \param dt: simulation time step (level 0)
+ * All classes inherited from WarpXParticleContainer do not have 
+ * a position to update (PhysicalParticleContainer does not do anything).
+ */
+void
+MultiParticleContainer::UpdateContinuousInjectionPosition(Real dt) const
+{
+    for (int i=0; i<nspecies+nlasers; i++){
+        auto& pc = allcontainers[i];
+        if (pc->do_continuous_injection){
+            pc->UpdateContinuousInjectionPosition(dt);
+        }
+    }
+}
+
+int
+MultiParticleContainer::doContinuousInjection() const
+{
+    int warpx_do_continuous_injection = 0;
+    for (int i=0; i<nspecies+nlasers; i++){
+        auto& pc = allcontainers[i];
+        if (pc->do_continuous_injection){
+            warpx_do_continuous_injection = 1;
+        }
+    }
+    return warpx_do_continuous_injection;
+}
