@@ -46,8 +46,8 @@ public:
 
     void setShearViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& eta);
     void setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& kappa);
-//    void setEBShearViscosity
-//    void setEBBulkViscosity 
+    void setEBShearViscosity (int amrlev, MultiFab const& eta);
+    void setEBBulkViscosity (int amrlev, MultiFab const& kappa);
 
     virtual int getNComp () const final override { return AMREX_SPACEDIM; }
 
@@ -72,16 +72,19 @@ protected:
 
     bool m_needs_update = true;
 
-    Vector<Array<MultiFab,AMREX_SPACEDIM> > m_kappa;
+    bool m_has_kappa = false;
+    bool m_has_eb_kappa = false;
+    Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
+    Vector<Vector<MultiFab> > m_eb_kappa;
 
     // They are always 1 and 1.
     void setScalars (Real a, Real b) noexcept = delete;
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
     void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
     void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
-    void setEBHODirichlet () = delete;
 
-    void applyBCTensor (int amrlev, MultiFab& vel, const MLMGBndry* bndry) const;
+    void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
+                        BCMode bc_mode, const MLMGBndry* bndry) const;
 };
 
 }
