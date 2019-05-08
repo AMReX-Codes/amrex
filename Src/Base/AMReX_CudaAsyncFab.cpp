@@ -8,9 +8,19 @@
 
 extern "C" {
 
+#if (__CUDACC_VER_MAJOR__ >= 10)
+
     void CUDART_CB amrex_devicefab_delete (void* p) {
         delete (amrex::Cuda::AsyncFabImpl*)p;
     }
+
+#else
+
+    void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p) {
+        delete (amrex::Cuda::AsyncFabImpl*)p;
+    }
+
+#endif
 
 }
 
@@ -66,6 +76,7 @@ AsyncFab::clear ()
 #else
             AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
                                                       amrex_devicefab_delete,
+                                                      m_impl, 0));
 #endif
 
         }
