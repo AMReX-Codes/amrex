@@ -53,7 +53,7 @@ namespace amrex
 		Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0)
 		{}
 
-		explicit PODVector (size_type a_size) :
+		explicit PODVector (size_type a_size) noexcept :
 			m_data(nullptr), m_size(0), m_capacity(0) 
 		{
 			AllocateBuffer(GetNewCapacity(a_size));
@@ -61,7 +61,7 @@ namespace amrex
 		}
 	
 		PODVector (size_type a_size, const value_type& a_value,
-				const allocator_type& a_allocator = Allocator()) :
+				const allocator_type& a_allocator = Allocator()) noexcept :
 			Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0) 
 		{
 			AllocateBuffer(GetNewCapacity(a_size));
@@ -70,7 +70,7 @@ namespace amrex
 		}
 	
 		PODVector (std::initializer_list<T> a_initializer_list,
-				const allocator_type& a_allocator = Allocator()) :
+				const allocator_type& a_allocator = Allocator()) noexcept :
 			Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0) 
 		{
 			size_type size = a_initializer_list.size();
@@ -82,7 +82,7 @@ namespace amrex
 			for (const auto& value : a_initializer_list) { *(dst++) = value; }
 		}
 	
-		PODVector (const PODVector<T, Allocator>& a_vector) :
+		PODVector (const PODVector<T, Allocator>& a_vector) noexcept :
 			Allocator(a_vector), m_data(nullptr), m_size(0), m_capacity(0)
 		{
 			AllocateBuffer(a_vector.capacity());
@@ -114,27 +114,27 @@ namespace amrex
 	
 		~PODVector () noexcept { deallocate(m_data, capacity()); }
 	
-		PODVector& operator= (const PODVector<T, Allocator>& a_vector)
+		PODVector& operator= (const PODVector<T, Allocator>& a_vector) noexcept
 		{
 			return CopyAssignmentDoIt(a_vector, typename std::allocator_traits<Allocator>::
 									  propagate_on_container_copy_assignment());
 		}
 	
-		PODVector& operator= (PODVector<T, Allocator>&& a_vector)
-		noexcept(std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
+		PODVector& operator= (PODVector<T, Allocator>&& a_vector) noexcept
+		(std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
 		{
 			return MoveAssignmentDoIt(std::move(a_vector), typename std::allocator_traits<Allocator>::
 									  propagate_on_container_move_assignment());
 		}
 
-		iterator erase (const_iterator a_pos)
+		iterator erase (const_iterator a_pos) noexcept
 		{
 			--m_size;
 			memmove(const_cast<iterator>(a_pos), a_pos+1, (end() - a_pos)*sizeof(T));
 			return const_cast<iterator>(a_pos);
 		}
 
-		iterator erase (const_iterator a_first, const_iterator a_last)
+		iterator erase (const_iterator a_first, const_iterator a_last) noexcept
 		{
 			size_type num_to_erase = a_last - a_first;
 			m_size -= num_to_erase;
@@ -142,7 +142,7 @@ namespace amrex
 			return const_cast<iterator>(a_first);
 		}
 
-		iterator insert (const_iterator a_pos, const T& a_item)
+		iterator insert (const_iterator a_pos, const T& a_item) noexcept
 		{
 			if(m_size == m_capacity)
 			{
@@ -162,7 +162,7 @@ namespace amrex
 			return const_cast<iterator>(a_pos);
 		}
 
-		iterator insert (const_iterator a_pos, size_type a_count, const T& a_value)
+		iterator insert (const_iterator a_pos, size_type a_count, const T& a_value) noexcept
 		{
 			if( capacity() < size() + a_count)
 			{
@@ -182,7 +182,7 @@ namespace amrex
 			return const_cast<iterator>(a_pos);
 		}
 
-		iterator insert (const_iterator a_pos, T&& a_item)
+		iterator insert (const_iterator a_pos, T&& a_item) noexcept
 		{
 			if(m_size == m_capacity)
 			{
@@ -202,7 +202,7 @@ namespace amrex
 			return const_cast<iterator>(a_pos);
 		}
 
-		iterator insert (const_iterator a_pos, std::initializer_list<T> a_initializer_list)
+		iterator insert (const_iterator a_pos, std::initializer_list<T> a_initializer_list) noexcept
 		{
 			size_type count = a_initializer_list.size();
 			if( capacity() < size() + count)
@@ -223,7 +223,7 @@ namespace amrex
 		}    
 
 		template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
-		iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last)
+		iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last) noexcept
 		{
 			size_type count = std::distance(a_first, a_last);
 			if( capacity() < size() + count)
@@ -242,14 +242,14 @@ namespace amrex
 			return const_cast<iterator>(a_pos);
 		}
 
-		void assign (size_type a_count, const T& a_value)
+		void assign (size_type a_count, const T& a_value) noexcept
 		{
 			if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
 			m_size = a_count;
 			std::uninitialized_fill_n<T*, size_type>(m_data, a_count, a_value);
 		}    
 
-		void assign (std::initializer_list<T> a_initializer_list)
+		void assign (std::initializer_list<T> a_initializer_list) noexcept
 		{
 			if(a_initializer_list.size() > capacity())
 				AllocateBuffer(GetNewCapacity(a_initializer_list.size()));
@@ -259,7 +259,7 @@ namespace amrex
 		}    
 
 		template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
-		void assign (InputIt a_first, InputIt a_last)
+		void assign (InputIt a_first, InputIt a_last) noexcept
 		{
 			size_t count = std::distance(a_first, a_last);
 			if (count > capacity()) AllocateBuffer(GetNewCapacity(count));
@@ -271,23 +271,23 @@ namespace amrex
 		
 		allocator_type get_allocator () const noexcept { return *this; }
 	
-		void push_back (const T& a_value)
+		void push_back (const T& a_value) noexcept
 		{
 			if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
 			m_data[m_size] = a_value;
 			++m_size;
 		}
 
-		void push_back (T&& a_value)
+		void push_back (T&& a_value) noexcept
 		{
 			if (m_size == m_capacity) AllocateBuffer(GetNewCapacity(1));
 			m_data[m_size] = std::move(a_value);
 			++m_size;
 		}
 		
-		void pop_back () { --m_size; }
+		void pop_back () noexcept { --m_size; }
 
-		void clear () { m_size = 0; }
+		void clear () noexcept { m_size = 0; }
 	
 		size_type size () const noexcept { return m_size; }
 
@@ -341,13 +341,13 @@ namespace amrex
 	
 		const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
 
-		void resize (size_type a_new_size)
+		void resize (size_type a_new_size) noexcept
 		{
 			if (capacity() < a_new_size) AllocateBuffer(GetNewCapacity(a_new_size - capacity()));
 			m_size = a_new_size;
 		}
 	
-		void resize (size_type a_new_size, const T& a_val)
+		void resize (size_type a_new_size, const T& a_val) noexcept
 		{
 			size_type old_size = size();
 			resize(a_new_size);
@@ -355,12 +355,12 @@ namespace amrex
 				std::uninitialized_fill<T*,size_type>(m_data + old_size, m_data + size(), a_val);
 		}
 
-		void reserve (size_type a_capacity)
+		void reserve (size_type a_capacity) noexcept 
 		{
 			if(capacity() < a_capacity) AllocateBuffer(a_capacity);
 		}
 
-		void shrink_to_fit ()
+		void shrink_to_fit () noexcept
 		{
 			const size_type current_size = size();
 			if ( current_size == 0 )
@@ -405,7 +405,7 @@ namespace amrex
 		}
 
 		// this is where we would play games with the allocator
-		void AllocateBuffer (size_type a_capacity)
+		void AllocateBuffer (size_type a_capacity) noexcept
 		{
 			pointer new_data = allocate(a_capacity);
 			memcpy(new_data, m_data, size() * sizeof(T));
@@ -415,7 +415,7 @@ namespace amrex
 		}
 
 		// need to have this version too
-		void AllocateBufferForInsert(size_type a_capacity, size_type a_index, size_type a_count)
+		void AllocateBufferForInsert(size_type a_capacity, size_type a_index, size_type a_count) noexcept
 		{
 			pointer new_data = allocate(a_capacity);
 			memcpy(new_data, m_data, a_index * sizeof(T));
@@ -426,7 +426,7 @@ namespace amrex
 			m_capacity = a_capacity;
 		}
 
-		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type)
+		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::false_type) noexcept
 		{
 			const size_t other_size = a_vector.size();
 
@@ -439,7 +439,7 @@ namespace amrex
 			return *this;
 		}
 
-		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type)
+		PODVector& CopyAssignmentDoIt (const PODVector<T, Allocator>& a_vector, std::true_type) noexcept
 		{
 			if (static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
 			{
@@ -461,7 +461,7 @@ namespace amrex
 			}
 		}
 
-		PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::false_type)
+		PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::false_type) noexcept
 		{
 			if(static_cast<Allocator&>(a_vector) == static_cast<Allocator&>(*this))
 			{
@@ -484,7 +484,7 @@ namespace amrex
 			return *this;
 		}
 
-		PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::true_type)
+		PODVector& MoveAssignmentDoIt (PODVector<T, Allocator>&& a_vector, std::true_type) noexcept
 		{
 			deallocate(m_data, capacity());
 
