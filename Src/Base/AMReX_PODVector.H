@@ -44,8 +44,12 @@ namespace amrex
 		size_type m_size, m_capacity;
 
 	public:
+
+		explicit PODVector () noexcept :
+		Allocator(), m_data(nullptr), m_size(0), m_capacity(0)
+		{}
 	
-		explicit PODVector (const allocator_type& a_allocator = Allocator()) noexcept :
+		explicit PODVector (const allocator_type& a_allocator) noexcept :
 		Allocator(a_allocator), m_data(nullptr), m_size(0), m_capacity(0)
 		{}
 
