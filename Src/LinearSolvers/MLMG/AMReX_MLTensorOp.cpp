@@ -4,6 +4,10 @@
 
 namespace amrex {
 
+namespace {
+    constexpr int kappa_num_mglevs = 1;
+}
+
 MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
                         const Vector<BoxArray>& a_grids,
                         const Vector<DistributionMapping>& a_dmap,
@@ -32,8 +36,8 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-        m_kappa[amrlev].resize(NMGLevels(amrlev));
-        for (int mglev = 0; mglev < NMGLevels(amrlev); ++mglev) {
+        m_kappa[amrlev].resize(std::min(kappa_num_mglevs,NMGLevels(amrlev)));
+        for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_kappa[amrlev][mglev][idim].define
                     (amrex::convert(m_grids[amrlev][mglev],
@@ -67,7 +71,7 @@ MLTensorOp::prepareForSolve ()
         amrex::Abort("MLTensorOp::prepareForSolve: TODO");
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
-            for (int mglev = 0; mglev < NMGLevels(amrlev); ++mglev) {
+            for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     m_kappa[amrlev][mglev][idim].setVal(0.0);
                 }
@@ -94,12 +98,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     MLABecLaplacian::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-#if 0
-    if (mglev > 0 || bc_mode == BCMode::Homogeneous || s_mode == StateMode::Correction)
-    {
-        return;
-    }
-#endif
+    if (mglev >= m_kappa[amrlev].size()) return;
 
     applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
 
