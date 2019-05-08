@@ -1069,7 +1069,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
                         1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_c2);
                     // Update positions over one time step
                     x[i] += ux[i] * inv_gamma * dt;
-#if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ) // RZ pushes particles in 3D
                     y[i] += uy[i] * inv_gamma * dt;
 #endif
                     z[i] += uz[i] * inv_gamma * dt;
