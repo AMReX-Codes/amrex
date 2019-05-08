@@ -20,7 +20,8 @@ extern "C"
 
     void amrex_eb_set_covered_faces (const int* lo, const int* hi,
                                      amrex_real* data, const int* dlo, const int* dhi,
-                                     const amrex_real* a, const int* alo, const int* ahi);
+                                     const amrex_real* a, const int* alo, const int* ahi,
+                                     const int* ncomp);
 
     void amrex_eb_avgdown_sv (const int* lo, const int* hi,
                               const amrex_real* fine, const int* flo, const int* fhi,
