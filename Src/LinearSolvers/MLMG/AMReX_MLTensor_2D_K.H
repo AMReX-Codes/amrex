@@ -124,14 +124,14 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dudx = (vel(i,j,0,0)-vel(i-1,j,0,0))*dxi;
             Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(0.25*dyi);
             Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(0.25*dyi);
-            Real divu = dudx + dvdy;
-            Real muf = etax(i,j,0);
+            Real divu = dvdy;
             Real xif = kapx(i,j,0);
-            fx(i,j,0,0) = -muf*(dudx-twoThirds*divu) - xif*divu;
-            fx(i,j,0,1) = -muf*dudy;
+            Real mun = 0.75*(etax(i,j,0,0)-xif);  // restore the original eta
+            Real mut =       etax(i,j,0,1);
+            fx(i,j,0,0) = -mun*(-twoThirds*divu) - xif*divu;
+            fx(i,j,0,1) = -mut*dudy;
         }
     }
 }
@@ -152,14 +152,14 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     for     (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            Real dvdy = (vel(i,j,0,1)-vel(i,j-1,0,1))*dyi;
             Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(0.25*dxi);
             Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(0.25*dxi);
-            Real divu = dudx + dvdy;
-            Real muf = etay(i,j,0);
+            Real divu = dudx;
             Real xif = kapy(i,j,0);
-            fy(i,j,0,0) = -muf*dvdx;
-            fy(i,j,0,1) = -muf*(dvdy-twoThirds*divu) - xif*divu;
+            Real mun = 0.75*(etay(i,j,0,1)-xif);  // restore the original eta
+            Real mut =       etay(i,j,0,0);
+            fy(i,j,0,0) = -mut*dvdx;
+            fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
         }
     }
 }
