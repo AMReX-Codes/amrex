@@ -69,6 +69,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                      StateMode s_mode, const MLMGBndry* bndry) const
 {
     BL_PROFILE("MLEBTensorOp::apply()");
+#if 0
 
     MLEBABecLap::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
@@ -148,11 +149,13 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
             }
         }
     }
+#endif
 }
 
 void
 MLEBTensorOp::applyBCTensor (int amrlev, MultiFab& vel, const MLMGBndry* bndry) const
 {
+#if 0
     const int mglev = 0;
     const int imaxorder = maxorder;
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -250,6 +253,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, MultiFab& vel, const MLMGBndry* bndry) 
         });
 #endif
     }
+#endif
 }
 
 }

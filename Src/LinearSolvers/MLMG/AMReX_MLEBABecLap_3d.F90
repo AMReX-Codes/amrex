@@ -24,7 +24,7 @@ contains
        a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, & 
        vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, &
        fcy, cylo, cyhi, fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-       is_dirichlet, is_ho_dirichlet, phieb, plo, phi, is_inhomog, dxinv, alpha, beta) & 
+       is_dirichlet, phieb, plo, phi, is_inhomog, dxinv, alpha, beta) & 
        bind(c, name='amrex_mlebabeclap_adotx') 
 
    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo,&
@@ -32,7 +32,7 @@ contains
         azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, balo, bahi, bclo, bchi, elo, ehi, plo, phi
 
    real(amrex_real), intent(in) :: dxinv(3) 
-   integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet, is_inhomog
+   integer         , value, intent(in) :: is_dirichlet, is_inhomog
    real(amrex_real), value, intent(in) :: alpha, beta
    real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
    real(amrex_real), intent(in   ) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
@@ -158,7 +158,7 @@ contains
                          & fracx*     fracy *bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
                 endif 
 
-                if (is_ho_dirichlet .ne. 0 .or. is_dirichlet .ne. 0)  then
+                if (is_dirichlet .ne. 0)  then
                    anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                         +       (apy(i,j,k)-apy(i,j+1,k))**2 &
                         +       (apz(i,j,k)-apz(i,j,k+1))**2)
@@ -173,19 +173,12 @@ contains
                       phib = zero
                    end if
 
-                   if (is_ho_dirichlet .ne. 0) then
-                      call compute_dphidn_3d_ho(dphidn, dxinv, i, j, k, &
-                                                x,    xlo,  xhi, &
-                                                flag, flo,  fhi, &
-                                                bc(i,j,k,:),  phib, &
-                                                anrmx, anrmy, anrmz)
-                   else if (is_dirichlet .ne. 0) then
-                      call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
-                                             x,    xlo,  xhi, &
-                                             flag, flo,  fhi, &
-                                             bc(i,j,k,:),  phib, &
-                                             anrmx, anrmy, anrmz, vfrc(i,j,k))
-                   end if
+                   call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
+                                          x,    xlo,  xhi, &
+                                          flag, flo,  fhi, &
+                                          bc(i,j,k,:),  phib, &
+                                          anrmx, anrmy, anrmz, vfrc(i,j,k))
+
                    feb = dphidn * ba(i,j,k) * beb(i,j,k)
                 else
                    feb = zero
@@ -212,7 +205,7 @@ contains
      flag, flo, fhi, vfrc, vlo, vhi, & 
      apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
      fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-     is_dirichlet, is_ho_dirichlet, &
+     is_dirichlet, &
      dxinv, alpha, beta, redblack) & 
      bind(c,name='amrex_mlebabeclap_gsrb') 
 
@@ -223,7 +216,7 @@ contains
          axlo, axhi, aylo, ayhi, azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, &
          balo, bahi, bclo, bchi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(3)
-    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet
+    integer         , value, intent(in) :: is_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     integer         , value, intent(in) :: redblack
     real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2), hlo(3): hhi(3)  )
@@ -428,7 +421,7 @@ contains
                           dhy*(apy(i,j,k)*oym-apy(i,j+1,k)*oyp) + &
                           dhz*(apz(i,j,k)*ozm-apz(i,j,k+1)*ozp))
 
-                    if (is_ho_dirichlet .ne. 0 .or. is_dirichlet .eq. 0) then
+                    if (is_dirichlet .eq. 0) then
 
                        anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                             +       (apy(i,j,k)-apy(i,j+1,k))**2 &
@@ -440,24 +433,6 @@ contains
 
                        ! In gsrb we are always in residual-correction form so phib = 0
                        phib = zero 
-
-                    end if
-
-                    if (is_ho_dirichlet .ne. 0) then
-                       call compute_dphidn_3d_ho(dphidn, dxinv, i, j, k, &
-                                                 phi,  hlo,  hhi, &
-                                                 flag, flo,  fhi, &
-                                                 bc(i,j,k,:), phib,     &
-                                                 anrmx, anrmy, anrmz)
-   
-                       ! We should modify these but haven't done it yet
-                       ! feb_gamma = -phig_gamma * (ba(i,j,k)*beb(i,j,k)/dg)
-                       ! gamma = gamma + vfrcinv*(-dhx)*feb_gamma
-
-                       feb = dphidn * ba(i,j,k) * beb(i,j,k)
-                       rho = rho - vfrcinv*(-dhx)*feb
-
-                    else if (is_dirichlet .ne. 0) then
 
                        anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                             +       (apy(i,j,k)-apy(i,j+1,k))**2 &
@@ -524,13 +499,13 @@ contains
        bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi,apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
        fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-       is_dirichlet, is_ho_dirichlet, dxinv, alpha, beta) &
+       is_dirichlet, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
 
     integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, bzlo, bzhi, &
          cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi,azlo, azhi, &
          cxlo, cxhi, cylo, cyhi, czlo, czhi, balo, bahi, bclo, bchi, elo, ehi
-    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet
+    integer         , value, intent(in) :: is_dirichlet
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3)  )
@@ -631,7 +606,7 @@ contains
                    dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
                    dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
 
-             if (is_dirichlet .ne. 0 .or. is_ho_dirichlet .ne. 0) then
+             if (is_dirichlet .ne. 0) then
                 anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                      +       (apy(i,j,k)-apy(i,j+1,k))**2 &
                      +       (apz(i,j,k)-apz(i,j,k+1))**2)

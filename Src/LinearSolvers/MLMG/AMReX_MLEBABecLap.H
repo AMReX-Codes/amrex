@@ -45,9 +45,6 @@ public:
     // Tells the solver that EB boundaries have homogeneous Dirichlet bc's
     void setEBHomogDirichlet (int amrlev,                      const MultiFab& beta);
 
-    // Tells the solver to use the Higher Order Dirichlet stencil at EB boundaries 
-    void setEBHODirichlet    ();
-
     virtual bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
     }
@@ -119,13 +116,11 @@ protected:
     Vector<int> m_is_singular;
 
     mutable int m_is_eb_inhomog;
-    mutable int m_is_eb_ho_dir = false;
 
     //
     // functions
     //
     bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
-    bool isHOEBDirichlet () const noexcept { return m_is_eb_ho_dir;}
 
     void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,

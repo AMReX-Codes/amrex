@@ -115,7 +115,6 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& kapx,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
-    const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -144,7 +143,6 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const Real dxi = dxinv[0];
-    const Real dyi = dxinv[1];
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
     constexpr Real twoThirds = 2./3.;
