@@ -9,7 +9,7 @@ WarpX::UpdatePlasmaInjectionPosition (Real dt)
 {
     int dir = moving_window_dir;
     // Continuously inject plasma in new cells (by default only on level 0)
-    if (WarpX::do_plasma_injection and (WarpX::gamma_boost > 1)){
+    if (WarpX::warpx_do_continuous_injection and (WarpX::gamma_boost > 1)){
         // In boosted-frame simulations, the plasma has moved since the last
         // call to this function, and injection position needs to be updated
         current_injection_position -= WarpX::beta_boost *
@@ -33,7 +33,16 @@ WarpX::MoveWindow (bool move_j)
     // and of the plasma injection
     moving_window_x += moving_window_v * dt[0];
     int dir = moving_window_dir;
+
+    // Update warpx.current_injection_position
+    // PhysicalParticleContainer uses this injection position
     UpdatePlasmaInjectionPosition( dt[0] );
+    if (WarpX::warpx_do_continuous_injection){
+        // Update injection position for WarpXParticleContainer in mypc.
+        // Nothing to do for PhysicalParticleContainers
+        // For LaserParticleContainer, need to update the antenna position.
+        mypc->UpdateContinuousInjectionPosition( dt[0] );
+    }
 
     // compute the number of cells to shift on the base level
     Real new_lo[AMREX_SPACEDIM];
@@ -134,7 +143,7 @@ WarpX::MoveWindow (bool move_j)
     }
 
     // Continuously inject plasma in new cells (by default only on level 0)
-    if (WarpX::do_plasma_injection) {
+    if (WarpX::warpx_do_continuous_injection) {
 
         const int lev = 0;
 
@@ -162,15 +171,11 @@ WarpX::MoveWindow (bool move_j)
             particleBox.setLo( dir, new_injection_position );
             particleBox.setHi( dir, current_injection_position );
         }
-        // Perform the injection of new particles in particleBox
+
         if (particleBox.ok() and (current_injection_position != new_injection_position)){
-            for (int i = 0; i < num_injected_species; ++i) {
-                int ispecies = injected_plasma_species[i];
-                WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-                auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-                ppc.AddPlasma(lev, particleBox);
-            }
-            // Update the injection position
+            // Performs continuous injection of all WarpXParticleContainer
+            // in mypc.
+            mypc->ContinuousInjection(particleBox);
             current_injection_position = new_injection_position;
         }
     }

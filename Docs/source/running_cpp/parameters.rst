@@ -154,6 +154,11 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+* ``<species_name>.do_continuous_injection`` (`0` or `1`)
+    Whether to inject particles during the simulation, and not only at 
+    initialization. This can be required whith a moving window and/or when 
+    running in a boosted frame.
+
 * ``<species_name>.profile`` (`string`)
     Density profile for this species. The options are:
 
@@ -407,6 +412,17 @@ Laser initialization
 * ``<laser_name>.phi2`` (`float`; in seconds**2) optional (default `0.`)
     Temporal chirp at focus.
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
+
+* ``<laser_name>.do_continuous_injection`` (`0` or `1`) optional (default `0`).
+    Whether or not to use continuous injection (`0` or not `0`).
+    If the antenna starts outside of the simulation domain but enters it 
+    at some point (due to moving window or moving antenna in the boosted 
+    frame), use this so that the laser antenna is injected when it reaches 
+    the box boundary. If running in a boosted frame, this requires the 
+    boost direction, moving window direction and laser propagation direction 
+    to be along `z`. If not running in a boosted frame, this requires the 
+    moving window and laser propagation directions to be the same (`x`, `y` 
+    or `z`)
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
     Users can input perfect mirror condition inside the simulation domain.
