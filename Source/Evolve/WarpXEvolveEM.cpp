@@ -25,7 +25,7 @@ WarpX::EvolveEM (int numsteps)
     static int last_check_file_step = 0;
     static int last_insitu_step = 0;
 
-    if (zmax_plasma_to_compute_max_step != std::numeric_limits<Real>::lowest()){
+    if (do_compute_max_step_from_zmax){
         computeMaxStepBoostAccelerator(geom[0]);
     }
 

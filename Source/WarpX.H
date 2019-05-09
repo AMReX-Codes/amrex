@@ -109,6 +109,7 @@ public:
     static amrex::Real beta_boost;
     static amrex::Vector<int> boost_direction;
     static amrex::Real zmax_plasma_to_compute_max_step;
+    static int do_compute_max_step_from_zmax;
 
     static bool do_dynamic_scheduling;
     static bool refine_plasma;
