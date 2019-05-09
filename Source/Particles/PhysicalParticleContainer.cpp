@@ -1374,7 +1374,6 @@ PhysicalParticleContainer::Evolve (int lev,
                     const FArrayBox* cbyfab = &(*cBy)[pti];
                     const FArrayBox* cbzfab = &(*cBz)[pti];
 
-                    Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
                     if (WarpX::use_fdtd_nci_corr)
                     {
 #if (AMREX_SPACEDIM == 2)
