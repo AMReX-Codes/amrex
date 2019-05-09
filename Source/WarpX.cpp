@@ -651,7 +651,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + 4;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;

@@ -55,7 +55,6 @@ void NCIGodfreyFilter::ComputeStencils(){
     Real weight_right = cdtodz - index/tab_length;
     Real prestencil[4];
     for(int i=0; i<tab_width; i++){
-        Print()<<"i "<<i<<std::endl;
         prestencil[i] = (1-weight_right)*table_nci[index][i] + weight_right*table_nci[index+1][i];
     }
 

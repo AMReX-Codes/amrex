@@ -162,8 +162,6 @@ WarpX::InitNCICorrector ()
 {
     if (WarpX::use_fdtd_nci_corr)
     {
-        mypc->fdtd_nci_stencilz_ex.resize(max_level+1);
-        mypc->fdtd_nci_stencilz_by.resize(max_level+1);
         for (int lev = 0; lev <= max_level; ++lev)
         {
             const Geometry& gm = Geom(lev);
