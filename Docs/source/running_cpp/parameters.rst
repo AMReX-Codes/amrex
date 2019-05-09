@@ -547,6 +547,20 @@ Numerics and algorithms
     same points in space) or a staggered grid (i.e. Yee grid ; different
     fields are defined at different points in space)
 
+* ``warpx.do_subcycling`` (`0` or `1`; default: 0)
+    Whether or not to use sub-cycling. Different refinement levels have a 
+    different cell size, which results in different Courant–Friedrichs–Lewy 
+    (CFL) limits for the time step. By default, when using mesh refinement, 
+    the same time step is used for all levels. This time step is 
+    taken as the CFL limit of the finest level. Hence, for coarser 
+    levels, the timestep is only a fraction of the CFL limit for this 
+    level, which may lead to numerical artifacts. With sub-cycling, each level 
+    evolves with its own time step, set to its own CFL limit. In practice, it 
+    means that when level 0 performs one iteration, level 1 performs two 
+    iterations. Currently, this option is only supported when 
+    ``amr.max_level = 1``. More information can be found at 
+    https://ieeexplore.ieee.org/document/8659392.
+
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
 
