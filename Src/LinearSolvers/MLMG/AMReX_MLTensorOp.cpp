@@ -82,7 +82,8 @@ MLTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3., m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
+            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+                           m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
         }
     }
 
