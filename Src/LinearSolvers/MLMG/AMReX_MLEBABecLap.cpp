@@ -7,9 +7,9 @@
 
 #include <AMReX_MG_K.H>
 #include <AMReX_MLABecLap_K.H>
-#include <AMReX_MLEBABecLap_F.H>
+#include <AMReX_MLEBABecLap_K.H>
 #include <AMReX_MLLinOp_K.H>
-#include <AMReX_MLLinOp_F.H>
+#include <AMReX_MLEBABecLap_F.H>
 #include <AMReX_EBMultiFabUtil_F.H>
 
 #ifdef AMREX_USE_HYPRE
@@ -161,6 +161,8 @@ void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
 {
     // todo: gpu
+    Gpu::LaunchSafeGuard lg(false);
+
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
@@ -192,13 +194,21 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
             phifab.setVal(0.0, bx, 0, ncomp);
             betafab.setVal(0.0, bx, 0, ncomp);
         } else {
-            amrex_eb_copy_dirichlet(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(phifab),
-                                    BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                    BL_TO_FORTRAN_ANYD(betafab),
-                                    BL_TO_FORTRAN_ANYD(beta[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                    ncomp);
+            Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
+            Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
+            Array4<Real const> const& phiin = phi.array(mfi);
+            Array4<Real const> const& betain = beta.array(mfi);
+            const auto& flag = flags->array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flag(i,j,k).isSingleValued()) {
+                    phiout(i,j,k,n) = phiin(i,j,k,n);
+                    betaout(i,j,k,n) = betain(i,j,k,0);
+                } else {
+                    phiout(i,j,k,n) = 0.0;
+                    betaout(i,j,k,n) = 0.0;
+                }
+            });
         }
     }
 }
@@ -207,6 +217,8 @@ void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
     // todo: gpu
+    Gpu::LaunchSafeGuard lg(false);
+
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
@@ -234,16 +246,21 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         FArrayBox& phifab = (*m_eb_phi[amrlev])[mfi];
         FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        phifab.setVal(0.0, bx, 0, ncomp);
         if (FabType::regular == t or FabType::covered == t) {
-            phifab.setVal(0.0, bx, 0, ncomp);
             betafab.setVal(0.0, bx, 0, ncomp);
         } else {
-            amrex_eb_homog_dirichlet(BL_TO_FORTRAN_BOX(bx),
-                                     BL_TO_FORTRAN_ANYD(phifab),
-                                     BL_TO_FORTRAN_ANYD(betafab),
-                                     BL_TO_FORTRAN_ANYD(beta[mfi]),
-                                     BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                     ncomp);
+            Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
+            Array4<Real const> const& betain = beta.array(mfi);
+            const auto& flag = flags->array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flag(i,j,k).isSingleValued()) {
+                    betaout(i,j,k,n) = betain(i,j,k,0);
+                } else {
+                    betaout(i,j,k,n) = 0.0;
+                }
+            });
         }
     }
 }
@@ -975,9 +992,15 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     }
 
     int m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
+    int flagbc = m_is_inhomog;
     m_is_eb_inhomog = s_mode == StateMode::Solution;
+    const int imaxorder = maxorder;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(imaxorder <= 4, "MLEBABecLap::applyBC: maxorder too high");
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
@@ -989,56 +1012,128 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     auto area = (factory) ? factory->getAreaFrac()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     
-    FArrayBox foo(Box::TheUnitBox(),ncomp);
-    foo.setVal(10.0);
+    FArrayBox foofab(Box::TheUnitBox(),ncomp);
+    const auto& foo = foofab.array();
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(in, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(in, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& vbx   = mfi.validbox();
-        FArrayBox& iofab = in[mfi];
+        const auto& iofab = in.array(mfi);
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
         if (fabtyp != FabType::covered)
         {
-            const RealTuple & bdl = bcondloc.bndryLocs(mfi,0);
-            const BCTuple   & bdc = bcondloc.bndryConds(mfi,0);
-            
-            for (OrientationIter oitr; oitr; ++oitr)
+            const auto & bdlv = bcondloc.bndryLocs(mfi);
+            const auto & bdcv = bcondloc.bndryConds(mfi);
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                const Orientation ori = oitr();
-                
-                int  cdr = ori;
-                Real bcl = bdl[ori];
-                int  bct = bdc[ori];
-                
-                const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
-                
-                if (fabtyp == FabType::regular)
-                {
-                    const Mask& m = maskvals[ori][mfi];
-                    const int cross = 0;
-                    amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
-                                           BL_TO_FORTRAN_ANYD(iofab),
-                                           BL_TO_FORTRAN_ANYD(m),
-                                           cdr, bct, bcl,
-                                           BL_TO_FORTRAN_ANYD(fsfab),
-                                           maxorder, dxinv, m_is_inhomog, ncomp, cross);
+                const Orientation olo(idim,Orientation::low);
+                const Orientation ohi(idim,Orientation::high);
+                Box blo = amrex::adjCellLo(vbx, idim);
+                Box bhi = amrex::adjCellHi(vbx, idim);
+                if (fabtyp != FabType::regular) {
+                    blo.grow(IntVect(1)-IntVect::TheDimensionVector(idim));
+                    bhi.grow(IntVect(1)-IntVect::TheDimensionVector(idim));
                 }
-                else
-                {
-                    amrex_mlebabeclap_apply_bc(BL_TO_FORTRAN_BOX(vbx),
-                                               BL_TO_FORTRAN_ANYD(iofab),
-                                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                            BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                            BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                               BL_TO_FORTRAN_ANYD(ccmask[mfi]),
-                                               cdr, bct, bcl,
-                                               BL_TO_FORTRAN_ANYD(fsfab),
-                                               maxorder, dxinv, m_is_inhomog, ncomp);
+                const int blen = vbx.length(idim);
+                const auto& mlo = maskvals[olo].array(mfi);
+                const auto& mhi = maskvals[ohi].array(mfi);
+                const auto& bvlo = (bndry != nullptr) ? bndry->bndryValues(olo).array(mfi) : foo;
+                const auto& bvhi = (bndry != nullptr) ? bndry->bndryValues(ohi).array(mfi) : foo;
+                for (int icomp = 0; icomp < ncomp; ++icomp) {
+                    const BoundCond bctlo = bdcv[icomp][olo];
+                    const BoundCond bcthi = bdcv[icomp][ohi];
+                    const Real bcllo = bdlv[icomp][olo];
+                    const Real bclhi = bdlv[icomp][ohi];
+                    if (fabtyp == FabType::regular)
+                    {
+                        if (idim == 0) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
+                            mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
+                                               bctlo, bcllo, bvlo,
+                                               imaxorder, dxi, flagbc, icomp);
+                            },
+                            bhi, tboxhi, {
+                            mllinop_apply_bc_x(1, tboxhi, blen, iofab, mhi,
+                                               bcthi, bclhi, bvhi,
+                                               imaxorder, dxi, flagbc, icomp);
+                            });
+                        } else if (idim == 1) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
+                            mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
+                                               bctlo, bcllo, bvlo,
+                                               imaxorder, dyi, flagbc, icomp);
+                            },
+                            bhi, tboxhi, {
+                            mllinop_apply_bc_y(1, tboxhi, blen, iofab, mhi,
+                                               bcthi, bclhi, bvhi,
+                                               imaxorder, dyi, flagbc, icomp);
+                            });
+                        } else {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
+                            mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
+                                               bctlo, bcllo, bvlo,
+                                               imaxorder, dzi, flagbc, icomp);
+                            },
+                            bhi, tboxhi, {
+                            mllinop_apply_bc_z(1, tboxhi, blen, iofab, mhi,
+                                               bcthi, bclhi, bvhi,
+                                               imaxorder, dzi, flagbc, icomp);
+                            });
+                        }
+                    }
+                    else // irregular
+                    {
+                        const auto& ap = area[idim]->array(mfi);
+                        const auto& mask = ccmask.array(mfi);
+                        if (idim == 0) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
+                            mlebabeclap_apply_bc_x(0, tboxlo, blen, iofab, mask, ap,
+                                                   bctlo, bcllo, bvlo,
+                                                   imaxorder, dxi, flagbc, icomp);
+                            },
+                            bhi, tboxhi, {
+                            mlebabeclap_apply_bc_x(1, tboxhi, blen, iofab, mask, ap,
+                                                   bcthi, bclhi, bvhi,
+                                                   imaxorder, dxi, flagbc, icomp);
+                            });
+                        } else if (idim == 1) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
+                            mlebabeclap_apply_bc_y(0, tboxlo, blen, iofab, mask, ap,
+                                                   bctlo, bcllo, bvlo,
+                                                   imaxorder, dyi, flagbc, icomp);
+                            },
+                            bhi, tboxhi, {
+                            mlebabeclap_apply_bc_y(1, tboxhi, blen, iofab, mask, ap,
+                                                   bcthi, bclhi, bvhi,
+                                                   imaxorder, dyi, flagbc, icomp);
+                            });
+                        } else {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                            blo, tboxlo, {
+                            mlebabeclap_apply_bc_z(0, tboxlo, blen, iofab, mask, ap,
+                                                   bctlo, bcllo, bvlo,
+                                                   imaxorder, dzi, flagbc, icomp);
+                            },
+                            bhi, tboxhi, {
+                            mlebabeclap_apply_bc_z(1, tboxhi, blen, iofab, mask, ap,
+                                                   bcthi, bclhi, bvhi,
+                                                   imaxorder, dzi, flagbc, icomp);
+                            });
+                        }
+                    }
                 }
             }
         }
