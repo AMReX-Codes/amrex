@@ -146,23 +146,10 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
         // So we use mg_coarsen_ratio.
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
     }
-     
-    Array<MultiFab,AMREX_SPACEDIM> bb;
-    Vector<MultiFab*> crse(AMREX_SPACEDIM);
-    Vector<MultiFab const*> fine(AMREX_SPACEDIM);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        BoxArray ba = fine_b_coeffs[idim].boxArray();
-        ba.coarsen(mg_coarsen_ratio);
-        bb[idim].define(ba, fine_b_coeffs[idim].DistributionMap(), fine_b_coeffs[idim].nComp(), 0);
-        crse[idim] = &bb[idim];
-        fine[idim] = &fine_b_coeffs[idim];
-    }
-    IntVect ratio {mg_coarsen_ratio};
-    amrex::average_down_faces(fine, crse, ratio, 0);
 
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        crse_b_coeffs[idim].ParallelCopy(bb[idim], crse_geom.periodicity());
-    }
+    amrex::average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
+                              amrex::GetArrOfPtrs(crse_b_coeffs),
+                              mg_coarsen_ratio, 0);
 }
 
 void
