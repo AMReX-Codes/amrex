@@ -986,8 +986,6 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     FArrayBox foo(Box::TheUnitBox(),ncomp);
     foo.setVal(10.0);
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp==1, "MLEBABecLap: ncomp must be 1");
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
