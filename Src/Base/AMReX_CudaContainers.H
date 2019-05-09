@@ -14,14 +14,14 @@ namespace Cuda {
     template <class T>
     using DeviceVector = PODVector<T, ThrustDeviceAllocator<T> >;
 	
-	template <class T>
-	using HostVector = PODVector<T>;
-	
-	template <class T>
-	using ManagedDeviceVector = PODVector<T, ManagedAllocator<T> >;
-
-	template <class T>
-	using ManagedVector = PODVector<T, ManagedAllocator<T> >;
+    template <class T>
+    using HostVector = PODVector<T>;
+    
+    template <class T>
+    using ManagedDeviceVector = PODVector<T, ManagedAllocator<T> >;
+    
+    template <class T>
+    using ManagedVector = PODVector<T, ManagedAllocator<T> >;
 	
 /**
 
@@ -147,22 +147,22 @@ public:
 #else
     //! When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
-    using DeviceVector = Vector<T>;
+    using DeviceVector = PODVector<T>;
 
     template <class T>
-    using HostVector = Vector<T>;
+    using HostVector = PODVector<T>;
 
     template <class T>
-    using ManagedVector = Vector<T>;
+    using ManagedVector = PODVector<T>;
 
     template <class T>
-    using ManagedDeviceVector = Vector<T>;
+    using ManagedDeviceVector = PODVector<T>;
 
     template <class T>
-    using PinnedDeviceVector = Vector<T>;
+    using PinnedDeviceVector = PODVector<T>;
 
     template <class T>
-    using PolymorphicDeviceVector = Vector<T>;
+    using PolymorphicDeviceVector = PODVector<T>;
 #endif
 
     template<class InIter, class OutIter>
