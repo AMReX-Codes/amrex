@@ -437,6 +437,8 @@ contains
                        ! In gsrb we are always in residual-correction form so phib = 0
                        phib = zero 
 
+                    else
+
                        anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                             +       (apy(i,j,k)-apy(i,j+1,k))**2 &
                             +       (apz(i,j,k)-apz(i,j,k+1))**2)
