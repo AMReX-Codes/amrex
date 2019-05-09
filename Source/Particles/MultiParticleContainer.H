@@ -130,7 +130,6 @@ public:
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile( const std::string& dir,
-                        const amrex::Vector<int>& real_flags, 
                         const amrex::Vector<std::string>& real_names) const;
     
     void Restart (const std::string& dir);

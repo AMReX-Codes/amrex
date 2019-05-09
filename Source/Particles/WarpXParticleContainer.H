@@ -272,6 +272,9 @@ protected:
 
     amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
 
+    amrex::Vector<int> plot_flags;
+    amrex::Vector<std::string> plot_vars;
+
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;

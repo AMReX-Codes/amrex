@@ -28,7 +28,6 @@ MultiParticleContainer::Checkpoint (const std::string& dir) const
 
 void
 MultiParticleContainer::WritePlotFile (const std::string& dir,
-                                       const Vector<int>& real_flags,
                                        const Vector<std::string>& real_names) const
 {
     Vector<std::string> int_names;    
@@ -36,8 +35,8 @@ MultiParticleContainer::WritePlotFile (const std::string& dir,
     
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
 	allcontainers[i]->WritePlotFile(dir, species_names[i],
-                                        real_flags, int_flags,
-                                        real_names, int_names);
+                                    allcontainers[i]->plot_flags, int_flags,
+                                    real_names, int_names);
     }
 }
 

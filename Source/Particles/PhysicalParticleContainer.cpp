@@ -82,6 +82,26 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_continuous_injection", do_continuous_injection);
+    {
+        pp.queryarr("plot_vars", plot_vars);
+        if (plot_vars.size() == 0){
+            if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
+                plot_flags.resize(PIdx::nattribs + 6, 1);
+            } else {
+                plot_flags.resize(PIdx::nattribs, 1);
+            }
+        } else {
+            if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
+                plot_flags.resize(PIdx::nattribs + 6, 0);
+            } else {
+                plot_flags.resize(PIdx::nattribs, 0);
+            }
+
+            for (const auto& var : plot_vars){
+                plot_flags[ParticleStringNames::to_index.at(var)] = 1;
+            }
+        }
+    }
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)

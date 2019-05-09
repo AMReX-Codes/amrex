@@ -515,6 +515,9 @@ private:
     bool dump_plotfiles = true;
     bool dump_openpmd = false;
 #endif
+    bool plot_E_field       = true;
+    bool plot_B_field       = true;
+    bool plot_J_field       = true;
     bool plot_part_per_cell = true;
     bool plot_part_per_grid = false;
     bool plot_part_per_proc = false;
@@ -542,9 +545,6 @@ private:
     amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
-
-    amrex::Vector<std::string> particle_plot_vars;
-    amrex::Vector<int> particle_plot_flags;
 
 #ifdef WARPX_USE_PSATD
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
