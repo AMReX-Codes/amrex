@@ -83,6 +83,8 @@ protected:
     void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
     void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
 
+public: // for cuda
+
     void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                         BCMode bc_mode, const MLMGBndry* bndry) const;
 };

@@ -75,6 +75,8 @@ protected:
     void setScalars (Real a, Real b) noexcept = delete;
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 
+public: // for cuda
+
     void applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                         BCMode bc_mode, const MLMGBndry* bndry) const;
 };
