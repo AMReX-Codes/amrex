@@ -61,15 +61,15 @@ authors:
   affiliation: 5
 
 affiliations:
-- name: Center for Computational Sciences and Engineering (CCSE), Lawrence Berkeley National Laboratory
+- name: Center for Computational Sciences and Engineering (CCSE), Lawrence Berkeley National Laboratory, Berkeley, CA, USA
   index: 1
-- name: Computational Research Division, Lawrence Berkeley National Laboratory
+- name: Computational Research Division, Lawrence Berkeley National Laboratory, Berkeley, CA, USA
   index: 2
-- name: National Energy Research Scientific Computing Center (NERSC)
+- name: National Energy Research Scientific Computing Center (NERSC), Berkeley, CA, USA
   index: 3
-- name: NVIDIA Corporation
+- name: NVIDIA Corporation, Santa Clara, CA, USA
   index: 4
-- name: Department of Physics and Astronomy, Stony Brook University
+- name: Department of Physics and Astronomy, Stony Brook University, Stony Brook, NY, USA
   index: 5
 
 date: 22 March 2019
