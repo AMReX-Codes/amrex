@@ -3192,7 +3192,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         if (count[grid] == 0) continue;
       
         // First write out the integer data in binary.
-        const int iChunkSize = 2 + NStructInt + NArrayInt;
+        int num_output_int = 0;
+        for (int i = 0; i < NumIntComps() + NStructInt; ++i)
+            if (write_int_comp[i]) ++num_output_int;
+        
+        const int iChunkSize = 2 + num_output_int;
         Vector<int> istuff(count[grid]*iChunkSize);
         int* iptr = istuff.dataPtr();
         
@@ -3217,7 +3221,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     }
                     
                     const auto& soa  = pbox.GetStructOfArrays();
-                    for (int j = 0; j < NArrayInt; j++)
+                    for (int j = 0; j < NumIntComps(); j++)
                     {
                         if (write_int_comp[NStructInt+j])
                         {
@@ -3233,7 +3237,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
         
         // Write the Real data in binary.
-        const int rChunkSize = AMREX_SPACEDIM + NStructReal + NumRealComps();
+        int num_output_real = 0;
+        for (int i = 0; i < NumRealComps() + NStructReal; ++i)
+            if (write_real_comp[i]) ++num_output_real;
+        
+        const int rChunkSize = AMREX_SPACEDIM + num_output_real;
         Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
         typename ParticleType::RealType* rptr = rstuff.dataPtr();
         

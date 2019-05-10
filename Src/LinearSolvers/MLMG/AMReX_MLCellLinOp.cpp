@@ -452,11 +452,12 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     const int ncomp = getNComp();
     const int cross = isCrossStencil();
+    const int tensorop = isTensorOp();
     if (!skip_fillboundary) {
-        in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
+        in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross);
     }
 
-    int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
+    int flagbc = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
@@ -471,7 +472,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     const auto& foo = foofab.array();
 
     MFItInfo mfi_info;
-
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || Gpu::notInLaunchRegion(),
@@ -488,7 +488,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         const auto & bdlv = bcondloc.bndryLocs(mfi);
         const auto & bdcv = bcondloc.bndryConds(mfi);
 
-        if (cross)
+        if (cross || tensorop)
         {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
