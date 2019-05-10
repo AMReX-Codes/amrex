@@ -100,9 +100,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
             plot_flags.resize(PIdx::nattribs + 6, 0);
         } else {
-            // Set plot_flags to 1 for data in plot_vars
             plot_flags.resize(PIdx::nattribs, 0);
-            Print()<<"here2"<<std::endl;
         }
         // If not none, set plot_flags values to 1 for elements in plot_vars.
         if (plot_vars[0] != "none"){
@@ -110,7 +108,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
                 // Return error if var not in PIdx. 
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
                     ParticleStringNames::to_index.count(var), 
-                    "<species>.plot_vars argument not in ParticleStringNames");
+                    "plot_vars argument not in ParticleStringNames");
                 plot_flags[ParticleStringNames::to_index.at(var)] = 1;
             }
         }
