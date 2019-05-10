@@ -5,14 +5,13 @@
 #BSUB -J MMtest 
 #BSUB -o MMtest.%J
 #BSUB -e MMtest.%J
-#BSUB -N 1
 
 module list
 set -x
 
 # =====================
 # BSUB parameters
-# -N = number of nodes
+# -nnodes = number of nodes
 
 # JSRUN parameters
 # -n: number of resource sets

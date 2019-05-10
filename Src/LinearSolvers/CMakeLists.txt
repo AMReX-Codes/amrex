@@ -57,9 +57,13 @@ if (ENABLE_EB)
    target_sources(amrex PRIVATE 
       MLMG/AMReX_MLEBABecLap.H
       MLMG/AMReX_MLEBABecLap.cpp
+      MLMG/AMReX_MLEBABecLap_K.H
       MLMG/AMReX_MLEBABecLap_F.H
       MLMG/AMReX_MLEBABecLap_${DIM}d.F90
-      MLMG/AMReX_MLEBABecLap_nd.F90
+      MLMG/AMReX_MLEBTensorOp.H
+      MLMG/AMReX_MLEBTensorOp.cpp
+      MLMG/AMReX_MLEBTensor_K.H
+      MLMG/AMReX_MLEBTensor_${DIM}D_K.H
       )
 endif ()
 
