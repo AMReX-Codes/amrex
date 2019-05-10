@@ -112,8 +112,10 @@ protected:
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
 
+    /*
     amrex::Vector<int> plot_flags;
     amrex::Vector<std::string> plot_vars;
+    */
 
     long NumParticlesToAdd (const amrex::Box& overlap_box,
 			    const amrex::RealBox& overlap_realbox,

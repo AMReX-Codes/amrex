@@ -32,11 +32,15 @@ MultiParticleContainer::WritePlotFile (const std::string& dir,
 {
     Vector<std::string> int_names;    
     Vector<int> int_flags;
+    Vector<int> real_flags;
     
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->WritePlotFile(dir, species_names[i],
-                                    allcontainers[i]->plot_flags, int_flags,
-                                    real_names, int_names);
+        real_flags = allcontainers[i]->plot_flags;
+        for(int j=0;j<PIdx::nattribs;j++){std::cout<<real_flags[j]<<" ";} std::cout<<std::endl;
+        
+        allcontainers[i]->WritePlotFile(dir, species_names[i],
+                                        real_flags, int_flags,
+                                        real_names, int_names);
     }
 }
 

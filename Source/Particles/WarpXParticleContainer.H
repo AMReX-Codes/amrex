@@ -272,7 +272,13 @@ protected:
 
     amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
 
+    // Whether to dump particle quantities. 
+    // If true, particle position is always dumped.
+    int plot_species = 1;
+    // For all particle attribs (execept position), whether or not 
+    // to dump to file.
     amrex::Vector<int> plot_flags;
+    // list of names of attributes to dump.
     amrex::Vector<std::string> plot_vars;
 
 private:
