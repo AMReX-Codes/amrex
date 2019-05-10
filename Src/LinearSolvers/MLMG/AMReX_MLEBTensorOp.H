@@ -76,6 +76,7 @@ protected:
     bool m_has_eb_kappa = false;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
     Vector<Vector<MultiFab> > m_eb_kappa;
+    mutable Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_tauflux;
 
     // They are always 1 and 1.
     void setScalars (Real a, Real b) noexcept = delete;
@@ -92,3 +93,5 @@ public: // for cuda
 }
 
 #endif
+
+// add ghost cells to kappa
