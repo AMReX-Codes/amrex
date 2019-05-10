@@ -64,7 +64,7 @@ operator<< (std::ostream& os, const EBCellFlag& flag)
 #endif
         for (int j = -1; j <= 1; ++j) {
             for (int i = -1; i <= 1; ++i) {
-                os << static_cast<int>(flag.isConnected({AMREX_D_DECL(i,j,k)}));
+                os << static_cast<int>(flag.isConnected(IntVect{AMREX_D_DECL(i,j,k)}));
             }
         }
 #if (AMREX_SPACEDIM == 3)

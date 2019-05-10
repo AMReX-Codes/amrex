@@ -457,7 +457,7 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross);
     }
 
-    int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
+    int flagbc = bc_mode == BCMode::Inhomogeneous;
     const int imaxorder = maxorder;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
@@ -472,7 +472,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     const auto& foo = foofab.array();
 
     MFItInfo mfi_info;
-
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || Gpu::notInLaunchRegion(),
