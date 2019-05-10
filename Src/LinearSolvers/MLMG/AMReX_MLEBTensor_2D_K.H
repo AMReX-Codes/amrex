@@ -104,6 +104,35 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
+                             Array4<Real const> const& fx,
+                             Array4<Real const> const& fy,
+                             Array4<Real const> const& vol,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if (vol(i,j,0) > 0.0)
+            {
+                Real volinv = 1.0/vol(i,j,0);
+                Ax(i,j,0,0) +=
+                    volinv * ( dxi*(fx(i+1,j  ,0  ,0) - fx(i,j,0,0))
+                    +          dyi*(fy(i  ,j+1,0  ,0) - fy(i,j,0,0)));
+                Ax(i,j,0,1) +=
+                    volinv * ( dxi*(fx(i+1,j  ,0  ,1) - fx(i,j,0,1))
+                    +          dyi*(fy(i  ,j+1,0  ,1) - fy(i,j,0,1)));
+            }
+        }
+    }
+}
+
 }
 
 #endif

@@ -222,6 +222,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                              Array4<Real const> const& apy = area[1]->array(mfi);,
                              Array4<Real const> const& apz = area[2]->array(mfi););
                 Array4<EBCellFlag const> const& flag = flags->array(mfi);
+                Array4<Real const> const& vol = vfrac->array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA
                 ( xbx, txbx,
@@ -242,7 +243,8 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                    mlebtensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab),
+                                           vol, dxinv);
                 });
             }
         }
