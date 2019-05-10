@@ -371,6 +371,9 @@ WarpX::ReadParameters ()
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
+        pp.query("plot_E_field"      , plot_E_field);
+        pp.query("plot_B_field"      , plot_B_field);
+        pp.query("plot_J_field"      , plot_J_field);
         pp.query("plot_part_per_cell", plot_part_per_cell);
         pp.query("plot_part_per_grid", plot_part_per_grid);
         pp.query("plot_part_per_proc", plot_part_per_proc);
@@ -426,39 +429,6 @@ WarpX::ReadParameters ()
             pp.getarr("fine_tag_hi", hi);
             fine_tag_lo = RealVect{lo};
             fine_tag_hi = RealVect{hi};
-        }
-
-        // select which particle comps to write
-        {
-            pp.queryarr("particle_plot_vars", particle_plot_vars);
-
-            if (particle_plot_vars.size() == 0)
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 1);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 1);
-                }                
-            }
-            else
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 0);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 0);
-                }                
-
-                for (const auto& var : particle_plot_vars)
-                {
-                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
-                }
-            }
         }
 
         pp.query("load_balance_int", load_balance_int);

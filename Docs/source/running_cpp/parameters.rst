@@ -283,6 +283,20 @@ Particle initialization
     axes (4 particles in 2D, 6 particles in 3D). When `1`, particles are split
     along the diagonals (4 particles in 2D, 8 particles in 3D).
 
+* ``<species>.plot_species`` (`0` or `1` optional; default `1`)
+    Whether to plot particle quantities for this species.
+
+* ``<species>.plot_vars`` (list of `strings` separated by spaces, optional) 
+    List of particle quantities to write to `plotfiles`. By defaults, all 
+    quantities are written to file. Choices are 
+    * ``w`` for the particle weight,
+    * ``ux`` ``uy`` ``uz`` for the particle momentum, 
+    * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
+    * ``Bx`` ``By`` ``Bz`` for the magnetic field on particles.
+    The particle positions are always included. Use 
+    ``<species>.plot_vars = none`` to plot no particle data, except 
+    particle position.
+
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
 
@@ -652,13 +666,17 @@ Diagnostics and output
     (This is done by averaging the field.) ``plot_coarsening_ratio`` should
     be an integer divisor of ``blocking_factor``.
 
-* ``warpx.particle_plot_vars`` (`strings`, separated by spaces ; default: all)
-    Control which particle variables get written to the plot file. Choices are:
-    `w`, `ux`, `uy`, `uz`, `Ex`, `Ey`, `Ez`, `Bx`, `By`, and `Bz`.
-    The particle positions and ids are always included.
-
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
+
+* ``warpx.plot_J_field`` (`0` or `1` optional; default `1`)
+    Whether to plot the current density.
+
+* ``warpx.plot_E_field`` (`0` or `1` optional; default `1`)
+    Whether to plot the electric field.
+
+* ``warpx.plot_B_field`` (`0` or `1` optional; default `1`)
+    Whether to plot the magnetic field.
 
 Checkpoints and restart
 -----------------------

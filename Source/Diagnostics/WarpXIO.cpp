@@ -642,7 +642,7 @@ WarpX::WritePlotFile () const
         particle_varnames.push_back("uzold");
     }
 
-    mypc->WritePlotFile(plotfilename, particle_plot_flags, particle_varnames);
+    mypc->WritePlotFile(plotfilename, particle_varnames);
 
     WriteJobInfo(plotfilename);
 

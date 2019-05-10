@@ -82,6 +82,37 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_continuous_injection", do_continuous_injection);
+
+    pp.query("plot_species", plot_species);
+    int do_user_plot_vars;
+    do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
+    if (not do_user_plot_vars){
+        // By default, all particle variables are dumped to plotfiles,
+        // including {x,y,z,ux,uy,uz}old variables when running in a 
+        // boosted frame
+        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
+            plot_flags.resize(PIdx::nattribs + 6, 1);
+        } else {
+            plot_flags.resize(PIdx::nattribs, 1);
+        }
+    } else {
+        // Set plot_flag to 0 for all attribs
+        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
+            plot_flags.resize(PIdx::nattribs + 6, 0);
+        } else {
+            plot_flags.resize(PIdx::nattribs, 0);
+        }
+        // If not none, set plot_flags values to 1 for elements in plot_vars.
+        if (plot_vars[0] != "none"){
+            for (const auto& var : plot_vars){
+                // Return error if var not in PIdx. 
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+                    ParticleStringNames::to_index.count(var), 
+                    "plot_vars argument not in ParticleStringNames");
+                plot_flags[ParticleStringNames::to_index.at(var)] = 1;
+            }
+        }
+    }
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)

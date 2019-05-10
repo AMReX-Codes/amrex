@@ -28,16 +28,20 @@ MultiParticleContainer::Checkpoint (const std::string& dir) const
 
 void
 MultiParticleContainer::WritePlotFile (const std::string& dir,
-                                       const Vector<int>& real_flags,
                                        const Vector<std::string>& real_names) const
 {
     Vector<std::string> int_names;    
     Vector<int> int_flags;
     
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->WritePlotFile(dir, species_names[i],
-                                        real_flags, int_flags,
-                                        real_names, int_names);
+        auto& pc = allcontainers[i];
+        if (pc->plot_species) {
+            // real_names contains a list of all particle attributes.
+            // pc->plot_flags is 1 or 0, whether quantity is dumped or not.
+            pc->WritePlotFile(dir, species_names[i],
+                              pc->plot_flags, int_flags,
+                              real_names, int_names);
+        }
     }
 }
 
