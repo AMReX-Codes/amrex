@@ -274,6 +274,8 @@ WarpX::ReadParameters ()
 
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
+    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is 
+    // specified by the user, 0 otherwise.
     do_compute_max_step_from_zmax = 
         pp.query("zmax_plasma_to_compute_max_step", 
                   zmax_plasma_to_compute_max_step);
