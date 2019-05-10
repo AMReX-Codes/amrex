@@ -109,7 +109,7 @@ PETSc and hypre, and is part of the 2018 xSDK software release thus installable 
 ### Mesh and Particle Data
 
 AMReX supplies data containers and iterators for mesh-based fields and particle data.
-The mesh-based data can be defined on cell centers, cell faces or cell corners (nodes).
+The mesh-based data can be defined on cell centers, cell faces, or cell corners (nodes).
 Coordinate systems include 1D Cartesian or spherical; 2D Cartesian or cylindrical (r-z); and 3D Cartesian.
 
 AMReX provides data structures and iterators for performing data-parallel particle simulations. 
@@ -134,7 +134,7 @@ minimal changes to AMReX-based application codes and maximum flexibility.
 This allows application teams to get running on GPUs quickly while allowing 
 long term performance tuning and programming model selection. 
 AMReX currently uses CUDA for GPUs, but application teams can use CUDA, CUDA Fortran, 
-OpenACC or OpenMP in their individual codes.  AMReX will support non-CUDA strategies 
+OpenACC, or OpenMP in their individual codes.  AMReX will support non-CUDA strategies 
 as appropriate.
 
 When running on CPUs, AMReX uses an MPI+X strategy where the X threads are used to perform 
@@ -153,9 +153,9 @@ is also support for more user-specific algorithms such as asynchronous filling o
 across multiple ranks, including interpolation of data in space and time.
 
 In addition, AMReX has support for fork-join functionality. During a run of an AMReX-based application,
-the user can divide the MPI ranks into subgroups (i.e. fork) and assign each subgroup an independent task
+the user can divide the MPI ranks into subgroups (i.e., fork) and assign each subgroup an independent task
 to compute in parallel with each other.
-After all of the forked child tasks complete, they synchronize (i.e. join), and the parent task continues execution as before.
+After all of the forked child tasks complete, they synchronize (i.e., join), and the parent task continues execution as before.
 The fork-join operation can also be invoked in a nested fashion, creating a hierarchy of fork-join operations, 
 where each fork further subdivides the ranks of a task into child tasks. 
 This approach enables heterogeneous computation and reduces the strong scaling penalty for 
@@ -180,7 +180,7 @@ both Conduit and SENSEI.
 Extensive documentation of core AMReX functionality is available online, and many of the application
 codes based on AMReX are publicly available as well.  Smaller examples of using AMReX for building application codes 
 are provided in the AMReX Tutorials section.
-Examples include a Particle-in-Cell (PIC) code, a compressible Navier-Stokes solver in complex geometry, 
+Examples include a Particle-in-Cell (PIC) code, a compressible Navier--Stokes solver in complex geometry, 
 advection-diffusion solvers,  support for spectral deferred corrections time-stepping, and much more.
 
 AMReX-based application codes can be instrumented using AMReX-specific performance profiling tools that take 
@@ -193,8 +193,7 @@ The development of AMReX was supported by the
 U.S. Department of Energy, Office of Science, 
 Office of Advanced Scientific Computing Research, 
 Applied Mathematics program under contract number DE-AC02005CH11231,
-and by the  
-Exascale Computing Project (17-SC-20-SC), a collaborative effort of the 
+and by the Exascale Computing Project (17-SC-20-SC), a collaborative effort of the 
 U.S. Department of Energy Office of Science and the National Nuclear Security Administration.
 
 # References
