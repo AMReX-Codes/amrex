@@ -391,16 +391,17 @@ namespace amrex
 		size_type GetNewCapacity (size_type a_num_to_be_added) const noexcept
 		{
 			size_type new_capacity = capacity();
-			if (capacity() == 0)
+
+                        if (capacity() == 0)
 			{
 				new_capacity = std::max(64 / sizeof(T), size_type(1));
 			}
 		
-			while (new_capacity < size() + a_num_to_be_added)
+			while (new_capacity < (capacity() + a_num_to_be_added))
 			{
 				new_capacity = (3 * new_capacity + 1)/2;
 			}
-		
+
 			return new_capacity;
 		}
 
