@@ -53,7 +53,7 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
         }
-        for (int r = 0; 4 <= maxorder-2; ++r) {
+        for (int r = 0; r <= maxorder-2; ++r) {
             poly_interp_coeff(-0.5, x, NX, &(coef[r][0]));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
@@ -137,7 +137,7 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
         }
-        for (int r = 0; 4 <= maxorder-2; ++r) {
+        for (int r = 0; r <= maxorder-2; ++r) {
             poly_interp_coeff(-0.5, x, NX, &(coef[r][0]));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
@@ -221,7 +221,7 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
         }
-        for (int r = 0; 4 <= maxorder-2; ++r) {
+        for (int r = 0; r <= maxorder-2; ++r) {
             poly_interp_coeff(-0.5, x, NX, &(coef[r][0]));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
