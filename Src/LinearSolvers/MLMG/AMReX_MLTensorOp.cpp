@@ -220,7 +220,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& bvyhi = (bndry != nullptr) ?
             bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
 
-        AMREX_FOR_1D ( 4, icorner,
+        AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
         {
             mltensor_fill_corners(icorner, vbx, velfab,
                                   mxlo, mylo, mxhi, myhi,
@@ -249,7 +249,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& bvzhi = (bndry != nullptr) ?
             bndry->bndryValues(Orientation(2,Orientation::high)).array(mfi) : foo;
 
-        AMREX_FOR_1D ( 12, iedge,
+        AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
@@ -257,7 +257,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 bct, bcl, inhomog, imaxorder, dxinv, domain);
         });
 
-        AMREX_FOR_1D ( 8, icorner,
+        AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
         {
             mltensor_fill_corners(icorner, vbx, velfab,
                                   mxlo, mylo, mzlo, mxhi, myhi, mzhi,

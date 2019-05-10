@@ -133,13 +133,12 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     BL_PROFILE("MLEBTensorOp::apply()");
     MLEBABecLap::apply(amrlev, mglev, out, in, bc_mode, s_mode, bndry);
 
-    return; // xxxxx
-
     if (mglev >= m_kappa[amrlev].size()) return;
 
     applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
 
-    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    // todo: gpu
+    Gpu::LaunchSafeGuard lg(false);
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -153,17 +152,25 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     const int is_eb_dirichlet = true;
 
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox fluxfab_tmp[AMREX_SPACEDIM];
-        for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            if (fabtyp == FabType::covered) continue;
+
             Array4<Real> const axfab = out.array(mfi);
             Array4<Real const> const vfab = in.array(mfi);
             AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
@@ -184,27 +191,60 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
             AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
                          Array4<Real> const fyfab = fluxfab_tmp[1].array();,
                          Array4<Real> const fzfab = fluxfab_tmp[2].array(););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
-            ( xbx, txbx,
-              {
-                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
-              }
-            , ybx, tybx,
-              {
-                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
-              }
-#if (AMREX_SPACEDIM == 3)
-            , zbx, tzbx,
-              {
-                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
-              }
-#endif
-            );
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            if (fabtyp == FabType::regular)
             {
-                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
-            });
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+                ( xbx, txbx,
+                  {
+                      mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+                  }
+                , ybx, tybx,
+                  {
+                      mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+                  }
+#if (AMREX_SPACEDIM == 3)
+                , zbx, tzbx,
+                  {
+                      mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+                  }
+#endif
+                );
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                });
+            }
+            else
+            {
+                AMREX_D_TERM(Array4<Real const> const& apx = area[0]->array(mfi);,
+                             Array4<Real const> const& apy = area[1]->array(mfi);,
+                             Array4<Real const> const& apz = area[2]->array(mfi););
+                Array4<EBCellFlag const> const& flag = flags->array(mfi);
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+                ( xbx, txbx,
+                  {
+                      mlebtensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,apx,flag,dxinv);
+                  }
+                , ybx, tybx,
+                  {
+                      mlebtensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,apy,flag,dxinv);
+                  }
+#if (AMREX_SPACEDIM == 3)
+                , zbx, tzbx,
+                  {
+                      mlebtensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,apz,flag,dxinv);
+                  }
+#endif
+                );
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                });
+            }
         }
     }
 }
@@ -265,7 +305,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& bvyhi = (bndry != nullptr) ?
             bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
 
-        AMREX_FOR_1D ( 4, icorner,
+        AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
         {
             mltensor_fill_corners(icorner, vbx, velfab,
                                   mxlo, mylo, mxhi, myhi,
@@ -294,7 +334,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& bvzhi = (bndry != nullptr) ?
             bndry->bndryValues(Orientation(2,Orientation::high)).array(mfi) : foo;
 
-        AMREX_FOR_1D ( 12, iedge,
+        AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
             mltensor_fill_edges(iedge, vbx, velfab,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
@@ -302,7 +342,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 bct, bcl, inhomog, imaxorder, dxinv, domain);
         });
 
-        AMREX_FOR_1D ( 8, icorner,
+        AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
         {
             mltensor_fill_corners(icorner, vbx, velfab,
                                   mxlo, mylo, mzlo, mxhi, myhi, mzhi,
