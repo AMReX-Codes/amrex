@@ -28,6 +28,15 @@ Overall simulation parameters
     The direction of the Lorentz-transform for boosted-frame simulations
     (The direction ``y`` cannot be used in 2D simulations.)
 
+* ``warpx.zmax_plasma_to_compute_max_step`` (`float`) optional
+    Can be useful when running in a boosted frame. If specified, automatically 
+    calculates the number of iterations required in the boosted frame for the 
+    lower `z` end of the simulation domain to reach 
+    ``warpx.zmax_plasma_to_compute_max_step`` (typically the plasma end, 
+    given in the lab frame). The value of ``max_step`` is overwritten, and 
+    printed to standard output. Currently only works if the Lorentz boost and 
+    the moving window are along the z direction.
+
 * ``warpx.verbose`` (`0` or `1`)
     Controls how much information is printed to the terminal, when running WarpX.
 

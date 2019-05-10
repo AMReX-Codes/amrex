@@ -32,6 +32,8 @@ int WarpX::moving_window_dir = -1;
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<int> WarpX::boost_direction = {0,0,0};
+int WarpX::do_compute_max_step_from_zmax = 0;
+Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -271,6 +273,12 @@ WarpX::ReadParameters ()
                                      "Subcycling method 1 only works for 2 levels.");
 
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
+
+    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is 
+    // specified by the user, 0 otherwise.
+    do_compute_max_step_from_zmax = 
+        pp.query("zmax_plasma_to_compute_max_step", 
+                  zmax_plasma_to_compute_max_step);
 
     pp.queryarr("B_external", B_external);
 

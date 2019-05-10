@@ -108,6 +108,8 @@ public:
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
     static amrex::Vector<int> boost_direction;
+    static amrex::Real zmax_plasma_to_compute_max_step;
+    static int do_compute_max_step_from_zmax;
 
     static bool do_dynamic_scheduling;
     static bool refine_plasma;
@@ -152,6 +154,8 @@ public:
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
+    // Compute max_step automatically for simulations in a boosted frame.
+    void computeMaxStepBoostAccelerator(amrex::Geometry geom);
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
