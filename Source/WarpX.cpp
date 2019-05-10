@@ -431,41 +431,6 @@ WarpX::ReadParameters ()
             fine_tag_hi = RealVect{hi};
         }
 
-        // select which particle comps to write
-        /*
-        {
-            pp.queryarr("particle_plot_vars", particle_plot_vars);
-
-            if (particle_plot_vars.size() == 0)
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 1);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 1);
-                }                
-            }
-            else
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 0);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 0);
-                }                
-
-                for (const auto& var : particle_plot_vars)
-                {
-                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
-                }
-            }
-        }
-        */
-
         pp.query("load_balance_int", load_balance_int);
         pp.query("load_balance_with_sfc", load_balance_with_sfc);
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
