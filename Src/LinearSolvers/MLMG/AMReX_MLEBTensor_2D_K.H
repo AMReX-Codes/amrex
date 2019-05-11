@@ -106,17 +106,22 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
-                             Array4<Real const> const& vel,
                              Array4<Real const> const& fx,
                              Array4<Real const> const& fy,
+                             Array4<Real const> const& vel,
+                             Array4<Real const> const& velb,
                              Array4<Real const> const& etab,
                              Array4<Real const> const& kapb,
+                             Array4<int const> const& ccm,
                              Array4<EBCellFlag const> const& flag,
                              Array4<Real const> const& vol,
                              Array4<Real const> const& apx,
                              Array4<Real const> const& apy,
                              Array4<Real const> const& fcx,
                              Array4<Real const> const& fcy,
+                             Array4<Real const> const& ba,
+                             Array4<Real const> const& bc,
+                             int is_dirichlet, int is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const Real dxi = dxinv[0];
@@ -139,9 +144,108 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 Real fxm_0 = fx(i,j,0,0);
                 Real fxm_1 = fx(i,j,0,1);
                 if (apx(i,j,0) > 0.0 and apx(i,j,0) < 1.0) {
-                    
+                    int jj = j + (fcx(i,j,0,0) >= 0.0 ? 1 : -1);
+                    Real fracy = (ccm(i-1,jj,0) or ccm(i,jj,0)) ? std::abs(fcx(i,j,0,0)) : 0.0;
+                    fxm_0 = (1.0-fracy)*fxm_0 + fracy*fx(i,jj,0,0);
+                    fxm_1 = (1.0-fracy)*fxm_1 + fracy*fx(i,jj,0,1);
                 }
-                
+
+                Real fxp_0 = fx(i+1,j,0,0);
+                Real fxp_1 = fx(i+1,j,0,1);
+                if (apx(i+1,j,0) > 0.0 and apx(i+1,j,0) < 1.0) {
+                    int jj = j + (fcx(i+1,j,0,0) >= 0.0 ? 1 : -1);
+                    Real fracy = (ccm(i,jj,0) or ccm(i+1,jj,0)) ? std::abs(fcx(i+1,j,0,0)) : 0.0;
+                    fxp_0 = (1.0-fracy)*fxp_0 + fracy*fx(i+1,jj,0,0);
+                    fxp_1 = (1.0-fracy)*fxp_1 + fracy*fx(i+1,jj,0,1);
+                }
+
+                Real fym_0 = fy(i,j,0,0);
+                Real fym_1 = fy(i,j,0,1);
+                if (apy(i,j,0) > 0.0 and apy(i,j,0) < 1.0) {
+                    int ii = i + (fcy(i,j,0,0) >= 0.0 ? 1 : -1);
+                    Real fracx = (ccm(ii,j-1,0) or ccm(ii,j,0)) ? std::abs(fcy(i,j,0,0)) : 0.0;
+                    fym_0 = (1.0-fracx)*fym_0 + fracx*fy(ii,j,0,0);
+                    fym_1 = (1.0-fracx)*fym_1 + fracx*fy(ii,j,0,1);
+                }
+
+                Real fyp_0 = fy(i,j+1,0,0);
+                Real fyp_1 = fy(i,j+1,0,1);
+                if (apy(i,j+1,0) > 0.0 and apy(i,j+1,0) < 1.0) {
+                    int ii = i + (fcy(i,j+1,0,0) >= 0.0 ? 1 : -1);
+                    Real fracx = (ccm(ii,j,0) or ccm(ii,j+1,0)) ? std::abs(fcy(i,j+1,0,0)) : 0.0;
+                    fyp_0 = (1.0-fracx)*fyp_0 + fracx*fy(ii,j+1,0,0);
+                    fyp_1 = (1.0-fracx)*fyp_1 + fracx*fy(ii,j+1,0,1);
+                }
+
+                Real kappa = vol(i,j,0);
+                Real feb_0 = 0.0;
+                Real feb_1 = 0.0;
+                if (is_dirichlet) {
+                    Real dapx = apx(i+1,j,0)-apx(i,j,0);
+                    Real dapy = apy(i,j+1,0)-apy(i,j,0);
+                    Real anorminv = 1.0/std::sqrt(dapx*dapx+dapy*dapy);
+                    Real anrmx = -dapx * anorminv;
+                    Real anrmy = -dapy * anorminv;
+
+                    Real velb_0 = 0, velb_1 = 0;
+                    if (is_inhomog) {
+                        velb_0 = velb(i,j,0,0);
+                        velb_1 = velb(i,j,0,1);
+                    }
+
+                    Real dx_eb = amrex::max(0.3, (kappa*kappa-0.25)/(2.*kappa));
+                    Real dg = dx_eb / amrex::max(std::abs(anrmx),std::abs(anrmy));
+                    Real dginv = 1.0/dg;
+                    Real gx = bc(i,j,0,0) - dg*anrmx;
+                    Real gy = bc(i,j,0,1) - dg*anrmy;
+                    int isx = anrmx ? 1 : -1;
+                    int isy = anrmy ? 1 : -1;
+                    int ii = i - isx;
+                    int jj = j - isy;
+
+                    gx *= isx;
+                    gy *= isy;
+                    Real gxy = gx*gy;
+                    Real oneggg = 1.0+gx+gy+gxy;
+
+                    Real velg = oneggg * vel(i ,j ,0,0)
+                        +  (-gy - gxy) * vel(i ,jj,0,0)
+                        +  (-gx - gxy) * vel(ii,j ,0,0)
+                        +    gxy       * vel(ii,jj,0,0);
+                    Real dudn = (velb_0-velg) * dginv;
+
+                    velg      = oneggg * vel(i ,j ,0,1)
+                        +  (-gy - gxy) * vel(i ,jj,0,1)
+                        +  (-gx - gxy) * vel(ii,j ,0,1)
+                        +    gxy       * vel(ii,jj,0,1);
+                    Real dvdn = (velb_1-velg) * dginv;
+
+                    // transverse derivatives are zero on the wall
+                    Real dudx = dudn * anrmx;
+                    Real dudy = dudn * anrmy;
+                    Real dvdx = dvdn * anrmx;
+                    Real dvdy = dvdn * anrmy;
+                    Real divu = dudx + dvdy;
+                    Real xi = kapb(i,j,0);
+                    Real mu = etab(i,j,0);
+                    Real tautmp = (xi-(2./3.)*mu)*divu;
+                    Real tauxx = mu*2.*dudx + tautmp;
+                    Real tauyy = mu*2.*dvdy + tautmp;
+                    Real tauxy = mu*(dudy+dvdx);
+                    // assuming dxi == dyi
+                    feb_0 = dxi*(dapx*tauxx + dapy*tauxy);
+                    feb_1 = dxi*(dapx*tauxy + dapy*tauyy);
+                    feb_0 *= -ba(i,j,0);
+                    feb_1 *= -ba(i,j,0);
+                }
+
+                Real volinv = 1.0 / kappa;
+                Ax(i,j,0,0) += volinv * (dxi*(apx(i,j,0)*fxm_0-apx(i+1,j,0)*fxp_0)
+                                        +dyi*(apy(i,j,0)*fym_0-apy(i,j+1,0)*fyp_0)
+                                        -dxi*                               feb_0);
+                Ax(i,j,0,1) += volinv * (dxi*(apx(i,j,0)*fxm_1-apx(i+1,j,0)*fxp_1)
+                                        +dyi*(apy(i,j,0)*fym_1-apy(i,j+1,0)*fyp_1)
+                                        -dxi*                               feb_1);
             }
         }
     }
