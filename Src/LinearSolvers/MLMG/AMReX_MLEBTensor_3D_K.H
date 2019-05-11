@@ -203,6 +203,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fx,
                              Array4<Real const> const& fy,
                              Array4<Real const> const& fz,
+                             Array4<Real const> const& vel,
+                             Array4<Real const> const& velb,
                              Array4<Real const> const& etab,
                              Array4<Real const> const& kapb,
                              Array4<int const> const& ccm,
@@ -214,7 +216,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fcx,
                              Array4<Real const> const& fcy,
                              Array4<Real const> const& fcz,
-                             int is_dirichlet, int is_homog,
+                             Array4<Real const> const& ba,
+                             Array4<Real const> const& bc,
+                             int is_dirichlet, int is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const Real dxi = dxinv[0];
@@ -373,26 +377,122 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                             + fracx*     fracy  * fz(ii,jj,k+1,2);
                     }
 
+                    Real kappa = vol(i,j,k);
                     Real feb_0 = 0.0;
                     Real feb_1 = 0.0;
                     Real feb_2 = 0.0;
                     if (is_dirichlet) {
+                        Real dapx = apx(i+1,j,k)-apx(i,j,k);
+                        Real dapy = apy(i,j+1,k)-apy(i,j,k);
+                        Real dapz = apz(i,j,k+1)-apz(i,j,k);
+                        Real anorminv = 1.0/std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+                        Real anrmx = -dapx * anorminv;
+                        Real anrmy = -dapy * anorminv;
+                        Real anrmz = -dapz * anorminv;
 
+                        Real velb_0 = 0, velb_1 = 0, velb_2 = 0;
+                        if (is_inhomog) {
+                            velb_0 = velb(i,j,k,0);
+                            velb_1 = velb(i,j,k,1);
+                            velb_2 = velb(i,j,k,2);
+                        }
+
+                        Real dx_eb = amrex::max(0.3, (kappa*kappa-0.25)/(2.*kappa));
+                        Real dg = dx_eb / amrex::max(std::abs(anrmx),
+                                                     std::abs(anrmy),
+                                                     std::abs(anrmz));
+                        Real dginv = 1.0/dg;
+                        Real gx = bc(i,j,k,0) - dg*anrmx;
+                        Real gy = bc(i,j,k,1) - dg*anrmy;
+                        Real gz = bc(i,j,k,2) - dg*anrmz;
+                        int isx = anrmx ? 1 : -1;
+                        int isy = anrmy ? 1 : -1;
+                        int isz = anrmz ? 1 : -1;
+                        int ii = i - isx;
+                        int jj = j - isy;
+                        int kk = k - isz;
+
+                        gx *= isx;
+                        gy *= isy;
+                        gz *= isz;
+                        Real gxy = gx*gy;
+                        Real gxz = gx*gz;
+                        Real gyz = gy*gz;
+                        Real gxyz = gx*gy*gz;
+                        Real oneggg = 1.0+gx+gy+gz+gxy+gxz+gyz+gxyz;
+
+                        Real velg = oneggg             * vel(i ,j ,k ,0)
+                            + (-gz - gxz - gyz - gxyz) * vel(i ,j ,kk,0)
+                            + (-gy - gxy - gyz - gxyz) * vel(i ,jj,k ,0)
+                            + (gyz + gxyz)             * vel(i ,jj,kk,0)
+                            + (-gx - gxy - gxz - gxyz) * vel(ii,j ,k ,0)
+                            + (gxz + gxyz)             * vel(ii,j ,kk,0)
+                            + (gxy + gxyz)             * vel(ii,jj,k ,0)
+                            + (-gxyz)                  * vel(ii,jj,kk,0);
+                        Real dudn = (velb_0-velg) * dginv;
+
+                        velg      = oneggg             * vel(i ,j ,k ,1)
+                            + (-gz - gxz - gyz - gxyz) * vel(i ,j ,kk,1)
+                            + (-gy - gxy - gyz - gxyz) * vel(i ,jj,k ,1)
+                            + (gyz + gxyz)             * vel(i ,jj,kk,1)
+                            + (-gx - gxy - gxz - gxyz) * vel(ii,j ,k ,1)
+                            + (gxz + gxyz)             * vel(ii,j ,kk,1)
+                            + (gxy + gxyz)             * vel(ii,jj,k ,1)
+                            + (-gxyz)                  * vel(ii,jj,kk,1);
+                        Real dvdn = (velb_1-velg) * dginv;
+
+                        velg      = oneggg             * vel(i ,j ,k ,2)
+                            + (-gz - gxz - gyz - gxyz) * vel(i ,j ,kk,2)
+                            + (-gy - gxy - gyz - gxyz) * vel(i ,jj,k ,2)
+                            + (gyz + gxyz)             * vel(i ,jj,kk,2)
+                            + (-gx - gxy - gxz - gxyz) * vel(ii,j ,k ,2)
+                            + (gxz + gxyz)             * vel(ii,j ,kk,2)
+                            + (gxy + gxyz)             * vel(ii,jj,k ,2)
+                            + (-gxyz)                  * vel(ii,jj,kk,2);
+                        Real dwdn = (velb_2-velg) * dginv;
+
+                        // transverse derivatives are zero on the wall
+                        Real dudx = dudn * anrmx;
+                        Real dudy = dudn * anrmy;
+                        Real dudz = dudn * anrmz;
+                        Real dvdx = dvdn * anrmx;
+                        Real dvdy = dvdn * anrmy;
+                        Real dvdz = dvdn * anrmz;
+                        Real dwdx = dwdn * anrmx;
+                        Real dwdy = dwdn * anrmy;
+                        Real dwdz = dwdn * anrmz;
+                        Real divu = dudx + dvdy + dwdz;
+                        Real xi = kapb(i,j,k);
+                        Real mu = etab(i,j,k);
+                        Real tautmp = (xi-(2./3.)*mu)*divu;
+                        Real tauxx = mu*2.*dudx + tautmp;
+                        Real tauyy = mu*2.*dvdy + tautmp;
+                        Real tauzz = mu*2.*dwdz + tautmp;
+                        Real tauxy = mu*(dudy+dvdx);
+                        Real tauxz = mu*(dudz+dwdx);
+                        Real tauyz = mu*(dwdy+dvdz);
+                        // assuming dxi == dyi == dzi
+                        feb_0 = dxi*(dapx*tauxx + dapy*tauxy + dapz*tauxz);
+                        feb_1 = dxi*(dapx*tauxy + dapy*tauyy + dapz*tauyz);
+                        feb_2 = dxi*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
+                        feb_0 *= ba(i,j,k);
+                        feb_1 *= ba(i,j,k);
+                        feb_2 *= ba(i,j,k);
                     }
 
-                    Real volinv = 1.0 / vol(i,j,k);
+                    Real volinv = 1.0 / kappa;
                     Ax(i,j,k,0) += volinv * (dxi*(apx(i,j,k)*fxm_0-apx(i+1,j,k)*fxp_0)
                                             +dyi*(apy(i,j,k)*fym_0-apy(i,j+1,k)*fyp_0)
                                             +dzi*(apz(i,j,k)*fzm_0-apz(i,j,k+1)*fzp_0)
-                                            +                                   feb_0);
+                                            -dxi*                               feb_0);
                     Ax(i,j,k,1) += volinv * (dxi*(apx(i,j,k)*fxm_1-apx(i+1,j,k)*fxp_1)
                                             +dyi*(apy(i,j,k)*fym_1-apy(i,j+1,k)*fyp_1)
                                             +dzi*(apz(i,j,k)*fzm_1-apz(i,j,k+1)*fzp_1)
-                                            +                                   feb_1);
+                                            -dxi*                               feb_1);
                     Ax(i,j,k,2) += volinv * (dxi*(apx(i,j,k)*fxm_2-apx(i+1,j,k)*fxp_2)
                                             +dyi*(apy(i,j,k)*fym_2-apy(i,j+1,k)*fyp_2)
                                             +dzi*(apz(i,j,k)*fzm_2-apz(i,j,k+1)*fzp_2)
-                                            +                                   feb_2);
+                                            -dxi*                               feb_2);
                 }
             }
         }
