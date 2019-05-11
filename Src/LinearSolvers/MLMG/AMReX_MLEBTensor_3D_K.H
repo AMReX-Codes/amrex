@@ -475,9 +475,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         feb_0 = dxi*(dapx*tauxx + dapy*tauxy + dapz*tauxz);
                         feb_1 = dxi*(dapx*tauxy + dapy*tauyy + dapz*tauyz);
                         feb_2 = dxi*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
-                        feb_0 *= ba(i,j,k);
-                        feb_1 *= ba(i,j,k);
-                        feb_2 *= ba(i,j,k);
+                        feb_0 *= -ba(i,j,k);
+                        feb_1 *= -ba(i,j,k);
+                        feb_2 *= -ba(i,j,k);
                     }
 
                     Real volinv = 1.0 / kappa;
