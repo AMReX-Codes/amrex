@@ -153,6 +153,8 @@ public:
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
+    void setSpeciesLabFrameDiags() const;
+
     int nSpecies() const {return nspecies;}
 
     int nSpeciesDepositOnMainGrid () const {
@@ -184,6 +186,9 @@ public:
     // Number of coefficients for the stencil of the NCI corrector.
     // The stencil is applied in the z direction only.
     static constexpr int nstencilz_fdtd_nci_corr=5;
+    int nspecies_lab_frame_diags = 0;
+    std::vector<int> map_species_lab_diags;
+    int do_boosted_frame_diags = 0;
 
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;

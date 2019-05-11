@@ -85,7 +85,13 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
+    // amrex::StructOfArrays with DiagIdx::nattribs amrex::Real components 
+    // for the particle data and 0 int components.
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
+    // DiagnosticParticles is a vector, with one element per MR level.
+    // DiagnosticParticles[lev] is typically a key-value pair where the key is 
+    // a pair [grid_index, tile_index], and the value is the corresponding 
+    // DiagnosticParticleData (see above) on this tile.
     using DiagnosticParticles = amrex::Vector<std::map<std::pair<int, int>, DiagnosticParticleData> >;
     
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
@@ -264,6 +270,8 @@ protected:
     // This is currently required because continuous injection does not 
     // support all features allowed by direct injection.
     int do_continuous_injection = 0;
+
+    int do_boosted_frame_diags = 0;
 
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;

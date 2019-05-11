@@ -82,6 +82,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_continuous_injection", do_continuous_injection);
+    // Whether to plot back-transformed (lab-frame) diagnostics 
+    // for this species.
+    pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
@@ -90,14 +93,14 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         // By default, all particle variables are dumped to plotfiles,
         // including {x,y,z,ux,uy,uz}old variables when running in a 
         // boosted frame
-        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
+        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
             plot_flags.resize(PIdx::nattribs + 6, 1);
         } else {
             plot_flags.resize(PIdx::nattribs, 1);
         }
     } else {
         // Set plot_flag to 0 for all attribs
-        if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles){
+        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
             plot_flags.resize(PIdx::nattribs + 6, 0);
         } else {
             plot_flags.resize(PIdx::nattribs, 0);
@@ -216,7 +219,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
 
-            if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
             {
                 auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
                 particle_tile.push_back_real(particle_comps["xold"], x);
@@ -500,7 +503,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
                     
-                    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
                         particle_tile.push_back_real(particle_comps["xold"], x);
@@ -742,7 +745,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uz] = u[2];
 
                     // note - this will be slow on the GPU, need to revisit
-                    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+                    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
                         particle_tile.push_back_real(particle_comps["xold"], x);
@@ -1715,7 +1718,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
-    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
         auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
         auto& ypold    = pti.GetAttribs(particle_comps["yold"]);

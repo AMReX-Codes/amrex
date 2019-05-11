@@ -75,6 +75,10 @@ class BoostedFrameDiagnostic {
     int boost_direction_;
 
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > data_buffer_;
+    // particles_buffer_ is current blind to refinement level.
+    // particles_buffer_[i][j] is a WarpXParticleContainer::DiagnosticParticleData where
+    // - i is the back-transformed snapshot number 
+    // - j is the species number
     amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_;
     int num_buffer_ = 256;
     int max_box_size_ = 256;

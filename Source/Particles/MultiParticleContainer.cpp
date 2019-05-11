@@ -31,7 +31,21 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
 
-    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    // Compute the number of species for which mab frame data is dumped 
+    // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
+    // particle IDs in map_species_lab_diags.
+    map_species_lab_diags.resize(nspecies);
+    nspecies_lab_frame_diags = 0;
+    for (int i=0; i<nspecies; i++){
+        auto& pc = allcontainers[i];
+        if (pc->do_boosted_frame_diags){
+            map_species_lab_diags[nspecies_lab_frame_diags] = i;
+            nspecies_lab_frame_diags += 1;
+            do_boosted_frame_diags = 1;
+        }
+    }
+
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
         for (int i = 0; i < nspecies + nlasers; ++i)
         {
@@ -376,13 +390,24 @@ MultiParticleContainer
 
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
     
+    // Loop over particle species
     for (int i = 0; i < nspecies; ++i){
         WarpXParticleContainer* pc = allcontainers[i].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
-
+        // Here, diagnostic_particles[lev][index] is a WarpXParticleContainer::DiagnosticParticleData
+        // where "lev" is the AMR level and "index" is a [grid index][tile index] pair.
+        
+        // Loop over AMR levels
         for (int lev = 0; lev <= pc->finestLevel(); ++lev){
+            // Loop over [grid index][tile index] pairs 
+            // and Fills parts[species number i] with particle data from all grids and 
+            // tiles in diagnostic_particles. parts contains particles from all 
+            // AMR levels indistinctly.
             for (auto it = diagnostic_particles[lev].begin(); it != diagnostic_particles[lev].end(); ++it){
+                // it->first is the [grid index][tile index] key
+                // it->second is the corresponding 
+                // WarpXParticleContainer::DiagnosticParticleData value
                 parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
                                                           it->second.GetRealData(DiagIdx::w  ).begin(),
                                                           it->second.GetRealData(DiagIdx::w  ).end());
@@ -459,3 +484,10 @@ MultiParticleContainer::doContinuousInjection() const
     }
     return warpx_do_continuous_injection;
 }
+
+// Set number of species for which lab frame data is dumped
+// and maps their ID to MultiParticleContainer IDs.
+//void
+//MultiParticleContainer::setSpeciesLabFrameDiags() const
+//{
+//}

@@ -56,9 +56,12 @@ int WarpX::num_mirrors = 0;
 
 int  WarpX::sort_int = -1;
 
-bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
+// bool WarpX::do_boosted_frame_diagnostic = false;
+// bool WarpX::do_boosted_frame_fields = true;
+// bool WarpX::do_boosted_frame_particles = true;
+bool WarpX::do_boosted_frame_diagnostic = false;
 bool WarpX::do_boosted_frame_fields = true;
 bool WarpX::do_boosted_frame_particles = true;
 
@@ -117,7 +120,7 @@ WarpX::ResetInstance ()
 {
     delete m_instance;
     m_instance = nullptr;
-}
+}	
 
 WarpX::WarpX ()
 {
@@ -157,6 +160,7 @@ WarpX::WarpX ()
             current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
+    do_boosted_frame_particles = mypc->do_boosted_frame_diags;
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
