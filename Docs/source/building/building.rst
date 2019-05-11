@@ -19,7 +19,7 @@ single directory (e.g. ``warpx_directory``):
     cd warpx_directory
     git clone --branch dev https://github.com/ECP-WarpX/WarpX.git
     git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
-    git clone --branch developement https://github.com/AMReX-Codes/amrex.git
+    git clone --branch development https://github.com/AMReX-Codes/amrex.git
 
 Basic compilation
 -----------------
