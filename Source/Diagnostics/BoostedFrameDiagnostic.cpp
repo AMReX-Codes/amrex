@@ -497,6 +497,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 {
     BL_PROFILE("BoostedFrameDiagnostic::Flush");
+
+    std::cout<<"in Flush"\n;
     
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
@@ -539,8 +541,10 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             }
             
             if (WarpX::do_boosted_frame_particles) {
-                for (int j = 0; j < mypc.nSpecies(); ++j) {
-                    std::string species_name = species_names[mypc.map_species_lab_diags[j]];
+                // for (int j = 0; j < mypc.nSpecies(); ++j) {
+                for (int j = 0; j < mypc.nspecies_lab_frame_diags; ++j) {
+                    int js = mypc.map_species_lab_diags[j];
+                    std::string species_name = species_names[js];
 #ifdef WARPX_USE_HDF5
                     writeParticleDataHDF5(particles_buffer_[i][j],
                                           snapshots_[i].file_name,
@@ -576,8 +580,12 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     const Real zhi_boost = domain_z_boost.hi(boost_direction_);
 
     const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+
+    Print()<<"in BoostedFrameDiagnostic::writeLabFrameData 1\n";
     
     for (int i = 0; i < N_snapshots_; ++i) {
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 2\n";
+    
         const Real old_z_boost = snapshots_[i].current_z_boost;
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
@@ -589,6 +597,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
              (snapshots_[i].current_z_lab > snapshots_[i].zmax_lab) ) continue;
 
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 3\n";
 
         if (buff_counter_[i] == 0) {
             if (WarpX::do_boosted_frame_fields) {
@@ -603,6 +612,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             }
             if (WarpX::do_boosted_frame_particles) particles_buffer_[i].resize(mypc.nspecies_lab_frame_diags);
         }
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 4\n";
 
         if (WarpX::do_boosted_frame_fields) {
             const int ncomp = cell_centered_data->nComp();
@@ -642,11 +652,15 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                 &ncomp, &i_boost, &i_lab);
             }
         }
-        
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 5\n";        
         if (WarpX::do_boosted_frame_particles) {
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 6\n";
+
             mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
                                  old_z_boost, snapshots_[i].current_z_boost,
                                  t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 7\n";
+
         }
 
 
@@ -667,7 +681,11 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             }
             
             if (WarpX::do_boosted_frame_particles) {
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 8\n";
+
                 for (int j = 0; j < mypc.nspecies_lab_frame_diags; ++j) {
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 9\n";
+        
                     const std::string species_name = species_names[mypc.map_species_lab_diags[j]];
 #ifdef WARPX_USE_HDF5
                     writeParticleDataHDF5(particles_buffer_[i][j],
@@ -675,9 +693,14 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                           species_name);
 #else
                     std::stringstream part_ss;
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 10\n";
+
                     part_ss << snapshots_[i].file_name + "/" + species_name + "/";
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 11\n";
+
                     writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
 #endif
+        std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 12\n";
                 }            
                 particles_buffer_[i].clear();
             }
@@ -860,9 +883,12 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     if (WarpX::do_boosted_frame_particles){
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();
-        for (int j = 0; j < mypc.nSpecies(); ++j)
+        // for (int j = 0; j < mypc.nSpecies(); ++j)
+        for (int j = 0; j < mypc.nspecies_lab_frame_diags; ++j)
         {
-            std::string species_name = species_names[mypc.map_species_lab_diags[j]];
+            int js = mypc.map_species_lab_diags[j];
+            std::cout<<"js "<<js<<'\n';
+            std::string species_name = species_names[js];
             output_create_species_group(file_name, species_name);
             for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
             {
@@ -886,11 +912,13 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
 
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();        
-        int nspecies = mypc.nSpecies();
+//         int nspecies = mypc.nSpecies();
         
         const std::string particles_prefix = "particle";
-        for(int i = 0; i < nspecies; ++i) {
-            std::string species_name = species_names[mypc.map_species_lab_diags[i]];
+//         for(int i = 0; i < nspecies; ++i) {
+        for(int i = 0; i < mypc.nspecies_lab_frame_diags; ++i) {
+            int is = mypc.map_species_lab_diags[i];
+            std::string species_name = species_names[is];
             const std::string fullpath = file_name + "/" + species_name;
             if (!UtilCreateDirectory(fullpath, 0755))
                 CreateDirectoryFailed(fullpath);

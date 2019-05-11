@@ -271,7 +271,7 @@ protected:
     // support all features allowed by direct injection.
     int do_continuous_injection = 0;
 
-    int do_boosted_frame_diags = 0;
+    int do_boosted_frame_diags = 1;
 
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;
