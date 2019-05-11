@@ -56,6 +56,7 @@ MLEBTensorOp::define (const Vector<Geometry>& a_geom,
                      m_dmap[amrlev][mglev],
                      AMREX_SPACEDIM, IntVect(1)-IntVect::TheDimensionVector(idim),
                      MFInfo(), *m_factory[amrlev][mglev]);
+                m_tauflux[amrlev][mglev][idim].setVal(0.0);
             }
             m_eb_kappa[amrlev][mglev].define(m_grids[amrlev][mglev],
                                              m_dmap[amrlev][mglev],
