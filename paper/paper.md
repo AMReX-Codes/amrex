@@ -103,8 +103,9 @@ which wraps the core C++ data structures and operations in Fortran wrappers so t
 code based on AMReX can be written entirely in Fortran.
 
 AMReX developers believe that interoperability is an important feature of sustainable software.
-AMReX has examples of interfaces to other popular software packages such as SUNDIALS,
-PETSc and hypre, and is part of the 2018 xSDK software release thus installable with Spack.  
+AMReX has examples of interfaces to other popular software packages such as 
+SUNDIALS [@sundials], PETSc {@petsc] and hypre [@petsc], and is part of the 
+2018 xSDK [@xsdk] software release thus installable with Spack.  
 
 ### Mesh and Particle Data
 
