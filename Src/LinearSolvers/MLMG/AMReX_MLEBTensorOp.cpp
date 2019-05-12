@@ -157,7 +157,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
-    const int is_eb_dirichlet = true;
+//    const int is_eb_dirichlet = true;
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();
@@ -165,6 +165,9 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
+    iMultiFab const& mask = m_cc_mask[amrlev][mglev];
+    MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
+    MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
 
     if (Gpu::inLaunchRegion())
     {
@@ -353,11 +356,29 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         }
         else
         {
+            Array4<Real const> const& vfab = in.array(mfi);
+            Array4<Real const> const& etab = etaebmf.array(mfi);
+            Array4<Real const> const& kapb = kapebmf.array(mfi);
+            Array4<int const> const& ccm = mask.array(mfi);
+            Array4<EBCellFlag const> const& flag = flags->array(mfi);
+            Array4<Real const> const& vol = vfrac->array(mfi);
             AMREX_D_TERM(Array4<Real const> const& apx = area[0]->array(mfi);,
                          Array4<Real const> const& apy = area[1]->array(mfi);,
                          Array4<Real const> const& apz = area[2]->array(mfi););
-            Array4<EBCellFlag const> const& flag = flags->array(mfi);
-            Array4<Real const> const& vol = vfrac->array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->array(mfi);,
+                         Array4<Real const> const& fcy = fcent[1]->array(mfi);,
+                         Array4<Real const> const& fcz = fcent[2]->array(mfi););
+            Array4<Real const> const& ba = barea->array(mfi);
+            Array4<Real const> const& bc = bcent->array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlebtensor_cross_terms(tbx, axfab,
+                                       AMREX_D_DECL(fxfab,fyfab,fzfab),
+                                       vfab, etab, kapb, ccm, flag, vol,
+                                       AMREX_D_DECL(apx,apy,apz),
+                                       AMREX_D_DECL(fcx,fcy,fcz),
+                                       ba, bc, dxinv);
+            });
         }
     }
 }
