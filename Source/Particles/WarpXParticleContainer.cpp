@@ -78,7 +78,8 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     particle_comps["theta"] = PIdx::theta;
 #endif
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if (WarpX::do_boosted_frame_diagnostic)
     {
         particle_comps["xold"]  = PIdx::nattribs;
         particle_comps["yold"]  = PIdx::nattribs+1;
@@ -231,7 +232,8 @@ WarpXParticleContainer::AddNParticles (int lev,
         p.pos(1) = z[i];
 #endif
 
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        if (WarpX::do_boosted_frame_diagnostic)
         {
             auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
             particle_tile.push_back_real(particle_comps["xold"], x[i]);
@@ -249,7 +251,8 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        if (WarpX::do_boosted_frame_diagnostic)
         {
             auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
             particle_tile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);

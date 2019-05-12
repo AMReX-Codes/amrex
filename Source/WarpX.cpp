@@ -329,7 +329,7 @@ WarpX::ReadParameters ()
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
-        pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
+        // pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
 
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,

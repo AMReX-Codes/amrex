@@ -219,7 +219,8 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
 
-            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+            // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+            if (WarpX::do_boosted_frame_diagnostic)
             {
                 auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
                 particle_tile.push_back_real(particle_comps["xold"], x);
@@ -503,7 +504,8 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
                     
-                    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+                    // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+                    if (WarpX::do_boosted_frame_diagnostic)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
                         particle_tile.push_back_real(particle_comps["xold"], x);
@@ -745,7 +747,8 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uz] = u[2];
 
                     // note - this will be slow on the GPU, need to revisit
-                    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+                    // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+                    if (WarpX::do_boosted_frame_diagnostic)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
                         particle_tile.push_back_real(particle_comps["xold"], x);

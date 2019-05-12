@@ -55,7 +55,19 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
             allcontainers[i]->AddRealComp("uxold");
             allcontainers[i]->AddRealComp("uyold");
             allcontainers[i]->AddRealComp("uzold");
+            }
+        /*
+        for (int i = 0; i < nspecies_lab_frame_diags; ++i)
+        {
+            int is = map_species_lab_diags[i];
+            allcontainers[is]->AddRealComp("xold");
+            allcontainers[is]->AddRealComp("yold");
+            allcontainers[is]->AddRealComp("zold");
+            allcontainers[is]->AddRealComp("uxold");
+            allcontainers[is]->AddRealComp("uyold");
+            allcontainers[is]->AddRealComp("uzold");
         }
+        */
         pc_tmp->AddRealComp("xold");
         pc_tmp->AddRealComp("yold");
         pc_tmp->AddRealComp("zold");
@@ -389,17 +401,13 @@ MultiParticleContainer
 {
 
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
-    std::cout<<"GetLabFrameData 1\n";
     
     // Loop over particle species
     for (int i = 0; i < nspecies_lab_frame_diags; ++i){
         int isp = map_species_lab_diags[i];
-std::cout<<"GetLabFrameData 2\n";
         WarpXParticleContainer* pc = allcontainers[isp].get();
-        std::cout<<"getparticleslice "<< isp<<std::endl;
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
-std::cout<<"GetLabFrameData 3\n";
         // Here, diagnostic_particles[lev][index] is a WarpXParticleContainer::DiagnosticParticleData
         // where "lev" is the AMR level and "index" is a [grid index][tile index] pair.
         
@@ -409,16 +417,13 @@ std::cout<<"GetLabFrameData 3\n";
             // and Fills parts[species number i] with particle data from all grids and 
             // tiles in diagnostic_particles. parts contains particles from all 
             // AMR levels indistinctly.
-std::cout<<"GetLabFrameData 4\n";
             for (auto it = diagnostic_particles[lev].begin(); it != diagnostic_particles[lev].end(); ++it){
                 // it->first is the [grid index][tile index] key
                 // it->second is the corresponding 
                 // WarpXParticleContainer::DiagnosticParticleData value
-std::cout<<"GetLabFrameData 5\n";
                 parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
                                                           it->second.GetRealData(DiagIdx::w  ).begin(),
                                                           it->second.GetRealData(DiagIdx::w  ).end());
-std::cout<<"GetLabFrameData 6\n";
                 
                 parts[i].GetRealData(DiagIdx::x).insert(  parts[i].GetRealData(DiagIdx::x  ).end(),
                                                           it->second.GetRealData(DiagIdx::x  ).begin(),
