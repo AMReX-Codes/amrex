@@ -86,7 +86,7 @@ conditions on current and emerging architectures.
 
 Block-structured AMR discretization provides the basis for the temporal and spatial 
 strategy for a large number of applications;  see, e.g.,
-[@BergerOliger], [@BergerColella], [@BBSW], [@IAMR], [@Pember] 
+[@BergerOliger; @BergerColella; @BBSW; @IAMR; @Pember] 
 for some of the earliest block-structured AMR work.
 There are also a number of block-structured and octree AMR
 software frameworks publicly available; see [@CalhounWebPage] for links to many of them.
