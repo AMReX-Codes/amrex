@@ -84,13 +84,20 @@ block-structured adaptive mesh refinement (AMR) algorithms for solving
 systems of partial differential equations (PDEs) with complex boundary 
 conditions on current and emerging architectures.  
 
-Block-structured AMR provides the basis for the temporal and spatial 
-discretization strategy for a large number of applications.
-AMR reduces the computational cost 
-and memory footprint compared to a uniform mesh while preserving the
+Block-structured AMR discretization provides the basis for the temporal and spatial 
+strategy for a large number of applications;  see, e.g.,    
+[@BergerOliger], [@BergerColella], [@BBSW], [@IAMR], [@Pember] 
+for some of the earliest block-structured AMR work.
+There are also a number of block-structured and octtree AMR 
+software frameworks publicly available; see [@CalhounWebPage] for links to many of them.
+
+AMR reduces the computational cost and memory footprint compared to a uniform mesh while preserving the
 local descriptions of different physical processes in complex multiphysics algorithms. 
-Current AMReX-based application codes span a number of areas; in particular 
-the AMReX-Astro GitHub repository holds a number of astrophysical modeling tools based on AMReX [@Zingale_2018].
+Current AMReX-based application codes span a number of areas, 
+including atmospheric modeling, astrophysics, combustion, cosmology, fluctuating hydrodynamics,
+multiphase flows, and particle accelerators.
+In particular, the AMReX-Astro GitHub repository holds a number of astrophysical modeling 
+tools based on AMReX [@Zingale_2018].  
 The origins of AMReX trace back to the BoxLib [@BoxLib] software framework.
 
 AMReX supports a number of different time-stepping strategies
@@ -139,7 +146,8 @@ OpenACC or OpenMP in their individual codes.  AMReX will support non-CUDA strate
 as appropriate.
 
 When running on CPUs, AMReX uses an MPI+X strategy where the X threads are used to perform 
-parallelization techniques like tiling. The most common X is OpenMP. On GPUs, AMReX requires CUDA 
+parallelization techniques like tiling. The most common X as of this writing is OpenMP 
+but AMReX is rapidly evolving to work effectively on GPUs.  On GPUs, AMReX requires CUDA 
 and can be further combined with other parallel GPU languages, including OpenACC and OpenMP, 
 to control the offloading of subroutines to the GPU. This MPI+CUDA+X GPU strategy has been developed 
 to give users the maximum flexibility to find the best combination of portability, 
@@ -165,7 +173,7 @@ operations with less inherent parallelism or with large communication overheads.
 ### Linear Solvers
 
 AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
-include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
+include geometric multigrid [@Briggs] and BiCGStab iterative solvers; interfaces to external hypre and
 PETSc solvers are also provided.   The linear solvers operate on regular mesh data as well 
 as data with cut cells.
 
@@ -173,13 +181,15 @@ as data with cut cells.
 
 AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
 analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
-is supported by VisIt, Paraview, and yt.   AMReX also has linkages to external routines through
-both Conduit and SENSEI.
+is supported by VisIt [@Visit], Paraview [@Parview], and yt [@yt].   
+AMReX also has linkages to external routines through both 
+Conduit [@Conduit] and SENSEI [@SENSEI].
 
 ### Documentation, Tutorials and Profiling Tools
 
 Extensive documentation of core AMReX functionality is available online, and many of the application
-codes based on AMReX are publicly available as well.  Smaller examples of using AMReX for building application codes 
+codes based on AMReX are publicly available as well.  
+Smaller examples of using AMReX for building application codes 
 are provided in the AMReX Tutorials section.
 Examples include a Particle-in-Cell (PIC) code, a compressible Navier-Stokes solver in complex geometry, 
 advection-diffusion solvers,  support for spectral deferred corrections time-stepping, and much more.
