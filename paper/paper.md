@@ -181,7 +181,7 @@ as data with cut cells.
 
 AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
 analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
-is supported by VisIt [@Visit], Paraview [@Parview], and yt [@yt].   
+is supported by VisIt [@Visit], Paraview [@Paraview], and yt [@yt].   
 AMReX also has linkages to external routines through both 
 Conduit [@Conduit] and SENSEI [@SENSEI].
 
