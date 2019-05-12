@@ -157,6 +157,10 @@ public:
 
     int nSpecies() const {return nspecies;}
 
+    int nSpeciesLabFrameDiags() const {return nspecies_lab_frame_diags;}
+    int mapSpeciesLabDiags(int i) const {return map_species_lab_diags[i];}
+    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
+
     int nSpeciesDepositOnMainGrid () const {
         int r = 0;
         for (int i : deposit_on_main_grid) {
@@ -186,9 +190,6 @@ public:
     // Number of coefficients for the stencil of the NCI corrector.
     // The stencil is applied in the z direction only.
     static constexpr int nstencilz_fdtd_nci_corr=5;
-    int nspecies_lab_frame_diags = 0;
-    std::vector<int> map_species_lab_diags;
-    int do_boosted_frame_diags = 0;
 
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
@@ -218,6 +219,10 @@ private:
     std::unique_ptr<PhysicalParticleContainer> pc_tmp;
 
     void ReadParameters ();
+
+    int nspecies_lab_frame_diags = 0;
+    std::vector<int> map_species_lab_diags;
+    int do_boosted_frame_diags = 0;
 
     // runtime parameters
     int nlasers = 0;

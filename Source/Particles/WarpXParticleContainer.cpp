@@ -6,6 +6,8 @@
 #include <AMReX_AmrParGDB.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <AMReX_Particles.H>
+#include <AMReX_AmrCore.H>
 
 using namespace amrex;
 
@@ -22,7 +24,9 @@ WarpXParIter::GetPosition (Cuda::ManagedDeviceVector<Real>& x, Cuda::ManagedDevi
 {
     amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
 #ifdef WARPX_RZ
+    std::cout<<"start 2 GetAttribs()\n";
     const auto& attribs = GetAttribs();
+    std::cout<<"stop 2 GetAttribs()\n";
     const auto& theta = attribs[PIdx::theta];
     y.resize(x.size());
     for (unsigned int i=0 ; i < x.size() ; i++) {
@@ -39,7 +43,9 @@ void
 WarpXParIter::SetPosition (const Cuda::ManagedDeviceVector<Real>& x, const Cuda::ManagedDeviceVector<Real>& y, const Cuda::ManagedDeviceVector<Real>& z)
 {
 #ifdef WARPX_RZ
+    std::cout<<"start 3 GetAttribs()\n";
     auto& attribs = GetAttribs();
+    std::cout<<"stop 3 GetAttribs()\n";
     auto& theta = attribs[PIdx::theta];
     Cuda::DeviceVector<Real> r(x.size());
     for (unsigned int i=0 ; i < x.size() ; i++) {
@@ -78,8 +84,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     particle_comps["theta"] = PIdx::theta;
 #endif
 
-    // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-    if (WarpX::do_boosted_frame_diagnostic)
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
         particle_comps["xold"]  = PIdx::nattribs;
         particle_comps["yold"]  = PIdx::nattribs+1;
@@ -232,8 +237,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         p.pos(1) = z[i];
 #endif
 
-        // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-        if (WarpX::do_boosted_frame_diagnostic)
+        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
             auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
             particle_tile.push_back_real(particle_comps["xold"], x[i]);
@@ -251,8 +255,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
-        // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-        if (WarpX::do_boosted_frame_diagnostic)
+        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
             auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
             particle_tile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
@@ -998,7 +1001,9 @@ WarpXParticleContainer::PushXES (Real dt)
             int nstride = particles.dataShape().first;
             const long np  = pti.numParticles();
 
+    std::cout<<"start 4 GetAttribs()\n";
             auto& attribs = pti.GetAttribs();
+    std::cout<<"stop 4 GetAttribs()\n";
             auto& uxp = attribs[PIdx::ux];
             auto& uyp = attribs[PIdx::uy];
             auto& uzp = attribs[PIdx::uz];
@@ -1047,7 +1052,9 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             // - positions are stored as an array of struct, in `ParticleType`
             ParticleType * AMREX_RESTRICT pstructs = &(pti.GetArrayOfStructs()[0]);
             // - momenta are stored as a struct of array, in `attribs`
+    std::cout<<"start 5 GetAttribs()\n";
             auto& attribs = pti.GetAttribs();
+    std::cout<<"stop 5 GetAttribs()\n";
             Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();

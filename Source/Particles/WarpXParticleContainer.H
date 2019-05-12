@@ -59,7 +59,6 @@ public:
                       const amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
                       const amrex::Cuda::ManagedDeviceVector<amrex::Real>& z);
 #endif
-
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
     }

@@ -160,7 +160,7 @@ WarpX::WarpX ()
             current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
-    do_boosted_frame_particles = mypc->do_boosted_frame_diags;
+    do_boosted_frame_particles = mypc->doBoostedFrameDiags();
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);

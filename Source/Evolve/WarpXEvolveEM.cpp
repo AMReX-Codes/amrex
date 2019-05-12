@@ -173,9 +173,7 @@ WarpX::EvolveEM (int numsteps)
             if (WarpX::do_boosted_frame_fields) {
                 cell_centered_data = GetCellCenteredData();
             }
-            std::cout<<"before myBFD->writeLabFrameData"<<std::endl;
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
-            std::cout<<"after myBFD->writeLabFrameData"<<std::endl;
         }
 
         if (to_make_plot || do_insitu)

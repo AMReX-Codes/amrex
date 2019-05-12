@@ -219,8 +219,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             attribs[PIdx::uz] = u[2];
             attribs[PIdx::w ] = weight;
 
-            // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-            if (WarpX::do_boosted_frame_diagnostic)
+            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
             {
                 auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
                 particle_tile.push_back_real(particle_comps["xold"], x);
@@ -504,8 +503,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
                     
-                    // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-                    if (WarpX::do_boosted_frame_diagnostic)
+                    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
                         particle_tile.push_back_real(particle_comps["xold"], x);
@@ -747,8 +745,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uz] = u[2];
 
                     // note - this will be slow on the GPU, need to revisit
-                    // if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-                    if (WarpX::do_boosted_frame_diagnostic)
+                    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
                         particle_tile.push_back_real(particle_comps["xold"], x);
@@ -838,8 +835,9 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
             const long np  = pti.numParticles();
-
+            std::cout<<"start 1 GetAttribs\n";
             auto& attribs = pti.GetAttribs();
+            std::cout<<"end 2 GetAttribs\n";
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
 #if AMREX_SPACEDIM == 3
