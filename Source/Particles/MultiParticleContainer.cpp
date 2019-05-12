@@ -47,18 +47,6 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
-        //maxoldattribs
-        /*
-        for (int i = 0; i < nspecies + nlasers; ++i)
-        {
-            allcontainers[i]->AddRealComp("xold");
-            allcontainers[i]->AddRealComp("yold");
-            allcontainers[i]->AddRealComp("zold");
-            allcontainers[i]->AddRealComp("uxold");
-            allcontainers[i]->AddRealComp("uyold");
-            allcontainers[i]->AddRealComp("uzold");
-            }
-        */
         for (int i = 0; i < nspecies_lab_frame_diags; ++i)
         {
             int is = map_species_lab_diags[i];
@@ -69,14 +57,12 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
             allcontainers[is]->AddRealComp("uyold");
             allcontainers[is]->AddRealComp("uzold");
         }
-        /*
         pc_tmp->AddRealComp("xold");
         pc_tmp->AddRealComp("yold");
         pc_tmp->AddRealComp("zold");
         pc_tmp->AddRealComp("uxold");
         pc_tmp->AddRealComp("uyold");
         pc_tmp->AddRealComp("uzold");
-        */
     }
 }
 
@@ -500,10 +486,3 @@ MultiParticleContainer::doContinuousInjection() const
     }
     return warpx_do_continuous_injection;
 }
-
-// Set number of species for which lab frame data is dumped
-// and maps their ID to MultiParticleContainer IDs.
-//void
-//MultiParticleContainer::setSpeciesLabFrameDiags() const
-//{
-//}

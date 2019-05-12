@@ -835,9 +835,7 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
             const long np  = pti.numParticles();
-            std::cout<<"start 1 GetAttribs\n";
             auto& attribs = pti.GetAttribs();
-            std::cout<<"end 2 GetAttribs\n";
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
 #if AMREX_SPACEDIM == 3

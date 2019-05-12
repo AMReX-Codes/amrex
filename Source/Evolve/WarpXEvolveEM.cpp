@@ -247,9 +247,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     if (do_boosted_frame_diagnostic) {
-        std::cout<<"before myBFD->Flush"<<std::endl;
         myBFD->Flush(geom[0]);
-        std::cout<<"after myBFD->Flush"<<std::endl;
     }
 
 #ifdef BL_USE_SENSEI_INSITU

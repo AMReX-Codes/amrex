@@ -153,8 +153,6 @@ public:
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
-    void setSpeciesLabFrameDiags() const;
-
     int nSpecies() const {return nspecies;}
 
     int nSpeciesLabFrameDiags() const {return nspecies_lab_frame_diags;}

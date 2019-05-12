@@ -539,7 +539,6 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             }
             
             if (WarpX::do_boosted_frame_particles) {
-                // for (int j = 0; j < mypc.nSpecies(); ++j) {
                 for (int j = 0; j < mypc.nSpeciesLabFrameDiags(); ++j) {
                     int js = mypc.mapSpeciesLabDiags(j);
                     std::string species_name = species_names[js];
@@ -645,8 +644,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                 &ncomp, &i_boost, &i_lab);
             }
         }
-        if (WarpX::do_boosted_frame_particles) {
 
+        if (WarpX::do_boosted_frame_particles) {
             mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
                                  old_z_boost, snapshots_[i].current_z_boost,
                                  t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
@@ -732,7 +731,6 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
     ParallelDescriptor::ReduceLongMax(old_np);
     
     // Write data here
-    Print()<<"particle_field_names.size()"<<particle_field_names.size()<<std::endl;
     for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
     {
         std::string field_path = species_name + "/" + particle_field_names[k];
@@ -869,7 +867,6 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     if (WarpX::do_boosted_frame_particles){
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();
-        // for (int j = 0; j < mypc.nSpecies(); ++j)
         for (int j = 0; j < mypc.nSpeciesLabFrameDiags(); ++j)
         {
             int js = mypc.mapSpeciesLabDiags(j);
