@@ -396,6 +396,7 @@ MultiParticleContainer
         int isp = map_species_lab_diags[i];
 std::cout<<"GetLabFrameData 2\n";
         WarpXParticleContainer* pc = allcontainers[isp].get();
+        std::cout<<"getparticleslice "<< isp<<std::endl;
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
 std::cout<<"GetLabFrameData 3\n";

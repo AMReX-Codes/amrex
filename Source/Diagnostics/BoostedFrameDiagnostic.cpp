@@ -498,7 +498,7 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 {
     BL_PROFILE("BoostedFrameDiagnostic::Flush");
 
-    std::cout<<"in Flush"\n;
+    std::cout<<"in Flush\n";
     
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
@@ -546,6 +546,7 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                     int js = mypc.map_species_lab_diags[j];
                     std::string species_name = species_names[js];
 #ifdef WARPX_USE_HDF5
+                    std::cout<<"particles_buffer_ j "<<j<<'\n';
                     writeParticleDataHDF5(particles_buffer_[i][j],
                                           snapshots_[i].file_name,
                                           species_name);
@@ -585,17 +586,21 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     
     for (int i = 0; i < N_snapshots_; ++i) {
         std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 2\n";
+        std::cout<<"i "<<i<<std::endl;
     
         const Real old_z_boost = snapshots_[i].current_z_boost;
+        std::cout<<"toto 1\n";
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
+        std::cout<<"toto 2\n";
         
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
              (snapshots_[i].current_z_boost > zhi_boost) or
              (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or
              (snapshots_[i].current_z_lab > snapshots_[i].zmax_lab) ) continue;
 
+        std::cout<<"toto 3\n";
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
         std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 3\n";
 
@@ -656,9 +661,9 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         if (WarpX::do_boosted_frame_particles) {
         std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 6\n";
 
-            mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
-                                 old_z_boost, snapshots_[i].current_z_boost,
-                                 t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
+        //mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
+        //                         old_z_boost, snapshots_[i].current_z_boost,
+        //                         t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
         std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 7\n";
 
         }
@@ -688,6 +693,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         
                     const std::string species_name = species_names[mypc.map_species_lab_diags[j]];
 #ifdef WARPX_USE_HDF5
+                    std::cout<<"particles_buffer_ j "<<j<<'\n';
                     writeParticleDataHDF5(particles_buffer_[i][j],
                                           snapshots_[i].file_name,
                                           species_name);
@@ -697,8 +703,9 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
                     part_ss << snapshots_[i].file_name + "/" + species_name + "/";
         std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 11\n";
+                    std::cout<<"particles_buffer_ j "<<j<<'\n';
 
-                    writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+//                    writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
 #endif
         std::cout<<"in BoostedFrameDiagnostic::writeLabFrameData 12\n";
                 }            

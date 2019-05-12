@@ -1863,6 +1863,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     // Note the the slice should always move in the negative boost direction.
     AMREX_ALWAYS_ASSERT(z_new < z_old);
 
+    AMREX_ALWAYS_ASSERT(do_boosted_frame_diags == 1);
+
     const int nlevs = std::max(0, finestLevel()+1);
 
     // we figure out a box for coarse-grained rejection. If the RealBox corresponding to a
