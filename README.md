@@ -1,3 +1,4 @@
+[![DOI](http://joss.theoj.org/papers/10.21105/joss.01370/status.svg)](https://doi.org/10.21105/joss.01370)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2555438.svg)](https://doi.org/10.5281/zenodo.2555438)
 
 ## License
