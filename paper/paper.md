@@ -82,13 +82,13 @@ bibliography: paper.bib
 AMReX is a C++ software framework that supports the development of 
 block-structured adaptive mesh refinement (AMR) algorithms for solving 
 systems of partial differential equations (PDEs) with complex boundary 
-conditions on current and emerging architectures.  
+conditions on current and emerging architectures.
 
 Block-structured AMR discretization provides the basis for the temporal and spatial 
-strategy for a large number of applications;  see, e.g.,    
+strategy for a large number of applications;  see, e.g.,
 [@BergerOliger], [@BergerColella], [@BBSW], [@IAMR], [@Pember] 
 for some of the earliest block-structured AMR work.
-There are also a number of block-structured and octtree AMR 
+There are also a number of block-structured and octree AMR
 software frameworks publicly available; see [@CalhounWebPage] for links to many of them.
 
 AMR reduces the computational cost and memory footprint compared to a uniform mesh while preserving the
@@ -97,7 +97,7 @@ Current AMReX-based application codes span a number of areas,
 including atmospheric modeling, astrophysics, combustion, cosmology, fluctuating hydrodynamics,
 multiphase flows, and particle accelerators.
 In particular, the AMReX-Astro GitHub repository holds a number of astrophysical modeling 
-tools based on AMReX [@Zingale_2018].  
+tools based on AMReX [@Zingale_2018].
 The origins of AMReX trace back to the BoxLib [@BoxLib] software framework.
 
 AMReX supports a number of different time-stepping strategies
@@ -111,8 +111,8 @@ code based on AMReX can be written entirely in Fortran.
 
 AMReX developers believe that interoperability is an important feature of sustainable software.
 AMReX has examples of interfaces to other popular software packages such as 
-SUNDIALS [@sundials], PETSc {@petsc] and hypre [@petsc], and is part of the 
-2018 xSDK [@xsdk] software release thus installable with Spack.  
+SUNDIALS [@sundials], PETSc [@petsc] and hypre [@petsc], and is part of the 
+2018 xSDK [@xsdk] software release thus installable with Spack.
 
 ### Mesh and Particle Data
 
@@ -181,14 +181,14 @@ as data with cut cells.
 
 AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
 analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
-is supported by VisIt [@Visit], Paraview [@Paraview], and yt [@yt].   
+is supported by VisIt [@Visit], Paraview [@Paraview], and yt [@yt].
 AMReX also has linkages to external routines through both 
 Conduit [@Conduit] and SENSEI [@SENSEI].
 
 ### Documentation, Tutorials and Profiling Tools
 
 Extensive documentation of core AMReX functionality is available online, and many of the application
-codes based on AMReX are publicly available as well.  
+codes based on AMReX are publicly available as well.
 Smaller examples of using AMReX for building application codes 
 are provided in the AMReX Tutorials section.
 Examples include a Particle-in-Cell (PIC) code, a compressible Navier--Stokes solver in complex geometry, 
