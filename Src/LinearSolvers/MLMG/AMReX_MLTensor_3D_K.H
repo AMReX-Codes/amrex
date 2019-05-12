@@ -591,7 +591,7 @@ void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
+            AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 Ax(i,j,k,0) += dxi*(fx(i+1,j  ,k  ,0) - fx(i,j,k,0))
                     +          dyi*(fy(i  ,j+1,k  ,0) - fy(i,j,k,0))
