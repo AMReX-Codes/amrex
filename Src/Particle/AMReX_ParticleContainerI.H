@@ -1386,14 +1386,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const int dest_proc = dmap[i];
             if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
             {
-                auto& ptile = plev[pair_index];
+				auto& ptile = DefineAndReturnParticleTile(lev, pair_index.first, pair_index.second);
                 const size_t old_size = ptile.numParticles();
                 const size_t new_size = old_size + num_to_add;
                 ptile.resize(new_size);
                 
                 // copy structs
                 {
-		    auto& src = m_aos_to_redistribute;
+					auto& src = m_aos_to_redistribute;
                     auto& dst = ptile.GetArrayOfStructs();
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1], 
@@ -1403,18 +1403,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 // copy real arrays
                 for (int j = 0; j < NumRealComps(); ++j)
                 {
-		    auto& src = m_real_arrays_to_redistribute[j];
-		    auto& dst = ptile.GetStructOfArrays().GetRealData(j);
+					auto& src = m_real_arrays_to_redistribute[j];
+					auto& dst = ptile.GetStructOfArrays().GetRealData(j);
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1],
                                  dst.begin() + old_size);
                 }
 
-		// copy int arrays
+				// copy int arrays
                 for (int j = 0; j < NumIntComps(); ++j)
                 {
-		    auto& src = m_int_arrays_to_redistribute[j];
-		    auto& dst = ptile.GetStructOfArrays().GetIntData(j);
+					auto& src = m_int_arrays_to_redistribute[j];
+					auto& dst = ptile.GetStructOfArrays().GetIntData(j);
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1],
                                  dst.begin() + old_size);
@@ -1666,7 +1666,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     const int tid = 0;
                     auto pair_index = std::make_pair(gid, tid);
-                    auto& ptile = m_particles[lev][pair_index];
+					auto& ptile = DefineAndReturnParticleTile(lev, pair_index.first, pair_index.second);
                     auto& aos = ptile.GetArrayOfStructs();
                     auto& soa = ptile.GetStructOfArrays();
                     const size_t old_size = ptile.numParticles();
