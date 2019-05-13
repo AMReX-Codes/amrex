@@ -25,8 +25,9 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 {
     charge = 1.0;
     mass = std::numeric_limits<Real>::max();
-
-	ParmParse pp(laser_name);
+    do_boosted_frame_diags = 0;
+        
+    ParmParse pp(laser_name);
 
 	// Parse the type of laser profile and set the corresponding flag `profile`
 	std::string laser_type_s;

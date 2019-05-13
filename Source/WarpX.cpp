@@ -117,7 +117,7 @@ WarpX::ResetInstance ()
 {
     delete m_instance;
     m_instance = nullptr;
-}
+}	
 
 WarpX::WarpX ()
 {
@@ -157,6 +157,7 @@ WarpX::WarpX ()
             current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
+    do_boosted_frame_particles = mypc->doBoostedFrameDiags();
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
@@ -325,8 +326,6 @@ WarpX::ReadParameters ()
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
-        pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
-
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                "The moving window should be on if using the boosted frame diagnostic.");

@@ -74,10 +74,19 @@ class BoostedFrameDiagnostic {
     unsigned Nz_lab_;   
     int boost_direction_;
 
+    // For back-transformed diagnostics of grid fields, data_buffer_[i]
+    // stores a buffer of the fields in the lab frame (in a MultiFab, i.e.
+    // with all box data etc.). When the buffer if full, dump to file.
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > data_buffer_;
+    // particles_buffer_ is currently blind to refinement level.
+    // particles_buffer_[i][j] is a WarpXParticleContainer::DiagnosticParticleData where
+    // - i is the back-transformed snapshot number 
+    // - j is the species number
     amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_;
     int num_buffer_ = 256;
     int max_box_size_ = 256;
+    // buff_counter_[i] is the number of z slices in data_buffer_[i] 
+    // for snapshot number i.
     amrex::Vector<int> buff_counter_;
 
     amrex::Vector<LabSnapShot> snapshots_;

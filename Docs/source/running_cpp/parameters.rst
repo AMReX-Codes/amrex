@@ -306,6 +306,11 @@ Particle initialization
     ``<species>.plot_vars = none`` to plot no particle data, except 
     particle position.
 
+* ``<species>.do_boosted_frame_diags`` (`0` or `1` optional, default `1`)
+    Only used when ``warpx.do_boosted_frame_diagnostic=1``. When running in a 
+    boosted frame, whether or not to plot back-transformed diagnostics for 
+    this species.
+
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
 
