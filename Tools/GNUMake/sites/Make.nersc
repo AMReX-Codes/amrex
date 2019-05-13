@@ -1,8 +1,8 @@
 #
-# For NERSC machines: Edison and Cori
+# For NERSC machines: Cori and corigpu
 #
 
-ifneq ($(which_computer),$(filter $(which_computer),cori edison))
+ifneq ($(which_computer),$(filter $(which_computer),cori))
   $(error Unknown NERSC computer, $(which_computer))
 endif
 
