@@ -154,7 +154,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
 //    const int is_eb_dirichlet = true;
@@ -368,7 +367,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
             AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->array(mfi);,
                          Array4<Real const> const& fcy = fcent[1]->array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->array(mfi););
-            Array4<Real const> const& ba = barea->array(mfi);
             Array4<Real const> const& bc = bcent->array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -377,7 +375,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                                        vfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
                                        AMREX_D_DECL(fcx,fcy,fcz),
-                                       ba, bc, dxinv);
+                                       bc, dxinv);
             });
         }
     }
