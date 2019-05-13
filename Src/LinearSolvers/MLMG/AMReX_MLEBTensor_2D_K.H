@@ -119,7 +119,6 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& apy,
                              Array4<Real const> const& fcx,
                              Array4<Real const> const& fcy,
-                             Array4<Real const> const& ba,
                              Array4<Real const> const& bc,
 //                             int is_dirichlet, int is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
@@ -232,14 +231,14 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real xi = kapb(i,j,0);
                     Real mu = etab(i,j,0);
                     Real tautmp = (xi-(2./3.)*mu)*divu;
-                    Real tauxx = mu*2.*dudx + tautmp;
-                    Real tauyy = mu*2.*dvdy + tautmp;
-                    Real tauxy = mu*(dudy+dvdx);
-                    // assuming dxi == dyi
-                    feb_0 = dxi*(dapx*tauxx + dapy*tauxy);
+                    // Note that mu*(grad v) has been included already in MLEBABecLap
+                    Real tauxx = mu*dudx + tautmp;
+                    Real tauyx = mu*dvdx;
+                    Real tauyy = mu*dvdy + tautmp;
+                    Real tauxy = mu*dudy;
+                    // assuming dxi == dyi == dzi
+                    feb_0 = dxi*(dapx*tauxx + dapy*tauyx);
                     feb_1 = dxi*(dapx*tauxy + dapy*tauyy);
-                    feb_0 *= -ba(i,j,0);
-                    feb_1 *= -ba(i,j,0);
                 }
 
                 Real volinv = 1.0 / kappa;
