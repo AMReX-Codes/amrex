@@ -52,7 +52,7 @@ int main (int argc, char* argv[])
             pp.get("max_grid_size",max_grid_size);
     
             // The number of ghost cells and components of the MultiFab
-            Nghost = 0;
+            Nghost = 1; 
             pp.query("nghost", Nghost); 
     
             Ncomp = 1;
@@ -205,18 +205,24 @@ int main (int argc, char* argv[])
         // Check the results of Graph vs. CPU and GPU.
         // Maximum of difference of all cells.
         {
-            amrex::Real max_error;
+            amrex::Real max_error = 0;
             MultiFab mf_error (ba, dm, Ncomp, Nghost);
     
-            MultiFab::Copy(mf_error, mf_cpu, 0, 0, 1, 1);
-            MultiFab::Subtract(mf_error, mf_gpu, 0, 0, 1, 1);
-            max_error = mf_error.norm0(0, 1);
+            MultiFab::Copy(mf_error, mf_cpu, 0, 0, Ncomp, Nghost);
+            MultiFab::Subtract(mf_error, mf_gpu, 0, 0, Ncomp, Nghost);
+            for (int i = 0; i<Ncomp; ++i)
+            {
+                max_error = std::max(max_error, mf_error.norm0(0, Nghost));
+            }
             amrex::Print() << std::endl;
             amrex::Print() << "Max difference between CPU and GPU: " << max_error << std::endl; 
     
-            MultiFab::Copy(mf_error, mf_graph, 0, 0, 1, 1);
-            MultiFab::Subtract(mf_error, mf_cpu, 0, 0, 1, 1);
-            max_error = mf_error.norm0(0, 1);
+            MultiFab::Copy(mf_error, mf_graph, 0, 0, Ncomp, Nghost);
+            MultiFab::Subtract(mf_error, mf_cpu, 0, 0, Ncomp, Nghost);
+            for (int i = 0; i<Ncomp; ++i)
+            {
+                max_error = std::max(max_error, mf_error.norm0(0, Nghost));
+            }
             amrex::Print() << "Max difference between CPU and Graph: " << max_error << std::endl; 
     
             amrex::Print() << "========================================================" << std::endl << std::endl;
