@@ -539,8 +539,8 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             }
             
             if (WarpX::do_boosted_frame_particles) {
-                for (int j = 0; j < mypc.nSpeciesLabFrameDiags(); ++j) {
-                    int js = mypc.mapSpeciesLabDiags(j);
+                for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {
+                    int js = mypc.mapSpeciesBoostedFrameDiags(j);
                     std::string species_name = species_names[js];
 #ifdef WARPX_USE_HDF5
                     writeParticleDataHDF5(particles_buffer_[i][j],
@@ -603,7 +603,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                 DistributionMapping buff_dm(buff_ba);
                 data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
             }
-            if (WarpX::do_boosted_frame_particles) particles_buffer_[i].resize(mypc.nSpeciesLabFrameDiags());
+            if (WarpX::do_boosted_frame_particles) particles_buffer_[i].resize(mypc.nSpeciesBoostedFrameDiags());
         }
 
         if (WarpX::do_boosted_frame_fields) {
@@ -671,9 +671,9 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             
             if (WarpX::do_boosted_frame_particles) {
 
-                for (int j = 0; j < mypc.nSpeciesLabFrameDiags(); ++j) {
+                for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {
         
-                    const std::string species_name = species_names[mypc.mapSpeciesLabDiags(j)];
+                    const std::string species_name = species_names[mypc.mapSpeciesBoostedFrameDiags(j)];
 #ifdef WARPX_USE_HDF5
                     writeParticleDataHDF5(particles_buffer_[i][j],
                                           snapshots_[i].file_name,
@@ -867,9 +867,9 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     if (WarpX::do_boosted_frame_particles){
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();
-        for (int j = 0; j < mypc.nSpeciesLabFrameDiags(); ++j)
+        for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j)
         {
-            int js = mypc.mapSpeciesLabDiags(j);
+            int js = mypc.mapSpeciesBoostedFrameDiags(j);
             std::string species_name = species_names[js];
             output_create_species_group(file_name, species_name);
             for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
@@ -896,8 +896,8 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();        
         
         const std::string particles_prefix = "particle";
-        for(int i = 0; i < mypc.nSpeciesLabFrameDiags(); ++i) {
-            int is = mypc.mapSpeciesLabDiags(i);
+        for(int i = 0; i < mypc.nSpeciesBoostedFrameDiags(); ++i) {
+            int is = mypc.mapSpeciesBoostedFrameDiags(i);
             std::string species_name = species_names[is];
             const std::string fullpath = file_name + "/" + species_name;
             if (!UtilCreateDirectory(fullpath, 0755))

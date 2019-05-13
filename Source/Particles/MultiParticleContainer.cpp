@@ -31,25 +31,25 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
 
-    // Compute the number of species for which mab frame data is dumped 
+    // Compute the number of species for which lab-frame data is dumped
     // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
     // particle IDs in map_species_lab_diags.
-    map_species_lab_diags.resize(nspecies);
-    nspecies_lab_frame_diags = 0;
+    map_species_boosted_frame_diags.resize(nspecies);
+    nspecies_boosted_frame_diags = 0;
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
         if (pc->do_boosted_frame_diags){
-            map_species_lab_diags[nspecies_lab_frame_diags] = i;
+            map_species_boosted_frame_diags[nspecies_boosted_frame_diags] = i;
             do_boosted_frame_diags = 1;
-            nspecies_lab_frame_diags += 1;
+            nspecies_boosted_frame_diags += 1;
         }
     }
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
-        for (int i = 0; i < nspecies_lab_frame_diags; ++i)
+        for (int i = 0; i < nspecies_boosted_frame_diags; ++i)
         {
-            int is = map_species_lab_diags[i];
+            int is = map_species_boosted_frame_diags[i];
             allcontainers[is]->AddRealComp("xold");
             allcontainers[is]->AddRealComp("yold");
             allcontainers[is]->AddRealComp("zold");
@@ -392,8 +392,8 @@ MultiParticleContainer
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
     
     // Loop over particle species
-    for (int i = 0; i < nspecies_lab_frame_diags; ++i){
-        int isp = map_species_lab_diags[i];
+    for (int i = 0; i < nspecies_boosted_frame_diags; ++i){
+        int isp = map_species_boosted_frame_diags[i];
         WarpXParticleContainer* pc = allcontainers[isp].get();
         WarpXParticleContainer::DiagnosticParticles diagnostic_particles;
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);

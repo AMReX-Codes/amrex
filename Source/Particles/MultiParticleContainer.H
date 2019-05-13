@@ -155,8 +155,8 @@ public:
 
     int nSpecies() const {return nspecies;}
 
-    int nSpeciesLabFrameDiags() const {return nspecies_lab_frame_diags;}
-    int mapSpeciesLabDiags(int i) const {return map_species_lab_diags[i];}
+    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
+    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
     int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
 
     int nSpeciesDepositOnMainGrid () const {
@@ -218,8 +218,8 @@ private:
 
     void ReadParameters ();
 
-    int nspecies_lab_frame_diags = 0;
-    std::vector<int> map_species_lab_diags;
+    int nspecies_boosted_frame_diags = 0;
+    std::vector<int> map_species_boosted_frame_diags;
     int do_boosted_frame_diags = 0;
 
     // runtime parameters
