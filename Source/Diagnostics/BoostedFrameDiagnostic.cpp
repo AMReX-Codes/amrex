@@ -509,7 +509,6 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
         
-        // if 
         if (buff_counter_[i] != 0) {
             if (WarpX::do_boosted_frame_fields) {
                 const BoxArray& ba = data_buffer_[i]->boxArray();
@@ -543,9 +542,9 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             if (WarpX::do_boosted_frame_particles) {
                 // Loop over species to be dumped to BFD
                 for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {
-                    // Get species id in mypc.allcontainers.
-                    int js = mypc.mapSpeciesBoostedFrameDiags(j);
-                    std::string species_name = species_names[js];
+                    // Get species name
+                    std::string species_name = 
+                        species_names[mypc.mapSpeciesBoostedFrameDiags(j)];
 #ifdef WARPX_USE_HDF5
                     // Dump species data
                     writeParticleDataHDF5(particles_buffer_[i][j],
@@ -600,7 +599,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
              (snapshots_[i].current_z_lab > snapshots_[i].zmax_lab) ) continue;
 
         // Get z index of data_buffer_ (i.e. in the lab frame) where 
-        // simulation domain (t', [zmin',zmax']) interacts with snapshot.
+        // simulation domain (t', [zmin',zmax']), back-transformed to lab 
+        // frame, intersects with snapshot.
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
 
         // If buffer of snapshot i is empty...
@@ -691,11 +691,12 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             }
             
             if (WarpX::do_boosted_frame_particles) {
-
-                for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {
-        
+                // Loop over species to be dumped to BFD
+                for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j) {        
+                    // Get species name
                     const std::string species_name = species_names[mypc.mapSpeciesBoostedFrameDiags(j)];
 #ifdef WARPX_USE_HDF5
+                    // Write data to disk (HDF5)
                     writeParticleDataHDF5(particles_buffer_[i][j],
                                           snapshots_[i].file_name,
                                           species_name);
@@ -704,6 +705,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
                     part_ss << snapshots_[i].file_name + "/" + species_name + "/";
 
+                    // Write data to disk (custom)
                     writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
 #endif
                 }            
@@ -888,10 +890,12 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     if (WarpX::do_boosted_frame_particles){
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+        // Loop over species to be dumped to BFD
         for (int j = 0; j < mypc.nSpeciesBoostedFrameDiags(); ++j)
         {
-            int js = mypc.mapSpeciesBoostedFrameDiags(j);
-            std::string species_name = species_names[js];
+            // Loop over species to be dumped to BFD
+            std::string species_name = 
+                species_names[mypc.mapSpeciesBoostedFrameDiags(j)];
             output_create_species_group(file_name, species_name);
             for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
             {
@@ -917,9 +921,11 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();        
         
         const std::string particles_prefix = "particle";
+        // Loop over species to be dumped to BFD
         for(int i = 0; i < mypc.nSpeciesBoostedFrameDiags(); ++i) {
-            int is = mypc.mapSpeciesBoostedFrameDiags(i);
-            std::string species_name = species_names[is];
+            // Get species name
+            std::string species_name = 
+                species_names[mypc.mapSpeciesBoostedFrameDiags(i)];
             const std::string fullpath = file_name + "/" + species_name;
             if (!UtilCreateDirectory(fullpath, 0755))
                 CreateDirectoryFailed(fullpath);
