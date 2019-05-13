@@ -216,7 +216,6 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fcx,
                              Array4<Real const> const& fcy,
                              Array4<Real const> const& fcz,
-                             Array4<Real const> const& ba,
                              Array4<Real const> const& bc,
 //                             int is_dirichlet, int is_inhomog,
                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
@@ -468,19 +467,20 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         Real xi = kapb(i,j,k);
                         Real mu = etab(i,j,k);
                         Real tautmp = (xi-(2./3.)*mu)*divu;
-                        Real tauxx = mu*2.*dudx + tautmp;
-                        Real tauyy = mu*2.*dvdy + tautmp;
-                        Real tauzz = mu*2.*dwdz + tautmp;
-                        Real tauxy = mu*(dudy+dvdx);
-                        Real tauxz = mu*(dudz+dwdx);
-                        Real tauyz = mu*(dwdy+dvdz);
+                        // Note that mu*(grad v) has been included already in MLEBABecLap
+                        Real tauxx = mu*dudx + tautmp;
+                        Real tauyx = mu*dvdx;
+                        Real tauzx = mu*dwdx;
+                        Real tauyy = mu*dvdy + tautmp;
+                        Real tauxy = mu*dudy;
+                        Real tauzy = mu*dwdy;
+                        Real tauzz = mu*dwdz + tautmp;
+                        Real tauxz = mu*dudz;
+                        Real tauyz = mu*dvdz;
                         // assuming dxi == dyi == dzi
-                        feb_0 = dxi*(dapx*tauxx + dapy*tauxy + dapz*tauxz);
-                        feb_1 = dxi*(dapx*tauxy + dapy*tauyy + dapz*tauyz);
+                        feb_0 = dxi*(dapx*tauxx + dapy*tauyx + dapz*tauzx);
+                        feb_1 = dxi*(dapx*tauxy + dapy*tauyy + dapz*tauzy);
                         feb_2 = dxi*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
-                        feb_0 *= -ba(i,j,k);
-                        feb_1 *= -ba(i,j,k);
-                        feb_2 *= -ba(i,j,k);
                     }
 
                     Real volinv = 1.0 / kappa;
