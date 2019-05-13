@@ -422,7 +422,7 @@ WarpX::GetCellCenteredData() {
         AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dcomp, ng );
         dcomp += 3;
         // then the magnetic field
-        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], Bfield_aux[lev], dcomp, ng );
         dcomp += 3;
         // then the current density
         AverageAndPackVectorField( *cc[lev], current_fp[lev], dcomp, ng );
