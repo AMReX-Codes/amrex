@@ -85,7 +85,7 @@ public:
     friend MultiParticleContainer;
 
     // amrex::StructOfArrays with DiagIdx::nattribs amrex::Real components 
-    // for the particle data and 0 int components.
+    // and 0 int components for the particle data.
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
     // DiagnosticParticles is a vector, with one element per MR level.
     // DiagnosticParticles[lev] is typically a key-value pair where the key is 

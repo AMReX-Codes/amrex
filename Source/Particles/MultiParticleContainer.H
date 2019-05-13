@@ -218,7 +218,10 @@ private:
 
     void ReadParameters ();
 
+    // Number of species dumped in BoostedFrameDiagnostics
     int nspecies_boosted_frame_diags = 0;
+    // map_species_boosted_frame_diags[i] is the species ID in 
+    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
     std::vector<int> map_species_boosted_frame_diags;
     int do_boosted_frame_diags = 0;
 
