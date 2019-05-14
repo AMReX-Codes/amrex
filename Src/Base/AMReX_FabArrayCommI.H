@@ -100,11 +100,12 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
+                    auto const dst_array = this->array(mfi);
                     const auto& tags = loc_copy_tags[mfi];
                     for (auto const & tag : tags)
                     {
                         const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
-                                                                                           this->array(mfi),
+                                                                                           dst_array,
                                                                                            scomp, ncomp));
                     }
                 }
@@ -481,11 +482,12 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
+                    const auto& dst_array = this->array(mfi);
                     const auto& tags = loc_copy_tags[mfi]; 
                     for (auto const & tag : tags)
                     {
                         const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
-                                                                                           this->array(mfi),
+                                                                                           dst_array,
                                                                                            scomp, ncomp)); 
                     }
                 }
@@ -659,11 +661,12 @@ FabArray<FAB>::FillBoundary_finish ()
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
+                    auto dst_array = this->array(mfi);
                     const auto & tags = recv_copy_tags[mfi];
                     for (auto const & tag : tags)
                     {
                         const_cast<FB&>(TheFB).m_copyFromBuffer.setParams(idx++, makeCopyMemory(amrex::makeArray4((value_type*)(tag.p), tag.dbox),
-                                                                                                this->array(mfi),
+                                                                                                dst_array,
                                                                                                 fb_scomp, fb_ncomp));
                     } 
                 }
