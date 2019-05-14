@@ -118,8 +118,7 @@ void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax)
         const int lo_ind = bx.loVect()[1];
 #endif
         // Check if box intersect with [zmin, zmax]
-        if ( (zmin>zmin_box && zmin<=zmax_box) || 
-             (zmax>zmin_box && zmax<=zmax_box) ){
+        if ( (zmax>zmin_box && zmin<=zmax_box) ){
             Array4<Real> arr = mf[mfi].array();
             // Set field to 0 between zmin and zmax
             ParallelFor(bx,

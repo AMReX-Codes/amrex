@@ -45,11 +45,6 @@ warpx.do_boosted_frame_diagnostic = 1
 warpx.num_snapshots_lab = 20
 warpx.dt_snapshots_lab = 7.0e-14
 
-# Particle Injection
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 2
-warpx.injected_plasma_species = 0 1
-
 # Species
 particles.nspecies = 2
 particles.species_names = electrons ions
@@ -66,6 +61,7 @@ electrons.num_particles_per_cell_each_dim = 1 1 1
 electrons.profile = constant
 electrons.density = 1.
 electrons.momentum_distribution_type = "constant"
+electrons.do_continuous_injection = 1
 
 ions.charge = q_e
 ions.mass = m_p
@@ -79,6 +75,7 @@ ions.num_particles_per_cell_each_dim = 1 1 1
 ions.profile = constant
 ions.density = 1.
 ions.momentum_distribution_type = "constant"
+ions.do_continuous_injection = 1
 
 # Laser
 warpx.use_laser = 1

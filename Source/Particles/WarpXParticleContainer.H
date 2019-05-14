@@ -59,7 +59,6 @@ public:
                       const amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
                       const amrex::Cuda::ManagedDeviceVector<amrex::Real>& z);
 #endif
-
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
     }
@@ -85,7 +84,13 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
+    // amrex::StructOfArrays with DiagIdx::nattribs amrex::Real components 
+    // and 0 int components for the particle data.
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
+    // DiagnosticParticles is a vector, with one element per MR level.
+    // DiagnosticParticles[lev] is typically a key-value pair where the key is 
+    // a pair [grid_index, tile_index], and the value is the corresponding 
+    // DiagnosticParticleData (see above) on this tile.
     using DiagnosticParticles = amrex::Vector<std::map<std::pair<int, int>, DiagnosticParticleData> >;
     
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
@@ -183,7 +188,18 @@ public:
                               int thread_num,
                               int lev,
                               amrex::Real dt );
-  
+
+    // If particles start outside of the domain, ContinuousInjection 
+    // makes sure that they are initialized when they enter the domain, and 
+    // NOT before. Virtual function, overriden by derived classes. 
+    // Current status:
+    // PhysicalParticleContainer: implemented.
+    // LaserParticleContainer: implemented.
+    // RigidInjectedParticleContainer: not implemented.
+    virtual void ContinuousInjection(const amrex::RealBox& injection_box) {}
+    // Update optional sub-class-specific injection location.
+    virtual void UpdateContinuousInjectionPosition(amrex::Real dt) {}
+
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
@@ -248,6 +264,14 @@ protected:
 
     static int do_not_push;
 
+    // Whether to allow particles outside of the simulation domain to be 
+    // initialized when they enter the domain.
+    // This is currently required because continuous injection does not 
+    // support all features allowed by direct injection.
+    int do_continuous_injection = 0;
+
+    int do_boosted_frame_diags = 1;
+
     amrex::Vector<amrex::FArrayBox> local_rho;
     amrex::Vector<amrex::FArrayBox> local_jx;
     amrex::Vector<amrex::FArrayBox> local_jy;
@@ -255,9 +279,19 @@ protected:
 
     amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
 
+    // Whether to dump particle quantities. 
+    // If true, particle position is always dumped.
+    int plot_species = 1;
+    // For all particle attribs (execept position), whether or not 
+    // to dump to file.
+    amrex::Vector<int> plot_flags;
+    // list of names of attributes to dump.
+    amrex::Vector<std::string> plot_vars;
+
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;
+
 };
 
 #endif

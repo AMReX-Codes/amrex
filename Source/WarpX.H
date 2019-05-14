@@ -111,6 +111,8 @@ public:
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
     static amrex::Vector<int> boost_direction;
+    static amrex::Real zmax_plasma_to_compute_max_step;
+    static int do_compute_max_step_from_zmax;
 
     static bool do_dynamic_scheduling;
     static bool refine_plasma;
@@ -155,6 +157,8 @@ public:
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
+    // Compute max_step automatically for simulations in a boosted frame.
+    void computeMaxStepBoostAccelerator(amrex::Geometry geom);
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
@@ -479,10 +483,10 @@ private:
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
-    int do_plasma_injection  = 0;
+    int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
-
+    
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
@@ -518,6 +522,9 @@ private:
     bool dump_plotfiles = true;
     bool dump_openpmd = false;
 #endif
+    bool plot_E_field       = true;
+    bool plot_B_field       = true;
+    bool plot_J_field       = true;
     bool plot_part_per_cell = true;
     bool plot_part_per_grid = false;
     bool plot_part_per_proc = false;
@@ -545,9 +552,6 @@ private:
     amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
-
-    amrex::Vector<std::string> particle_plot_vars;
-    amrex::Vector<int> particle_plot_flags;
 
 #ifdef WARPX_USE_PSATD
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)

@@ -66,6 +66,7 @@ electrons.profile                 = "predefined"
 electrons.predefined_profile_name = "parabolic_channel"
 #         predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
 electrons.predefined_profile_params = .5e-3     .5e-3     2.e-3     .5e-3       50.e-6   3.5e24
+electrons.do_continuous_injection = 1
 
 ions.charge = q_e
 ions.mass = m_p
@@ -80,6 +81,7 @@ ions.profile                 = "predefined"
 ions.predefined_profile_name = "parabolic_channel"
 #    predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
 ions.predefined_profile_params = .5e-3     .5e-3     2.e-3     .5e-3       50.e-6   3.5e24
+ions.do_continuous_injection = 1
 
 beam.charge = -q_e
 beam.mass = m_e
@@ -105,11 +107,6 @@ beam.zinject_plane = 0.1e-3
 beam.rigid_advance = true
 beam.projected = true
 beam.focused = false
-
-# Particle Injection
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 2
-warpx.injected_plasma_species = 0 1
 
 #################################
 ############# LASER #############
