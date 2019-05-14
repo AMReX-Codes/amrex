@@ -522,6 +522,10 @@ private:
     bool plot_E_field       = true;
     bool plot_B_field       = true;
     bool plot_J_field       = true;
+    bool plot_E_field_bfd   = true;
+    bool plot_B_field_bfd   = true;
+    bool plot_J_field_bfd   = true;
+    bool plot_rho_bfd       = true;
     bool plot_part_per_cell = true;
     bool plot_part_per_grid = false;
     bool plot_part_per_proc = false;

@@ -446,6 +446,37 @@ namespace
 }
 #endif
 
+namespace
+{
+    void
+    CopySlice(MultiFab& tmp, MultiFab& buf, int k_boost, int k_lab)
+    {
+        const int ncomp = tmp.nComp();
+        // Copy data from MultiFab tmp to MultiDab data_buffer[i]
+        for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            Array4<      Real> tmp_arr = tmp[mfi].array();
+            Array4<      Real> buf_arr = buf[mfi].array();
+            const Box& bx  = mfi.tilebox();            
+            ParallelFor(bx, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+                {
+                    //std::cout<<"n "<<n<<std::endl;
+                    //std::cout<<"k "<<k<<std::endl;
+                    //std::cout<<"k_boost "<<k_boost<<std::endl;
+                    //std::cout<<"k_lab "<<k_lab<<std::endl;
+                    // buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,n);
+#if (AMREX_SPACEDIM == 3)
+                    buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,n);
+#else
+                    buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,n);
+#endif
+                    // tmp_arr(i,j,k,n) += 1;
+                }
+            );
+        }
+    }
+}
+
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
@@ -656,6 +687,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 #pragma omp parallel
 #endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
+            CopySlice(tmp, *data_buffer_[i], i_boost, i_lab);
+            /*
             for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
                 const Box& tile_box  = mfi.tilebox();
                 WRPX_COPY_SLICE(BL_TO_FORTRAN_BOX(tile_box),
@@ -663,13 +696,13 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                 BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
                                 &ncomp, &i_boost, &i_lab);
             }
+            */
         }
 
         if (WarpX::do_boosted_frame_particles) {
             mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
                                  old_z_boost, snapshots_[i].current_z_boost,
                                  t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
-
         }
 
 
