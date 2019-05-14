@@ -101,7 +101,18 @@ MLEBTensorOp::prepareForSolve ()
         "MLEBTensorOp: must call both setBulkViscosity and setEBBulkViscosity or none.");
 
     if (m_has_kappa) {
-        amrex::Abort("MLEBTensorOp::prepareForSolve: TODO m_has_kappa");
+        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+            for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
+                amrex::EB_average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev][mglev-1]),
+                                             GetArrOfPtrs     (m_kappa[amrlev][mglev  ]),
+                                             IntVect(mg_coarsen_ratio), 0);
+            }
+            if (amrlev > 0) {
+                amrex::EB_average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
+                                             GetArrOfPtrs     (m_kappa[amrlev-1].front()),
+                                             IntVect(mg_coarsen_ratio), 0);
+            }
+        }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
             for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
@@ -113,7 +124,18 @@ MLEBTensorOp::prepareForSolve ()
     }
 
     if (m_has_eb_kappa) {
-        amrex::Abort("MLEBTensorOp::prepareForSolve: TODO m_has_eb_kappa");
+        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+            for (int mglev = 1; mglev < m_eb_kappa[amrlev].size(); ++mglev) {
+                amrex::EB_average_down_boundaries(m_eb_kappa[amrlev][mglev-1],
+                                                  m_eb_kappa[amrlev][mglev  ],
+                                                  IntVect(mg_coarsen_ratio), 0);
+            }
+            if (amrlev > 0) {
+                amrex::EB_average_down_boundaries(m_eb_kappa[amrlev  ].back(),
+                                                  m_eb_kappa[amrlev-1].front(),
+                                                  IntVect(mg_coarsen_ratio), 0);
+            }
+        }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
             for (int mglev = 0; mglev < m_eb_kappa[amrlev].size(); ++mglev) {

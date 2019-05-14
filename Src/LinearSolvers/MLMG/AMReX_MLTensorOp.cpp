@@ -68,7 +68,18 @@ void
 MLTensorOp::prepareForSolve ()
 {
     if (m_has_kappa) {
-        amrex::Abort("MLTensorOp::prepareForSolve: TODO");
+        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+            for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
+                amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev][mglev-1]),
+                                          GetArrOfPtrs     (m_kappa[amrlev][mglev  ]),
+                                          IntVect(mg_coarsen_ratio), 0);
+            }
+            if (amrlev > 0) {
+                amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
+                                          GetArrOfPtrs     (m_kappa[amrlev-1].front()),
+                                          IntVect(mg_coarsen_ratio), 0);
+            }
+        }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
             for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
