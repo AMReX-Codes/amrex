@@ -556,9 +556,7 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
     InitLevelData(lev, time);
 
 #ifdef WARPX_USE_PSATD
-    amrex::Print() << " alloc level data fft \n";
     AllocLevelDataFFT(lev);
-    amrex::Print() << " init level data fft \n";
     InitLevelDataFFT(lev, time);
 #endif
 }

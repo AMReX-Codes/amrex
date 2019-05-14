@@ -69,20 +69,17 @@ WarpX::EvolveEM (int numsteps)
         // At the beginning, we have B^{n} and E^{n}.
         // Particles have p^{n} and x^{n}.
         // is_synchronized is true.
-        amrex::Print() << " in evolve before fill boundary \n";
         if (is_synchronized) {
             FillBoundaryE();
             FillBoundaryB();
             UpdateAuxilaryData();
             // on first step, push p by -0.5*dt
-            amrex::Print() << " in evolve before pushP \n";
             for (int lev = 0; lev <= finest_level; ++lev) {
                 mypc->PushP(lev, -0.5*dt[lev],
                             *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
             is_synchronized = false;
-            amrex::Print() << " in evolve after pushP \n";
 
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
@@ -92,7 +89,6 @@ WarpX::EvolveEM (int numsteps)
             UpdateAuxilaryData();
 
         }
-        amrex::Print() << " in evolve after fill boundary \n";
 
         if (do_subcycling == 0 || finest_level == 0) {
             OneStep_nosub(cur_time);
@@ -102,7 +98,6 @@ WarpX::EvolveEM (int numsteps)
             amrex::Print() << "Error: do_subcycling = " << do_subcycling << std::endl;
             amrex::Abort("Unsupported do_subcycling type");
         }
-        amrex::Print() << " in evolve after onestep no sub  \n";
 
         if (num_mirrors>0){
             applyMirrors(cur_time);
@@ -274,9 +269,7 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_particlescraper) warpx_py_particlescraper();
     if (warpx_py_beforedeposition) warpx_py_beforedeposition();
 #endif
-    amrex::Print() << " before push \n";
     PushParticlesandDepose(cur_time);
-    amrex::Print() << " after push \n";
 
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
@@ -290,9 +283,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
     PushPSATD(dt[0]);
-    amrex::Print() << " before fill bndry E \n";
     FillBoundaryE();
-    amrex::Print() << " before fill bndry B \n";
     FillBoundaryB();
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);

@@ -30,13 +30,10 @@ int main(int argc, char* argv[])
     const Real strt_total = amrex::second();
 
     {
-        amrex::Print() << " about to construct warpx \n";
 	WarpX warpx;
 	
-        amrex::Print() << " call warpx init data \n";
 	warpx.InitData();
 
-        amrex::Print() << " call warpx evolve  \n";
 	warpx.Evolve();
 	
 	Real end_total = amrex::second() - strt_total;

@@ -452,16 +452,27 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         auto& solver = *spectral_solver_fp[lev];
 
         // Perform forward Fourier transform
+        amrex::Print() <<  " FT Ex \n";  
         solver.ForwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
+        amrex::Print() <<  " FT Ey \n";  
         solver.ForwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
+        amrex::Print() <<  " FT Ez \n";  
         solver.ForwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
+        amrex::Print() <<  " FT Bx \n";  
         solver.ForwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
+        amrex::Print() <<  " FT By \n";  
         solver.ForwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
+        amrex::Print() <<  " FT Bz \n";  
         solver.ForwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
+        amrex::Print() <<  " FT jx \n";  
         solver.ForwardTransform(*current_fp_fft[lev][0], SpectralFieldIndex::Jx);
+        amrex::Print() <<  " FT jy \n";  
         solver.ForwardTransform(*current_fp_fft[lev][1], SpectralFieldIndex::Jy);
+        amrex::Print() <<  " FT jz \n";  
         solver.ForwardTransform(*current_fp_fft[lev][2], SpectralFieldIndex::Jz);
+        amrex::Print() <<  " FT rho old \n";  
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_old, 0);
+        amrex::Print() <<  " FT rho new \n";  
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_new, 1);
 
         // Advance fields in spectral space

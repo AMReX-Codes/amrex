@@ -152,9 +152,10 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 tmp_arr(i,j,k) = mf_arr(i,j,k,i_comp);                
             });
-//#ifdef AMREX_USE_GPU
-//            cudaDeviceSynchronize();
-//#endif
+#ifdef AMREX_USE_GPU
+            cudaDeviceSynchronize();
+#endif
+            amrex::Print() << " before forward transform " << mf_arr(15,15,15,0) << " " << mf_arr(15,15,15,1);
         }
 
         // Perform Fourier transform from `tmpRealField` to `tmpSpectralField`
@@ -165,7 +166,7 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
         cufftResult result;
         cudaStream_t stream = amrex::Cuda::Device::cudaStream(); 
         amrex::Print() << " stream is " << stream << "\n";
-        cufftSetStream ( forward_plan[mfi], stream);
+//        cufftSetStream ( forward_plan[mfi], stream);
         result = cufftExecD2Z( forward_plan[mfi], 
                                tmpRealField[mfi].dataPtr(), 
                                reinterpret_cast<cuDoubleComplex*>(
@@ -268,7 +269,7 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
         cufftResult result;
         cudaStream_t stream = amrex::Cuda::Device::cudaStream(); 
         amrex::Print() << " stream is " << stream << "\n";
-        cufftSetStream ( backward_plan[mfi], stream);
+//        cufftSetStream ( backward_plan[mfi], stream);
         result = cufftExecZ2D( backward_plan[mfi], 
                                reinterpret_cast<cuDoubleComplex*>(
                                tmpSpectralField[mfi].dataPtr()),
@@ -298,9 +299,10 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
                 // Copy and normalize field
                 mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i,j,k);
             });
-//#ifdef AMREX_USE_GPU
-//            cudaDeviceSynchronize();
-//#endif
+#ifdef AMREX_USE_GPU
+            cudaDeviceSynchronize();
+#endif
+            amrex::Print() << " mf_arr after BT " << mf_arr(15,15,15,0) << " " << mf_arr(15,15,15,1) << "\n";
 
 #ifdef AMREX_USE_GPU
             cudaDeviceSynchronize();

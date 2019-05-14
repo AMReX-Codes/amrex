@@ -23,6 +23,7 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     X3_coef = SpectralCoefficients(ba, dm, 1, 0);
 
     InitializeCoefficience(spectral_kspace, dm, dt);
+}
 //    // Fill them with the right values:
 //    // Loop over boxes and allocate the corresponding coefficients
 //    // for each box owned by the local MPI proc
@@ -76,7 +77,6 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
 //            }
 //        });
 //    }
-};
 
 /* Advance the E and B field in spectral space (stored in `f`)
  * over one time step */
@@ -173,8 +173,7 @@ void PsatdAlgorithm::InitializeCoefficience(const SpectralKSpace& spectral_kspac
     // for each box owned by the local MPI proc
     for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
 
-        //const Box& bx = ba[mfi];
-        const Box bx = ba[mfi];
+        const Box& bx = ba[mfi];
 
         // Extract pointers for the k vectors
         const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
