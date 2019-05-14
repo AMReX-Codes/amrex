@@ -130,7 +130,6 @@ public:
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile( const std::string& dir,
-                        const amrex::Vector<int>& real_flags, 
                         const amrex::Vector<std::string>& real_names) const;
     
     void Restart (const std::string& dir);
@@ -155,6 +154,10 @@ public:
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
     int nSpecies() const {return nspecies;}
+
+    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
+    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
+    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
 
     int nSpeciesDepositOnMainGrid () const {
         int r = 0;
@@ -214,6 +217,13 @@ private:
     std::unique_ptr<PhysicalParticleContainer> pc_tmp;
 
     void ReadParameters ();
+
+    // Number of species dumped in BoostedFrameDiagnostics
+    int nspecies_boosted_frame_diags = 0;
+    // map_species_boosted_frame_diags[i] is the species ID in 
+    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
+    std::vector<int> map_species_boosted_frame_diags;
+    int do_boosted_frame_diags = 0;
 
     // runtime parameters
     int nlasers = 0;

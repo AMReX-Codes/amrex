@@ -25,6 +25,10 @@ WarpX::EvolveEM (int numsteps)
     static int last_check_file_step = 0;
     static int last_insitu_step = 0;
 
+    if (do_compute_max_step_from_zmax){
+        computeMaxStepBoostAccelerator(geom[0]);
+    }
+
     int numsteps_max;
     if (numsteps < 0) {  // Note that the default argument is numsteps = -1
         numsteps_max = max_step;
@@ -504,6 +508,50 @@ WarpX::ComputeDt ()
     if (do_electrostatic) {
         dt[0] = const_dt;
     }
+}
+
+/* \brief computes max_step for wakefield simulation in boosted frame.
+ * \param geom: Geometry object that contains simulation domain.
+ * 
+ * max_step is set so that the simulation stop when the lower corner of the 
+ * simulation box passes input parameter zmax_plasma_to_compute_max_step.
+ */
+void
+WarpX::computeMaxStepBoostAccelerator(amrex::Geometry geom){
+    // Sanity checks: can use zmax_plasma_to_compute_max_step only if 
+    // the moving window and the boost are all in z direction.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        WarpX::moving_window_dir == AMREX_SPACEDIM-1,
+        "Can use zmax_plasma_to_compute_max_step only if " +
+        "moving window along z. TODO: all directions.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        maxLevel() == 0,
+        "Can use zmax_plasma_to_compute_max_step only if " +
+        "max level = 0.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
+        (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
+        (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
+        "Can use zmax_plasma_to_compute_max_step only if " +
+        "warpx.boost_direction = z. TODO: all directions.");
+
+    // Lower end of the simulation domain. All quantities are given in boosted 
+    // frame except zmax_plasma_to_compute_max_step.
+    const Real zmin_domain_boost = geom.ProbLo(AMREX_SPACEDIM-1);
+    // End of the plasma: Transform input argument
+    // zmax_plasma_to_compute_max_step to boosted frame.
+    const Real len_plasma_boost = zmax_plasma_to_compute_max_step/gamma_boost;
+    // Plasma velocity
+    const Real v_plasma_boost = -beta_boost * PhysConst::c;
+    // Get time at which the lower end of the simulation domain passes the 
+    // upper end of the plasma (in the z direction).
+    const Real interaction_time_boost = (len_plasma_boost-zmin_domain_boost)/
+        (moving_window_v-v_plasma_boost);
+    // Divide by dt, and update value of max_step.
+    const int computed_max_step = interaction_time_boost/dt[0];
+    max_step = computed_max_step;
+    Print()<<"max_step computed in computeMaxStepBoostAccelerator: "
+           <<computed_max_step<<std::endl;
 }
 
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).

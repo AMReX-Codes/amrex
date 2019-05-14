@@ -225,7 +225,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
-    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
         auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
         auto& ypold    = pti.GetAttribs(particle_comps["yold"]);

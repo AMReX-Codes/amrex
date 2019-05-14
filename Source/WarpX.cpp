@@ -32,6 +32,8 @@ int WarpX::moving_window_dir = -1;
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<int> WarpX::boost_direction = {0,0,0};
+int WarpX::do_compute_max_step_from_zmax = 0;
+Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -115,7 +117,7 @@ WarpX::ResetInstance ()
 {
     delete m_instance;
     m_instance = nullptr;
-}
+}	
 
 WarpX::WarpX ()
 {
@@ -155,6 +157,7 @@ WarpX::WarpX ()
             current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
+    do_boosted_frame_particles = mypc->doBoostedFrameDiags();
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
@@ -272,6 +275,12 @@ WarpX::ReadParameters ()
 
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
+    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is 
+    // specified by the user, 0 otherwise.
+    do_compute_max_step_from_zmax = 
+        pp.query("zmax_plasma_to_compute_max_step", 
+                  zmax_plasma_to_compute_max_step);
+
     pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
@@ -317,8 +326,6 @@ WarpX::ReadParameters ()
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
-        pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
-
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                "The moving window should be on if using the boosted frame diagnostic.");
@@ -371,6 +378,9 @@ WarpX::ReadParameters ()
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
+        pp.query("plot_E_field"      , plot_E_field);
+        pp.query("plot_B_field"      , plot_B_field);
+        pp.query("plot_J_field"      , plot_J_field);
         pp.query("plot_part_per_cell", plot_part_per_cell);
         pp.query("plot_part_per_grid", plot_part_per_grid);
         pp.query("plot_part_per_proc", plot_part_per_proc);
@@ -426,39 +436,6 @@ WarpX::ReadParameters ()
             pp.getarr("fine_tag_hi", hi);
             fine_tag_lo = RealVect{lo};
             fine_tag_hi = RealVect{hi};
-        }
-
-        // select which particle comps to write
-        {
-            pp.queryarr("particle_plot_vars", particle_plot_vars);
-
-            if (particle_plot_vars.size() == 0)
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 1);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 1);
-                }                
-            }
-            else
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 0);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 0);
-                }                
-
-                for (const auto& var : particle_plot_vars)
-                {
-                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
-                }
-            }
         }
 
         pp.query("load_balance_int", load_balance_int);
