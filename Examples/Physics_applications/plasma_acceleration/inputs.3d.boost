@@ -95,10 +95,6 @@ driverback.uz_m = 200000.
 driverback.ux_th = 2.
 driverback.uy_th = 2.
 driverback.uz_th = 20000.
-driverback.zinject_plane = 0.
-driverback.rigid_advance = true
-driverback.projected = true
-driverback.focused = false
 driverback.do_backward_propagation = true
 
 plasma_e.charge = -q_e
