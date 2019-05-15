@@ -40,6 +40,15 @@ namespace Cuda {
         bool m_old;
     };
 
+    struct GraphSafeGuard
+    {
+        GraphSafeGuard (bool flag) noexcept
+            : m_old(setGraphRegion(in_graph_region && flag)) {}
+        ~GraphSafeGuard () { setGraphRegion(m_old); }
+    private:
+        bool m_old;
+    };
+
 #else
 
     inline static constexpr bool inLaunchRegion () { return false; }
@@ -53,6 +62,11 @@ namespace Cuda {
     struct LaunchSafeGuard
     {
         LaunchSafeGuard (bool) {}
+    };
+
+    struct GraphSafeGuard
+    {
+        GraphSafeGuard (bool) {}
     };
 
 #endif
