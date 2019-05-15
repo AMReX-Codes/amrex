@@ -8,7 +8,6 @@ int main (int argc, char* argv[])
 
     {
         BL_PROFILE("main");
-        amrex::Gpu::setGraphRegion(false);
         MyTest mytest;
         mytest.solve();
         mytest.writePlotfile();
