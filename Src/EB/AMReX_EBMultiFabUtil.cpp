@@ -72,6 +72,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
 
     const auto& area = factory->getAreaFrac();
     const auto& flags = factory->getMultiEBCellFlagFab();
+    const int ncomp = umac[0]->nComp();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -83,11 +84,12 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
             const Box& bx = mfi.tilebox(IntVect::TheDimensionVector(idim));
             auto fabtyp = flags[mfi].getType(amrex::enclosedCells(bx));
             if (fabtyp == FabType::covered) {
-                (*umac[idim])[mfi].setVal(0.0, bx, 0, 1);
+                (*umac[idim])[mfi].setVal(0.0, bx, 0, ncomp);
             } else if (fabtyp != FabType::regular) {
                 amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(bx),
                                            BL_TO_FORTRAN_ANYD((*umac[idim])[mfi]),
-                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]),
+                                           &ncomp);
             }
         }
     }
@@ -346,7 +348,7 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                 FabType typ = flags[mfi].getType(amrex::refine(tbx,ratio));
 
                 if (FabType::covered == typ || FabType::regular == typ) {
-                    crse[mfi].setVal(0.0, tbx, 0, 1);
+                    crse[mfi].setVal(0.0, tbx, 0, ncomp);
                 } else {
                     amrex_eb_avgdown_boundaries(tbx.loVect(), tbx.hiVect(),
                                                 BL_TO_FORTRAN_ANYD(fine[mfi]),
