@@ -449,26 +449,29 @@ namespace
 namespace
 {
     void
-    CopySlice(MultiFab& tmp, MultiFab& buf, int k_boost, int k_lab)
+    CopySlice(MultiFab& tmp, MultiFab& buf, int k_boost, int k_lab, 
+              std::vector<int> map_fields_to_dump)
     {
-        const int ncomp = tmp.nComp();
+        const int ncomp_to_dump = map_fields_to_dump.size();
         // Copy data from MultiFab tmp to MultiDab data_buffer[i]
         for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<      Real> tmp_arr = tmp[mfi].array();
             Array4<      Real> buf_arr = buf[mfi].array();
-            const Box& bx  = mfi.tilebox();            
-            ParallelFor(bx, ncomp,
+            const Box& bx  = mfi.tilebox();
+            
+            ParallelFor(bx, ncomp_to_dump,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
                 {
+                    const int icomp = map_fields_to_dump[n];
                     //std::cout<<"n "<<n<<std::endl;
                     //std::cout<<"k "<<k<<std::endl;
                     //std::cout<<"k_boost "<<k_boost<<std::endl;
                     //std::cout<<"k_lab "<<k_lab<<std::endl;
                     // buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,n);
 #if (AMREX_SPACEDIM == 3)
-                    buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,n);
+                    buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
 #else
-                    buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,n);
+                    buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,icomp);
 #endif
                     // tmp_arr(i,j,k,n) += 1;
                 }
@@ -523,6 +526,45 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     }
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
+
+    std::vector<std::string> fields_to_dump_tmp = fields_to_dump;
+    ParmParse pp("warpx");
+    pp.querryarr("boosted_frame_diag_fields", fields_to_dump_tmp);
+    ncomp_to_dump = 0;
+    for (int i=0; i<fields_to_dump_tmp.size(); i++){
+        
+    }
+    
+    /*
+    ncomp_to_dump = 0;
+    WarpX& warpx = WarpX::GetInstance();
+    if (warpx.plot_E_field_bfd){
+        map_fields_to_dump.resize(ncomp_to_dump+3);
+        map_fields_to_dump[ncomp_to_dump  ] = 0;
+        map_fields_to_dump[ncomp_to_dump+1] = 1;
+        map_fields_to_dump[ncomp_to_dump+2] = 2;
+        ncomp_to_dump += 3;
+    }
+    if (warpx.plot_B_field_bfd){
+        map_fields_to_dump.resize(ncomp_to_dump+3);
+        map_fields_to_dump[ncomp_to_dump  ] = 3;
+        map_fields_to_dump[ncomp_to_dump+1] = 4;
+        map_fields_to_dump[ncomp_to_dump+2] = 5;
+        ncomp_to_dump += 3;
+    }
+    if (warpx.plot_J_field_bfd){
+        map_fields_to_dump.resize(ncomp_to_dump+3);
+        map_fields_to_dump[ncomp_to_dump  ] = 6;
+        map_fields_to_dump[ncomp_to_dump+1] = 7;
+        map_fields_to_dump[ncomp_to_dump+2] = 8;
+        ncomp_to_dump += 3;
+    }
+    if (warpx.plot_rho_bfd){
+        map_fields_to_dump.resize(ncomp_to_dump+1);
+        map_fields_to_dump[ncomp_to_dump  ] = 9;
+        ncomp_to_dump += 1;        
+    }
+    */
 }
 
 void BoostedFrameDiagnostic::Flush(const Geometry& geom)
@@ -645,7 +687,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                 BoxArray buff_ba(buff_box);
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
-                data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+                data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp_to_dump, 0) );
+                // data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
             if (WarpX::do_boosted_frame_particles) 
@@ -687,7 +730,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 #pragma omp parallel
 #endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
-            CopySlice(tmp, *data_buffer_[i], i_boost, i_lab);
+            CopySlice(tmp, *data_buffer_[i], i_boost, i_lab, map_fields_to_dump);
             /*
             for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
                 const Box& tile_box  = mfi.tilebox();

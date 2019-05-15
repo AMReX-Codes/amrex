@@ -11,6 +11,8 @@
 #include "MultiParticleContainer.H"
 #include "WarpXConst.H"
 
+enum struct toto { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new };
+
 ///
 /// BoostedFrameDiagnostic is for handling IO when running in a boosted 
 /// frame of reference. Because of the relativity of simultaneity, events that
@@ -114,6 +116,14 @@ public:
                            const amrex::Real t_boost, const amrex::Real dt);
     
     void writeMetaData();
+
+private:
+    // Name of fields to dump.
+    std::vector<std::string> fields_to_dump = {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho"};
+    // maps field index in data_buffer_[i] -> cell_centered_data for 
+    // all snapshots number i.
+    std::vector<int> map_fields_to_dump;
+    int ncomp_to_dump;
 };
 
 #endif
