@@ -1,3 +1,4 @@
+[![Citing](http://joss.theoj.org/papers/10.21105/joss.01370/status.svg)](https://doi.org/10.21105/joss.01370)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2555438.svg)](https://doi.org/10.5281/zenodo.2555438)
 
 ## License
@@ -83,3 +84,22 @@ status as a core developer.
 
 The current list of core developers is: Ann Almgren (LBNL), Vince Beckner, John Bell (LBNL), Johannes Blaschke (LBNL), Cy Chan (LBNL), Marcus Day (LBNL), Brian Friesen (NERSC), Kevin Gott (NERSC), Daniel Graves (LBNL), Max Katz (NVIDIA), Andrew Myers (LBNL), Tan Nguyen (LBNL), Andrew Nonaka (LBNL), Michele Rosso (LBNL), Sam Williams (LBNL), Weiqun Zhang (LBNL), Michael Zingale (Stonybrook University).
 
+## Citation
+
+To cite AMReX, please use [![Citing](http://joss.theoj.org/papers/10.21105/joss.01370/status.svg)](https://doi.org/10.21105/joss.01370)
+
+```
+@article{AMReX_JOSS,
+  doi = {10.21105/joss.01370},
+  url = {https://doi.org/10.21105/joss.01370},
+  year = {2019},
+  month = may,
+  publisher = {The Open Journal},
+  volume = {4},
+  number = {37},
+  pages = {1370},
+  author = {Weiqun Zhang and Ann Almgren and Vince Beckner and John Bell and Johannes Blaschke and Cy Chan and Marcus Day and Brian Friesen and Kevin Gott and Daniel Graves and Max Katz and Andrew Myers and Tan Nguyen and Andrew Nonaka and Michele Rosso and Samuel Williams and Michael Zingale},
+  title = {{AMReX}: a framework for block-structured adaptive mesh refinement},
+  journal = {Journal of Open Source Software}
+}
+```

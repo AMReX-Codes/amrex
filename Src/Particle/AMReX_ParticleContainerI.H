@@ -902,7 +902,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_CUDA
-    if (local and (lev_min == 0) and (lev_max == 0) and (nGrow == 0))
+    if (local and (lev_min == 0) and (lev_max == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
     {
         RedistributeGPU(lev_min, lev_max, nGrow, local);
     }
@@ -1386,14 +1386,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const int dest_proc = dmap[i];
             if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
             {
-                auto& ptile = plev[pair_index];
+				auto& ptile = DefineAndReturnParticleTile(lev, pair_index.first, pair_index.second);
                 const size_t old_size = ptile.numParticles();
                 const size_t new_size = old_size + num_to_add;
                 ptile.resize(new_size);
                 
                 // copy structs
                 {
-		    auto& src = m_aos_to_redistribute;
+					auto& src = m_aos_to_redistribute;
                     auto& dst = ptile.GetArrayOfStructs();
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1], 
@@ -1403,18 +1403,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 // copy real arrays
                 for (int j = 0; j < NumRealComps(); ++j)
                 {
-		    auto& src = m_real_arrays_to_redistribute[j];
-		    auto& dst = ptile.GetStructOfArrays().GetRealData(j);
+					auto& src = m_real_arrays_to_redistribute[j];
+					auto& dst = ptile.GetStructOfArrays().GetRealData(j);
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1],
                                  dst.begin() + old_size);
                 }
 
-		// copy int arrays
+				// copy int arrays
                 for (int j = 0; j < NumIntComps(); ++j)
                 {
-		    auto& src = m_int_arrays_to_redistribute[j];
-		    auto& dst = ptile.GetStructOfArrays().GetIntData(j);
+					auto& src = m_int_arrays_to_redistribute[j];
+					auto& dst = ptile.GetStructOfArrays().GetIntData(j);
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1],
                                  dst.begin() + old_size);
@@ -1666,7 +1666,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     const int tid = 0;
                     auto pair_index = std::make_pair(gid, tid);
-                    auto& ptile = m_particles[lev][pair_index];
+					auto& ptile = DefineAndReturnParticleTile(lev, pair_index.first, pair_index.second);
                     auto& aos = ptile.GetArrayOfStructs();
                     auto& soa = ptile.GetStructOfArrays();
                     const size_t old_size = ptile.numParticles();
@@ -2279,7 +2279,7 @@ bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_min, int lev_max, int nGrow) const
 {
 #ifdef AMREX_USE_CUDA
-    if ( (finestLevel() == 0) and (nGrow == 0) )
+    if ( (finestLevel() == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
     {
         return OKGPU(lev_min, lev_max, nGrow);
     }
@@ -3192,7 +3192,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         if (count[grid] == 0) continue;
       
         // First write out the integer data in binary.
-        const int iChunkSize = 2 + NStructInt + NArrayInt;
+        int num_output_int = 0;
+        for (int i = 0; i < NumIntComps() + NStructInt; ++i)
+            if (write_int_comp[i]) ++num_output_int;
+        
+        const int iChunkSize = 2 + num_output_int;
         Vector<int> istuff(count[grid]*iChunkSize);
         int* iptr = istuff.dataPtr();
         
@@ -3217,7 +3221,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     }
                     
                     const auto& soa  = pbox.GetStructOfArrays();
-                    for (int j = 0; j < NArrayInt; j++)
+                    for (int j = 0; j < NumIntComps(); j++)
                     {
                         if (write_int_comp[NStructInt+j])
                         {
@@ -3233,7 +3237,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ofs.flush();  // Some systems require this flush() (probably due to a bug)
         
         // Write the Real data in binary.
-        const int rChunkSize = AMREX_SPACEDIM + NStructReal + NumRealComps();
+        int num_output_real = 0;
+        for (int i = 0; i < NumRealComps() + NStructReal; ++i)
+            if (write_real_comp[i]) ++num_output_real;
+        
+        const int rChunkSize = AMREX_SPACEDIM + num_output_real;
         Vector<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
         typename ParticleType::RealType* rptr = rstuff.dataPtr();
         

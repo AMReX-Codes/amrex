@@ -22,10 +22,6 @@ ifeq ($(host_name), $(findstring $(host_name), $(CCSE_MACHINES)))
   which_computer := $(host_name)
 endif
 
-ifeq ($(findstring edison, $(NERSC_HOST)), edison)
-  which_site := nersc
-  which_computer := edison
-endif
 ifeq ($(findstring cori, $(NERSC_HOST)), cori)
   which_site := nersc
   which_computer := cori
