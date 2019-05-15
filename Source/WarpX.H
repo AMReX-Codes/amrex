@@ -239,11 +239,6 @@ public:
     static int do_moving_window;
     static int moving_window_dir;
 
-    bool plot_E_field_bfd   = true;
-    bool plot_B_field_bfd   = true;
-    bool plot_J_field_bfd   = true;
-    bool plot_rho_bfd       = true;
-
 protected:
 
     //! Tagging cells for refinement

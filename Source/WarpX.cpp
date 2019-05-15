@@ -392,12 +392,6 @@ WarpX::ReadParameters ()
         pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
 
-        // Fields to dump into back-transformed diagnostics
-        pp.query("plot_E_field_bfd"  , plot_E_field_bfd);
-        pp.query("plot_B_field_bfd"  , plot_B_field_bfd);
-        pp.query("plot_J_field_bfd"  , plot_J_field_bfd);
-        pp.query("plot_rho_bfd"      , plot_rho_bfd);
-
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){

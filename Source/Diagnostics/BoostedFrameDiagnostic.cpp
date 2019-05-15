@@ -450,9 +450,9 @@ namespace
 {
     void
     CopySlice(MultiFab& tmp, MultiFab& buf, int k_boost, int k_lab, 
-              std::vector<int> map_fields_to_dump)
+              std::vector<int> map_actual_fields_to_dump)
     {
-        const int ncomp_to_dump = map_fields_to_dump.size();
+        const int ncomp_to_dump = map_actual_fields_to_dump.size();
         // Copy data from MultiFab tmp to MultiDab data_buffer[i]
         for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<      Real> tmp_arr = tmp[mfi].array();
@@ -462,7 +462,7 @@ namespace
             ParallelFor(bx, ncomp_to_dump,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
                 {
-                    const int icomp = map_fields_to_dump[n];
+                    const int icomp = map_actual_fields_to_dump[n];
                     //std::cout<<"n "<<n<<std::endl;
                     //std::cout<<"k "<<k<<std::endl;
                     //std::cout<<"k_boost "<<k_boost<<std::endl;
@@ -527,12 +527,22 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 
-    std::vector<std::string> fields_to_dump_tmp = fields_to_dump;
+    std::vector<std::string> fields_to_dump_tmp;
     ParmParse pp("warpx");
-    pp.querryarr("boosted_frame_diag_fields", fields_to_dump_tmp);
-    ncomp_to_dump = 0;
-    for (int i=0; i<fields_to_dump_tmp.size(); i++){
-        
+    bool user_bfd_fields;
+    user_bfd_fields = pp.queryarr("boosted_frame_diag_fields", 
+                                   fields_to_dump_tmp);
+    if (user_bfd_fields){
+        ncomp_to_dump = fields_to_dump_tmp.size();
+        map_actual_fields_to_dump.resize(ncomp_to_dump);
+        // for (auto fieldstr : fields_to_dump_tmp){
+        for (int i=0; i<ncomp_to_dump; i++){
+            std::string fieldstr = fields_to_dump_tmp[i];
+            map_actual_fields_to_dump[i] = possible_fields_to_dump[fieldstr];
+        }
+    } else {
+        ncomp_to_dump = possible_fields_to_dump.size();
+        map_actual_fields_to_dump = {0,1,2,3,4,5,6,7,8,9};
     }
     
     /*
@@ -730,7 +740,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 #pragma omp parallel
 #endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
-            CopySlice(tmp, *data_buffer_[i], i_boost, i_lab, map_fields_to_dump);
+            CopySlice(tmp, *data_buffer_[i], i_boost, i_lab, map_actual_fields_to_dump);
             /*
             for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
                 const Box& tile_box  = mfi.tilebox();
