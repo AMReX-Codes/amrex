@@ -407,9 +407,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         Real gx = bc(i,j,k,0) - dg*anrmx;
                         Real gy = bc(i,j,k,1) - dg*anrmy;
                         Real gz = bc(i,j,k,2) - dg*anrmz;
-                        int isx = anrmx ? 1 : -1;
-                        int isy = anrmy ? 1 : -1;
-                        int isz = anrmz ? 1 : -1;
+                        int isx = (anrmx > 0.0) ? 1 : -1;
+                        int isy = (anrmy > 0.0) ? 1 : -1;
+                        int isz = (anrmz > 0.0) ? 1 : -1;
                         int ii = i - isx;
                         int jj = j - isy;
                         int kk = k - isz;
