@@ -448,7 +448,7 @@ namespace
 {
     void
     CopySlice(MultiFab& tmp, MultiFab& buf, int k_lab, 
-              std::vector<int> map_actual_fields_to_dump)
+              const std::vector<int>& map_actual_fields_to_dump)
     {
         const int ncomp_to_dump = map_actual_fields_to_dump.size();
         // Copy data from MultiFab tmp to MultiFab data_buffer[i].
