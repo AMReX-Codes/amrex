@@ -462,7 +462,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         }
         if (verbose >= 4)
         {
-            computeResOfCorrection(amrlev, mglev_bottom);
+	    computeResOfCorrection(amrlev, mglev_bottom);
             Real norm = rescor[amrlev][mglev_bottom].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev  << " " << mglev_bottom 
                            << "       Norm after  smooth " << norm << "\n";
@@ -478,7 +478,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
         {
-            computeResOfCorrection(amrlev, mglev);
+	    computeResOfCorrection(amrlev, mglev);
             Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
@@ -486,9 +486,12 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         for (int i = 0; i < nu2; ++i) {
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
+
+	computeResOfCorrection(amrlev, mglev); // this was moved out because otherwise there are
+	                                       // small persistent residuals in parallel
         if (verbose >= 4)
         {
-            computeResOfCorrection(amrlev, mglev);
+	    //computeResOfCorrection(amrlev, mglev); // THIS ONE!
             Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm after  smooth " << norm << "\n";
