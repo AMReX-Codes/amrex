@@ -41,7 +41,7 @@ class BoostedFrameDiagnostic {
         amrex::Real current_z_lab;
         amrex::Real current_z_boost;
 
-        std::vector<std::string> name_fields_to_dump_;
+        std::vector<std::string> mesh_field_names_;
         int ncomp_to_dump_;
                 
         int file_num;
@@ -56,7 +56,7 @@ class BoostedFrameDiagnostic {
                     const amrex::RealBox prob_domain,
                     const amrex::IntVect prob_ncells,
                     const int ncomp_to_dump,
-                    const std::vector<std::string> name_fields_to_dump,
+                    const std::vector<std::string> mesh_field_names,
                     int file_num_in,
                     const BoostedFrameDiagnostic& bfd);
         
@@ -151,7 +151,7 @@ private:
     amrex::Vector<int> map_actual_fields_to_dump = {0,1,2,3,4,5,6,7,8,9};
     // Name of fields to dump. By default, all fields in cell_centered_data.
     // Needed for file headers only.
-    std::vector<std::string> name_fields_to_dump = {"Ex", "Ey", "Ez", 
+    std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez", 
                                                     "Bx", "By", "Bz", 
                                                     "jx", "jy", "jz", "rho"};
     int ncomp_to_dump = 10;

@@ -58,9 +58,6 @@ def read_lab_snapshot(snapshot, global_header):
 
     hdrs = glob(snapshot + "/Level_0/buffer*_H")
     hdrs.sort()
-    print(snapshot + "/Level_0/buffer*_H")
-    print(snapshot)
-    print(hdrs)
 
     boxes, file_names, offsets, header = _read_header(hdrs[0])
     dom_lo, dom_hi = _combine_boxes(boxes)
@@ -72,7 +69,6 @@ def read_lab_snapshot(snapshot, global_header):
     dzcell_snapshots = (local_info['zmax']-local_info['zmin'])/local_info['nz']
     _component_names = local_info['field_names']
     field1 = _component_names[0]
-    print(field1)
 
     if space_dim == 2:
         direction = 1
@@ -308,7 +304,6 @@ def _read_buffer(snapshot, header_fn, _component_names):
 
     all_data = {}
     for i in range(header.ncomp):
-        print(i, _component_names[i])
         all_data[_component_names[i]] = np.zeros(dom_hi - dom_lo + 1)
 
     for box, fn, offset in zip(boxes, file_names, offsets):
