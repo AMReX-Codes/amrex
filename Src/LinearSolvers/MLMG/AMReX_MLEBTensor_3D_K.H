@@ -110,7 +110,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     Real dudx = (0.5*dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi
                                             +(vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
                     Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi
-                                            +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*whi);
+                                            +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
 
                     int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
                     int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
