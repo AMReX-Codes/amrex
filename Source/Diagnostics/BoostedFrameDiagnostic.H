@@ -33,8 +33,6 @@ class BoostedFrameDiagnostic {
         
         std::string file_name;
         amrex::Real t_lab;
-        // amrex::Real zmin_lab;
-        // amrex::Real zmax_lab;
         amrex::RealBox prob_domain_;
         amrex::IntVect prob_ncells_;
 
@@ -48,10 +46,6 @@ class BoostedFrameDiagnostic {
         int initial_i;
         const BoostedFrameDiagnostic& my_bfd;
 
-        //LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
-        //            amrex::Real zmin_lab_in, 
-        //            amrex::Real zmax_lab_in, int file_num_in,
-        //            const BoostedFrameDiagnostic& bfd);
         LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
                     const amrex::RealBox prob_domain,
                     const amrex::IntVect prob_ncells,
@@ -84,10 +78,6 @@ class BoostedFrameDiagnostic {
     amrex::Real dt_snapshots_lab_;
     amrex::Real dt_boost_;
     int N_snapshots_;
-    // amrex::IntVect prob_ncells_;
-    // unsigned Nx_lab_;
-    // unsigned Ny_lab_;
-    // unsigned Nz_lab_;
     int boost_direction_;
 
     // For back-transformed diagnostics of grid fields, data_buffer_[i]
@@ -152,8 +142,8 @@ private:
     // Name of fields to dump. By default, all fields in cell_centered_data.
     // Needed for file headers only.
     std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez", 
-                                                    "Bx", "By", "Bz", 
-                                                    "jx", "jy", "jz", "rho"};
+                                                 "Bx", "By", "Bz", 
+                                                 "jx", "jy", "jz", "rho"};
     int ncomp_to_dump = 10;
 
 };

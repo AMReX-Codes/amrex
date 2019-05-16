@@ -17,8 +17,6 @@ using namespace amrex;
 namespace
 {
     const std::vector<std::string> particle_field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
-    // const std::vector<std::string> mesh_field_names =
-    //     {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho"};
         
     /*
       Creates the HDF5 file in truncate mode and closes it.
@@ -520,8 +518,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     bool do_user_fields;
     do_user_fields = pp.queryarr("boosted_frame_diag_fields", 
                                  user_fields_to_dump);
-    // If user specifies fields to dump, overwrite ncomp_to_dump 
-    // and map_actual_fields_to_dump.
+    // If user specifies fields to dump, overwrite ncomp_to_dump, 
+    // map_actual_fields_to_dump and mesh_field_names.
     if (do_user_fields){
         ncomp_to_dump = user_fields_to_dump.size();
         map_actual_fields_to_dump.resize(ncomp_to_dump);
@@ -543,6 +541,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         prob_domain.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
         prob_domain.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
         Print()<<"after "<<prob_domain<<std::endl;
+        // Construct LabSnapShot
         LabSnapShot snapshot(t_lab, t_boost, prob_domain, 
                              prob_ncells, ncomp_to_dump,
                              mesh_field_names, i, *this);
@@ -592,7 +591,6 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 
 #ifdef WARPX_USE_HDF5
                 for (int comp = 0; comp < ncomp; ++comp)
-                    // output_write_field(snapshots_[i].file_name, mesh_field_names[comp], tmp, comp);
                     output_write_field(snapshots_[i].file_name, mesh_field_names[comp], tmp, comp);
 #else                
                 std::stringstream ss;
@@ -740,8 +738,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             if (WarpX::do_boosted_frame_fields) {
 #ifdef WARPX_USE_HDF5
                 for (int comp = 0; comp < data_buffer_[i]->nComp(); ++comp)
-                    // output_write_field(snapshots_[i].file_name, mesh_field_names[comp],
-                    //                    *data_buffer_[i], comp);
                     output_write_field(snapshots_[i].file_name, mesh_field_names[comp],
                                        *data_buffer_[i], comp);
 #else
@@ -905,25 +901,9 @@ writeMetaData ()
         HeaderFile << dt_snapshots_lab_ << "\n";    
         HeaderFile << gamma_boost_ << "\n";
         HeaderFile << beta_boost_ << "\n";
-        /*
-        // dx, dy and dz in the lab frame
-        Real dx_lab_ = (prob_domain_.hi(0)-prob_domain_.hi(0))/Nx_lab_;
-#if (AMREX_SPACEDIM == 3)
-        Real dy_lab_ = (prob_domain_.hi(1)-prob_domain_.hi(1))/Ny_lab_;
-        HeaderFile << dx_lab_ << ' ' << dy_lab_ << ' ' << dz_lab_ << '\n';
-#else
-        HeaderFile << dx_lab_ << ' ' << dz_lab_ << '\n';
-#endif
-        // Number of cells in each direction
-        HeaderFile << Nx_lab_ << ' ' << Ny_lab_ << ' ' << Nz_lab_ << "\n";
-        */
     }
 }
 
-// LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in, 
-//             Real zmax_lab_in, int file_num_in, const BoostedFrameDiagnostic& bfd)
-      // zmin_lab(zmin_lab_in),
-      // zmax_lab(zmax_lab_in),
 BoostedFrameDiagnostic::LabSnapShot::
 LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain, 
             IntVect prob_ncells, 
@@ -959,8 +939,6 @@ LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain,
     {
         if (WarpX::do_boosted_frame_fields)
         {
-            // for (int comp = 0; comp < static_cast<int>(mesh_field_names.size()); ++comp) {
-            //     output_create_field(file_name, mesh_field_names[comp],
             for (int comp = 0; comp ncomp_to_dump; ++comp) {
                 output_create_field(file_name, mesh_field_names_[comp],
                                     prob_ncells_[0],
