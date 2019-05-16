@@ -449,31 +449,27 @@ namespace
 namespace
 {
     void
-    CopySlice(MultiFab& tmp, MultiFab& buf, int k_boost, int k_lab, 
+    CopySlice(MultiFab& tmp, MultiFab& buf, int k_lab, 
               std::vector<int> map_actual_fields_to_dump)
     {
         const int ncomp_to_dump = map_actual_fields_to_dump.size();
-        // Copy data from MultiFab tmp to MultiDab data_buffer[i]
+        // Copy data from MultiFab tmp to MultiFab data_buffer[i].
         for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<      Real> tmp_arr = tmp[mfi].array();
             Array4<      Real> buf_arr = buf[mfi].array();
+            // For 3D runs, tmp is a 2D (x,y) multifab, that contains only 
+            // slice to write to file.
             const Box& bx  = mfi.tilebox();
             
             ParallelFor(bx, ncomp_to_dump,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
                 {
                     const int icomp = map_actual_fields_to_dump[n];
-                    //std::cout<<"n "<<n<<std::endl;
-                    //std::cout<<"k "<<k<<std::endl;
-                    //std::cout<<"k_boost "<<k_boost<<std::endl;
-                    //std::cout<<"k_lab "<<k_lab<<std::endl;
-                    // buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,n);
 #if (AMREX_SPACEDIM == 3)
                     buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
 #else
                     buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,icomp);
 #endif
-                    // tmp_arr(i,j,k,n) += 1;
                 }
             );
         }
@@ -510,6 +506,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     Ny_lab_ = 1;
 #endif
     Nz_lab_ = static_cast<unsigned>((zmax_lab - zmin_lab) * inv_dz_lab_);
+
+    prob_domain_ = geom.ProbDomain();
         
     writeMetaData();
 
@@ -517,6 +515,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     if (WarpX::do_boosted_frame_particles) particles_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
+        // Box bx_dom = geom.Domain();
+        // RealBox rbx_dom = geom.ProbDomain();
         LabSnapShot snapshot(t_lab, t_boost,
                              zmin_lab + v_window_lab * t_lab,
                              zmax_lab + v_window_lab * t_lab, i, *this);
@@ -527,54 +527,24 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 
-    std::vector<std::string> fields_to_dump_tmp;
+    // Query fields to dump
+    std::vector<std::string> user_fields_to_dump;
     ParmParse pp("warpx");
-    bool user_bfd_fields;
-    user_bfd_fields = pp.queryarr("boosted_frame_diag_fields", 
-                                   fields_to_dump_tmp);
-    if (user_bfd_fields){
-        ncomp_to_dump = fields_to_dump_tmp.size();
+    bool do_user_fields;
+    do_user_fields = pp.queryarr("boosted_frame_diag_fields", 
+                                 user_fields_to_dump);
+    // If user specifies fields to dump, overwrite ncomp_to_dump 
+    // and map_actual_fields_to_dump.
+    if (do_user_fields){
+        ncomp_to_dump = user_fields_to_dump.size();
         map_actual_fields_to_dump.resize(ncomp_to_dump);
-        // for (auto fieldstr : fields_to_dump_tmp){
+        name_fields_to_dump.resize(ncomp_to_dump);
         for (int i=0; i<ncomp_to_dump; i++){
-            std::string fieldstr = fields_to_dump_tmp[i];
+            std::string fieldstr = user_fields_to_dump[i];
+            name_fields_to_dump[i] = fieldstr;
             map_actual_fields_to_dump[i] = possible_fields_to_dump[fieldstr];
         }
-    } else {
-        ncomp_to_dump = possible_fields_to_dump.size();
-        map_actual_fields_to_dump = {0,1,2,3,4,5,6,7,8,9};
-    }
-    
-    /*
-    ncomp_to_dump = 0;
-    WarpX& warpx = WarpX::GetInstance();
-    if (warpx.plot_E_field_bfd){
-        map_fields_to_dump.resize(ncomp_to_dump+3);
-        map_fields_to_dump[ncomp_to_dump  ] = 0;
-        map_fields_to_dump[ncomp_to_dump+1] = 1;
-        map_fields_to_dump[ncomp_to_dump+2] = 2;
-        ncomp_to_dump += 3;
-    }
-    if (warpx.plot_B_field_bfd){
-        map_fields_to_dump.resize(ncomp_to_dump+3);
-        map_fields_to_dump[ncomp_to_dump  ] = 3;
-        map_fields_to_dump[ncomp_to_dump+1] = 4;
-        map_fields_to_dump[ncomp_to_dump+2] = 5;
-        ncomp_to_dump += 3;
-    }
-    if (warpx.plot_J_field_bfd){
-        map_fields_to_dump.resize(ncomp_to_dump+3);
-        map_fields_to_dump[ncomp_to_dump  ] = 6;
-        map_fields_to_dump[ncomp_to_dump+1] = 7;
-        map_fields_to_dump[ncomp_to_dump+2] = 8;
-        ncomp_to_dump += 3;
-    }
-    if (warpx.plot_rho_bfd){
-        map_fields_to_dump.resize(ncomp_to_dump+1);
-        map_fields_to_dump[ncomp_to_dump  ] = 9;
-        ncomp_to_dump += 1;        
-    }
-    */
+    }    
 }
 
 void BoostedFrameDiagnostic::Flush(const Geometry& geom)
@@ -740,7 +710,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 #pragma omp parallel
 #endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
-            CopySlice(tmp, *data_buffer_[i], i_boost, i_lab, map_actual_fields_to_dump);
+            CopySlice(tmp, *data_buffer_[i], i_lab, map_actual_fields_to_dump);
             /*
             for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
                 const Box& tile_box  = mfi.tilebox();
@@ -930,8 +900,16 @@ writeMetaData ()
         HeaderFile << dt_snapshots_lab_ << "\n";    
         HeaderFile << gamma_boost_ << "\n";
         HeaderFile << beta_boost_ << "\n";
-        HeaderFile << dz_lab_ << "\n";
-        HeaderFile << Nz_lab_ << "\n";
+        // dx, dy and dz in the lab frame
+        Real dx_lab_ = (prob_domain_.hi(0)-prob_domain_.hi(0))/Nx_lab_;
+#if (AMREX_SPACEDIM == 3)
+        Real dy_lab_ = (prob_domain_.hi(1)-prob_domain_.hi(1))/Ny_lab_;
+        HeaderFile << dx_lab_ << ' ' << dy_lab_ << ' ' << dz_lab_ << '\n';
+#else
+        HeaderFile << dx_lab_ << ' ' << dz_lab_ << '\n';
+#endif
+        // Number of cells in each direction
+        HeaderFile << Nx_lab_ << ' ' << Ny_lab_ << ' ' << Nz_lab_ << "\n";
     }
 }
 
@@ -1050,6 +1028,11 @@ writeSnapShotHeader() {
         HeaderFile << t_lab << "\n";
         HeaderFile << zmin_lab << "\n";
         HeaderFile << zmax_lab << "\n";
+        for (int i=0; i<ncomp_to_dump; i++)
+        {
+            HeaderFile << name_fields_to_dump[i] << ' ';
+        }
+        HeaderFile << "\n";
     }
 #endif
 }

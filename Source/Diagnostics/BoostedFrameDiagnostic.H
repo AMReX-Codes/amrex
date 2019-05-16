@@ -12,8 +12,6 @@
 #include "MultiParticleContainer.H"
 #include "WarpXConst.H"
 
-enum struct enum_fields_dump { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho };
-
 ///
 /// BoostedFrameDiagnostic is for handling IO when running in a boosted 
 /// frame of reference. Because of the relativity of simultaneity, events that
@@ -75,6 +73,7 @@ class BoostedFrameDiagnostic {
     unsigned Nx_lab_;
     unsigned Ny_lab_;
     unsigned Nz_lab_;   
+    amrex::RealBox prob_domain_;
     int boost_direction_;
 
     // For back-transformed diagnostics of grid fields, data_buffer_[i]
@@ -118,9 +117,19 @@ public:
     
     void writeMetaData();
 
+    // maps field index in data_buffer_[i] -> cell_centered_data for 
+    // snapshots i. By default, all fields in cell_centered_data are dumped.
+    // Needs to be amrex::Vector because used in a ParallelFor kernel.
+    amrex::Vector<int> map_actual_fields_to_dump = {0,1,2,3,4,5,6,7,8,9};
+    // Name of fields to dump. By default, all fields in cell_centered_data.
+    // Needed for file headers only.
+    std::vector<std::string> name_fields_to_dump = {"Ex", "Ey", "Ez", 
+                                                    "Bx", "By", "Bz", 
+                                                    "jx", "jy", "jz", "rho"};
+    int ncomp_to_dump = 10;
+
 private:
-    // Name of fields to dump.
-    // std::vector<std::string> fields_to_dump = {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho"};
+    // Map field names and component number in cell_centered_data
     std::map<std::string, int> possible_fields_to_dump = {
         {"Ex" , 0}, 
         {"Ey" , 1}, 
@@ -132,10 +141,6 @@ private:
         {"jy" , 7}, 
         {"jz" , 8}, 
         {"rho", 9} };
-    // maps field index in data_buffer_[i] -> cell_centered_data for 
-    // all snapshots number i.
-    std::vector<int> map_actual_fields_to_dump;
-    int ncomp_to_dump;
 };
 
 #endif
