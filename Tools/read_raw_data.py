@@ -5,8 +5,6 @@ from collections import namedtuple
 
 HeaderInfo = namedtuple('HeaderInfo', ['version', 'how', 'ncomp', 'nghost'])
 
-# _component_names = ['Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz', 'jx', 'jy', 'jz', 'rho']
-
 def read_data(plt_file):
     '''
 
@@ -99,7 +97,6 @@ def read_lab_snapshot(snapshot, global_header):
                 data[k][..., buffer_allstarts[i]:buffer_allstarts[i+1]] = v[...]
             
 
-    # info = {'t_snapshot' : local_info['t_snapshot']}
     info = local_info
     # Add some handy info 
     x = np.linspace(local_info['xmin'], local_info['xmax'], local_info['nx'])
@@ -212,8 +209,6 @@ def _read_global_Header(header_file):
         dt_between_snapshots = float(f.readline())
         gamma_boost = float(f.readline())
         beta_boost = float(f.readline())
-        # dz_snapshot = float(f.readline())
-        # nz_snapshot = int(f.readline())
 
     global_info = {
         'nshapshots' : nshapshots,
@@ -221,8 +216,6 @@ def _read_global_Header(header_file):
         'gamma_boost' : gamma_boost,
         'beta_boost' : beta_boost
         }
-# 'dz_snapshot' : dz_snapshot,
-# 'nz_snapshot' : nz_snapshot
 
     return global_info
 
