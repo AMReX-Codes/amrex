@@ -513,24 +513,6 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     if (WarpX::do_boosted_frame_fields) data_buffer_.resize(N_snapshots);
     if (WarpX::do_boosted_frame_particles) particles_buffer_.resize(N_snapshots);
-    for (int i = 0; i < N_snapshots; ++i) {
-        Real t_lab = i * dt_snapshots_lab_;
-        // Get simulation domain physical coordinates (in boosted frame).
-        RealBox prob_domain = geom.ProbDomain();
-        Print()<<prob_domain<<std::endl;
-        // Replace z bounds by lab-frame coordinates
-        // x and y bounds are the same for lab frame and boosted frame
-        prob_domain.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
-        prob_domain.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
-        Print()<<"after "<<prob_domain<<std::endl;
-        LabSnapShot snapshot(t_lab, t_boost, prob_domain, 
-                             prob_ncells, i, *this);
-        snapshots_.push_back(snapshot);
-        buff_counter_.push_back(0);
-        if (WarpX::do_boosted_frame_fields) data_buffer_[i].reset( nullptr );
-    }
-
-    AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 
     // Query fields to dump
     std::vector<std::string> user_fields_to_dump;
@@ -550,6 +532,26 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
             map_actual_fields_to_dump[i] = possible_fields_to_dump[fieldstr];
         }
     }    
+
+    for (int i = 0; i < N_snapshots; ++i) {
+        Real t_lab = i * dt_snapshots_lab_;
+        // Get simulation domain physical coordinates (in boosted frame).
+        RealBox prob_domain = geom.ProbDomain();
+        Print()<<prob_domain<<std::endl;
+        // Replace z bounds by lab-frame coordinates
+        // x and y bounds are the same for lab frame and boosted frame
+        prob_domain.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
+        prob_domain.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
+        Print()<<"after "<<prob_domain<<std::endl;
+        LabSnapShot snapshot(t_lab, t_boost, prob_domain, 
+                             prob_ncells, ncomp_to_dump,
+                             name_fields_to_dump, i, *this);
+        snapshots_.push_back(snapshot);
+        buff_counter_.push_back(0);
+        if (WarpX::do_boosted_frame_fields) data_buffer_[i].reset( nullptr );
+    }
+
+    AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
 void BoostedFrameDiagnostic::Flush(const Geometry& geom)
@@ -930,11 +932,16 @@ writeMetaData ()
       // zmax_lab(zmax_lab_in),
 BoostedFrameDiagnostic::LabSnapShot::
 LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain, 
-            IntVect prob_ncells, int file_num_in, 
+            IntVect prob_ncells, 
+            int ncomp_to_dump,
+            std::vector<std::string> name_fields_to_dump,
+            int file_num_in, 
             const BoostedFrameDiagnostic& bfd)
     : t_lab(t_lab_in),
       prob_domain_(prob_domain),
       prob_ncells_(prob_ncells),
+      ncomp_to_dump_(ncomp_to_dump),
+      name_fields_to_dump_(name_fields_to_dump),
       file_num(file_num_in),
       my_bfd(bfd)
 {
@@ -1048,15 +1055,31 @@ writeSnapShotHeader() {
         HeaderFile.precision(17);
         
         HeaderFile << t_lab << "\n";
-        /*
-        HeaderFile << zmin_lab << "\n";
-        HeaderFile << zmax_lab << "\n";
-        for (int i=0; i<ncomp_to_dump; i++)
+        // Write domain number of cells
+        HeaderFile << prob_ncells_[0] << ' '
+#if ( AMREX_SPACEDIM==3 )
+                   << prob_ncells_[1] << ' '
+#endif
+                   << prob_ncells_[AMREX_SPACEDIM-1] <<'\n';
+        // Write domain physical boundaries
+        // domain lower bound
+        HeaderFile << prob_domain_.lo(0) << ' '
+#if ( AMREX_SPACEDIM==3 )
+                   << prob_domain_.lo(1) << ' '
+#endif
+                   << prob_domain_.lo(AMREX_SPACEDIM-1) <<'\n';
+        // domain higher bound
+        HeaderFile << prob_domain_.hi(0) << ' '
+#if ( AMREX_SPACEDIM==3 )
+                   << prob_domain_.hi(1) << ' '
+#endif
+                   << prob_domain_.hi(AMREX_SPACEDIM-1) <<'\n';
+        // List of fields dumped to file
+        for (int i=0; i<ncomp_to_dump_; i++)
         {
-            HeaderFile << name_fields_to_dump[i] << ' ';
+            HeaderFile << name_fields_to_dump_[i] << ' ';
         }
         HeaderFile << "\n";
-        */
     }
 #endif
 }
