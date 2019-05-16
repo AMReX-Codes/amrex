@@ -396,9 +396,13 @@ Device::assembleGraphIter()
         }
 
         graphExec = instantiateGraph(graphFull);
-
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
     }
 
+    for (int i=0; i<cuda_graphs.size(); ++i)
+    {
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(cuda_graphs[i]));
+    }
     cuda_graphs.clear();
 
     return graphExec;

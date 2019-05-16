@@ -57,6 +57,11 @@ struct CudaGraph
     }
     ~CudaGraph() {
         The_Device_Arena()->free(m_parms_d);
+
+        if (graph_is_ready)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(m_graph));
+        }
     }
 
     void resize(long num) {
