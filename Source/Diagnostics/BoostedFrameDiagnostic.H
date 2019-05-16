@@ -33,17 +33,26 @@ class BoostedFrameDiagnostic {
         
         std::string file_name;
         amrex::Real t_lab;
-        amrex::Real zmin_lab;
-        amrex::Real zmax_lab;
+        // amrex::Real zmin_lab;
+        // amrex::Real zmax_lab;
+        amrex::RealBox prob_domain_;
+        amrex::IntVect prob_ncells_;
+
         amrex::Real current_z_lab;
         amrex::Real current_z_boost;
+        
         int file_num;
         int initial_i;
         const BoostedFrameDiagnostic& my_bfd;
 
+        //LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
+        //            amrex::Real zmin_lab_in, 
+        //            amrex::Real zmax_lab_in, int file_num_in,
+        //            const BoostedFrameDiagnostic& bfd);
         LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
-                    amrex::Real zmin_lab_in, 
-                    amrex::Real zmax_lab_in, int file_num_in,
+                    const amrex::RealBox prob_domain,
+                    const amrex::IntVect prob_ncells,
+                    int file_num_in,
                     const BoostedFrameDiagnostic& bfd);
         
         ///
@@ -70,9 +79,10 @@ class BoostedFrameDiagnostic {
     amrex::Real dt_snapshots_lab_;
     amrex::Real dt_boost_;
     int N_snapshots_;
-    unsigned Nx_lab_;
-    unsigned Ny_lab_;
-    unsigned Nz_lab_;   
+    // amrex::IntVect prob_ncells_;
+    // unsigned Nx_lab_;
+    // unsigned Ny_lab_;
+    // unsigned Nz_lab_;
     amrex::RealBox prob_domain_;
     int boost_direction_;
 
