@@ -417,20 +417,19 @@ Device::startGraphStreamRecording()
         // Should make multiple options for building for future flexibility.
         //   (and add each cuda API call to a unique function so users can make their own).
 
-        cudaStream_t currentStream = cuda_stream; 
+        cudaStream_t* currentStream = &cuda_stream; 
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
             AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        cuda_stream = *currentStream; // Stream index isn't saved in Device for easy reset. Save it?
     }
 }
 
 cudaGraphExec_t
 Device::stopGraphStreamRecording()
 {
-
     cudaGraphExec_t graphExec;
 
     if (inLaunchRegion() && inGraphRegion())
@@ -440,13 +439,13 @@ Device::stopGraphStreamRecording()
         //   (and add each cuda API call to a unique function so users can make their own).
 
         cudaGraph_t     graph[numCudaStreams()];
-        cudaStream_t currentStream = cuda_stream; 
+        cudaStream_t* currentStream = &cuda_stream; 
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
             AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        cuda_stream = *currentStream; // Stream index isn't saved in Device for easy reset. Save it?
 
         cudaGraph_t     graphFull;
         cudaGraphNode_t emptyNode, placeholder;
@@ -457,13 +456,16 @@ Device::stopGraphStreamRecording()
         {
             AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
         }
-
         graphExec = instantiateGraph(graphFull);
 
+        for (int i=0; i<numCudaStreams(); ++i)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
+        }
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
     }
 
     return graphExec;
-
 }
 
 cudaGraphExec_t
