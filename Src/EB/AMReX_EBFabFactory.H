@@ -61,6 +61,7 @@ public:
         return m_ebdc->getAreaFrac();
     }
 
+    // For y-face-centroid, the two components are for x and then z-directions, respectively.
     Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const noexcept {
         return m_ebdc->getFaceCent();
     }
