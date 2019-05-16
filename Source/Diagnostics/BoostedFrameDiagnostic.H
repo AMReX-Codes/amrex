@@ -33,8 +33,8 @@ class BoostedFrameDiagnostic {
         
         std::string file_name;
         amrex::Real t_lab;
-        amrex::RealBox prob_domain_;
-        amrex::IntVect prob_ncells_;
+        amrex::RealBox prob_domain_lab_;
+        amrex::IntVect prob_ncells_lab_;
 
         amrex::Real current_z_lab;
         amrex::Real current_z_boost;
@@ -47,8 +47,8 @@ class BoostedFrameDiagnostic {
         const BoostedFrameDiagnostic& my_bfd;
 
         LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
-                    const amrex::RealBox prob_domain,
-                    const amrex::IntVect prob_ncells,
+                    const amrex::RealBox prob_domain_lab,
+                    const amrex::IntVect prob_ncells_lab,
                     const int ncomp_to_dump,
                     const std::vector<std::string> mesh_field_names,
                     int file_num_in,

@@ -501,10 +501,10 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     int Nx_lab = geom.Domain().length(0);
 #if (AMREX_SPACEDIM == 3)
     int Ny_lab = geom.Domain().length(1);
-    IntVect prob_ncells = {Nx_lab, Ny_lab, Nz_lab};
+    IntVect prob_ncells_lab = {Nx_lab, Ny_lab, Nz_lab};
 #else
     // Ny_lab = 1;
-    IntVect prob_ncells = {Nx_lab, Nz_lab};
+    IntVect prob_ncells_lab = {Nx_lab, Nz_lab};
 #endif
 
     writeMetaData();
@@ -534,16 +534,14 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
         // Get simulation domain physical coordinates (in boosted frame).
-        RealBox prob_domain = geom.ProbDomain();
-        Print()<<prob_domain<<std::endl;
+        RealBox prob_domain_lab = geom.ProbDomain();
         // Replace z bounds by lab-frame coordinates
         // x and y bounds are the same for lab frame and boosted frame
-        prob_domain.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
-        prob_domain.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
-        Print()<<"after "<<prob_domain<<std::endl;
+        prob_domain_lab.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
+        prob_domain_lab.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
         // Construct LabSnapShot
-        LabSnapShot snapshot(t_lab, t_boost, prob_domain, 
-                             prob_ncells, ncomp_to_dump,
+        LabSnapShot snapshot(t_lab, t_boost, prob_domain_lab, 
+                             prob_ncells_lab, ncomp_to_dump,
                              mesh_field_names, i, *this);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
@@ -566,7 +564,7 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
     // Loop over BFD snapshots
     for (int i = 0; i < N_snapshots_; ++i) {
 
-        Real zmin_lab = snapshots_[i].prob_domain_.lo(AMREX_SPACEDIM-1);
+        Real zmin_lab = snapshots_[i].prob_domain_lab_.lo(AMREX_SPACEDIM-1);
         int i_lab = (snapshots_[i].current_z_lab - zmin_lab) / dz_lab_;
         
         if (buff_counter_[i] != 0) {
@@ -652,8 +650,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
 
-        Real zmin_lab = snapshots_[i].prob_domain_.lo(AMREX_SPACEDIM-1);
-        Real zmax_lab = snapshots_[i].prob_domain_.hi(AMREX_SPACEDIM-1);
+        Real zmin_lab = snapshots_[i].prob_domain_lab_.lo(AMREX_SPACEDIM-1);
+        Real zmax_lab = snapshots_[i].prob_domain_lab_.hi(AMREX_SPACEDIM-1);
         
         // If snapshot out of the domain, nothing to do
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
@@ -905,22 +903,22 @@ writeMetaData ()
 }
 
 BoostedFrameDiagnostic::LabSnapShot::
-LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain, 
-            IntVect prob_ncells, 
+LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain_lab, 
+            IntVect prob_ncells_lab, 
             int ncomp_to_dump,
             std::vector<std::string> mesh_field_names,
             int file_num_in, 
             const BoostedFrameDiagnostic& bfd)
     : t_lab(t_lab_in),
-      prob_domain_(prob_domain),
-      prob_ncells_(prob_ncells),
+      prob_domain_lab_(prob_domain_lab),
+      prob_ncells_lab_(prob_ncells_lab),
       ncomp_to_dump_(ncomp_to_dump),
       mesh_field_names_(mesh_field_names),
       file_num(file_num_in),
       my_bfd(bfd)
 {
-    Real zmin_lab = prob_domain_.lo(AMREX_SPACEDIM-1);
-    Real zmax_lab = prob_domain_.hi(AMREX_SPACEDIM-1);
+    Real zmin_lab = prob_domain_lab_.lo(AMREX_SPACEDIM-1);
+    Real zmax_lab = prob_domain_lab_.hi(AMREX_SPACEDIM-1);
     current_z_lab = 0.0;
     current_z_boost = 0.0;
     updateCurrentZPositions(t_boost, my_bfd.inv_gamma_boost_, my_bfd.inv_beta_boost_);
@@ -941,13 +939,13 @@ LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain,
         {
             for (int comp = 0; comp ncomp_to_dump; ++comp) {
                 output_create_field(file_name, mesh_field_names_[comp],
-                                    prob_ncells_[0],
+                                    prob_ncells_lab_[0],
 #if ( AMREX_SPACEDIM == 3 )
-                                    prob_ncells_[1],
+                                    prob_ncells_lab_[1],
 #else
                                     1,
 #endif
-                                    prob_ncells_[AMREX_SPACEDIM-1]+1);
+                                    prob_ncells_lab_[AMREX_SPACEDIM-1]+1);
             }
         }
     }
@@ -1030,24 +1028,24 @@ writeSnapShotHeader() {
         
         HeaderFile << t_lab << "\n";
         // Write domain number of cells
-        HeaderFile << prob_ncells_[0] << ' '
+        HeaderFile << prob_ncells_lab_[0] << ' '
 #if ( AMREX_SPACEDIM==3 )
-                   << prob_ncells_[1] << ' '
+                   << prob_ncells_lab_[1] << ' '
 #endif
-                   << prob_ncells_[AMREX_SPACEDIM-1] <<'\n';
+                   << prob_ncells_lab_[AMREX_SPACEDIM-1] <<'\n';
         // Write domain physical boundaries
         // domain lower bound
-        HeaderFile << prob_domain_.lo(0) << ' '
+        HeaderFile << prob_domain_lab_.lo(0) << ' '
 #if ( AMREX_SPACEDIM==3 )
-                   << prob_domain_.lo(1) << ' '
+                   << prob_domain_lab_.lo(1) << ' '
 #endif
-                   << prob_domain_.lo(AMREX_SPACEDIM-1) <<'\n';
+                   << prob_domain_lab_.lo(AMREX_SPACEDIM-1) <<'\n';
         // domain higher bound
-        HeaderFile << prob_domain_.hi(0) << ' '
+        HeaderFile << prob_domain_lab_.hi(0) << ' '
 #if ( AMREX_SPACEDIM==3 )
-                   << prob_domain_.hi(1) << ' '
+                   << prob_domain_lab_.hi(1) << ' '
 #endif
-                   << prob_domain_.hi(AMREX_SPACEDIM-1) <<'\n';
+                   << prob_domain_lab_.hi(AMREX_SPACEDIM-1) <<'\n';
         // List of fields dumped to file
         for (int i=0; i<ncomp_to_dump_; i++)
         {
