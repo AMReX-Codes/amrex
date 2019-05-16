@@ -937,7 +937,7 @@ LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain_lab,
     {
         if (WarpX::do_boosted_frame_fields)
         {
-            for (int comp = 0; comp ncomp_to_dump; ++comp) {
+            for (int comp = 0; comp < ncomp_to_dump; ++comp) {
                 output_create_field(file_name, mesh_field_names_[comp],
                                     prob_ncells_lab_[0],
 #if ( AMREX_SPACEDIM == 3 )
