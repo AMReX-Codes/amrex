@@ -378,6 +378,7 @@ WarpX::ReadParameters ()
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
+        // Fields to dump into plotfiles
         pp.query("plot_E_field"      , plot_E_field);
         pp.query("plot_B_field"      , plot_B_field);
         pp.query("plot_J_field"      , plot_J_field);
@@ -390,6 +391,7 @@ WarpX::ReadParameters ()
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){

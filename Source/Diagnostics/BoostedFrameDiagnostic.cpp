@@ -17,8 +17,6 @@ using namespace amrex;
 namespace
 {
     const std::vector<std::string> particle_field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
-    const std::vector<std::string> mesh_field_names =
-        {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho"};
         
     /*
       Creates the HDF5 file in truncate mode and closes it.
@@ -446,6 +444,36 @@ namespace
 }
 #endif
 
+namespace
+{
+    void
+    CopySlice(MultiFab& tmp, MultiFab& buf, int k_lab, 
+              const std::vector<int>& map_actual_fields_to_dump)
+    {
+        const int ncomp_to_dump = map_actual_fields_to_dump.size();
+        // Copy data from MultiFab tmp to MultiFab data_buffer[i].
+        for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+            Array4<      Real> tmp_arr = tmp[mfi].array();
+            Array4<      Real> buf_arr = buf[mfi].array();
+            // For 3D runs, tmp is a 2D (x,y) multifab, that contains only 
+            // slice to write to file.
+            const Box& bx  = mfi.tilebox();
+            
+            ParallelFor(bx, ncomp_to_dump,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+                {
+                    const int icomp = map_actual_fields_to_dump[n];
+#if (AMREX_SPACEDIM == 3)
+                    buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
+#else
+                    buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,icomp);
+#endif
+                }
+            );
+        }
+    }
+}
+
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
@@ -469,23 +497,52 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     
     dz_lab_ = PhysConst::c * dt_boost_ * inv_beta_boost_ * inv_gamma_boost_;
     inv_dz_lab_ = 1.0 / dz_lab_;
-    Nx_lab_ = geom.Domain().length(0);
+    int Nz_lab = static_cast<unsigned>((zmax_lab - zmin_lab) * inv_dz_lab_);
+    int Nx_lab = geom.Domain().length(0);
 #if (AMREX_SPACEDIM == 3)
-    Ny_lab_ = geom.Domain().length(1);
+    int Ny_lab = geom.Domain().length(1);
+    IntVect prob_ncells_lab = {Nx_lab, Ny_lab, Nz_lab};
 #else
-    Ny_lab_ = 1;
+    // Ny_lab = 1;
+    IntVect prob_ncells_lab = {Nx_lab, Nz_lab};
 #endif
-    Nz_lab_ = static_cast<unsigned>((zmax_lab - zmin_lab) * inv_dz_lab_);
-        
+
     writeMetaData();
 
     if (WarpX::do_boosted_frame_fields) data_buffer_.resize(N_snapshots);
     if (WarpX::do_boosted_frame_particles) particles_buffer_.resize(N_snapshots);
+
+    // Query fields to dump
+    std::vector<std::string> user_fields_to_dump;
+    ParmParse pp("warpx");
+    bool do_user_fields;
+    do_user_fields = pp.queryarr("boosted_frame_diag_fields", 
+                                 user_fields_to_dump);
+    // If user specifies fields to dump, overwrite ncomp_to_dump, 
+    // map_actual_fields_to_dump and mesh_field_names.
+    if (do_user_fields){
+        ncomp_to_dump = user_fields_to_dump.size();
+        map_actual_fields_to_dump.resize(ncomp_to_dump);
+        mesh_field_names.resize(ncomp_to_dump);
+        for (int i=0; i<ncomp_to_dump; i++){
+            std::string fieldstr = user_fields_to_dump[i];
+            mesh_field_names[i] = fieldstr;
+            map_actual_fields_to_dump[i] = possible_fields_to_dump[fieldstr];
+        }
+    }
+
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
-        LabSnapShot snapshot(t_lab, t_boost,
-                             zmin_lab + v_window_lab * t_lab,
-                             zmax_lab + v_window_lab * t_lab, i, *this);
+        // Get simulation domain physical coordinates (in boosted frame).
+        RealBox prob_domain_lab = geom.ProbDomain();
+        // Replace z bounds by lab-frame coordinates
+        // x and y bounds are the same for lab frame and boosted frame
+        prob_domain_lab.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
+        prob_domain_lab.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
+        // Construct LabSnapShot
+        LabSnapShot snapshot(t_lab, t_boost, prob_domain_lab, 
+                             prob_ncells_lab, ncomp_to_dump,
+                             mesh_field_names, i, *this);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
         if (WarpX::do_boosted_frame_fields) data_buffer_[i].reset( nullptr );
@@ -507,7 +564,8 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
     // Loop over BFD snapshots
     for (int i = 0; i < N_snapshots_; ++i) {
 
-        int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        Real zmin_lab = snapshots_[i].prob_domain_lab_.lo(AMREX_SPACEDIM-1);
+        int i_lab = (snapshots_[i].current_z_lab - zmin_lab) / dz_lab_;
         
         if (buff_counter_[i] != 0) {
             if (WarpX::do_boosted_frame_fields) {
@@ -591,17 +649,20 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
+
+        Real zmin_lab = snapshots_[i].prob_domain_lab_.lo(AMREX_SPACEDIM-1);
+        Real zmax_lab = snapshots_[i].prob_domain_lab_.hi(AMREX_SPACEDIM-1);
         
         // If snapshot out of the domain, nothing to do
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
              (snapshots_[i].current_z_boost > zhi_boost) or
-             (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or
-             (snapshots_[i].current_z_lab > snapshots_[i].zmax_lab) ) continue;
+             (snapshots_[i].current_z_lab < zmin_lab) or
+             (snapshots_[i].current_z_lab > zmax_lab) ) continue;
 
         // Get z index of data_buffer_ (i.e. in the lab frame) where 
         // simulation domain (t', [zmin',zmax']), back-transformed to lab 
         // frame, intersects with snapshot.
-        int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        int i_lab = (snapshots_[i].current_z_lab - zmin_lab) / dz_lab_;
 
         // If buffer of snapshot i is empty...
         if (buff_counter_[i] == 0) {
@@ -614,7 +675,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                 BoxArray buff_ba(buff_box);
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
-                data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+                data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp_to_dump, 0) );
+                // data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
             if (WarpX::do_boosted_frame_particles) 
@@ -656,20 +718,13 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 #pragma omp parallel
 #endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
-            for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
-                const Box& tile_box  = mfi.tilebox();
-                WRPX_COPY_SLICE(BL_TO_FORTRAN_BOX(tile_box),
-                                BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                                BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
-                                &ncomp, &i_boost, &i_lab);
-            }
+            CopySlice(tmp, *data_buffer_[i], i_lab, map_actual_fields_to_dump);
         }
 
         if (WarpX::do_boosted_frame_particles) {
             mypc.GetLabFrameData(snapshots_[i].file_name, i_lab, boost_direction_,
                                  old_z_boost, snapshots_[i].current_z_boost,
                                  t_boost, snapshots_[i].t_lab, dt, particles_buffer_[i]);
-
         }
 
 
@@ -844,20 +899,26 @@ writeMetaData ()
         HeaderFile << dt_snapshots_lab_ << "\n";    
         HeaderFile << gamma_boost_ << "\n";
         HeaderFile << beta_boost_ << "\n";
-        HeaderFile << dz_lab_ << "\n";
-        HeaderFile << Nz_lab_ << "\n";
     }
 }
 
 BoostedFrameDiagnostic::LabSnapShot::
-LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in, 
-            Real zmax_lab_in, int file_num_in, const BoostedFrameDiagnostic& bfd)
+LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain_lab, 
+            IntVect prob_ncells_lab, 
+            int ncomp_to_dump,
+            std::vector<std::string> mesh_field_names,
+            int file_num_in, 
+            const BoostedFrameDiagnostic& bfd)
     : t_lab(t_lab_in),
-      zmin_lab(zmin_lab_in),
-      zmax_lab(zmax_lab_in),
+      prob_domain_lab_(prob_domain_lab),
+      prob_ncells_lab_(prob_ncells_lab),
+      ncomp_to_dump_(ncomp_to_dump),
+      mesh_field_names_(mesh_field_names),
       file_num(file_num_in),
       my_bfd(bfd)
 {
+    Real zmin_lab = prob_domain_lab_.lo(AMREX_SPACEDIM-1);
+    Real zmax_lab = prob_domain_lab_.hi(AMREX_SPACEDIM-1);
     current_z_lab = 0.0;
     current_z_boost = 0.0;
     updateCurrentZPositions(t_boost, my_bfd.inv_gamma_boost_, my_bfd.inv_beta_boost_);
@@ -876,11 +937,15 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     {
         if (WarpX::do_boosted_frame_fields)
         {
-            for (int comp = 0; comp < static_cast<int>(mesh_field_names.size()); ++comp) {
-                output_create_field(file_name, mesh_field_names[comp],
-                                    my_bfd.Nx_lab_,
-                                    my_bfd.Ny_lab_,
-                                    my_bfd.Nz_lab_+1);
+            for (int comp = 0; comp < ncomp_to_dump; ++comp) {
+                output_create_field(file_name, mesh_field_names_[comp],
+                                    prob_ncells_lab_[0],
+#if ( AMREX_SPACEDIM == 3 )
+                                    prob_ncells_lab_[1],
+#else
+                                    1,
+#endif
+                                    prob_ncells_lab_[AMREX_SPACEDIM-1]+1);
             }
         }
     }
@@ -962,8 +1027,31 @@ writeSnapShotHeader() {
         HeaderFile.precision(17);
         
         HeaderFile << t_lab << "\n";
-        HeaderFile << zmin_lab << "\n";
-        HeaderFile << zmax_lab << "\n";
+        // Write domain number of cells
+        HeaderFile << prob_ncells_lab_[0] << ' '
+#if ( AMREX_SPACEDIM==3 )
+                   << prob_ncells_lab_[1] << ' '
+#endif
+                   << prob_ncells_lab_[AMREX_SPACEDIM-1] <<'\n';
+        // Write domain physical boundaries
+        // domain lower bound
+        HeaderFile << prob_domain_lab_.lo(0) << ' '
+#if ( AMREX_SPACEDIM==3 )
+                   << prob_domain_lab_.lo(1) << ' '
+#endif
+                   << prob_domain_lab_.lo(AMREX_SPACEDIM-1) <<'\n';
+        // domain higher bound
+        HeaderFile << prob_domain_lab_.hi(0) << ' '
+#if ( AMREX_SPACEDIM==3 )
+                   << prob_domain_lab_.hi(1) << ' '
+#endif
+                   << prob_domain_lab_.hi(AMREX_SPACEDIM-1) <<'\n';
+        // List of fields dumped to file
+        for (int i=0; i<ncomp_to_dump_; i++)
+        {
+            HeaderFile << mesh_field_names_[i] << ' ';
+        }
+        HeaderFile << "\n";
     }
 #endif
 }
