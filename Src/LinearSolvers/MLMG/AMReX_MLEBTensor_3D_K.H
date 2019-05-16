@@ -120,7 +120,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     wlo = mlebtensor_weight(klop-klom);
                     Real dvdz = (0.5*dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi
                                             +(vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
-                    Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khip,2))*whi
+                    Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi
                                             +(vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
 
                     Real divu = dudx + dwdz;
