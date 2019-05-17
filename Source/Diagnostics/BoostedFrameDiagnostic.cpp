@@ -466,8 +466,8 @@ namespace
             ParallelFor(bx, ncomp_to_dump,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
                 {
-#if (AMREX_SPACEDIM == 3)
 					const int icomp = field_map_ptr[n];
+#if (AMREX_SPACEDIM == 3)
                     buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
 #else
                     buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,icomp);
