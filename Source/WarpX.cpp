@@ -546,7 +546,9 @@ WarpX::ReadParameters ()
        slice_cr_ratio = slice_loc_ratio;
        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
        {
-          slice_cr_ratio[idim] = slice_crse_ratio[idim];
+          if (slice_crse_ratio[idim] > 1 ) {
+             slice_cr_ratio[idim] = slice_crse_ratio[idim];
+          }
        }
 
     }

@@ -6,7 +6,7 @@
 #include <WarpX.H>
 
 using namespace amrex;
-std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::Vector<Geometry> dom_geom, amrex::RealBox &slice_realbox, amrex::IntVect &slice_cr_ratio )
+std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab& mf, const amrex::Vector<Geometry> &dom_geom, amrex::RealBox &slice_realbox, amrex::IntVect &slice_cr_ratio )
 {
     std::unique_ptr<MultiFab> smf;
     std::unique_ptr<MultiFab> cs_mf;
@@ -14,10 +14,10 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
     Vector<int> slice_ncells(AMREX_SPACEDIM);
     int nghost = 1;
     int nlevels = dom_geom.size();
-    int ncomp = (*mf).nComp();
+    int ncomp = (mf).nComp();
     
     IntVect cr_ratio(AMREX_D_DECL(0,0,0));
-    const auto conversionType = (*mf).ixType();
+    const auto conversionType = (mf).ixType();
     IntVect SliceType(AMREX_D_DECL(0,0,0));
  
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim )
@@ -43,7 +43,9 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
     IntVect interp_lo(AMREX_D_DECL(0,0,0));
 
     // If inheriting data type //
-    CheckSliceInput(real_box, slice_cc_nd_box, slice_realbox, cr_ratio,                                          slice_cr_ratio, dom_geom, SliceType, slice_lo, slice_hi, interp_lo);
+    CheckSliceInput(real_box, slice_cc_nd_box, slice_realbox, cr_ratio, 
+                    slice_cr_ratio, dom_geom, SliceType, slice_lo, 
+                    slice_hi, interp_lo);
 
     // Determine if interpolation is required and number of cells in slice //
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {    
@@ -57,7 +59,8 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
           slice_ncells[idim] = 1;
        }
        else {       
-          slice_ncells[idim] = ( slice_hi[idim] - slice_lo[idim]                                                           + 1 )/cr_ratio[idim];
+          slice_ncells[idim] = ( slice_hi[idim] - slice_lo[idim] + 1 ) 
+                                / cr_ratio[idim];
 
           int refined_ncells = (slice_hi[idim] - slice_lo[idim]) + 1 ;
           if ( cr_ratio[idim] > 1) {          
@@ -106,7 +109,7 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *mf, const amrex::V
 
     // Copy data from domain to slice that has same cell size as that of the domain mf.  
     // src and dst have the same number of ghost cells //
-    smf->ParallelCopy(*mf, 0, 0, ncomp,nghost,nghost);
+    smf->ParallelCopy(mf, 0, 0, ncomp,nghost,nghost);
 
     // inteprolate if required on refined slice //
     if (interpolate == 1 ) {    
@@ -249,8 +252,11 @@ void CheckSliceInput(const RealBox real_box, RealBox &slice_cc_nd_box, RealBox &
         else
         {
             // moving realbox.lo and reabox.hi to nearest coarsenable grid point //
-            int index_lo = floor( ( (slice_realbox.lo(idim) - (real_box.lo(idim)) )                                         / dom_geom[0].CellSize(idim) ) +fac * 1E-10);
-            int index_hi = ceil( ( (slice_realbox.hi(idim) - (real_box.lo(idim)) )                                         / dom_geom[0].CellSize(idim) ) - fac * 1E-10);
+            int index_lo = floor( ( (slice_realbox.lo(idim) - (real_box.lo(idim)) ) 
+                           / dom_geom[0].CellSize(idim) ) +fac * 1E-10);
+            int index_hi = ceil( ( (slice_realbox.hi(idim) - (real_box.lo(idim)) ) 
+                           / dom_geom[0].CellSize(idim) ) - fac * 1E-10);
+
             bool modify_cr = true;
 
             while ( modify_cr == true) {            
@@ -304,13 +310,10 @@ void CheckSliceInput(const RealBox real_box, RealBox &slice_cc_nd_box, RealBox &
 
 
 
-//void InterpolateSliceValues( Vector<MultiFab*>smf, IntVect interp_lo, RealBox slice_realbox, Vector<Geometry> geom, int ncomp, int nghost, IntVect slice_lo, IntVect slice_hi, IntVect SliceType, const RealBox real_box)
 void InterpolateSliceValues( MultiFab& smf, IntVect interp_lo, RealBox slice_realbox, Vector<Geometry> geom, int ncomp, int nghost, IntVect slice_lo, IntVect slice_hi, IntVect SliceType, const RealBox real_box)
 {
     for (MFIter mfi(smf); mfi.isValid(); ++mfi)
     {
-         //MultiFab &mfSrc= *smf[0];
-//         MultiFab &mfSrc= smf;
          const Box& bx = mfi.tilebox();
          const auto IndType = smf.ixType();
          const auto lo = amrex::lbound(bx);

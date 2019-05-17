@@ -824,16 +824,16 @@ WarpX::SliceGenerationForDiagnostics ()
     dom_geom = Geom();
 
     if (F_fp[0] ) {
-       F_slice[0] = CreateSlice( F_fp[0].get(), dom_geom, slice_realbox, slice_cr_ratio );
+       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox, slice_cr_ratio );
     }
     if (rho_fp[0]) {
-       rho_slice[0] = CreateSlice( rho_fp[0].get(), dom_geom, slice_realbox, slice_cr_ratio );
+       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox, slice_cr_ratio );
     }
 
     for (int idim = 0; idim < 3; ++idim) {
-       Efield_slice[0][idim] = CreateSlice( Efield_fp[0][idim].get(), dom_geom, slice_realbox, slice_cr_ratio );
-       Bfield_slice[0][idim] = CreateSlice( Bfield_fp[0][idim].get(), dom_geom, slice_realbox, slice_cr_ratio );
-       current_slice[0][idim] = CreateSlice( current_fp[0][idim].get(), dom_geom, slice_realbox, slice_cr_ratio );
+       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(), dom_geom, slice_realbox, slice_cr_ratio );
+       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(), dom_geom, slice_realbox, slice_cr_ratio );
+       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(), dom_geom, slice_realbox, slice_cr_ratio );
     }
 
 

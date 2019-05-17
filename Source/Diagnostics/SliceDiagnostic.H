@@ -20,7 +20,7 @@ using namespace amrex;
 
 
 
-std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab *Ex, const amrex::Vector<Geometry> dom_geom, amrex::RealBox &slice_realbox, amrex::IntVect &slice_cr_ratio );
+std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab& mf, const amrex::Vector<Geometry> &dom_geom, amrex::RealBox &slice_realbox, amrex::IntVect &slice_cr_ratio );
 
 
 void CheckSliceInput(const RealBox real_box, RealBox &slice_cc_nd_box, RealBox &slice_realbox, IntVect &cr_ratio, IntVect slice_cr_ratio, Vector<Geometry> dom_geom, IntVect const SliceType, IntVect &slice_lo, IntVect &slice_hi, IntVect &interp_lo);

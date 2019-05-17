@@ -207,9 +207,7 @@ WarpX::EvolveEM (int numsteps)
 
             if (do_insitu)
                 UpdateInSitu();
-	    }
-
-        }
+	}
 
         if (check_int > 0 && (step+1) % check_int == 0) {
             last_check_file_step = step+1;
