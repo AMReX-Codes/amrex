@@ -953,7 +953,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     {
         const Box& bx = mfi.tilebox();
 #ifdef WARPX_RZ
-        const Real xmin = bx.smallEnd(0)*dx[0];
+        const Real xmin = GetInstance().Geom(0).ProbLo(0);
 #endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
@@ -980,7 +980,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     {
         Box bx = mfi.growntilebox(ngrow);
 #ifdef WARPX_RZ
-        const Real xmin = bx.smallEnd(0)*dx[0];
+        const Real xmin = GetInstance().Geom(0).ProbLo(0);
 #endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
