@@ -133,7 +133,7 @@ std::unique_ptr<MultiFab> CreateSlice( const amrex::MultiFab& mf,
     }
 
     if ( coarsen == false ) {
-       amrex::Print() << " Cell sizes are equal. No averaging required for slice data " << "\n";
+//       amrex::Print() << " Cell sizes are equal. No averaging required for slice data " << "\n";
        return smf;
     }
     else if ( coarsen == true ) {
