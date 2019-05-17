@@ -94,8 +94,6 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
                  y.resize(aos.size());,
                  z.resize(aos.size()););
     
-	amrex::Print() << "calling this I guess \n";
-
 #ifdef AMREX_USE_CUDA
     thrust::transform(thrust::device,
 					  aos().begin(), aos.end(),
