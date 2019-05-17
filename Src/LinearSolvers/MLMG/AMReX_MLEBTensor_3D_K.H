@@ -110,7 +110,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     Real dudx = (0.5*dxi) * ((vel(ihip,j  ,k,0)-vel(ihim,j  ,k,0))*whi
                                             +(vel(ilop,j-1,k,0)-vel(ilom,j-1,k,0))*wlo);
                     Real dvdx = (0.5*dxi) * ((vel(ihip,j  ,k,1)-vel(ihim,j  ,k,1))*whi
-                                            +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*whi);
+                                            +(vel(ilop,j-1,k,1)-vel(ilom,j-1,k,1))*wlo);
 
                     int khip = k + flag(i,j  ,k).isConnected(0,0, 1);
                     int khim = k - flag(i,j  ,k).isConnected(0,0,-1);
@@ -120,7 +120,7 @@ void mlebtensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                     wlo = mlebtensor_weight(klop-klom);
                     Real dvdz = (0.5*dzi) * ((vel(i,j  ,khip,1)-vel(i,j  ,khim,1))*whi
                                             +(vel(i,j-1,klop,1)-vel(i,j-1,klom,1))*wlo);
-                    Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khip,2))*whi
+                    Real dwdz = (0.5*dzi) * ((vel(i,j  ,khip,2)-vel(i,j  ,khim,2))*whi
                                             +(vel(i,j-1,klop,2)-vel(i,j-1,klom,2))*wlo);
 
                     Real divu = dudx + dwdz;
@@ -407,9 +407,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         Real gx = bc(i,j,k,0) - dg*anrmx;
                         Real gy = bc(i,j,k,1) - dg*anrmy;
                         Real gz = bc(i,j,k,2) - dg*anrmz;
-                        int isx = anrmx ? 1 : -1;
-                        int isy = anrmy ? 1 : -1;
-                        int isz = anrmz ? 1 : -1;
+                        int isx = (anrmx > 0.0) ? 1 : -1;
+                        int isy = (anrmy > 0.0) ? 1 : -1;
+                        int isz = (anrmz > 0.0) ? 1 : -1;
                         int ii = i - isx;
                         int jj = j - isy;
                         int kk = k - isz;
@@ -484,18 +484,18 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     }
 
                     Real volinv = 1.0 / kappa;
-                    Ax(i,j,k,0) += volinv * (dxi*(apx(i,j,k)*fxm_0-apx(i+1,j,k)*fxp_0)
-                                            +dyi*(apy(i,j,k)*fym_0-apy(i,j+1,k)*fyp_0)
-                                            +dzi*(apz(i,j,k)*fzm_0-apz(i,j,k+1)*fzp_0)
-                                            -dxi*                               feb_0);
-                    Ax(i,j,k,1) += volinv * (dxi*(apx(i,j,k)*fxm_1-apx(i+1,j,k)*fxp_1)
-                                            +dyi*(apy(i,j,k)*fym_1-apy(i,j+1,k)*fyp_1)
-                                            +dzi*(apz(i,j,k)*fzm_1-apz(i,j,k+1)*fzp_1)
-                                            -dxi*                               feb_1);
-                    Ax(i,j,k,2) += volinv * (dxi*(apx(i,j,k)*fxm_2-apx(i+1,j,k)*fxp_2)
-                                            +dyi*(apy(i,j,k)*fym_2-apy(i,j+1,k)*fyp_2)
-                                            +dzi*(apz(i,j,k)*fzm_2-apz(i,j,k+1)*fzp_2)
-                                            -dxi*                               feb_2);
+                    Ax(i,j,k,0) += volinv * (dxi*(apx(i+1,j,k)*fxp_0-apx(i,j,k)*fxm_0)
+                                            +dyi*(apy(i,j+1,k)*fyp_0-apy(i,j,k)*fym_0)
+                                            +dzi*(apz(i,j,k+1)*fzp_0-apz(i,j,k)*fzm_0)
+                                            +dxi*                               feb_0);
+                    Ax(i,j,k,1) += volinv * (dxi*(apx(i+1,j,k)*fxp_1-apx(i,j,k)*fxm_1)
+                                            +dyi*(apy(i,j+1,k)*fyp_1-apy(i,j,k)*fym_1)
+                                            +dzi*(apz(i,j,k+1)*fzp_1-apz(i,j,k)*fzm_1)
+                                            +dxi*                               feb_1);
+                    Ax(i,j,k,2) += volinv * (dxi*(apx(i+1,j,k)*fxp_2-apx(i,j,k)*fxm_2)
+                                            +dyi*(apy(i,j+1,k)*fyp_2-apy(i,j,k)*fym_2)
+                                            +dzi*(apz(i,j,k+1)*fzp_2-apz(i,j,k)*fzm_2)
+                                            +dxi*                               feb_2);
                 }
             }
         }

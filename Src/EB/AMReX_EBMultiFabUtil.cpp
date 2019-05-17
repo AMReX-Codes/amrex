@@ -348,7 +348,7 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                 FabType typ = flags[mfi].getType(amrex::refine(tbx,ratio));
 
                 if (FabType::covered == typ || FabType::regular == typ) {
-                    crse[mfi].setVal(0.0, tbx, 0, 1);
+                    crse[mfi].setVal(0.0, tbx, 0, ncomp);
                 } else {
                     amrex_eb_avgdown_boundaries(tbx.loVect(), tbx.hiVect(),
                                                 BL_TO_FORTRAN_ANYD(fine[mfi]),
