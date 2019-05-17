@@ -536,6 +536,11 @@ WarpX::ReadParameters ()
        amrex::Vector<Real> slice_lo(AMREX_SPACEDIM);
        amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
        Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
+       // set default slice_crse_ratio //
+       for (int idim=0; idim < AMREX_SPACEDIM; ++idim ) 
+       {
+          slice_crse_ratio[idim] = 1;
+       }
        pp.queryarr("dom_lo",slice_lo,0,AMREX_SPACEDIM);
        pp.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
        pp.queryarr("coarsening_ratio",slice_crse_ratio,0,AMREX_SPACEDIM);
