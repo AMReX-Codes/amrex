@@ -22,6 +22,9 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         else if (species_types[i] == PCTypes::RigidInjected) {
             allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
         }
+        else if (species_types[i] == PCTypes::Photon) {
+            allcontainers[i].reset(new PhotonParticleContainer(amr_core, i, species_names[i]));
+        }
         allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
     }
     
@@ -78,9 +81,11 @@ MultiParticleContainer::ReadParameters ()
         BL_ASSERT(nspecies >= 0);
 
         if (nspecies > 0) {
+            // Get species names
             pp.getarr("species_names", species_names);
             BL_ASSERT(species_names.size() == nspecies);
 
+            // Get species to deposit on main grid
             deposit_on_main_grid.resize(nspecies, 0);
             std::vector<std::string> tmp;
             pp.queryarr("deposit_on_main_grid", tmp);
@@ -93,9 +98,9 @@ MultiParticleContainer::ReadParameters ()
 
             species_types.resize(nspecies, PCTypes::Physical);
 
+            // Get rigid-injected species
             std::vector<std::string> rigid_injected_species;
             pp.queryarr("rigid_injected_species", rigid_injected_species);
-
             if (!rigid_injected_species.empty()) {
                 for (auto const& name : rigid_injected_species) {
                     auto it = std::find(species_names.begin(), species_names.end(), name);
@@ -104,6 +109,18 @@ MultiParticleContainer::ReadParameters ()
                     species_types[i] = PCTypes::RigidInjected;
                 }
             }
+            // Get photon species
+            std::vector<std::string> photon_species;
+            pp.queryarr("photon_species", photon_species);
+            if (!photon_species.empty()) {
+                for (auto const& name : photon_species) {
+                    auto it = std::find(species_names.begin(), species_names.end(), name);
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
+                    int i = std::distance(species_names.begin(), it);
+                    species_types[i] = PCTypes::Photon;
+                }
+            }
+
         }
 
         pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
