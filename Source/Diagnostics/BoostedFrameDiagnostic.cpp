@@ -451,10 +451,10 @@ namespace
               const std::vector<int>& map_actual_fields_to_dump)
     {
         const int ncomp_to_dump = map_actual_fields_to_dump.size();
+        // Copy data from MultiFab tmp to MultiFab data_buffer[i].
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        // Copy data from MultiFab tmp to MultiFab data_buffer[i].
         for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<      Real> tmp_arr = tmp[mfi].array();
             Array4<      Real> buf_arr = buf[mfi].array();
