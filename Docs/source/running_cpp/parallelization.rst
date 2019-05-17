@@ -36,7 +36,11 @@ pathological behaviors.
 
 For more information on this decomposition, see the 
 `Gridding and Load Balancing <https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html>`__ 
-page on AMReX documentation.
+page on AMReX documentation. 
+
+For specific information on the dynamic load balancer used in WarpX, visit the 
+`Load Balancing <https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html>`__ 
+page on the AMReX documentation.
 
 The best values for these parameters strongly depends on a number of parameters, 
 among which numerical parameters:
