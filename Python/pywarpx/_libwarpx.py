@@ -30,18 +30,24 @@ def _get_package_root():
 # --- Default to 3D if geometry is not setup yet.
 try:
     _prob_lo = geometry.prob_lo
+    _coord_sys = geometry.coord_sys
 except AttributeError:
-    geometry_dim = 3
+    geometry_dim = '3d'
 else:
-    geometry_dim = len(_prob_lo)
-    del _prob_lo
+    if _coord_sys == 0:
+        geometry_dim = '%dd'%len(_prob_lo)
+    elif _coord_sys == 1:
+        geometry_dim = 'rz'
+    else:
+        raise Exception('Undefined coordinate system %d'%_coord_sys)
+    del _prob_lo, _coord_sys
 
 _libc = ctypes.CDLL(_find_library('c'))
 
 try:
-    libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx%dd.so"%geometry_dim))
+    libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx%s.so"%geometry_dim))
 except OSError:
-    raise Exception('libwarpx%dd.so was not installed. It can be installed by running "make" in the Python directory of WarpX'%geometry_dim)
+    raise Exception('libwarpx%s.so was not installed. It can be installed by running "make" in the Python directory of WarpX'%geometry_dim)
 
 dim = libwarpx.warpx_SpaceDim()
 
