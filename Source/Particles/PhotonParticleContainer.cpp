@@ -58,10 +58,11 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     const long np  = pti.numParticles();
     
     // Probably want to push photons in some way here.
-    // WarpXParticleContainer::PushX(int lev, Real dt) is probably
-    // a good start.
-    // In particular grep ParallelFor thing if you want 
-    // to write GPU-compatible code.
+    // PhysicalParticleContainer::PushPX is probably
+    // a good start. Let's start by writing CPU code.
+    for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
+    {
+    }
 }
 
 void
@@ -75,6 +76,10 @@ PhotonParticleContainer::Evolve (int lev,
                                         const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                         Real t, Real dt)
 {
+    // This does gather, push and depose.
+    // Push and depose have been re-written for photon, 
+    // so they do not do anything.
+    // Currently, I guess photons do gather fields from the mesh.
     PhysicalParticleContainer::Evolve (lev,
                                        Ex, Ey, Ez,
                                        Bx, By, Bz,
