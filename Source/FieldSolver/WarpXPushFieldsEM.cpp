@@ -65,6 +65,10 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
+    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // in which case it is actually rmin.
+    const Real xmin = Geom(0).ProbLo(0);
+
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -76,10 +80,6 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
-        // xmin is only used by the picsar kernel with cylindrical geometry,
-        // in which case it is actually rmin.
-        const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
 
         if (do_nodal) {
             auto const& Bxfab = Bx->array(mfi);
@@ -224,6 +224,10 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
+    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // in which case it is actually rmin.
+    const Real xmin = Geom(0).ProbLo(0);
+
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -235,10 +239,6 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-
-        // xmin is only used by the picsar kernel with cylindrical geometry,
-        // in which case it is actually rmin.
-        const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
 
         if (do_nodal) {
             auto const& Exfab = Ex->array(mfi);

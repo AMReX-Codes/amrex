@@ -39,7 +39,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
-#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
 
@@ -67,7 +66,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
-#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
 
@@ -341,10 +339,6 @@ extern "C"
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
                                       const amrex::Real* prob_hi);
-
-    void WRPX_LORENTZ_TRANSFORM_Z(amrex::Real* data, const int* dlo, const int* dhi,
-                                  const int* tlo, const int* thi,
-                                  const amrex::Real* gamma_boost, const amrex::Real* beta_boost);
 
 //  These functions are used to evolve E and B in the PML
 
