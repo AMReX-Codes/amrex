@@ -1094,9 +1094,11 @@ MLNodeLaplacian::buildStencil ()
 {
     // todo:gpu
     m_stencil.resize(m_num_amr_levels);
+    m_s0_norm0.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_stencil[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_s0_norm0[amrlev].resize(m_num_mg_levels[amrlev],0.0);
     }
     
     if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
@@ -1264,6 +1266,10 @@ MLNodeLaplacian::buildStencil ()
             m_stencil[amrlev][mglev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
         }
     }
+
+
+    // This is only needed at the bottom.
+    m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0);
 }
 
 void
@@ -1774,6 +1780,7 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
     const auto& stencil = m_stencil[amrlev][mglev];
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
+    const Real s0_norm0 = m_s0_norm0[amrlev][mglev];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1787,7 +1794,8 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
             amrex_mlndlap_normalize_sten(BL_TO_FORTRAN_BOX(bx),
                                          BL_TO_FORTRAN_ANYD(fab),
                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                         s0_norm0);
         }
         else if (m_use_harmonic_average && mglev > 0)
         {

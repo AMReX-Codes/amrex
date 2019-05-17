@@ -20,7 +20,7 @@ struct StructOfArrays {
           m_defined(false)
         {}
 
-    void define(int a_num_runtime_real, int a_num_runtime_int)
+    void define (int a_num_runtime_real, int a_num_runtime_int)
     {
         m_defined = true;
         m_runtime_rdata.resize(a_num_runtime_real);

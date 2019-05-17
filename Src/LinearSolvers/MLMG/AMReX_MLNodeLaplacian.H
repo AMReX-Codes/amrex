@@ -144,6 +144,7 @@ private:
 
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
+    Vector<Vector<Real> > m_s0_norm0;
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
