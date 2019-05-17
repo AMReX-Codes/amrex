@@ -451,6 +451,9 @@ namespace
               const std::vector<int>& map_actual_fields_to_dump)
     {
         const int ncomp_to_dump = map_actual_fields_to_dump.size();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         // Copy data from MultiFab tmp to MultiFab data_buffer[i].
         for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<      Real> tmp_arr = tmp[mfi].array();
@@ -478,6 +481,9 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
 {
     // Loop over tiles/boxes and in-place convert each slice from boosted
     // frame to lab frame.
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     for (MFIter mfi(data, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         const Box& tile_box = mfi.tilebox();
         Array4< Real > arr = data[mfi].array();
