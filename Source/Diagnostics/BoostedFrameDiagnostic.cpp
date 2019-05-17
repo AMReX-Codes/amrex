@@ -448,7 +448,7 @@ namespace
 {
     void
     CopySlice(MultiFab& tmp, MultiFab& buf, int k_lab, 
-              const std::vector<int>& map_actual_fields_to_dump)
+              const Gpu::ManagedDeviceVector<int>& map_actual_fields_to_dump)
     {
         const int ncomp_to_dump = map_actual_fields_to_dump.size();
         // Copy data from MultiFab tmp to MultiFab data_buffer[i].
@@ -461,11 +461,12 @@ namespace
             // For 3D runs, tmp is a 2D (x,y) multifab, that contains only 
             // slice to write to file.
             const Box& bx  = mfi.tilebox();
-            
+
+            const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();            
             ParallelFor(bx, ncomp_to_dump,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
                 {
-                    const int icomp = map_actual_fields_to_dump[n];
+                    const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
                     buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
 #else
@@ -568,6 +569,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                                  user_fields_to_dump);
     // If user specifies fields to dump, overwrite ncomp_to_dump, 
     // map_actual_fields_to_dump and mesh_field_names.
+	for (int i = 0; i < 10; ++i) map_actual_fields_to_dump.push_back(i);
     if (do_user_fields){
         ncomp_to_dump = user_fields_to_dump.size();
         map_actual_fields_to_dump.resize(ncomp_to_dump);
