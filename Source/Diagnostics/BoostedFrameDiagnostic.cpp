@@ -462,11 +462,11 @@ namespace
             // slice to write to file.
             const Box& bx  = mfi.tilebox();
 
-			const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();            
+            const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();            
             ParallelFor(bx, ncomp_to_dump,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
                 {
-					const int icomp = field_map_ptr[n];
+                    const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
                     buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
 #else
