@@ -487,7 +487,7 @@ Device::instantiateGraph(cudaGraph_t graph)
 */
 
     AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
-//    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, &(graph_log[0]), log_size)); 
+//    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size)); 
 
 /*
     if (graph_log[0] != '\0')
