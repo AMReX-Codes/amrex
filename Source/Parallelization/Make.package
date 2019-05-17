@@ -1,5 +1,6 @@
 CEXE_sources += WarpXComm.cpp
 CEXE_sources += WarpXRegrid.cpp
+CEXE_headers += WarpXSumGuardCells.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Parallelization
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Parallelization

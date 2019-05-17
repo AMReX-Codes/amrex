@@ -70,6 +70,17 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
     pp.getarr("custom_profile_params", params);
 }
 
+PredefinedDensityProfile::PredefinedDensityProfile(const std::string& species_name)
+{
+    ParmParse pp(species_name);
+    std::string which_profile_s;
+    pp.getarr("predefined_profile_params", params);
+    pp.query("predefined_profile_name", which_profile_s);
+    if (which_profile_s == "parabolic_channel"){
+        which_profile = predefined_profile_flag::parabolic_channel;
+    }
+}
+
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
 {
@@ -299,6 +310,9 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         StringParseAbortMessage("Injection style", part_pos_s);
     }
 
+    pp.query("radially_weighted", radially_weighted);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(radially_weighted, "ERROR: Only radially_weighted=true is supported");
+
     // parse plasma boundaries
     xmin = std::numeric_limits<amrex::Real>::lowest();
     ymin = std::numeric_limits<amrex::Real>::lowest();
@@ -330,6 +344,8 @@ void PlasmaInjector::parseDensity(ParmParse pp){
         rho_prof.reset(new ConstantDensityProfile(density));
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
+    } else if (rho_prof_s == "predefined") {
+        rho_prof.reset(new PredefinedDensityProfile(species_name));
     } else if (rho_prof_s == "parse_density_function") {
         pp.get("density_function(x,y,z)", str_density_function);
         rho_prof.reset(new ParseDensityProfile(str_density_function));

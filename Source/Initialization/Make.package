@@ -1,4 +1,5 @@
 CEXE_sources += CustomDensityProb.cpp
+CEXE_sources += PlasmaProfiles.cpp
 CEXE_sources += WarpXInitData.cpp
 CEXE_sources += CustomMomentumProb.cpp
 CEXE_sources += PlasmaInjector.cpp

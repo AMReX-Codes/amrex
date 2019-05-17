@@ -11,21 +11,9 @@ correct branch:
     mkdir warpx_directory
     cd warpx_directory
 
-    git clone https://github.com/ECP-WarpX/WarpX.git
-    cd WarpX
-    git checkout dev
-    cd ..
-
-    git clone https://bitbucket.org/berkeleylab/picsar.git
-    cd picsar
-    git checkout master
-    cd ..
-
-    git clone https://github.com/AMReX-Codes/amrex.git
-    cd amrex
-    git checkout development
-    cd ..
-
+    git clone --branch dev https://github.com/ECP-WarpX/WarpX.git
+    git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+    git clone --branch development https://github.com/AMReX-Codes/amrex.git
 
 Then, use the following set of commands to compile:
 

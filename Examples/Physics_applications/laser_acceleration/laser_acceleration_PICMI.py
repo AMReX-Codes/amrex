@@ -89,7 +89,7 @@ grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              lower_boundary_conditions = ['periodic', 'periodic', 'open'],
                              upper_boundary_conditions = ['periodic', 'periodic', 'open'],
                              moving_window_velocity = moving_window_velocity,
-                             warpx_max_grid_size=32, warpx_coord_sys=0)
+                             warpx_max_grid_size=32)
 
 solver = picmi.ElectromagneticSolver(grid=grid, method='CKC', cfl=1.)
 
@@ -137,5 +137,5 @@ sim.add_diagnostic(part_diag1)
 sim.write_input_file(file_name = 'inputs_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
-sim.step(max_steps)
+#sim.step(max_steps)
 

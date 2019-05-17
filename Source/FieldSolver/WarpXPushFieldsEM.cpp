@@ -77,6 +77,10 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
+        // xmin is only used by the picsar kernel with cylindrical geometry,
+        // in which case it is actually rmin.
+        const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
+
         if (do_nodal) {
             auto const& Bxfab = Bx->array(mfi);
             auto const& Byfab = By->array(mfi);
@@ -112,6 +116,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 		      BL_TO_FORTRAN_3D((*By)[mfi]),
 		      BL_TO_FORTRAN_3D((*Bz)[mfi]),
                       &dtsdx, &dtsdy, &dtsdz,
+                      &xmin, &dx[0],
 		      &WarpX::maxwell_fdtd_solver_id);
         }
 
@@ -231,6 +236,10 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
+        // xmin is only used by the picsar kernel with cylindrical geometry,
+        // in which case it is actually rmin.
+        const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
+
         if (do_nodal) {
             auto const& Exfab = Ex->array(mfi);
             auto const& Eyfab = Ey->array(mfi);
@@ -272,7 +281,8 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
 		      BL_TO_FORTRAN_3D((*jy)[mfi]),
 		      BL_TO_FORTRAN_3D((*jz)[mfi]),
 		      &mu_c2_dt,
-		      &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+		      &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
+		      &xmin, &dx[0]);
         }
 
         if (F)

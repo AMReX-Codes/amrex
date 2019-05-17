@@ -15,19 +15,19 @@ namespace
 {
     Vector<Real> CrossProduct (const Vector<Real>& a, const Vector<Real>& b)
     {
-	return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
+        return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
     }
 }
 
-LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
-    : WarpXParticleContainer(amr_core, ispecies)
+LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies, const std::string& name)
+    : WarpXParticleContainer(amr_core, ispecies),
+      laser_name(name)
 {
     charge = 1.0;
     mass = std::numeric_limits<Real>::max();
-
-    if (WarpX::use_laser)
-    {
-	ParmParse pp("laser");
+    do_boosted_frame_diags = 0;
+        
+    ParmParse pp(laser_name);
 
 	// Parse the type of laser profile and set the corresponding flag `profile`
 	std::string laser_type_s;
@@ -35,10 +35,10 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
 	if (laser_type_s == "gaussian") {
 	    profile = laser_t::Gaussian;
-        } else if(laser_type_s == "harris") {
-            profile = laser_t::Harris;
-        } else if(laser_type_s == "parse_field_function") {
-            profile = laser_t::parse_field_function;
+    } else if(laser_type_s == "harris") {
+        profile = laser_t::Harris;
+    } else if(laser_type_s == "parse_field_function") {
+        profile = laser_t::parse_field_function;
 	} else {
 	    amrex::Abort("Unknown laser type");
 	}
@@ -50,94 +50,94 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.query("pusher_algo", pusher_algo);
 	pp.get("wavelength", wavelength);
 	pp.get("e_max", e_max);
+    pp.query("do_continuous_injection", do_continuous_injection);
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
-	   pp.get("profile_waist", profile_waist);
-	   pp.get("profile_duration", profile_duration);
-	   pp.get("profile_t_peak", profile_t_peak);
-	   pp.get("profile_focal_distance", profile_focal_distance);
-	   stc_direction = p_X;
-	   pp.queryarr("stc_direction", stc_direction);
-	   pp.query("zeta", zeta);
-	   pp.query("beta", beta);
-	   pp.query("phi2", phi2);
+        pp.get("profile_waist", profile_waist);
+        pp.get("profile_duration", profile_duration);
+        pp.get("profile_t_peak", profile_t_peak);
+        pp.get("profile_focal_distance", profile_focal_distance);
+        stc_direction = p_X;
+        pp.queryarr("stc_direction", stc_direction);
+        pp.query("zeta", zeta);
+        pp.query("beta", beta);
+        pp.query("phi2", phi2);
 	}
 
-        if ( profile == laser_t::Harris ) {
-            // Parse the properties of the Harris profile
-            pp.get("profile_waist", profile_waist);
-            pp.get("profile_duration", profile_duration);
-            pp.get("profile_focal_distance", profile_focal_distance);
-        }
+    if ( profile == laser_t::Harris ) {
+        // Parse the properties of the Harris profile
+        pp.get("profile_waist", profile_waist);
+        pp.get("profile_duration", profile_duration);
+        pp.get("profile_focal_distance", profile_focal_distance);
+    }
 
-        if ( profile == laser_t::parse_field_function ) {
-            // Parse the properties of the parse_field_function profile
-            pp.get("field_function(X,Y,t)", field_function);
-            parser.define(field_function);
-            parser.registerVariables({"X","Y","t"});
+    if ( profile == laser_t::parse_field_function ) {
+        // Parse the properties of the parse_field_function profile
+        pp.get("field_function(X,Y,t)", field_function);
+        parser.define(field_function);
+        parser.registerVariables({"X","Y","t"});
 
-            ParmParse pp("my_constants");
-            std::set<std::string> symbols = parser.symbols();
-            symbols.erase("X");
-            symbols.erase("Y");
-            symbols.erase("t"); // after removing variables, we are left with constants
-            for (auto it = symbols.begin(); it != symbols.end(); ) {
-                Real v;
-                if (pp.query(it->c_str(), v)) {
-                    parser.setConstant(*it, v);
-                    it = symbols.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-            for (auto const& s : symbols) { // make sure there no unknown symbols
-                amrex::Abort("Laser Profile: Unknown symbol "+s);
+        ParmParse pp("my_constants");
+        std::set<std::string> symbols = parser.symbols();
+        symbols.erase("X");
+        symbols.erase("Y");
+        symbols.erase("t"); // after removing variables, we are left with constants
+        for (auto it = symbols.begin(); it != symbols.end(); ) {
+            Real v;
+            if (pp.query(it->c_str(), v)) {
+                parser.setConstant(*it, v);
+                it = symbols.erase(it);
+            } else {
+                ++it;
             }
         }
+        for (auto const& s : symbols) { // make sure there no unknown symbols
+            amrex::Abort("Laser Profile: Unknown symbol "+s);
+        }
+    }
 
 	// Plane normal
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
 	nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
 
-        if (WarpX::gamma_boost > 1.) {
-            // Check that the laser direction is equal to the boost direction
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                nvec[0]*WarpX::boost_direction[0]
-                + nvec[1]*WarpX::boost_direction[1]
-                + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
-                "The Lorentz boost should be in the same direction as the laser propagation");
-            // Get the position of the plane, along the boost direction, in the lab frame
-            // and convert the position of the antenna to the boosted frame
-            Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
-            Real Z0_boost = Z0_lab/WarpX::gamma_boost;
-            position[0] += (Z0_boost-Z0_lab)*nvec[0];
-            position[1] += (Z0_boost-Z0_lab)*nvec[1];
-            position[2] += (Z0_boost-Z0_lab)*nvec[2];
-        }
+    if (WarpX::gamma_boost > 1.) {
+        // Check that the laser direction is equal to the boost direction
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  nvec[0]*WarpX::boost_direction[0]
+                                         + nvec[1]*WarpX::boost_direction[1]
+                                         + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
+                                           "The Lorentz boost should be in the same direction as the laser propagation");
+        // Get the position of the plane, along the boost direction, in the lab frame
+        // and convert the position of the antenna to the boosted frame
+        Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
+        Real Z0_boost = Z0_lab/WarpX::gamma_boost;
+        position[0] += (Z0_boost-Z0_lab)*nvec[0];
+        position[1] += (Z0_boost-Z0_lab)*nvec[1];
+        position[2] += (Z0_boost-Z0_lab)*nvec[2];
+    }
 
 	// The first polarization vector
 	s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
 	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
-            "Laser plane vector is not perpendicular to the main polarization vector");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
+                                     "Laser plane vector is not perpendicular to the main polarization vector");
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
 	s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
 	stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
 	dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
-            "stc_direction is not perpendicular to the laser plane vector");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
+                                     "stc_direction is not perpendicular to the laser plane vector");
 
 	// Get angle between p_X and stc_direction
 	// in 2d, stcs are in the simulation plane
 #if AMREX_SPACEDIM == 3
 	theta_stc = acos(stc_direction[0]*p_X[0] +
-			 stc_direction[1]*p_X[1] +
-			 stc_direction[2]*p_X[2]);
+                     stc_direction[1]*p_X[1] +
+                     stc_direction[2]*p_X[2]);
 #else
 	theta_stc = 0.;
 #endif
@@ -150,16 +150,93 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	u_Y = {0., 1., 0.};
 #endif
 
-        prob_domain = Geometry::ProbDomain();
-        {
-            Vector<Real> lo, hi;
-            if (pp.queryarr("prob_lo", lo)) {
-                prob_domain.setLo(lo);
-            }
-            if (pp.queryarr("prob_hi", hi)) {
-                prob_domain.setHi(hi);
-            }
+    laser_injection_box= Geometry::ProbDomain();
+    {
+        Vector<Real> lo, hi;
+        if (pp.queryarr("prob_lo", lo)) {
+            laser_injection_box.setLo(lo);
         }
+        if (pp.queryarr("prob_hi", hi)) {
+            laser_injection_box.setHi(hi);
+        }
+    }
+
+    if (do_continuous_injection){
+        // If laser antenna initially outside of the box, store its theoretical
+        // position in z_antenna_th
+        updated_position = position;
+        
+        // Sanity checks
+        int dir = WarpX::moving_window_dir;
+        std::vector<Real> windir(3, 0.0);
+#if (AMREX_SPACEDIM==2)
+        windir[2*dir] = 1.0;
+#else
+        windir[dir] = 1.0;
+#endif
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  
+            (nvec[0]-windir[0]) + (nvec[1]-windir[1]) + (nvec[2]-windir[2]) 
+            < 1.e-12, "do_continous_injection for laser particle only works" +
+            " if moving window direction and laser propagation direction are the same");
+        if ( WarpX::gamma_boost>1 ){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) + 
+                (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) + 
+                (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
+                "do_continous_injection for laser particle only works if " + 
+                "warpx.boost_direction = z. TODO: all directions.");
+        }
+    }
+}
+
+/* \brief Check if laser particles enter the box, and inject if necessary.
+ * \param injection_box: a RealBox where particles should be injected.
+ */ 
+void
+LaserParticleContainer::ContinuousInjection (const RealBox& injection_box)
+{
+    // Input parameter injection_box contains small box where injection
+    // should occur.
+    // So far, LaserParticleContainer::laser_injection_box contains the 
+    // outdated full problem domain at t=0.
+
+    // Convert updated_position to Real* to use RealBox::contains().
+#if (AMREX_SPACEDIM == 3)
+    const Real* p_pos = updated_position.dataPtr();
+#else
+    const Real p_pos[2] = {updated_position[0], updated_position[2]};
+#endif
+    if ( injection_box.contains(p_pos) ){
+        // Update laser_injection_box with current value
+        laser_injection_box = injection_box;
+        // Inject laser particles. LaserParticleContainer::InitData
+        // is called only once, when the antenna enters the simulation
+        // domain.
+        InitData();
+    }
+}
+
+/* \brief update position of the antenna if running in boosted frame.
+ * \param dt time step (level 0).
+ * The up-to-date antenna position is stored in updated_position.
+ */
+void
+LaserParticleContainer::UpdateContinuousInjectionPosition(Real dt)
+{
+    int dir = WarpX::moving_window_dir;
+    if (do_continuous_injection and (WarpX::gamma_boost > 1)){
+        // In boosted-frame simulations, the antenna has moved since the last
+        // call to this function, and injection position needs to be updated
+#if ( AMREX_SPACEDIM == 3 )
+        updated_position[dir] -= WarpX::beta_boost *
+            WarpX::boost_direction[dir] * PhysConst::c * dt;
+#elif ( AMREX_SPACEDIM == 2 )
+        // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
+        // This needs to be converted in order to index `boost_direction`
+        // which has 3 components, for both 2D and 3D simulations.
+        updated_position[2*dir] -= WarpX::beta_boost *
+            WarpX::boost_direction[2*dir] * PhysConst::c * dt;
+#endif
     }
 }
 
@@ -178,60 +255,64 @@ LaserParticleContainer::InitData (int lev)
     ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
-    auto Transform = [&](int i, int j) -> Vector<Real>
-    {
+    // LaserParticleContainer::position contains the initial position of the 
+    // laser antenna. In the boosted frame, the antenna is moving.
+    // Update its position with updated_position.
+    if (do_continuous_injection){
+        position = updated_position;
+    }
+
+    auto Transform = [&](int i, int j) -> Vector<Real>{
 #if (AMREX_SPACEDIM == 3)
-	return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
-		 position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
-		 position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
+        return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
+                 position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
+                 position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
 #else
-	return { position[0] + (S_X*(i+0.5))*u_X[0],
-		 0.0,
-		 position[2] + (S_X*(i+0.5))*u_X[2] };
+        return { position[0] + (S_X*(i+0.5))*u_X[0],
+                0.0,
+                position[2] + (S_X*(i+0.5))*u_X[2] };
 #endif
     };
 
     // Given the "lab" frame coordinates, return the real coordinates in the laser plane coordinates
-    auto InverseTransform = [&](const Vector<Real>& pos) -> Vector<Real>
-    {
+    auto InverseTransform = [&](const Vector<Real>& pos) -> Vector<Real>{
 #if (AMREX_SPACEDIM == 3)
-	return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
-		u_Y[0]*(pos[0]-position[0])+u_Y[1]*(pos[1]-position[1])+u_Y[2]*(pos[2]-position[2])};
+        return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
+                u_Y[0]*(pos[0]-position[0])+u_Y[1]*(pos[1]-position[1])+u_Y[2]*(pos[2]-position[2])};
 #else
-	return {u_X[0]*(pos[0]-position[0])+u_X[2]*(pos[2]-position[2]), 0.0};
+        return {u_X[0]*(pos[0]-position[0])+u_X[2]*(pos[2]-position[2]), 0.0};
 #endif
     };
 
     Vector<int> plane_lo(2, std::numeric_limits<int>::max());
     Vector<int> plane_hi(2, std::numeric_limits<int>::min());
     {
-	auto compute_min_max = [&](Real x, Real y, Real z)
-	{
-	    const Vector<Real>& pos_plane = InverseTransform({x, y, z});
-	    int i = pos_plane[0]/S_X;
-	    int j = pos_plane[1]/S_Y;
-	    plane_lo[0] = std::min(plane_lo[0], i);
-	    plane_lo[1] = std::min(plane_lo[1], j);
-	    plane_hi[0] = std::max(plane_hi[0], i);
-	    plane_hi[1] = std::max(plane_hi[1], j);
-	};
+        auto compute_min_max = [&](Real x, Real y, Real z){
+            const Vector<Real>& pos_plane = InverseTransform({x, y, z});
+            int i = pos_plane[0]/S_X;
+            int j = pos_plane[1]/S_Y;
+            plane_lo[0] = std::min(plane_lo[0], i);
+            plane_lo[1] = std::min(plane_lo[1], j);
+            plane_hi[0] = std::max(plane_hi[0], i);
+            plane_hi[1] = std::max(plane_hi[1], j);
+        };
 
-	const Real* prob_lo = prob_domain.lo();
-	const Real* prob_hi = prob_domain.hi();
+        const Real* prob_lo = laser_injection_box.lo();
+        const Real* prob_hi = laser_injection_box.hi();
 #if (AMREX_SPACEDIM == 3)
-	compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
-	compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
-	compute_min_max(prob_lo[0], prob_hi[1], prob_lo[2]);
-	compute_min_max(prob_hi[0], prob_hi[1], prob_lo[2]);
-	compute_min_max(prob_lo[0], prob_lo[1], prob_hi[2]);
-	compute_min_max(prob_hi[0], prob_lo[1], prob_hi[2]);
-	compute_min_max(prob_lo[0], prob_hi[1], prob_hi[2]);
-	compute_min_max(prob_hi[0], prob_hi[1], prob_hi[2]);
+        compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
+        compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
+        compute_min_max(prob_lo[0], prob_hi[1], prob_lo[2]);
+        compute_min_max(prob_hi[0], prob_hi[1], prob_lo[2]);
+        compute_min_max(prob_lo[0], prob_lo[1], prob_hi[2]);
+        compute_min_max(prob_hi[0], prob_lo[1], prob_hi[2]);
+        compute_min_max(prob_lo[0], prob_hi[1], prob_hi[2]);
+        compute_min_max(prob_hi[0], prob_hi[1], prob_hi[2]);
 #else
-	compute_min_max(prob_lo[0], 0.0, prob_lo[1]);
-	compute_min_max(prob_hi[0], 0.0, prob_lo[1]);
-	compute_min_max(prob_lo[0], 0.0, prob_hi[1]);
-	compute_min_max(prob_hi[0], 0.0, prob_hi[1]);
+        compute_min_max(prob_lo[0], 0.0, prob_lo[1]);
+        compute_min_max(prob_hi[0], 0.0, prob_lo[1]);
+        compute_min_max(prob_lo[0], 0.0, prob_hi[1]);
+        compute_min_max(prob_hi[0], 0.0, prob_hi[1]);
 #endif
     }
 
@@ -272,22 +353,22 @@ LaserParticleContainer::InitData (int lev)
 	    const Box& bx = plane_ba[i];
 	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
 	    {
-		const Vector<Real>& pos = Transform(cell[0], cell[1]);
+            const Vector<Real>& pos = Transform(cell[0], cell[1]);
 #if (AMREX_SPACEDIM == 3)
-		const Real* x = pos.dataPtr();
+            const Real* x = pos.dataPtr();
 #else
-		const Real x[2] = {pos[0], pos[2]};
+            const Real x[2] = {pos[0], pos[2]};
 #endif
-		if (prob_domain.contains(x))
-		{
-		    for (int k = 0; k<2; ++k) {
-			particle_x.push_back(pos[0]);
-			particle_y.push_back(pos[1]);
-			particle_z.push_back(pos[2]);
-		    }
-		    particle_w.push_back( weight);
-		    particle_w.push_back(-weight);
-		}
+            if (laser_injection_box.contains(x))
+            {
+                for (int k = 0; k<2; ++k) {
+                    particle_x.push_back(pos[0]);
+                    particle_y.push_back(pos[1]);
+                    particle_z.push_back(pos[2]);
+                }
+                particle_w.push_back( weight);
+                particle_w.push_back(-weight);
+            }
 	    }
 	}
     }
@@ -299,15 +380,15 @@ LaserParticleContainer::InitData (int lev)
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
     AddNParticles(lev,
                   np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
-		  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
-		  1, particle_w.dataPtr(), 1);
+                  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
+                  1, particle_w.dataPtr(), 1);
 }
 
 void
 LaserParticleContainer::Evolve (int lev,
-				const MultiFab&, const MultiFab&, const MultiFab&,
-				const MultiFab&, const MultiFab&, const MultiFab&,
-				MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                const MultiFab&, const MultiFab&, const MultiFab&,
+                                const MultiFab&, const MultiFab&, const MultiFab&,
+                                MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                 MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
                                 MultiFab* rho, MultiFab* crho,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
@@ -337,18 +418,18 @@ LaserParticleContainer::Evolve (int lev,
 #endif
     {
 #ifdef _OPENMP
-      int thread_num = omp_get_thread_num();
+        int thread_num = omp_get_thread_num();
 #else
-      int thread_num = 0;
+        int thread_num = 0;
 #endif
 
         Cuda::ManagedDeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-	{
+        {
             Real wt = amrex::second();
 
-	    const Box& box = pti.validbox();
+            const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
 
@@ -357,80 +438,80 @@ LaserParticleContainer::Evolve (int lev,
             auto& uyp = attribs[PIdx::uy];
             auto& uzp = attribs[PIdx::uz];
 
-	    const long np  = pti.numParticles();
+            const long np  = pti.numParticles();
             // For now, laser particles do not take the current buffers into account
             const long np_current = np;
 
             m_giv[thread_num].resize(np);
 
-               plane_Xp.resize(np);
-               plane_Yp.resize(np);
+            plane_Xp.resize(np);
+            plane_Yp.resize(np);
             amplitude_E.resize(np);
 
-	    //
-	    // copy data from particle container to temp arrays
-	    //
-	    BL_PROFILE_VAR_START(blp_copy);
+            //
+            // copy data from particle container to temp arrays
+            //
+            BL_PROFILE_VAR_START(blp_copy);
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
-	    BL_PROFILE_VAR_STOP(blp_copy);
+            BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
 
-	    //
-	    // Particle Push
-	    //
-	    BL_PROFILE_VAR_START(blp_pxr_pp);
+            //
+            // Particle Push
+            //
+            BL_PROFILE_VAR_START(blp_pxr_pp);
             // Find the coordinates of the particles in the emission plane
             calculate_laser_plane_coordinates( &np,
-                m_xp[thread_num].dataPtr(),
-                m_yp[thread_num].dataPtr(),
-                m_zp[thread_num].dataPtr(),
-                plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
-                &position[0], &position[1], &position[2] );
-	    // Calculate the laser amplitude to be emitted,
-	    // at the position of the emission plane
-	    if (profile == laser_t::Gaussian) {
-		warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
-				      &zeta, &beta, &phi2, &theta_stc );
-	    }
+                                               m_xp[thread_num].dataPtr(),
+                                               m_yp[thread_num].dataPtr(),
+                                               m_zp[thread_num].dataPtr(),
+                                               plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                                               &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
+                                               &position[0], &position[1], &position[2] );
+            // Calculate the laser amplitude to be emitted,
+            // at the position of the emission plane
+            if (profile == laser_t::Gaussian) {
+                warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                                      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
+                                      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
+                                      &zeta, &beta, &phi2, &theta_stc );
+            }
 
             if (profile == laser_t::Harris) {
-		warpx_harris_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                warpx_harris_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                                     &t, &wavelength, &e_max, &profile_waist, &profile_duration,
                                     &profile_focal_distance, amplitude_E.dataPtr() );
-	    }
+            }
 
             if (profile == laser_t::parse_field_function) {
                 for (int i = 0; i < np; ++i) {
                     amplitude_E[i] = parser.eval(plane_Xp[i], plane_Yp[i], t);
                 }
-	    }
-	    // Calculate the corresponding momentum and position for the particles
+            }
+            // Calculate the corresponding momentum and position for the particles
             update_laser_particle(
-               &np,
-               m_xp[thread_num].dataPtr(),
-               m_yp[thread_num].dataPtr(),
-               m_zp[thread_num].dataPtr(),
-               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-               m_giv[thread_num].dataPtr(),
-               wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
-               &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
-               &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
-	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
+                                  &np,
+                                  m_xp[thread_num].dataPtr(),
+                                  m_yp[thread_num].dataPtr(),
+                                  m_zp[thread_num].dataPtr(),
+                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                                  m_giv[thread_num].dataPtr(),
+                                  wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
+                                  &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
+                                  &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
+            BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
-	    //
-	    // Current Deposition
-	    //
+            //
+            // Current Deposition
+            //
             DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
                            cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
 
-	    //
-	    // copy particle data back
-	    //
-	    BL_PROFILE_VAR_START(blp_copy);
+            //
+            // copy particle data back
+            //
+            BL_PROFILE_VAR_START(blp_copy);
             pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
@@ -445,7 +526,7 @@ LaserParticleContainer::Evolve (int lev,
                     costfab->plus(wt, work_box);
                 });
             }
-	}
+        }
     }
 }
 
@@ -466,14 +547,14 @@ LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
     const Real eps = dx[0]*1.e-50;
 #if (AMREX_SPACEDIM == 3)
     Sx = std::min(std::min(dx[0]/(std::abs(u_X[0])+eps),
-			   dx[1]/(std::abs(u_X[1])+eps)),
-		           dx[2]/(std::abs(u_X[2])+eps));
+                           dx[1]/(std::abs(u_X[1])+eps)),
+                  dx[2]/(std::abs(u_X[2])+eps));
     Sy = std::min(std::min(dx[0]/(std::abs(u_Y[0])+eps),
-			   dx[1]/(std::abs(u_Y[1])+eps)),
-		           dx[2]/(std::abs(u_Y[2])+eps));
+                           dx[1]/(std::abs(u_Y[1])+eps)),
+                  dx[2]/(std::abs(u_Y[2])+eps));
 #else
     Sx = std::min(dx[0]/(std::abs(u_X[0])+eps),
-		  dx[2]/(std::abs(u_X[2])+eps));
+                  dx[2]/(std::abs(u_X[2])+eps));
     Sy = 1.0;
 #endif
 }

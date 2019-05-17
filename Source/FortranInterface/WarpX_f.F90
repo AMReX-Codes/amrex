@@ -186,6 +186,41 @@ contains
   end subroutine warpx_compute_dive_2d
 
 
+  subroutine warpx_compute_dive_rz (lo, hi, dive, dlo, dhi, &
+       Ex, xlo, xhi, Ey, ylo, yhi, Ez, zlo, zhi, dx, rmin) &
+       bind(c, name='warpx_compute_dive_rz')
+    integer, intent(in) :: lo(2),hi(2),dlo(2),dhi(2),xlo(2),xhi(2),ylo(2),yhi(2),zlo(2),zhi(2)
+    real(amrex_real), intent(in) :: dx(3), rmin
+    real(amrex_real), intent(in   ) :: Ex  (xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(in   ) :: Ey  (ylo(1):yhi(1),ylo(2):yhi(2))
+    real(amrex_real), intent(in   ) :: Ez  (zlo(1):zhi(1),zlo(2):zhi(2))
+    real(amrex_real), intent(inout) :: dive(dlo(1):dhi(1),dlo(2):dhi(2))
+
+    integer :: i,k
+    real(amrex_real) :: dxinv(3)
+    real(amrex_real) :: ru, rd
+
+    dxinv = 1.d0/dx
+
+    do    k = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (i == 0 .and. rmin == 0.) then
+             ! the bulk equation diverges on axis
+             ! (due to the 1/r terms). The following expressions regularize
+             ! these divergences.
+             dive(i,k) = 4.*dxinv(1) * Ex(i,k) &
+                         + dxinv(3) * (Ez(i,k) - Ez(i,k-1))
+          else
+             ru = 1.d0 + 0.5d0/(rmin*dxinv(1) + i)
+             rd = 1.d0 - 0.5d0/(rmin*dxinv(1) + i)
+             dive(i,k) = dxinv(1) * (ru*Ex(i,k) - rd*Ex(i-1,k)) &
+                       + dxinv(3) * (Ez(i,k) - Ez(i,k-1))
+          end if
+       end do
+    end do
+  end subroutine warpx_compute_dive_rz
+
+
   subroutine warpx_sync_current_2d (lo, hi, crse, clo, chi, fine, flo, fhi, dir) &
        bind(c, name='warpx_sync_current_2d')
     integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2), dir

@@ -25,7 +25,7 @@ grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              upper_boundary_conditions = ['periodic', 'periodic', 'open'],
                              moving_window_velocity = moving_window_velocity,
                              #refined_regions = [[1, [-25e-6, -25e-6, -200.e-6], [25e-6, 25e-6, 200.e-6]]],  # as argument
-                             warpx_max_grid_size=128, warpx_coord_sys=0, warpx_blocking_factor=16)
+                             warpx_max_grid_size=128, warpx_blocking_factor=16)
 
 # --- As a seperate function call (instead of refined_regions argument)
 grid.add_refined_region(level = 1,

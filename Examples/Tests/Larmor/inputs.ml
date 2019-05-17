@@ -79,10 +79,4 @@ interpolation.noz = 3
 # Moving window
 warpx.do_moving_window = 0
 
-# Particle Injection
-warpx.do_plasma_injection = 0
-
-# Laser
-warpx.use_laser    = 0
-
 warpx.do_dive_cleaning = 1

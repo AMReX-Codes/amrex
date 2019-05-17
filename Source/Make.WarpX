@@ -12,6 +12,12 @@ ifeq ($(USE_GPU),TRUE)
   NVCC_HOST_COMP = gcc
 endif
 
+ifeq ($(USE_RZ),TRUE)
+  # DIM is set here so that it is properly set for
+  # all of the included files.
+  DIM = 2
+endif
+
 ifeq ($(USE_ASCENT_INSITU),TRUE)
   ASCENT_HOME ?= NOT_SET
   ifneq ($(ASCENT_HOME),NOT_SET)
@@ -112,8 +118,9 @@ ifeq ($(USE_PSATD),TRUE)
   endif
 endif
 
-ifeq ($(STORE_OLD_PARTICLE_ATTRIBS),TRUE)
-     DEFINES += -DWARPX_STORE_OLD_PARTICLE_ATTRIBS
+ifeq ($(USE_RZ),TRUE)
+  USERSuffix += .RZ
+  DEFINES += -DWARPX_RZ
 endif
 
 ifeq ($(DO_ELECTROSTATIC),TRUE)

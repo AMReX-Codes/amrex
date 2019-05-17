@@ -13,21 +13,21 @@ class LaserParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
+    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies, const std::string& name);
     virtual ~LaserParticleContainer () {}
 
     virtual void InitData () final;
 
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
 #endif // WARPX_DO_ELECTROSTATIC
     
     virtual void Evolve (int lev,
-			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+                         const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+                         amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab*, amrex::MultiFab*, amrex::MultiFab*,
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
@@ -43,6 +43,10 @@ public:
                         const amrex::MultiFab& ) final;
 
     virtual void PostRestart () final;
+
+protected:
+    
+    std::string laser_name;
 
 private:
 
@@ -80,11 +84,19 @@ private:
     std::string field_function;
 
     // laser particle domain
-    amrex::RealBox prob_domain;
-
+    amrex::RealBox laser_injection_box;
+    // Theoretical position of the antenna. Used if do_continuous_injection=1.
+    // Track the position of the antenna until it enters the simulation domain.
+    amrex::Vector<amrex::Real> updated_position;
+    
     void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
     void InitData (int lev);
+    // Inject the laser antenna during the simulation, if it started 
+    // outside of the simulation domain and enters it.
+    void ContinuousInjection(const amrex::RealBox& injection_box) override;
+    // Update position of the antenna
+    void UpdateContinuousInjectionPosition(amrex::Real dt) override;
 };
 
 #endif

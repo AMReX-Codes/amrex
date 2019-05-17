@@ -10,4 +10,7 @@ This page contains information on the algorithms that are used in WarpX.
 
    intro
    picsar_theory
-   warpx_theory
+   amr
+   PML
+   boosted_frame
+   input_output

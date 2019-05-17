@@ -130,7 +130,6 @@ public:
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile( const std::string& dir,
-                        const amrex::Vector<int>& real_flags, 
                         const amrex::Vector<std::string>& real_names) const;
     
     void Restart (const std::string& dir);
@@ -156,6 +155,10 @@ public:
 
     int nSpecies() const {return nspecies;}
 
+    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
+    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
+    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
+
     int nSpeciesDepositOnMainGrid () const {
         int r = 0;
         for (int i : deposit_on_main_grid) {
@@ -169,7 +172,15 @@ public:
                          const amrex::Real z_old, const amrex::Real z_new,
                          const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
                          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
-    
+
+    // Inject particles during the simulation (for particles entering the 
+    // simulation domain after some iterations, due to flowing plasma and/or
+    // moving window).
+    void ContinuousInjection(const amrex::RealBox& injection_box) const;
+    // Update injection position for continuously-injected species.
+    void UpdateContinuousInjectionPosition(amrex::Real dt) const;
+    int doContinuousInjection() const;
+
     // 
     // Parameters for the Cherenkov corrector in the FDTD solver.
     // Both stencils are calculated ar runtime.
@@ -192,6 +203,8 @@ protected:
 
     std::vector<std::string> species_names;
 
+    std::vector<std::string> lasers_names;
+
     std::vector<int> deposit_on_main_grid;
 
     std::vector<PCTypes> species_types;
@@ -205,7 +218,15 @@ private:
 
     void ReadParameters ();
 
+    // Number of species dumped in BoostedFrameDiagnostics
+    int nspecies_boosted_frame_diags = 0;
+    // map_species_boosted_frame_diags[i] is the species ID in 
+    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
+    std::vector<int> map_species_boosted_frame_diags;
+    int do_boosted_frame_diags = 0;
+
     // runtime parameters
-    int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
+    int nlasers = 0;
+    int nspecies = 1;   // physical particles only. nspecies+nlasers == allcontainers.size().
 };
 #endif /*WARPX_ParticleContainer_H_*/

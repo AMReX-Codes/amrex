@@ -6,4 +6,4 @@ from .Algo import algo
 from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
 from .Particles import particles, electrons, positrons, protons, newspecies
-from .Laser import laser
+from .Lasers import lasers

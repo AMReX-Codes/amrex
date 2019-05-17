@@ -23,7 +23,7 @@ grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              lower_boundary_conditions = ['periodic', 'periodic', 'open'],
                              upper_boundary_conditions = ['periodic', 'periodic', 'open'],
                              moving_window_velocity = moving_window_velocity,
-                             warpx_max_grid_size=32, warpx_coord_sys=0)
+                             warpx_max_grid_size=32)
 
 solver = picmi.ElectromagneticSolver(grid=grid, cfl=1)
 
