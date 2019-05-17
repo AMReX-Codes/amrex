@@ -35,7 +35,7 @@ struct ParticleTile
         : m_defined(false)
         {}
 
-    void define(int a_num_runtime_real, int a_num_runtime_int)
+    void define (int a_num_runtime_real, int a_num_runtime_int)
     {
         m_defined = true;
         GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int);
