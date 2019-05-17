@@ -8,6 +8,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_CudaContainers.H>
 
 #include "MultiParticleContainer.H"
 #include "WarpXConst.H"
@@ -138,7 +139,7 @@ private:
     // maps field index in data_buffer_[i] -> cell_centered_data for 
     // snapshots i. By default, all fields in cell_centered_data are dumped.
     // Needs to be amrex::Vector because used in a ParallelFor kernel.
-    amrex::Vector<int> map_actual_fields_to_dump = {0,1,2,3,4,5,6,7,8,9};
+	amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump;
     // Name of fields to dump. By default, all fields in cell_centered_data.
     // Needed for file headers only.
     std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez", 
