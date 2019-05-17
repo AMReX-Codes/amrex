@@ -558,7 +558,7 @@ private:
 
     //Slice Parameters
     int slice_max_grid_size;
-    int slice_plot_int;
+    int slice_plot_int = -1;
     amrex::RealBox slice_realbox;
     amrex::IntVect slice_cr_ratio;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > F_slice;
