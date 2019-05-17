@@ -20,7 +20,6 @@ void MFIterLoopFunc(const Box &bx, double* val, Array4<Real> &a)
 
 int main (int argc, char* argv[])
 {
-    std::cout << "**********************************\n";
     amrex::Initialize(argc, argv);
 
     {
@@ -120,10 +119,10 @@ int main (int argc, char* argv[])
 //      Create one graph per MFIter iteration and execute them.
 
         {
-            BL_PROFILE("cudaGraph-iter");
+            BL_PROFILE("IterPerGraph");
             *val = 2.0;
 
-            BL_PROFILE_VAR("cudaGraph-iter-create", cgc);
+            BL_PROFILE_VAR("CREATE: IterPerGraph", cgc);
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec[x.local_size()];
 
@@ -140,7 +139,7 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-iter-instantiate", cgi);
+            BL_PROFILE_VAR("INSTANTIATE: IterPerGraph", cgi);
 
             for (int i = 0; i<x.local_size(); ++i)
             {
@@ -148,7 +147,7 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-iter-launch", cgl);
+            BL_PROFILE_VAR("LAUNCH: IterPerGraph", cgl);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -165,10 +164,10 @@ int main (int argc, char* argv[])
 //      Create one graph per CUDA stream and execute them.
 
         {
-            BL_PROFILE("cudaGraph-stream");
+            BL_PROFILE("StreamPerGraph");
             *val = 3.0;
 
-            BL_PROFILE_VAR("cudaGraph-stream-create", cgc);
+            BL_PROFILE_VAR("CREATE: StreamPerGraph", cgc);
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec[amrex::Gpu::Device::numCudaStreams()];
@@ -203,7 +202,7 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-stream-instantiate", cgi);
+            BL_PROFILE_VAR("INSTANTIATE: StreamPerGraph", cgi);
 
             for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
             {
@@ -211,7 +210,7 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-stream-launch", cgl);
+            BL_PROFILE_VAR("LAUNCH: StreamPerGraph", cgl);
 
             for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
             {
@@ -231,10 +230,10 @@ int main (int argc, char* argv[])
 //        an empty node at the start linked to each individually captured stream graph.
 
         {
-            BL_PROFILE("cudaGraph-linked-iter");
+            BL_PROFILE("IterGraph");
             *val = 4.0;
 
-            BL_PROFILE_VAR("cudaGraph-linked-iter-create", cgc);
+            BL_PROFILE_VAR("CREATE: IterGraph", cgc);
 
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec;
@@ -264,12 +263,12 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-linked-iter-instantiate", cgi);
+            BL_PROFILE_VAR("INSTANTIATE: IterGraph", cgi);
 
             AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-linked-iter-launch", cgl);
+            BL_PROFILE_VAR("LAUNCH: IterGraph", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
@@ -286,10 +285,10 @@ int main (int argc, char* argv[])
 //        an empty node at the start linked to each individually captured stream graph.
 
         {
-            BL_PROFILE("cudaGraph-linked-stream");
+            BL_PROFILE("StreamGraph");
             *val = 5.0;
 
-            BL_PROFILE_VAR("cudaGraph-linked-stream-create", cgc);
+            BL_PROFILE_VAR("CREATE: StreamGraph", cgc);
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec;
@@ -334,12 +333,12 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-linked-stream-instantiate", cgi);
+            BL_PROFILE_VAR("INSTANTIATE: StreamGraph", cgi);
 
             AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-linked-stream-launch", cgl);
+            BL_PROFILE_VAR("LAUNCH: StreamGraph", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
@@ -350,7 +349,7 @@ int main (int argc, char* argv[])
 
             amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
 
-            BL_PROFILE_VAR("cudaGraph-linked-stream-relaunch", cgrl);
+            BL_PROFILE_VAR("RE-LAUNCH: StreamGraph", cgrl);
 
             *val = 10.0;
 
