@@ -94,15 +94,16 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
                  y.resize(aos.size());,
                  z.resize(aos.size()););
     
+	amrex::Print() << "calling this I guess \n";
+
 #ifdef AMREX_USE_CUDA
-    thrust::transform(
-        thrust::device,
-        thrust::device_ptr<const ParticleType>(static_cast<const ParticleType*>(aos().data())),
-        thrust::device_ptr<const ParticleType>(static_cast<const ParticleType*>(aos().data()) + aos.size()), 
-        thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(thrust::device_ptr<Real>(x.data()), 
-                                                                  thrust::device_ptr<Real>(y.data()), 
-                                                                  thrust::device_ptr<Real>(z.data())))),
-        functors::getPosition() );
+    thrust::transform(thrust::device,
+					  aos().begin(), aos.end(),
+					  thrust::make_zip_iterator(
+					  thrust::make_tuple(AMREX_D_DECL(x.dataPtr(), 
+													  y.dataPtr(), 
+													  z.dataPtr()))),
+					  functors::getPosition() );
 #else
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();
@@ -119,18 +120,18 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
 {
     auto& aos = this->GetArrayOfStructs();
     BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
-    auto N = aos.size();
-
 #ifdef AMREX_USE_CUDA
     thrust::transform(
         thrust::device,
-        thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(thrust::device_ptr<const Real>(x.data()), 
-                                                                  thrust::device_ptr<const Real>(y.data()), 
-                                                                  thrust::device_ptr<const Real>(z.data())))),
-        thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(thrust::device_ptr<const Real>(x.data() + N), 
-                                                                  thrust::device_ptr<const Real>(y.data() + N), 
-                                                                  thrust::device_ptr<const Real>(z.data() + N)))),
-        thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
+        thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(x.begin(), 
+																  y.begin(), 
+																  z.begin()),
+													 aos().begin())),
+        thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(x.end(), 
+																  y.end(), 
+																  z.end()),
+																  aos().end())),
+		aos().begin(),
         functors::setPosition<ParticleType>() );
 #else
     const auto  p     = aos.data();
