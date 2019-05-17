@@ -452,6 +452,9 @@ namespace
     {
         const int ncomp_to_dump = map_actual_fields_to_dump.size();
         // Copy data from MultiFab tmp to MultiFab data_buffer[i].
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             Array4<      Real> tmp_arr = tmp[mfi].array();
             Array4<      Real> buf_arr = buf[mfi].array();
@@ -472,6 +475,51 @@ namespace
             );
         }
     }
+
+void
+LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
+{
+    // Loop over tiles/boxes and in-place convert each slice from boosted
+    // frame to lab frame.
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(data, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        const Box& tile_box = mfi.tilebox();
+        Array4< Real > arr = data[mfi].array();
+        // arr(x,y,z,comp) where 0->9 comps are 
+        // Ex Ey Ez Bx By Bz jx jy jz rho
+        Real clight = PhysConst::c;
+        ParallelFor(tile_box,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                // Transform the transverse E and B fields. Note that ez and bz are not 
+                // changed by the tranform.
+                Real e_lab, b_lab, j_lab, r_lab;
+                int i0 = 0;
+                int i4 = 4;
+                e_lab = gamma_boost * (arr(i, j, k, 0) + beta_boost*clight*arr(i, j, k, 4));
+                b_lab = gamma_boost * (arr(i, j, k, 4) + beta_boost*arr(i, j, k, 0)/clight);
+
+                arr(i, j, k, 0) = e_lab;
+                arr(i, j, k, 4) = b_lab;
+
+                e_lab = gamma_boost * (arr(i, j, k, 1) - beta_boost*clight*arr(i, j, k, 3));
+                b_lab = gamma_boost * (arr(i, j, k, 3) - beta_boost*arr(i, j, k, 1)/clight);
+
+                arr(i, j, k, 1) = e_lab;
+                arr(i, j, k, 3) = b_lab;
+
+                // Transform the charge and current density. Only the z component of j is affected.
+                j_lab = gamma_boost*(arr(i, j, k, 8) + beta_boost*clight*arr(i, j, k, 9));
+                r_lab = gamma_boost*(arr(i, j, k, 9) + beta_boost*arr(i, j, k, 8)/clight);
+
+                arr(i, j, k, 8) = j_lab;
+                arr(i, j, k, 9) = r_lab;
+            }
+        );
+    }
+}
 }
 
 BoostedFrameDiagnostic::
@@ -694,13 +742,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                                                     start_comp, ncomp, interpolate);
             
             // transform it to the lab frame
-            for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
-                const Box& tile_box = mfi.tilebox();
-                WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]),
-                                         BL_TO_FORTRAN_BOX(tile_box),
-                                         &gamma_boost_, &beta_boost_);
-            }
-            
+            LorentzTransformZ(*slice, gamma_boost_, beta_boost_, ncomp);
             // Create a 2D box for the slice in the boosted frame
             Real dx = geom.CellSize(boost_direction_);
             int i_boost = (snapshots_[i].current_z_boost - geom.ProbLo(boost_direction_))/dx;
