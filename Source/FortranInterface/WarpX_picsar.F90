@@ -161,15 +161,16 @@ contains
         stop
       endif
 
-      erg_c(:,:,:) = cmplx(exg(:,:,1::2), exg(:,:,2::2))
-      etg_c(:,:,:) = cmplx(eyg(:,:,1::2), eyg(:,:,2::2))
-      ezg_c(:,:,:) = cmplx(ezg(:,:,1::2), ezg(:,:,2::2))
-      brg_c(:,:,:) = cmplx(bxg(:,:,1::2), bxg(:,:,2::2))
-      btg_c(:,:,:) = cmplx(byg(:,:,1::2), byg(:,:,2::2))
-      bzg_c(:,:,:) = cmplx(bzg(:,:,1::2), bzg(:,:,2::2))
+      erg_c(:,:,:) = cmplx(exg(:,:,1::2), exg(:,:,2::2), amrex_real)
+      etg_c(:,:,:) = cmplx(eyg(:,:,1::2), eyg(:,:,2::2), amrex_real)
+      ezg_c(:,:,:) = cmplx(ezg(:,:,1::2), ezg(:,:,2::2), amrex_real)
+      brg_c(:,:,:) = cmplx(bxg(:,:,1::2), bxg(:,:,2::2), amrex_real)
+      btg_c(:,:,:) = cmplx(byg(:,:,1::2), byg(:,:,2::2), amrex_real)
+      bzg_c(:,:,:) = cmplx(bzg(:,:,1::2), bzg(:,:,2::2), amrex_real)
 
       call geteb2dcirc_energy_conserving_generic(np, xp, yp, zp, ex, ey, ez, bx, by, bz, &
                                                  xmin, zmin, dx, dz, nmodes, nox, noz, &
+                                                 pxr_l_lower_order_in_v, pxr_l_nodal, &
                                                  erg_c, exg_nguards, exg_nvalid, &
                                                  etg_c, eyg_nguards, eyg_nvalid, &
                                                  ezg_c, ezg_nguards, ezg_nvalid, &
@@ -520,9 +521,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         stop
       endif
 
-      jr_c = cmplx(jr(:,:,1::2), jr(:,:,2::2))
-      jt_c = cmplx(jt(:,:,1::2), jt(:,:,2::2))
-      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2))
+      jr_c = cmplx(jr(:,:,1::2), jr(:,:,2::2), amrex_real)
+      jt_c = cmplx(jt(:,:,1::2), jt(:,:,2::2), amrex_real)
+      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2), amrex_real)
 
       CALL apply_2dcirc_volume_scaling_j( &
               jr_c, jr_nguards, jr_nvalid, &
@@ -532,12 +533,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
               rmin,dr, &
               type_rz_depose)
 
-      jr(:,:,1::2) = jr(:,:,1::2) + real(jr_c)
-      jr(:,:,2::2) = jr(:,:,2::2) + aimag(jr_c)
-      jt(:,:,1::2) = jt(:,:,1::2) + real(jt_c)
-      jt(:,:,2::2) = jt(:,:,2::2) + aimag(jt_c)
-      jz(:,:,1::2) = jz(:,:,1::2) + real(jz_c)
-      jz(:,:,2::2) = jz(:,:,2::2) + aimag(jz_c)
+      jr(:,:,1::2) = real(jr_c)
+      jr(:,:,2::2) = aimag(jr_c)
+      jt(:,:,1::2) = real(jt_c)
+      jt(:,:,2::2) = aimag(jt_c)
+      jz(:,:,1::2) = real(jz_c)
+      jz(:,:,2::2) = aimag(jz_c)
 
       deallocate(jr_c)
       deallocate(jt_c)
@@ -774,15 +775,15 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         stop
       endif
 
-      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2))
-      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2))
-      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2))
-      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2))
-      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2))
-      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2))
-      jr_c = cmplx(jx(:,:,1::2), jx(:,:,2::2))
-      jt_c = cmplx(jy(:,:,1::2), jy(:,:,2::2))
-      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2))
+      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2), amrex_real)
+      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2), amrex_real)
+      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2), amrex_real)
+      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2), amrex_real)
+      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2), amrex_real)
+      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2), amrex_real)
+      jr_c = cmplx(jx(:,:,1::2), jx(:,:,2::2), amrex_real)
+      jt_c = cmplx(jy(:,:,1::2), jy(:,:,2::2), amrex_real)
+      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2), amrex_real)
 
       CALL pxrpush_emrz_evec_multimode(&
           xlo, xhi, ylo, yhi, zlo, zhi, &
@@ -920,12 +921,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         stop
       endif
 
-      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2))
-      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2))
-      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2))
-      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2))
-      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2))
-      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2))
+      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2), amrex_real)
+      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2), amrex_real)
+      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2), amrex_real)
+      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2), amrex_real)
+      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2), amrex_real)
+      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2), amrex_real)
 
       CALL pxrpush_emrz_bvec_multimode(&
           xlo, xhi, ylo, yhi, zlo, zhi, &

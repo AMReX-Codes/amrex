@@ -200,8 +200,14 @@ PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
     pmf[1] = data[1].get();
     pmf[2] = data[2].get();
 #elif (AMREX_SPACEDIM == 2)
-    pmf[0] = data[0].get();
-    pmf[1] = data[2].get();
+    if (data[0]->nComp() > 1) {
+        // Only grabs the first component
+        pmf[0] = new MultiFab(*data[0], amrex::make_alias, 0, 1);
+        pmf[1] = new MultiFab(*data[2], amrex::make_alias, 0, 1);
+    } else {
+        pmf[0] = data[0].get();
+        pmf[1] = data[2].get();
+    }
 #endif
 }
 
@@ -543,8 +549,8 @@ WriteRawField( const MultiFab& F, const DistributionMapping& dm,
         VisMF::Write(F, prefix);
     } else {
         // Copy original MultiFab into one that does not have guard cells
-        MultiFab tmpF( F.boxArray(), dm, 1, 0);
-        MultiFab::Copy(tmpF, F, 0, 0, 1, 0);
+        MultiFab tmpF( F.boxArray(), dm, F.nComp(), 0);
+        MultiFab::Copy(tmpF, F, 0, 0, F.nComp(), 0);
         VisMF::Write(tmpF, prefix);
     }
 
@@ -566,7 +572,7 @@ WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
     std::string prefix = amrex::MultiFabFileFullPrefix(lev,
                             filename, level_prefix, field_name);
 
-    MultiFab tmpF(F.boxArray(), dm, 1, ng);
+    MultiFab tmpF(F.boxArray(), dm, F.nComp(), ng);
     tmpF.setVal(0.);
     VisMF::Write(tmpF, prefix);
 }

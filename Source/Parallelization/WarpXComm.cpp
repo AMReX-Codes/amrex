@@ -59,24 +59,24 @@ WarpX::UpdateAuxilaryData ()
 
         // B field
         {
-            MultiFab dBx(Bfield_cp[lev][0]->boxArray(), dm, 1, ng);
-            MultiFab dBy(Bfield_cp[lev][1]->boxArray(), dm, 1, ng);
-            MultiFab dBz(Bfield_cp[lev][2]->boxArray(), dm, 1, ng);
+            MultiFab dBx(Bfield_cp[lev][0]->boxArray(), dm, Bfield_cp[lev][0]->nComp(), ng);
+            MultiFab dBy(Bfield_cp[lev][1]->boxArray(), dm, Bfield_cp[lev][1]->nComp(), ng);
+            MultiFab dBz(Bfield_cp[lev][2]->boxArray(), dm, Bfield_cp[lev][2]->nComp(), ng);
             dBx.setVal(0.0);
             dBy.setVal(0.0);
             dBz.setVal(0.0);
-            dBx.ParallelCopy(*Bfield_aux[lev-1][0], 0, 0, 1, ng, ng, crse_period);
-            dBy.ParallelCopy(*Bfield_aux[lev-1][1], 0, 0, 1, ng, ng, crse_period);
-            dBz.ParallelCopy(*Bfield_aux[lev-1][2], 0, 0, 1, ng, ng, crse_period);
+            dBx.ParallelCopy(*Bfield_aux[lev-1][0], 0, 0, Bfield_aux[lev-1][0]->nComp(), ng, ng, crse_period);
+            dBy.ParallelCopy(*Bfield_aux[lev-1][1], 0, 0, Bfield_aux[lev-1][1]->nComp(), ng, ng, crse_period);
+            dBz.ParallelCopy(*Bfield_aux[lev-1][2], 0, 0, Bfield_aux[lev-1][2]->nComp(), ng, ng, crse_period);
             if (Bfield_cax[lev][0])
             {
-                MultiFab::Copy(*Bfield_cax[lev][0], dBx, 0, 0, 1, ng);
-                MultiFab::Copy(*Bfield_cax[lev][1], dBy, 0, 0, 1, ng);
-                MultiFab::Copy(*Bfield_cax[lev][2], dBz, 0, 0, 1, ng);
+                MultiFab::Copy(*Bfield_cax[lev][0], dBx, 0, 0, Bfield_cax[lev][0]->nComp(), ng);
+                MultiFab::Copy(*Bfield_cax[lev][1], dBy, 0, 0, Bfield_cax[lev][1]->nComp(), ng);
+                MultiFab::Copy(*Bfield_cax[lev][2], dBz, 0, 0, Bfield_cax[lev][2]->nComp(), ng);
             }
-            MultiFab::Subtract(dBx, *Bfield_cp[lev][0], 0, 0, 1, ng);
-            MultiFab::Subtract(dBy, *Bfield_cp[lev][1], 0, 0, 1, ng);
-            MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, 1, ng);
+            MultiFab::Subtract(dBx, *Bfield_cp[lev][0], 0, 0, Bfield_cp[lev][0]->nComp(), ng);
+            MultiFab::Subtract(dBy, *Bfield_cp[lev][1], 0, 0, Bfield_cp[lev][1]->nComp(), ng);
+            MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, Bfield_cp[lev][2]->nComp(), ng);
 
             const Real* dx = Geom(lev-1).CellSize();
             const int ref_ratio = refRatio(lev-1)[0];
@@ -134,24 +134,24 @@ WarpX::UpdateAuxilaryData ()
 
         // E field
         {
-            MultiFab dEx(Efield_cp[lev][0]->boxArray(), dm, 1, ng);
-            MultiFab dEy(Efield_cp[lev][1]->boxArray(), dm, 1, ng);
-            MultiFab dEz(Efield_cp[lev][2]->boxArray(), dm, 1, ng);
+            MultiFab dEx(Efield_cp[lev][0]->boxArray(), dm, Efield_cp[lev][0]->nComp(), ng);
+            MultiFab dEy(Efield_cp[lev][1]->boxArray(), dm, Efield_cp[lev][1]->nComp(), ng);
+            MultiFab dEz(Efield_cp[lev][2]->boxArray(), dm, Efield_cp[lev][2]->nComp(), ng);
             dEx.setVal(0.0);
             dEy.setVal(0.0);
             dEz.setVal(0.0);
-            dEx.ParallelCopy(*Efield_aux[lev-1][0], 0, 0, 1, ng, ng, crse_period);
-            dEy.ParallelCopy(*Efield_aux[lev-1][1], 0, 0, 1, ng, ng, crse_period);
-            dEz.ParallelCopy(*Efield_aux[lev-1][2], 0, 0, 1, ng, ng, crse_period);
+            dEx.ParallelCopy(*Efield_aux[lev-1][0], 0, 0, Efield_aux[lev-1][0]->nComp(), ng, ng, crse_period);
+            dEy.ParallelCopy(*Efield_aux[lev-1][1], 0, 0, Efield_aux[lev-1][1]->nComp(), ng, ng, crse_period);
+            dEz.ParallelCopy(*Efield_aux[lev-1][2], 0, 0, Efield_aux[lev-1][2]->nComp(), ng, ng, crse_period);
             if (Efield_cax[lev][0])
             {
-                MultiFab::Copy(*Efield_cax[lev][0], dEx, 0, 0, 1, ng);
-                MultiFab::Copy(*Efield_cax[lev][1], dEy, 0, 0, 1, ng);
-                MultiFab::Copy(*Efield_cax[lev][2], dEz, 0, 0, 1, ng);
+                MultiFab::Copy(*Efield_cax[lev][0], dEx, 0, 0, Efield_cax[lev][0]->nComp(), ng);
+                MultiFab::Copy(*Efield_cax[lev][1], dEy, 0, 0, Efield_cax[lev][1]->nComp(), ng);
+                MultiFab::Copy(*Efield_cax[lev][2], dEz, 0, 0, Efield_cax[lev][2]->nComp(), ng);
             }
-            MultiFab::Subtract(dEx, *Efield_cp[lev][0], 0, 0, 1, ng);
-            MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, 1, ng);
-            MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
+            MultiFab::Subtract(dEx, *Efield_cp[lev][0], 0, 0, Efield_cp[lev][0]->nComp(), ng);
+            MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, Efield_cp[lev][1]->nComp(), ng);
+            MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, Efield_cp[lev][2]->nComp(), ng);
 
             const int ref_ratio = refRatio(lev-1)[0];
 #ifdef _OPEMP
@@ -199,8 +199,8 @@ WarpX::UpdateAuxilaryData ()
                         FArrayBox& aux = (*Efield_aux[lev][idim])[mfi];
                         FArrayBox& fp  =  (*Efield_fp[lev][idim])[mfi];
                         const Box& bx = aux.box();
-                        aux.copy(fp, bx, 0, bx, 0, 1);
-                        aux.plus(efab[idim], bx, bx, 0, 0, 1);
+                        aux.copy(fp, bx, 0, bx, 0, Efield_fp[lev][idim]->nComp());
+                        aux.plus(efab[idim], bx, bx, 0, 0, Efield_fp[lev][idim]->nComp());
                     }
                 }
             }
@@ -388,7 +388,7 @@ WarpX::SyncCurrent ()
                 // (potentially large) stencil of the multi-pass bilinear filter.
                 j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
                                                    current_fp[lev][idim]->DistributionMap(),
-                                                   1, ng));
+                                                   current_fp[lev][idim]->nComp(), ng));
                 // Apply the filter to current_fp, store the result in j_fp.
                 bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
                 // Then swap j_fp and current_fp
@@ -405,7 +405,7 @@ WarpX::SyncCurrent ()
             for (int idim = 0; idim < 3; ++idim) {
                 j_cp[lev][idim].reset(new MultiFab(current_cp[lev][idim]->boxArray(),
                                                    current_cp[lev][idim]->DistributionMap(),
-                                                   1, ng));
+                                                   current_cp[lev][idim]->nComp(), ng));
                 bilinear_filter.ApplyStencil(*j_cp[lev][idim], *current_cp[lev][idim]);
                 std::swap(j_cp[lev][idim], current_cp[lev][idim]);
             }
@@ -417,7 +417,7 @@ WarpX::SyncCurrent ()
                 for (int idim = 0; idim < 3; ++idim) {
                     j_buf[lev][idim].reset(new MultiFab(current_buf[lev][idim]->boxArray(),
                                                         current_buf[lev][idim]->DistributionMap(),
-                                                        1, ng));
+                                                        current_buf[lev][idim]->nComp(), ng));
                     bilinear_filter.ApplyStencil(*j_buf[lev][idim], *current_buf[lev][idim]);
                     std::swap(*j_buf[lev][idim], *current_buf[lev][idim]);
                 }
@@ -448,16 +448,16 @@ WarpX::SyncCurrent ()
         const MultiFab* ccz = current_cp[lev+1][2].get();
         if (current_buf[lev+1][0])
         {
-            MultiFab::Add(*current_buf[lev+1][0], *current_cp[lev+1][0], 0, 0, 1, ngsrc);
-            MultiFab::Add(*current_buf[lev+1][1], *current_cp[lev+1][1], 0, 0, 1, ngsrc);
-            MultiFab::Add(*current_buf[lev+1][2], *current_cp[lev+1][2], 0, 0, 1, ngsrc);
+            MultiFab::Add(*current_buf[lev+1][0], *current_cp[lev+1][0], 0, 0, current_cp[lev+1][0]->nComp(), ngsrc);
+            MultiFab::Add(*current_buf[lev+1][1], *current_cp[lev+1][1], 0, 0, current_cp[lev+1][1]->nComp(), ngsrc);
+            MultiFab::Add(*current_buf[lev+1][2], *current_cp[lev+1][2], 0, 0, current_cp[lev+1][2]->nComp(), ngsrc);
             ccx = current_buf[lev+1][0].get();
             ccy = current_buf[lev+1][1].get();
             ccz = current_buf[lev+1][2].get();
         }
-        current_fp[lev][0]->copy(*ccx,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-        current_fp[lev][1]->copy(*ccy,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-        current_fp[lev][2]->copy(*ccz,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][0]->copy(*ccx,0,0,current_fp[lev][0]->nComp(),ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][1]->copy(*ccy,0,0,current_fp[lev][1]->nComp(),ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][2]->copy(*ccz,0,0,current_fp[lev][2]->nComp(),ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
@@ -478,7 +478,7 @@ WarpX::SyncCurrent ()
                 // current_fp has right number of ghost cells.
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
                 // Then copy the interior of j_fp to current_fp.
-                MultiFab::Copy(*current_fp[lev][idim], *j_fp[lev][idim], 0, 0, 1, 0);
+                MultiFab::Copy(*current_fp[lev][idim], *j_fp[lev][idim], 0, 0, j_fp[lev][idim]->nComp(), 0);
                 // current_fp has right number of ghost cells and
                 // correct filtered values here.
             }
@@ -487,7 +487,7 @@ WarpX::SyncCurrent ()
         {
             for (int idim = 0; idim < 3; ++idim) {
                 std::swap(j_cp[lev][idim], current_cp[lev][idim]);
-                MultiFab::Copy(*current_cp[lev][idim], *j_cp[lev][idim], 0, 0, 1, 0);
+                MultiFab::Copy(*current_cp[lev][idim], *j_cp[lev][idim], 0, 0, j_cp[lev][idim]->nComp(), 0);
             }
         }
         for (int lev = 1; lev <= finest_level; ++lev)
@@ -495,7 +495,7 @@ WarpX::SyncCurrent ()
             for (int idim = 0; idim < 3; ++idim) {
                 if (j_buf[lev][idim]) {
                     std::swap(j_buf[lev][idim], current_buf[lev][idim]);
-                    MultiFab::Copy(*current_buf[lev][idim], *j_buf[lev][idim], 0, 0, 1, 0);
+                    MultiFab::Copy(*current_buf[lev][idim], *j_buf[lev][idim], 0, 0, j_buf[lev][idim]->nComp(), 0);
                 }
             }
         }
@@ -543,7 +543,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                 ffab.resize(fbx);
                 fbx &= (*fine[idim])[mfi].box();
                 ffab.setVal(0.0);
-                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, 1);
+                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, fine[idim]->nComp());
                 WRPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
                                    BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
                                    BL_TO_FORTRAN_ANYD(ffab),
@@ -731,7 +731,7 @@ WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
         if (use_filter) {
             IntVect ng = j[idim]->nGrowVect();
             ng += bilinear_filter.stencil_length_each_dir-1;
-            MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), 1, ng);
+            MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), j[idim]->nComp(), ng);
             bilinear_filter.ApplyStencil(jf, *j[idim]);
             WarpXSumGuardCells(*(j[idim]), jf, period);
         } else {
@@ -764,7 +764,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
     const auto& period = Geom(lev).periodicity();
     for (int idim = 0; idim < 3; ++idim) {
         MultiFab mf(current_fp[lev][idim]->boxArray(),
-                    current_fp[lev][idim]->DistributionMap(), 1, 0);
+                    current_fp[lev][idim]->DistributionMap(), current_fp[lev][idim]->nComp(), 0);
         mf.setVal(0.0);
         if (use_filter && current_buf[lev+1][idim])
         {
@@ -772,16 +772,16 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             IntVect ng = current_cp[lev+1][idim]->nGrowVect();
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jfc(current_cp[lev+1][idim]->boxArray(),
-                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+                         current_cp[lev+1][idim]->DistributionMap(), current_cp[lev+1][idim]->nComp(), ng);
             bilinear_filter.ApplyStencil(jfc, *current_cp[lev+1][idim]);
 
             // buffer patch of fine level
             MultiFab jfb(current_buf[lev+1][idim]->boxArray(),
-                         current_buf[lev+1][idim]->DistributionMap(), 1, ng);
+                         current_buf[lev+1][idim]->DistributionMap(), current_buf[lev+1][idim]->nComp(), ng);
             bilinear_filter.ApplyStencil(jfb, *current_buf[lev+1][idim]);
 
-            MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
-            mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+            MultiFab::Add(jfb, jfc, 0, 0, jfc.nComp(), ng);
+            mf.ParallelAdd(jfb, 0, 0, jfb.nComp(), ng, IntVect::TheZeroVector(), period);
 
             WarpXSumGuardCells(*current_cp[lev+1][idim], jfc, period);
         }
@@ -791,29 +791,29 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             IntVect ng = current_cp[lev+1][idim]->nGrowVect();
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jf(current_cp[lev+1][idim]->boxArray(),
-                        current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+                        current_cp[lev+1][idim]->DistributionMap(), current_cp[lev+1][idim]->nComp(), ng);
             bilinear_filter.ApplyStencil(jf, *current_cp[lev+1][idim]);
-            mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+            mf.ParallelAdd(jf, 0, 0, jf.nComp(), ng, IntVect::TheZeroVector(), period);
             WarpXSumGuardCells(*current_cp[lev+1][idim], jf, period);
         }
         else if (current_buf[lev+1][idim]) // but no filter
         {
             MultiFab::Copy(*current_buf[lev+1][idim],
-                           *current_cp [lev+1][idim], 0, 0, 1,
+                           *current_cp [lev+1][idim], 0, 0, current_cp [lev+1][idim]->nComp(),
                            current_cp[lev+1][idim]->nGrow());
-            mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, 1,
+            mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, current_buf[lev+1][idim]->nComp(),
                            current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
             WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
         }
         else // no filter, no buffer
         {
-            mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
+            mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, current_cp[lev+1][idim]->nComp(),
                            current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
             WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
         }
-        MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
+        MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, current_fp[lev][idim]->nComp(), 0);
     }
     NodalSyncJ(lev, PatchType::fine);
     NodalSyncJ(lev+1, PatchType::coarse);

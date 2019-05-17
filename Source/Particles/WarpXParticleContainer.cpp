@@ -320,9 +320,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       tby.grow(ngJ);
       tbz.grow(ngJ);
 
-      local_jx[thread_num].resize(tbx);
-      local_jy[thread_num].resize(tby);
-      local_jz[thread_num].resize(tbz);
+      local_jx[thread_num].resize(tbx, jx.nComp());
+      local_jy[thread_num].resize(tby, jy.nComp());
+      local_jz[thread_num].resize(tbz, jz.nComp());
 
       jx_ptr = local_jx[thread_num].dataPtr();
       jy_ptr = local_jy[thread_num].dataPtr();
@@ -431,9 +431,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      jx[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-      jy[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-      jz[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+      jx[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, local_jx[thread_num].nComp());
+      jy[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, local_jy[thread_num].nComp());
+      jz[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, local_jz[thread_num].nComp());
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -463,9 +463,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       tby.grow(ngJ);
       tbz.grow(ngJ);
 
-      local_jx[thread_num].resize(tbx);
-      local_jy[thread_num].resize(tby);
-      local_jz[thread_num].resize(tbz);
+      local_jx[thread_num].resize(tbx, jx.nComp());
+      local_jy[thread_num].resize(tby, jy.nComp());
+      local_jz[thread_num].resize(tbz, jz.nComp());
 
       jx_ptr = local_jx[thread_num].dataPtr();
       jy_ptr = local_jy[thread_num].dataPtr();
@@ -576,9 +576,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      (*cjx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-      (*cjy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-      (*cjz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+      (*cjx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, local_jx[thread_num].nComp());
+      (*cjy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, local_jy[thread_num].nComp());
+      (*cjz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, local_jz[thread_num].nComp());
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -612,11 +612,11 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
 #ifdef AMREX_USE_GPU
-      data_ptr = (*rhomf)[pti].dataPtr(icomp);
+      data_ptr = (*rhomf)[pti].dataPtr(icomp*(rhomf->nComp()/2));
       auto rholen = (*rhomf)[pti].length();
 #else
       tile_box.grow(ngRho);
-      local_rho[thread_num].resize(tile_box);
+      local_rho[thread_num].resize(tile_box, rhomf->nComp());
 
       data_ptr = local_rho[thread_num].dataPtr();
       auto rholen = local_rho[thread_num].length();
@@ -655,7 +655,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 #ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      (*rhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+      (*rhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp*(rhomf->nComp()/2), (rhomf->nComp()/2));
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -674,7 +674,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 #else
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
       tile_box.grow(ngRho);
-      local_rho[thread_num].resize(tile_box);
+      local_rho[thread_num].resize(tile_box, crhomf->nComp());
 
       data_ptr = local_rho[thread_num].dataPtr();
       auto rholen = local_rho[thread_num].length();
@@ -715,7 +715,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 #ifndef AMREX_USE_GPU
       BL_PROFILE_VAR_START(blp_accumulate);
 
-      (*crhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
+      (*crhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp*(crhomf->nComp()/2), (crhomf->nComp()/2));
 
       BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -771,7 +771,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
         BoxArray coarsened_fine_BA = fine_BA;
         coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
 
-        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
         coarsened_fine_data.setVal(0.0);
 
         IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
@@ -802,7 +802,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,WarpX::ncomps,ng));
     rho->setVal(0.0);
 
 #ifdef _OPENMP
@@ -832,7 +832,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
             const std::array<Real, 3>& xyzmin = xyzmin_tile;
             tile_box.grow(ng);
-            local_rho.resize(tile_box);
+            local_rho.resize(tile_box, rho->nComp());
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
             auto rholen = local_rho.length();

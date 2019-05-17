@@ -477,8 +477,23 @@ WarpX::ComputeDt ()
     if (maxwell_fdtd_solver_id == 0) {
         // CFL time step Yee solver
 #ifdef WARPX_RZ
-        // Derived semi-analytically by R. Lehe
-        deltat  = cfl * 1./( std::sqrt((1+0.2105)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
+        // In the rz case, the Courant limit has been evaluated
+        // semi-analytically by R. Lehe, and resulted in the following
+        // coefficients. For an explanation, see (not officially published)
+        // www.normalesup.org/~lehe/Disp_relation_Circ.pdf
+        // NB : Here the coefficient for m=1 as compared to this document,
+        // as it was observed in practice that this coefficient was not
+        // high enough (The simulation became unstable).
+        Real multimode_coeffs[6] = { 0.2105, 1.0, 3.5234, 8.5104, 15.5059, 24.5037 };
+        Real multimode_alpha;
+        if (nmodes < 7) {
+            // Use the table of the coefficients
+            multimode_alpha = multimode_coeffs[nmodes-1];
+        } else {
+            // Use a realistic extrapolation
+            multimode_alpha = (nmodes - 1)*(nmodes - 1) - 0.4;
+        }
+        deltat  = cfl * 1./( std::sqrt((1+multimode_alpha)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
 #else
         deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
                                                       + 1./(dx[1]*dx[1]),
