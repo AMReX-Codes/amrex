@@ -74,6 +74,7 @@ Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
     auto const& tmp = tmp_fab.array();
 
     // Copy values in srcfab into tmpfab
+    const Box& ibx = gbx & srcmf[mfi].box();
     AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
         {
             if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
@@ -189,7 +190,7 @@ Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
     tmpfab.resize(gbx,ncomp);
     tmpfab.setVal(0.0, gbx, 0, ncomp);
     // Copy values in srcfab into tmpfab
-    const Box& ibx = gbx;
+    const Box& ibx = gbx & srcfab.box();
     tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
     // Apply filter
     DoFilter(tbx, tmpfab.array(), dstfab.array(), 0, dcomp, ncomp);

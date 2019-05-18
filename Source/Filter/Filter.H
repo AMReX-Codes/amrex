@@ -9,9 +9,6 @@ class Filter
 public:
     Filter () = default;
 
-    // This function has to be overriden by derived classes.
-    virtual void ComputeStencils() = 0;
-
     // Apply stencil on MultiFab.
     // Guard cells are handled inside this function
     void ApplyStencil(amrex::MultiFab& dstmf, 

@@ -8,8 +8,8 @@ class BilinearFilter : public Filter
 public:
 
     BilinearFilter() = default;
-
-    virtual void ComputeStencils() override final;
+    
+    void ComputeStencils();
 
     amrex::IntVect npass_each_dir;
 

@@ -33,20 +33,6 @@ void NCIGodfreyFilter::ComputeStencils(){
         "ERROR: NCI filter requires 5 points in z");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(l_lower_order_in_v==1, 
         "ERROR: NCI corrector requires l_lower_order_in_v=1, i.e., Galerkin scheme");
-
-    // Godfrey filter uses a table to compute the filter coefficients.
-    // Get the appropriate table (one for Ex, Ey and Bz, the other 
-    // one for Bx, By, Ez).
-    Real table_nci[tab_length][tab_width];
-    if        (coeff_set == godfrey_coeff_set::Ex_Ey_Bz) {
-        std::copy(&table_nci_godfrey_Ex_Ey_Bz[0][0], 
-                  &table_nci_godfrey_Ex_Ey_Bz[0][0]+tab_width*tab_length, 
-                  &table_nci[0][0]);
-    } else if (coeff_set == godfrey_coeff_set::Bx_By_Ez) {
-        std::copy(&table_nci_godfrey_Bx_By_Ez[0][0], 
-                  &table_nci_godfrey_Bx_By_Ez[0][0]+tab_width*tab_length, 
-                  &table_nci[0][0]);
-    }
     
     // Interpolate coefficients from the table, and store into prestencil.
     int index = tab_length*cdtodz;
@@ -55,7 +41,13 @@ void NCIGodfreyFilter::ComputeStencils(){
     Real weight_right = cdtodz - index/tab_length;
     Real prestencil[4];
     for(int i=0; i<tab_width; i++){
-        prestencil[i] = (1-weight_right)*table_nci[index][i] + weight_right*table_nci[index+1][i];
+        if        (coeff_set == godfrey_coeff_set::Ex_Ey_Bz) {
+            prestencil[i] = (1-weight_right)*table_nci_godfrey_Ex_Ey_Bz[index  ][i] + 
+                                weight_right*table_nci_godfrey_Ex_Ey_Bz[index+1][i];
+        } else if (coeff_set == godfrey_coeff_set::Bx_By_Ez) {
+            prestencil[i] = (1-weight_right)*table_nci_godfrey_Bx_By_Ez[index  ][i] + 
+                                weight_right*table_nci_godfrey_Bx_By_Ez[index+1][i];
+        }
     }
 
     // Compute stencil_z
