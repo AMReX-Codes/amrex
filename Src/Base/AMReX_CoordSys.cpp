@@ -40,7 +40,7 @@ CoordSys::CoordInt () noexcept
 }
 
 void
-CoordSys::SetOffset (const Real* x_lo)
+CoordSys::SetOffset (const Real* x_lo) noexcept
 {
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {

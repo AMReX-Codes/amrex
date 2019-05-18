@@ -2,6 +2,7 @@
 #ifndef AMREX_COORDSYS_H_
 #define AMREX_COORDSYS_H_
 
+#include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -44,7 +45,7 @@ public:
     void define (const Real* cell_dx);
 
     //! Set the CoordType.
-    static void SetCoord (CoordType coord) { c_sys = coord; }
+    static void SetCoord (CoordType coord) noexcept { c_sys = coord; }
 
     //! Returns the CoordType.
     static CoordType Coord () noexcept { return c_sys; }
@@ -62,7 +63,7 @@ public:
     static bool IsCartesian () noexcept { BL_ASSERT(c_sys != undef); return (c_sys == cartesian); }
 
     //! Sets the offset for each coordinate direction.
-    static void SetOffset (const Real* x_lo);
+    static void SetOffset (const Real* x_lo) noexcept;
 
     //! Returns the offset.
     static const Real* Offset () noexcept { return offset; }
@@ -238,14 +239,12 @@ public:
     void GetCellVolCoord (Vector<Real>& loc, const Box& region, int dir) const;
 
 protected:
-    //! Static data.
     static CoordType c_sys;
     static Real      offset[AMREX_SPACEDIM];
 
-    //! Non-static data.
     Real dx[AMREX_SPACEDIM];
     Real inv_dx[AMREX_SPACEDIM];
-    bool ok;
+    bool ok = false;
 };
 
 inline
@@ -272,6 +271,84 @@ CoordSys::IsRZ () noexcept
 #if (AMREX_SPACEDIM == 3)
     return false;
 #endif
+}
+
+
+class CoordSysDefault
+{
+public:
+    void SetCoordSys (CoordSys::CoordType coord) noexcept {
+        c_sys = coord;
+    }
+
+    void SetOffset (const Real* x_lo) noexcept {
+        for (int k = 0; k < AMREX_SPACEDIM; k++) {
+            offset[k] = x_lo[k];
+        }
+    }
+
+    CoordSys::CoordType Coord () const noexcept { return c_sys; }
+
+    int CoordInt () const noexcept { return c_sys; }
+
+    bool IsSPHERICAL () const noexcept { return c_sys == CoordSys::SPHERICAL; }
+
+    bool IsRZ () const noexcept { return c_sys == CoordSys::RZ; }
+
+    bool IsCartesian () const noexcept { return c_sys == CoordSys::cartesian; }
+
+    const Real* Offset () const noexcept { return offset; }
+
+    Real Offset (int dir) const noexcept { return offset[dir]; }
+
+private:
+    CoordSys::CoordType c_sys = CoordSys::undef;
+    Real                offset[AMREX_SPACEDIM];
+};
+
+inline void CoordSys_SetCoordSys (CoordSys::CoordType coord) noexcept
+{
+    AMReX::top().getDefaultCoordSys()->SetCoordSys(coord);
+}
+
+inline void CoordSys_SetOffset (const Real* x_lo) noexcept
+{
+    AMReX::top().getDefaultCoordSys()->SetOffset(x_lo);
+}
+
+inline CoordSys::CoordType CoordSys_Coord () noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->Coord();
+}
+
+inline int CoordSys_CoordInt () noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->CoordInt();
+}
+
+inline bool CoordSys_IsSPHERICAL () noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->IsSPHERICAL();
+}
+
+inline bool CoordSys_IsRZ () noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->IsRZ();
+}
+
+inline bool CoordSys_IsCartesian () noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->IsCartesian();
+}
+
+inline const Real* CoordSys_Offset () noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->Offset();
+}
+
+inline Real CoordSys_Offset (int dir) noexcept
+{
+    return AMReX::top().getDefaultCoordSys()->Offset(dir);
 }
 
 }
