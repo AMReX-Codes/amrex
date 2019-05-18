@@ -50,7 +50,7 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
 
-#include <AMReX_CoordSys.H>
+#include <AMReX_Geometry.H>
 
 namespace amrex {
 
@@ -673,13 +673,13 @@ namespace amrex
 {
 
 AMReX::AMReX ()
-    : m_coordsys(new CoordSysDefault())
+    : m_geom(new Geometry())
 {
 }
 
 AMReX::~AMReX ()
 {
-    delete m_coordsys;
+    delete m_geom;
 }
 
 void

@@ -14,31 +14,6 @@ namespace {
 
 namespace amrex {
 
-//
-// The definition of static data members.
-//
-CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
-
-Real CoordSys::offset[AMREX_SPACEDIM];
-
-int
-CoordSys::CoordInt () noexcept
-{
-    switch (c_sys)
-    {
-        case undef:
-            return -1;
-        case cartesian:
-            return 0;
-        case RZ:
-            return 1;
-        case SPHERICAL:
-            return 2;
-        default:
-            return -1;
-    }
-}
-
 void
 CoordSys::SetOffset (const Real* x_lo) noexcept
 {
