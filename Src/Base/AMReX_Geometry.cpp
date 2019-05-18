@@ -19,13 +19,6 @@ namespace {
     bool initialized = false;
 }
 
-//
-// The definition of some static data members.
-//
-int     Geometry::spherical_origin_fix = 0;
-RealBox Geometry::prob_domain;
-bool    Geometry::is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(0,0,0)};
-
 std::ostream&
 operator<< (std::ostream&   os,
             const Geometry& g)
@@ -98,16 +91,6 @@ Geometry::define (const Box&     dom,
 }
 
 void
-Geometry::Finalize ()
-{
-    initialized = false;
-    c_sys = undef;
-    spherical_origin_fix = 0;
-    prob_domain = RealBox();
-    AMREX_D_TERM(is_periodic[0]=0;, is_periodic[1]=0;, is_periodic[2]=0);
-}
-
-void
 Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 {
 #ifdef _OPENMP
@@ -161,7 +144,6 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
     }
 
     initialized = true;
-    amrex::ExecOnFinalize(Geometry::Finalize);
 }
 
 void

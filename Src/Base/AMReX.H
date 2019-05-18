@@ -159,7 +159,7 @@ namespace amrex
         std::allocator<std::string> a_s;
     }
 
-    class CoordSysDefault;
+    class Geometry;
 
     class AMReX
     {
@@ -178,13 +178,13 @@ namespace amrex
         // This erases `pamrex` from the stack.
         static void erase (AMReX* pamrex);
 
-        CoordSysDefault* getDefaultCoordSys () noexcept { return m_coordsys; }
+        Geometry* getDefaultGeometry () noexcept { return m_geom; }
 
     private:
 
         static std::vector<std::unique_ptr<AMReX> > m_instance;
 
-        CoordSysDefault* m_coordsys = nullptr;
+        Geometry* m_geom = nullptr;
     };
 }
 
