@@ -101,6 +101,8 @@ public:
                                   const amrex::Real t_lab, const amrex::Real dt,
                                   DiagnosticParticles& diagnostic_particles) final;
 
+    virtual void ConvertUnits (ConvertDirection convert_dir) override;
+
 protected:
 
     std::string species_name;

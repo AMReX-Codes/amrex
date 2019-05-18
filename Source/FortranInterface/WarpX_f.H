@@ -39,10 +39,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
-#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_COPY_SLICE                  warpx_copy_slice_3d
-
-
 #elif (AMREX_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
@@ -66,9 +62,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
-#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_COPY_SLICE                  warpx_copy_slice_2d
-
 #ifdef WARPX_RZ
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_rz
 #else
@@ -88,11 +81,6 @@ extern "C"
                             amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
                             amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
     
-    void WRPX_COPY_SLICE(const int* lo, const int* hi,
-                         const amrex_real* tmp, const int* tlo, const int* thi,
-                         amrex_real* buf, const int* blo, const int* bhi,
-                         const int* ncomp, const int* i_boost, const int* i_lab);
-
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -172,12 +160,6 @@ extern "C"
 			const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
 			const long* particle_pusher_algo);
 
-	// Particle pusher (position)
-
-	void warpx_particle_pusher_positions(const long* np,
-                                             amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
-                                             amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp, amrex::Real* gaminv,
-                                             const amrex::Real* dt);
 
     // Laser pusher
 
@@ -350,10 +332,6 @@ extern "C"
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
                                       const amrex::Real* prob_hi);
-
-    void WRPX_LORENTZ_TRANSFORM_Z(amrex::Real* data, const int* dlo, const int* dhi,
-                                  const int* tlo, const int* thi,
-                                  const amrex::Real* gamma_boost, const amrex::Real* beta_boost);
 
 //  These functions are used to evolve E and B in the PML
 

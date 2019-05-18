@@ -28,6 +28,15 @@ Overall simulation parameters
     The direction of the Lorentz-transform for boosted-frame simulations
     (The direction ``y`` cannot be used in 2D simulations.)
 
+* ``warpx.zmax_plasma_to_compute_max_step`` (`float`) optional
+    Can be useful when running in a boosted frame. If specified, automatically 
+    calculates the number of iterations required in the boosted frame for the 
+    lower `z` end of the simulation domain to reach 
+    ``warpx.zmax_plasma_to_compute_max_step`` (typically the plasma end, 
+    given in the lab frame). The value of ``max_step`` is overwritten, and 
+    printed to standard output. Currently only works if the Lorentz boost and 
+    the moving window are along the z direction.
+
 * ``warpx.verbose`` (`0` or `1`)
     Controls how much information is printed to the terminal, when running WarpX.
 
@@ -282,6 +291,25 @@ Particle initialization
     Splitting technique. When `0`, particles are split along the simulation
     axes (4 particles in 2D, 6 particles in 3D). When `1`, particles are split
     along the diagonals (4 particles in 2D, 8 particles in 3D).
+
+* ``<species>.plot_species`` (`0` or `1` optional; default `1`)
+    Whether to plot particle quantities for this species.
+
+* ``<species>.plot_vars`` (list of `strings` separated by spaces, optional) 
+    List of particle quantities to write to `plotfiles`. By defaults, all 
+    quantities are written to file. Choices are 
+    * ``w`` for the particle weight,
+    * ``ux`` ``uy`` ``uz`` for the particle momentum, 
+    * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
+    * ``Bx`` ``By`` ``Bz`` for the magnetic field on particles.
+    The particle positions are always included. Use 
+    ``<species>.plot_vars = none`` to plot no particle data, except 
+    particle position.
+
+* ``<species>.do_boosted_frame_diags`` (`0` or `1` optional, default `1`)
+    Only used when ``warpx.do_boosted_frame_diagnostic=1``. When running in a 
+    boosted frame, whether or not to plot back-transformed diagnostics for 
+    this species.
 
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
@@ -547,6 +575,20 @@ Numerics and algorithms
     same points in space) or a staggered grid (i.e. Yee grid ; different
     fields are defined at different points in space)
 
+* ``warpx.do_subcycling`` (`0` or `1`; default: 0)
+    Whether or not to use sub-cycling. Different refinement levels have a 
+    different cell size, which results in different Courant–Friedrichs–Lewy 
+    (CFL) limits for the time step. By default, when using mesh refinement, 
+    the same time step is used for all levels. This time step is 
+    taken as the CFL limit of the finest level. Hence, for coarser 
+    levels, the timestep is only a fraction of the CFL limit for this 
+    level, which may lead to numerical artifacts. With sub-cycling, each level 
+    evolves with its own time step, set to its own CFL limit. In practice, it 
+    means that when level 0 performs one iteration, level 1 performs two 
+    iterations. Currently, this option is only supported when 
+    ``amr.max_level = 1``. More information can be found at 
+    https://ieeexplore.ieee.org/document/8659392.
+
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
 
@@ -616,6 +658,15 @@ Diagnostics and output
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
+* ``warpx.do_boosted_frame_fields`` (`0 or 1`)
+    Whether to use the **back-transformed diagnostics** for the fields.
+
+* ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
+    Which fields to dumped in back-transformed diagnostics. Choices are 
+    'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example: 
+    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields 
+    are dumped.
+
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
     By default, the fields written in the plot files are averaged on the nodes.
     When ```warpx.plot_raw_fields`` is `1`, then the raw (i.e. unaveraged)
@@ -638,13 +689,17 @@ Diagnostics and output
     (This is done by averaging the field.) ``plot_coarsening_ratio`` should
     be an integer divisor of ``blocking_factor``.
 
-* ``warpx.particle_plot_vars`` (`strings`, separated by spaces ; default: all)
-    Control which particle variables get written to the plot file. Choices are:
-    `w`, `ux`, `uy`, `uz`, `Ex`, `Ey`, `Ez`, `Bx`, `By`, and `Bz`.
-    The particle positions and ids are always included.
-
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
+
+* ``warpx.plot_J_field`` (`0` or `1` optional; default `1`)
+    Whether to plot the current density.
+
+* ``warpx.plot_E_field`` (`0` or `1` optional; default `1`)
+    Whether to plot the electric field.
+
+* ``warpx.plot_B_field`` (`0` or `1` optional; default `1`)
+    Whether to plot the magnetic field.
 
 Checkpoints and restart
 -----------------------

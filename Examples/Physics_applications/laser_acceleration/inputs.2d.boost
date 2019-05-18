@@ -44,6 +44,7 @@ warpx.boost_direction = z
 warpx.do_boosted_frame_diagnostic = 1
 warpx.num_snapshots_lab = 7
 warpx.dt_snapshots_lab = 1.6678204759907604e-12
+warpx.boosted_frame_diag_fields = Ex Ez By jz
 
 #################################
 ############ PLASMA #############
