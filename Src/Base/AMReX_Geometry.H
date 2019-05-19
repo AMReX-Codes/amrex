@@ -184,6 +184,11 @@ public:
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
+    Array<int,AMREX_SPACEDIM> isPeriodic () const noexcept {
+        return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                             static_cast<int>(is_periodic[1]),
+                             static_cast<int>(is_periodic[2]))};
+    }
     GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
         return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                              static_cast<int>(is_periodic[1]),

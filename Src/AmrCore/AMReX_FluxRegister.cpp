@@ -610,7 +610,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
 
     Box cdomain = crse_geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) cdomain.grow(idim, 1);
+        if (crse_geom.isPeriodic(idim)) cdomain.grow(idim, 1);
     }
 
     // cell-centered mask: 0: coarse, 1: covered by fine, 2: phys bc
