@@ -218,7 +218,8 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                              Array4<Real const> const& fcz,
                              Array4<Real const> const& bc,
 //                             int is_dirichlet, int is_inhomog,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                             Real bscalar) noexcept
 {
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
@@ -232,15 +233,15 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
             for (int i = lo.x; i <= hi.x; ++i) {
                 if (flag(i,j,k).isRegular())
                 {
-                    Ax(i,j,k,0) += dxi*(fx(i+1,j  ,k  ,0) - fx(i,j,k,0))
-                        +          dyi*(fy(i  ,j+1,k  ,0) - fy(i,j,k,0))
-                        +          dzi*(fz(i  ,j  ,k+1,0) - fz(i,j,k,0));
-                    Ax(i,j,k,1) += dxi*(fx(i+1,j  ,k  ,1) - fx(i,j,k,1))
-                        +          dyi*(fy(i  ,j+1,k  ,1) - fy(i,j,k,1))
-                        +          dzi*(fz(i  ,j  ,k+1,1) - fz(i,j,k,1));
-                    Ax(i,j,k,2) += dxi*(fx(i+1,j  ,k  ,2) - fx(i,j,k,2))
-                        +          dyi*(fy(i  ,j+1,k  ,2) - fy(i,j,k,2))
-                        +          dzi*(fz(i  ,j  ,k+1,2) - fz(i,j,k,2));
+                    Ax(i,j,k,0) += bscalar*(dxi*(fx(i+1,j  ,k  ,0) - fx(i,j,k,0))
+                                          + dyi*(fy(i  ,j+1,k  ,0) - fy(i,j,k,0))
+                                          + dzi*(fz(i  ,j  ,k+1,0) - fz(i,j,k,0)));
+                    Ax(i,j,k,1) += bscalar*(dxi*(fx(i+1,j  ,k  ,1) - fx(i,j,k,1))
+                                          + dyi*(fy(i  ,j+1,k  ,1) - fy(i,j,k,1))
+                                          + dzi*(fz(i  ,j  ,k+1,1) - fz(i,j,k,1)));
+                    Ax(i,j,k,2) += bscalar*(dxi*(fx(i+1,j  ,k  ,2) - fx(i,j,k,2))
+                                          + dyi*(fy(i  ,j+1,k  ,2) - fy(i,j,k,2))
+                                          + dzi*(fz(i  ,j  ,k+1,2) - fz(i,j,k,2)));
                 }
                 else if (flag(i,j,k).isSingleValued())
                 {
@@ -483,7 +484,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                         feb_2 = dxi*(dapx*tauxz + dapy*tauyz + dapz*tauzz);
                     }
 
-                    Real volinv = 1.0 / kappa;
+                    Real volinv = bscalar / kappa;
                     Ax(i,j,k,0) += volinv * (dxi*(apx(i+1,j,k)*fxp_0-apx(i,j,k)*fxm_0)
                                             +dyi*(apy(i,j+1,k)*fyp_0-apy(i,j,k)*fym_0)
                                             +dzi*(apz(i,j,k+1)*fzp_0-apz(i,j,k)*fzm_0)

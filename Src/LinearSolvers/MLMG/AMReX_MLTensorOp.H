@@ -9,7 +9,7 @@ namespace amrex {
 // Tensor solver for high Reynolds flows with small gradient in viscosity.
 // The system it solves is
 //
-//   a v - div dot tau = rhs
+//   alpha a v - beta div dot tau = rhs
 //
 // where tau = eta [grad v + (grad v)^T] +  (kappa-(2/3)eta) (div v) I.
 // Here eta and kappa are shear and bulk viscosity, and I is identity tensor.
@@ -17,13 +17,16 @@ namespace amrex {
 // The user needs to provide `a` by `setACoeffs`, eta by `setShearViscosity`,
 // and kappa by `setBulkViscosity`.  If `setBulkViscosity` is not called,
 // kappa is set to zero.
+//
+// The scalars alpha and beta can be set with `setScalar(Real, Real)`.  If
+// they are not set, their default value is 1.
 
 class MLTensorOp
     : public MLABecLaplacian
 {
 public:
 
-    MLTensorOp () {}
+    MLTensorOp ();
     MLTensorOp (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
@@ -71,8 +74,6 @@ protected:
     bool m_has_kappa = false;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
 
-    // They are always 1 and 1.
-    void setScalars (Real a, Real b) noexcept = delete;
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
 
 public: // for cuda
