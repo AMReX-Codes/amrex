@@ -8,7 +8,7 @@ namespace amrex {
 // Tensor solver for high Reynolds flows with small gradient in viscosity.
 // The system it solves is
 //
-//   a v - div dot tau = rhs
+//   alpha a v - beta div dot tau = rhs
 //
 // where tau = eta [grad v + (grad v)^T] +  (kappa-(2/3)eta) (div v) I.
 // Here eta and kappa are shear and bulk viscosity, and I is identity tensor.
@@ -18,13 +18,16 @@ namespace amrex {
 // kappa is set to zero.  The user must also call `setEBShearViscosity` to set
 // viscosity on EB.  Optionally, `setEBBulkViscosity` can be used to set
 // bulk viscosity on EB.
+//
+// The scalars alpha and beta can be set with `setScalar(Real, Real)`.  If
+// they are not set, their default value is 1.
 
 class MLEBTensorOp
     : public MLEBABecLap
 {
 public:
 
-    MLEBTensorOp () {}
+    MLEBTensorOp ();
     MLEBTensorOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
@@ -78,8 +81,6 @@ protected:
     Vector<Vector<MultiFab> > m_eb_kappa;
     mutable Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_tauflux;
 
-    // They are always 1 and 1.
-    void setScalars (Real a, Real b) noexcept = delete;
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta) = delete;
     void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta) = delete;
     void setEBHomogDirichlet (int amrlev, const MultiFab& beta) = delete;
