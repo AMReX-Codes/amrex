@@ -7,7 +7,7 @@ namespace amrex
 {
     void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
     {
-        if (Geometry::isAllPeriodic()) return;
+        if (geom.isAllPeriodic()) return;
         if (phi.nGrow() == 0) return;
 
         AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
@@ -15,14 +15,14 @@ namespace amrex
         const Box& domain_box = geom.Domain();
         Box grown_domain_box = domain_box;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (Geometry::isPeriodic(idim)) {
+            if (geom.isPeriodic(idim)) {
                 grown_domain_box.grow(idim,phi.nGrow());
             }
         }
         // Inside grown_domain_box, we have good data.
     
         const Real* dx = geom.CellSize();
-        const Real* prob_lo = Geometry::ProbLo();
+        const Real* prob_lo = geom.ProbLo();
 
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {

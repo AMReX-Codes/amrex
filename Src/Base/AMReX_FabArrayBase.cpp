@@ -1288,7 +1288,7 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
 #if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             if (include_periodic) {
                 bx.grow(idim, ng[idim]);
             }

@@ -15,10 +15,6 @@
 
 namespace amrex {
 
-namespace {
-    bool initialized = false;
-}
-
 std::ostream&
 operator<< (std::ostream&   os,
             const Geometry& g)
@@ -37,17 +33,15 @@ operator>> (std::istream& is,
     is >> (CoordSys&) g >> rb >> bx;
 
     g.Domain(bx);
-    Geometry::ProbDomain(rb);
+    g.ProbDomain(rb);
 
     return is;
 }
 
 Geometry::Geometry () noexcept {}
 
-Geometry::Geometry (const Box&     dom,
-                    const RealBox* rb,
-                    int            coord,
-                    int const*     is_per) noexcept
+Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,
+                    int const* is_per) noexcept
 {
     define(dom,rb,coord,is_per);
 }
@@ -55,39 +49,40 @@ Geometry::Geometry (const Box&     dom,
 Geometry::Geometry (const Box& dom, const RealBox& rb, int coord,
                     Array<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-    define(dom, &rb, coord, is_per.data());
+    define(dom,rb,coord,is_per);
 }
 
 void
-Geometry::define (const Box&     dom,
-                  const RealBox* rb,
-                  int            coord,
-                  int const*     is_per)
+Geometry::define (const Box& dom, const RealBox& rb, int coord,
+                  Array<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-    if (c_sys == undef)
-        Setup(rb,coord,is_per);
-
-    domain = dom;
-    ok     = true;
+    c_sys       = static_cast<CoordType>(coord);
+    prob_domain = rb;
+    domain      = dom;
+    ok          = true;
 
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
+        offset[k] = prob_domain.lo(k);
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
 	inv_dx[k] = 1.0/dx[k];
+        is_periodic[k] = is_per[k];        
     }
-    if (Geometry::spherical_origin_fix == 1)
-    {
-	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && AMREX_SPACEDIM > 1)
-        {
-            prob_domain.setLo(0,2*dx[0]);
+}
 
-            for (int k = 0; k < AMREX_SPACEDIM; k++)
-            {
-                dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
-		inv_dx[k] = 1.0/dx[k];
-            }
-	}
-    } 
+void
+Geometry::define (const Box& dom, const RealBox* rb, int coord, int const* is_per) noexcept
+{
+    if (rb  == nullptr or coord == -1 or is_per) {
+        Setup(rb,coord,is_per);
+        Geometry* gg = AMReX::top()->getDefaultGeometry();
+        define(dom, gg->ProbDomain(), gg->CoordInt(),
+               Array<int,AMREX_SPACEDIM>{AMREX_D_DECL(gg->is_periodic[0],
+                                                      gg->is_periodic[1],
+                                                      gg->is_periodic[2])});
+    } else {
+        define(dom, *rb, coord, {AMREX_D_DECL(is_per[0],is_per[1],is_per[2])});
+    }
 }
 
 void
@@ -97,16 +92,18 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
     BL_ASSERT(!omp_in_parallel());
 #endif
 
-    if (initialized) return;
+    Geometry* gg = AMReX::top()->getDefaultGeometry();
+
+    if (gg->ok) return;
 
     ParmParse pp("geometry");
 
     if (coord >=0 && coord <= 2) {
-        SetCoord( (CoordType) coord );        
+        gg->SetCoord( (CoordType) coord );        
     } else {
         coord = 0;  // default is Cartesian coordinates
         pp.query("coord_sys",coord);
-        SetCoord( (CoordType) coord );        
+        gg->SetCoord( (CoordType) coord );        
     }
 
     if (rb == nullptr) {
@@ -116,16 +113,14 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
         BL_ASSERT(prob_lo.size() == AMREX_SPACEDIM);
         pp.getarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
         BL_ASSERT(prob_hi.size() == AMREX_SPACEDIM);
-        prob_domain.setLo(prob_lo);
-        prob_domain.setHi(prob_hi);
-        SetOffset(prob_lo.data());
+        gg->prob_domain.setLo(prob_lo);
+        gg->prob_domain.setHi(prob_hi);
+        gg->SetOffset(prob_lo.data());
     } else {
-        prob_domain.setLo(rb->lo());
-        prob_domain.setHi(rb->hi());
-        SetOffset(rb->lo());
+        gg->prob_domain.setLo(rb->lo());
+        gg->prob_domain.setHi(rb->hi());
+        gg->SetOffset(rb->lo());
     }
-
-    pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
 
     //
     // Now get periodicity info.
@@ -134,16 +129,18 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
     {
         Vector<int> is_per(AMREX_SPACEDIM,0);
         pp.queryarr("is_periodic",is_per,0,AMREX_SPACEDIM);
-        for (int n = 0; n < AMREX_SPACEDIM; n++)  
-            is_periodic[n] = is_per[n];
+        for (int n = 0; n < AMREX_SPACEDIM; n++) {
+            gg->is_periodic[n] = is_per[n];
+        }
     }
     else
     {
-        for (int n = 0; n < AMREX_SPACEDIM; n++)  
-            is_periodic[n] = isper[n];
+        for (int n = 0; n < AMREX_SPACEDIM; n++) {
+            gg->is_periodic[n] = isper[n];
+        }
     }
 
-    initialized = true;
+    gg->ok = true;
 }
 
 void
@@ -316,7 +313,7 @@ Geometry::growNonPeriodicDomain (int ngrow) const noexcept
 {
     Box b = Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (!Geometry::isPeriodic(idim)) {
+        if (!isPeriodic(idim)) {
             b.grow(idim,ngrow);
         }
     }
@@ -328,7 +325,7 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
 {
     Box b = Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (isPeriodic(idim)) {
             b.grow(idim,ngrow);
         }
     }

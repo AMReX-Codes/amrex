@@ -95,7 +95,8 @@ public:
     //! Read static values from ParmParse database.
     static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr);
     //! Set the rectangular domain after using default constructor.
-    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr);
+    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr) noexcept;
+    void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
     //! Returns the problem domain.
     const RealBox& ProbDomain () const noexcept { return prob_domain; }
     //! Sets the problem domain.
@@ -225,7 +226,7 @@ public:
     //! Note that, unlike Periodicity class, the flags are just boolean.
     //!
     Array<bool,AMREX_SPACEDIM>
-    setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) const noexcept {
+    setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) noexcept {
         Array<bool,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
                                                   is_periodic[1],
                                                   is_periodic[2])};
@@ -252,12 +253,12 @@ public:
     }
 
 private:
-    //! Helper functions.
     void read_params ();
-    //!
-    int     spherical_origin_fix = 0;
+
+    // is_periodic and RealBox used to be static
     bool    is_periodic[AMREX_SPACEDIM] = {AMREX_D_DECL(false,false,false)};
     RealBox prob_domain;
+    //
     Box     domain;
 };
 

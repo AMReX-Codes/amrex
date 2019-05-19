@@ -167,7 +167,7 @@ namespace amrex
         AMReX ();
         ~AMReX ();
 
-        static AMReX& top () noexcept { return *(m_instance.back()); }
+        static AMReX* top () noexcept { return m_instance.back().get(); }
 
         // Thisfunction will take the ownership of the AMReX pointer,
         // and put it on the top of the stack (i.e., back of the

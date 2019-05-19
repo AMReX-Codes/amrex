@@ -1,6 +1,5 @@
 
 #include <iostream>
-#include <limits>
 
 #include <AMReX_CoordSys.H>
 #include <AMReX_COORDSYS_C.H>
@@ -23,31 +22,26 @@ CoordSys::SetOffset (const Real* x_lo) noexcept
     }
 }
 
-CoordSys::CoordSys ()
+CoordSys::CoordSys () noexcept
 {
-    AMREX_D_TERM(dx[0]=0;,dx[1]=0;,dx[2]=0;)
-    AMREX_D_TERM(inv_dx[0]=std::numeric_limits<Real>::infinity();,
-           inv_dx[1]=std::numeric_limits<Real>::infinity();,
-           inv_dx[2]=std::numeric_limits<Real>::infinity();)
-    ok = false;
 }
 
-void
-CoordSys::define (const Real* cell_dx)
-{
-    AMREX_ASSERT(c_sys != undef);
-    ok = true;
-    for (int k = 0; k < AMREX_SPACEDIM; k++)
-    {
-        dx[k] = cell_dx[k];
-	inv_dx[k] = 1.0/dx[k];
-    }
-}
-
-CoordSys::CoordSys (const Real* cell_dx)
-{
-    define(cell_dx);
-}
+// void
+// CoordSys::define (const Real* cell_dx)
+// {
+//     AMREX_ASSERT(c_sys != undef);
+//     ok = true;
+//     for (int k = 0; k < AMREX_SPACEDIM; k++)
+//     {
+//         dx[k] = cell_dx[k];
+// 	inv_dx[k] = 1.0/dx[k];
+//     }
+// }
+// 
+// CoordSys::CoordSys (const Real* cell_dx)
+// {
+//     define(cell_dx);
+// }
 
 void
 CoordSys::CellCenter (const IntVect& point, Real* loc) const noexcept
@@ -453,7 +447,11 @@ operator>> (std::istream& is,
     is >> tmp;
     c.ok = tmp?true:false;
     is.ignore(BL_IGNORE_MAX, '\n');
-    c.define(cellsize);
+    for (int k = 0; k < AMREX_SPACEDIM; k++)
+    {
+        c.dx[k] = cellsize[k];
+ 	c.inv_dx[k] = 1.0/cellsize[k];
+    }
     return is;
 }
 

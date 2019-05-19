@@ -2,6 +2,7 @@
 #ifndef AMREX_COORDSYS_H_
 #define AMREX_COORDSYS_H_
 
+#include <limits>
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
@@ -30,10 +31,10 @@ public:
     friend std::istream& operator>> (std::istream&, CoordSys& );
 
     //! Default constructor to undefined state.
-    CoordSys ();
+    CoordSys () noexcept;
 
-    //! Construct, specify a cell size, and low end of index range.
-    explicit CoordSys (const Real* cell_dx);
+//    //! Construct, specify a cell size, and low end of index range.
+//    explicit CoordSys (const Real* cell_dx) noexcept;
 
     ~CoordSys () = default;
     CoordSys (const CoordSys& rhs) = default;
@@ -41,8 +42,8 @@ public:
     CoordSys& operator= (const CoordSys& rhs) = default;
     CoordSys& operator= (CoordSys&& rhs) = default;
 
-    //! Initialize after construction.
-    void define (const Real* cell_dx);
+//    //! Initialize after construction.
+//    void define (const Real* cell_dx);
 
     //! Set the CoordType.
     void SetCoord (CoordType coord) noexcept { c_sys = coord; }
@@ -60,7 +61,7 @@ public:
     bool IsRZ () const noexcept;
 
     //! Is CoordType == cartesion?
-    bool IsCarteasian () const noexcept {
+    bool IsCartesian () const noexcept {
         BL_ASSERT(c_sys != undef); return (c_sys == cartesian);
     }
 
@@ -241,17 +242,21 @@ public:
     void GetCellVolCoord (Vector<Real>& loc, const Box& region, int dir) const;
 
 protected:
+    // c_sys and offset used to be static
     CoordType c_sys = undef;
     Real      offset[AMREX_SPACEDIM];
 
-    Real dx[AMREX_SPACEDIM];
-    Real inv_dx[AMREX_SPACEDIM];
+    Real dx[AMREX_SPACEDIM] = {AMREX_D_DECL(0.,0.,0.)};
+    Real inv_dx[AMREX_SPACEDIM]
+        = {AMREX_D_DECL(std::numeric_limits<Real>::infinity(),
+                        std::numeric_limits<Real>::infinity(),
+                        std::numeric_limits<Real>::infinity())};
     bool ok = false;
 };
 
 inline
 bool
-CoordSys::IsSPHERICAL () noexcept
+CoordSys::IsSPHERICAL () const noexcept
 {
     BL_ASSERT(c_sys != undef);
 #if (AMREX_SPACEDIM <= 2)
@@ -264,7 +269,7 @@ CoordSys::IsSPHERICAL () noexcept
 
 inline
 bool
-CoordSys::IsRZ () noexcept
+CoordSys::IsRZ () const noexcept
 {
     BL_ASSERT(c_sys != undef);
 #if (AMREX_SPACEDIM <= 2)
