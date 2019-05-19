@@ -516,13 +516,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_TINY_PROFILE_INITIALIZE();
 
     AMReX::push(new AMReX());
-    return &(AMReX::top());
+    return AMReX::top();
 }
 
 void
 amrex::Finalize ()
 {
-    amrex::Finalize(&(AMReX::top()));
+    amrex::Finalize(AMReX::top());
 }
 
 void
