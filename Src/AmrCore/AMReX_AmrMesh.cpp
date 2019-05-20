@@ -42,7 +42,7 @@ AmrMesh::AmrMesh (const RealBox* rb, int max_level_in,
 {
     Initialize();
     Geometry::Setup(rb,coord,is_per);
-    InitAmrMesh(max_level_in,n_cell_in, std::move(a_refrat));
+    InitAmrMesh(max_level_in,n_cell_in, std::move(a_refrat), rb, coord, is_per);
 }
 
 AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
@@ -52,7 +52,7 @@ AmrMesh::AmrMesh (const RealBox& rb, int max_level_in,
 {
     Initialize();
     Geometry::Setup(&rb,coord,is_per.data());
-    InitAmrMesh(max_level_in,n_cell_in, a_refrat);
+    InitAmrMesh(max_level_in,n_cell_in, a_refrat, &rb, coord, is_per.data());
 }
 
 AmrMesh::~AmrMesh ()
@@ -61,7 +61,9 @@ AmrMesh::~AmrMesh ()
 }
 
 void
-AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, Vector<IntVect> a_refrat)
+AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
+                      Vector<IntVect> a_refrat, const RealBox* rb,
+                      int coord, const int* is_per)
 {
     verbose   = 0;
     grid_eff  = 0.7;
@@ -357,7 +359,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, Vector<Int
 	Box index_domain(lo,hi);
 	for (int i = 0; i <= max_level; i++)
 	{
-	    geom[i].define(index_domain);
+	    geom[i].define(index_domain, rb, coord, is_per);
 	    if (i < max_level) {
                 index_domain.refine(ref_ratio[i]);
             }
