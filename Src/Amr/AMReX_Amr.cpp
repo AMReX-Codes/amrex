@@ -1183,7 +1183,7 @@ Amr::checkInput ()
         }
     }
 
-    if( ! Geometry::ProbDomain().ok()) {
+    if( ! Geom(0).ProbDomain().ok()) {
         amrex::Error("Amr::checkInput: bad physical problem size");
     }
 
@@ -1266,16 +1266,16 @@ Amr::readProbinFile (int& a_init)
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   AMREX_ZFILL(Geometry::ProbLo()),
-			   AMREX_ZFILL(Geometry::ProbHi()));
+			   AMREX_ZFILL(Geom(0).ProbLo()),
+			   AMREX_ZFILL(Geom(0).ProbHi()));
 
 #else
 
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   Geometry::ProbLo(),
-			   Geometry::ProbHi());
+			   Geom(0).ProbLo(),
+			   Geom(0).ProbHi());
 #endif
 
             piEnd = amrex::second();
