@@ -215,10 +215,10 @@ AmrLevel::writePlotFile (const std::string& dir,
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
         for (i = 0; i < AMREX_SPACEDIM; i++)
-            os << Geometry::ProbLo(i) << ' ';
+            os << Geom().ProbLo(i) << ' ';
         os << '\n';
         for (i = 0; i < AMREX_SPACEDIM; i++)
-            os << Geometry::ProbHi(i) << ' ';
+            os << Geom().ProbHi(i) << ' ';
         os << '\n';
         for (i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
@@ -235,7 +235,7 @@ AmrLevel::writePlotFile (const std::string& dir,
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
-        os << (int) Geometry::Coord() << '\n';
+        os << (int) Geom().Coord() << '\n';
         os << "0\n"; // Write bndry data.
 
     }
@@ -1238,7 +1238,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         Box domain_box = amrex::convert(amrLevels[l]->Geom().Domain(), fab.box().ixType());
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (Geometry::isPeriodic(idim)) {
+            if (amrLevels[l]->Geom().isPeriodic(idim)) {
                 int n = domain_box.length(idim);
                 domain_box.grow(idim, n);
             }
