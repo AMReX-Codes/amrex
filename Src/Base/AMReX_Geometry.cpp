@@ -101,7 +101,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 }
 
 void
-Geometry::Setup (const RealBox* rb, int coord, int const* isper)
+Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
 {
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
@@ -156,6 +156,15 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
     }
 
     gg->ok = true;
+}
+
+void
+Geometry::ResetDefaultProbDomain (const RealBox& rb) noexcept
+{
+    Geometry* gg = AMReX::top()->getDefaultGeometry();
+    gg->prob_domain.setLo(rb.lo());
+    gg->prob_domain.setHi(rb.hi());
+    gg->SetOffset(rb.lo());
 }
 
 void

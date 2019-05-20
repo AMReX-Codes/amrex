@@ -100,6 +100,7 @@ public:
     void SetFinestLevel (int new_finest_level) noexcept { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept;
     void SetBoxArray (int lev, const BoxArray& ba_in) noexcept;
+    void SetGeometry (int lev, const Geometry& geom_in) noexcept;
 
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;
