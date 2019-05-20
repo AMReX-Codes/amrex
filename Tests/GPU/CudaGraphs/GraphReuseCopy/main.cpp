@@ -1,15 +1,6 @@
-#include <cuda_runtime.h>
-
-#include <iostream>
 #include <AMReX.H>
-#include <AMReX_Array.H>
-#include <AMReX_Print.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Gpu.H>
-#include <AMReX_CudaGraph.H>
 
 using namespace amrex;
 
@@ -107,21 +98,6 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
     {
-        amrex::Print() << "amrex::Initialize complete." << "\n";
-
-        // ===================================
-        // Simple cuda action to make sure all tests have cuda.
-        // Allows nvprof to return data.
-        int devices = 0;
-#ifdef AMREX_USE_CUDA
-        cudaGetDeviceCount(&devices);
-#endif
-        amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
-        amrex::Print() << "**********************************\n\n"; 
-        // ===================================
-
-        // What time is it now?  We'll use this to compute total run time.
-        Real strt_time = amrex::second();
 
         // AMREX_SPACEDIM: number of dimensions
         int n_cell, max_grid_size;
@@ -142,7 +118,6 @@ int main (int argc, char* argv[])
 
         // make BoxArray and Geometry
         BoxArray ba;
-        Geometry geom;
         {
             IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
             IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
@@ -152,13 +127,6 @@ int main (int argc, char* argv[])
             ba.define(domain);
             // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
             ba.maxSize(max_grid_size);
-
-            // This defines the physical box, [-1,1] in each direction.
-            RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                             {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-            // This defines a Geometry object
-            geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
         }
 
         // Nghost = number of ghost cells for each array 
