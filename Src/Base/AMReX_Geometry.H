@@ -95,6 +95,7 @@ public:
     static void Finalize ();
     //! Read static values from ParmParse database.
     static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr);
+    static void ResetDefaultProbDomain (const RealBox& rb) noexcept { ProbDomain(rb); }
     //! Set the rectangular domain after using default constructor.
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr);
     //! Returns the problem domain.
@@ -183,6 +184,11 @@ public:
     static bool isAllPeriodic () noexcept
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
+    }
+    static Array<int,AMREX_SPACEDIM> isPeriodic () noexcept {
+        return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                             static_cast<int>(is_periodic[1]),
+                             static_cast<int>(is_periodic[2]))};
     }
     static GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () noexcept {
         return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
