@@ -62,8 +62,8 @@ WarpX::MoveWindow (bool move_j)
     }
     new_lo[dir] = current_lo[dir] + num_shift_base * cdx[dir];
     new_hi[dir] = current_hi[dir] + num_shift_base * cdx[dir];
-    RealBox new_box(new_lo, new_hi);
-    Geometry::ProbDomain(new_box);
+
+    ResetProbDomain(RealBox(new_lo, new_hi));
 
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
@@ -252,5 +252,15 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
         {
             dstfab(i,j,k,n) = srcfab(i+shift.x,j+shift.y,k+shift.z,n);
         });
+    }
+}
+
+void
+WarpX::ResetProbDomain (const RealBox& rb)
+{
+    Geometry::ResetDefaultProbDomain(rb);
+    for (int lev = 0; lev <= max_level; ++lev) {
+        SetGeometry(lev, Geometry(Geom(lev).Domain(), rb, Geom(lev).CoordInt(),
+                                  Geom(lev).isPeriodic()));
     }
 }

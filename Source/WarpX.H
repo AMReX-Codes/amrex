@@ -159,6 +159,8 @@ public:
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
+    void ResetProbDomain (const amrex::RealBox& rb);
+
     void EvolveE (         amrex::Real dt);
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (         amrex::Real dt);
