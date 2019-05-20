@@ -301,8 +301,7 @@ refine (Geometry const& fine, int rr) { return refine(fine, IntVect(rr)); }
 inline
 const Geometry&
 DefaultGeometry () {
-    static Geometry dgeom(Box(IntVect(0),IntVect(1)));
-    return dgeom;
+    return *(AMReX::top()->getDefaultGeometry());
 }
 
 }
