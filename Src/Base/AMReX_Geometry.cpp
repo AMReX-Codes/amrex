@@ -73,7 +73,7 @@ Geometry::define (const Box& dom, const RealBox& rb, int coord,
 void
 Geometry::define (const Box& dom, const RealBox* rb, int coord, int const* is_per) noexcept
 {
-    if (rb  == nullptr or coord == -1 or is_per) {
+    if (rb  == nullptr or coord == -1 or is_per == nullptr) {
         Setup(rb,coord,is_per);
         Geometry* gg = AMReX::top()->getDefaultGeometry();
         define(dom, gg->ProbDomain(), gg->CoordInt(),
