@@ -21,6 +21,7 @@ MLEBTensorOp::MLEBTensorOp (const Vector<Geometry>& a_geom,
                             const LPInfo& a_info,
                             const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
+    MLEBABecLap::setScalars(1.0,1.0);
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
