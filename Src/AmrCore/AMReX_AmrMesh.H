@@ -212,7 +212,9 @@ protected:
 
 private:
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
-                      Vector<IntVect> refrat = Vector<IntVect>());
+                      Vector<IntVect> refrat = Vector<IntVect>(),
+                      const RealBox* rb = nullptr, int coord = -1,
+                      const int* is_per = nullptr);
 
     static void ProjPeriodic (BoxList& bd, const Box& domain,
                               Array<int,AMREX_SPACEDIM> const& is_per);

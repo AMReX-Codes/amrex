@@ -56,45 +56,60 @@ void
 Geometry::define (const Box& dom, const RealBox& rb, int coord,
                   Array<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-    c_sys       = static_cast<CoordType>(coord);
-    prob_domain = rb;
-    domain      = dom;
-    ok          = true;
+    define(dom, &rb, coord, is_per.data());
+}
+
+void
+Geometry::define (const Box& dom, const RealBox* rb, int coord,
+                  int const* is_per) noexcept
+{
+    Setup(rb,coord,is_per);
+
+    Geometry* gg = AMReX::top()->getDefaultGeometry();
+
+    if (coord == -1) {
+        c_sys = gg->Coord();
+    } else {
+        c_sys = static_cast<CoordType>(coord);
+    }
+
+    if (is_per == nullptr) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            is_periodic[idim] = gg->isPeriodic(idim);
+        }
+    } else {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            is_periodic[idim] = is_per[idim];
+        }
+    }
+
+    if (rb == nullptr) {
+        prob_domain = gg->ProbDomain();
+    } else {
+        prob_domain = *rb;
+    }
+
+    domain = dom;
+    ok     = true;
 
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         offset[k] = prob_domain.lo(k);
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
 	inv_dx[k] = 1.0/dx[k];
-        is_periodic[k] = is_per[k];        
-    }
-}
-
-void
-Geometry::define (const Box& dom, const RealBox* rb, int coord, int const* is_per) noexcept
-{
-    if (rb  == nullptr or coord == -1 or is_per == nullptr) {
-        Setup(rb,coord,is_per);
-        Geometry* gg = AMReX::top()->getDefaultGeometry();
-        define(dom, gg->ProbDomain(), gg->CoordInt(),
-               Array<int,AMREX_SPACEDIM>{AMREX_D_DECL(gg->is_periodic[0],
-                                                      gg->is_periodic[1],
-                                                      gg->is_periodic[2])});
-    } else {
-        define(dom, *rb, coord, {AMREX_D_DECL(is_per[0],is_per[1],is_per[2])});
     }
 }
 
 void
 Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 {
-#ifdef _OPENMP
-    BL_ASSERT(!omp_in_parallel());
-#endif
-
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
     if (gg->ok) return;
+
+#ifdef _OPENMP
+    BL_ASSERT(!omp_in_parallel());
+#endif
 
     ParmParse pp("geometry");
 
