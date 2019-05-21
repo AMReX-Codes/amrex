@@ -180,6 +180,21 @@ Geometry::ResetDefaultProbDomain (const RealBox& rb) noexcept
 }
 
 void
+Geometry::ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept
+{
+    Geometry* gg = AMReX::top()->getDefaultGeometry();
+    gg->setPeriodicity(is_per);
+}
+
+void
+Geometry::ResetDefaultCoord (int coord) noexcept
+{
+    AMREX_ASSERT(coord >= -1 && coord <= 2);
+    Geometry* gg = AMReX::top()->getDefaultGeometry();
+    gg->SetCoord(static_cast<CoordType>(coord));
+}
+
+void
 Geometry::GetVolume (MultiFab&       vol,
                      const BoxArray& grds,
 		     const DistributionMapping& dm,

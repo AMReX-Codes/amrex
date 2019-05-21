@@ -95,6 +95,9 @@ public:
     //! Read static values from ParmParse database.
     static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr) noexcept;
     static void ResetDefaultProbDomain (const RealBox& rb) noexcept;
+    static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
+    static void ResetDefaultCoord (int coord) noexcept;
+
     //! Set the rectangular domain after using default constructor.
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr) noexcept;
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
