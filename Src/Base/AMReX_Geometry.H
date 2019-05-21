@@ -231,11 +231,11 @@ public:
     //! Set periodicity flags and return the old flags.
     //! Note that, unlike Periodicity class, the flags are just boolean.
     //!
-    Array<bool,AMREX_SPACEDIM>
-    setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) noexcept {
-        Array<bool,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
-                                                  is_periodic[1],
-                                                  is_periodic[2])};
+    Array<int,AMREX_SPACEDIM>
+    setPeriodicity (Array<int,AMREX_SPACEDIM> const& period) noexcept {
+        Array<int,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
+                                                 is_periodic[1],
+                                                 is_periodic[2])};
         AMREX_D_TERM(is_periodic[0] = period[0];,
                      is_periodic[1] = period[1];,
                      is_periodic[2] = period[2];);
