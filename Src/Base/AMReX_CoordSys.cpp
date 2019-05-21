@@ -435,13 +435,13 @@ operator>> (std::istream& is,
     is.ignore(BL_IGNORE_MAX, '(') >> coord;
     c.c_sys = (CoordSys::CoordType) coord;
     AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0],
-           is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
-           is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
+                 is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
+                 is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     Real cellsize[3];
     AMREX_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> cellsize[0],
-           is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1],
-           is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2]);
+                 is.ignore(BL_IGNORE_MAX, ',') >> cellsize[1],
+                 is.ignore(BL_IGNORE_MAX, ',') >> cellsize[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     int tmp;
     is >> tmp;
@@ -473,8 +473,8 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
     {
     case cartesian:
         return AMREX_D_TERM((xhi[0]-xlo[0]),
-                      *(xhi[1]-xlo[1]),
-                      *(xhi[2]-xlo[2]));
+                            *(xhi[1]-xlo[1]),
+                            *(xhi[2]-xlo[2]));
 #if (AMREX_SPACEDIM==2)
     case RZ:
         return (0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
