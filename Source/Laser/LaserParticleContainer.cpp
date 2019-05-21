@@ -150,7 +150,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 	u_Y = {0., 1., 0.};
 #endif
 
-    laser_injection_box= Geometry::ProbDomain();
+    laser_injection_box= Geom(0).ProbDomain();
     {
         Vector<Real> lo, hi;
         if (pp.queryarr("prob_lo", lo)) {
