@@ -10,12 +10,12 @@ import argparse
 from setuptools import setup
 
 argparser = argparse.ArgumentParser(add_help=False)
-argparser.add_argument('--with-libwarpx', type=int, default=None, help='Install libwarpx with the given value as DIM. This option is only used by the makefile.')
+argparser.add_argument('--with-libwarpx', type=str, default=None, help='Install libwarpx with the given value as DIM. This option is only used by the makefile.')
 args, unknown = argparser.parse_known_args()
 sys.argv = [sys.argv[0]] + unknown
 
 if args.with_libwarpx:
-    package_data = {'pywarpx' : ['libwarpx%dd.so'%args.with_libwarpx]}
+    package_data = {'pywarpx' : ['libwarpx%s.so'%args.with_libwarpx]}
 else:
     package_data = {}
 

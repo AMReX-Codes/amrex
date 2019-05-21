@@ -2,11 +2,13 @@
 #define WARPX_BoostedFrameDiagnostic_H_
 
 #include <vector>
+#include <map>
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_CudaContainers.H>
 
 #include "MultiParticleContainer.H"
 #include "WarpXConst.H"
@@ -32,17 +34,25 @@ class BoostedFrameDiagnostic {
         
         std::string file_name;
         amrex::Real t_lab;
-        amrex::Real zmin_lab;
-        amrex::Real zmax_lab;
+        amrex::RealBox prob_domain_lab_;
+        amrex::IntVect prob_ncells_lab_;
+
         amrex::Real current_z_lab;
         amrex::Real current_z_boost;
+
+        std::vector<std::string> mesh_field_names_;
+        int ncomp_to_dump_;
+                
         int file_num;
         int initial_i;
         const BoostedFrameDiagnostic& my_bfd;
 
         LabSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
-                    amrex::Real zmin_lab_in, 
-                    amrex::Real zmax_lab_in, int file_num_in,
+                    const amrex::RealBox prob_domain_lab,
+                    const amrex::IntVect prob_ncells_lab,
+                    const int ncomp_to_dump,
+                    const std::vector<std::string> mesh_field_names,
+                    int file_num_in,
                     const BoostedFrameDiagnostic& bfd);
         
         ///
@@ -69,9 +79,6 @@ class BoostedFrameDiagnostic {
     amrex::Real dt_snapshots_lab_;
     amrex::Real dt_boost_;
     int N_snapshots_;
-    unsigned Nx_lab_;
-    unsigned Ny_lab_;
-    unsigned Nz_lab_;   
     int boost_direction_;
 
     // For back-transformed diagnostics of grid fields, data_buffer_[i]
@@ -114,6 +121,32 @@ public:
                            const amrex::Real t_boost, const amrex::Real dt);
     
     void writeMetaData();
+
+private:
+    // Map field names and component number in cell_centered_data
+    std::map<std::string, int> possible_fields_to_dump = {
+        {"Ex" , 0}, 
+        {"Ey" , 1}, 
+        {"Ez" , 2}, 
+        {"Bx" , 3}, 
+        {"By" , 4}, 
+        {"Bz" , 5}, 
+        {"jx" , 6}, 
+        {"jy" , 7}, 
+        {"jz" , 8}, 
+        {"rho", 9} };
+
+    // maps field index in data_buffer_[i] -> cell_centered_data for 
+    // snapshots i. By default, all fields in cell_centered_data are dumped.
+    // Needs to be amrex::Vector because used in a ParallelFor kernel.
+	amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump;
+    // Name of fields to dump. By default, all fields in cell_centered_data.
+    // Needed for file headers only.
+    std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez", 
+                                                 "Bx", "By", "Bz", 
+                                                 "jx", "jy", "jz", "rho"};
+    int ncomp_to_dump = 10;
+
 };
 
 #endif

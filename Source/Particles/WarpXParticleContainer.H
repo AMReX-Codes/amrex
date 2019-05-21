@@ -6,6 +6,8 @@
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
 
+enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
+
 struct PIdx
 {
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
@@ -226,6 +228,8 @@ public:
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
+
+    virtual void ConvertUnits (ConvertDirection convert_dir){};
 
     static void ReadParameters ();
 

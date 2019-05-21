@@ -427,9 +427,9 @@ WarpX::GetCellCenteredData() {
         // then the current density
         AverageAndPackVectorField( *cc[lev], current_fp[lev], dcomp, ng );
         dcomp += 3;
+        // then the charge density
         const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
         AverageAndPackScalarField( *cc[lev], *charge_density, dcomp, ng );
-
         cc[lev]->FillBoundary(geom[lev].periodicity());
     }
 

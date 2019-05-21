@@ -381,6 +381,7 @@ WarpX::ReadParameters ()
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
+        // Fields to dump into plotfiles
         pp.query("plot_E_field"      , plot_E_field);
         pp.query("plot_B_field"      , plot_B_field);
         pp.query("plot_J_field"      , plot_J_field);
@@ -393,6 +394,7 @@ WarpX::ReadParameters ()
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
@@ -969,7 +971,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     {
         const Box& bx = mfi.tilebox();
 #ifdef WARPX_RZ
-        const Real xmin = bx.smallEnd(0)*dx[0];
+        const Real xmin = GetInstance().Geom(0).ProbLo(0);
 #endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
@@ -996,7 +998,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     {
         Box bx = mfi.growntilebox(ngrow);
 #ifdef WARPX_RZ
-        const Real xmin = bx.smallEnd(0)*dx[0];
+        const Real xmin = GetInstance().Geom(0).ProbLo(0);
 #endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),

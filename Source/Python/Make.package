@@ -1,7 +1,7 @@
-ifeq ($(USE_PYTHON_MAIN),TRUE)
-  CEXE_sources += WarpXWrappers.cpp
-  CEXE_headers += WarpXWrappers.h
-endif
+#ifeq ($(USE_PYTHON_MAIN),TRUE)
+#  CEXE_sources += WarpXWrappers.cpp
+#  CEXE_headers += WarpXWrappers.h
+#endif
 CEXE_sources += WarpXWrappers.cpp
 CEXE_sources += WarpX_py.cpp
 CEXE_headers += WarpXWrappers.h

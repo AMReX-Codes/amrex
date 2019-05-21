@@ -658,6 +658,15 @@ Diagnostics and output
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
+* ``warpx.do_boosted_frame_fields`` (`0 or 1`)
+    Whether to use the **back-transformed diagnostics** for the fields.
+
+* ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
+    Which fields to dumped in back-transformed diagnostics. Choices are 
+    'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example: 
+    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields 
+    are dumped.
+
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
     By default, the fields written in the plot files are averaged on the nodes.
     When ```warpx.plot_raw_fields`` is `1`, then the raw (i.e. unaveraged)
