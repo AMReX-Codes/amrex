@@ -40,12 +40,17 @@ operator>> (std::istream& is,
         IntVect is_per;
         is >> is_per;
         g.setPeriodicity({AMREX_D_DECL(is_per[0],is_per[1],is_per[2])});
+    } else {
+        g.setPeriodicity(DefaultGeometry().isPeriodic());
     }
 
     return is;
 }
 
-Geometry::Geometry () noexcept {}
+Geometry::Geometry () noexcept
+{
+    if (!AMReX::empty()) *this = DefaultGeometry();
+}
 
 Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,
                     int const* is_per) noexcept

@@ -167,6 +167,10 @@ namespace amrex
         AMReX ();
         ~AMReX ();
 
+        static bool empty () noexcept { return m_instance.empty(); }
+
+        static int size () noexcept { return m_instance.size(); }
+
         static AMReX* top () noexcept { return m_instance.back().get(); }
 
         // Thisfunction will take the ownership of the AMReX pointer,
