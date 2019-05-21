@@ -7,6 +7,8 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
+#include <GetAndSetPosition.H>
+
 using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
