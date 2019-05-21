@@ -102,6 +102,12 @@ public:
         BL_ASSERT(a.size() == AMREX_SPACEDIM);
     }
 
+    /**
+    * \brief Construct an IntVect from an Array<int,AMREX_SPACEDIM>.
+    */
+    explicit IntVect (const Array<int,AMREX_SPACEDIM>& a) noexcept
+        : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
+
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
