@@ -19,7 +19,7 @@ std::ostream&
 operator<< (std::ostream&   os,
             const Geometry& g)
 {
-    os << (CoordSys&) g << g.ProbDomain() << g.Domain();
+    os << (CoordSys&) g << g.ProbDomain() << g.Domain() << 'P' << IntVect(g.isPeriodic());
     return os;
 }
 
@@ -29,11 +29,20 @@ operator>> (std::istream& is,
 {
     Box     bx;
     RealBox rb;
-
     is >> (CoordSys&) g >> rb >> bx;
-
     g.Domain(bx);
     g.ProbDomain(rb);
+
+    int ic = is.peek();
+    if (ic == static_cast<int>('P')) {
+        char c;
+        is >> c;
+        IntVect is_per;
+        is >> is_per;
+        g.setPeriodicity({AMREX_D_DECL(static_cast<bool>(is_per[0]),
+                                       static_cast<bool>(is_per[1]),
+                                       static_cast<bool>(is_per[2]))});
+    }
 
     return is;
 }
