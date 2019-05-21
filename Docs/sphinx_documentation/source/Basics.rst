@@ -711,7 +711,7 @@ and the indexing space domain. For example,
       Real yhi = geom.ProbHi(1);             // y-direction upper corner
       const Real* dx = geom.CellSize();      // Cell size for each direction
       const Box& domain = geom.Domain();     // Index domain
-      bool is_per = geom.::isPeriodic(0);    // Is periodic in x-direction?
+      bool is_per = geom.isPeriodic(0);      // Is periodic in x-direction?
       if (geom.isAllPeriodic()) {}           // Periodic in all direction?
       if (geom.isAnyPeriodic()) {}           // Periodic in any direction?
 
