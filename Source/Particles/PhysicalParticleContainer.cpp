@@ -7,6 +7,9 @@
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 
+// Import low-level single-particle kernels
+#include <UpdatePosition.H>
+#include <UpdateMomentumBoris.H>
 
 using namespace amrex;
 
