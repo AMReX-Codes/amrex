@@ -11,7 +11,7 @@ class AmrParGDB
 {
 public:
 
-    AmrParGDB (AmrCore* amr) noexcept
+    explicit AmrParGDB (AmrCore* amr) noexcept
 	: m_amrcore(amr),
 	  m_dmap(amr->maxLevel()+1),
 	  m_ba(amr->maxLevel()+1)

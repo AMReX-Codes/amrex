@@ -18,7 +18,7 @@ public:
 
     AsyncFab ();
     AsyncFab (Box const& bx, int ncomp);
-    AsyncFab (FArrayBox& a_fab);
+    explicit AsyncFab (FArrayBox& a_fab);
     AsyncFab (FArrayBox& a_fab, Box const& bx, int comp);
 #ifdef AMREX_USE_GPU
     AMREX_GPU_DEVICE
