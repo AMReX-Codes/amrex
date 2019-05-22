@@ -1062,14 +1062,12 @@ WarpXParticleContainer::PushX (int lev, Real dt)
                     Real x, y, z; // Temporary variables
 #ifndef WARPX_RZ
                     GetPosition( x, y, z, p ); // Initialize x, y, z
-#else
-                    GetCartesianPositionFromCylindrical( x, y, z, p, theta );
-#endif
-                    // Even for RZ, the particles are pushed in 3D Cartesian
                     UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
-#ifndef WARPX_RZ
                     SetPosition( p, x, y, z ); // Update the object p
 #else
+                    // For WARPX_RZ, the particles are still pushed in 3D Cartesian
+                    GetCartesianPositionFromCylindrical( x, y, z, p, theta );
+                    UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
                     SetCylindricalPositionFromCartesian( p, theta, x, y, z );
 #endif
                 }

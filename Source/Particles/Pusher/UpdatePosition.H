@@ -1,6 +1,8 @@
 #ifndef WARPX_PARTICLES_PUSHER_UPDATEPOSITION_H_
 #define WARPX_PARTICLES_PUSHER_UPDATEPOSITION_H_
 
+#include <AMReX_FArrayBox.H>
+#include <WarpXConst.H>
 #include <AMReX_REAL.H>
 
 /* \brief Push the particle's positions over one timestep,
