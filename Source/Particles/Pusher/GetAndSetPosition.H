@@ -20,7 +20,7 @@ void GetPosition(
     z = p.pos(2);
 #else
     x = p.pos(0);
-    y = std::numeric_limits<Real>::quiet_NaN();
+    y = std::numeric_limits<amrex::Real>::quiet_NaN();
     z = p.pos(1);
 #endif
 }
