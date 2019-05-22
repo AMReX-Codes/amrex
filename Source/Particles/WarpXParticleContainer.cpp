@@ -7,7 +7,9 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
+// Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
+#include <UpdatePosition.H>
 
 using namespace amrex;
 
@@ -1050,20 +1052,26 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-            // Loop over the particles and update the position
-            const long np = pti.numParticles();
-            const Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
-            amrex::ParallelFor( np,
-                [=] AMREX_GPU_DEVICE (long i) {
-                    // Compute inverse Lorentz factor
-                    const Real inv_gamma = 1./std::sqrt(
-                        1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_c2);
-                    // Update positions over one time step
-                    pstructs[i].pos(0) += ux[i] * inv_gamma * dt;
-#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ) // RZ pushes particles in 3D
-                    pstructs[i].pos(1) += uy[i] * inv_gamma * dt;
+#ifdef WARPX_RZ
+            Real* AMREX_RESTRICT theta = attribs[PIdx::theta].dataPtr();
 #endif
-                    pstructs[i].pos(2) += uz[i] * inv_gamma * dt;
+            // Loop over the particles and update their position
+            amrex::ParallelFor( pti.numParticles(),
+                [=] AMREX_GPU_DEVICE (long i) {
+                    ParticleType& p = pstructs[i]; // Particle object that gets updated
+                    Real x, y, z; // Temporary variables
+#ifndef WARPX_RZ
+                    GetPosition( x, y, z, p ); // Initialize x, y, z
+#else
+                    GetCartesianPositionFromCylindrical( x, y, z, p, theta );
+#endif
+                    // Even for RZ, the particles are pushed in 3D Cartesian
+                    UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
+#ifndef WARPX_RZ
+                    SetPosition( p, x, y, z ); // Update the object p
+#else
+                    SetCylindricalPositionFromCartesian( p, theta, x, y, z );
+#endif
                 }
             );
 
