@@ -10,5 +10,7 @@ CEXE_headers += WarpXParticleContainer.H
 CEXE_headers += RigidInjectedParticleContainer.H
 CEXE_headers += PhysicalParticleContainer.H
 
+include $(WARPX_HOME)/Source/Particles/Pusher/Make.package
+
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles
