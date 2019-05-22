@@ -6,7 +6,7 @@
 /* \brief Push the particle's positions over one timestep,
  *    given the value of its momenta `ux`, `uy`, `uz` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void UpdatePosition(
+void UpdateMomentumBoris(
     amrex::Real& ux, amrex::Real& uy, amrex::Real& uz,
     const amrex::Real Ex, const amrex::Real Ey, const amrex::Real Ez,
     const amrex::Real Bx, const amrex::Real By, const amrex::Real Bz,
