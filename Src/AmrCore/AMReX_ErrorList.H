@@ -122,14 +122,16 @@ public:
         *
         * \param inFunc
         */
-        explicit ErrorFunc (ErrorFuncDefault inFunc);
+        // No explicit because some codes rely on it.
+        ErrorFunc (ErrorFuncDefault inFunc);
 
         /**
         * \brief A Constructor.
         *
         * \param inFunc
         */
-        explicit ErrorFunc (ErrorFunc3DDefault inFunc);
+        // No explicit because some codes rely on it.
+        ErrorFunc (ErrorFunc3DDefault inFunc);
 
         /**
         * \brief Return a ptr to a clone of this object.
@@ -222,7 +224,8 @@ public:
         *
         * \param inFunc
         */
-        explicit ErrorFunc2 (ErrorFunc2Default inFunc);
+        // No explicit because some codes rely on it.
+        ErrorFunc2 (ErrorFunc2Default inFunc);
 
         /**
         * \brief Return a ptr to a clone of this object.
