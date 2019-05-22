@@ -1115,7 +1115,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 #ifdef AMREX_USE_EB
         if (index_space)
         {
-            fact_crse_patch = makeEBFabFactory(index_space, Geometry(cdomain),
+            fact_crse_patch = makeEBFabFactory(index_space,
+                                               index_space->getGeometry(cdomain),
                                                ba_crse_patch,
                                                dm_crse_patch,
                                                {0,0,0}, EBSupport::basic);
