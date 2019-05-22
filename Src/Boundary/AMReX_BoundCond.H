@@ -24,7 +24,8 @@ public:
     BoundCond () noexcept : bctype(-1) {}
     //
     //! Initializes boundary condition type to specified value.
-    explicit BoundCond (int _bctype) noexcept : bctype(_bctype) {}
+    // Many codes rely on implicit conversion.  So no explicit here.
+    BoundCond (int _bctype) noexcept : bctype(_bctype) {}
     //
     //! Return index of boundary condition type.
     AMREX_GPU_HOST_DEVICE
