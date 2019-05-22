@@ -291,15 +291,15 @@ coarsen (Geometry const& fine, int rr) { return coarsen(fine, IntVect(rr)); }
 
 inline
 Geometry
-refine (Geometry const& fine, IntVect const& rr) {
-    Geometry r{fine};
+refine (Geometry const& crse, IntVect const& rr) {
+    Geometry r{crse};
     r.refine(rr);
     return r;
 }
 
 inline
 Geometry
-refine (Geometry const& fine, int rr) { return refine(fine, IntVect(rr)); }
+refine (Geometry const& crse, int rr) { return refine(crse, IntVect(rr)); }
 
 inline
 const Geometry&
