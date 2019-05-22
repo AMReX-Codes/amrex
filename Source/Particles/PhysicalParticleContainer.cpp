@@ -1703,19 +1703,21 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                   Cuda::ManagedDeviceVector<Real>& giv,
                                   Real dt)
 {
-
     // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
-    auto& uxp = attribs[PIdx::ux];
-    auto& uyp = attribs[PIdx::uy];
-    auto& uzp = attribs[PIdx::uz];
-    auto& Exp = attribs[PIdx::Ex];
-    auto& Eyp = attribs[PIdx::Ey];
-    auto& Ezp = attribs[PIdx::Ez];
-    auto& Bxp = attribs[PIdx::Bx];
-    auto& Byp = attribs[PIdx::By];
-    auto& Bzp = attribs[PIdx::Bz];
-    const long np  = pti.numParticles();
+    // Extract pointers to the different particle quantities
+    Real* AMREX_RESTRICT x = xp.dataPtr();
+    Real* AMREX_RESTRICT y = yp.dataPtr();
+    Real* AMREX_RESTRICT z = zp.dataPtr();
+    Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+    Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+    Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+    Real* AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
+    Real* AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
+    Real* AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
+    Real* AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
+    Real* AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
+    Real* AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
@@ -1726,23 +1728,25 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         auto& uypold   = pti.GetAttribs(particle_comps["uyold"]);
         auto& uzpold   = pti.GetAttribs(particle_comps["uzold"]);
 
+        const long np  = pti.numParticles();
         warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                           ux, uy, uz,
                            xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
                            uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
     }
 
-    warpx_particle_pusher(&np,
-                          xp.dataPtr(),
-                          yp.dataPtr(),
-                          zp.dataPtr(),
-                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                          giv.dataPtr(),
-                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                          &this->charge, &this->mass, &dt,
-                          &WarpX::particle_pusher_algo);
-
+    // Loop over the particles and update their momentum
+    // TODO: Choose particle pusher algorithm
+    const Real q = this->charge;
+    const Real m = this-> mass;
+    amrex::ParallelFor( pti.numParticles(),
+        [=] AMREX_GPU_DEVICE (long i) {
+            UpdateMomentumBoris( ux[i], uy[i], uz[i],
+                            Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+            UpdatePosition( x[i], y[i], z[i],
+                            ux[i], uy[i], uz[i], dt );
+        }
+    );
 }
 
 void
