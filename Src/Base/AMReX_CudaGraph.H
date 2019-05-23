@@ -33,7 +33,22 @@ template <typename T, typename U>
 CopyMemory
 makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp)
 {
-    return { (void*)(src.p), (void*)(dst.p), src.begin, src.end, dst.begin, dst.end, scomp, ncomp };
+#if defined(__GNUG__) && __GNUC__ < 5
+    CopyMemory mem;
+    mem.src = (void*)(src.p);
+    mem.dst = (void*)(dst.p);
+    mem.src_begin = src.begin;
+    mem.src_end = src.end;
+    mem.dst_begin = dst.begin;
+    mem.dst_end = dst.end;
+    mem.scomp = scomp;
+    mem.ncomp = ncomp;
+    return mem;
+
+#else
+
+    return CopyMemory( (void*)(src.p), (void*)(dst.p), src.begin, src.end, dst.begin, dst.end, scomp, ncomp );
+#endif
 }
 
 template <typename T>
@@ -47,12 +62,12 @@ struct CudaGraph
     CudaGraph()
         : m_parms(0)
     {
-        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
     }
     CudaGraph(int num)
         : m_parms(num)
     {
-        static_assert(std::is_trivially_copyable<T>::value, "CudaGraph's T must be trivially copyable");
+        static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
         m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
     }
     ~CudaGraph() {
