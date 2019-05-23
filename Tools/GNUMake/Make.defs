@@ -181,6 +181,17 @@ else
   USE_HIP := FALSE
 endif
 
+ifeq ($(USE_HIP),TRUE)
+  HIP_PLATFORM = $(shell hipconfig --compiler)
+  ifeq ($(HIP_PLATFORM),nvcc)
+    CUDA_ARCH ?= 60
+    CUDA_MAX_THREADS ?= 256
+    CUDA_MAXREGCOUNT ?= 255
+  else
+    $(error HIP_PLATFORM must be nvcc)
+  endif
+endif
+
 ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
@@ -493,7 +504,11 @@ ifeq ($(USE_HIP),TRUE)
       $(error MPI is not supported with HIP)
     endif
 
-    DEFINES += -DAMREX_USE_CUDA -DAMREX_USE_HIP
+    DEFINES += -DAMREX_USE_HIP
+
+    ifeq ($(HIP_PLATFORM),nvcc)
+        DEFINES += -DAMREX_USE_CUDA
+    endif
 
     ifeq ($(FAB_IS_PINNED),TRUE)
         DEFINES += -DAMREX_FAB_IS_PINNED
