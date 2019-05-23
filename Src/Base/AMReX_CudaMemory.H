@@ -107,7 +107,7 @@ struct DeviceScalar
 #ifdef AMREX_USE_CUDA
 
     explicit DeviceScalar (T init_val) {
-        if (Cuda::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion()) {
             dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
             cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
         } else {
@@ -117,7 +117,7 @@ struct DeviceScalar
     }
 
     ~DeviceScalar () {
-        if (Cuda::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion()) {
             The_Device_Arena()->free(dp);
         } else {
             std::free(dp);
@@ -127,7 +127,7 @@ struct DeviceScalar
     T* dataPtr () { return dp; }
     T const* dataPtr () const { return dp; }
     T dataValue () const {
-        if (Cuda::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion()) {
             T r;
             cudaMemcpy(&r, dp, sizeof(T), cudaMemcpyDeviceToHost);
             return r;

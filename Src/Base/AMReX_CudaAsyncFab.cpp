@@ -54,7 +54,7 @@ void
 AsyncFab::clear ()
 {
 #ifdef AMREX_USE_CUDA
-    if (inLaunchRegion())
+    if (Gpu::inLaunchRegion())
     {
         if (m_impl != nullptr) {
 // CUDA 10        AMREX_GPU_SAFE_CALL(cudaLaunchHostFunc(Device::cudaStream(), amrex_devicefab_delete, p));

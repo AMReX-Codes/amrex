@@ -29,7 +29,7 @@ public:
         h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
         std::memcpy(h_data, h_p, n*sizeof(T));
 #ifdef AMREX_USE_CUDA
-        if (inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
             AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_data, h_data, n*sizeof(T),
@@ -43,7 +43,7 @@ public:
     {
         if (n == 0) return;
 #ifdef AMREX_USE_CUDA
-        if (inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
         }
@@ -61,7 +61,7 @@ public:
     void clear ()
     {
 #ifdef AMREX_USE_CUDA
-        if (inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             if (d_data != nullptr) {
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
