@@ -81,6 +81,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
    for (int k = klo; k <= khi; k++)
    {
        const int kc = IXPROJ(k,ratioz);
+       amrex::ignore_unused(kc);
        for (int j = jlo; j <= jhi; j++)
        {
            const int     jc = IXPROJ(j,ratioy);
