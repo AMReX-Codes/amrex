@@ -361,7 +361,11 @@ Device::startGraphIterRecording()
 {
     if (inLaunchRegion() && inGraphRegion())
     {
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
         AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+#else  
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
+#endif
     }
 }
 
@@ -421,7 +425,11 @@ Device::startGraphStreamRecording()
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
-            AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+#else  
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
+#endif
         }
         cuda_stream = *currentStream; // Stream index isn't saved in Device for easy reset. Save it?
     }
