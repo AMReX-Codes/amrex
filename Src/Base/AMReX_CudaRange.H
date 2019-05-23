@@ -53,7 +53,7 @@ template <typename T>
 struct range_impl
 {
     AMREX_GPU_HOST_DEVICE
-    range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
+    explicit range_impl (T const& b) noexcept : m_b(b), m_n(range_detail::size(b)) {}
 
     struct iterator
     {

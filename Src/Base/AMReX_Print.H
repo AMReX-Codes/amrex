@@ -22,7 +22,7 @@ namespace amrex
     * \brief Print on I/O Processor of the default communicator
     * Example: Print() << " x = " << x << std::endl;  
     */
-	Print (std::ostream& os_ = amrex::OutStream()) 
+	explicit Print (std::ostream& os_ = amrex::OutStream()) 
 	    : rank(ParallelContext::IOProcessorNumberSub())
 	    , comm(ParallelContext::CommunicatorSub())
 	    , os(os_)
@@ -93,7 +93,7 @@ namespace amrex
     {
     public:
         //! Example: AllPrint() << " x = " << x << std::endl;
-	AllPrint (std::ostream& os_ = amrex::OutStream())
+	explicit AllPrint (std::ostream& os_ = amrex::OutStream())
 	    : Print(Print::AllProcs, os_) 
 	    {}
 
@@ -106,7 +106,7 @@ namespace amrex
 
 	static constexpr int AllProcs = -1;
 
-	PrintToFile (const std::string& file_name_) 
+	explicit PrintToFile (const std::string& file_name_) 
 	    : file_name(file_name_)
             , rank(ParallelDescriptor::IOProcessorNumber())
 	    , comm(ParallelDescriptor::Communicator())
@@ -180,7 +180,7 @@ namespace amrex
     {
     public:
         //! Example: AllPrint() << " x = " << x << std::endl;
-	AllPrintToFile (const std::string& file_name_)
+	explicit AllPrintToFile (const std::string& file_name_)
 	    : PrintToFile(file_name_, Print::AllProcs)
 	    {}
 

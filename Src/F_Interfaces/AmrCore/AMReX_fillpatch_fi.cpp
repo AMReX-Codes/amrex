@@ -28,7 +28,7 @@ namespace {
         : public InterpHook
     {
     public:
-        FIInterpHook (INTERP_HOOK a_f) : m_f(a_f) {}
+        explicit FIInterpHook (INTERP_HOOK a_f) : m_f(a_f) {}
         virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final
         {
             if (m_f) {

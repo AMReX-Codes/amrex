@@ -49,7 +49,7 @@ AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
     m_ngrow(rhs.m_ngrow)
 {
     m_fabs.copy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
-
+    m_empty = false;
     m_initialized = true;
 }
 

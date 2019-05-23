@@ -39,7 +39,7 @@ public:
     }
 
     template <typename U = T, typename = amrex::EnableIf_t<std::is_pod<U>::value> >
-    AsyncArray (const std::size_t n)
+    explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
 #ifdef AMREX_USE_CUDA
