@@ -542,8 +542,7 @@ WarpX::ReadParameters ()
        pp.query("plot_int",slice_plot_int);
        slice_realbox.setLo(slice_lo);
        slice_realbox.setHi(slice_hi);
-       IntVect slice_loc_ratio(AMREX_D_DECL(1,1,1));
-       slice_cr_ratio = slice_loc_ratio;
+       slice_cr_ratio = IntVect(AMREX_D_DECL(1,1,1));
        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
        {
           if (slice_crse_ratio[idim] > 1 ) {

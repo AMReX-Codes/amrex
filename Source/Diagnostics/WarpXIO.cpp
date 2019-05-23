@@ -777,7 +777,6 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 /* \brief
  *  The slice is ouput using visMF and can be visualized used amrvis. 
- *  THe final objective is to use OpenPMD, but, the next PR will have a yt-compliant format.
  */
 void
 WarpX::WriteSlicePlotFile () const
