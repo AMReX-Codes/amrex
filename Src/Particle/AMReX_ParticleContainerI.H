@@ -2739,6 +2739,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = amrex::second();
     
+    AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
+
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
