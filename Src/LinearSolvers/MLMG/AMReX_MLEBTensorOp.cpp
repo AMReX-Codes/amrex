@@ -424,7 +424,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& foo = foofab.array();
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain = m_geom[amrlev][mglev].Domain();
+    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
