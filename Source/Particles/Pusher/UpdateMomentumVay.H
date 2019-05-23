@@ -17,25 +17,37 @@ void UpdateMomentumVay(
     // Constants
     const amrex::Real econst = q*dt/m;
     const amrex::Real bconst = 0.5*q*dt/m;
-    constexpr amrex::Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
-    // Compute temporary gamma factor
-    const amrex::Real inv_gamma = 1./std::sqrt(1. + (ux*ux + uy*uy + uz*uz)*inv_c2);
-    // Compute temporary variables
-    const amrex::Real taux = econst*Bx;
-    const amrex::Real tauy = econst*By;
-    const amrex::Real tauz = econst*Bz;
-    const amrex::Real tausq = taux*taux + tauy*tauy + tauz*tauz;
-    const amrex::Real ux_p = ux + econst*Ex + (uy*tauz - uz*tauy)*inv_gamma;
-    const amrex::Real uy_p = uy + econst*Ey + (uz*taux - ux*tauz)*inv_gamma;
-    const amrex::Real uz_p = uz + econst*Ez + (ux*tauy - uy*taux)*inv_gamma;
-    // - Update momentum
-    ux += uy_p*sz - uz_p*sy;
-    uy += uz_p*sx - ux_p*sz;
-    uz += ux_p*sy - uy_p*sx;
-    // Second half-push for E
-    ux += econst*Ex;
-    uy += econst*Ey;
-    uz += econst*Ez;
+    constexpr amrex::Real invclight = 1./PhysConst::c;
+    constexpr amrex::Real invclightsq = 1./(PhysConst::c*PhysConst::c);
+    // Compute initial gamma
+    const amrex::Real inv_gamma = 1./std::sqrt(1. + (ux*ux + uy*uy + uz*uz)*invclightsq);
+    // Get tau
+    const amrex::Real taux = bconst*Bx;
+    const amrex::Real tauy = bconst*By;
+    const amrex::Real tauz = bconst*Bz;
+    const amrex::Real tausq = taux*taux+tauy*tauy+tauz*tauz;
+    // Get U', gamma'^2
+    const amrex::Real uxpr = ux + econst*Ex + (uy*tauz-uz*tauy)*inv_gamma;
+    const amrex::Real uypr = uy + econst*Ey + (uz*taux-ux*tauz)*inv_gamma;
+    const amrex::Real uzpr = uz + econst*Ez + (ux*tauy-uy*taux)*inv_gamma;
+    const amrex::Real gprsq = (1. + (uxpr*uxpr + uypr*uypr + uzpr*uzpr)*invclightsq);
+    // Get u*
+    const amrex::Real ust = (uxpr*taux + uypr*tauy + uzpr*tauz)*invclight;
+    // Get new gamma
+    const amrex::Real sigma = gprsq-tausq;
+    const amrex::Real gisq = 2./(sigma + std::sqrt(sigma*sigma + 4.*(tausq + ust*ust)) );
+    // Get t, s
+    const amrex::Real bg = bconst*std::sqrt(gisq);
+    const amrex::Real tx = bg*Bx;
+    const amrex::Real ty = bg*By;
+    const amrex::Real tz = bg*Bz;
+    const amrex::Real s = 1./(1.+tausq*gisq);
+    // Get t.u'
+    const amrex::Real tu = tx*uxpr + ty*uypr + tz*uzpr;
+    // Get new U
+    ux = s*(uxpr+tx*tu+uypr*tz-uzpr*ty);
+    uy = s*(uypr+ty*tu+uzpr*tx-uxpr*tz);
+    uz = s*(uzpr+tz*tu+uxpr*ty-uypr*tx);
 }
 
 #endif // WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_VAY_H_
