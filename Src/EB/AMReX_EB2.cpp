@@ -11,6 +11,7 @@
 #include <AMReX_EB2.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
+#include <algorithm>
 
 namespace amrex { namespace EB2 {
 
@@ -31,6 +32,30 @@ void Initialize ()
 void Finalize ()
 {
     IndexSpace::clear();
+}
+
+void
+IndexSpace::push (IndexSpace* ispace)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<IndexSpace>& x) -> bool
+                          { return x.get() == ispace; });
+    if (r == m_instance.end()) {
+        m_instance.emplace_back(ispace);
+    } else if (r+1 != m_instance.end()) {
+        std::rotate(r, r+1, m_instance.end());
+    }
+}
+
+void
+IndexSpace::erase (IndexSpace* ispace)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<IndexSpace>& x) -> bool
+                          { return x.get() == ispace; });
+    if (r != m_instance.end()) {
+        m_instance.erase(r);
+    }
 }
 
 const IndexSpace* TopIndexSpaceIfPresent() noexcept {

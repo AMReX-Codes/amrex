@@ -1116,6 +1116,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         if (a_sol[alev]->nGrow() == 1)
         {
             sol[alev] = a_sol[alev];
+            sol[alev]->setBndry(0.0);
         }
         else
         {
