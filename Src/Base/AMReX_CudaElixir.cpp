@@ -32,7 +32,7 @@ void
 Elixir::clear () noexcept
 {
 #ifdef AMREX_USE_CUDA
-    if (inLaunchRegion())
+    if (Gpu::inLaunchRegion())
     {
         if (m_p != nullptr) {
             void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));

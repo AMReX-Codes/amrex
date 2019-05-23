@@ -6,7 +6,7 @@
 #endif
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 #if defined(AMREX_USE_GPU)
 

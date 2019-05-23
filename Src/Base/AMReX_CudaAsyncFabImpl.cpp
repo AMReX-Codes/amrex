@@ -170,7 +170,7 @@ void
 AsyncFabImpl::copy_htod ()
 {
     auto dest = static_cast<BaseFabData<Real>*>(m_gpu_fab.get());
-    if (inLaunchRegion())
+    if (Gpu::inLaunchRegion())
     {
         m_cpu_fab_data = m_cpu_fab;
         m_cpu_fab_data.setOwner(false);
