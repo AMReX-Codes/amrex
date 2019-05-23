@@ -922,15 +922,14 @@ writeMetaData ()
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::string DiagnosticDirectory = "lab_frame_data";
         
-        if (!UtilCreateDirectory(DiagnosticDirectory, 0755))
-            CreateDirectoryFailed(DiagnosticDirectory);
+        if (!UtilCreateDirectory(WarpX::lab_data_directory, 0755))
+            CreateDirectoryFailed(WarpX::lab_data_directory);
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream HeaderFile;
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        std::string HeaderFileName(DiagnosticDirectory + "/Header");
+        std::string HeaderFileName(WarpX::lab_data_directory + "/Header");
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
