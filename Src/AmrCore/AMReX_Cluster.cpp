@@ -10,8 +10,7 @@ enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
 }
 
 Cluster::Cluster () noexcept
-    :
-    m_ar(0) {}
+{}
 
 Cluster::Cluster (IntVect* a, long len) noexcept
     :
@@ -30,7 +29,7 @@ namespace {
 class InBox
 {
 public:
-    InBox (const Box& b) noexcept : m_box(b) {}
+    explicit InBox (const Box& b) noexcept : m_box(b) {}
 
     bool operator() (const IntVect& iv) const noexcept
     {

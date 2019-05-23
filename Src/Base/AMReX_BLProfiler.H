@@ -515,7 +515,7 @@ namespace amrex {
 class BLProfiler
 {
   public:
-    BLProfiler(const std::string &funcname) { }
+    explicit BLProfiler(const std::string &funcname) { }
     static void Initialize() { }
     static void InitParams() { }
     static void Finalize() { }

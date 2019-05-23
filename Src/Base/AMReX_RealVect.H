@@ -69,7 +69,7 @@ public:
      Construct a RealVect from an IntVect by coercing each component
      from <tt>int</tt> to Real.
   */
-  RealVect (const IntVect & iv) noexcept
+  explicit RealVect (const IntVect & iv) noexcept
   {
     for (int d=0 ; d<SpaceDim ; ++d)
     {

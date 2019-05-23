@@ -134,8 +134,8 @@ private:
 
     //! The data.
     Box      m_bx;
-    IntVect* m_ar;
-    long     m_len;
+    IntVect* m_ar = nullptr;
+    long     m_len = 0;
 };
 
 

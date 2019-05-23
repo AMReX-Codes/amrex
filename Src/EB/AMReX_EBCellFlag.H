@@ -16,7 +16,7 @@ public:
 
     EBCellFlag () = default;
     EBCellFlag (const EBCellFlag& rhs) noexcept = default;
-    constexpr EBCellFlag (uint32_t i) : flag(i) {}
+    explicit constexpr EBCellFlag (uint32_t i) : flag(i) {}
     EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
     EBCellFlag& operator= (uint32_t i) { flag = i; return *this; }
 
@@ -139,10 +139,10 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    static constexpr EBCellFlag TheDefaultCell () { return {default_value}; }
+    static constexpr EBCellFlag TheDefaultCell () { return EBCellFlag{default_value}; }
 
     AMREX_GPU_HOST_DEVICE
-    static constexpr EBCellFlag TheCoveredCell () { return {covered_value}; }
+    static constexpr EBCellFlag TheCoveredCell () { return EBCellFlag{covered_value}; }
 
 private:
 

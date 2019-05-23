@@ -193,7 +193,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& foo = foofab.array();
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain = m_geom[amrlev][mglev].Domain();
+    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
