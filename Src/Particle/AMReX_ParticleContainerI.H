@@ -2240,33 +2240,89 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
         BL_PROFILE_VAR_START(blp_copy);
 
+	Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
+	host_particles.reserve(15);
+	host_particles.resize(finestLevel()+1);
+
+	Vector<std::map<std::pair<int, int>,
+			std::vector<Cuda::HostVector<Real> > > > host_real_attribs;
+	host_real_attribs.reserve(15);
+	host_real_attribs.resize(finestLevel()+1);
+
+	Vector<std::map<std::pair<int, int>,
+			std::vector<Cuda::HostVector<int> > > > host_int_attribs;
+	host_int_attribs.reserve(15);
+	host_int_attribs.resize(finestLevel()+1);
+
         for (int j = 0; j < npart; ++j)
         {
-            auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
-            
-            char* pbuf = recvdata.data() + j*superparticle_size;
-            ParticleType p;
-            std::memcpy(&p, pbuf, sizeof(ParticleType));            
-            ptile.push_back(p);
 
-            Real* rdata = (Real*)(pbuf + particle_size);
-            for (int comp = 0; comp < NumRealComps(); ++comp) {
-                if (communicate_real_comp[comp]) {
-                    ptile.push_back_real(comp, *rdata++);
-                } else {
-                    ptile.push_back_real(comp, 0.0);
-                }
-            }
-            
-            int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
-            for (int comp = 0; comp < NumIntComps(); ++comp) {
-                if (communicate_int_comp[comp]) {
-                    ptile.push_back_int(comp, *idata++);
-                } else {
-                    ptile.push_back_int(comp, 0);
-                }
-            }
-        }
+	int lev = rcv_levs[j];
+	std::pair<int, int> ind(std::make_pair(rcv_grid[j], rcv_tile[j]));
+
+	char* pbuf = recvdata.data() + j*superparticle_size;
+	ParticleType p;
+	std::memcpy(&p, pbuf, sizeof(ParticleType));
+
+        host_real_attribs[lev][ind].resize(NumRealComps());
+        host_int_attribs[lev][ind].resize(NumIntComps());
+        
+	// add the struct
+	host_particles[lev][ind].push_back(p);
+
+	Real* rdata = (Real*)(pbuf + particle_size);
+	// add the real...
+	for (int i = 0; i < NumRealComps(); i++) {
+	  if (communicate_real_comp[i]) {
+            host_real_attribs[lev][ind][i].push_back(*rdata++);
+	  } else {
+            host_real_attribs[lev][ind][i].push_back(0.0);
+	  }
+
+	}
+
+	int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));        
+	// ... and int array data
+	for (int i = 0; i < NumIntComps(); i++) {
+	  if (communicate_int_comp[i]) {
+            host_int_attribs[lev][ind][i].push_back(*idata++);
+	  } else {
+            host_int_attribs[lev][ind][i].push_back(0);
+	  }
+	}
+	}
+
+    for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+      {
+	for (auto& kv : host_particles[host_lev]) {
+	  auto grid = kv.first.first;
+	  auto tile = kv.first.second;
+	  const auto& src_tile = kv.second;
+          
+	  auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+	  auto old_size = dst_tile.GetArrayOfStructs().size();
+	  auto new_size = old_size + src_tile.size();
+	  dst_tile.resize(new_size);
+                
+	  Cuda::thrust_copy(src_tile.begin(),
+			    src_tile.end(),
+			    dst_tile.GetArrayOfStructs().begin() + old_size);
+	  
+	  for (int i = 0; i < NumRealComps(); ++i) {
+              Cuda::thrust_copy(host_real_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                host_real_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                dst_tile.GetStructOfArrays().GetRealData(i).begin() + old_size);
+	  }
+	  
+	  for (int i = 0; i < NumIntComps(); ++i) {
+              Cuda::thrust_copy(host_int_attribs[host_lev][std::make_pair(grid,tile)][i].begin(),
+                                host_int_attribs[host_lev][std::make_pair(grid,tile)][i].end(),
+                                dst_tile.GetStructOfArrays().GetIntData(i).begin() + old_size);
+	  }
+	}
+      }
+    
+    Gpu::Device::streamSynchronize();
 
 	BL_PROFILE_VAR_STOP(blp_copy);
     }
