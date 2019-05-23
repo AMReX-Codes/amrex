@@ -265,8 +265,10 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: rho(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
+#ifdef WARPX_RZ
     integer(c_long) :: type_rz_depose = 1
-
+#endif
+    
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: rho_nvalid(AMREX_SPACEDIM), rho_nguards(AMREX_SPACEDIM)
     rho_nvalid = rho_ntot - 2*rho_ng
@@ -385,8 +387,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
+#ifdef WARPX_RZ    
     integer(c_long) :: type_rz_depose = 1
-
+#endif
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
                        jx_nguards(AMREX_SPACEDIM), jy_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)

@@ -237,10 +237,10 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-            particle_tile.push_back_real(particle_comps["xold"], x[i]);
-            particle_tile.push_back_real(particle_comps["yold"], y[i]);
-            particle_tile.push_back_real(particle_comps["zold"], z[i]);
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
+            ptile.push_back_real(particle_comps["xold"], x[i]);
+            ptile.push_back_real(particle_comps["yold"], y[i]);
+            ptile.push_back_real(particle_comps["zold"], z[i]);
         }
 
         particle_tile.push_back(p);
@@ -255,10 +255,10 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-            particle_tile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
-            particle_tile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
-            particle_tile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
+            ptile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
+            ptile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
+            ptile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
         }
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
@@ -737,7 +737,6 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
 
         const auto& gm = m_gdb->Geom(lev);
         const auto& ba = m_gdb->ParticleBoxArray(lev);
-        const auto& dm = m_gdb->DistributionMap(lev);
 
         const Real* dx  = gm.CellSize();
         const Real* plo = gm.ProbLo();
@@ -807,36 +806,36 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
     {
+#endif
         Cuda::ManagedDeviceVector<Real> xp, yp, zp;
-        FArrayBox local_rho;
+#ifdef _OPENMP
+        FArrayBox rho_loc;
+#endif
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            const Box& box = pti.validbox();
-
             auto& wp = pti.GetAttribs(PIdx::w);
 
             const long np  = pti.numParticles();
 
             pti.GetPosition(xp, yp, zp);
 
-            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-
             // Data on the grid
             Real* data_ptr;
             FArrayBox& rhofab = (*rho)[pti];
 #ifdef _OPENMP
+            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
             const std::array<Real, 3>& xyzmin = xyzmin_tile;
             tile_box.grow(ng);
-            local_rho.resize(tile_box);
-            local_rho = 0.0;
-            data_ptr = local_rho.dataPtr();
-            auto rholen = local_rho.length();
+            rho_loc.resize(tile_box);
+            rho_loc = 0.0;
+            data_ptr = rho_loc.dataPtr();
+            auto rholen = rho_loc.length();
 #else
+            const Box& box = pti.validbox();
+            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
             const std::array<Real, 3>& xyzmin = xyzmin_grid;
             data_ptr = rhofab.dataPtr();
             auto rholen = rhofab.length();
@@ -874,10 +873,9 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #endif
 
 #ifdef _OPENMP
-            rhofab.atomicAdd(local_rho);
-#endif
+            rhofab.atomicAdd(rho_loc);
         }
-
+#endif
     }
 
     if (!local) rho->SumBoundary(gm.periodicity());
