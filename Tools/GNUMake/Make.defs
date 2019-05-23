@@ -175,6 +175,12 @@ ifeq ($(USE_CUDA),TRUE)
   CUDA_MAXREGCOUNT ?= 255
 endif
 
+ifdef USE_HIP
+  USE_HIP := $(strip $(USE_HIP))
+else
+  USE_HIP := FALSE
+endif
+
 ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
@@ -237,7 +243,9 @@ SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
-DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
+ifneq ($(USE_HIP),TRUE)
+  DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
+endif
 
 FORTLINK  	= UNDERSCORE
 
@@ -256,7 +264,13 @@ RANLIB          = ranlib
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
-ifeq ($(USE_CUDA),TRUE)
+ifeq ($(USE_HIP),TRUE)
+  ifdef HIPCC_HOST_COMP
+    AMREX_CCOMP = $(HIP_HOST_COMP)
+  else
+    AMREX_CCOMP = gnu
+  endif
+else ifeq ($(USE_CUDA),TRUE)
   ifdef NVCC_HOST_COMP
     AMREX_CCOMP = $(NVCC_HOST_COMP)
   else
@@ -461,7 +475,33 @@ ifeq ($(USE_ACC),TRUE)
 
 endif
 
-ifeq ($(USE_CUDA),TRUE)
+ifeq ($(USE_HIP),TRUE)
+
+    USE_GPU := TRUE
+
+    ifeq ($(USE_OMP),TRUE)
+        $(error The HIP implementation is not thread-safe; do not try to use OpenMP)
+    endif
+
+    ifneq ($(lowercase_comp),gnu)
+        $(error HIP can only be used with COMP=gnu)
+    endif
+
+    include $(AMREX_HOME)/Tools/GNUMake/comps/hip.mak
+
+    ifeq ($(USE_MPI),TRUE)
+      $(error MPI is not supported with HIP)
+    endif
+
+    DEFINES += -DAMREX_USE_CUDA -DAMREX_USE_HIP
+
+    ifeq ($(FAB_IS_PINNED),TRUE)
+        DEFINES += -DAMREX_FAB_IS_PINNED
+    endif
+
+    GPUSuffix := .HIP
+
+else ifeq ($(USE_CUDA),TRUE)
 
     USE_GPU := TRUE
 
@@ -510,7 +550,7 @@ ifeq ($(USE_CUDA),TRUE)
         DEFINES += -DAMREX_FAB_IS_PINNED
     endif
 
-    CUDASuffix := .CUDA
+    GPUSuffix := .CUDA
 
     ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi))
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
@@ -533,7 +573,7 @@ else
     DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
     DEFINES += -DAMREX_CUDA_FORT_HOST=""
 
-    CUDASuffix :=
+    GPUSuffix :=
 endif
 
 ifeq ($(USE_GPU),TRUE)
@@ -634,7 +674,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(CUDASuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(GPUSuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
@@ -768,7 +808,15 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
-ifeq ($(USE_CUDA),TRUE)
+ifeq ($(USE_HIP),TRUE)
+
+    HIP_PATH = /opt/rocm/hip
+    INCLUDE_LOCATIONS += $(HIP_PATH)/include
+
+    LINKFLAGS = $(HIPCC_FLAGS)
+    AMREX_LINKER = hipcc
+
+else ifeq ($(USE_CUDA),TRUE)
 
     # Allow the user to specify the location of the CUDA toolkit.
     # If they don't, check if it has been defined for one of the
