@@ -2573,7 +2573,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -2583,7 +2583,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         std::stringstream ss;
