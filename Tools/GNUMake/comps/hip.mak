@@ -37,7 +37,7 @@ endif
 CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
 CFLAGS_FROM_HOST := -ccbin=$(CXX)
 
-HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_60 -code=sm_60 -maxrregcount=255
+HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
 
 ifeq ($(DEBUG),TRUE)
   HIPCC_FLAGS += -g -G
