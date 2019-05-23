@@ -2529,7 +2529,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> tmp_real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         if (real_comp_names.size() == 0)
@@ -2546,7 +2546,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> tmp_int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         if (int_comp_names.size() == 0)
