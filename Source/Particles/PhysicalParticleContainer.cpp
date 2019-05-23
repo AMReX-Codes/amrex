@@ -7,9 +7,12 @@
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 
+#include <WarpXAlgorithmSelection.H>
+
 // Import low-level single-particle kernels
 #include <UpdatePosition.H>
 #include <UpdateMomentumBoris.H>
+#include <UpdateMomentumVay.H>
 
 using namespace amrex;
 
@@ -41,7 +44,7 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
 	} else {
 	    fac = 1.0;
 	}
-	
+
 	int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
 	for (int i_part=0; i_part<ref_num_ppc;i_part++) {
 	    std::array<Real, 3> r;
@@ -65,7 +68,7 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
 	    ++np;
 	}
     }
-    
+
     return np;
 }
 
@@ -85,7 +88,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_continuous_injection", do_continuous_injection);
-    // Whether to plot back-transformed (lab-frame) diagnostics 
+    // Whether to plot back-transformed (lab-frame) diagnostics
     // for this species.
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
@@ -94,7 +97,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
     if (not do_user_plot_vars){
         // By default, all particle variables are dumped to plotfiles,
-        // including {x,y,z,ux,uy,uz}old variables when running in a 
+        // including {x,y,z,ux,uy,uz}old variables when running in a
         // boosted frame
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
             plot_flags.resize(PIdx::nattribs + 6, 1);
@@ -111,9 +114,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         // If not none, set plot_flags values to 1 for elements in plot_vars.
         if (plot_vars[0] != "none"){
             for (const auto& var : plot_vars){
-                // Return error if var not in PIdx. 
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
-                    ParticleStringNames::to_index.count(var), 
+                // Return error if var not in PIdx.
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    ParticleStringNames::to_index.count(var),
                     "plot_vars argument not in ParticleStringNames");
                 plot_flags[ParticleStringNames::to_index.at(var)] = 1;
             }
@@ -228,12 +231,12 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
                 particle_tile.push_back_real(particle_comps["xold"], x);
                 particle_tile.push_back_real(particle_comps["yold"], y);
                 particle_tile.push_back_real(particle_comps["zold"], z);
-                
+
                 particle_tile.push_back_real(particle_comps["uxold"], u[0]);
                 particle_tile.push_back_real(particle_comps["uyold"], u[1]);
                 particle_tile.push_back_real(particle_comps["uzold"], u[2]);
             }
-            
+
             AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
         }
@@ -505,7 +508,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
-                    
+
                     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
                     {
                         auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
@@ -633,7 +636,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
 
 	    Cuda::HostVector<ParticleType> host_particles;
 	    std::array<Cuda::HostVector<Real>, PIdx::nattribs> host_attribs;
-	    
+
             // Loop through the cells of overlap_box and inject
             // the corresponding particles
             const auto& overlap_corner = overlap_realbox.lo();
@@ -795,7 +798,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                                   host_attribs[kk].end(),
                                   particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
 	    }
-	    			 
+
             if (cost) {
 	        wt = (amrex::second() - wt) / tile_box.d_numPts();
                 FArrayBox* costfab = cost->fabPtr(mfi);
@@ -804,7 +807,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     costfab->plus(wt, work_box);
                 });
             }
-        }		
+        }
     }
 }
 #endif
@@ -1134,7 +1137,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
-    
+
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
     const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
 
@@ -1151,7 +1154,7 @@ PhysicalParticleContainer::Evolve (int lev,
     bool has_buffer = cEx || cjx;
 
 #ifdef _OPENMP
-#pragma omp parallel 
+#pragma omp parallel
 #endif
     {
 #ifdef _OPENMP
@@ -1360,7 +1363,7 @@ PhysicalParticleContainer::Evolve (int lev,
             }
 
             const long np_current = (cjx) ? nfine_current : np;
-            
+
 	    //
 	    // copy data from particle container to temp arrays
 	    //
@@ -1369,7 +1372,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
-            
+
             if (! do_not_push)
             {
                 //
@@ -1380,7 +1383,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
                 const int* ixyzmin_grid = box.loVect();
-                
+
                 const long np_gather = (cEx) ? nfine_gather : np;
 
                 BL_PROFILE_VAR_START(blp_pxr_fg);
@@ -1462,7 +1465,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                                 mypc.fdtd_nci_stencilz_ex[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
                         ceyfab = &filtered_Ey;
-                        
+
                         filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
                                                 BL_TO_FORTRAN_ANYD(filtered_Bx),
@@ -1470,7 +1473,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                                 mypc.fdtd_nci_stencilz_by[lev-1].data(),
                                                 &nstencilz_fdtd_nci_corr);
                         cbxfab = &filtered_Bx;
-                        
+
                         filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
                         WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
                                                 BL_TO_FORTRAN_ANYD(filtered_Bz),
@@ -1480,7 +1483,7 @@ PhysicalParticleContainer::Evolve (int lev,
                         cbzfab = &filtered_Bz;
 #endif
                     }
-                    
+
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse,
@@ -1509,7 +1512,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Particle Push
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
-                PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], 
+                PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num],
                        m_giv[thread_num], dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
@@ -1518,7 +1521,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
                                cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
-  
+
                 //
                 // copy particle data back
                 //
@@ -1526,7 +1529,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
-            
+
             if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
 
             if (cost) {
@@ -1580,7 +1583,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
         for(int i=0; i<np; i++){
             auto& p = particles[i];
             if (p.id() == DoSplitParticleID){
-		// If particle is tagged, split it and put the 
+		// If particle is tagged, split it and put the
 		// split particles in local arrays psplit_x etc.
                 np_split_to_add += np_split;
 #if (AMREX_SPACEDIM==2)
@@ -1677,11 +1680,11 @@ PhysicalParticleContainer::SplitParticles(int lev)
     }
 	// Add local arrays psplit_x etc. to the temporary
 	// particle container pctmp_split. Split particles
-	// are tagged with p.id()=NoSplitParticleID so that 
+	// are tagged with p.id()=NoSplitParticleID so that
 	// they are not re-split when entering a higher level
 	// AddNParticles calls Redistribute, so that particles
 	// in pctmp_split are in the proper grids and tiles
-	pctmp_split.AddNParticles(lev, 
+	pctmp_split.AddNParticles(lev,
                                   np_split_to_add,
                                   psplit_x.dataPtr(),
                                   psplit_y.dataPtr(),
@@ -1739,17 +1742,29 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     }
 
     // Loop over the particles and update their momentum
-    // TODO: Choose particle pusher algorithm
     const Real q = this->charge;
     const Real m = this-> mass;
-    amrex::ParallelFor( pti.numParticles(),
-        [=] AMREX_GPU_DEVICE (long i) {
-            UpdateMomentumBoris( ux[i], uy[i], uz[i],
-                            Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
-            UpdatePosition( x[i], y[i], z[i],
-                            ux[i], uy[i], uz[i], dt );
-        }
-    );
+    if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+        amrex::ParallelFor( pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+                UpdateMomentumBoris( ux[i], uy[i], uz[i],
+                      Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+                UpdatePosition( x[i], y[i], z[i],
+                      ux[i], uy[i], uz[i], dt );
+            }
+        );
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
+        amrex::ParallelFor( pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+                UpdateMomentumVay( ux[i], uy[i], uz[i],
+                      Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+                UpdatePosition( x[i], y[i], z[i],
+                      ux[i], uy[i], uz[i], dt );
+            }
+        );
+    } else {
+      amrex::Abort("Unknown particle pusher");
+    };
 }
 
 void
@@ -1771,7 +1786,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
         int thread_num = omp_get_thread_num();
 #else
         int thread_num = 0;
-#endif      
+#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
@@ -1884,7 +1899,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     slice_box.setHi(direction, z_max);
 
     diagnostic_particles.resize(finestLevel()+1);
-    
+
     for (int lev = 0; lev < nlevs; ++lev) {
 
         const Real* dx  = Geom(lev).CellSize();
@@ -1966,7 +1981,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
 
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::w).push_back(wp[i]);
-                    
+
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::x).push_back(xp);
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::y).push_back(yp);
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::z).push_back(zp);
