@@ -380,8 +380,8 @@ Device::setNumThreadsMin (int nx, int ny, int nz) noexcept {
 void
 Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept
 {
-    numThreads = AMREX_CUDA_MAX_THREADS;
-    numBlocks = std::max((N + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS, 1L); // in case N = 0
+    numThreads = AMREX_GPU_MAX_THREADS;
+    numBlocks = std::max((N + AMREX_GPU_MAX_THREADS - 1) / AMREX_GPU_MAX_THREADS, 1L); // in case N = 0
 }
 
 void
@@ -401,7 +401,7 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #if (AMREX_SPACEDIM == 1)
 
-    numThreads.x = std::min(tile_size[0], AMREX_CUDA_MAX_THREADS);
+    numThreads.x = std::min(tile_size[0], AMREX_GPU_MAX_THREADS);
     numThreads.x = std::max(numThreads.x, numThreadsMin.x);
     numThreads.y = 1;
     numThreads.z = 1;
@@ -412,8 +412,8 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #elif (AMREX_SPACEDIM == 2)
 
-    numThreads.x = std::min(static_cast<unsigned>(tile_size[0]), AMREX_CUDA_MAX_THREADS / numThreadsMin.y);
-    numThreads.y = std::min(static_cast<unsigned>(tile_size[1]), AMREX_CUDA_MAX_THREADS / numThreads.x   );
+    numThreads.x = std::min(static_cast<unsigned>(tile_size[0]), AMREX_GPU_MAX_THREADS / numThreadsMin.y);
+    numThreads.y = std::min(static_cast<unsigned>(tile_size[1]), AMREX_GPU_MAX_THREADS / numThreads.x   );
     numThreads.x = std::max(numThreadsMin.x, numThreads.x);
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
     numThreads.z = 1;
@@ -424,9 +424,9 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 
 #else
 
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
-    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
+    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreads.y   ));
 
     numThreads.x = std::max(numThreadsMin.x, std::min(static_cast<unsigned>(tile_size[0]), numThreads.x));
     numThreads.y = std::max(numThreadsMin.y, std::min(static_cast<unsigned>(tile_size[1]), numThreads.y));
@@ -475,24 +475,24 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexc
 
 #if (AMREX_SPACEDIM == 1)
 
-    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_CUDA_MAX_THREADS);
+    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_GPU_MAX_THREADS);
     numThreads.x = std::max(numThreads.x, numThreadsMin.x);
     numThreads.y = 1;
     numThreads.z = 1;
 
 #elif (AMREX_SPACEDIM == 2)
 
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / numThreadsMin.y);
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / numThreads.x);
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / numThreadsMin.y);
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / numThreads.x);
     numThreads.x = std::max(numThreadsMin.x, numThreads.x);
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
     numThreads.z = 1;
 
 #else
 
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
-    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
+    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreads.y   ));
 
     numThreads.x = std::max(numThreadsMin.x, numThreads.x);
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
@@ -543,24 +543,24 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
 
 #if (AMREX_SPACEDIM == 1)
 
-    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_CUDA_MAX_THREADS);
+    numThreads.x = std::min(device_prop.maxThreadsDim[0], AMREX_GPU_MAX_THREADS);
     numThreads.x = std::max(numThreads.x, numThreadsMin.x);
     numThreads.y = 1;
     numThreads.z = 1;
 
 #elif (AMREX_SPACEDIM == 2)
 
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / numThreadsMin.y);
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / numThreads.x);
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / numThreadsMin.y);
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / numThreads.x);
     numThreads.x = std::max(numThreadsMin.x, numThreads.x);
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
     numThreads.z = 1;
 
 #else
 
-    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
-    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
-    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
+    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_GPU_MAX_THREADS / (numThreads.x    * numThreads.y   ));
 
     numThreads.x = std::max(numThreadsMin.x, numThreads.x);
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
