@@ -531,6 +531,11 @@ Numerics and algorithms
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
 
+    .. warning::
+
+        The vectorized version does not run on GPU. Use
+		``algo.charge_deposition=1`` when running on GPU.
+       
 * ``algo.field_gathering`` (`integer`)
     The algorithm for field gathering:
 
@@ -649,6 +654,11 @@ Diagnostics and output
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
 
+* ``warpx.lab_data_directory`` (`string`)
+    The directory in which to save the lab frame data when using the
+    **back-transformed diagnostics**. If not specified, the default is
+    is `lab_frame_data`.
+    
 * ``warpx.num_snapshots_lab`` (`integer`)
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The number of lab-frame snapshots that will be written.

@@ -60,6 +60,7 @@ int WarpX::num_mirrors = 0;
 int  WarpX::sort_int = -1;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
+std::string WarpX::lab_data_directory = "lab_frame_data";
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 bool WarpX::do_boosted_frame_fields = true;
@@ -319,6 +320,8 @@ WarpX::ReadParameters ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
+        pp.query("lab_data_directory", lab_data_directory);
+        
         std::string s;
         pp.get("boost_direction", s);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
@@ -1016,7 +1019,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 void
 WarpX::BuildBufferMasks ()
 {
-    int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
     for (int lev = 1; lev <= maxLevel(); ++lev)
     {
         for (int ipass = 0; ipass < 2; ++ipass)

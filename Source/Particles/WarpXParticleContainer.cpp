@@ -7,6 +7,10 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
+// Import low-level single-particle kernels
+#include <GetAndSetPosition.H>
+#include <UpdatePosition.H>
+
 using namespace amrex;
 
 int WarpXParticleContainer::do_not_push = 0;
@@ -233,10 +237,10 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-            particle_tile.push_back_real(particle_comps["xold"], x[i]);
-            particle_tile.push_back_real(particle_comps["yold"], y[i]);
-            particle_tile.push_back_real(particle_comps["zold"], z[i]);
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
+            ptile.push_back_real(particle_comps["xold"], x[i]);
+            ptile.push_back_real(particle_comps["yold"], y[i]);
+            ptile.push_back_real(particle_comps["zold"], z[i]);
         }
 
         particle_tile.push_back(p);
@@ -251,10 +255,10 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-            auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-            particle_tile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
-            particle_tile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
-            particle_tile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
+            ptile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
+            ptile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
+            ptile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
         }
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
@@ -737,7 +741,6 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
 
         const auto& gm = m_gdb->Geom(lev);
         const auto& ba = m_gdb->ParticleBoxArray(lev);
-        const auto& dm = m_gdb->DistributionMap(lev);
 
         const Real* dx  = gm.CellSize();
         const Real* plo = gm.ProbLo();
@@ -807,36 +810,36 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
     {
+#endif
         Cuda::ManagedDeviceVector<Real> xp, yp, zp;
-        FArrayBox local_rho;
+#ifdef _OPENMP
+        FArrayBox rho_loc;
+#endif
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            const Box& box = pti.validbox();
-
             auto& wp = pti.GetAttribs(PIdx::w);
 
             const long np  = pti.numParticles();
 
             pti.GetPosition(xp, yp, zp);
 
-            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-
             // Data on the grid
             Real* data_ptr;
             FArrayBox& rhofab = (*rho)[pti];
 #ifdef _OPENMP
+            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
             const std::array<Real, 3>& xyzmin = xyzmin_tile;
             tile_box.grow(ng);
-            local_rho.resize(tile_box, rho->nComp());
-            local_rho = 0.0;
-            data_ptr = local_rho.dataPtr();
-            auto rholen = local_rho.length();
+            rho_loc.resize(tile_box, rho->nComp());
+            rho_loc = 0.0;
+            data_ptr = rho_loc.dataPtr();
+            auto rholen = rho_loc.length();
 #else
+            const Box& box = pti.validbox();
+            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
             const std::array<Real, 3>& xyzmin = xyzmin_grid;
             data_ptr = rhofab.dataPtr();
             auto rholen = rhofab.length();
@@ -874,10 +877,9 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #endif
 
 #ifdef _OPENMP
-            rhofab.atomicAdd(local_rho);
-#endif
+            rhofab.atomicAdd(rho_loc);
         }
-
+#endif
     }
 
     if (!local) rho->SumBoundary(gm.periodicity());
@@ -1052,20 +1054,24 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-            // Loop over the particles and update the position
-            const long np = pti.numParticles();
-            const Real inv_c2 = 1./(PhysConst::c*PhysConst::c);
-            amrex::ParallelFor( np,
-                [=] AMREX_GPU_DEVICE (long i) {
-                    // Compute inverse Lorentz factor
-                    const Real inv_gamma = 1./std::sqrt(
-                        1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_c2);
-                    // Update positions over one time step
-                    pstructs[i].pos(0) += ux[i] * inv_gamma * dt;
-#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ) // RZ pushes particles in 3D
-                    pstructs[i].pos(1) += uy[i] * inv_gamma * dt;
+#ifdef WARPX_RZ
+            Real* AMREX_RESTRICT theta = attribs[PIdx::theta].dataPtr();
 #endif
-                    pstructs[i].pos(2) += uz[i] * inv_gamma * dt;
+            // Loop over the particles and update their position
+            amrex::ParallelFor( pti.numParticles(),
+                [=] AMREX_GPU_DEVICE (long i) {
+                    ParticleType& p = pstructs[i]; // Particle object that gets updated
+                    Real x, y, z; // Temporary variables
+#ifndef WARPX_RZ
+                    GetPosition( x, y, z, p ); // Initialize x, y, z
+                    UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
+                    SetPosition( p, x, y, z ); // Update the object p
+#else
+                    // For WARPX_RZ, the particles are still pushed in 3D Cartesian
+                    GetCartesianPositionFromCylindrical( x, y, z, p, theta[i] );
+                    UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
+                    SetCylindricalPositionFromCartesian( p, theta[i], x, y, z );
+#endif
                 }
             );
 

@@ -5,7 +5,7 @@
 using namespace amrex;
 
 void
-WarpX::UpdatePlasmaInjectionPosition (Real dt)
+WarpX::UpdatePlasmaInjectionPosition (Real a_dt)
 {
     int dir = moving_window_dir;
     // Continuously inject plasma in new cells (by default only on level 0)
@@ -14,12 +14,12 @@ WarpX::UpdatePlasmaInjectionPosition (Real dt)
         // call to this function, and injection position needs to be updated
         current_injection_position -= WarpX::beta_boost *
 #if ( AMREX_SPACEDIM == 3 )
-            WarpX::boost_direction[dir] * PhysConst::c * dt;
+            WarpX::boost_direction[dir] * PhysConst::c * a_dt;
 #elif ( AMREX_SPACEDIM == 2 )
             // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
             // This needs to be converted in order to index `boost_direction`
             // which has 3 components, for both 2D and 3D simulations.
-            WarpX::boost_direction[2*dir] * PhysConst::c * dt;
+            WarpX::boost_direction[2*dir] * PhysConst::c * a_dt;
 #endif
     }
 }
@@ -62,8 +62,8 @@ WarpX::MoveWindow (bool move_j)
     }
     new_lo[dir] = current_lo[dir] + num_shift_base * cdx[dir];
     new_hi[dir] = current_hi[dir] + num_shift_base * cdx[dir];
-    RealBox new_box(new_lo, new_hi);
-    Geometry::ProbDomain(new_box);
+
+    ResetProbDomain(RealBox(new_lo, new_hi));
 
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
@@ -252,5 +252,16 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
         {
             dstfab(i,j,k,n) = srcfab(i+shift.x,j+shift.y,k+shift.z,n);
         });
+    }
+}
+
+void
+WarpX::ResetProbDomain (const RealBox& rb)
+{
+    Geometry::ResetDefaultProbDomain(rb);
+    for (int lev = 0; lev <= max_level; ++lev) {
+        Geometry g = Geom(lev);
+        g.ProbDomain(rb);
+        SetGeometry(lev, g);
     }
 }

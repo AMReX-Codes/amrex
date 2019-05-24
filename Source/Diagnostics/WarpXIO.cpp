@@ -84,11 +84,11 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 
 	// Geometry
 	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            HeaderFile << Geometry::ProbLo(i) << ' ';
+            HeaderFile << Geom(0).ProbLo(i) << ' ';
 	}
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            HeaderFile << Geometry::ProbHi(i) << ' ';
+            HeaderFile << Geom(0).ProbHi(i) << ' ';
 	}
         HeaderFile << '\n';
 
@@ -283,7 +283,7 @@ WarpX::InitFromCheckpoint ()
 	    }
 	}
 
-	Geometry::ProbDomain(RealBox(prob_lo,prob_hi));
+        ResetProbDomain(RealBox(prob_lo,prob_hi));
 
 	for (int lev = 0; lev < nlevs; ++lev) {
 	    BoxArray ba;

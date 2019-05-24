@@ -666,7 +666,6 @@ getInterpolatedScalar(
     interpolated_F->setVal(0.);
 
     // Loop through the boxes and interpolate the values from the _cp data
-    const int use_limiter = 0;
 #ifdef _OPEMP
 #pragma omp parallel
 #endif

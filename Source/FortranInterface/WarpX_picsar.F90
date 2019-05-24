@@ -319,8 +319,10 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: rho(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
+#ifdef WARPX_RZ
     integer(c_long) :: type_rz_depose = 1
-
+#endif
+    
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: rho_nvalid(AMREX_SPACEDIM), rho_nguards(AMREX_SPACEDIM)
     rho_nvalid = rho_ntot - 2*rho_ng
@@ -496,6 +498,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2*nmodes)
     real(amrex_real), intent(IN) :: rmin, dr
 
+#ifdef WARPX_RZ    
+
     complex(amrex_real), allocatable, dimension(:,:,:) :: jr_c, jt_c, jz_c
     integer :: alloc_status
 
@@ -551,6 +555,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
                  jz,jz_nguards,jz_nvalid, &
                  rmin,dr,type_rz_depose)
     endif
+
+#endif
 
   end subroutine warpx_current_deposition_rz_volume_scaling
 
