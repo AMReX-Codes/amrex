@@ -42,6 +42,9 @@ namespace ParticleStringNames
         {"Bx",    PIdx::Bx   },
         {"By",    PIdx::By   },
         {"Bz",    PIdx::Bz   }
+#ifdef WARPX_RZ
+        ,{"theta", PIdx::theta}
+#endif
     };
 }
 

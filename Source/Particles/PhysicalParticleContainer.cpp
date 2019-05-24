@@ -41,16 +41,19 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
 	
 	int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
 	for (int i_part=0; i_part<ref_num_ppc;i_part++) {
-	    std::array<Real, 3> r;
-	    plasma_injector->getPositionUnitBox(r, i_part, fac);
+	    std::array<Real, 3> point;
+	    plasma_injector->getPositionUnitBox(point, i_part, fac);
+	    Real x = overlap_corner[0] + (iv[0] + point[0])*dx[0];
 #if ( AMREX_SPACEDIM == 3 )
-	    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
-	    Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
-	    Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
+	    Real y = overlap_corner[1] + (iv[1] + point[1])*dx[1];
+	    Real z = overlap_corner[2] + (iv[2] + point[2])*dx[2];
 #elif ( AMREX_SPACEDIM == 2 )
-	    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
 	    Real y = 0;
-	    Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+#ifdef WARPX_RZ
+	    Real z = overlap_corner[1] + (iv[1] + point[2])*dx[1];
+#else
+	    Real z = overlap_corner[1] + (iv[1] + point[1])*dx[1];
+#endif
 #endif
 	    // If the new particle is not inside the tile box,
 	    // go to the next generated particle.
@@ -413,16 +416,19 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
 
                 int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
                 for (int i_part=0; i_part<ref_num_ppc;i_part++) {
-                    std::array<Real, 3> r;
-                    plasma_injector->getPositionUnitBox(r, i_part, fac);
+                    std::array<Real, 3> point;
+                    plasma_injector->getPositionUnitBox(point, i_part, fac);
+                    Real x = overlap_corner[0] + (iv[0] + point[0])*dx[0];
 #if ( AMREX_SPACEDIM == 3 )
-                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
-                    Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
-                    Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
+                    Real y = overlap_corner[1] + (iv[1] + point[1])*dx[1];
+                    Real z = overlap_corner[2] + (iv[2] + point[2])*dx[2];
 #elif ( AMREX_SPACEDIM == 2 )
-                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = 0;
-                    Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+#ifdef WARPX_RZ
+                    Real z = overlap_corner[1] + (iv[1] + point[2])*dx[1];
+#else
+                    Real z = overlap_corner[1] + (iv[1] + point[1])*dx[1];
+#endif
 #endif
                     // If the new particle is not inside the tile box,
                     // go to the next generated particle.
@@ -438,11 +444,18 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     Real yb = y;
 
 #ifdef WARPX_RZ
-                    // Replace the x and y, choosing the angle randomly.
+                    // Replace the x and y, setting an angle theta.
                     // These x and y are used to get the momentum and density
-                    Real theta = 2.*MathConst::pi*amrex::Random();
-                    y = x*std::sin(theta);
-                    x = x*std::cos(theta);
+                    Real theta;
+                    if (WarpX::nmodes == 1) {
+                        // With only 1 mode, the angle doesn't matter so
+                        // choose it randomly.
+                        theta = 2.*MathConst::pi*amrex::Random();
+                    } else {
+                        theta = 2.*MathConst::pi*point[1];
+                    }
+                    x = xb*std::cos(theta);
+                    y = xb*std::sin(theta);
 #endif
 
                     Real dens;
@@ -654,16 +667,19 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
 
                 int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
                 for (int i_part=0; i_part<ref_num_ppc;i_part++) {
-                    std::array<Real, 3> r;
-                    plasma_injector->getPositionUnitBox(r, i_part, fac);
+                    std::array<Real, 3> point;
+                    plasma_injector->getPositionUnitBox(point, i_part, fac);
+                    Real x = overlap_corner[0] + (iv[0] + point[0])*dx[0];
 #if ( AMREX_SPACEDIM == 3 )
-                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
-                    Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
-                    Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
+                    Real y = overlap_corner[1] + (iv[1] + point[1])*dx[1];
+                    Real z = overlap_corner[2] + (iv[2] + point[2])*dx[2];
 #elif ( AMREX_SPACEDIM == 2 )
-                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = 0;
-                    Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+#ifdef WARPX_RZ
+                    Real z = overlap_corner[1] + (iv[1] + point[2])*dx[1];
+#else
+                    Real z = overlap_corner[1] + (iv[1] + point[1])*dx[1];
+#endif
 #endif
                     // If the new particle is not inside the tile box,
                     // go to the next generated particle.
@@ -679,9 +695,16 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     Real yb = y;
 
 #ifdef WARPX_RZ
-                    // Replace the x and y, choosing the angle randomly.
+                    // Replace the x and y, setting an angle theta.
                     // These x and y are used to get the momentum and density
-                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    Real theta;
+                    if (WarpX::nmodes == 1) {
+                        // With only 1 mode, the angle doesn't matter so
+                        // choose it randomly.
+                        theta = 2.*MathConst::pi*amrex::Random();
+                    } else {
+                        theta = 2.*MathConst::pi*point[1];
+                    }
                     x = xb*std::cos(theta);
                     y = xb*std::sin(theta);
 #endif
