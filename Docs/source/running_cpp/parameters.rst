@@ -187,6 +187,15 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+    * ``gaussian_beam``: Inject particle beam with gaussian distribution in 
+      space in all directions. This requires additional parameters: 
+      ``<species_name>.q_tot`` (beam charge), 
+      ``<species_name>.npart`` (number of particles in the beam), 
+      ``<species_name>.x/y/z_m`` (average position in `x/y/z`), 
+      ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`), 
+      and optional argument ``<species_name>.do_symmetrize`` (whether to 
+      symmetrize the beam in the x and y directions).
+
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at 
     initialization. This can be required whith a moving window and/or when 

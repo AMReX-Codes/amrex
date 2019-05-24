@@ -244,6 +244,7 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
 
+    // update attribs with input arguments
     if (WarpX::gamma_boost > 1.) {
         MapParticletoBoostedFrame(x, y, z, u);
     }
@@ -254,6 +255,7 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
+        // need to create old values
         auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
         particle_tile.push_back_real(particle_comps["xold"], x);
         particle_tile.push_back_real(particle_comps["yold"], y);
@@ -263,6 +265,7 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
         particle_tile.push_back_real(particle_comps["uyold"], u[1]);
         particle_tile.push_back_real(particle_comps["uzold"], u[2]);
     }
+    // add particle
     AddOneParticle(0, 0, 0, x, y, z, attribs);
 }
 
