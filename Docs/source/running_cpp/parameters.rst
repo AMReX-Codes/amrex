@@ -475,7 +475,7 @@ Laser initialization
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``<laser_name>.do_continuous_injection`` (`0` or `1`) optional (default `0`).
-    Whether or not to use continuous injection (`0` or not `0`).
+    Whether or not to use continuous injection.
     If the antenna starts outside of the simulation domain but enters it 
     at some point (due to moving window or moving antenna in the boosted 
     frame), use this so that the laser antenna is injected when it reaches 
