@@ -47,11 +47,11 @@ Arena::allocate_system (std::size_t nbytes)
     void * p;
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_GPU_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
+        AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
     }
     else if (arena_info.device_use_managed_memory)
     {
-        AMREX_GPU_SAFE_CALL(cudaMallocManaged(&p, nbytes));
+        AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
         if (arena_info.device_set_readonly)
         {
             Gpu::Device::mem_advise_set_readonly(p, nbytes);
@@ -64,7 +64,7 @@ Arena::allocate_system (std::size_t nbytes)
     }
     else
     {
-        AMREX_GPU_SAFE_CALL(cudaMalloc(&p, nbytes));
+        AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));
     }
     return p;
 #else
@@ -78,11 +78,11 @@ Arena::deallocate_system (void* p)
 #ifdef AMREX_USE_CUDA
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_GPU_SAFE_CALL(cudaFreeHost(p));
+        AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));
     }
     else
     {
-        AMREX_GPU_SAFE_CALL(cudaFree(p));
+        AMREX_CUDA_SAFE_CALL(cudaFree(p));
     }
 #else
     std::free(p);

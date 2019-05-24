@@ -75,7 +75,7 @@ Device::Initialize ()
     // Count the number of CUDA visible devices.
 
     int cuda_device_count;
-    AMREX_GPU_SAFE_CALL(cudaGetDeviceCount(&cuda_device_count));
+    AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&cuda_device_count));
 
     if (cuda_device_count <= 0) {
         amrex::Abort("No CUDA device found");
@@ -178,8 +178,8 @@ Device::Initialize ()
 
     }
 
-    AMREX_GPU_SAFE_CALL(cudaSetDevice(device_id));
-    AMREX_GPU_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
+    AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id));
+    AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
@@ -214,14 +214,14 @@ Device::Finalize ()
 
     for (int i = 0; i < max_cuda_streams; ++i)
     {
-        AMREX_GPU_SAFE_CALL(cudaStreamDestroy(cuda_streams[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(cuda_streams[i]));
     }
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
 
-    AMREX_GPU_SAFE_CALL(cudaDeviceReset());
+    AMREX_CUDA_SAFE_CALL(cudaDeviceReset());
 #endif
 }
 
@@ -229,7 +229,7 @@ void
 Device::initialize_cuda ()
 {
 #if defined(AMREX_USE_CUDA)
-    AMREX_GPU_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
+    AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
     if (device_prop.warpSize != 32) {
         amrex::Warning("Warp size != 32");
@@ -238,16 +238,16 @@ Device::initialize_cuda ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
 
     // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
-    AMREX_GPU_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+    AMREX_CUDA_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
 
     if (sizeof(Real) == 8) {
-        AMREX_GPU_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
     } else if (sizeof(Real) == 4) {
-        AMREX_GPU_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
 
     for (int i = 0; i < max_cuda_streams; ++i) {
-        AMREX_GPU_SAFE_CALL(cudaStreamCreate(&cuda_streams[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&cuda_streams[i]));
     }
 
     cuda_stream = cuda_streams[0];
@@ -302,7 +302,7 @@ void
 Device::synchronize ()
 {
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
+    AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #endif
 }
 
@@ -310,7 +310,7 @@ void
 Device::streamSynchronize ()
 {
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaStreamSynchronize(cuda_stream));
+    AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(cuda_stream));
 #endif
 }
 
@@ -318,7 +318,7 @@ void
 Device::htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
 #endif
 
 }
@@ -327,7 +327,7 @@ void
 Device::dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
 #endif
 
 }
@@ -336,7 +336,7 @@ void
 Device::htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_stream));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_stream));
 #endif
 
 }
@@ -345,7 +345,7 @@ void
 Device::dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_stream));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_stream));
 #endif
 
 }
@@ -355,7 +355,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 
 #ifdef AMREX_USE_CUDA
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-        AMREX_GPU_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+        AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
 #endif
 
 }
@@ -364,7 +364,7 @@ void
 Device::mem_advise_set_readonly (void* p, const std::size_t sz) {
 #ifdef AMREX_USE_CUDA
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-        AMREX_GPU_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+        AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
 }
 
@@ -600,7 +600,7 @@ Device::freeMemAvailable ()
 {
 #ifdef AMREX_USE_CUDA
     std::size_t f, t;
-    AMREX_GPU_SAFE_CALL(cudaMemGetInfo(&f,&t));
+    AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));
     return f;
 #else
     return 0;

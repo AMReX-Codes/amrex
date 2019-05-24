@@ -3,6 +3,9 @@
 
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>
+namespace amrex { namespace Hip {} }
+#elif AMREX_USE_CUDA
+namespace amrex { namespace Cuda {} }
 #endif
 
 #include <AMReX_GpuQualifiers.H>
@@ -23,6 +26,9 @@
 
 namespace amrex {
     namespace Gpu {
+#ifdef AMREX_USE_HIP
+        using namespace Hip;
+#endif
         using namespace Cuda;
     }
 }
