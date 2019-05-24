@@ -105,6 +105,8 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
                      y_ptr[i] = pstruct_ptr[i].pos(1);,
                      z_ptr[i] = pstruct_ptr[i].pos(2);)
     });
+
+    Gpu::Device::streamSynchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -129,4 +131,6 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
                      pstruct_ptr[i].pos(1) = y_ptr[i];,
                      pstruct_ptr[i].pos(2) = z_ptr[i];)
     });
+
+    Gpu::Device::streamSynchronize();
 }
