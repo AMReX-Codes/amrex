@@ -18,8 +18,6 @@
 
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2drz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jrjtjz_generic_rz
-#define WRPX_PXR_RZ_VOLUME_SCALING_RHO    apply_rz_volume_scaling_rho
-#define WRPX_PXR_RZ_VOLUME_SCALING_J      apply_rz_volume_scaling_j
 #define WRPX_PXR_PUSH_BVEC                pxrpush_emrz_bvec
 #define WRPX_PXR_PUSH_EVEC                pxrpush_emrz_evec
 
@@ -107,13 +105,15 @@ contains
     real(amrex_real), intent(in), dimension(np) :: xp,yp,zp
     real(amrex_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
 #ifdef WARPX_RZ
-    real(amrex_real),intent(in):: exg(exg_lo(1):exg_hi(1),exg_lo(2):exg_hi(2),2*nmodes)
-    real(amrex_real),intent(in):: eyg(eyg_lo(1):eyg_hi(1),eyg_lo(2):eyg_hi(2),2*nmodes)
-    real(amrex_real),intent(in):: ezg(ezg_lo(1):ezg_hi(1),ezg_lo(2):ezg_hi(2),2*nmodes)
-    real(amrex_real),intent(in):: bxg(bxg_lo(1):bxg_hi(1),bxg_lo(2):bxg_hi(2),2*nmodes)
-    real(amrex_real),intent(in):: byg(byg_lo(1):byg_hi(1),byg_lo(2):byg_hi(2),2*nmodes)
-    real(amrex_real),intent(in):: bzg(bzg_lo(1):bzg_hi(1),bzg_lo(2):bzg_hi(2),2*nmodes)
+    ! The dimensions must be specified to allow the transpose
+    real(amrex_real),intent(in):: exg(exg_lo(1):exg_hi(1),exg_lo(2):exg_hi(2),2,nmodes)
+    real(amrex_real),intent(in):: eyg(eyg_lo(1):eyg_hi(1),eyg_lo(2):eyg_hi(2),2,nmodes)
+    real(amrex_real),intent(in):: ezg(ezg_lo(1):ezg_hi(1),ezg_lo(2):ezg_hi(2),2,nmodes)
+    real(amrex_real),intent(in):: bxg(bxg_lo(1):bxg_hi(1),bxg_lo(2):bxg_hi(2),2,nmodes)
+    real(amrex_real),intent(in):: byg(byg_lo(1):byg_hi(1),byg_lo(2):byg_hi(2),2,nmodes)
+    real(amrex_real),intent(in):: bzg(bzg_lo(1):bzg_hi(1),bzg_lo(2):bzg_hi(2),2,nmodes)
 #else
+    ! These could be either 2d or 3d arrays
     real(amrex_real),intent(in):: exg(*), eyg(*), ezg(*), bxg(*), byg(*), bzg(*)
 #endif
 
@@ -161,12 +161,16 @@ contains
         stop
       endif
 
-      erg_c(:,:,:) = cmplx(exg(:,:,1::2), exg(:,:,2::2), amrex_real)
-      etg_c(:,:,:) = cmplx(eyg(:,:,1::2), eyg(:,:,2::2), amrex_real)
-      ezg_c(:,:,:) = cmplx(ezg(:,:,1::2), ezg(:,:,2::2), amrex_real)
-      brg_c(:,:,:) = cmplx(bxg(:,:,1::2), bxg(:,:,2::2), amrex_real)
-      btg_c(:,:,:) = cmplx(byg(:,:,1::2), byg(:,:,2::2), amrex_real)
-      bzg_c(:,:,:) = cmplx(bzg(:,:,1::2), bzg(:,:,2::2), amrex_real)
+      ! Transpose the data, mapping the real and imagingary parts
+      ! saved separately as real numbers into complex numbers.
+      ! Note that the kind, amrex_real, must be specified, otherwise
+      ! the cmplx functions returns single precision.
+      erg_c(:,:,:) = cmplx(exg(:,:,1,:), exg(:,:,2,:), amrex_real)
+      etg_c(:,:,:) = cmplx(eyg(:,:,1,:), eyg(:,:,2,:), amrex_real)
+      ezg_c(:,:,:) = cmplx(ezg(:,:,1,:), ezg(:,:,2,:), amrex_real)
+      brg_c(:,:,:) = cmplx(bxg(:,:,1,:), bxg(:,:,2,:), amrex_real)
+      btg_c(:,:,:) = cmplx(byg(:,:,1,:), byg(:,:,2,:), amrex_real)
+      bzg_c(:,:,:) = cmplx(bzg(:,:,1,:), bzg(:,:,2,:), amrex_real)
 
       call geteb2dcirc_energy_conserving_generic(np, xp, yp, zp, ex, ey, ez, bx, by, bz, &
                                                  xmin, zmin, dx, dz, nmodes, nox, noz, &
@@ -182,6 +186,7 @@ contains
 
     else
 #endif
+    ! Either 3d, 2d Cartesian, or purely axisymmetric
     CALL WRPX_PXR_GETEB_ENERGY_CONSERVING(np,xp,yp,zp, &
          ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
          exg,exg_nguards,exg_nvalid,&
@@ -320,18 +325,18 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN) :: rmin, dr
 
 #ifdef WARPX_RZ
+
     integer(c_long) :: type_rz_depose = 1
-#endif
     
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: rho_nvalid(AMREX_SPACEDIM), rho_nguards(AMREX_SPACEDIM)
     rho_nvalid = rho_ntot - 2*rho_ng
     rho_nguards = rho_ng
 
-#ifdef WARPX_RZ
-    CALL WRPX_PXR_RZ_VOLUME_SCALING_RHO(   &
+    CALL apply_rz_volume_scaling_rho( &
                  rho,rho_nguards,rho_nvalid, &
                  rmin,dr,type_rz_depose)
+
 #endif
 
   end subroutine warpx_charge_deposition_rz_volume_scaling
@@ -374,9 +379,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(IN)                                  :: nox,noy,noz
 
 #ifdef WARPX_RZ
-    real(amrex_real), intent(IN OUT):: jx(jx_ntot(1),jx_ntot(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: jy(jy_ntot(1),jy_ntot(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: jx(jx_ntot(1),jx_ntot(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: jy(jy_ntot(1),jy_ntot(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2,nmodes)
 #else
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
 #endif
@@ -442,12 +447,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
               xmin,zmin,dt,dx,dz, &
               nox,noz,l_particles_weight,type_rz_depose)
 
-      jx(:,:,1::2) = jx(:,:,1::2) + real(jr_c)
-      jx(:,:,2::2) = jx(:,:,2::2) + aimag(jr_c)
-      jy(:,:,1::2) = jy(:,:,1::2) + real(jt_c)
-      jy(:,:,2::2) = jy(:,:,2::2) + aimag(jt_c)
-      jz(:,:,1::2) = jz(:,:,1::2) + real(jz_c)
-      jz(:,:,2::2) = jz(:,:,2::2) + aimag(jz_c)
+      jx(:,:,1,:) = jx(:,:,1,:) + real(jr_c)
+      jx(:,:,2,:) = jx(:,:,2,:) + aimag(jr_c)
+      jy(:,:,1,:) = jy(:,:,1,:) + real(jt_c)
+      jy(:,:,2,:) = jy(:,:,2,:) + aimag(jt_c)
+      jz(:,:,1,:) = jz(:,:,1,:) + real(jz_c)
+      jz(:,:,2,:) = jz(:,:,2,:) + aimag(jz_c)
 
       deallocate(jr_c)
       deallocate(jt_c)
@@ -493,9 +498,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer, intent(in) :: jr_ntot(AMREX_SPACEDIM), jt_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
     integer(c_long), intent(in) :: jr_ng, jt_ng, jz_ng
     integer(c_long), intent(in) :: nmodes
-    real(amrex_real), intent(IN OUT):: jr(jr_ntot(1),jr_ntot(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: jt(jt_ntot(1),jt_ntot(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2*nmodes)
+    real(amrex_real), intent(IN OUT):: jr(jr_ntot(1),jr_ntot(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: jt(jt_ntot(1),jt_ntot(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: jz(jz_ntot(1),jz_ntot(2),2,nmodes)
     real(amrex_real), intent(IN) :: rmin, dr
 
 #ifdef WARPX_RZ    
@@ -525,9 +530,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         stop
       endif
 
-      jr_c = cmplx(jr(:,:,1::2), jr(:,:,2::2), amrex_real)
-      jt_c = cmplx(jt(:,:,1::2), jt(:,:,2::2), amrex_real)
-      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2), amrex_real)
+      ! Transpose the data, mapping the real and imagingary parts
+      ! saved separately as real numbers into complex numbers.
+      ! Note that the kind, amrex_real, must be specified, otherwise
+      ! the cmplx functions returns single precision.
+      jr_c = cmplx(jr(:,:,1,:), jr(:,:,2,:), amrex_real)
+      jt_c = cmplx(jt(:,:,1,:), jt(:,:,2,:), amrex_real)
+      jz_c = cmplx(jz(:,:,1,:), jz(:,:,2,:), amrex_real)
 
       CALL apply_2dcirc_volume_scaling_j( &
               jr_c, jr_nguards, jr_nvalid, &
@@ -537,12 +546,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
               rmin,dr, &
               type_rz_depose)
 
-      jr(:,:,1::2) = real(jr_c)
-      jr(:,:,2::2) = aimag(jr_c)
-      jt(:,:,1::2) = real(jt_c)
-      jt(:,:,2::2) = aimag(jt_c)
-      jz(:,:,1::2) = real(jz_c)
-      jz(:,:,2::2) = aimag(jz_c)
+      ! Undo the transpose.
+      jr(:,:,1,:) = real(jr_c)
+      jr(:,:,2,:) = aimag(jr_c)
+      jt(:,:,1,:) = real(jt_c)
+      jt(:,:,2,:) = aimag(jt_c)
+      jz(:,:,1,:) = real(jz_c)
+      jz(:,:,2,:) = aimag(jz_c)
 
       deallocate(jr_c)
       deallocate(jt_c)
@@ -611,6 +621,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     END SELECT
 
     !!!! --- push particle species positions a time step
+    ! Note that for RZ, the particles are pushed in 3d space
 #if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 #elif (AMREX_SPACEDIM == 2)
@@ -714,16 +725,18 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(in) :: nmodes
 
 #ifdef WARPX_RZ
-    real(amrex_real), intent(IN OUT):: ex(exlo(1):exhi(1),exlo(2):exhi(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: by(bylo(1):byhi(1),bylo(2):byhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),2*nmodes)
+    ! The dimensions must be specified to allow the transpose
+    real(amrex_real), intent(IN OUT):: ex(exlo(1):exhi(1),exlo(2):exhi(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: by(bylo(1):byhi(1),bylo(2):byhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),2,nmodes)
 #else
+    ! These can be either 2d or 3d
     real(amrex_real), intent(IN OUT):: ex(*)
     real(amrex_real), intent(IN OUT):: ey(*)
     real(amrex_real), intent(IN OUT):: ez(*)
@@ -781,15 +794,19 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         stop
       endif
 
-      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2), amrex_real)
-      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2), amrex_real)
-      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2), amrex_real)
-      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2), amrex_real)
-      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2), amrex_real)
-      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2), amrex_real)
-      jr_c = cmplx(jx(:,:,1::2), jx(:,:,2::2), amrex_real)
-      jt_c = cmplx(jy(:,:,1::2), jy(:,:,2::2), amrex_real)
-      jz_c = cmplx(jz(:,:,1::2), jz(:,:,2::2), amrex_real)
+      ! Transpose the data, mapping the real and imagingary parts
+      ! saved separately as real numbers into complex numbers.
+      ! Note that the kind, amrex_real, must be specified, otherwise
+      ! the cmplx functions returns single precision.
+      er_c = cmplx(ex(:,:,1,:), ex(:,:,2,:), amrex_real)
+      et_c = cmplx(ey(:,:,1,:), ey(:,:,2,:), amrex_real)
+      ez_c = cmplx(ez(:,:,1,:), ez(:,:,2,:), amrex_real)
+      br_c = cmplx(bx(:,:,1,:), bx(:,:,2,:), amrex_real)
+      bt_c = cmplx(by(:,:,1,:), by(:,:,2,:), amrex_real)
+      bz_c = cmplx(bz(:,:,1,:), bz(:,:,2,:), amrex_real)
+      jr_c = cmplx(jx(:,:,1,:), jx(:,:,2,:), amrex_real)
+      jt_c = cmplx(jy(:,:,1,:), jy(:,:,2,:), amrex_real)
+      jz_c = cmplx(jz(:,:,1,:), jz(:,:,2,:), amrex_real)
 
       CALL pxrpush_emrz_evec_multimode(&
           xlo, xhi, ylo, yhi, zlo, zhi, &
@@ -807,12 +824,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
           )
 
       ! Only E needs to be copied back
-      ex(:,:,1::2) = real(er_c)
-      ex(:,:,2::2) = aimag(er_c)
-      ey(:,:,1::2) = real(et_c)
-      ey(:,:,2::2) = aimag(et_c)
-      ez(:,:,1::2) = real(ez_c)
-      ez(:,:,2::2) = aimag(ez_c)
+      ex(:,:,1,:) = real(er_c)
+      ex(:,:,2,:) = aimag(er_c)
+      ey(:,:,1,:) = real(et_c)
+      ey(:,:,2,:) = aimag(et_c)
+      ez(:,:,1,:) = real(ez_c)
+      ez(:,:,2,:) = aimag(ez_c)
 
       deallocate(er_c, et_c, ez_c)
       deallocate(br_c, bt_c, bz_c)
@@ -858,12 +875,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(in) :: nmodes
 
 #ifdef WARPX_RZ
-    real(amrex_real), intent(IN):: ex(exlo(1):exhi(1),exlo(2):exhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),2*nmodes)
-    real(amrex_real), intent(IN):: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: by(bylo(1):byhi(1),bylo(2):byhi(2),2*nmodes)
-    real(amrex_real), intent(IN OUT):: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),2*nmodes)
+    ! The dimensions must be specified to allow the transpose
+    real(amrex_real), intent(IN):: ex(exlo(1):exhi(1),exlo(2):exhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),2,nmodes)
+    real(amrex_real), intent(IN):: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: by(bylo(1):byhi(1),bylo(2):byhi(2),2,nmodes)
+    real(amrex_real), intent(IN OUT):: bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),2,nmodes)
 #else
     real(amrex_real), intent(IN):: ex(*)
     real(amrex_real), intent(IN):: ey(*)
@@ -927,12 +945,16 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         stop
       endif
 
-      er_c = cmplx(ex(:,:,1::2), ex(:,:,2::2), amrex_real)
-      et_c = cmplx(ey(:,:,1::2), ey(:,:,2::2), amrex_real)
-      ez_c = cmplx(ez(:,:,1::2), ez(:,:,2::2), amrex_real)
-      br_c = cmplx(bx(:,:,1::2), bx(:,:,2::2), amrex_real)
-      bt_c = cmplx(by(:,:,1::2), by(:,:,2::2), amrex_real)
-      bz_c = cmplx(bz(:,:,1::2), bz(:,:,2::2), amrex_real)
+      ! Transpose the data, mapping the real and imagingary parts
+      ! saved separately as real numbers into complex numbers.
+      ! Note that the kind, amrex_real, must be specified, otherwise
+      ! the cmplx functions returns single precision.
+      er_c = cmplx(ex(:,:,1,:), ex(:,:,2,:), amrex_real)
+      et_c = cmplx(ey(:,:,1,:), ey(:,:,2,:), amrex_real)
+      ez_c = cmplx(ez(:,:,1,:), ez(:,:,2,:), amrex_real)
+      br_c = cmplx(bx(:,:,1,:), bx(:,:,2,:), amrex_real)
+      bt_c = cmplx(by(:,:,1,:), by(:,:,2,:), amrex_real)
+      bz_c = cmplx(bz(:,:,1,:), bz(:,:,2,:), amrex_real)
 
       CALL pxrpush_emrz_bvec_multimode(&
           xlo, xhi, ylo, yhi, zlo, zhi, &
@@ -947,12 +969,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
           )
 
       ! Only B needs to be copied back
-      bx(:,:,1::2) = real(br_c)
-      bx(:,:,2::2) = aimag(br_c)
-      by(:,:,1::2) = real(bt_c)
-      by(:,:,2::2) = aimag(bt_c)
-      bz(:,:,1::2) = real(bz_c)
-      bz(:,:,2::2) = aimag(bz_c)
+      bx(:,:,1,:) = real(br_c)
+      bx(:,:,2,:) = aimag(br_c)
+      by(:,:,1,:) = real(bt_c)
+      by(:,:,2,:) = aimag(bt_c)
+      bz(:,:,1,:) = real(bz_c)
+      bz(:,:,2,:) = aimag(bz_c)
 
       deallocate(er_c, et_c, ez_c)
       deallocate(br_c, bt_c, bz_c)
