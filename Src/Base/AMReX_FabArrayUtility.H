@@ -50,7 +50,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *block_sum);
+                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
             });
@@ -119,7 +119,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *block_sum);
+                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
             });
@@ -189,7 +189,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *block_sum);
+                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
             });
@@ -260,7 +260,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
                 sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
-                Gpu::blockReduceMin<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Min(d_r, *block_r);
             });
@@ -334,7 +334,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
-                Gpu::blockReduceMin<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Min(d_r, *block_r);
             });
@@ -407,7 +407,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tmax;
                 __syncthreads();
 
-                Gpu::blockReduceMax<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Max(d_r, *block_r);
             });
@@ -481,7 +481,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 sdata[threadIdx.x] = tmax;
                 __syncthreads();
 
-                Gpu::blockReduceMax<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Max(d_r, *block_r);
             });
@@ -547,7 +547,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceAnd<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::And(d_r, *block_r);
             });
@@ -616,7 +616,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceAnd<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::And(d_r, *block_r);
             });
@@ -682,7 +682,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceOr<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Or(d_r, *block_r);
             });
@@ -751,7 +751,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceOr<AMREX_CUDA_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Cuda::Atomic::Or(d_r, *block_r);
             });
