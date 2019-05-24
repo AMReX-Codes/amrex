@@ -526,7 +526,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     const std::array<      amrex::MultiFab*,3>& crse,
                     int refinement_ratio)
 {
-    BL_ASSERT(rr == 2);
+    BL_ASSERT(refinement_ratio == 2);
     const IntVect& ng = (fine[0]->nGrowVect() + 1) /refinement_ratio;
 
 #ifdef _OPEMP
@@ -675,7 +675,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
 void
 WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
 {
-    BL_ASSERT(rr == 2);
+    BL_ASSERT(refinement_ratio == 2);
     const IntVect& ng = (fine.nGrowVect()+1)/refinement_ratio;
     const int nc = fine.nComp();
 
