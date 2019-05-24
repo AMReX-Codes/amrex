@@ -79,7 +79,7 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, 1, ng);
 
             const Real* dx = Geom(lev-1).CellSize();
-            const int ref_ratio = refRatio(lev-1)[0];
+            const int refinement_ratio = refRatio(lev-1)[0];
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -89,7 +89,7 @@ WarpX::UpdateAuxilaryData ()
                 {
                     Box ccbx = mfi.fabbox();
                     ccbx.enclosedCells();
-                    ccbx.coarsen(ref_ratio).refine(ref_ratio); // so that ccbx is coarsenable
+                    ccbx.coarsen(refinement_ratio).refine(refinement_ratio); // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = dBx[mfi];
                     const FArrayBox& cyfab = dBy[mfi];
@@ -106,18 +106,18 @@ WarpX::UpdateAuxilaryData ()
                                                  BL_TO_FORTRAN_ANYD(cxfab),
                                                  BL_TO_FORTRAN_ANYD(cyfab),
                                                  BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &ref_ratio,&use_limiter);
+                                                 dx, &refinement_ratio,&use_limiter);
 #else
                     amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
                                                  BL_TO_FORTRAN_ANYD(bfab[0]),
                                                  BL_TO_FORTRAN_ANYD(bfab[2]),
                                                  BL_TO_FORTRAN_ANYD(cxfab),
                                                  BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &ref_ratio,&use_limiter);
+                                                 dx, &refinement_ratio,&use_limiter);
                     amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
                                            BL_TO_FORTRAN_ANYD(bfab[1]),
                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                           &ref_ratio,&use_limiter);
+                                           &refinement_ratio,&use_limiter);
 #endif
 
                     for (int idim = 0; idim < 3; ++idim)
@@ -153,7 +153,7 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
 
-            const int ref_ratio = refRatio(lev-1)[0];
+            const int refinement_ratio = refRatio(lev-1)[0];
 #ifdef _OPEMP
 #pragma omp parallel
 #endif
@@ -163,7 +163,7 @@ WarpX::UpdateAuxilaryData ()
                 {
                     Box ccbx = mfi.fabbox();
                     ccbx.enclosedCells();
-                    ccbx.coarsen(ref_ratio).refine(ref_ratio); // so that ccbx is coarsenable
+                    ccbx.coarsen(refinement_ratio).refine(refinement_ratio); // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = dEx[mfi];
                     const FArrayBox& cyfab = dEy[mfi];
@@ -180,18 +180,18 @@ WarpX::UpdateAuxilaryData ()
                                         BL_TO_FORTRAN_ANYD(cxfab),
                                         BL_TO_FORTRAN_ANYD(cyfab),
                                         BL_TO_FORTRAN_ANYD(czfab),
-                                        &ref_ratio,&use_limiter);
+                                        &refinement_ratio,&use_limiter);
 #else
                     amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
                                         BL_TO_FORTRAN_ANYD(efab[0]),
                                         BL_TO_FORTRAN_ANYD(efab[2]),
                                         BL_TO_FORTRAN_ANYD(cxfab),
                                         BL_TO_FORTRAN_ANYD(czfab),
-                                        &ref_ratio,&use_limiter);
+                                        &refinement_ratio,&use_limiter);
                     amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
                                            BL_TO_FORTRAN_ANYD(efab[1]),
                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                           &ref_ratio);
+                                           &refinement_ratio);
 #endif
 
                     for (int idim = 0; idim < 3; ++idim)
@@ -364,7 +364,7 @@ WarpX::SyncCurrent ()
         current_cp[lev][1]->setVal(0.0);
         current_cp[lev][2]->setVal(0.0);
 
-        const IntVect& ref_ratio = refRatio(lev-1);
+        const IntVect& refinement_ratio = refRatio(lev-1);
 
         std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
                                              current_fp[lev][1].get(),
@@ -372,7 +372,7 @@ WarpX::SyncCurrent ()
         std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                              current_cp[lev][1].get(),
                                              current_cp[lev][2].get() };
-        SyncCurrent(fine, crse, ref_ratio[0]);
+        SyncCurrent(fine, crse, refinement_ratio[0]);
     }
 
     Vector<Array<std::unique_ptr<MultiFab>,3> > j_fp(finest_level+1);
@@ -524,10 +524,10 @@ WarpX::SyncCurrent ()
 void
 WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     const std::array<      amrex::MultiFab*,3>& crse,
-                    int ref_ratio)
+                    int refinement_ratio)
 {
-    BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = (fine[0]->nGrowVect() + 1) /ref_ratio;
+    BL_ASSERT(refinement_ratio == 2);
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) /refinement_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -539,7 +539,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
             for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ng);
-                Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
+                Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
                 ffab.resize(fbx);
                 fbx &= (*fine[idim])[mfi].box();
                 ffab.setVal(0.0);
@@ -564,8 +564,8 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         rhoc[lev]->setVal(0.0);
-        const IntVect& ref_ratio = refRatio(lev-1);
-        SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
+        const IntVect& refinement_ratio = refRatio(lev-1);
+        SyncRho(*rhof[lev], *rhoc[lev], refinement_ratio[0]);
     }
 
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
@@ -673,10 +673,10 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
  *  averaging the values of the charge density of the fine patch (on the same level).
  */
 void
-WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
+WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
 {
-    BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = (fine.nGrowVect()+1)/ref_ratio;
+    BL_ASSERT(refinement_ratio == 2);
+    const IntVect& ng = (fine.nGrowVect()+1)/refinement_ratio;
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
@@ -687,7 +687,7 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
         for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(ng);
-            Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
+            Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
             ffab.resize(fbx, nc);
             fbx &= fine[mfi].box();
             ffab.setVal(0.0);
@@ -710,7 +710,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     current_cp[lev][1]->setVal(0.0);
     current_cp[lev][2]->setVal(0.0);
 
-    const IntVect& ref_ratio = refRatio(lev-1);
+    const IntVect& refinement_ratio = refRatio(lev-1);
 
     std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
                                          current_fp[lev][1].get(),
@@ -718,7 +718,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                          current_cp[lev][1].get(),
                                          current_cp[lev][2].get() };
-    SyncCurrent(fine, crse, ref_ratio[0]);
+    SyncCurrent(fine, crse, refinement_ratio[0]);
 }
 
 void
@@ -824,8 +824,8 @@ WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
 {
     if (rho_fp[lev]) {
         rho_cp[lev]->setVal(0.0);
-        const IntVect& ref_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+        const IntVect& refinement_ratio = refRatio(lev-1);
+        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 }
 

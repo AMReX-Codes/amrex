@@ -1001,7 +1001,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 void
 WarpX::BuildBufferMasks ()
 {
-    int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
     for (int lev = 1; lev <= maxLevel(); ++lev)
     {
         for (int ipass = 0; ipass < 2; ++ipass)
