@@ -649,6 +649,11 @@ Diagnostics and output
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
 
+* ``warpx.lab_data_directory`` (`string`)
+    The directory in which to save the lab frame data when using the
+    **back-transformed diagnostics**. If not specified, the default is
+    is `lab_frame_data`.
+    
 * ``warpx.num_snapshots_lab`` (`integer`)
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The number of lab-frame snapshots that will be written.

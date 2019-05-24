@@ -99,6 +99,7 @@ public:
 
     // Back transformation diagnostic
     static bool do_boosted_frame_diagnostic;
+    static std::string lab_data_directory;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
     static bool do_boosted_frame_fields;

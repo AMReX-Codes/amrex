@@ -260,7 +260,8 @@ WarpX::ResetProbDomain (const RealBox& rb)
 {
     Geometry::ResetDefaultProbDomain(rb);
     for (int lev = 0; lev <= max_level; ++lev) {
-        SetGeometry(lev, Geometry(Geom(lev).Domain(), rb, Geom(lev).CoordInt(),
-                                  Geom(lev).isPeriodic()));
+        Geometry g = Geom(lev);
+        g.ProbDomain(rb);
+        SetGeometry(lev, g);
     }
 }
