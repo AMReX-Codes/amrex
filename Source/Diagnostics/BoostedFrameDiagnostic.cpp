@@ -961,7 +961,7 @@ LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain_lab,
     current_z_boost = 0.0;
     updateCurrentZPositions(t_boost, my_bfd.inv_gamma_boost_, my_bfd.inv_beta_boost_);
     initial_i = (current_z_lab - zmin_lab) / my_bfd.dz_lab_;
-    file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
+    file_name = Concatenate(WarpX::lab_data_directory + "/snapshot", file_num, 5);
 
 #ifdef WARPX_USE_HDF5
     if (ParallelDescriptor::IOProcessor())
