@@ -83,7 +83,7 @@ Finally, navigate to the base of the WarpX repository and compile in GPU mode:
 
     ::
 
-        make -j 16 COMP=gpi USE_GPU=TRUE
+        make -j 16 COMP=pgi USE_GPU=TRUE
 
 
 Building WarpX with openPMD support
