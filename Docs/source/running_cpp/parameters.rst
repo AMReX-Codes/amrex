@@ -531,6 +531,11 @@ Numerics and algorithms
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
 
+    .. warning::
+
+        The vectorized version does not run on GPU. Use
+		``algo.charge_deposition=1`` when running on GPU.
+       
 * ``algo.field_gathering`` (`integer`)
     The algorithm for field gathering:
 
