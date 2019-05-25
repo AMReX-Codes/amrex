@@ -12,7 +12,7 @@ amr.max_grid_size = 64
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
 
-amr.plot_int = 10   # How often to write plotfiles.  "<= 0" means no plotfiles.
+amr.plot_int = 40   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 1                  # 0: Cartesian
