@@ -239,12 +239,19 @@ ax.set_ylabel('Jr')
 fig.show()
 
 # Plot the modes
-Er0r_sim = data['Ex0_real'].to_ndarray()[:,:,0]
-Er0i_sim = data['Ex0_imag'].to_ndarray()[:,:,0]
-Er1r_sim = data['Ex1_real'].to_ndarray()[:,:,0]
-Er1i_sim = data['Ex1_imag'].to_ndarray()[:,:,0]
-Er2r_sim = data['Ex2_real'].to_ndarray()[:,:,0]
-Er2i_sim = data['Ex2_imag'].to_ndarray()[:,:,0]
+Er0r_sim = data['Er0_real'].to_ndarray()[:,:,0]
+Er0i_sim = data['Er0_imag'].to_ndarray()[:,:,0]
+Er1r_sim = data['Er1_real'].to_ndarray()[:,:,0]
+Er1i_sim = data['Er1_imag'].to_ndarray()[:,:,0]
+Er2r_sim = data['Er2_real'].to_ndarray()[:,:,0]
+Er2i_sim = data['Er2_imag'].to_ndarray()[:,:,0]
+
+Et0r_sim = data['Etheta0_real'].to_ndarray()[:,:,0]
+Et0i_sim = data['Etheta0_imag'].to_ndarray()[:,:,0]
+Et1r_sim = data['Etheta1_real'].to_ndarray()[:,:,0]
+Et1i_sim = data['Etheta1_imag'].to_ndarray()[:,:,0]
+Et2r_sim = data['Etheta2_real'].to_ndarray()[:,:,0]
+Et2i_sim = data['Etheta2_imag'].to_ndarray()[:,:,0]
 
 Ez0r_sim = data['Ez0_real'].to_ndarray()[:,:,0]
 Ez0i_sim = data['Ez0_imag'].to_ndarray()[:,:,0]
@@ -270,6 +277,11 @@ def plotmode(rr, ii, name, imode):
 plotmode(Er0r_sim, Er0i_sim, 'Er', 0)
 plotmode(Er1r_sim, Er1i_sim, 'Er', 1)
 plotmode(Er2r_sim, Er2i_sim, 'Er', 2)
+
+plotmode(Et0r_sim, Et0i_sim, 'Etheta', 0)
+plotmode(Et1r_sim, Et1i_sim, 'Etheta', 1)
+plotmode(Et2r_sim, Et2i_sim, 'Etheta', 2)
+
 plotmode(Ez0r_sim, Ez0i_sim, 'Ez', 0)
 plotmode(Ez1r_sim, Ez1i_sim, 'Ez', 1)
 plotmode(Ez2r_sim, Ez2i_sim, 'Ez', 2)

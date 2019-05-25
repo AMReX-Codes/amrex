@@ -379,18 +379,20 @@ AverageAndPackScalarField( MultiFab& mf_avg,
  */
 void
 AddToVarNames( Vector<std::string>& varnames,
-               Vector<std::string> names,
+               std::string name, std::string suffix,
                int nmodes ) {
-    for(auto name:names) varnames.push_back(name);
+    auto coords = {"x", "y", "z"};
+    auto coordsRZ = {"r", "theta", "z"};
+    for(auto coord:coords) varnames.push_back(name+coord+suffix);
     if (nmodes > 1) {
         // Note that the names are added in the same order as the fields
         // are packed in AverageAndPackVectorField
         for (int i = 0 ; i < nmodes ; i++) {
-            for(auto name:names) {
-                varnames.push_back(name + std::to_string(i) + "_real");
+            for(auto coord:coordsRZ) {
+                varnames.push_back(name + coord + suffix + std::to_string(i) + "_real");
             }
-            for(auto name:names) {
-                varnames.push_back(name + std::to_string(i) + "_imag");
+            for(auto coord:coordsRZ) {
+                varnames.push_back(name + coord + suffix + std::to_string(i) + "_imag");
             }
         }
     }
@@ -440,17 +442,17 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         int dcomp = 0;
         if (plot_J_field) {
             AverageAndPackVectorField(mf_avg[lev], current_fp[lev], dmap[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, {"jx","jy","jz"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "j", "", nmodes);
             dcomp += 3*modes_factor;
         }
         if (plot_E_field) {
             AverageAndPackVectorField(mf_avg[lev], Efield_aux[lev], dmap[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, {"Ex","Ey","Ez"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "E", "", nmodes);
             dcomp += 3*modes_factor;
         }
         if (plot_B_field) {
             AverageAndPackVectorField(mf_avg[lev], Bfield_aux[lev], dmap[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, {"Bx","By","Bz"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "B", "", nmodes);
             dcomp += 3*modes_factor;
         }
 
@@ -545,24 +547,24 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         if (plot_rho)
         {
             AverageAndPackScalarField( mf_avg[lev], *rho_fp[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, {"rho"}, nmodes);
-            dcomp += 1*modes_factor;
+            if(lev == 0) varnames.push_back("rho");
+            dcomp += 1;
         }
 
         if (plot_F)
         {
             AverageAndPackScalarField( mf_avg[lev], *F_fp[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, {"F"}, nmodes);
-            dcomp += 1*modes_factor;
+            if(lev == 0) varnames.push_back("F");
+            dcomp += 1;
         }
 
         if (plot_finepatch)
         {
             AverageAndPackVectorField( mf_avg[lev], Efield_fp[lev], dmap[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, {"Ex_fp","Ey_fp","Ez_fp"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "E", "_fp", nmodes);
             dcomp += 3*modes_factor;
             AverageAndPackVectorField( mf_avg[lev], Bfield_fp[lev], dmap[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, {"Bx_fp","By_fp","Bz_fp"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "B", "_fp", nmodes);
             dcomp += 3*modes_factor;
         }
 
@@ -579,7 +581,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 AverageAndPackVectorField( mf_avg[lev], E, dmap[lev], dcomp, ngrow );
 
             }
-            if (lev == 0) AddToVarNames(varnames, {"Ex_cp","Ey_cp","Ez_cp"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "E", "_cp", nmodes);
             dcomp += 3*modes_factor;
 
             // now the magnetic field
@@ -593,7 +595,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
                 AverageAndPackVectorField( mf_avg[lev], B, dmap[lev], dcomp, ngrow );
             }
-            if (lev == 0) AddToVarNames(varnames, {"Bx_cp","By_cp","Bz_cp"}, nmodes);
+            if (lev == 0) AddToVarNames(varnames, "B", "_cp", nmodes);
             dcomp += 3*modes_factor;
         }
 
