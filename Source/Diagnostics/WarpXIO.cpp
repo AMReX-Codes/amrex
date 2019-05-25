@@ -413,20 +413,28 @@ WarpX::GetCellCenteredData() {
 
     Vector<std::unique_ptr<MultiFab> > cc(finest_level+1);
 
+    // Factor to account for quantities that have multiple components.
+    // If nmodes > 1, allow space for total field and the real and
+    // imaginary part of each node. For now, also include the
+    // imaginary part of mode 0 for code symmetry, even though
+    // it is always zero.
+    int modes_factor = 1;
+    if (nmodes > 1) modes_factor = 2*nmodes + 1;
+
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         cc[lev].reset( new MultiFab(grids[lev], dmap[lev], nc, ng) );
 
         int dcomp = 0;
         // first the electric field
-        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dcomp, ng );
-        dcomp += 3;
+        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dmap[lev], dcomp, ng );
+        dcomp += 3*modes_factor;
         // then the magnetic field
-        AverageAndPackVectorField( *cc[lev], Bfield_aux[lev], dcomp, ng );
-        dcomp += 3;
+        AverageAndPackVectorField( *cc[lev], Bfield_aux[lev], dmap[lev], dcomp, ng );
+        dcomp += 3*modes_factor;
         // then the current density
-        AverageAndPackVectorField( *cc[lev], current_fp[lev], dcomp, ng );
-        dcomp += 3;
+        AverageAndPackVectorField( *cc[lev], current_fp[lev], dmap[lev], dcomp, ng );
+        dcomp += 3*modes_factor;
         // then the charge density
         const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
         AverageAndPackScalarField( *cc[lev], *charge_density, dcomp, ng );
