@@ -13,6 +13,7 @@
 #define AMREX_ALGOIM_K_H_
 
 #include <AMReX_algoim.H>
+#include <AMReX_Array.H>
 #include <bitset>
 #include <algorithm>
 #include <limits>
@@ -21,10 +22,16 @@ namespace amrex { namespace algoim {
 
 struct EBPlane
 {
-    Real cent[3];
-    Real norm[3];
+    Array<Real,3> cent{};
+    Array<Real,3> norm{};
 
-    EBPlane (Real cx, Real cy, Real cz, Real nx, Real ny, Real nz)
+    EBPlane () = default;
+
+    EBPlane (Array<Real,3> const& c, Array<Real,3> const n) noexcept
+        : cent(c), norm(n)
+        {}
+
+    EBPlane (Real cx, Real cy, Real cz, Real nx, Real ny, Real nz) noexcept
         : cent{cx,cy,cz}, norm{nx,ny,nz}
         {}
 
