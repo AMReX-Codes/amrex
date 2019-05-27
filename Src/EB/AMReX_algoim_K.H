@@ -193,18 +193,9 @@ struct BoundingBox
     }
 };
 
-template <int N>
 struct Interval
 {
     Real alpha;
-    GpuArray<Real,N> beta;
-    Real eps;
-    void setBeta (Real b) noexcept {
-        for (int i = 0; i < N; ++i) {
-            beta[i] = b;
-        }
-    }
-    void setBeta (int i, Real b) noexcept { beta[i] = b; }
 };
 
 namespace {
@@ -230,7 +221,7 @@ struct ImplicitIntegral
     int psiCount;
     const BoundingBox<N> xrange;
     int e0;
-    GpuArray<Interval<N>,N> xint;
+    GpuArray<Interval,N> xint;
     static constexpr int p = 4;
 
     // Prune the given set of functions by checking for the existence
@@ -407,13 +398,10 @@ struct ImplicitIntegral
             if (free[dim])
             {
                 xint[dim].alpha = xrange.midpoint(dim);
-                xint[dim].setBeta(0.0);
-                xint[dim].setBeta(dim,1.0);
             }
             else
             {
                 xint[dim].alpha = 0.0;
-                xint[dim].setBeta(0.0);
             }
         }
 
