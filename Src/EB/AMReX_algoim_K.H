@@ -320,13 +320,13 @@ struct ImplicitIntegral
         // namespace. Moreover, if using OpenMP tasking, each task is
         // assumed tied and so one thread can only execute
         // "evalIntegrand" from start to end uninterrupted.
-        static thread_local std::vector<Real> roots;
-        roots.clear();
+        GpuArray<Real,4> roots;
 
         // Partition [xmin(e0), xmax(e0)] by roots found
         Real x_min = xrange.min(e0);
         Real x_max = xrange.max(e0);
-        roots.push_back(x_min);
+        roots[0] = x_min;
+        int nroots = 1;
         for (int i = 0; i < psiCount; ++i)
         {
             for (int dim = 0; dim < N; ++dim) {
@@ -339,17 +339,20 @@ struct ImplicitIntegral
             Real phi_lo = phi(x);
             Real xroot = x[e0] - phi_lo / phi.grad(e0);
             if (xroot > x_min and xroot < x_max) {
-                roots.push_back(xroot);
+                roots[nroots++] = xroot;
             }
         }
-        std::sort(roots.begin() + 1, roots.end());
-        roots.push_back(x_max);
+        AMREX_ASSERT(nroots <= 3);
+        if (nroots == 3 and roots[1] > roots[2]) {
+            Real tmp = roots[1]; roots[1] = roots[2]; roots[2] = tmp;
+        }
+        roots[nroots++] = x_max;
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
         constexpr Real tol = 50.0*std::numeric_limits<Real>::epsilon();
 
         // Loop over segments of divided interval
-        for (int i = 0; i < static_cast<int>(roots.size()) - 1; ++i)
+        for (int i = 0; i < nroots - 1; ++i)
         {
             if (roots[i+1] - roots[i] < tol) continue;
 
