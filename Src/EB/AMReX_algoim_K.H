@@ -61,15 +61,16 @@ struct QuadratureRule
     {
         Real x, y, z, w;
     };
-    Vector<Node> nodes;
+    int nnodes = 0;
+    GpuArray<Node,256> nodes;
 
     template<typename F>
     Real
     operator() (const F& f) const noexcept
     {
         Real r = 0;
-        for (const auto& p : nodes) {
-            r += f(p.x,p.y,p.z) * p.w;
+        for (int i = 0; i < nnodes; ++i) {
+            r += f(nodes[i].x,nodes[i].y,nodes[i].z) * nodes[i].w;
         }
         return r;
     }
@@ -77,9 +78,13 @@ struct QuadratureRule
     // evalIntegrand records quadrature nodes when it is invoked by
     // ImplicitIntegral
     void
-    evalIntegrand (const GpuArray<Real,3>& x, Real w)
+    evalIntegrand (const GpuArray<Real,3>& x_, Real w_)
     {
-        nodes.push_back(Node{x[0],x[1],x[2],w});
+        nodes[nnodes].x = x_[0];
+        nodes[nnodes].y = x_[1];
+        nodes[nnodes].z = x_[2];
+        nodes[nnodes].w = w_;
+        ++nnodes;
     }
 };
 
@@ -112,8 +117,9 @@ namespace detail
             bottomSign = positiveAbove? -1 : 0;
             topSign = positiveAbove? 0 : -1;
         }
-        else
+        else {
             bottomSign = topSign = 0;
+        }
     }
 } // namespace detail
 
