@@ -14,6 +14,9 @@ compute_integrals (MultiFab& intg, int nghost)
 void
 compute_integrals (MultiFab& intgmf, IntVect nghost)
 {
+#if (AMREX_SPACEDIM == 2)
+    amrex::Abort("amrex::algoim::compute_integrals is 3D only");
+#else
     // todo: gpu
     Gpu::LaunchSafeGuard lg(false);
 
@@ -120,6 +123,7 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
             }
         }
     }
+#endif
 }
 
 }}
