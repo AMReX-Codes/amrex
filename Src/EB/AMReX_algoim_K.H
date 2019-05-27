@@ -97,7 +97,7 @@ namespace detail
     // J. Sci. Comput., Vol. 37, No. 2, pp. A993-A1019,
     // http://dx.doi.org/10.1137/140966290].
     inline void
-    determineSigns(bool positiveAbove, int sign, int& bottomSign, int& topSign)
+    determineSigns (bool positiveAbove, int sign, int& bottomSign, int& topSign)
     {
         // When evaluating a volume integral:
         //   If 0 integrating over the positive part:
@@ -132,8 +132,8 @@ template<int N>
 struct PsiCode
 {
     std::bitset<N + 2> bits;
-    PsiCode() {}
-    PsiCode(const GpuArray<int,N>& sides, int sign)
+    PsiCode () {}
+    PsiCode (const GpuArray<int,N>& sides, int sign)
     {
         for (int dim = 0; dim < N; ++dim) {
             bits[dim] = sides[dim] == 1;
@@ -145,7 +145,7 @@ struct PsiCode
         }
     }
     // Modify an existing code by restriction in a particular dimension.
-    PsiCode(const PsiCode& i, int dim, int side, int sign)
+    PsiCode (const PsiCode& i, int dim, int side, int sign)
         : bits(i.bits)
     {
         bits[dim] = side == 1;
@@ -155,11 +155,11 @@ struct PsiCode
             bits[N] = 0, bits[N+1] = sign == 1;
         }
     }
-    inline int side(int dim) const
+    inline int side (int dim) const
     {
         return bits[dim] ? 1 : 0;
     }
-    inline int sign() const
+    inline int sign () const
     {
         return bits[N] ? 0 : (bits[N+1] ? 1 : -1);
     }
@@ -168,28 +168,22 @@ struct PsiCode
 template <int N>
 struct BoundingBox
 {
-    GpuArray<GpuArray<Real,N>,2> b;  // 2 sides
+    static constexpr Real min (int /*dim*/) const noexcept { return -0.5; }
 
-    Real min (int dim) const noexcept { return b[0][dim]; }
+    static constexpr Real max (int /*dim*/) const noexcept { return  0.5; }
 
-    Real max (int dim) const noexcept { return b[1][dim]; }
+    static constexpr Real extent (int /*dim*/) const noexcept { return 1.0; }
 
-    Real extent (int dim) const noexcept { return b[1][dim]-b[0][dim]; }
-
-    GpuArray<Real,N> midpoint () const noexcept {
-        GpuArray<Real,N> r;
-        for (int dim = 0; dim < N; ++dim) {
-            r[dim] = 0.5*(b[0][dim]+b[1][dim]);
-        }
-        return r;
+    static constexpr GpuArray<Real,N> midpoint () const noexcept {
+        return GpuArray<Real,N>{};
     }
 
-    Real midpoint (int dim) const noexcept {
-        return 0.5*(b[0][dim]+b[1][dim]);
+    static constexpr Real midpoint (int /*dim*/) const noexcept {
+        return 0.0;
     }
 
-    Real operator() (int side, int dim) const noexcept {
-        return b[side][dim];
+    static constexpr Real operator() (int side, int /*dim*/) const noexcept {
+        return (side == 0) ? -0.5 : 0.5;
     }
 };
 
@@ -268,7 +262,7 @@ struct ImplicitIntegral
 
     // Gaussian quadrature for when the domain of integration is
     // determined to be the entire M-dimensional cube.
-    void tensorProductIntegral()
+    void tensorProductIntegral ()
     {
         int nloops = 1;
         for (int i = 0; i < M; ++i) {
@@ -373,11 +367,11 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    ImplicitIntegral(const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
-                     const std::array<PsiCode<N>,1 << (N-1)>& psi_,
-                     int psiCount_, const BoundingBox<N>& xrange_)
+    ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
+                      const std::array<PsiCode<N>,1 << (N-1)>& psi_,
+                      int psiCount_)
         : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
-          xrange(xrange_)
+          xrange()
     {
         // For the one-dimensional base case, evaluate the
         // bottom-level integral.
@@ -463,7 +457,7 @@ struct ImplicitIntegral
         GpuArray<bool,N> new_free = free;
         new_free[e0] = false;
         ImplicitIntegral<M-1,N,Phi,ImplicitIntegral<M,N,Phi,F> >
-            (phi, *this, new_free, newPsi, newPsiCount, xrange);
+            (phi, *this, new_free, newPsi, newPsiCount);
     }
 };
 
@@ -471,9 +465,9 @@ struct ImplicitIntegral
 template<int N, typename Phi, typename F>
 struct ImplicitIntegral<0,N,Phi,F>
 {
-    ImplicitIntegral(const Phi&, F&, const GpuArray<bool,N>&,
-                     const std::array<PsiCode<N>,1 << (N-1)>&,
-                     int, const BoundingBox<N>&) {}
+    ImplicitIntegral (const Phi&, F&, const GpuArray<bool,N>&,
+                      const std::array<PsiCode<N>,1 << (N-1)>&,
+                      int, const BoundingBox<N>&) {}
 };
 
 AMREX_INLINE
@@ -482,11 +476,9 @@ quadGen (EBPlane const& phi)
 {
     QuadratureRule q;
     GpuArray<bool,3> free{true,true,true};
-    BoundingBox<3> xrange{GpuArray<Real,3>{-0.5, -0.5, -0.5},
-                          GpuArray<Real,3>{ 0.5,  0.5,  0.5}};
     std::array<PsiCode<3>,4> psi;
     psi[0] = PsiCode<3>({0,0,0}, -1);
-    ImplicitIntegral<3,3,EBPlane,QuadratureRule>(phi, q, free, psi, 1, xrange);
+    ImplicitIntegral<3,3,EBPlane,QuadratureRule>(phi, q, free, psi, 1);
     return q;
 }
 
