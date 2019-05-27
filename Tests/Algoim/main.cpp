@@ -119,11 +119,12 @@ int main (int argc, char* argv[])
         amrex::Print() << "New and old performance times: " << tnew << " "
                        << told << "\n";
 
-        amrex::Print() << "\nMax diff. " << smax << " with\n    centroid("
-                       << ebmax.cent[0] << "," << ebmax.cent[1] << ","
-                       << ebmax.cent[2] << ")\n    normal  (" << ebmax.norm[0]
-                       << "," << ebmax.norm[1] << ","
-                       << ebmax.norm[2] << ")\n\n";
+        amrex::Print().SetPrecision(17)
+            << "\nMax diff. " << smax << " with\n    centroid("
+            << ebmax.cent[0] << "," << ebmax.cent[1] << ","
+            << ebmax.cent[2] << ")\n    normal  (" << ebmax.norm[0]
+            << "," << ebmax.norm[1] << ","
+            << ebmax.norm[2] << ")\n\n";
     }
 
     amrex::Finalize();
