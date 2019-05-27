@@ -49,6 +49,7 @@ struct EBshape
 }
 
 void test_algoim (algoim::EBPlane& ebmax, Real& smax, algoim::EBPlane const& p);
+Real test_algoim_perf (Vector<algoim::EBPlane> const& planes, Real& tnew, Real& told);
 
 int main (int argc, char* argv[])
 {
@@ -56,9 +57,11 @@ int main (int argc, char* argv[])
 
     {
         long ntry = 1000;
+        long nperf = 1000000;
         {
             ParmParse pp;
             pp.query("ntry", ntry);
+            pp.query("nperf", nperf);
         }
 
         algoim::EBPlane ebmax;
@@ -96,6 +99,26 @@ int main (int argc, char* argv[])
             }
         }
 
+        Vector<algoim::EBPlane> planes;
+        for (long iperf = 0; iperf < nperf; ++iperf) {
+            Real d1 = amrex::Random()-0.5;
+            Real d2 = amrex::Random()-0.5;
+            Real d3 = amrex::Random()-0.5;
+            Real d4 = amrex::Random()-0.5;
+            Real d5 = amrex::Random()-0.5;
+            Real d6 = amrex::Random()-0.5;
+            if (d4 != 0.0 or d5 != 0.0 or d6 != 0.0) {
+                planes.emplace_back(Array<Real,3>{d1,d2,d3},
+                                    normal(d4,d5,d6));
+            }
+        }
+
+        Real tnew, told;
+        Real total = test_algoim_perf(planes, tnew, told);
+        if (total != 0) amrex::Print() << "\n";
+        amrex::Print() << "New and old performance times: " << tnew << " "
+                       << told << "\n";
+
         amrex::Print() << "\nMax diff. " << smax << " with\n    centroid("
                        << ebmax.cent[0] << "," << ebmax.cent[1] << ","
                        << ebmax.cent[2] << ")\n    normal  (" << ebmax.norm[0]
@@ -106,12 +129,11 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
-void
-test_algoim (algoim::EBPlane& ebmax, Real& smax, algoim::EBPlane const& p)
+AMREX_FORCE_INLINE void
+test_algoim_new (QuadratureRule const& q, Real& vol,
+                 Array<Real,algoim::numIntgs>& intg)
 {
-    const QuadratureRule q = quadGen(p);
-    Array<Real,algoim::numIntgs> intg;
-    Real vol        = q([](Real x, Real y, Real z) {return 1.0;});
+    vol             = q([](Real x, Real y, Real z) {return 1.0;});
     intg[i_S_x    ] = q([](Real x, Real y, Real z) {return x; });
     intg[i_S_y    ] = q([](Real x, Real y, Real z) {return y; });
     intg[i_S_z    ] = q([](Real x, Real y, Real z) {return z; });
@@ -130,29 +152,46 @@ test_algoim (algoim::EBPlane& ebmax, Real& smax, algoim::EBPlane const& p)
     intg[i_S_x2_y2] = q([](Real x, Real y, Real z) {return x*x*y*y;});
     intg[i_S_x2_z2] = q([](Real x, Real y, Real z) {return x*x*z*z;});
     intg[i_S_y2_z2] = q([](Real x, Real y, Real z) {return y*y*z*z;});
+}
+
+AMREX_FORCE_INLINE void
+test_algoim_old (orig_algoim::QuadratureRule<3> const& q, Real& vol,
+                 Array<Real,algoim::numIntgs>& intg)
+{
+    vol             = q([](const auto& w) {return 1.0;});
+    intg[i_S_x    ] = q([](const auto& w) {return w[0]; });
+    intg[i_S_y    ] = q([](const auto& w) {return w[1]; });
+    intg[i_S_z    ] = q([](const auto& w) {return w[2]; });
+    intg[i_S_x2   ] = q([](const auto& w) {return w[0]*w[0]; });
+    intg[i_S_y2   ] = q([](const auto& w) {return w[1]*w[1]; });
+    intg[i_S_z2   ] = q([](const auto& w) {return w[2]*w[2]; });
+    intg[i_S_x_y  ] = q([](const auto& w) {return w[0]*w[1]; });
+    intg[i_S_x_z  ] = q([](const auto& w) {return w[0]*w[2]; });
+    intg[i_S_y_z  ] = q([](const auto& w) {return w[1]*w[2]; });
+    intg[i_S_x2_y ] = q([](const auto& w) {return w[0]*w[0]*w[1]; });
+    intg[i_S_x2_z ] = q([](const auto& w) {return w[0]*w[0]*w[2]; });
+    intg[i_S_x_y2 ] = q([](const auto& w) {return w[0]*w[1]*w[1]; });
+    intg[i_S_y2_z ] = q([](const auto& w) {return w[1]*w[1]*w[2]; });
+    intg[i_S_x_z2 ] = q([](const auto& w) {return w[0]*w[2]*w[2]; });
+    intg[i_S_y_z2 ] = q([](const auto& w) {return w[1]*w[2]*w[2]; });
+    intg[i_S_x2_y2] = q([](const auto& w) {return w[0]*w[0]*w[1]*w[1];});
+    intg[i_S_x2_z2] = q([](const auto& w) {return w[0]*w[0]*w[2]*w[2];});
+    intg[i_S_y2_z2] = q([](const auto& w) {return w[1]*w[1]*w[2]*w[2];});
+}
+
+void
+test_algoim (algoim::EBPlane& ebmax, Real& smax, algoim::EBPlane const& p)
+{
+    const QuadratureRule q = quadGen(p);
+    Real vol;
+    Array<Real,algoim::numIntgs> intg;
+    test_algoim_new(q, vol, intg);
 
     EBshape phi = p;
     const auto q2 = orig_algoim::quadGen<3>(phi, orig_algoim::BoundingBox<Real,3>({-0.5,-0.5,-0.5},{0.5,0.5,0.5}), -1, -1, 4);
+    Real vol2;
     Array<Real,algoim::numIntgs> intg2;
-    Real vol2        = q2([](const auto& w) {return 1.0;});
-    intg2[i_S_x    ] = q2([](const auto& w) {return w[0]; });
-    intg2[i_S_y    ] = q2([](const auto& w) {return w[1]; });
-    intg2[i_S_z    ] = q2([](const auto& w) {return w[2]; });
-    intg2[i_S_x2   ] = q2([](const auto& w) {return w[0]*w[0]; });
-    intg2[i_S_y2   ] = q2([](const auto& w) {return w[1]*w[1]; });
-    intg2[i_S_z2   ] = q2([](const auto& w) {return w[2]*w[2]; });
-    intg2[i_S_x_y  ] = q2([](const auto& w) {return w[0]*w[1]; });
-    intg2[i_S_x_z  ] = q2([](const auto& w) {return w[0]*w[2]; });
-    intg2[i_S_y_z  ] = q2([](const auto& w) {return w[1]*w[2]; });
-    intg2[i_S_x2_y ] = q2([](const auto& w) {return w[0]*w[0]*w[1]; });
-    intg2[i_S_x2_z ] = q2([](const auto& w) {return w[0]*w[0]*w[2]; });
-    intg2[i_S_x_y2 ] = q2([](const auto& w) {return w[0]*w[1]*w[1]; });
-    intg2[i_S_y2_z ] = q2([](const auto& w) {return w[1]*w[1]*w[2]; });
-    intg2[i_S_x_z2 ] = q2([](const auto& w) {return w[0]*w[2]*w[2]; });
-    intg2[i_S_y_z2 ] = q2([](const auto& w) {return w[1]*w[2]*w[2]; });
-    intg2[i_S_x2_y2] = q2([](const auto& w) {return w[0]*w[0]*w[1]*w[1];});
-    intg2[i_S_x2_z2] = q2([](const auto& w) {return w[0]*w[0]*w[2]*w[2];});
-    intg2[i_S_y2_z2] = q2([](const auto& w) {return w[1]*w[1]*w[2]*w[2];});
+    test_algoim_old(q2, vol2, intg2);
 
     Real lsmax = std::abs(vol-vol2);
     for (int i = 0; i < numIntgs; ++i) {
@@ -163,4 +202,40 @@ test_algoim (algoim::EBPlane& ebmax, Real& smax, algoim::EBPlane const& p)
         smax = lsmax;
         ebmax = p;
     }
+}
+
+Real test_algoim_perf (Vector<algoim::EBPlane> const& planes, Real& tnew, Real& told)
+{
+    Real total = 0.0;
+
+    Real t0 = amrex::second();
+
+    for (auto const& p : planes)
+    {
+        const QuadratureRule q = quadGen(p);
+        Real vol;
+        Array<Real,algoim::numIntgs> intg;
+        test_algoim_new(q, vol, intg);
+        total += vol;
+        for (auto x : intg) total += x;
+    }
+
+    Real t1 = amrex::second();
+
+    for (auto const& p : planes)
+    {
+        EBshape phi = p;
+        const auto q = orig_algoim::quadGen<3>(phi, orig_algoim::BoundingBox<Real,3>({-0.5,-0.5,-0.5},{0.5,0.5,0.5}), -1, -1, 4);
+        Real vol;
+        Array<Real,algoim::numIntgs> intg;
+        test_algoim_old(q, vol, intg);
+        total += vol;
+        for (auto x : intg) total += x;
+    }
+
+    Real t2 = amrex::second();
+
+    tnew = t1-t0;
+    told = t2-t1;
+    return total;
 }
