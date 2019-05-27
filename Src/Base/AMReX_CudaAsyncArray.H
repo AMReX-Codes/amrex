@@ -33,7 +33,7 @@ public:
         {
             d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
             AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_data, h_data, n*sizeof(T),
-                                                cudaMemcpyHostToDevice, Device::cudaStream()));
+                                                cudaMemcpyHostToDevice, Gpu::Device::gpuStream()));
         }
 #endif
     }
@@ -67,7 +67,7 @@ public:
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
-                AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
+                AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Gpu::Device::gpuStream(),
                                                           amrex_asyncarray_delete, p, 0));
             }
         }
@@ -87,7 +87,7 @@ public:
         if (d_data)
         {
             AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(h_p, d_data, n*sizeof(T),
-                                                cudaMemcpyDeviceToHost, Device::cudaStream()));
+                                                cudaMemcpyDeviceToHost, Gpu::Device::gpuStream()));
         }
         else
 #endif

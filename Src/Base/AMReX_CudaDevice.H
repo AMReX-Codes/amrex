@@ -10,7 +10,16 @@
 #include <AMReX_GpuControl.H>
 
 namespace amrex {
-namespace Cuda {
+
+#if defined(AMREX_USE_HIP)
+using gpuStream_t     = hipStream_t;
+using gpuDeviceProp_t = hipDeviceProp_t;
+#elif defined(AMREX_USE_CUDA)
+using gpuStream_t     = cudaStream_t;
+using gpuDeviceProp_t = cudaDeviceProp;
+#endif
+
+namespace Gpu {
 
 class Device
 {
@@ -20,8 +29,8 @@ public:
     static void Initialize ();
     static void Finalize ();
 
-#if defined(AMREX_USE_CUDA)
-    static cudaStream_t cudaStream () noexcept { return cuda_stream; }
+#if defined(AMREX_USE_GPU)
+    static gpuStream_t gpuStream () noexcept { return gpu_stream; }
 #endif
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
@@ -39,7 +48,7 @@ public:
     static void mem_advise_set_preferred (void* p, const std::size_t sz, const int device);
     static void mem_advise_set_readonly (void* p, const std::size_t sz);
 
-#if defined(AMREX_USE_CUDA)
+#ifdef AMREX_USE_GPU
     static void setNumThreadsMin (int nx, int ny, int nz) noexcept;
     static void n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
@@ -60,20 +69,21 @@ public:
 
 private:
 
-    static void initialize_cuda ();
+    static void initialize_gpu ();
 
     static int device_id;
     static int verbose;
 
-#if defined(AMREX_USE_CUDA)
-    static constexpr int max_cuda_streams = 16;
-    static std::array<cudaStream_t,max_cuda_streams> cuda_streams;
-    static cudaStream_t cuda_stream;
-
+#ifdef AMREX_USE_GPU
+    static constexpr int max_gpu_streams = 16;
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
-    static cudaDeviceProp device_prop;
+    static std::array<hipStream_t,max_gpu_streams> gpu_streams;
+    static gpuStream_t gpu_stream;
+    static gpuDeviceProp_t device_prop;
+
+    static int warp_size;
 #endif
 };
 
