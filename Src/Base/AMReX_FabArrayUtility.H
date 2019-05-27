@@ -37,7 +37,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_sum = gsm.dataPtr();
@@ -106,7 +106,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_sum = gsm.dataPtr();
@@ -176,7 +176,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_sum = gsm.dataPtr();
@@ -242,7 +242,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_r = gsm.dataPtr();
@@ -316,7 +316,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_r = gsm.dataPtr();
@@ -389,7 +389,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_r = gsm.dataPtr();
@@ -463,7 +463,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<value_type> gsm;
                 value_type* block_r = gsm.dataPtr();
@@ -534,7 +534,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<int> gsm;
                 int* block_r = gsm.dataPtr();
@@ -603,7 +603,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<int> gsm;
                 int* block_r = gsm.dataPtr();
@@ -669,7 +669,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<int> gsm;
                 int* block_r = gsm.dataPtr();
@@ -738,7 +738,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::Device::cudaStream()>>>(
+                                   Gpu::Device::gpuStream()>>>(
             [=] AMREX_GPU_DEVICE () {
                 Gpu::SharedMemory<int> gsm;
                 int* block_r = gsm.dataPtr();

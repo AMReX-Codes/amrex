@@ -38,7 +38,7 @@ Elixir::clear () noexcept
             void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));
             p[0] = m_p;
             p[1] = (void*)m_arena;
-            AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
+            AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::Device::gpuStream(),
                                                        amrex_elixir_delete, p, 0));
         }
     }
