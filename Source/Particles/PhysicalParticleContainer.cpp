@@ -224,7 +224,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
                             u_tmp[0] *= std::pow(-1,ix);
                             y        *= std::pow(-1,iy);
                             u_tmp[1] *= std::pow(-1,iy);
-                            CheckAndAddParticle(x, y, z, u_tmp, weight);
+                            CheckAndAddParticle(x, y, z, u_tmp, weight/4);
                         }
                     }
                 } else {
