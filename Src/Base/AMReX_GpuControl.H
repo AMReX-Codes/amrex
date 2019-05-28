@@ -42,7 +42,7 @@ namespace Cuda {
 
     struct GraphSafeGuard
     {
-        GraphSafeGuard (bool flag) noexcept
+        explicit GraphSafeGuard (bool flag) noexcept
             : m_old(setGraphRegion(in_graph_region && flag)) {}
         ~GraphSafeGuard () { setGraphRegion(m_old); }
     private:
@@ -66,7 +66,7 @@ namespace Cuda {
 
     struct GraphSafeGuard
     {
-        GraphSafeGuard (bool) {}
+        explicit GraphSafeGuard (bool) {}
     };
 
 #endif
