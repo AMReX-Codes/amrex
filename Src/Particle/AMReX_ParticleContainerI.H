@@ -4077,7 +4077,7 @@ AssignCellDensitySingleLevel (int rho_index,
             }
                 
 #ifdef _OPENMP
-            fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, 1);
+            fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
 #endif            
         }
     }
