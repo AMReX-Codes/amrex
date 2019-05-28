@@ -14,7 +14,6 @@
 
 #include <AMReX_algoim.H>
 #include <AMReX_Array.H>
-#include <bitset>
 #include <limits>
 #include <cfloat>
 
@@ -137,37 +136,51 @@ namespace detail
 template<int N>
 struct PsiCode
 {
-    std::bitset<N + 2> bits;
+    unsigned char bits = 0;
+
     PsiCode () {}
+
     PsiCode (const GpuArray<int,N>& sides, int sign)
     {
+        static_assert(N <= 3, "algoim::PsiCode: N must be <= 3");
         for (int dim = 0; dim < N; ++dim) {
-            bits[dim] = sides[dim] == 1;
+            if (sides[dim] == 1) {
+                bits |= (1 << dim);
+            }
         }
         if (sign == 0) {
-            bits[N] = 1;
+            bits |= (1 << N);
         } else {
-            bits[N] = 0, bits[N+1] = sign == 1;
+            bits &= ~(1 << N);
+            if (sign == 1) {
+                bits |= (1 << (N+1));
+            }
         }
     }
+
     // Modify an existing code by restriction in a particular dimension.
     PsiCode (const PsiCode& i, int dim, int side, int sign)
         : bits(i.bits)
     {
-        bits[dim] = side == 1;
+        if (side == 1) {
+            bits |= (1 << dim);
+        }
         if (sign == 0) {
-            bits[N] = 1;
+            bits |= (1 << N);
         } else {
-            bits[N] = 0, bits[N+1] = sign == 1;
+            bits &= ~(1 << N);
+            if (sign == 1) {
+                bits |= (1 << (N+1));
+            }
         }
     }
     inline int side (int dim) const
     {
-        return bits[dim] ? 1 : 0;
+        return bits & (1 << dim);
     }
     inline int sign () const
     {
-        return bits[N] ? 0 : (bits[N+1] ? 1 : -1);
+        return (bits & (1 << N)) ? 0 : ((bits & (1 << (N+1))) ? 1 : -1);
     }
 };
 
