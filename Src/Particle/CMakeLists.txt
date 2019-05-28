@@ -34,5 +34,4 @@ target_sources( amrex
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
    AMReX_KDTree_${DIM}d.F90
-   AMReX_OMPDepositionHelper_nd.F90
    )
