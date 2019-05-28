@@ -95,9 +95,10 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
     AMREX_D_TERM(x.resize(np);, y.resize(np);, z.resize(np););
     
     const auto pstruct_ptr = aos().data();
-    auto x_ptr = x.data();
-    auto y_ptr = y.data();
-    auto z_ptr = z.data();
+
+    AMREX_D_TERM(auto x_ptr = x.data();,
+                 auto y_ptr = y.data();,
+                 auto z_ptr = z.data();)
     
     AMREX_FOR_1D( np, i,
     {
@@ -119,9 +120,10 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
     const auto np = aos.numParticles();
 
     auto pstruct_ptr = aos().data();
-    const auto x_ptr = x.data();
-    const auto y_ptr = y.data();
-    const auto z_ptr = z.data();
+
+    AMREX_D_TERM(const auto x_ptr = x.data();,
+                 const auto y_ptr = y.data();,
+                 const auto z_ptr = z.data();)
     
     AMREX_ASSERT(AMREX_D_TERM(x.size() == np, && y.size() == np, && z.size() == np));
     
