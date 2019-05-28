@@ -424,12 +424,6 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES,NO          |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_3D_NODAL_MGML         |  Enable 3D nodal projection                     | NO          | YES,NO          |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ALGOIM_INSTALL_DIR           |  Path to Algoim installation directory          |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | BLITZ_INSTALL_DIR            |  Path to Blitz installation directory           |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_SUNDIALS              |  Enable SUNDIALS 4 interfaces                   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_SENSEI_IN_SITU        |  Enable SENSEI_IN_SITU infrastucture            | NO          | YES, NO         |
@@ -454,12 +448,6 @@ If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
 they will be initialized with the value of the environmental variables ``FFLAGS``/
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
 are defined, AMReX default flags are used.
-
-The option ``ENABLE_3D_NODAL_MGML`` enables AMReX 3D nodal projection. This option requires
-two external libraries: Blitz and Algoim. The user can provide the location of
-both libraries via ``BLITZ_INSTALL_DIR`` and ``ALGOIM_INSTALL_DIR``. However, if one or both of these
-options is not provided, AMReX will download and build Blitz and/or Algoim automatically.
-It should be noted that AMReX 2D nodal projection does not require the use of external libraries.
 
 For a detailed explanation of CUDA support in CMake, refer to section :ref:`sec:gpu:build`.
 
