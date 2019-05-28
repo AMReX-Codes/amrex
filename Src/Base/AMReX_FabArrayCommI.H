@@ -113,8 +113,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 // Launch Graph
                 const_cast<FB&>(TheFB).m_localCopy.executeGraph();
 
-            } else { 
+            }
+            else
 #endif
+            {
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -133,9 +135,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         });
                     }
                 }
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
             }
-#endif
         }
         else
         {
@@ -356,9 +356,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             // Launch Graph
             const_cast<FB&>(TheFB).m_copyToBuffer.executeGraph();
 
-        } else {
-
+        }
+        else
 #endif
+        {
 
 #ifdef _OPENMP
 #pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
@@ -384,9 +385,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     BL_ASSERT(dptr == send_data[j] + send_size[j]); 
                 }
             }
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
         }
-#endif
+
         int send_counter = 0;
         while (send_counter < N_snds)
         {
@@ -495,10 +495,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 // Launch Graph
                 const_cast<FB&>(TheFB).m_localCopy.executeGraph();            
 
-            } else {
-
+            }
+            else
 #endif
-
+            {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -521,9 +521,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         }
                     }
                 }
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             }
-#endif
 
         }
         else
@@ -675,8 +673,10 @@ FabArray<FAB>::FillBoundary_finish ()
                 const_cast<FB&>(TheFB).m_copyFromBuffer.executeGraph();
 
 
-            } else {
+            }
+            else
 #endif
+            {
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -696,9 +696,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         });
                     }
                 }
-#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             } 
-#endif
         }
         else
         {
