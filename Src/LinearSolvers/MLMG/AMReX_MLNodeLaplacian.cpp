@@ -7,12 +7,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
-#endif
-
-#ifdef AMREX_USE_EB
-#ifdef AMREX_USE_ALGOIM
-#include <AMReX_algoim_integrals.H>
-#endif
+#include <AMReX_algoim.H>
 #endif
 
 #ifdef _OPENMP
@@ -1104,7 +1099,6 @@ MLNodeLaplacian::buildStencil ()
     if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
 
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
-    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Geometry::IsRZ(),
@@ -1151,6 +1145,7 @@ MLNodeLaplacian::buildStencil ()
                     const FArrayBox& sgfab_orig = (*m_sigma[amrlev][0][0])[mfi];
                     
 #ifdef AMREX_USE_EB
+                    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
                     bool regular = !factory;
                     if (factory)
                     {
@@ -1472,7 +1467,6 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     }
 
     const Geometry& cgeom = m_geom[camrlev  ][0];
-    const Box& c_cc_domain = cgeom.Domain();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
     const auto& stencil    =  m_stencil[camrlev+1][0];
@@ -2297,14 +2291,10 @@ MLNodeLaplacian::buildIntegral ()
         }
     }
 #else
-#ifdef AMREX_USE_ALGOIM
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        amrex::compute_integrals(*m_integral[amrlev]);
+        amrex::algoim::compute_integrals(*m_integral[amrlev]);
     }
-#else
-    amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
-#endif
 #endif
 }
 #endif
