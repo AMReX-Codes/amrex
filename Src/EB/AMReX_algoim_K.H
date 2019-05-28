@@ -15,19 +15,19 @@
 #include <AMReX_algoim.H>
 #include <AMReX_Array.H>
 #include <bitset>
-#include <algorithm>
 #include <limits>
+#include <cfloat>
 
 namespace amrex { namespace algoim {
 
 struct EBPlane
 {
-    Array<Real,3> cent{};
-    Array<Real,3> norm{};
+    GpuArray<Real,3> cent{};
+    GpuArray<Real,3> norm{};
 
     EBPlane () = default;
 
-    EBPlane (Array<Real,3> const& c, Array<Real,3> const n) noexcept
+    EBPlane (GpuArray<Real,3> const& c, GpuArray<Real,3> const n) noexcept
         : cent(c), norm(n)
         {}
 
@@ -90,6 +90,12 @@ struct QuadratureRule
 
 namespace detail
 {
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE void swap (T& a, T& b) noexcept {
+        T c(a); a=b; b=c;
+    }
+
     // Determines the sign conditions for restricting a (possibly
     // already restricted) level set function, i.e., sgn_L and sgn_U
     // in [R. Saye, High-Order Quadrature Methods for Implicitly
@@ -168,21 +174,19 @@ struct PsiCode
 template <int N>
 struct BoundingBox
 {
-    static constexpr Real min (int /*dim*/) const noexcept { return -0.5; }
+    static constexpr Real min (int /*dim*/) noexcept { return -0.5; }
 
-    static constexpr Real max (int /*dim*/) const noexcept { return  0.5; }
+    static constexpr Real max (int /*dim*/) noexcept { return  0.5; }
 
-    static constexpr Real extent (int /*dim*/) const noexcept { return 1.0; }
+    static constexpr Real extent (int /*dim*/) noexcept { return 1.0; }
 
-    static constexpr GpuArray<Real,N> midpoint () const noexcept {
+    static constexpr GpuArray<Real,N> midpoint () noexcept {
         return GpuArray<Real,N>{};
     }
 
-    static constexpr Real midpoint (int /*dim*/) const noexcept {
-        return 0.0;
-    }
+    static constexpr Real midpoint (int /*dim*/) noexcept { return 0.0; }
 
-    static constexpr Real operator() (int side, int /*dim*/) const noexcept {
+    constexpr Real operator() (int side, int /*dim*/) const noexcept {
         return (side == 0) ? -0.5 : 0.5;
     }
 };
@@ -211,7 +215,7 @@ struct ImplicitIntegral
     const Phi& phi;
     F& f;
     const GpuArray<bool,N> free;
-    std::array<PsiCode<N>,1 << (N - 1)> psi;
+    GpuArray<PsiCode<N>,1 << (N - 1)> psi;
     int psiCount;
     const BoundingBox<N> xrange;
     int e0;
@@ -226,7 +230,12 @@ struct ImplicitIntegral
     // empty.
     bool prune ()
     {
-        static constexpr Real almostone = 1.0-10.*std::numeric_limits<Real>::epsilon();
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+        static constexpr Real eps = std::numeric_limits<Real>::epsilon();
+#else
+        static constexpr Real eps = DBL_EPSILON;
+#endif
+        static constexpr Real almostone = 1.0-10.*eps;
         for (int i = 0; i < psiCount; )
         {
             GpuArray<Real,N> mid = xrange.midpoint();
@@ -247,7 +256,7 @@ struct ImplicitIntegral
                     phi_0 <= 0.0 and psi[i].sign() <= 0)
                 {
                     --psiCount;
-                    std::swap(psi[i], psi[psiCount]);
+                    detail::swap(psi[i], psi[psiCount]);
                 }
                 else {
                     return false;
@@ -329,12 +338,17 @@ struct ImplicitIntegral
         }
         AMREX_ASSERT(nroots <= 3);
         if (nroots == 3 and roots[1] > roots[2]) {
-            Real tmp = roots[1]; roots[1] = roots[2]; roots[2] = tmp;
+            detail::swap(roots[1],roots[2]);
         }
         roots[nroots++] = x_max;
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
-        constexpr Real tol = 50.0*std::numeric_limits<Real>::epsilon();
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+        static constexpr Real eps = std::numeric_limits<Real>::epsilon();
+#else
+        static constexpr Real eps = DBL_EPSILON;
+#endif
+        constexpr Real tol = 50.0*eps;
 
         // Loop over segments of divided interval
         for (int i = 0; i < nroots - 1; ++i)
@@ -368,7 +382,7 @@ struct ImplicitIntegral
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
-                      const std::array<PsiCode<N>,1 << (N-1)>& psi_,
+                      const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_)
         : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
@@ -433,7 +447,7 @@ struct ImplicitIntegral
 
         // Check compatibility with all implicit functions whilst
         // simultaneously constructing new implicit functions.
-        std::array<PsiCode<N>,1 << (N-1)> newPsi;
+        GpuArray<PsiCode<N>,1 << (N-1)> newPsi;
         int newPsiCount = 0;
         for (int i = 0; i < psiCount; ++i)
         {
@@ -466,8 +480,8 @@ template<int N, typename Phi, typename F>
 struct ImplicitIntegral<0,N,Phi,F>
 {
     ImplicitIntegral (const Phi&, F&, const GpuArray<bool,N>&,
-                      const std::array<PsiCode<N>,1 << (N-1)>&,
-                      int, const BoundingBox<N>&) {}
+                      const GpuArray<PsiCode<N>,1 << (N-1)>&,
+                      int) {}
 };
 
 AMREX_INLINE
@@ -476,7 +490,7 @@ quadGen (EBPlane const& phi)
 {
     QuadratureRule q;
     GpuArray<bool,3> free{true,true,true};
-    std::array<PsiCode<3>,4> psi;
+    GpuArray<PsiCode<3>,4> psi;
     psi[0] = PsiCode<3>({0,0,0}, -1);
     ImplicitIntegral<3,3,EBPlane,QuadratureRule>(phi, q, free, psi, 1);
     return q;
