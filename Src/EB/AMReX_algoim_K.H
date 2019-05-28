@@ -79,6 +79,18 @@ struct QuadratureRule
         return r;
     }
 
+    template<typename F>
+    AMREX_GPU_HOST AMREX_INLINE
+    Real
+    eval (const F& f) const noexcept
+    {
+        Real r = 0;
+        for (int i = 0; i < nnodes; ++i) {
+            r += f(nodes[i].x,nodes[i].y,nodes[i].z) * nodes[i].w;
+        }
+        return r;
+    }
+
     // evalIntegrand records quadrature nodes when it is invoked by
     // ImplicitIntegral
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
