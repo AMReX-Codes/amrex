@@ -26,10 +26,14 @@ struct EBPlane
 
     EBPlane () = default;
 
+    AMREX_GPU_HOST_DEVICE
+    constexpr
     EBPlane (GpuArray<Real,3> const& c, GpuArray<Real,3> const n) noexcept
         : cent(c), norm(n)
         {}
 
+    AMREX_GPU_HOST_DEVICE
+    constexpr
     EBPlane (Real cx, Real cy, Real cz, Real nx, Real ny, Real nz) noexcept
         : cent{cx,cy,cz}, norm{nx,ny,nz}
         {}
@@ -64,6 +68,7 @@ struct QuadratureRule
     GpuArray<Node,256> nodes;
 
     template<typename F>
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     Real
     operator() (const F& f) const noexcept
     {
@@ -76,8 +81,9 @@ struct QuadratureRule
 
     // evalIntegrand records quadrature nodes when it is invoked by
     // ImplicitIntegral
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void
-    evalIntegrand (const GpuArray<Real,3>& x_, Real w_)
+    evalIntegrand (const GpuArray<Real,3>& x_, Real w_) noexcept
     {
         nodes[nnodes].x = x_[0];
         nodes[nnodes].y = x_[1];
@@ -90,8 +96,8 @@ struct QuadratureRule
 namespace detail
 {
     template <class T>
-    AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE void swap (T& a, T& b) noexcept {
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    void swap (T& a, T& b) noexcept {
         T c(a); a=b; b=c;
     }
 
@@ -101,8 +107,9 @@ namespace detail
     // Defined Surfaces and Volumes in Hyperrectangles, SIAM
     // J. Sci. Comput., Vol. 37, No. 2, pp. A993-A1019,
     // http://dx.doi.org/10.1137/140966290].
-    inline void
-    determineSigns (bool positiveAbove, int sign, int& bottomSign, int& topSign)
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    void
+    determineSigns (bool positiveAbove, int sign, int& bottomSign, int& topSign) noexcept
     {
         // When evaluating a volume integral:
         //   If 0 integrating over the positive part:
@@ -138,9 +145,11 @@ struct PsiCode
 {
     unsigned char bits = 0;
 
-    PsiCode () {}
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE constexpr
+    PsiCode () noexcept {}
 
-    PsiCode (const GpuArray<int,N>& sides, int sign)
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    PsiCode (const GpuArray<int,N>& sides, int sign) noexcept
     {
         static_assert(N <= 3, "algoim::PsiCode: N must be <= 3");
         for (int dim = 0; dim < N; ++dim) {
@@ -159,7 +168,8 @@ struct PsiCode
     }
 
     // Modify an existing code by restriction in a particular dimension.
-    PsiCode (const PsiCode& i, int dim, int side, int sign)
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    PsiCode (const PsiCode& i, int dim, int side, int sign) noexcept
         : bits(i.bits)
     {
         if (side == 1) {
@@ -174,11 +184,15 @@ struct PsiCode
             }
         }
     }
-    inline int side (int dim) const
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    int side (int dim) const noexcept
     {
         return bits & (1 << dim);
     }
-    inline int sign () const
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    int sign () const noexcept
     {
         return (bits & (1 << N)) ? 0 : ((bits & (1 << (N+1))) ? 1 : -1);
     }
@@ -209,17 +223,6 @@ struct Interval
     Real alpha;
 };
 
-namespace {
-    static constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
-                                      0.33000947820757186759866712044837765640,
-                                      0.66999052179242813240133287955162234360,
-                                      0.93056815579702628761197324444640475255};
-    static constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
-                                      0.326072577431273071313468025389000296382,
-                                      0.326072577431273071313468025389000296382,
-                                      0.173927422568726928686531974610999703618};
-}
-
 // M-dimensional integral of an N-dimensional function restricted to
 // given implicitly defined domains
 template<int M, int N, typename Phi, typename F>
@@ -241,7 +244,8 @@ struct ImplicitIntegral
     // removed. If a function is uniformly positive or negative but
     // inconsistent with specified sign, the domain of integration is
     // empty.
-    bool prune ()
+    AMREX_GPU_HOST_DEVICE
+    bool prune () noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
@@ -284,8 +288,18 @@ struct ImplicitIntegral
 
     // Gaussian quadrature for when the domain of integration is
     // determined to be the entire M-dimensional cube.
-    void tensorProductIntegral ()
+    AMREX_GPU_HOST_DEVICE
+    void tensorProductIntegral () noexcept
     {
+        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
+                                   0.33000947820757186759866712044837765640,
+                                   0.66999052179242813240133287955162234360,
+                                   0.93056815579702628761197324444640475255};
+        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
+                                   0.326072577431273071313468025389000296382,
+                                   0.326072577431273071313468025389000296382,
+                                   0.173927422568726928686531974610999703618};
+
         int nloops = 1;
         for (int i = 0; i < M; ++i) {
             nloops *= p;
@@ -319,8 +333,18 @@ struct ImplicitIntegral
     // the e0 direction on each of the implicit functions, and apply
     // Gaussian quadrature to each segment. Weights are multiplied
     // upon going back up the tree of recursive calls.
-    void evalIntegrand (GpuArray<Real,N> x, Real w) const
+    AMREX_GPU_HOST_DEVICE
+    void evalIntegrand (GpuArray<Real,N> x, Real w) const noexcept
     {
+        constexpr Real gauss_x[4]={0.069431844202973712388026755553595247452,
+                                   0.33000947820757186759866712044837765640,
+                                   0.66999052179242813240133287955162234360,
+                                   0.93056815579702628761197324444640475255};
+        constexpr Real gauss_w[4]={0.173927422568726928686531974610999703618,
+                                   0.326072577431273071313468025389000296382,
+                                   0.326072577431273071313468025389000296382,
+                                   0.173927422568726928686531974610999703618};
+
         // Each thread has its own storage for computing roots. These
         // are not corrupted by the recursive chain of evalIntegrand()
         // calls since each call is in a different templated
@@ -394,9 +418,10 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
+    AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
-                      int psiCount_)
+                      int psiCount_) noexcept
         : phi(phi_), f(f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {
@@ -492,14 +517,15 @@ struct ImplicitIntegral
 template<int N, typename Phi, typename F>
 struct ImplicitIntegral<0,N,Phi,F>
 {
+    AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi&, F&, const GpuArray<bool,N>&,
                       const GpuArray<PsiCode<N>,1 << (N-1)>&,
-                      int) {}
+                      int) noexcept {}
 };
 
-AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 QuadratureRule
-quadGen (EBPlane const& phi)
+quadGen (EBPlane const& phi) noexcept
 {
     QuadratureRule q;
     GpuArray<bool,3> free{true,true,true};
@@ -510,7 +536,7 @@ quadGen (EBPlane const& phi)
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void set_regular (int i, int j, int k, Array4<Real> const& intg)
+void set_regular (int i, int j, int k, Array4<Real> const& intg) noexcept
 {
     constexpr Real twelfth = 1./12.;
     constexpr Real   offth = 1./144.;

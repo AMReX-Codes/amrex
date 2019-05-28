@@ -14,7 +14,7 @@ namespace orig_algoim = Algoim;
 static_assert(AMREX_SPACEDIM == 3, "3d only");
 
 namespace {
-    Array<Real,3> normal (Real x, Real y, Real z) {
+    GpuArray<Real,3> normal (Real x, Real y, Real z) {
         Real norminv = 1./std::sqrt(x*x+y*y+z*z);
         return {x*norminv, y*norminv, z*norminv};
     }
@@ -35,7 +35,7 @@ struct EBshape
         return blitz::TinyVector<double,3>(norm[0],norm[1],norm[2]);
     }
 
-    EBshape (Array<Real,3> const& c, Array<Real,3> const& n)
+    EBshape (GpuArray<Real,3> const& c, GpuArray<Real,3> const& n)
         : cent(c), norm(c)
         {}
 
@@ -43,8 +43,8 @@ struct EBshape
         : cent(rhs.cent), norm(rhs.norm)
         {}
 
-    Array<Real,3> cent{};
-    Array<Real,3> norm{};
+    GpuArray<Real,3> cent{};
+    GpuArray<Real,3> norm{};
 };
 }
 
@@ -75,7 +75,7 @@ int main (int argc, char* argv[])
         for (int jbn = -1; jbn <= 1; ++jbn) {
         for (int kbn = -1; kbn <= 1; ++kbn) {
             if (ibn == 0 and jbn == 0 and kbn == 0) continue;
-            special_cases.emplace_back(Array<Real,3>{0.5*ibc,0.5*jbc,0.5*kbc},
+            special_cases.emplace_back(GpuArray<Real,3>{0.5*ibc,0.5*jbc,0.5*kbc},
                                        normal(ibn, jbn, kbn));
         }}}}}}
 
@@ -93,7 +93,7 @@ int main (int argc, char* argv[])
             Real d5 = amrex::Random()-0.5;
             Real d6 = amrex::Random()-0.5;
             if (d4 != 0.0 or d5 != 0.0 or d6 != 0.0) {
-                algoim::EBPlane p(Array<Real,3>{d1,d2,d3},
+                algoim::EBPlane p(GpuArray<Real,3>{d1,d2,d3},
                                   normal(d4,d5,d6));
                 test_algoim(ebmax, smax, p);
             }
@@ -108,7 +108,7 @@ int main (int argc, char* argv[])
             Real d5 = amrex::Random()-0.5;
             Real d6 = amrex::Random()-0.5;
             if (d4 != 0.0 or d5 != 0.0 or d6 != 0.0) {
-                planes.emplace_back(Array<Real,3>{d1,d2,d3},
+                planes.emplace_back(GpuArray<Real,3>{d1,d2,d3},
                                     normal(d4,d5,d6));
             }
         }
@@ -132,32 +132,32 @@ int main (int argc, char* argv[])
 
 AMREX_FORCE_INLINE void
 test_algoim_new (QuadratureRule const& q, Real& vol,
-                 Array<Real,algoim::numIntgs>& intg)
+                 GpuArray<Real,algoim::numIntgs>& intg)
 {
-    vol             = q([](Real x, Real y, Real z) {return 1.0;});
-    intg[i_S_x    ] = q([](Real x, Real y, Real z) {return x; });
-    intg[i_S_y    ] = q([](Real x, Real y, Real z) {return y; });
-    intg[i_S_z    ] = q([](Real x, Real y, Real z) {return z; });
-    intg[i_S_x2   ] = q([](Real x, Real y, Real z) {return x*x; });
-    intg[i_S_y2   ] = q([](Real x, Real y, Real z) {return y*y; });
-    intg[i_S_z2   ] = q([](Real x, Real y, Real z) {return z*z; });
-    intg[i_S_x_y  ] = q([](Real x, Real y, Real z) {return x*y; });
-    intg[i_S_x_z  ] = q([](Real x, Real y, Real z) {return x*z; });
-    intg[i_S_y_z  ] = q([](Real x, Real y, Real z) {return y*z; });
-    intg[i_S_x2_y ] = q([](Real x, Real y, Real z) {return x*x*y; });
-    intg[i_S_x2_z ] = q([](Real x, Real y, Real z) {return x*x*z; });
-    intg[i_S_x_y2 ] = q([](Real x, Real y, Real z) {return x*y*y; });
-    intg[i_S_y2_z ] = q([](Real x, Real y, Real z) {return y*y*z; });
-    intg[i_S_x_z2 ] = q([](Real x, Real y, Real z) {return x*z*z; });
-    intg[i_S_y_z2 ] = q([](Real x, Real y, Real z) {return y*z*z; });
-    intg[i_S_x2_y2] = q([](Real x, Real y, Real z) {return x*x*y*y;});
-    intg[i_S_x2_z2] = q([](Real x, Real y, Real z) {return x*x*z*z;});
-    intg[i_S_y2_z2] = q([](Real x, Real y, Real z) {return y*y*z*z;});
+    vol             = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return 1.0;});
+    intg[i_S_x    ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x; });
+    intg[i_S_y    ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return y; });
+    intg[i_S_z    ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return z; });
+    intg[i_S_x2   ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*x; });
+    intg[i_S_y2   ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return y*y; });
+    intg[i_S_z2   ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return z*z; });
+    intg[i_S_x_y  ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*y; });
+    intg[i_S_x_z  ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*z; });
+    intg[i_S_y_z  ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return y*z; });
+    intg[i_S_x2_y ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*x*y; });
+    intg[i_S_x2_z ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*x*z; });
+    intg[i_S_x_y2 ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*y*y; });
+    intg[i_S_y2_z ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return y*y*z; });
+    intg[i_S_x_z2 ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*z*z; });
+    intg[i_S_y_z2 ] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return y*z*z; });
+    intg[i_S_x2_y2] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*x*y*y;});
+    intg[i_S_x2_z2] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return x*x*z*z;});
+    intg[i_S_y2_z2] = q([] AMREX_GPU_HOST_DEVICE (Real x, Real y, Real z) {return y*y*z*z;});
 }
 
 AMREX_FORCE_INLINE void
 test_algoim_old (orig_algoim::QuadratureRule<3> const& q, Real& vol,
-                 Array<Real,algoim::numIntgs>& intg)
+                 GpuArray<Real,algoim::numIntgs>& intg)
 {
     vol             = q([](const auto& w) {return 1.0;});
     intg[i_S_x    ] = q([](const auto& w) {return w[0]; });
@@ -185,13 +185,13 @@ test_algoim (algoim::EBPlane& ebmax, Real& smax, algoim::EBPlane const& p)
 {
     const QuadratureRule q = quadGen(p);
     Real vol;
-    Array<Real,algoim::numIntgs> intg;
+    GpuArray<Real,algoim::numIntgs> intg;
     test_algoim_new(q, vol, intg);
 
     EBshape phi = p;
     const auto q2 = orig_algoim::quadGen<3>(phi, orig_algoim::BoundingBox<Real,3>({-0.5,-0.5,-0.5},{0.5,0.5,0.5}), -1, -1, 4);
     Real vol2;
-    Array<Real,algoim::numIntgs> intg2;
+    GpuArray<Real,algoim::numIntgs> intg2;
     test_algoim_old(q2, vol2, intg2);
 
     Real lsmax = std::abs(vol-vol2);
@@ -215,10 +215,12 @@ Real test_algoim_perf (Vector<algoim::EBPlane> const& planes, Real& tnew, Real& 
     {
         const QuadratureRule q = quadGen(p);
         Real vol;
-        Array<Real,algoim::numIntgs> intg;
+        GpuArray<Real,algoim::numIntgs> intg;
         test_algoim_new(q, vol, intg);
         total += vol;
-        for (auto x : intg) total += x;
+        for (int i = 0; i < intg.size(); ++i) {
+            total += intg[i];
+        }
     }
 
     Real t1 = amrex::second();
@@ -228,10 +230,12 @@ Real test_algoim_perf (Vector<algoim::EBPlane> const& planes, Real& tnew, Real& 
         EBshape phi = p;
         const auto q = orig_algoim::quadGen<3>(phi, orig_algoim::BoundingBox<Real,3>({-0.5,-0.5,-0.5},{0.5,0.5,0.5}), -1, -1, 4);
         Real vol;
-        Array<Real,algoim::numIntgs> intg;
+        GpuArray<Real,algoim::numIntgs> intg;
         test_algoim_old(q, vol, intg);
         total += vol;
-        for (auto x : intg) total += x;
+        for (int i = 0; i < intg.size(); ++i) {
+            total += intg[i];
+        }
     }
 
     Real t2 = amrex::second();
