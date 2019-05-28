@@ -11,6 +11,45 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+    
+    int i = std::floor(lx);
+    
+    amrex::Real xint = lx - i;
+    
+    amrex::Real sx[] = {1.-xint, xint};
+    
+    for (int ii = 0; ii <= 1; ++ii) { 
+        amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, 0), sx[ii]*p.rdata(0));
+        for (int comp=1; comp < nc; ++comp) {
+            amrex::Gpu::Atomic::Add(&rho(i+ii-1, 0, 0, comp), sx[ii]*p.rdata(0)*p.rdata(comp));
+        }
+    }
+#elif (AMREX_SPACEDIM == 2)
+    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+
+    int i = std::floor(lx);
+    int j = std::floor(ly);
+
+    amrex::Real xint = lx - i;
+    amrex::Real yint = ly - j;
+
+    amrex::Real sx[] = {1.-xint, xint};
+    amrex::Real sy[] = {1.-yint, yint};
+    
+    for (int ii = 0; ii <= 1; ++ii) { 
+        for (int jj = 0; jj <= 1; ++jj) { 
+            amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, 0, 0),
+                                    sx[ii]*sy[jj]*p.rdata(0));
+            for (int comp=1; comp < nc; ++comp) {
+                amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, 0, comp),
+                                        sx[ii]*sy[jj]*p.rdata(0)*p.rdata(comp));
+            }
+        }
+    }
+#elif (AMREX_SPACEDIM == 2)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
@@ -38,7 +77,10 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
                 }
             }
         }
-    }   
+    }
+#else
+    amrex::Abort("Not implemented.");
+#endif
 }
 
 template <typename P>
@@ -48,8 +90,65 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& pdxi)
 {
-    amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1])*(pdxi[2]/dxi[2]);
+#if (AMREX_SPACEDIM == 1)
+    amrex::Real factor = (pdxi[0]/dxi[0]);
 
+    amrex::Real lx = (p.pos(0) - plo[0] - 0.5/pdxi[0]) * dxi[0];
+
+    amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
+
+    int lo_x = std::floor(lx);
+
+    int hi_x = std::floor(hx);
+    
+    for (int i = lo_x; i <= hi_x; ++i) {
+        if (i < rho.begin.x || i >= rho.end.x) continue;
+        amrex::Real wx = std::min(hx - i, 1.0) - std::max(lx - i, 0.0);
+                
+        amrex::Real weight = wx*factor;
+                
+        rho(i, 0, 0, 0) += weight*p.rdata(0);
+                
+        for (int comp = 1; comp <= nc; ++comp)
+        {
+            rho(i, 0, 0, comp) += weight*p.rdata(0)*p.rdata(comp);
+        }
+    }
+#elif (AMREX_SPACEDIM == 2)
+    amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1]);
+
+    amrex::Real lx = (p.pos(0) - plo[0] - 0.5/pdxi[0]) * dxi[0];
+    amrex::Real ly = (p.pos(1) - plo[1] - 0.5*pdxi[1]) * dxi[1];
+
+    amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
+    amrex::Real hy = (p.pos(1) - plo[1] + 0.5*pdxi[1]) * dxi[1];
+
+    int lo_x = std::floor(lx);
+    int lo_y = std::floor(ly);
+
+    int hi_x = std::floor(hx);
+    int hi_y = std::floor(hy);
+    
+    for (int i = lo_x; i <= hi_x; ++i) {
+        if (i < rho.begin.x || i >= rho.end.x) continue;
+        amrex::Real wx = std::min(hx - i, 1.0) - std::max(lx - i, 0.0);
+        for (int j = lo_y; j <= hi_y; ++j) {
+            if (j < rho.begin.y || j >= rho.end.y) continue;
+            amrex::Real wy = std::min(hy - j, 1.0) - std::max(ly - j, 0.0);
+                
+            amrex::Real weight = wx*wy*factor;
+                
+            rho(i, j, 0, 0) += weight*p.rdata(0);
+                
+            for (int comp = 1; comp <= nc; ++comp)
+            {
+                rho(i, j, 0, comp) += weight*p.rdata(0)*p.rdata(comp);
+            }
+        }
+    }
+#elif (AMREX_SPACEDIM == 3)
+    amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1])*(pdxi[2]/dxi[2]);
+    
     amrex::Real lx = (p.pos(0) - plo[0] - 0.5/pdxi[0]) * dxi[0];
     amrex::Real ly = (p.pos(1) - plo[1] - 0.5*pdxi[1]) * dxi[1];
     amrex::Real lz = (p.pos(2) - plo[2] - 0.5*pdxi[2]) * dxi[2];
@@ -87,6 +186,9 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
             }
         }
     }
+#else
+    amrex::Abort("Not implemented.")
+#endif
 }
 
 template <typename P>
@@ -95,6 +197,41 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
 {
+#if (AMREX_SPACEDIM == 1)
+    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+    
+    int i = std::floor(lx);
+    
+    amrex::Real xint = lx - i;
+    
+    amrex::Real sx[] = {1.-xint, xint};
+    
+    for (int ii = 0; ii <= 1; ++ii) { 
+        for (int comp=0; comp < nc; ++comp) {
+            amrex::Real acceleration = sx[ii]*acc(i+ii,0,0,comp);
+        }
+    }
+#elif (AMREX_SPACEDIM == 2)
+    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+    
+    int i = std::floor(lx);
+    int j = std::floor(ly);
+    
+    amrex::Real xint = lx - i;
+    amrex::Real yint = ly - j;
+    
+    amrex::Real sx[] = {1.-xint, xint};
+    amrex::Real sy[] = {1.-yint, yint};
+    
+    for (int ii = 0; ii <= 1; ++ii) { 
+        for (int jj = 0; jj <= 1; ++jj) { 
+            for (int comp=0; comp < nc; ++comp) {
+                amrex::Real acceleration = sx[ii]*sy[jj]*acc(i+ii,j+jj,0,comp);
+            }
+        }
+    }
+#elif (AMREX_SPACEDIM == 3)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
@@ -115,11 +252,14 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int kk = 0; kk <= 1; ++kk) {
                 for (int comp=0; comp < nc; ++comp) {
-                    amrex::Real acceleration = sx[ii]*sy[jj]*sz[kk]*acc(i+ii,j+jj,k+kk);
+                    amrex::Real acceleration = sx[ii]*sy[jj]*sz[kk]*acc(i+ii,j+jj,k+kk,comp);
                 }
             }
         }
     }
+#else
+    amrex::Abort("Not implemented.");
+#endif
 }
 
 #endif
