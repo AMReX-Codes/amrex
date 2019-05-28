@@ -2529,7 +2529,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> tmp_real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         if (real_comp_names.size() == 0)
@@ -2546,7 +2546,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> tmp_int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         if (int_comp_names.size() == 0)
@@ -2573,7 +2573,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -2583,7 +2583,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         std::stringstream ss;
@@ -2739,6 +2739,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = amrex::second();
     
+    AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
+
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
@@ -3638,14 +3641,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	host_particles[lev][ind].push_back(p);
 
 	// add the real...
-	for (int i = 0; i < NumRealComps(); i++) {
-            host_real_attribs[lev][ind][i].push_back(*rptr);
+	for (int icomp = 0; icomp < NumRealComps(); icomp++) {
+            host_real_attribs[lev][ind][icomp].push_back(*rptr);
             ++rptr;
 	}
         
 	// ... and int array data
-	for (int i = 0; i < NumIntComps(); i++) {
-            host_int_attribs[lev][ind][i].push_back(*iptr);
+	for (int icomp = 0; icomp < NumIntComps(); icomp++) {
+            host_int_attribs[lev][ind][icomp].push_back(*iptr);
             ++iptr;
 	}        
     }

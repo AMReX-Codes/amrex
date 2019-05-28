@@ -114,7 +114,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
   # SYSTEM_CUDA_PATH=$(CUDAPATH)
   SYSTEM_CUDA_PATH=$(OLCF_CUDA_ROOT)
 
-  SYSTEM_NVML_PATH=/usr/lib64/nvidia
+  SYSTEM_NVML_PATH=$(OLCF_CUDA_ROOT)/lib64/stubs
 
   # Specify that we want to build for Volta
 

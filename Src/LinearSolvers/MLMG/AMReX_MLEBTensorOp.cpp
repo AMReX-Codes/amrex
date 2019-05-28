@@ -10,12 +10,18 @@ namespace {
     constexpr int kappa_num_mglevs = 1;
 }
 
+MLEBTensorOp::MLEBTensorOp ()
+{
+    MLEBABecLap::setScalars(1.0,1.0);
+}
+
 MLEBTensorOp::MLEBTensorOp (const Vector<Geometry>& a_geom,
                             const Vector<BoxArray>& a_grids,
                             const Vector<DistributionMapping>& a_dmap,
                             const LPInfo& a_info,
                             const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
+    MLEBABecLap::setScalars(1.0,1.0);
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
@@ -32,8 +38,6 @@ MLEBTensorOp::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLEBTensorOp::define()");
 
     MLEBABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
-
-    MLEBABecLap::setScalars(1.0,1.0);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -189,6 +193,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     iMultiFab const& mask = m_cc_mask[amrlev][mglev];
     MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
     MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
+    Real bscalar = m_b_scalar;
 
     if (Gpu::inLaunchRegion())
     {
@@ -372,7 +377,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv, bscalar);
             });
         }
         else
@@ -397,7 +402,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                                        vfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
                                        AMREX_D_DECL(fcx,fcy,fcz),
-                                       bc, dxinv);
+                                       bc, dxinv, bscalar);
             });
         }
     }
@@ -419,7 +424,7 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& foo = foofab.array();
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain = m_geom[amrlev][mglev].Domain();
+    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;

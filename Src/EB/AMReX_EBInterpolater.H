@@ -10,7 +10,7 @@ class EBCellConservativeLinear
 {
 public:
 
-    EBCellConservativeLinear (bool do_linear_limiting_ = true);
+    explicit EBCellConservativeLinear (bool do_linear_limiting_ = true);
 
     virtual ~EBCellConservativeLinear () override;
 
