@@ -100,6 +100,7 @@ public:
 
     // Back transformation diagnostic
     static bool do_boosted_frame_diagnostic;
+    static std::string lab_data_directory;
     static int  num_snapshots_lab;
     static amrex::Real dt_snapshots_lab;
     static bool do_boosted_frame_fields;
@@ -161,6 +162,8 @@ public:
     void computeMaxStepBoostAccelerator(amrex::Geometry geom);
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
+
+    void ResetProbDomain (const amrex::RealBox& rb);
 
     void EvolveE (         amrex::Real dt);
     void EvolveE (int lev, amrex::Real dt);
