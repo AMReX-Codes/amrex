@@ -1632,8 +1632,8 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        const int ncomp = rec->numDerive();
-        mf.reset(new MultiFab(dstBA, dmap, ncomp, ngrow, MFInfo(), *m_factory));
+        const int dncomp = rec->numDerive();
+        mf.reset(new MultiFab(dstBA, dmap, dncomp, ngrow, MFInfo(), *m_factory));
 
         if (rec->derFuncFab() != nullptr)
         {
@@ -1645,7 +1645,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
                 const Box& bx = mfi.growntilebox(ngrow);
                 FArrayBox* derfab = mf->fabPtr(mfi);
                 FArrayBox const* datafab = srcMF.fabPtr(mfi);
-                rec->derFuncFab()(bx, *derfab, 0, ncomp, *datafab, geom, time, rec->getBC(), level);
+                rec->derFuncFab()(bx, *derfab, 0, dncomp, *datafab, geom, time, rec->getBC(), level);
             }
         }
         else
