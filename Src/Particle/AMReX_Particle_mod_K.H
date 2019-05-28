@@ -5,9 +5,9 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
 template <typename P>
-void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real const> const& rho,
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rho,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
 {
@@ -26,36 +26,71 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real const> con
     amrex::Real sx[] = {1.-xint, xint};
     amrex::Real sy[] = {1.-yint, yint};
     amrex::Real sz[] = {1.-zint, zint};
-
+    
     for (int ii = 0; ii <= 1; ++ii) { 
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int kk = 0; kk <= 1; ++kk) {
-                amrex::Gpu::Atomic::Add(&rho(i+ii, j+jj, k+kk, 0),
-                                        sx[ii]*sy[jj]*sz[kk]*p.m_rdata[0];
+                amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, 0),
+                                        sx[ii]*sy[jj]*sz[kk]*p.rdata(0));
                 for (int comp=1; comp < nc; ++comp) {
-                    amrex::Gpu::Atomic::Add(&rho(i+ii, j+jj, k+kk, comp),
-                                            sx[ii]*sy[jj]*sz[kk]*p.m_rdata[0]*p.m_rdata[comp];
+                    amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, comp),
+                                            sx[ii]*sy[jj]*sz[kk]*p.rdata(0)*p.rdata(comp));
                 }
             }
         }
     }   
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
 template <typename P>
-void amrex_deposit_particle_dxcic (P const& p, int nc, amrex::Array4<amrex::Real const> const& rho,
-                                   amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                                   amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                                   amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& pdxi)
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rho,
+                                    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                                    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                                    amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& pdxi)
 {
     amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1])*(pdxi[2]/dxi[2]);
+
+    amrex::Real lx = (p.pos(0) - plo[0] - 0.5/pdxi[0]) * dxi[0];
+    amrex::Real ly = (p.pos(1) - plo[1] - 0.5*pdxi[1]) * dxi[1];
+    amrex::Real lz = (p.pos(2) - plo[2] - 0.5*pdxi[2]) * dxi[2];
+
+    amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
+    amrex::Real hy = (p.pos(1) - plo[1] + 0.5*pdxi[1]) * dxi[1];
+    amrex::Real hz = (p.pos(2) - plo[2] + 0.5*pdxi[2]) * dxi[2];
+
+    int lo_x = std::floor(lx);
+    int lo_y = std::floor(ly);
+    int lo_z = std::floor(lz);
+
+    int hi_x = std::floor(hx);
+    int hi_y = std::floor(hy);
+    int hi_z = std::floor(hz);
     
-    
-    amrex::Abort("Not Implemented.");
+    for (int i = lo_x; i <= hi_x; ++i) {
+        if (i < rho.begin.x || i >= rho.end.x) continue;
+        amrex::Real wx = std::min(hx - i, 1.0) - std::max(lx - i, 0.0);
+        for (int j = lo_y; j <= hi_y; ++j) {
+            if (j < rho.begin.y || j >= rho.end.y) continue;
+            amrex::Real wy = std::min(hy - j, 1.0) - std::max(ly - j, 0.0);
+            for (int k = lo_z; k <= hi_z; ++k) {
+                if (k < rho.begin.z || k >= rho.end.z) continue;
+                amrex::Real wz = std::min(hz - k, 1.0) - std::max(lz - k, 0.0);
+                
+                amrex::Real weight = wx*wy*wz*factor;
+                
+                rho(i, j, k, 0) += weight*p.rdata(0);
+                
+                for (int comp = 1; comp <= nc; ++comp)
+                {
+                    rho(i, j, k, comp) += weight*p.rdata(0)*p.rdata(comp);
+                }
+            }
+        }
+    }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
 template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const> const& acc,
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
@@ -80,7 +115,7 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
         for (int jj = 0; jj <= 1; ++jj) { 
             for (int kk = 0; kk <= 1; ++kk) {
                 for (int comp=0; comp < nc; ++comp) {
-                    acceleration[comp] = sx[ii]*sy[jj]*sz[kk]*acc(i+ii,j+jj,k+kk);
+                    amrex::Real acceleration = sx[ii]*sy[jj]*sz[kk]*acc(i+ii,j+jj,k+kk);
                 }
             }
         }
