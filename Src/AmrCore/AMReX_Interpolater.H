@@ -272,7 +272,7 @@ public:
     *
     * \param do_linear_limiting_
     */
-    CellConservativeLinear (bool do_linear_limiting_= true);
+    explicit CellConservativeLinear (bool do_linear_limiting_= true);
 
     /**
     * \brief The destructor.
@@ -437,7 +437,7 @@ public:
     *
     * \param limit
     */
-    CellQuadratic (bool limit = true);
+    explicit CellQuadratic (bool limit = true);
 
     /**
     * \brief The destructor.

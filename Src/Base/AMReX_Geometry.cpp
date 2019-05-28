@@ -277,10 +277,22 @@ Geometry::periodicShift (const Box&      target,
 
         for (rj = njst; rj <= njend; rj++)
         {
-            if (rj != 0 && !is_periodic[1])
+            if (rj != 0
+#if (AMREX_SPACEDIM > 1)
+                && !is_periodic[1]
+#endif
+                )
+            {
                 continue;
-            if (rj != 0 && is_periodic[1])
+            }
+            if (rj != 0
+#if (AMREX_SPACEDIM > 1)
+                && is_periodic[1]
+#endif
+                )
+            {
                 locsrc.shift(1,rj*domain.length(1));
+            }
 
             for (rk = nkst; rk <= nkend; rk++)
             {
@@ -321,8 +333,14 @@ Geometry::periodicShift (const Box&      target,
                     locsrc.shift(2,-rk*domain.length(2));
                 }
             }
-            if (rj != 0 && is_periodic[1])
+            if (rj != 0
+#if (AMREX_SPACEDIM > 1)
+                && is_periodic[1]
+#endif
+                )
+            {
                 locsrc.shift(1,-rj*domain.length(1));
+            }
         }
         if (ri != 0 && is_periodic[0])
             locsrc.shift(0,-ri*domain.length(0));

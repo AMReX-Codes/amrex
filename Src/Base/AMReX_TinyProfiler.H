@@ -20,9 +20,9 @@ namespace amrex {
 class TinyProfiler
 {
 public:
-    TinyProfiler (std::string funcname) noexcept;
+    explicit TinyProfiler (std::string funcname) noexcept;
     TinyProfiler (std::string funcname, bool start_) noexcept;
-    TinyProfiler (const char* funcname) noexcept;
+    explicit TinyProfiler (const char* funcname) noexcept;
     TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
 
@@ -86,8 +86,8 @@ private:
 class TinyProfileRegion
 {
 public:
-    TinyProfileRegion (std::string a_regname) noexcept;
-    TinyProfileRegion (const char* a_regname) noexcept;
+    explicit TinyProfileRegion (std::string a_regname) noexcept;
+    explicit TinyProfileRegion (const char* a_regname) noexcept;
     ~TinyProfileRegion ();
 private:
     std::string regname;
