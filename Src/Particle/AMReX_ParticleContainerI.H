@@ -4165,7 +4165,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
         int nComp = fab.nComp();
         AMREX_FOR_1D( np, i,
         {
-            amrex_interpolate_cic(pstruct[i], fabarr, plo, dxi);
+            amrex_interpolate_cic(pstruct[i], nComp, fabarr, plo, dxi);
         });
     }
 }
