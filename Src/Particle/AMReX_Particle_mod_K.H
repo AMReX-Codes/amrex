@@ -49,7 +49,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
             }
         }
     }
-#elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 3)
     amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
     amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
