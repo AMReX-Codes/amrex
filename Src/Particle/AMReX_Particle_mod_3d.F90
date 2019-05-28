@@ -7,40 +7,9 @@ module amrex_particle_module
 
   private
 
-  public :: amrex_particle_set_position, amrex_particle_get_position, &
-       amrex_deposit_cic, amrex_interpolate_cic
+  public :: amrex_deposit_cic, amrex_interpolate_cic
 
 contains
-
-  subroutine amrex_particle_set_position (particles, ns, np, x, y, z) &
-       bind(c,name='amrex_particle_set_position')
-    integer(c_int)  ,          intent(in   ), value :: ns, np
-    real(amrex_particle_real), intent(inout)        :: particles(ns,np)
-    real(amrex_real),          intent(in   )        :: x(np), y(np), z(np)
-
-    integer :: i
-
-    do i = 1, np
-       particles(1,i) = x(i)
-       particles(2,i) = y(i)
-       particles(3,i) = z(i)
-    end do
-  end subroutine amrex_particle_set_position
-
-  subroutine amrex_particle_get_position (particles, ns, np, x, y, z) &
-       bind(c,name='amrex_particle_get_position')
-    integer(c_int)  ,          intent(in   ), value :: ns, np
-    real(amrex_particle_real), intent(in   )        :: particles(ns,np)
-    real(amrex_real),          intent(  out)        :: x(np), y(np), z(np)
-
-    integer :: i
-
-    do i = 1, np
-       x(i) = particles(1,i)
-       y(i) = particles(2,i)
-       z(i) = particles(3,i)
-    end do
-  end subroutine amrex_particle_get_position
 
   subroutine amrex_deposit_cic(particles, ns, np, nc, rho, lo, hi, plo, dx) &
        bind(c,name='amrex_deposit_cic')
