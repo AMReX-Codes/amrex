@@ -131,10 +131,14 @@ contains
     real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
     integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
 
-    integer :: ilo, ihi, jlo, jhi, klo, khi
-    integer :: is, ie, js, je, ks, ke
+    integer :: is, ie, ilo, ihi, imin, imax
+#if AMREX_SPACEDIM >= 2
+    integer :: js, je, jlo, jhi, jmin, jmax
+#endif
+#if AMREX_SPACEDIM == 3
+    integer :: ks, ke, klo, khi, kmin, kmax
+#endif
     integer :: i, j, k, n
-    integer :: imin, imax, jmin, jmax, kmin, kmax
 
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))
