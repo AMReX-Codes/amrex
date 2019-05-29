@@ -4052,13 +4052,9 @@ AssignCellDensitySingleLevel (int rho_index,
             local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
             auto rhoarr = local_rho.array();
-            lo = tile_box.loVect();
-            hi = tile_box.hiVect();
 #else
             const Box& box = fab.box();
             auto rhoarr = fab.array();
-            lo = box.loVect();
-            hi = box.hiVect();
 #endif
                         
             if (dxi == pdxi)
@@ -4078,10 +4074,10 @@ AssignCellDensitySingleLevel (int rho_index,
                 
 #ifdef _OPENMP
             fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
-#endif            
+#endif
         }
     }
-
+    
     mf_pointer->SumBoundary(Geom(lev).periodicity());
     
     // If ncomp > 1, first divide the momenta (component n) 
