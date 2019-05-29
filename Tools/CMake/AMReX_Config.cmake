@@ -66,23 +66,11 @@ function (configure_amrex)
       
       set_target_properties( amrex
          PROPERTIES
+         CUDA_STANDARD 11     # Adds -std=<standard>
+         CUDA_STANDARD_REQUIRED ON
          CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
          CUDA_RESOLVE_DEVICE_SYMBOLS OFF
          )
-      
-      if (NOT ENABLE_3D_NODAL_MLMG)
-         set_target_properties( amrex
-            PROPERTIES
-            CUDA_STANDARD 11     # Adds -std=<standard>
-            CUDA_STANDARD_REQUIRED ON
-            )
-      else ()
-         set_target_properties( amrex
-            PROPERTIES
-            CUDA_STANDARD 14     # Adds -std=<standard>
-            CUDA_STANDARD_REQUIRED ON
-            )
-      endif ()
       
       #
       # Retrieve compile flags for the current configuration
@@ -152,13 +140,6 @@ function (configure_amrex)
       target_compile_options( amrex PUBLIC
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
-   
-   #
-   # Add third party libraries
-   #
-   if (ENABLE_3D_NODAL_MLMG)
-      include(AMReX_InstallExternalLibs) 
-   endif()
    
    #
    # Setup third-party profilers
@@ -333,11 +314,7 @@ function ( set_compiler_flags_preset _target )
    set(_cxx_apple       "$<AND:${_cxx},${_apple}>")
 
 
-   if (ENABLE_3D_NODAL_MLMG)
-      set(_cxx_std c++14)
-   else ()
-      set(_cxx_std c++11)
-   endif ()
+   set(_cxx_std c++11)
    
    target_compile_options(  ${_target}
          PUBLIC

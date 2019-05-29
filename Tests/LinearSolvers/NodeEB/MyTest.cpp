@@ -7,10 +7,6 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
 
-#if(AMREX_SPACEDIM == 3)
-#include <AMReX_algoim_integrals.H>
-#endif
-
 using namespace amrex;
 
 MyTest::MyTest ()
