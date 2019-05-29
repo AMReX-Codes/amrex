@@ -36,6 +36,9 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
     int nghost = 1;
     int nlevels = dom_geom.size();
     int ncomp = (mf).nComp();
+ 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( nlevels==1, 
+       "Slice diagnostics does not work with mesh refinement yet (TO DO).");
     
     const auto conversionType = (mf).ixType();
     IntVect SliceType(AMREX_D_DECL(0,0,0));
@@ -131,13 +134,8 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
 
        AMREX_ALWAYS_ASSERT(crse_ba[0].size() == sba[0].size());
 
-       if(slicetypeToBeConverted==1) {
-          cs_mf.reset( new MultiFab(amrex::convert(crse_ba[0],SliceType), 
-                      sdmap[0], ncomp,nghost));
-       }
-       else {
-          cs_mf.reset(new MultiFab(crse_ba[0], sdmap[0], ncomp, nghost));
-       }
+       cs_mf.reset( new MultiFab(amrex::convert(crse_ba[0],SliceType), 
+                    sdmap[0], ncomp,nghost));
 
        MultiFab& mfSrc = *smf;
        MultiFab& mfDst = *cs_mf;
@@ -196,7 +194,7 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
        return cs_mf;
 
     }
-    
+    amrex::Abort("Should not hit this return statement.");
     return smf;
 }
 
@@ -330,20 +328,17 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
                    hi_new = index_hi + (slice_cr_ratio[idim] - mod_hi);
                 }
     
-                // If modified index.hi is > baselinebox.hi, reduce cr ratio // 
-                // and provide more points that asked for                    //
+                // If modified index.hi is > baselinebox.hi, move the point  // 
+                // to the previous coarsenable point                         //
                 if ( (hi_new * dom_geom[0].CellSize(idim)) 
                       > real_box.hi(idim) - real_box.lo(idim) + dom_geom[0].CellSize(idim)*0.01 )
                 {
-                   slice_cr_ratio[idim] = slice_cr_ratio[idim]/2;
-                   modify_cr = true;
+                   hi_new = index_hi - mod_hi;
                 }
     
                 int ncells = (hi_new - lo_new);
-                // If refined cells is not an integer multiple of cr ratio //
-                // then reduce coarsening ratio by factor of 2             // 
     
-                if ( ( ncells % slice_cr_ratio[idim] ) != 0 ) {                
+                if ( ( ncells == 0 ) ){                
                     slice_cr_ratio[idim] = slice_cr_ratio[idim]/2;
                     modify_cr = true;
                 }
@@ -352,7 +347,6 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
                    index_lo = lo_new;
                    index_hi = hi_new;
                 }
-    
                 slice_lo[idim] = index_lo;
                 slice_hi[idim] = index_hi - 1; // since default is cell-centered    
             }
