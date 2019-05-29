@@ -65,6 +65,26 @@ WarpX::MoveWindow (bool move_j)
 
     ResetProbDomain(RealBox(new_lo, new_hi));
 
+    // Moving slice coordinates - lo and hi - with moving window //
+    // slice box is modified only if slice diagnostics is initialized in input //
+    if ( slice_plot_int > 0 )
+    {
+       Real new_slice_lo[AMREX_SPACEDIM];
+       Real new_slice_hi[AMREX_SPACEDIM];
+       const Real* current_slice_lo = slice_realbox.lo();
+       const Real* current_slice_hi = slice_realbox.hi();
+       for ( int i = 0; i < AMREX_SPACEDIM; i++) {
+           new_slice_lo[i] = current_slice_lo[i];
+           new_slice_hi[i] = current_slice_hi[i];
+       }
+       int num_shift_base_slice = static_cast<int> ((moving_window_x - 
+                                  current_slice_lo[dir]) / cdx[dir]);
+       new_slice_lo[dir] = current_slice_lo[dir] + num_shift_base_slice*cdx[dir];
+       new_slice_hi[dir] = current_slice_hi[dir] + num_shift_base_slice*cdx[dir];
+       slice_realbox.setLo(new_slice_lo);
+       slice_realbox.setHi(new_slice_hi);
+    }
+
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
 

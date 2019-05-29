@@ -11,6 +11,8 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
+#include "SliceDiagnostic.H"
+
 #ifdef AMREX_USE_ASCENT
 #include <ascent.hpp>
 #include <AMReX_Conduit_Blueprint.H>
@@ -771,3 +773,94 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	jobInfoFile.close();
     }
 }
+
+
+/* \brief
+ *  The slice is ouput using visMF and can be visualized used amrvis. 
+ */
+void
+WarpX::WriteSlicePlotFile () const
+{
+    if (F_fp[0] ) {
+       VisMF::Write( (*F_slice[0]), "vismf_F_slice");
+    }
+
+    if (rho_fp[0]) {
+       VisMF::Write( (*rho_slice[0]), "vismf_rho_slice");
+    }
+
+    VisMF::Write( (*Efield_slice[0][0]), amrex::Concatenate("vismf_Ex_slice_",istep[0]));
+    VisMF::Write( (*Efield_slice[0][1]), amrex::Concatenate("vismf_Ey_slice_",istep[0]));
+    VisMF::Write( (*Efield_slice[0][2]), amrex::Concatenate("vismf_Ez_slice_",istep[0]));
+    VisMF::Write( (*Bfield_slice[0][0]), amrex::Concatenate("vismf_Bx_slice_",istep[0]));
+    VisMF::Write( (*Bfield_slice[0][1]), amrex::Concatenate("vismf_By_slice_",istep[0]));
+    VisMF::Write( (*Bfield_slice[0][2]), amrex::Concatenate("vismf_Bz_slice_",istep[0]));
+    VisMF::Write( (*current_slice[0][0]), amrex::Concatenate("vismf_jx_slice_",istep[0]));
+    VisMF::Write( (*current_slice[0][1]), amrex::Concatenate("vismf_jy_slice_",istep[0]));
+    VisMF::Write( (*current_slice[0][2]), amrex::Concatenate("vismf_jz_slice_",istep[0]));
+
+}
+
+
+void 
+WarpX::InitializeSliceMultiFabs ()
+{
+
+    int nlevels = Geom().size();
+
+    F_slice.resize(nlevels);
+    rho_slice.resize(nlevels);
+    current_slice.resize(nlevels);
+    Efield_slice.resize(nlevels);
+    Bfield_slice.resize(nlevels);
+
+}
+
+
+// To generate slice that inherits index type of underlying data //
+void 
+WarpX::SliceGenerationForDiagnostics ()
+{
+
+    Vector<Geometry> dom_geom;
+    dom_geom = Geom();
+
+    if (F_fp[0] ) {
+       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox, 
+                                 slice_cr_ratio );
+    }
+    if (rho_fp[0]) {
+       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox, 
+                                   slice_cr_ratio );
+    }
+
+    for (int idim = 0; idim < 3; ++idim) {
+       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(), 
+                                dom_geom, slice_realbox, slice_cr_ratio );
+       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(), 
+                               dom_geom, slice_realbox, slice_cr_ratio );
+       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(), 
+                               dom_geom, slice_realbox, slice_cr_ratio );
+    }
+
+
+}
+
+
+void 
+WarpX::ClearSliceMultiFabs ()
+{
+
+    F_slice.clear();
+    rho_slice.clear();
+    current_slice.clear();
+    Efield_slice.clear();
+    Bfield_slice.clear();
+    F_slice.shrink_to_fit();
+    rho_slice.shrink_to_fit();
+    current_slice.shrink_to_fit();
+    Efield_slice.shrink_to_fit();
+    Bfield_slice.shrink_to_fit();
+
+}
+
