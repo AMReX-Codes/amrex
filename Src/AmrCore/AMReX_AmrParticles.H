@@ -86,7 +86,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     }
 
     // configure this to do a no-op at the physical boundaries.
-    PhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
     int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));

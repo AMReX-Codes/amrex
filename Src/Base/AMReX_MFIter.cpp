@@ -456,12 +456,6 @@ void
 MFIter::operator++ () noexcept
 {
 #ifdef _OPENMP
-    int numOmpThreads = omp_get_num_threads();
-#else
-    int numOmpThreads = 1;
-#endif
-
-#ifdef _OPENMP
     if (dynamic)
     {
 #pragma omp atomic capture
@@ -471,6 +465,12 @@ MFIter::operator++ () noexcept
 #endif
     {
 #ifdef AMREX_USE_GPU
+#ifdef _OPENMP
+        int numOmpThreads = omp_get_num_threads();
+#else
+        int numOmpThreads = 1;
+#endif
+        
         bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
         if (use_gpu) {
             if (!real_reduce_list.empty()) {
