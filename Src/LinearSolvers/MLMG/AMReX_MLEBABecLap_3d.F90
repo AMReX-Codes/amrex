@@ -516,7 +516,7 @@ contains
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3),ncomp)
     real(amrex_real), intent(in   ) ::    a( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3)  )
-    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bzhi(3),ncomp)
+    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3),ncomp)
     real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3),ncomp)
     real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3),ncomp)
     integer         , intent(in   ) ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3)  ) 

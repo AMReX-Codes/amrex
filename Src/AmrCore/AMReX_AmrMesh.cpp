@@ -395,6 +395,12 @@ AmrMesh::SetBoxArray (int lev, const BoxArray& ba_in) noexcept
 }
 
 void
+AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
+{
+    geom[lev] = geom_in;
+}
+
+void
 AmrMesh::ClearDistributionMap (int lev) noexcept
 {
     dmap[lev] = DistributionMapping();

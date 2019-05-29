@@ -43,7 +43,7 @@ namespace amrex
        Arguments:
        a_bx (not modified) the Box to iterate over.
     */
-    BoxIterator(const Box& a_bx) noexcept;
+    explicit BoxIterator(const Box& a_bx) noexcept;
 
     void setBox(const Box& a_bx) noexcept;
 

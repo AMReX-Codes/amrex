@@ -10,12 +10,18 @@ namespace {
     constexpr int kappa_num_mglevs = 1;
 }
 
+MLEBTensorOp::MLEBTensorOp ()
+{
+    MLEBABecLap::setScalars(1.0,1.0);
+}
+
 MLEBTensorOp::MLEBTensorOp (const Vector<Geometry>& a_geom,
                             const Vector<BoxArray>& a_grids,
                             const Vector<DistributionMapping>& a_dmap,
                             const LPInfo& a_info,
                             const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
+    MLEBABecLap::setScalars(1.0,1.0);
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
@@ -32,8 +38,6 @@ MLEBTensorOp::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLEBTensorOp::define()");
 
     MLEBABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
-
-    MLEBABecLap::setScalars(1.0,1.0);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -101,7 +105,18 @@ MLEBTensorOp::prepareForSolve ()
         "MLEBTensorOp: must call both setBulkViscosity and setEBBulkViscosity or none.");
 
     if (m_has_kappa) {
-        amrex::Abort("MLEBTensorOp::prepareForSolve: TODO m_has_kappa");
+        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+            for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
+                amrex::EB_average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev][mglev-1]),
+                                             GetArrOfPtrs     (m_kappa[amrlev][mglev  ]),
+                                             IntVect(mg_coarsen_ratio), 0);
+            }
+            if (amrlev > 0) {
+                amrex::EB_average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
+                                             GetArrOfPtrs     (m_kappa[amrlev-1].front()),
+                                             IntVect(mg_coarsen_ratio), 0);
+            }
+        }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
             for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
@@ -113,7 +128,18 @@ MLEBTensorOp::prepareForSolve ()
     }
 
     if (m_has_eb_kappa) {
-        amrex::Abort("MLEBTensorOp::prepareForSolve: TODO m_has_eb_kappa");
+        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+            for (int mglev = 1; mglev < m_eb_kappa[amrlev].size(); ++mglev) {
+                amrex::EB_average_down_boundaries(m_eb_kappa[amrlev][mglev-1],
+                                                  m_eb_kappa[amrlev][mglev  ],
+                                                  IntVect(mg_coarsen_ratio), 0);
+            }
+            if (amrlev > 0) {
+                amrex::EB_average_down_boundaries(m_eb_kappa[amrlev  ].back(),
+                                                  m_eb_kappa[amrlev-1].front(),
+                                                  IntVect(mg_coarsen_ratio), 0);
+            }
+        }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
             for (int mglev = 0; mglev < m_eb_kappa[amrlev].size(); ++mglev) {
@@ -167,6 +193,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     iMultiFab const& mask = m_cc_mask[amrlev][mglev];
     MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
     MultiFab const& kapebmf = m_eb_kappa[amrlev][mglev];
+    Real bscalar = m_b_scalar;
 
     if (Gpu::inLaunchRegion())
     {
@@ -350,7 +377,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv, bscalar);
             });
         }
         else
@@ -375,7 +402,7 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                                        vfab, etab, kapb, ccm, flag, vol,
                                        AMREX_D_DECL(apx,apy,apz),
                                        AMREX_D_DECL(fcx,fcy,fcz),
-                                       bc, dxinv);
+                                       bc, dxinv, bscalar);
             });
         }
     }

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 project(AMReX)
+enable_language(C) # needed for find_package(MPI REQUIRED "C")
 enable_language(CXX)
 enable_language(Fortran)
 

@@ -8,12 +8,18 @@ namespace {
     constexpr int kappa_num_mglevs = 1;
 }
 
+MLTensorOp::MLTensorOp ()
+{
+    MLABecLaplacian::setScalars(1.0,1.0);
+}
+
 MLTensorOp::MLTensorOp (const Vector<Geometry>& a_geom,
                         const Vector<BoxArray>& a_grids,
                         const Vector<DistributionMapping>& a_dmap,
                         const LPInfo& a_info,
                         const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
+    MLABecLaplacian::setScalars(1.0,1.0);
     define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
@@ -30,8 +36,6 @@ MLTensorOp::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLTensorOp::define()");
 
     MLABecLaplacian::define(a_geom, a_grids, a_dmap, a_info, a_factory);
-
-    MLABecLaplacian::setScalars(1.0,1.0);
 
     m_kappa.clear();
     m_kappa.resize(NAMRLevels());
@@ -68,7 +72,18 @@ void
 MLTensorOp::prepareForSolve ()
 {
     if (m_has_kappa) {
-        amrex::Abort("MLTensorOp::prepareForSolve: TODO");
+        for (int amrlev = NAMRLevels()-1; amrlev >= 0; --amrlev) {
+            for (int mglev = 1; mglev < m_kappa[amrlev].size(); ++mglev) {
+                amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev][mglev-1]),
+                                          GetArrOfPtrs     (m_kappa[amrlev][mglev  ]),
+                                          IntVect(mg_coarsen_ratio), 0);
+            }
+            if (amrlev > 0) {
+                amrex::average_down_faces(GetArrOfConstPtrs(m_kappa[amrlev  ].back()),
+                                          GetArrOfPtrs     (m_kappa[amrlev-1].front()),
+                                          IntVect(mg_coarsen_ratio), 0);
+            }
+        }
     } else {
         for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
             for (int mglev = 0; mglev < m_kappa[amrlev].size(); ++mglev) {
@@ -107,6 +122,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
+    Real bscalar = m_b_scalar;
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -155,7 +171,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
+                mltensor_cross_terms(tbx, axfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv, bscalar);
             });
         }
     }
