@@ -253,7 +253,16 @@ Device::Initialize ()
 void
 Device::Finalize ()
 {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_HIP)
+
+    for (int i = 0; i < max_gpu_streams; ++i)
+    {
+        AMREX_HIP_SAFE_CALL(hipStreamDestroy(gpu_streams[i]));
+    }
+
+    AMREX_HIP_SAFE_CALL(hipDeviceReset());
+
+#elif defined(AMREX_USE_CUDA)
 
     cudaProfilerStop();
 
