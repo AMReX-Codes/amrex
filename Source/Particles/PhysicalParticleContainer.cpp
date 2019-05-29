@@ -215,14 +215,16 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             if (plasma_injector->insideBounds(x, y, z)) {
                 plasma_injector->getMomentum(u, x, y, z);
                 if (do_symmetrize){
+                    std::array<Real, 3> u_tmp;
+                    Real x_tmp, y_tmp, z_tmp;
                     // Add four particles to the beam:
                     // (x,ux,y,uy) (-x,-ux,y,uy) (x,ux,-y,-uy) (-x,-ux,-y,-uy)
-                    std::array<Real, 3> u_tmp = u;
                     for (int ix=0; ix<2; ix++){
                         for (int iy=0; iy<2; iy++){
-                            x        *= std::pow(-1,ix);
+                            u_tmp = u;
+                            x_tmp     = x*std::pow(-1,ix);
                             u_tmp[0] *= std::pow(-1,ix);
-                            y        *= std::pow(-1,iy);
+                            y_tmp     = y*std::pow(-1,iy);
                             u_tmp[1] *= std::pow(-1,iy);
                             CheckAndAddParticle(x, y, z, u_tmp, weight/4);
                         }
