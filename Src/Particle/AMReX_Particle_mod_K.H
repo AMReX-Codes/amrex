@@ -109,7 +109,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
                 
         rho(i, 0, 0, 0) += weight*p.rdata(0);
                 
-        for (int comp = 1; comp <= nc; ++comp)
+        for (int comp = 1; comp < nc; ++comp)
         {
             rho(i, 0, 0, comp) += weight*p.rdata(0)*p.rdata(comp);
         }
@@ -118,10 +118,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1]);
 
     amrex::Real lx = (p.pos(0) - plo[0] - 0.5/pdxi[0]) * dxi[0];
-    amrex::Real ly = (p.pos(1) - plo[1] - 0.5*pdxi[1]) * dxi[1];
+    amrex::Real ly = (p.pos(1) - plo[1] - 0.5/pdxi[1]) * dxi[1];
 
     amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
-    amrex::Real hy = (p.pos(1) - plo[1] + 0.5*pdxi[1]) * dxi[1];
+    amrex::Real hy = (p.pos(1) - plo[1] + 0.5/pdxi[1]) * dxi[1];
 
     int lo_x = std::floor(lx);
     int lo_y = std::floor(ly);
@@ -140,7 +140,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
                 
             rho(i, j, 0, 0) += weight*p.rdata(0);
                 
-            for (int comp = 1; comp <= nc; ++comp)
+            for (int comp = 1; comp < nc; ++comp)
             {
                 rho(i, j, 0, comp) += weight*p.rdata(0)*p.rdata(comp);
             }
@@ -150,17 +150,17 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     amrex::Real factor = (pdxi[0]/dxi[0])*(pdxi[1]/dxi[1])*(pdxi[2]/dxi[2]);
     
     amrex::Real lx = (p.pos(0) - plo[0] - 0.5/pdxi[0]) * dxi[0];
-    amrex::Real ly = (p.pos(1) - plo[1] - 0.5*pdxi[1]) * dxi[1];
-    amrex::Real lz = (p.pos(2) - plo[2] - 0.5*pdxi[2]) * dxi[2];
-
+    amrex::Real ly = (p.pos(1) - plo[1] - 0.5/pdxi[1]) * dxi[1];
+    amrex::Real lz = (p.pos(2) - plo[2] - 0.5/pdxi[2]) * dxi[2];
+    
     amrex::Real hx = (p.pos(0) - plo[0] + 0.5/pdxi[0]) * dxi[0];
-    amrex::Real hy = (p.pos(1) - plo[1] + 0.5*pdxi[1]) * dxi[1];
-    amrex::Real hz = (p.pos(2) - plo[2] + 0.5*pdxi[2]) * dxi[2];
-
+    amrex::Real hy = (p.pos(1) - plo[1] + 0.5/pdxi[1]) * dxi[1];
+    amrex::Real hz = (p.pos(2) - plo[2] + 0.5/pdxi[2]) * dxi[2];
+    
     int lo_x = std::floor(lx);
     int lo_y = std::floor(ly);
     int lo_z = std::floor(lz);
-
+    
     int hi_x = std::floor(hx);
     int hi_y = std::floor(hy);
     int hi_z = std::floor(hz);
@@ -179,7 +179,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
                 
                 rho(i, j, k, 0) += weight*p.rdata(0);
                 
-                for (int comp = 1; comp <= nc; ++comp)
+                for (int comp = 1; comp < nc; ++comp)
                 {
                     rho(i, j, k, comp) += weight*p.rdata(0)*p.rdata(comp);
                 }
