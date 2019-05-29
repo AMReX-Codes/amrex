@@ -339,6 +339,12 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
                 int ncells = (hi_new - lo_new);
     
                 if ( ( ncells == 0 ) ){                
+                    amrex::Print() << " Diagnostic Warning :: ";
+                    amrex::Print() << " Coarsening ratio  ";
+                    amrex::Print() << slice_cr_ratio[idim] << " in dim "<< idim;
+                    amrex::Print() << "is leading to zero cells for slice.";
+                    amrex::Print() << " Thus reducing cr_ratio by half.\n";
+                    
                     slice_cr_ratio[idim] = slice_cr_ratio[idim]/2;
                     modify_cr = true;
                 }
