@@ -54,7 +54,6 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
     // same index space as domain //
     IntVect slice_lo(AMREX_D_DECL(0,0,0));
     IntVect slice_hi(AMREX_D_DECL(1,1,1));
-    IntVect slice_lo2(AMREX_D_DECL(0,0,0));
     IntVect interp_lo(AMREX_D_DECL(0,0,0));
 
     CheckSliceInput(real_box, slice_cc_nd_box, slice_realbox, slice_cr_ratio,
