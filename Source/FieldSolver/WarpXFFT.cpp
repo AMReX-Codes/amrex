@@ -407,6 +407,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 
     BL_PROFILE_VAR_START(blp_push_eb);
     if (fft_hybrid_mpi_decomposition){
+#ifndef AMREX_USE_CUDA // When running on CPU: use PICSAR code
         if (Efield_fp_fft[lev][0]->local_size() == 1)
            //Only one FFT patch on this MPI
         {
@@ -447,6 +448,9 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         {
     	amrex::Abort("WarpX::PushPSATD: TODO");
         }
+#else // AMREX_USE_CUDA is defined ; running on GPU
+        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.")
+#endif
     } else {
         // Not using the hybrid decomposition
         auto& solver = *spectral_solver_fp[lev];
