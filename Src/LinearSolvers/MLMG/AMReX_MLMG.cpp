@@ -490,10 +490,11 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
 
-	computeResOfCorrection(amrlev, mglev);
+	if (cf_strategy == CFStrategy::ghostnodes) computeResOfCorrection(amrlev, mglev);
 
         if (verbose >= 4)
         {
+	    computeResOfCorrection(amrlev, mglev);
             Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm after  smooth " << norm << "\n";
