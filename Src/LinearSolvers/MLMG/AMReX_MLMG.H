@@ -25,6 +25,7 @@ public:
     using Location = MLLinOp::Location;
 
     enum class BottomSolver : int { smoother, bicgstab, cg, hypre, petsc };
+    enum class CFStrategy : int {none,ghostnodes};
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -73,6 +74,7 @@ public:
     void setBottomSmooth (int n) noexcept { nub = n; }
 
     void setBottomSolver (BottomSolver s) noexcept { bottom_solver = s; }
+    void setCFStrategy (CFStrategy a_cf_strategy) noexcept {cf_strategy = a_cf_strategy;}
     void setBottomVerbose (int v) noexcept { bottom_verbose = v; }
     void setBottomMaxIter (int n) noexcept { bottom_maxiter = n; }
     void setBottomTolerance (Real t) noexcept { bottom_reltol = t; }
@@ -155,6 +157,7 @@ private:
     int max_fmg_iters = 0;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
+    CFStrategy cf_strategy     = CFStrategy::none;
     int  bottom_verbose        = 0;
     int  bottom_maxiter        = 200;
     Real bottom_reltol         = 1.e-4;
