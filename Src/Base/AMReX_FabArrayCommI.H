@@ -80,8 +80,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
                             {
                                 // Build the Array4's.
-                                auto const dst = cmem->getDst<Real>();
-                                auto const src = cmem->getSrc<Real>();
+                                auto const dst = cmem->getDst<value_type>();
+                                auto const src = cmem->getSrc<value_type>();
                                 for (int n = 0; n < cmem->ncomp; ++n) {
                                     dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
                                 }
@@ -317,8 +317,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             CopyMemory* cmem = TheFB.m_copyToBuffer.getDevicePtr(idx++);
                             AMREX_HOST_DEVICE_FOR_3D (bx, ii, jj, kk,
                             {
-                                auto const pfab = cmem->getDst<Real>();
-                                auto const sfab = cmem->getSrc<Real>();
+                                auto const pfab = cmem->getDst<value_type>();
+                                auto const sfab = cmem->getSrc<value_type>();
                                 for (int n = 0; n < cmem->ncomp; ++n)
                                 {
                                     pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+(cmem->scomp));
@@ -464,8 +464,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
                             AMREX_HOST_DEVICE_FOR_3D(tag.dbox, i, j, k,
                             {
-                                auto const dst = cmem->getDst<Real>();
-                                auto const src = cmem->getSrc<Real>();
+                                auto const dst = cmem->getDst<value_type>();
+                                auto const src = cmem->getSrc<value_type>();
                                 for (int n = 0; n < cmem->ncomp; ++n) {
                                     dst(i,j,k,(cmem->scomp)+n) = src(i+offset.x,j+offset.y,k+offset.z,(cmem->scomp)+n);
                                 }
@@ -642,8 +642,8 @@ FabArray<FAB>::FillBoundary_finish ()
                             CopyMemory* cmem = TheFB.m_copyFromBuffer.getDevicePtr(idx++);
                             AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
                             {
-                                auto const pfab = cmem->getSrc<Real>();
-                                auto const dfab = cmem->getDst<Real>();
+                                auto const pfab = cmem->getSrc<value_type>();
+                                auto const dfab = cmem->getDst<value_type>();
                                 for (int n = 0; n < cmem->ncomp; ++n)
                                 {
                                     dfab(i,j,k,n+(cmem->scomp)) = pfab(i,j,k,n);
