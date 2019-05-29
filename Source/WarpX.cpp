@@ -17,6 +17,7 @@
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
+#include <WarpXAlgorithmSelection.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -118,7 +119,7 @@ WarpX::ResetInstance ()
 {
     delete m_instance;
     m_instance = nullptr;
-}	
+}
 
 WarpX::WarpX ()
 {
@@ -276,10 +277,10 @@ WarpX::ReadParameters ()
 
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
-    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is 
+    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is
     // specified by the user, 0 otherwise.
-    do_compute_max_step_from_zmax = 
-        pp.query("zmax_plasma_to_compute_max_step", 
+    do_compute_max_step_from_zmax =
+        pp.query("zmax_plasma_to_compute_max_step",
                   zmax_plasma_to_compute_max_step);
 
     pp.queryarr("B_external", B_external);
@@ -318,7 +319,7 @@ WarpX::ReadParameters ()
                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
         pp.query("lab_data_directory", lab_data_directory);
-        
+
         std::string s;
         pp.get("boost_direction", s);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
@@ -477,7 +478,7 @@ WarpX::ReadParameters ()
 
     {
 	ParmParse pp("algo");
-	pp.query("current_deposition", current_deposition_algo);
+    current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);

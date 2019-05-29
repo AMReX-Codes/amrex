@@ -52,6 +52,6 @@ struct GatheringAlgo {
 };
 
 int
-GetAlgorithmInteger( amrex::ParmParse& pp, std::string pp_search_key );
+GetAlgorithmInteger( amrex::ParmParse& pp, const char* pp_search_key );
 
 #endif // UTILS_WARPXALGORITHMSELECTION_H_

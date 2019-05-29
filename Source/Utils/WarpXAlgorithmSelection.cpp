@@ -5,7 +5,7 @@
 
 const std::map<std::string, int> maxwell_solver_algo_to_int = {
     {"yee",     MaxwellSolverAlgo::Yee },
-#if (defined AMREX_USE_GPU) // Only available on CPU
+#ifndef AMREX_USE_GPU // Only available on CPU
     {"ckc",     MaxwellSolverAlgo::CKC },
 #endif
     {"default", MaxwellSolverAlgo::Yee }
@@ -20,7 +20,7 @@ const std::map<std::string, int> particle_pusher_algo_to_int = {
 const std::map<std::string, int> current_deposition_algo_to_int = {
     {"esirkepov",            CurrentDepositionAlgo::Esirkepov },
     {"direct",               CurrentDepositionAlgo::Direct },
-#if (defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
+#if (!defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
     {"direct-vectorized",    CurrentDepositionAlgo::DirectVectorized },
 #endif
     {"default",              CurrentDepositionAlgo::Esirkepov }
@@ -28,7 +28,7 @@ const std::map<std::string, int> current_deposition_algo_to_int = {
 
 const std::map<std::string, int> charge_deposition_algo_to_int = {
     {"standard",   ChargeDepositionAlgo::Standard },
-#if (defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
+#if (!defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
     {"vectorized", ChargeDepositionAlgo::Vectorized },
     {"default",    ChargeDepositionAlgo::Vectorized }
 #else
@@ -40,6 +40,9 @@ const std::map<std::string, int> gathering_algo_to_int = {
     {"standard",   GatheringAlgo::Standard },
 #ifndef AMREX_USE_GPU // Only available on CPU
     {"vectorized", GatheringAlgo::Vectorized },
+    {"default",    GatheringAlgo::Vectorized }
+#else
+    {"default",    GatheringAlgo::Standard }
 #endif
 };
 
@@ -70,11 +73,11 @@ GetAlgorithmInteger( amrex::ParmParse& pp, const char* pp_search_key ){
     if (algo_to_int.count(algo) == 0){
         // Not a valid key ; print error message
         std::string pp_search_string = pp_search_key;
-        std::string error_message = "Invalid string for algo."
-            + pp_search_string + ": " + algo + ". The valid values are: ";
+        std::string error_message = "Invalid string for algo." + pp_search_string
+            + ": " + algo + ".\nThe valid values are:\n";
         for ( const auto &valid_pair : algo_to_int ) {
             if (valid_pair.first != "default"){
-                error_message += valid_pair.first + " ";
+                error_message += " - " + valid_pair.first + "\n";
             }
         }
         amrex::Abort(error_message);
