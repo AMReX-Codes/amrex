@@ -94,14 +94,6 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
     // Slice generation with index type inheritance //
     Box slice(slice_lo, slice_hi);
    
-    // Convert from cc to index type of parent multifab //
-    bool slicetypeToBeConverted = 0;
-    for ( int idim = 0; idim < AMREX_SPACEDIM; ++idim ) {    
-       if ( SliceType[idim] == 1 ) {
-          slicetypeToBeConverted = 1;
-       }
-    }
-
     Vector<BoxArray> sba(1);
     sba[0].define(slice);
     sba[0].maxSize(slice_grid_size);
@@ -239,8 +231,8 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
     {     
         // Modify coarsening ratio if the input value is not an exponent of 2 for AMR //
         if ( slice_cr_ratio[idim] > 0 ) {        
-            int log_cr_ratio = floor ( log2( slice_cr_ratio[idim]));
-            slice_cr_ratio[idim] = exp2( log_cr_ratio );
+            int log_cr_ratio = floor ( log2( double(slice_cr_ratio[idim])));
+            slice_cr_ratio[idim] = exp2( double(log_cr_ratio) );
         }
     
         //// Default coarsening ratio is 1 //
@@ -336,9 +328,7 @@ CheckSliceInput( const RealBox real_box, RealBox &slice_cc_nd_box,
                    hi_new = index_hi - mod_hi;
                 }
     
-                int ncells = (hi_new - lo_new);
-    
-                if ( ( ncells == 0 ) ){                
+                if ( (hi_new - lo_new) == 0 ){                
                     amrex::Print() << " Diagnostic Warning :: ";
                     amrex::Print() << " Coarsening ratio  ";
                     amrex::Print() << slice_cr_ratio[idim] << " in dim "<< idim;
