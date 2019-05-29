@@ -497,8 +497,6 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
                 // Transform the transverse E and B fields. Note that ez and bz are not 
                 // changed by the tranform.
                 Real e_lab, b_lab, j_lab, r_lab;
-                int i0 = 0;
-                int i4 = 4;
                 e_lab = gamma_boost * (arr(i, j, k, 0) + beta_boost*clight*arr(i, j, k, 4));
                 b_lab = gamma_boost * (arr(i, j, k, 4) + beta_boost*arr(i, j, k, 0)/clight);
 
@@ -718,7 +716,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         if (buff_counter_[i] == 0) {
             // ... reset fields buffer data_buffer_[i]
             if (WarpX::do_boosted_frame_fields) {
-                const int ncomp = cell_centered_data->nComp();
                 Box buff_box = geom.Domain();
                 buff_box.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
                 buff_box.setBig(boost_direction_, i_lab);
@@ -726,7 +723,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
                 data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp_to_dump, 0) );
-                // data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
             if (WarpX::do_boosted_frame_particles) 
@@ -922,15 +918,14 @@ writeMetaData ()
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
-        std::string DiagnosticDirectory = "lab_frame_data";
         
-        if (!UtilCreateDirectory(DiagnosticDirectory, 0755))
-            CreateDirectoryFailed(DiagnosticDirectory);
+        if (!UtilCreateDirectory(WarpX::lab_data_directory, 0755))
+            CreateDirectoryFailed(WarpX::lab_data_directory);
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream HeaderFile;
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        std::string HeaderFileName(DiagnosticDirectory + "/Header");
+        std::string HeaderFileName(WarpX::lab_data_directory + "/Header");
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
@@ -962,12 +957,11 @@ LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain_lab,
       my_bfd(bfd)
 {
     Real zmin_lab = prob_domain_lab_.lo(AMREX_SPACEDIM-1);
-    Real zmax_lab = prob_domain_lab_.hi(AMREX_SPACEDIM-1);
     current_z_lab = 0.0;
     current_z_boost = 0.0;
     updateCurrentZPositions(t_boost, my_bfd.inv_gamma_boost_, my_bfd.inv_beta_boost_);
     initial_i = (current_z_lab - zmin_lab) / my_bfd.dz_lab_;
-    file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
+    file_name = Concatenate(WarpX::lab_data_directory + "/snapshot", file_num, 5);
 
 #ifdef WARPX_USE_HDF5
     if (ParallelDescriptor::IOProcessor())

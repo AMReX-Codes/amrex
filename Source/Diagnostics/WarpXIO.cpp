@@ -86,11 +86,11 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 
 	// Geometry
 	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            HeaderFile << Geometry::ProbLo(i) << ' ';
+            HeaderFile << Geom(0).ProbLo(i) << ' ';
 	}
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            HeaderFile << Geometry::ProbHi(i) << ' ';
+            HeaderFile << Geom(0).ProbHi(i) << ' ';
 	}
         HeaderFile << '\n';
 
@@ -285,7 +285,7 @@ WarpX::InitFromCheckpoint ()
 	    }
 	}
 
-	Geometry::ProbDomain(RealBox(prob_lo,prob_hi));
+        ResetProbDomain(RealBox(prob_lo,prob_hi));
 
 	for (int lev = 0; lev < nlevs; ++lev) {
 	    BoxArray ba;
@@ -777,7 +777,6 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 /* \brief
  *  The raw slice data is written out in the plotfile format and can be visualized using yt. *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
- *  THe final objective is to use OpenPMD.
  */
 void
 WarpX::WriteSlicePlotFile () const

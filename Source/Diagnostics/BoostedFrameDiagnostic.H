@@ -40,8 +40,8 @@ class BoostedFrameDiagnostic {
         amrex::Real current_z_lab;
         amrex::Real current_z_boost;
 
-        std::vector<std::string> mesh_field_names_;
         int ncomp_to_dump_;
+        std::vector<std::string> mesh_field_names_;
                 
         int file_num;
         int initial_i;
