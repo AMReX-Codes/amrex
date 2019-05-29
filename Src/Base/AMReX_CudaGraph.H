@@ -98,7 +98,7 @@ struct CudaGraph
         return (m_parms_d + idx);
     }
     bool ready() const { return graph_is_ready; }
-    void executeGraph() {
+    void executeGraph () const {
         cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
                    cudaMemcpyHostToDevice);
 

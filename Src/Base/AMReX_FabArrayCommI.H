@@ -111,7 +111,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
      
                 // Launch Graph
-                const_cast<FB&>(TheFB).m_localCopy.executeGraph();
+                TheFB.m_localCopy.executeGraph();
 
             }
             else
@@ -354,7 +354,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             }
     
             // Launch Graph
-            const_cast<FB&>(TheFB).m_copyToBuffer.executeGraph();
+            TheFB.m_copyToBuffer.executeGraph();
 
         }
         else
@@ -493,7 +493,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
     
                 // Launch Graph
-                const_cast<FB&>(TheFB).m_localCopy.executeGraph();            
+                TheFB.m_localCopy.executeGraph();
 
             }
             else
@@ -670,8 +670,7 @@ FabArray<FAB>::FillBoundary_finish ()
                 }
     
                 // Launch Graph
-                const_cast<FB&>(TheFB).m_copyFromBuffer.executeGraph();
-
+                TheFB.m_copyFromBuffer.executeGraph();
 
             }
             else
