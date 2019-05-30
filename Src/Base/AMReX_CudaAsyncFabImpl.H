@@ -5,7 +5,7 @@
 #include <AMReX_FArrayBox.H>
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 class AsyncFabImpl
 {
@@ -27,7 +27,7 @@ public:
 
 private:
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
 #ifdef AMREX_FAB_IS_PINNED
 
