@@ -3660,7 +3660,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	  auto tile = kv.first.second;
 	  const auto& src_tile = kv.second;
           
-	  auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+	  auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
 	  auto old_size = dst_tile.GetArrayOfStructs().size();
 	  auto new_size = old_size + src_tile.size();
 	  dst_tile.resize(new_size);
