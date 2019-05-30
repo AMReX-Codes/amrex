@@ -5,6 +5,14 @@
 #define AMREX_GPU_MAX_THREADS 256
 #endif
 
+#if defined(AMREX_USE_HIP)
+#define AMREX_HIP_OR_CUDA(a,b) a
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_HIP_OR_CUDA(a,b) b
+#else
+#define AMREX_HIP_OR_CUDA(a,b) ((void)0)
+#endif
+
 namespace amrex {
 namespace Gpu {
 

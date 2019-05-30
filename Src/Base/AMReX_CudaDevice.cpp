@@ -374,61 +374,43 @@ Device::setStreamIndex (const int idx) noexcept
 void
 Device::synchronize ()
 {
-#if defined(AMREX_USE_HIP)
-    AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());
-#elif defined(AMREX_USE_CUDA)
-    AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize());
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
+                       AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
 }
 
 void
 Device::streamSynchronize ()
 {
-#if defined(AMREX_USE_HIP)
-    AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));
-#elif defined(AMREX_USE_CUDA)
-    AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream));
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream)); )
 }
 
 void
 Device::htod_memcpy (void* p_d, const void* p_h, const std::size_t sz)
 {
-#if defined(AMREX_USE_HIP)
-    AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));
-#elif defined(AMREX_USE_CUDA)
-    AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
+                       AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice)); )
 }
 
 void
 Device::dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz)
 {
-#if defined(AMREX_USE_HIP)
-    AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));
-#elif defined(AMREX_USE_CUDA)
-    AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,
+                       AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost)); )
 }
 
 void
 Device::htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz)
 {
-#if defined(AMREX_USE_HIP)
-    AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpu_stream));
-#elif defined(AMREX_USE_CUDA)
-    AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpu_stream));
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpu_stream));,
+                       AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpu_stream)); )
 }
 
 void
 Device::dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz)
 {
-#if defined(AMREX_USE_HIP)
-    AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpu_stream));
-#elif defined(AMREX_USE_CUDA)
-    AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpu_stream));
-#endif
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpu_stream));,
+                       AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpu_stream)); )
 }
 
 void
@@ -691,13 +673,10 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
 std::size_t
 Device::freeMemAvailable ()
 {
-#if defined(AMREX_USE_HIP)
+#ifdef AMREX_USE_GPU
     std::size_t f, t;
-    AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));
-    return f;
-#elif defined(AMREX_USE_CUDA)
-    std::size_t f, t;
-    AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemGetInfo(&f,&t));,
+                       AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t)); )
     return f;
 #else
     return 0;
