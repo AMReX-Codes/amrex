@@ -8,7 +8,7 @@
 #define AMREX_GPU_GLOBAL __global__
 #define AMREX_GPU_HOST_DEVICE __host__ __device__
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_HIP) && !defined(AMREX_USE_CUDA)
 #define AMREX_GPU_DEVICE_MANAGED __device__
 #else
 #define AMREX_GPU_DEVICE_MANAGED __device__ __managed__
