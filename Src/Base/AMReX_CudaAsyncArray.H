@@ -9,14 +9,16 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_CudaDevice.H>
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 extern "C" {
-    void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);
+AMREX_HIP_OR_CUDA(
+    void  HIPRT_CB amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
+    void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);)
 }
 #endif
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 template <typename T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
 class AsyncArray
@@ -28,12 +30,11 @@ public:
         if (n == 0) return;
         h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
         std::memcpy(h_data, h_p, n*sizeof(T));
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
             d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
-            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_data, h_data, n*sizeof(T),
-                                                cudaMemcpyHostToDevice, Gpu::Device::gpuStream()));
+            Gpu::htod_memcpy_async(d_data, h_data, n*sizeof(T));
         }
 #endif
     }
@@ -42,7 +43,7 @@ public:
     explicit AsyncArray (const std::size_t n)
     {
         if (n == 0) return;
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
             d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
@@ -60,15 +61,18 @@ public:
     T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
     void clear ()
     {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
             if (d_data != nullptr) {
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
-                AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Gpu::Device::gpuStream(),
-                                                          amrex_asyncarray_delete, p, 0));
+                AMREX_HIP_OR_CUDA(
+                    AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
+                                                               amrex_asyncarray_delete, p, 0));,
+                    AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
+                                                               amrex_asyncarray_delete, p, 0)););
             }
         }
         else
@@ -83,11 +87,10 @@ public:
     void copyToHost (T* h_p, std::size_t n) const
     {
         if (n == 0) return;
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         if (d_data)
         {
-            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(h_p, d_data, n*sizeof(T),
-                                                cudaMemcpyDeviceToHost, Gpu::Device::gpuStream()));
+            Gpu::dtoh_memcpy_async(h_p, d_data, n*sizeof(T));
         }
         else
 #endif
@@ -103,7 +106,7 @@ private:
 
 }
 
-using Cuda::AsyncArray;
+using Gpu::AsyncArray;
 }
 
 #endif

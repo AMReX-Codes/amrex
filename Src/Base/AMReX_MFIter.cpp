@@ -189,7 +189,7 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) Gpu::Device::synchronize();
+    if (device_sync) Gpu::synchronize();
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -475,9 +475,9 @@ MFIter::operator++ () noexcept
         if (use_gpu) {
             if (!real_reduce_list.empty()) {
                 for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
-                    Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
-                                                   real_device_reduce_list[currentIndex][i],
-                                                   sizeof(Real));
+                    Gpu::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
+                                           real_device_reduce_list[currentIndex][i],
+                                           sizeof(Real));
                 }
             }
         }
@@ -490,7 +490,7 @@ MFIter::operator++ () noexcept
             Gpu::Device::setStreamIndex(currentIndex);
             AMREX_GPU_ERROR_CHECK();
 #ifdef DEBUG
-//            Gpu::Device::synchronize();
+//            Gpu::synchronize();
 #endif
         }
 #endif
@@ -537,9 +537,9 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 
         const int list_idx = real_reduce_list[currentIndex].size() - 1;
 
-        Gpu::Device::htod_memcpy_async(real_device_reduce_list[currentIndex][list_idx],
-                                       &real_reduce_list[currentIndex][list_idx],
-                                       sizeof(Real));
+        Gpu::htod_memcpy_async(real_device_reduce_list[currentIndex][list_idx],
+                               &real_reduce_list[currentIndex][list_idx],
+                               sizeof(Real));
 
         // If we haven't already, store the address to the variable
         // we will update at the end.

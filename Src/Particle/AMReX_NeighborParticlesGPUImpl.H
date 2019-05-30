@@ -526,7 +526,7 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
                 cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
 
-                Gpu::Device::streamSynchronize();
+                Gpu::streamSynchronize();
 
                 if (num_particles == 0) continue;
 

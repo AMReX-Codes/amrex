@@ -31,6 +31,10 @@ public:
 
 #if defined(AMREX_USE_GPU)
     static gpuStream_t gpuStream () noexcept { return gpu_stream; }
+#ifdef AMREX_USE_CUDA
+    // for backward compatibility
+    static cudaStream_t cudaStream () noexcept { return gpu_stream; }
+#endif
 #endif
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
@@ -39,11 +43,6 @@ public:
 
     static void synchronize ();
     static void streamSynchronize ();
-
-    static void htod_memcpy       (void* p_d, const void* p_h, const std::size_t sz);
-    static void dtoh_memcpy       (void* p_h, const void* p_d, const std::size_t sz);
-    static void htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz);
-    static void dtoh_memcpy_async (void* p_h,const  void* p_d, const std::size_t sz);
 
     static void mem_advise_set_preferred (void* p, const std::size_t sz, const int device);
     static void mem_advise_set_readonly (void* p, const std::size_t sz);
@@ -67,6 +66,10 @@ public:
 
     static std::size_t freeMemAvailable ();
 
+#ifdef AMREX_USE_GPU
+    static int warp_size;
+#endif
+
 private:
 
     static void initialize_gpu ();
@@ -82,10 +85,60 @@ private:
     static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
     static gpuStream_t gpu_stream;
     static gpuDeviceProp_t device_prop;
-
-    static int warp_size;
 #endif
 };
+
+// Put these in amrex::Gpu
+inline gpuStream_t
+gpuStream () noexcept
+{
+    return Device::gpuStream();
+}
+
+inline void
+synchronize () noexcept
+{
+   AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
+                      AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
+}
+
+inline void
+streamSynchronize () noexcept
+{
+    Device::streamSynchronize();
+}
+
+inline void
+htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice)); )
+}
+
+inline void
+dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost)); )
+}
+
+inline void
+htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpuStream()));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpuStream())); )
+}
+
+inline void
+dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpuStream()));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpuStream())); )
+}
 
 }}
 

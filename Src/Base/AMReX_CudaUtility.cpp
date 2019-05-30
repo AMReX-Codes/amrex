@@ -44,7 +44,7 @@ StreamIter::StreamIter (const int n, bool is_thread_safe) noexcept
 
 StreamIter::~StreamIter () {
 #ifdef AMREX_USE_CUDA
-    Gpu::Device::synchronize();
+    Gpu::synchronize();
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
 #endif

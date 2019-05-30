@@ -647,7 +647,7 @@ def convert_cxx(inputs):
             hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
                        "    AMREX_GPU_SAFE_CALL(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
                        "#endif\n".format(func_name))
-            hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, {}, amrex::Gpu::Device::gpuStream()>>>\n    ({});\n".format(func_name, func_name, func_name, smem, args))
+            hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, {}, amrex::Gpu::gpuStream()>>>\n    ({});\n".format(func_name, func_name, func_name, smem, args))
 
             # Catch errors in the launch configuration.
 
