@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <AMReX_Box.H>
+#include <AMReX_GpuControl.H>
 
 namespace amrex {
 
@@ -33,7 +34,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     ~AsyncFab () {
-#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+#ifndef AMREX_DEVICE_COMPILE
         clear();
 #endif
     }
