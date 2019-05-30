@@ -482,34 +482,25 @@ Device::instantiateGraph(cudaGraph_t graph)
 
     cudaGraphExec_t graphExec;
 
-/* 
-//    LOGGING FEATURE THAT RETURNS ERROR INFORMATION
-//    COMMENTED OUT HERE FOR TESTING. SLOW. MAYBE TURN ON IF DEBUG=TRUE?
+#ifdef AMREX_DEBUG 
+//  Implementes cudaGraphInstantiate error logging feature.
+//  Upon error, delays abort until message is output. 
     int log_size = 1028;
     char graph_log[log_size];
+    graph_log[0]='\0';
 
-    for (int j=0; j<log_size; ++j)
-    {
-        graph_log[j] = ' ';
-    }
-*/
+    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size); 
 
-    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
-//    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size)); 
-
-/*
     if (graph_log[0] != '\0')
     {
-        amrex::Print() << "Cuda Graph Error Log: ";
-        int j = 0;
-        while ((graph_log[j] != '\0') && (j < log_size))
-        { 
-           amrex::Print() << graph_log[j];
-           j++;
-        }
-        amrex::Print() << std::endl;
+        amrex::Print() << graph_log << std::endl;
+        AMREX_GPU_ERROR_CHECK();
     }
-*/
+#else
+
+    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
+
+#endif
 
     return graphExec;
 
