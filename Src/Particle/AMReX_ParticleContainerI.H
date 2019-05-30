@@ -4089,14 +4089,16 @@ AssignCellDensitySingleLevel (int rho_index,
         (*mf_pointer)[mfi].setVal(0);
     }
     
-    using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    if (Geom(lev).InvCellSize() == Geom(lev + particle_lvl_offset).InvCellSize())
+      {
+	using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    {
-        FArrayBox local_rho;
-        for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
+	{
+	  FArrayBox local_rho;
+	  for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
@@ -4113,26 +4115,54 @@ AssignCellDensitySingleLevel (int rho_index,
             auto rhoarr = fab.array();
 #endif
                         
-            if (dxi == pdxi)
-            {
-                AMREX_FOR_1D( np, i,
-                {
-                    amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
-                });
-            }
-            else
-            {
-                AMREX_FOR_1D( np, i,
-                {
-                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
-                });
-            }
+	    AMREX_FOR_1D( np, i,
+	      {
+		  amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
+              });
                 
 #ifdef _OPENMP
             fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
 #endif
-        }
-    }
+	  } 
+	}
+      }
+    else
+      {
+	using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	{
+	  FArrayBox local_rho;
+	  for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
+            const auto& particles = pti.GetArrayOfStructs();
+            const auto pstruct = particles().data();
+            const long np = pti.numParticles();
+            FArrayBox& fab = (*mf_pointer)[pti];
+            const int *lo, *hi;
+#ifdef _OPENMP
+            Box tile_box = pti.tilebox();
+            tile_box.grow(ng);
+            local_rho.resize(tile_box,ncomp);
+            local_rho = 0.0;
+            auto rhoarr = local_rho.array();
+#else
+            const Box& box = fab.box();
+            auto rhoarr = fab.array();
+#endif
+                        
+	    AMREX_FOR_1D( np, i,
+	      {
+		amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
+              });
+                
+#ifdef _OPENMP
+            fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
+#endif
+	  }
+	}
+      }
     
     mf_pointer->SumBoundary(Geom(lev).periodicity());
     
