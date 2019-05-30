@@ -8,7 +8,7 @@ namespace amrex {
 
 class FArrayBox;
 
-namespace Cuda {
+namespace Gpu {
 
 class AsyncFabImpl;
 
@@ -33,7 +33,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     ~AsyncFab () {
-#ifndef __CUDA_ARCH__
+#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
         clear();
 #endif
     }
@@ -59,7 +59,7 @@ private:
 
 }
 
-using Cuda::AsyncFab;
+using Gpu::AsyncFab;
 
 }
 

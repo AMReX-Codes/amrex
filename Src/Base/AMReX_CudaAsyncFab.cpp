@@ -4,18 +4,21 @@
 #include <AMReX_CudaAsyncFabImpl.H>
 #include <AMReX_CudaDevice.H>
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
 extern "C" {
-    void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p) {
-        delete (amrex::Cuda::AsyncFabImpl*)p;
+AMREX_HIP_OR_CUDA(
+    void  HIPRT_CB amrex_devicefab_delete ( hipStream_t stream,  hipError_t error, void* p),
+    void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p))
+    {
+        delete (amrex::Gpu::AsyncFabImpl*)p;
     }
 }
 
 #endif
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 void
 AsyncFab::Initialize ()
@@ -53,14 +56,18 @@ AsyncFab::AsyncFab (FArrayBox& a_fab, Box const& bx, int ncomp)
 void
 AsyncFab::clear ()
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         if (m_impl != nullptr) {
 // CUDA 10        AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(), amrex_devicefab_delete, p));
-            AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
-                                                       amrex_devicefab_delete,
-                                                       m_impl, 0));
+            AMREX_HIP_OR_CUDA(
+                AMREX_HIP_SAFE_CALL(  hipStreamAddCallback(Gpu::gpuStream(),
+                                                           amrex_devicefab_delete,
+                                                           m_impl, 0));,
+                AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
+                                                           amrex_devicefab_delete,
+                                                           m_impl, 0)););
         }
     }
     else
