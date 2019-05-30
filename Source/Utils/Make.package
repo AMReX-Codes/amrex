@@ -6,6 +6,7 @@ CEXE_headers += WarpXConst.H
 CEXE_headers += WarpXUtil.H
 CEXE_headers += WarpXAlgorithmSelection.H
 CEXE_sources += WarpXAlgorithmSelection.cpp
+CEXE_headers += NCIGodfreyTables.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Utils
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Utils

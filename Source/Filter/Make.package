@@ -1,5 +1,9 @@
+CEXE_headers += Filter.H
+CEXE_sources += Filter.cpp
 CEXE_sources += BilinearFilter.cpp
 CEXE_headers += BilinearFilter.H
+CEXE_sources += NCIGodfreyFilter.cpp
+CEXE_headers += NCIGodfreyFilter.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Filter
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Filter

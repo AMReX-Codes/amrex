@@ -132,6 +132,8 @@ WarpX::EvolveEM (int numsteps)
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
+        // slice generation //
+        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);        
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -176,7 +178,8 @@ WarpX::EvolveEM (int numsteps)
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
-        if (to_make_plot || do_insitu)
+        // slice gen //
+	if (to_make_plot || do_insitu || to_make_slice_plot)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -192,11 +195,19 @@ WarpX::EvolveEM (int numsteps)
             last_insitu_step = step+1;
 
             if (to_make_plot)
-                WritePlotFile();
+    	        WritePlotFile();
+
+            if (to_make_slice_plot)
+            {
+                InitializeSliceMultiFabs ();
+                SliceGenerationForDiagnostics();
+                WriteSlicePlotFile();
+                ClearSliceMultiFabs ();
+            }
 
             if (do_insitu)
                 UpdateInSitu();
-        }
+	}
 
         if (check_int > 0 && (step+1) % check_int == 0) {
             last_check_file_step = step+1;

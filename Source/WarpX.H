@@ -23,6 +23,7 @@
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
 #include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>
@@ -146,7 +147,9 @@ public:
 
     static amrex::IntVect filter_npass_each_dir;
     BilinearFilter bilinear_filter;
-
+    amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
+    amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
+    
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
@@ -241,6 +244,12 @@ public:
 
     static int do_moving_window;
     static int moving_window_dir;
+
+    // slice generation //
+    void InitializeSliceMultiFabs ();
+    void SliceGenerationForDiagnostics ();
+    void WriteSlicePlotFile () const;
+    void ClearSliceMultiFabs ();
 
 protected:
 
@@ -552,6 +561,17 @@ private:
     amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
+
+    //Slice Parameters
+    int slice_max_grid_size;
+    int slice_plot_int = -1;
+    amrex::RealBox slice_realbox;
+    amrex::IntVect slice_cr_ratio;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > F_slice;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_slice;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_slice;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_slice;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_slice;
 
 #ifdef WARPX_USE_PSATD
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)

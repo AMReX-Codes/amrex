@@ -229,6 +229,11 @@ WarpX::WarpX ()
 #ifdef BL_USE_SENSEI_INSITU
     insitu_bridge = nullptr;
 #endif
+
+    // NCI Godfrey filters can have different stencils
+    // at different levels (the stencil depends on c*dt/dz)
+    nci_godfrey_filter_exeybz.resize(nlevs_max);
+    nci_godfrey_filter_bxbyez.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -511,6 +516,34 @@ WarpX::ReadParameters ()
         pp.query("config", insitu_config);
         pp.query("pin_mesh", insitu_pin_mesh);
     }
+
+    // for slice generation //
+    {
+       ParmParse pp("slice");
+       amrex::Vector<Real> slice_lo(AMREX_SPACEDIM);
+       amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
+       Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
+       // set default slice_crse_ratio //
+       for (int idim=0; idim < AMREX_SPACEDIM; ++idim ) 
+       {
+          slice_crse_ratio[idim] = 1;
+       }
+       pp.queryarr("dom_lo",slice_lo,0,AMREX_SPACEDIM);
+       pp.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
+       pp.queryarr("coarsening_ratio",slice_crse_ratio,0,AMREX_SPACEDIM);
+       pp.query("plot_int",slice_plot_int);
+       slice_realbox.setLo(slice_lo);
+       slice_realbox.setHi(slice_hi);
+       slice_cr_ratio = IntVect(AMREX_D_DECL(1,1,1));
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+       {
+          if (slice_crse_ratio[idim] > 1 ) {
+             slice_cr_ratio[idim] = slice_crse_ratio[idim];
+          }
+       }
+
+    }
+ 
 }
 
 // This is a virtual function.
@@ -612,7 +645,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + NCIGodfreyFilter::stencil_width;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
@@ -817,8 +850,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
-
-
 }
 
 std::array<Real,3>
