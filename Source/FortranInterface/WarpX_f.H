@@ -39,10 +39,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
-#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
-#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
-
-
 #elif (AMREX_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
@@ -65,9 +61,6 @@
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_2d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
-
-#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
-#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
 
 #ifdef WARPX_RZ
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_rz
@@ -454,14 +447,6 @@ extern "C"
                         BL_FORT_FAB_ARG_ANYD(crse),
                         const BL_FORT_FAB_ARG_ANYD(fine),
                         const int* ncomp);
-
-    void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int,
-                                const amrex::Real, const int);
-
-    void WRPX_PXR_GODFREY_FILTER (const int* lo, const int* hi,
-                                  amrex_real* fou, const int* olo, const int* ohi,
-                                  const amrex_real* fin, const int* ilo, const int* ihi,
-                                  const amrex_real* stencil, const int* nsten);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);

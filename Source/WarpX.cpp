@@ -228,6 +228,11 @@ WarpX::WarpX ()
 #ifdef BL_USE_SENSEI_INSITU
     insitu_bridge = nullptr;
 #endif
+
+    // NCI Godfrey filters can have different stencils
+    // at different levels (the stencil depends on c*dt/dz)
+    nci_godfrey_filter_exeybz.resize(nlevs_max);
+    nci_godfrey_filter_bxbyez.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -656,7 +661,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + NCIGodfreyFilter::stencil_width;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
@@ -861,8 +866,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
-
-
 }
 
 std::array<Real,3>
