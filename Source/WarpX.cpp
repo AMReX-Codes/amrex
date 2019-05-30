@@ -57,6 +57,7 @@ int WarpX::num_mirrors = 0;
 int  WarpX::sort_int = -1;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
+std::string WarpX::lab_data_directory = "lab_frame_data";
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 bool WarpX::do_boosted_frame_fields = true;
@@ -316,6 +317,8 @@ WarpX::ReadParameters ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
+        pp.query("lab_data_directory", lab_data_directory);
+        
         std::string s;
         pp.get("boost_direction", s);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
@@ -524,6 +527,34 @@ WarpX::ReadParameters ()
         pp.query("config", insitu_config);
         pp.query("pin_mesh", insitu_pin_mesh);
     }
+
+    // for slice generation //
+    {
+       ParmParse pp("slice");
+       amrex::Vector<Real> slice_lo(AMREX_SPACEDIM);
+       amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
+       Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
+       // set default slice_crse_ratio //
+       for (int idim=0; idim < AMREX_SPACEDIM; ++idim ) 
+       {
+          slice_crse_ratio[idim] = 1;
+       }
+       pp.queryarr("dom_lo",slice_lo,0,AMREX_SPACEDIM);
+       pp.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
+       pp.queryarr("coarsening_ratio",slice_crse_ratio,0,AMREX_SPACEDIM);
+       pp.query("plot_int",slice_plot_int);
+       slice_realbox.setLo(slice_lo);
+       slice_realbox.setHi(slice_hi);
+       slice_cr_ratio = IntVect(AMREX_D_DECL(1,1,1));
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+       {
+          if (slice_crse_ratio[idim] > 1 ) {
+             slice_cr_ratio[idim] = slice_crse_ratio[idim];
+          }
+       }
+
+    }
+ 
 }
 
 // This is a virtual function.
@@ -953,7 +984,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     {
         const Box& bx = mfi.tilebox();
 #ifdef WARPX_RZ
-        const Real xmin = bx.smallEnd(0)*dx[0];
+        const Real xmin = GetInstance().Geom(0).ProbLo(0);
 #endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
@@ -980,7 +1011,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     {
         Box bx = mfi.growntilebox(ngrow);
 #ifdef WARPX_RZ
-        const Real xmin = bx.smallEnd(0)*dx[0];
+        const Real xmin = GetInstance().Geom(0).ProbLo(0);
 #endif
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
@@ -998,7 +1029,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 void
 WarpX::BuildBufferMasks ()
 {
-    int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
     for (int lev = 1; lev <= maxLevel(); ++lev)
     {
         for (int ipass = 0; ipass < 2; ++ipass)

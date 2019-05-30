@@ -132,6 +132,8 @@ WarpX::EvolveEM (int numsteps)
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
+        // slice generation //
+        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);        
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -176,7 +178,8 @@ WarpX::EvolveEM (int numsteps)
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
-        if (to_make_plot || do_insitu)
+        // slice gen //
+	if (to_make_plot || do_insitu || to_make_slice_plot)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -192,11 +195,19 @@ WarpX::EvolveEM (int numsteps)
             last_insitu_step = step+1;
 
             if (to_make_plot)
-                WritePlotFile();
+    	        WritePlotFile();
+
+            if (to_make_slice_plot)
+            {
+                InitializeSliceMultiFabs ();
+                SliceGenerationForDiagnostics();
+                WriteSlicePlotFile();
+                ClearSliceMultiFabs ();
+            }
 
             if (do_insitu)
                 UpdateInSitu();
-        }
+	}
 
         if (check_int > 0 && (step+1) % check_int == 0) {
             last_check_file_step = step+1;
@@ -514,7 +525,7 @@ WarpX::ComputeDt ()
  * simulation box passes input parameter zmax_plasma_to_compute_max_step.
  */
 void
-WarpX::computeMaxStepBoostAccelerator(amrex::Geometry geom){
+WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
     // Sanity checks: can use zmax_plasma_to_compute_max_step only if 
     // the moving window and the boost are all in z direction.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -534,7 +545,7 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry geom){
 
     // Lower end of the simulation domain. All quantities are given in boosted 
     // frame except zmax_plasma_to_compute_max_step.
-    const Real zmin_domain_boost = geom.ProbLo(AMREX_SPACEDIM-1);
+    const Real zmin_domain_boost = a_geom.ProbLo(AMREX_SPACEDIM-1);
     // End of the plasma: Transform input argument
     // zmax_plasma_to_compute_max_step to boosted frame.
     const Real len_plasma_boost = zmax_plasma_to_compute_max_step/gamma_boost;
@@ -591,19 +602,19 @@ WarpX::applyMirrors(Real time){
             NullifyMF(Bz, lev, z_min, z_max);
             if (lev>0){
                 // Get coarse patch field MultiFabs
-                MultiFab& Ex = *Efield_cp[lev][0].get();
-                MultiFab& Ey = *Efield_cp[lev][1].get();
-                MultiFab& Ez = *Efield_cp[lev][2].get();
-                MultiFab& Bx = *Bfield_cp[lev][0].get();
-                MultiFab& By = *Bfield_cp[lev][1].get();
-                MultiFab& Bz = *Bfield_cp[lev][2].get();
+                MultiFab& cEx = *Efield_cp[lev][0].get();
+                MultiFab& cEy = *Efield_cp[lev][1].get();
+                MultiFab& cEz = *Efield_cp[lev][2].get();
+                MultiFab& cBx = *Bfield_cp[lev][0].get();
+                MultiFab& cBy = *Bfield_cp[lev][1].get();
+                MultiFab& cBz = *Bfield_cp[lev][2].get();
                 // Set each field to zero between z_min and z_max
-                NullifyMF(Ex, lev, z_min, z_max);
-                NullifyMF(Ey, lev, z_min, z_max);
-                NullifyMF(Ez, lev, z_min, z_max);
-                NullifyMF(Bx, lev, z_min, z_max);
-                NullifyMF(By, lev, z_min, z_max);
-                NullifyMF(Bz, lev, z_min, z_max);
+                NullifyMF(cEx, lev, z_min, z_max);
+                NullifyMF(cEy, lev, z_min, z_max);
+                NullifyMF(cEz, lev, z_min, z_max);
+                NullifyMF(cBx, lev, z_min, z_max);
+                NullifyMF(cBy, lev, z_min, z_max);
+                NullifyMF(cBz, lev, z_min, z_max);
             }
         }
     }

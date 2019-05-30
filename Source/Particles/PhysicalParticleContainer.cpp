@@ -1024,9 +1024,6 @@ PhysicalParticleContainer::FieldGather (int lev,
 {
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
-    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
-    long ng = Ex.nGrow();
-
     BL_ASSERT(OnSameGrids(lev,Ex));
 
     MultiFab* cost = WarpX::getCosts(lev);

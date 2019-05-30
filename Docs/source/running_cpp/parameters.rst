@@ -531,6 +531,11 @@ Numerics and algorithms
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
 
+    .. warning::
+
+        The vectorized version does not run on GPU. Use
+		``algo.charge_deposition=1`` when running on GPU.
+       
 * ``algo.field_gathering`` (`integer`)
     The algorithm for field gathering:
 
@@ -649,6 +654,11 @@ Diagnostics and output
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
 
+* ``warpx.lab_data_directory`` (`string`)
+    The directory in which to save the lab frame data when using the
+    **back-transformed diagnostics**. If not specified, the default is
+    is `lab_frame_data`.
+    
 * ``warpx.num_snapshots_lab`` (`integer`)
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The number of lab-frame snapshots that will be written.
@@ -700,6 +710,19 @@ Diagnostics and output
 
 * ``warpx.plot_B_field`` (`0` or `1` optional; default `1`)
     Whether to plot the magnetic field.
+
+* ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
+    The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
+
+* ``slice.coarsening_ratio`` (`2 integers in 2D`, `3 integers in 3D`; default `1`)
+    The coarsening ratio input must be greater than 0. Default is 1 in all directions. 
+    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1. 
+
+* ``slice.plot_int`` (`integer`)
+    The number of PIC cycles inbetween two consecutive data dumps for the slice. Use a
+    negative number to disable slice generation and slice data dumping.
+    
+
 
 Checkpoints and restart
 -----------------------
