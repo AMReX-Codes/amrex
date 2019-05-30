@@ -934,8 +934,6 @@ MLMG::actualBottomSolve ()
         {
             MLCGSolver cg_solver(this, linop);
 
-	    if (cf_strategy == CFStrategy::ghostnodes) cg_solver.setNGhost(nghost);
-
             if (bottom_solver == BottomSolver::bicgstab) {
                 cg_solver.setSolver(MLCGSolver::Type::BiCGStab);
             } else if (bottom_solver == BottomSolver::cg) {
@@ -943,6 +941,7 @@ MLMG::actualBottomSolve ()
             }
             cg_solver.setVerbose(bottom_verbose);
             cg_solver.setMaxIter(bottom_maxiter);
+    	    if (cf_strategy == CFStrategy::ghostnodes) cg_solver.setNGhost(nghost);
             
             const Real cg_rtol = bottom_reltol;
             const Real cg_atol = bottom_abstol;
@@ -1106,7 +1105,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     if (cf_strategy == CFStrategy::ghostnodes) nghost = linop.getNGrow();
 
     if (!linop_prepared) {
-        linop.prepareForSolve(this);
+        linop.prepareForSolve();
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();

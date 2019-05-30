@@ -13,6 +13,9 @@ releases are tagged with version number YY.MM (e.g., 17.04). The MM part of the
 version is incremented every month, and the YY part every year.  Bug fix
 releases are tagged with YY.MM.patch (e.g., 17.04.1).
 
+It is also possible to download a lagged version of the master branch of AMReX using spack 
+(https://spack.io/).  Assuming you have spack installed, simply type "spack install amrex".  
+
 Example: Hello World
 ====================
 

@@ -117,9 +117,9 @@ MLALaplacian::prepareForSolve ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {

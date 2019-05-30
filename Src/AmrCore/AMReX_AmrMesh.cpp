@@ -37,12 +37,12 @@ AmrMesh::AmrMesh ()
 }
 
 AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
-                  std::vector<int> a_refrat)
+                  Vector<IntVect> a_refrat)
 {
   Initialize();
 
   Geometry::Setup(rb,coord);
-  InitAmrMesh(max_level_in,n_cell_in, a_refrat);
+  InitAmrMesh(max_level_in,n_cell_in, std::move(a_refrat));
 }
 
 AmrMesh::~AmrMesh ()
@@ -51,7 +51,7 @@ AmrMesh::~AmrMesh ()
 }
 
 void
-AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vector<int> a_refrat)
+AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, Vector<IntVect> a_refrat)
 {
     verbose   = 0;
     grid_eff  = 0.7;
@@ -105,13 +105,12 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     if (cnt > 0) {
         Vector<int> neb;
         pp.getarr("n_error_buf",neb);
-        int n = std::min(cnt, max_level);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) 
-        {
-            for (int i = 0; i < n; ++i) 
-               n_error_buf[i][idim] = neb[i];
-            for (int i = n; i < max_level; ++i) 
-               n_error_buf[i][idim] = neb[cnt-1];
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            n_error_buf[i] = IntVect(neb[i]);
+        }
+        for (int i = n; i <= max_level; ++i) {
+            n_error_buf[i] = IntVect(neb[cnt-1]);
         }
     }
 
@@ -215,8 +214,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     {
       for (int i = 0; i < max_level; i++)
       {
-        for (int n = 0; n < AMREX_SPACEDIM; n++)
-          ref_ratio[i][n] = a_refrat[i];
+          ref_ratio[i] = a_refrat[i];
       }
     }
 
@@ -394,6 +392,12 @@ void
 AmrMesh::SetBoxArray (int lev, const BoxArray& ba_in) noexcept
 {
     if (grids[lev] != ba_in) grids[lev] = ba_in;
+}
+
+void
+AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
+{
+    geom[lev] = geom_in;
 }
 
 void

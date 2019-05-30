@@ -74,7 +74,13 @@ public:
     * on how the version of AMReX was built.
     */
     static const RealDescriptor& NativeRealDescriptor ();
+
+    /**
+    * \brief NativeRealDescriptor is equivalent to Native32RealDescriptor
+    * if BL_FLOAT is used. Otherwise, it is equivalent to Native64RealDescriptor.
+    */
     static const RealDescriptor& Native32RealDescriptor ();
+    static const RealDescriptor& Native64RealDescriptor ();
 
     /**
     * \brief Returns a constant reference to a RealDescriptor detailing

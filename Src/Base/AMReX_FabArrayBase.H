@@ -27,6 +27,8 @@ class Perilla;
 class RegionGraph;
 #endif
 
+namespace EB2 { class IndexSpace; }
+
 class FabArrayBase
 {
     friend class MFIter;
@@ -128,7 +130,7 @@ public:
 	long        bytes;
 	long        bytes_hwm;
 	std::string name;     //!< name of the cache
-	CacheStats (const std::string& name_)
+	explicit CacheStats (const std::string& name_)
 	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
 	      bytes(0L),bytes_hwm(0L),name(name_) {;}
 	void recordBuild () noexcept {
@@ -285,12 +287,14 @@ public:
 
     struct FPinfo
     {
-	FPinfo (const FabArrayBase& srcfa,
-		const FabArrayBase& dstfa,
-		const Box&          dstdomain,
-		const IntVect&      dstng,
-		const BoxConverter& coarsener,
-                const Box&          cdomain);
+        FPinfo (const FabArrayBase& srcfa,
+                const FabArrayBase& dstfa,
+                const Box&          dstdomain,
+                const IntVect&      dstng,
+                const BoxConverter& coarsener,
+                const Box&          cdomain,
+                const EB2::IndexSpace* index_space);
+
 	~FPinfo ();
 
 	long bytes () const;
@@ -318,11 +322,12 @@ public:
     static CacheStats m_FPinfo_stats;
 
     static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
-				    const FabArrayBase& dstfa,
-				    const Box&          dstdomain,
-				    const IntVect&      dstng,
-				    const BoxConverter& coarsener,
-                                    const Box&          cdomain);
+                                    const FabArrayBase& dstfa,
+                                    const Box&          dstdomain,
+                                    const IntVect&      dstng,
+                                    const BoxConverter& coarsener,
+                                    const Box&          cdomain,
+                                    const EB2::IndexSpace*);
 
     void flushFPinfo (bool no_assertion=false);
 

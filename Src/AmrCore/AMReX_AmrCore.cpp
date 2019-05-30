@@ -40,8 +40,8 @@ AmrCore::AmrCore ()
     InitAmrCore();
 }
 
-AmrCore::AmrCore (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord)
-    : AmrMesh(rb, max_level_in, n_cell_in, coord)
+AmrCore::AmrCore (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord, Vector<IntVect> ref_ratios)
+  : AmrMesh(rb, max_level_in, n_cell_in, coord, std::move(ref_ratios))
 {
     Initialize();
     InitAmrCore();
@@ -137,7 +137,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 	    long vmax = -1;
 	    int lmax = -1;
 	    int smin = std::numeric_limits<int>::max();
-	    int imax, imin;
+            int imax = std::numeric_limits<int>::lowest();
+            int imin = std::numeric_limits<int>::lowest();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif	    
@@ -146,7 +147,8 @@ AmrCore::printGridSummary (std::ostream& os, int min_lev, int max_lev) const noe
 		long vmax_this = -1;
 		int lmax_this = -1;
 		int smin_this = std::numeric_limits<int>::max();
-		int imax_this, imin_this;
+                int imax_this = std::numeric_limits<int>::lowest();
+                int imin_this = std::numeric_limits<int>::lowest();
 #ifdef _OPENMP
 #pragma omp for
 #endif	    	    

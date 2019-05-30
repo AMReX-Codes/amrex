@@ -14,7 +14,7 @@ namespace amrex {
 //
 // CellConsertiveProtected only works in 2D and 3D on cpu.
 //
-// CellBilinear only works in 1D and 2D on cpu.
+// CellBilinear only works in 1D and 2D and 3D on cpu.
 //
 // CellQuadratic only works in 2D and 3D on cpu.
 //
@@ -179,9 +179,6 @@ CellBilinear::interp (const FArrayBox&  crse,
                       int               actual_state)
 {
     BL_PROFILE("CellBilinear::interp()");
-#if (AMREX_SPACEDIM == 3)
-    amrex::Error("interp: not implemented");
-#endif
     //
     // Set up to call FORTRAN.
     //

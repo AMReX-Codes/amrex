@@ -23,6 +23,7 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
+constexpr int MLLinOp::mg_domain_min_width;
 
 namespace {
     // experimental features
@@ -262,7 +263,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         domainboxes.push_back(dbx);
         boundboxes.push_back(bbx);
         agg_flag.push_back(false);
-        while (    dbx.coarsenable(mg_coarsen_ratio,mg_box_min_width)
+        while (    dbx.coarsenable(mg_coarsen_ratio,mg_domain_min_width)
                and bbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
         {
             dbx.coarsen(mg_coarsen_ratio);
@@ -345,7 +346,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             }
         }
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1
-               and a_geom[0].Domain().coarsenable(rr)
+               and a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
             m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
@@ -461,16 +462,42 @@ void
 MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
                       const Array<BCType,AMREX_SPACEDIM>& a_hibc) noexcept
 {
-    m_lobc = a_lobc;
-    m_hibc = a_hibc;
+    const int ncomp = getNComp();
+    m_lobc.clear();
+    m_hibc.clear();
+    m_lobc.resize(ncomp,a_lobc);
+    m_hibc.resize(ncomp,a_hibc);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
-            AMREX_ALWAYS_ASSERT(m_lobc[idim] == BCType::Periodic);
-            AMREX_ALWAYS_ASSERT(m_hibc[idim] == BCType::Periodic);
+            AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
+            AMREX_ALWAYS_ASSERT(a_hibc[idim] == BCType::Periodic);
         }
-        if (m_lobc[idim] == BCType::Periodic or
-            m_hibc[idim] == BCType::Periodic) {
+        if (a_lobc[idim] == BCType::Periodic or
+            a_hibc[idim] == BCType::Periodic) {
             AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+        }
+    }
+}
+
+void
+MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
+                      const Vector<Array<BCType,AMREX_SPACEDIM> >& a_hibc) noexcept
+{
+    const int ncomp = getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == a_lobc.size() && ncomp == a_hibc.size(),
+                                     "MLLinOp::setDomainBC: wrong size");
+    m_lobc = a_lobc;
+    m_hibc = a_hibc;
+    for (int icomp = 0; icomp < ncomp; ++icomp) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (Geometry::isPeriodic(idim)) {
+                AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic);
+                AMREX_ALWAYS_ASSERT(m_hibc[icomp][idim] == BCType::Periodic);
+            }
+            if (m_lobc[icomp][idim] == BCType::Periodic or
+                m_hibc[icomp][idim] == BCType::Periodic) {
+                AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+            }
         }
     }
 }

@@ -1145,7 +1145,7 @@ RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
                    put,
                    0,
                    od,
-                   FPC::NativeRealDescriptor(),
+                   FPC::Native64RealDescriptor(),
                    FPC::NativeLongDescriptor());
         os.write(bufr, od.numBytes()*put);
         nitems -= put;
@@ -1185,7 +1185,7 @@ RealDescriptor::convertToNativeFloatFormat (float*                out,
 
         if(bAlwaysFixDenormals) {
           PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+			  FPC::Native32RealDescriptor().order());
         }
         nitems -= get;
         out    += get;
@@ -1221,13 +1221,13 @@ RealDescriptor::convertToNativeDoubleFormat (double*               out,
                    bufr,
                    get,
                    0,
-                   FPC::NativeRealDescriptor(),
+                   FPC::Native64RealDescriptor(),
                    id,
                    FPC::NativeLongDescriptor());
 
         if(bAlwaysFixDenormals) {
-          PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
-			  FPC::NativeRealDescriptor().order());
+          PD_fixdenormals(out, get, FPC::Native64RealDescriptor().format(),
+			  FPC::Native64RealDescriptor().order());
         }
         nitems -= get;
         out    += get;

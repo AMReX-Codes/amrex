@@ -102,6 +102,7 @@ MacProjector::project (Real reltol, Real atol )
     {
         m_mlmg.reset(new MLMG(*m_linop));
         m_mlmg->setVerbose(m_verbose);
+        m_mlmg->setCGVerbose(m_cg_verbose);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);
@@ -148,6 +149,7 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
     {
         m_mlmg.reset(new MLMG(*m_linop));
         m_mlmg->setVerbose(m_verbose);
+        m_mlmg->setVerbose(m_cg_verbose);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);

@@ -11,7 +11,14 @@ namespace amrex {
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
+ReduceSum (FabArray<FAB> const& fa, int nghost, F f) {
+    return ReduceSum(fa, IntVect(nghost), std::move(f));
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 {
     using value_type = typename FAB::value_type;
     value_type sm = 0;
@@ -71,7 +78,15 @@ template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-           int nghost, F f)
+           int nghost, F f) {
+    return ReduceSum(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           IntVect const& nghost, F f)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
@@ -132,7 +147,15 @@ template <class FAB1, class FAB2, class FAB3, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
-           int nghost, F f)
+           int nghost, F f) {
+  return ReduceSum(fa1, fa2, fa3, nghost, std::move(f));
+}
+
+template <class FAB1, class FAB2, class FAB3, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
+           IntVect const& nghost, F f)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
@@ -193,8 +216,14 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
-{
+ReduceMin (FabArray<FAB> const& fa, int nghost, F f) {
+    return ReduceMin(fa, IntVect(nghost), std::move(f));
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
     using value_type = typename FAB::value_type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
@@ -259,6 +288,14 @@ template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
+{
+    return ReduceMin(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F f)
 {
     using value_type = typename FAB1::value_type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
@@ -326,6 +363,14 @@ template <class FAB, class F,
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
 {
+    return ReduceMax(fa, IntVect(nghost), std::move(f));
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+typename FAB::value_type
+ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+{
     using value_type = typename FAB::value_type;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
@@ -390,6 +435,14 @@ template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
+{
+    return ReduceMax(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+typename FAB1::value_type
+ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F f)
 {
     using value_type = typename FAB1::value_type;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
@@ -457,6 +510,14 @@ template <class FAB, class F,
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 {
+    return ReduceLogicalAnd(fa, IntVect(nghost), std::move(f));
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+{
     int r = true;
 
 #ifdef AMREX_USE_CUDA
@@ -515,6 +576,15 @@ template <class FAB1, class FAB2, class F,
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   int nghost, F f)
+{
+    return ReduceLogicalAnd(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                  IntVect const& nghost, F f)
 {
     int r = true;
 
@@ -575,6 +645,14 @@ template <class FAB, class F,
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 {
+    return ReduceLogicalOr(fa, IntVect(nghost), std::move(f));
+}
+
+template <class FAB, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+bool
+ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+{
     int r = false;
 
 #ifdef AMREX_USE_CUDA
@@ -633,6 +711,15 @@ template <class FAB1, class FAB2, class F,
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  int nghost, F f)
+{
+    return ReduceLogicalOr(fa1, fa2, IntVect(nghost), std::move(f));
+}
+
+template <class FAB1, class FAB2, class F,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
+bool
+ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+                 IntVect const& nghost, F f)
 {
     int r = false;
 

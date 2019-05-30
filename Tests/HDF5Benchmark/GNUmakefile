@@ -32,6 +32,4 @@ ifeq ($(USE_HDF5), TRUE)
 DEFINES += -DBL_HDF5 
 INCLUDE_LOCATIONS += $(HDF5_HOME)/include
 LIBRARIES         += -lhdf5 -lz -ldl -L$(HDF5_HOME)/lib
-# Edison
-#  XTRALIBS += -lhdf5 -L$(HDF5_HOME)/lib -L/usr/common/software/zlib/1.2.7/intel/lib -lz
 endif

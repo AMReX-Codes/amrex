@@ -38,10 +38,10 @@ extern "C" {
                                   const amrex_real* ba, const int* balo, const int* bahi,
                                   const amrex_real* bc, const int* bclo, const int* bchi,
                                   const amrex_real* beb, const int* elo, const int* ehi,
-                                  const int is_dirichlet, const int is_ho_dirichlet,
+                                  const int is_dirichlet,
                                   const amrex_real* phieb, const int* plo, const int* phi,
                                   const int is_inhomog, const amrex_real* dxinv,
-                                  const amrex_real alpha, const amrex_real beta);
+                                  const amrex_real alpha, const amrex_real beta, int ncomp);
 
     void amrex_mlebabeclap_gsrb  (const int* lo, const int* hi,
                                   amrex_real* sol, const int* slo, const int* shi,
@@ -102,9 +102,10 @@ extern "C" {
                                   const amrex_real* ba, const int* balo, const int* bahi,
                                   const amrex_real* bc, const int* bclo, const int* bchi,
                                   const amrex_real* beb, const int* elo, const int* ehi,
-                                  const int is_dirichlet, const int is_ho_dirichlet,
+                                  const int is_dirichlet,
                                   const amrex_real* dxinv,
-                                  const amrex_real alpha, const amrex_real beta, const int redblack);
+                                  const amrex_real alpha, const amrex_real beta,
+                                  const int redblack, int ncomp);
 
     void amrex_mlebabeclap_flux( const int* lo, const int* hi, 
                                  amrex_real* fx, const int* fxlo, const int* fxhi, 
@@ -140,7 +141,7 @@ extern "C" {
                                  const int* ccmask, const int* cmlo, const int* cmhi,
                                  const void* flag, const int* flo, const int* fhi,
                                  const amrex_real* dxinv, const amrex_real beta,
-                                 const int face_only);
+                                 const int face_only, int ncomp);
 
     void amrex_mlebabeclap_grad( const int* xlo, const int* xhi, 
 #if (AMREX_SPACEDIM >= 2) 
@@ -173,7 +174,7 @@ extern "C" {
 #endif
                                  const int* ccmask, const int* cmlo, const int* cmhi,
                                  const void* flag, const int* flo, const int* fhi,
-                                 const amrex_real* dxinv);
+                                 const amrex_real* dxinv, int ncomp);
 
     void amrex_mlebabeclap_normalize (const int* lo, const int* hi,
                                       amrex_real* y, const int* ylo, const int* yhi,
@@ -205,9 +206,9 @@ extern "C" {
                                       const amrex_real* ba, const int* balo, const int* bahi,
                                       const amrex_real* bc, const int* bclo, const int* bchi,
                                       const amrex_real* beb, const int* elo, const int* ehi,
-                                      const int is_dirichlet, const int is_ho_dirichlet,
+                                      const int is_dirichlet,
                                       const amrex_real* dxinv,
-                                      const amrex_real alpha, const amrex_real beta);
+                                      const amrex_real alpha, const amrex_real beta, int ncomp);
 
 
     void amrex_eb_mg_interp (const int* lo, const int* hi,
@@ -215,35 +216,6 @@ extern "C" {
                              const amrex_real* crse, const int* clo, const int* chi,
                              const void* flag, const int* glo, const int* ghi,
                              const int* ncomp);
-
-    void amrex_mlebabeclap_apply_bc (const int* lo, const int* hi,
-                                     amrex_real* phi, const int* philo, const int* phihi,
-                                     const void* flag, const int* flo, const int* fhi,
-                                     const amrex_real* apx, const int* axlo, const int* axhi,
-#if (AMREX_SPACEDIM >= 2)
-                                     const amrex_real* apy, const int* aylo, const int* ayhi,
-#if (AMREX_SPACEDIM == 3)
-                                     const amrex_real* apz, const int* azlo, const int* azhi,
-#endif
-#endif
-                                     const int* mask, const int* mlo, const int* mhi,
-                                     const int cdir, const int bct, const amrex_real bcl,
-                                     const amrex_real* bcval, const int* blo, const int* bhi,
-                                     const int maxorder, const amrex_real* dxinv,
-                                     const int inhomog, const int nc);
-
-    void amrex_eb_copy_dirichlet (const int* lo, const int* hi,
-                                  amrex_real* phi, const int* phlo, const int* phhi,
-                                  const amrex_real* phiin, const int* phinlo, const int* phinhi,
-                                  amrex_real* beta, const int* blo, const int* bhi,
-                                  const amrex_real* betain, const int* binlo, const int* binhi,
-                                  const void* flag, const int* flo, const int* fhi);
-
-    void amrex_eb_homog_dirichlet (const int* lo, const int* hi,
-                                   amrex_real* phi, const int* phlo, const int* phhi,
-                                   amrex_real* beta, const int* blo, const int* bhi,
-                                   const amrex_real* betain, const int* binlo, const int* binhi,
-                                   const void* flag, const int* flo, const int* fhi);
 
 #ifdef __cplusplus
 }

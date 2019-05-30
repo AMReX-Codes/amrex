@@ -48,6 +48,21 @@ class DistributionMapping
     //! The default constructor.
     DistributionMapping ();
 
+    //! The copy constructor.
+    DistributionMapping (const DistributionMapping& rhs) = default;
+
+    //! The copy assignment operator.
+    DistributionMapping& operator= (const DistributionMapping& rhs) = default;
+
+    //! The move constructor.
+    DistributionMapping (DistributionMapping&& rhs) noexcept = default;
+
+    //! The move assignment operator.
+    DistributionMapping& operator= (DistributionMapping&& rhs) noexcept = default;
+
+   //! The destructor.
+    ~DistributionMapping() noexcept = default;
+
     /**
     * \brief Create an object with the specified mapping.
     */
@@ -62,18 +77,6 @@ class DistributionMapping
     */
     DistributionMapping (const DistributionMapping& d1,
                          const DistributionMapping& d2);
-
-    //! The destructor.
-    ~DistributionMapping ();
-
-    //! Copy constructor.
-    DistributionMapping (const DistributionMapping& rhs);
-
-    //! Assignment operator.
-    DistributionMapping& operator= (const DistributionMapping& rhs);
-
-    //! Move constructor.
-    DistributionMapping (DistributionMapping&& rhs) noexcept;
 
     /**
     * \brief Build mapping out of BoxArray over nprocs processors.

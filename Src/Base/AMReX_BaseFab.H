@@ -2260,7 +2260,7 @@ BaseFab<T,Allocator>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
                 for (int i = 0; i < len.x; ++i) {
-                    if (mp(i,j,k,n)) {
+                    if (mp(i,j,k,0)) {
                         Real t = static_cast<Real>(std::abs(dp(i,j,k,n)));
                         r = (r > t) ? r : t;
                     }
@@ -2960,7 +2960,7 @@ BaseFab<T,Allocator>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xco
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
                 for (int i = 0; i < len.x; ++i) {
-                    int m = static_cast<int>(static_cast<bool>(mp(i,j,k,n)));
+                    int m = static_cast<int>(static_cast<bool>(mp(i,j,k,0)));
                     r += xp(i,j,k,n) * yp(i,j,k,n) * m;
                 }
             }

@@ -23,15 +23,13 @@ public :
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                     bool a_use_hypre = false);
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 #ifdef AMREX_USE_EB
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<EBFArrayBoxFactory const*>& a_factory,
-                     bool a_use_hypre = false);
+                     const Vector<EBFArrayBoxFactory const*>& a_factory);
 #endif
     virtual ~MLNodeLaplacian ();
 
@@ -44,21 +42,21 @@ public :
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
-                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {},
-                 bool a_use_hypre = false);
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
 #ifdef AMREX_USE_EB
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
-                 const Vector<EBFArrayBoxFactory const*>& a_factory,
-                 bool a_use_hypre = false);
+                 const Vector<EBFArrayBoxFactory const*>& a_factory);
 #endif
 
     virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
 
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
+
+    void setNormalizationThreshold (Real t) noexcept { m_normalization_threshold = t; }
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
@@ -82,6 +80,11 @@ public :
 
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept { m_coarsening_strategy = cs; }
 
+    virtual BottomSolver getDefaultBottomSolver () const final override {
+        return (m_coarsening_strategy == CoarseningStrategy::RAP) ?
+            BottomSolver::bicgcg : BottomSolver::bicgstab;
+    }
+
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
@@ -92,7 +95,6 @@ public :
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final override;
 
     virtual void prepareForSolve () final override;
-    virtual void prepareForSolve (MLMG* mlmg) final override;
     virtual bool isSingular (int amrlev) const final override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     virtual bool isBottomSingular () const final override { return m_is_bottom_singular; }
@@ -144,6 +146,9 @@ private:
 
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
+    Vector<Vector<Real> > m_s0_norm0;
+
+    Real m_normalization_threshold = 1.e-10;
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab
@@ -156,8 +161,6 @@ private:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
-
-    bool m_use_hypre = false;
 
     virtual void checkPoint (std::string const& file_name) const final;
 };

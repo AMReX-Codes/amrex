@@ -79,5 +79,8 @@ target_sources(amrex
    AMReX_EB2_Level.cpp
    AMReX_EB2_MultiGFab.cpp
    AMReX_eb2_${DIM}d.F90
+   AMReX_algoim.H
+   AMReX_algoim_K.H
+   AMReX_algoim.cpp
 )
 

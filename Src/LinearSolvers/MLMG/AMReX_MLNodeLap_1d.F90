@@ -452,12 +452,13 @@ contains
   end subroutine amrex_mlndlap_adotx_sten
 
 
-  subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, sten, slo, shi, msk, mlo, mhi) &
+  subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, sten, slo, shi, msk, mlo, mhi, s0_norm0) &
        bind(c,name='amrex_mlndlap_normalize_sten')
     integer, dimension(1), intent(in) :: lo, hi, xlo, xhi, slo, shi, mlo, mhi
     real(amrex_real), intent(inout) ::   x(xlo(1):xhi(1))
     real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),3)
     integer, intent(in) :: msk(mlo(1):mhi(1))
+    real(amrex_real), intent(in), value :: s0_norm0
   end subroutine amrex_mlndlap_normalize_sten
 
 
