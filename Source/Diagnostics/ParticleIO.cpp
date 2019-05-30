@@ -19,6 +19,20 @@ WarpXParticleContainer::WriteHeader (std::ostream& os) const
 }
 
 void
+RigidInjectedParticleContainer::ReadHeader (std::istream& is)
+{
+    is >> charge >> mass;
+    WarpX::GotoNextLine(is);
+}
+
+void
+RigidInjectedParticleContainer::WriteHeader (std::ostream& os) const
+{
+    // no need to write species_id
+    os << charge << " " << mass << "\n";
+}
+
+void
 MultiParticleContainer::Checkpoint (const std::string& dir) const
 {
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
