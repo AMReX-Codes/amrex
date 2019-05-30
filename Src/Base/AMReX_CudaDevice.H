@@ -79,7 +79,7 @@ private:
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
-    static std::array<hipStream_t,max_gpu_streams> gpu_streams;
+    static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
     static gpuStream_t gpu_stream;
     static gpuDeviceProp_t device_prop;
 
