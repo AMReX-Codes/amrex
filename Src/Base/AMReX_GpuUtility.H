@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_UTILITY_H_
-#define AMREX_CUDA_UTILITY_H_
+#ifndef AMREX_GPU_UTILITY_H_
+#define AMREX_GPU_UTILITY_H_
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
