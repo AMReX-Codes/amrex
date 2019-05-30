@@ -31,7 +31,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_VectorIO.H>
-#include <AMReX_Particles_F.H>
+#include <AMReX_Particle_mod_K.H>
 #include <AMReX_ParticleMPIUtil.H>
 #include <AMReX_StructOfArrays.H>
 #include <AMReX_ArrayOfStructs.H>

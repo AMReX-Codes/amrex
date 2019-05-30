@@ -7,12 +7,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
-#endif
-
-#ifdef AMREX_USE_EB
-#ifdef AMREX_USE_ALGOIM
-#include <AMReX_algoim_integrals.H>
-#endif
+#include <AMReX_algoim.H>
 #endif
 
 #ifdef _OPENMP
@@ -1269,7 +1264,7 @@ MLNodeLaplacian::buildStencil ()
 
 
     // This is only needed at the bottom.
-    m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0);
+    m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0) * m_normalization_threshold;
 }
 
 void
@@ -2296,14 +2291,10 @@ MLNodeLaplacian::buildIntegral ()
         }
     }
 #else
-#ifdef AMREX_USE_ALGOIM
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        amrex::compute_integrals(*m_integral[amrlev]);
+        amrex::algoim::compute_integrals(*m_integral[amrlev]);
     }
-#else
-    amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
-#endif
 #endif
 }
 #endif
