@@ -89,7 +89,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         }
     
                         bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
-                        const_cast<FB&>(TheFB).m_localCopy.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                        cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
+                        if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
                     }
                 }
     
@@ -328,7 +329,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     }
     
                     bool last_iter( sit() == (N_snds-1) ); 
-                    const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                    cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
+                    if (last_iter) { const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( graphExec ); }
                 }
             }
     
@@ -473,7 +475,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             });
 
                             bool last_iter( (mfi.LocalIndex() == (this->local_size()-1)) && (t == tags.size()-1) );
-                            const_cast<FB&>(TheFB).m_localCopy.setGraph( Gpu::Device::stopGraphRecording(last_iter) );
+                            cudaGraphExec_t graphExec = Gpu::Device::stopGraphRecording(last_iter);
+                            if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
 
                         }
                     }
@@ -654,7 +657,8 @@ FabArray<FAB>::FillBoundary_finish ()
                         }
     
                         bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
-                        const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( amrex::Gpu::Device::stopGraphRecording(last_iter) );
+                        cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
+                        if (last_iter) { const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( graphExec ); }
                     }
                 }
     
