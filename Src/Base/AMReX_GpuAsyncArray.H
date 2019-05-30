@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_ASYNC_ARRAY_H_
-#define AMREX_CUDA_ASYNC_ARRAY_H_
+#ifndef AMREX_GPU_ASYNC_ARRAY_H_
+#define AMREX_GPU_ASYNC_ARRAY_H_
 
 #include <cstddef>
 #include <cstring>

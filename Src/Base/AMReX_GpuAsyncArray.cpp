@@ -1,4 +1,4 @@
-#include <AMReX_CudaAsyncArray.H>
+#include <AMReX_GpuAsyncArray.H>
 #include <mutex>
 
 #ifdef AMREX_USE_GPU

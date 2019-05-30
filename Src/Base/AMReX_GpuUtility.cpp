@@ -1,5 +1,5 @@
 
-#include <AMReX_CudaUtility.H>
+#include <AMReX_GpuUtility.H>
 
 #ifdef _OPENMP
 #include <omp.h>
