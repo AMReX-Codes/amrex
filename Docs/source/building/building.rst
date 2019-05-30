@@ -73,8 +73,8 @@ Advanced building instructions
    python
    spack
 
-Building for specific plateforms
---------------------------------
+Building for specific platforms
+-------------------------------
 
 .. toctree::
    :maxdepth: 1
