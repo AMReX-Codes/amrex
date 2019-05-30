@@ -386,34 +386,6 @@ Device::streamSynchronize ()
 }
 
 void
-Device::htod_memcpy (void* p_d, const void* p_h, const std::size_t sz)
-{
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
-                       AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice)); )
-}
-
-void
-Device::dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz)
-{
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,
-                       AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost)); )
-}
-
-void
-Device::htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz)
-{
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpu_stream));,
-                       AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpu_stream)); )
-}
-
-void
-Device::dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz)
-{
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpu_stream));,
-                       AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpu_stream)); )
-}
-
-void
 Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int device)
 {
     // HIP does not support memory advise.

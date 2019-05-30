@@ -175,7 +175,7 @@ AsyncFabImpl::copy_htod ()
         m_cpu_fab_data = m_cpu_fab;
         m_cpu_fab_data.setOwner(false);
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(dest, &m_cpu_fab_data, sizeof(BaseFabData<Real>),
-                                             cudaMemcpyHostToDevice, Gpu::Device::gpuStream()));
+                                             cudaMemcpyHostToDevice, Gpu::gpuStream()));
     }
     else
     {

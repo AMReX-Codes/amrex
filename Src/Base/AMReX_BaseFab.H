@@ -1707,7 +1707,7 @@ BaseFab<T,Allocator>::prefetchToHost () const noexcept
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
     AMREX_GPU_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                              cudaCpuDeviceId,
-                                             Gpu::Device::gpuStream()));
+                                             Gpu::gpuStream()));
 #endif
 }
 
@@ -1719,7 +1719,7 @@ BaseFab<T,Allocator>::prefetchToDevice () const noexcept
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
     AMREX_GPU_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                              Gpu::Device::deviceId(),
-                                             Gpu::Device::gpuStream()));
+                                             Gpu::gpuStream()));
 #endif
 }
 

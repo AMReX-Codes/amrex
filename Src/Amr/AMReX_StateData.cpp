@@ -492,7 +492,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 #ifdef AMREX_USE_GPU
     // Add a synchronize here in case the user code launched kernels
     // to handle the boundary fills.
-    Gpu::Device::synchronize();
+    Gpu::synchronize();
 #endif
 }
 
