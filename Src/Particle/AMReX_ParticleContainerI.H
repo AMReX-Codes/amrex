@@ -2585,7 +2585,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> tmp_real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         if (real_comp_names.size() == 0)
@@ -2602,7 +2602,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> tmp_int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         if (int_comp_names.size() == 0)
@@ -2629,7 +2629,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i )
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
         std::stringstream ss;
@@ -2639,7 +2639,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     Vector<int> write_int_comp;
     Vector<std::string> int_comp_names;
-    for (int i = 0; i < NStructInt + NArrayInt; ++i )
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
         std::stringstream ss;
@@ -2795,6 +2795,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = amrex::second();
     
+    AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
+    AMREX_ALWAYS_ASSERT( int_comp_names.size() == NumIntComps() + NStructInt);
+
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
     pdir += name;
@@ -3694,14 +3697,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	host_particles[lev][ind].push_back(p);
 
 	// add the real...
-	for (int i = 0; i < NumRealComps(); i++) {
-            host_real_attribs[lev][ind][i].push_back(*rptr);
+	for (int icomp = 0; icomp < NumRealComps(); icomp++) {
+            host_real_attribs[lev][ind][icomp].push_back(*rptr);
             ++rptr;
 	}
         
 	// ... and int array data
-	for (int i = 0; i < NumIntComps(); i++) {
-            host_int_attribs[lev][ind][i].push_back(*iptr);
+	for (int icomp = 0; icomp < NumIntComps(); icomp++) {
+            host_int_attribs[lev][ind][icomp].push_back(*iptr);
             ++iptr;
 	}        
     }
@@ -4071,19 +4074,21 @@ AssignCellDensitySingleLevel (int rho_index,
     const int       ng          = mf_pointer->nGrow();
 #endif
     const Real      strttime    = amrex::second();
-    const Geometry& gm          = Geom(lev);
-    const Real*     plo         = gm.ProbLo();
-    const Real*     dx_particle = Geom(lev + particle_lvl_offset).CellSize();
-    const Real*     dx          = gm.CellSize();
 
-    if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
-      amrex::Error("AssignCellDensitySingleLevel: problem must be periodic in no or all directions");
+    const auto dxi              = Geom(lev).InvCellSizeArray();
+    const auto plo              = Geom(lev).ProbLoArray();
+    const auto pdxi             = Geom(lev + particle_lvl_offset).InvCellSizeArray();
+
+    if (Geom(lev).isAnyPeriodic() && ! Geom(lev).isAllPeriodic()) {
+        amrex::Error(
+            "AssignCellDensitySingleLevel: problem must be periodic in no or all directions"
+            );
     }
     
     for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
         (*mf_pointer)[mfi].setVal(0);
     }
-
+    
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
 #ifdef _OPENMP
@@ -4093,75 +4098,80 @@ AssignCellDensitySingleLevel (int rho_index,
         FArrayBox local_rho;
         for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
-            int nstride = particles.dataShape().first;
+            const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            Real* data_ptr;
             const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
             tile_box.grow(ng);
             local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
-            data_ptr = local_rho.dataPtr();
-            lo = tile_box.loVect();
-            hi = tile_box.hiVect();
+            auto rhoarr = local_rho.array();
 #else
             const Box& box = fab.box();
-            data_ptr = fab.dataPtr();
-            lo = box.loVect();
-            hi = box.hiVect();
+            auto rhoarr = fab.array();
 #endif
-
-            if (dx == dx_particle) {
-                amrex_deposit_cic(particles.data(), nstride, np, ncomp, 
-                                  data_ptr, lo, hi, plo, dx);
-            } else {
-                amrex_deposit_particle_dx_cic(particles.data(), nstride, np, ncomp,
-                                              data_ptr, lo, hi, plo, dx, dx_particle);
+                        
+            if (dxi == pdxi)
+            {
+                AMREX_FOR_1D( np, i,
+                {
+                    amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
+                });
+            }
+            else
+            {
+                AMREX_FOR_1D( np, i,
+                {
+                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
+                });
             }
                 
-
 #ifdef _OPENMP
-            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho), 
-                                        BL_TO_FORTRAN_3D(fab), ncomp);
+            fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
 #endif
-
         }
     }
-
-    mf_pointer->SumBoundary(gm.periodicity());
+    
+    mf_pointer->SumBoundary(Geom(lev).periodicity());
     
     // If ncomp > 1, first divide the momenta (component n) 
     // by the mass (component 0) in order to get velocities.
     // Be careful not to divide by zero.
-    for (int n = 1; n < ncomp; n++){
-      for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-	(*mf_pointer)[mfi].protected_divide((*mf_pointer)[mfi],0,n,1);
-      }
+    for (int n = 1; n < ncomp; n++)
+    {
+        for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)
+        {
+            (*mf_pointer)[mfi].protected_divide((*mf_pointer)[mfi],0,n,1);
+        }
     }
-
+    
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
+    const Real* dx = Geom(lev).CellSize();
     const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
-
+    
     mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
-
+    
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled. I believe that we don't
     // need any information in ghost cells so we don't copy those.
-    if (mf_pointer != &mf_to_be_filled) {
-      mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
-      delete mf_pointer;
+    if (mf_pointer != &mf_to_be_filled)
+    {
+        mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+        delete mf_pointer;
     }
     
-    if (m_verbose > 1) {
-      Real stoptime = amrex::second() - strttime;
-      
-      ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-      
-      amrex::Print() << "ParticleContainer::AssignCellDensitySingleLevel) time: " << stoptime << '\n';
+    if (m_verbose > 1)
+    {
+        Real stoptime = amrex::second() - strttime;
+        
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+        
+        amrex::Print() << "ParticleContainer::AssignCellDensitySingleLevel) time: "
+                       << stoptime << '\n';
     }
 }
 
@@ -4186,24 +4196,29 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
     if (mesh_data.nGrow() < 1)
         amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevel");
     
-    const Geometry& gm          = Geom(lev);
-    const Real*     plo         = gm.ProbLo();
-    const Real*     dx          = gm.CellSize();
+    const Geometry& gm = Geom(lev);
+    const auto     plo = gm.ProbLoArray();
+    const auto     dxi = gm.InvCellSizeArray();
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (ParIter pti(*this, lev); pti.isValid(); ++pti) {
+    for (ParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
         auto& particles = pti.GetArrayOfStructs();
+        auto pstruct = particles().data();
         FArrayBox& fab = mesh_data[pti];
+        const auto fabarr = fab.array();
         const Box& box = fab.box();
-        const long N = particles.size();
-        int nstride = particles.dataShape().first;
+        const long np = particles.size();
+        
         int nComp = fab.nComp();
-        amrex_interpolate_cic(particles.data(), nstride, N, 
-                              fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
+        AMREX_FOR_1D( np, i,
+        {
+            amrex_interpolate_cic(pstruct[i], nComp, fabarr, plo, dxi);
+        });
     }
 }
 

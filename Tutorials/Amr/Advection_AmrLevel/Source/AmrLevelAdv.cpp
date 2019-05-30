@@ -768,9 +768,6 @@ AmrLevelAdv::init_particles ()
       TracerPC->do_tiling = true;
       TracerPC->tile_size = IntVect(AMREX_D_DECL(1024000,4,4));
 
-      const BoxArray& ba = TracerPC->ParticleBoxArray(0);
-      const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
-
       AmrTracerParticleContainer::ParticleInitData pdata = {AMREX_D_DECL(0.0, 0.0, 0.0)};
 
       TracerPC->SetVerbose(0);

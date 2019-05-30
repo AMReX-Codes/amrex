@@ -61,19 +61,19 @@ BndryRegister::init (const BndryRegister& src)
 {
     grids = src.grids;
 
-    for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
+    for (int idim = 0; idim < 2*AMREX_SPACEDIM; idim++)
     {
-        const int ncomp = src.bndry[i].nComp();
-        bndry[i].define(src.bndry[i].boxArray(), src.DistributionMap(), ncomp);
+        const int ncomp = src.bndry[idim].nComp();
+        bndry[idim].define(src.bndry[idim].boxArray(), src.DistributionMap(), ncomp);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
+        for (FabSetIter mfi(src.bndry[idim]); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.validbox();
-            auto const sfab = src.bndry[i].array(mfi);
-            auto       dfab =     bndry[i].array(mfi);
+            auto const sfab = src.bndry[idim].array(mfi);
+            auto       dfab =     bndry[idim].array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dfab(i,j,k,n) = sfab(i,j,k,n);
