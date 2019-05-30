@@ -26,8 +26,8 @@ void test_assign_density(TestParams& parms)
     real_box.setHi(n, 1.0);
   }
 
-  IntVect domain_lo(0 , 0, 0); 
-  IntVect domain_hi(parms.nx - 1, parms.ny - 1, parms.nz-1); 
+  IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
+  IntVect domain_hi(AMREX_D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1));
   const Box domain(domain_lo, domain_hi);
 
   // This says we are using Cartesian coordinates
@@ -68,7 +68,7 @@ void test_assign_density(TestParams& parms)
   int iseed = 451;
   Real mass = 10.0;
 
-  MyParticleContainer::ParticleInitData pdata = {mass, 1.0, 2.0, 3.0};
+  MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0)};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevel(0, partMF, 0, 4, 0);
   
