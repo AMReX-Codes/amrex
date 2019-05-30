@@ -17,6 +17,8 @@ public:
 
     void getGodfreyCoeffs(godfrey_coeff_set coeff_set_in);
 
+    static constexpr int stencil_width = 4;
+
 private:
     
     godfrey_coeff_set coeff_set;
