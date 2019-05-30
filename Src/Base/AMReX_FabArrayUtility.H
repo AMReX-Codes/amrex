@@ -52,7 +52,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 
                 Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
+                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
         }
 
@@ -121,7 +121,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
                 Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
+                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
         }
 
@@ -191,7 +191,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
                 Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
+                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
         }
 
@@ -262,7 +262,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
 
                 Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Min(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
             });
         }
 
@@ -336,7 +336,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
 
                 Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Min(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
             });
         }
 
@@ -409,7 +409,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 
                 Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Max(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
             });
         }
 
@@ -483,7 +483,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
 
                 Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Max(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
             });
         }
 
@@ -549,7 +549,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 
                 Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::And(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
             });
         }
 
@@ -618,7 +618,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
                 Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::And(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
             });
         }
 
@@ -684,7 +684,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 
                 Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Or(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
             });
         }
 
@@ -753,7 +753,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
                 Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Cuda::Atomic::Or(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
             });
         }
 

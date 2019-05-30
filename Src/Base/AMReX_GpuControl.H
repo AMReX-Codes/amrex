@@ -13,6 +13,10 @@
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0)
 #endif
 
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#define AMREX_DEVICE_COMPILE 1
+#endif
+
 namespace amrex {
 namespace Gpu {
 
