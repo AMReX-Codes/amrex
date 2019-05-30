@@ -211,6 +211,21 @@ public:
     //! Construct an empty BoxArray.
     BoxArray ();
 
+    //! The copy constructor.
+    BoxArray (const BoxArray& rhs);
+
+    //! The assignment operator.
+    BoxArray& operator= (const BoxArray& rhs);
+
+    //! The move constructor.
+    BoxArray (BoxArray&& rhs) noexcept = default;
+
+    //! The move assignment operator.
+    BoxArray& operator=(BoxArray&& rhs) noexcept = default;
+
+    //! The destructor.
+    ~BoxArray() noexcept = default;
+
     //! Make a boxarray out of a single box
     explicit BoxArray (const Box& bx);
 
@@ -227,17 +242,7 @@ public:
 
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
-    //! The copy constructor.
-    BoxArray (const BoxArray& rhs);
-
-    //! The assignment operator.
-    BoxArray& operator= (const BoxArray& rhs);
-
-    //! The move constructor
-    BoxArray (BoxArray&& rhs) noexcept;
-
-    //! The destructor.
-    ~BoxArray ();
+    
     /**
     * \brief Initialize the BoxArray from a single box.
     * It is an error if the BoxArray has already been initialized.

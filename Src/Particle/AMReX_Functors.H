@@ -62,8 +62,8 @@ namespace functors
         
         AMREX_GPU_HOST_DEVICE
         assignParticleGrid(const GeometryData& a_domain,
-                       const Box&          a_box,
-                       BaseFab<int>*       a_mask_ptr) 
+                           const Box&          a_box,
+                           BaseFab<int>*       a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Particle>
@@ -105,6 +105,33 @@ namespace functors
 	    iv += domain.Domain().smallEnd();
 
 	    return (*mask_ptr)(iv, 1);
+        }
+    };
+
+    struct periodicTransformation
+    {
+        GeometryData domain;
+        IntVect pshift;
+
+        AMREX_GPU_HOST_DEVICE
+        periodicTransformation(const GeometryData& a_domain,
+                               const IntVect&      a_pshift)
+            : domain(a_domain), pshift(a_pshift) {}
+        
+        template <typename Particle>
+        AMREX_GPU_HOST_DEVICE
+        Particle operator()(const Particle& in) const {
+            Particle p = in;
+            
+            for (int dim = 0; dim < AMREX_SPACEDIM; ++dim) {
+                if (not domain.isPeriodic(dim)) continue;
+                if (pshift[dim] > 0) 
+                    p.m_rdata.pos[dim] += (domain.ProbHi()[dim]-domain.ProbLo()[dim]); 
+                else if (pshift[dim] < 0)
+                    p.m_rdata.pos[dim] -= (domain.ProbHi()[dim]-domain.ProbLo()[dim]);
+            }
+            
+            return p;
         }
     };
 
@@ -211,43 +238,6 @@ namespace functors
         bool operator()(int grid) const
         {
             return grid_id != grid;
-        }
-    };
-
-    struct getPosition
-    {        
-        AMREX_GPU_HOST_DEVICE
-        getPosition() {}
-        
-        template <typename Particle>
-        AMREX_GPU_HOST_DEVICE
-        thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const Particle& p) const
-        {
-            return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
-                                                   p.m_rdata.pos[1], 
-                                                   p.m_rdata.pos[2]));
-        }
-    };
-
-    template <typename Particle>
-    struct setPosition
-    {
-        AMREX_GPU_HOST_DEVICE
-        setPosition() {}
-
-        template <typename Tuple>
-        AMREX_GPU_HOST_DEVICE
-        Particle operator()(const Tuple& pos) const
-        {
-            Particle p;
-            p.m_rdata.pos[0] = thrust::get<0>(pos);
-#if AMREX_SPACEDIM > 1
-            p.m_rdata.pos[1] = thrust::get<1>(pos);
-#endif
-#if AMREX_SPACEDIM > 2
-            p.m_rdata.pos[2] = thrust::get<2>(pos);
-#endif
-            return p;
         }
     };
 }

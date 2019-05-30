@@ -273,6 +273,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                         }
                         dst += sizeof(int);
                     }
+                    dst = ((char*) &neighbors[lev][dst_index][old_size+n]) + pdata_size;
                 }
                 buffer += size;
             }

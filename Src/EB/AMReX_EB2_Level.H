@@ -45,6 +45,7 @@ public:
     void fillAreaFrac (Array<   MultiFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
     void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
     void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
+    void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
     const BoxArray& boxArray () const noexcept { return m_grids; }
     const DistributionMapping& DistributionMap () const noexcept { return m_dmap; }
@@ -65,7 +66,6 @@ protected:
 
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
-    void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
     Geometry m_geom;
     IntVect  m_ngrow;

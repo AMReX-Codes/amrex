@@ -17,7 +17,7 @@ class AmrMesh
 public:
     AmrMesh ();
     AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord=-1,
-             std::vector<int> refrat = std::vector<int>());
+             Vector<IntVect> refrat = Vector<IntVect>());
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
@@ -92,6 +92,7 @@ public:
     void SetFinestLevel (int new_finest_level) noexcept { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept;
     void SetBoxArray (int lev, const BoxArray& ba_in) noexcept;
+    void SetGeometry (int lev, const Geometry& geom_in) noexcept;
 
     void ClearDistributionMap (int lev) noexcept;
     void ClearBoxArray (int lev) noexcept;
@@ -204,7 +205,7 @@ protected:
 
 private:
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
-                      std::vector<int> refrat = std::vector<int>());
+                      Vector<IntVect> refrat = Vector<IntVect>());
 
     static void ProjPeriodic (BoxList& bd, const Geometry& geom);
 };

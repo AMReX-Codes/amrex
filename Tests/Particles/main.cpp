@@ -48,7 +48,14 @@ class StructOfArraysParticleContainer
                                      const Vector<int>                 & rr)
         : ParticleContainer<0, 0,
                             RealIdx::nattribs,
-                            IntIdx::nattribs> (geom, dmap, ba, rr) {}
+                            IntIdx::nattribs> (geom, dmap, ba, rr)
+    {
+        AddRealComp(true);
+        AddRealComp(true);
+
+        AddIntComp(true);
+        AddIntComp(true);
+    }
 
     void InitParticles() {
         const int lev = 0;
@@ -62,7 +69,7 @@ class StructOfArraysParticleContainer
             
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
-            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id, tile_id)];
+            auto& particle_tile = DefineAndReturnParticleTile(lev, grid_id, tile_id);
             
             const auto& boxlo = tile_box.smallEnd();
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
@@ -87,6 +94,12 @@ class StructOfArraysParticleContainer
                 particle_tile.push_back(p);
                 particle_tile.push_back_real(real_attribs);
                 particle_tile.push_back_int(int_attribs);
+
+                particle_tile.push_back_real(2, p.id());
+                particle_tile.push_back_real(3, p.cpu());
+
+                particle_tile.push_back_int(2, p.id());
+                particle_tile.push_back_int(3, p.cpu());
             }
         }
     }

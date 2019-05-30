@@ -20,6 +20,10 @@
 
 namespace amrex {
 
+enum class BottomSolver : int {
+    Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
+};
+
 #ifdef AMREX_USE_PETSC
 class PETScABecLap;
 #endif
@@ -85,9 +89,13 @@ public:
     * \param lobc
     * \param hibc
     */
+    // For single component
     void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,
                       const Array<BCType,AMREX_SPACEDIM>& hibc) noexcept;
 
+    // For multi-component
+    void setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
+                      const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc) noexcept;
 
     /**
     * \brief Needs coarse data for bc?  If the lowest level grids does not
@@ -133,8 +141,9 @@ public:
     void setMaxOrder (int o) noexcept { maxorder = o; }
     int getMaxOrder () const noexcept { return maxorder; }
 
-    virtual int getNComp() const { return 1; }
-    virtual int getNGrow() const { return 0; }
+    virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
+    virtual int getNComp () const { return 1; }
+    virtual int getNGrow () const { return 0; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
@@ -170,7 +179,6 @@ public:
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
 
     virtual void prepareForSolve () = 0;
-    virtual void prepareForSolve (MLMG* mlmg) { prepareForSolve(); }
     virtual bool isSingular (int amrlev) const = 0;
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
@@ -208,10 +216,11 @@ public:
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
-#ifdef AMREX_USE_EB
-    static constexpr int mg_box_min_width = 4;
-#else
     static constexpr int mg_box_min_width = 2;
+#ifdef AMREX_USE_EB
+    static constexpr int mg_domain_min_width = 4;
+#else
+    static constexpr int mg_domain_min_width = 2;
 #endif
 
     LPInfo info;
@@ -257,14 +266,13 @@ protected:
     std::unique_ptr<CommContainer> m_raii_comm;
 
     // BC
-    Array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
-    Array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
+    Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc;
+    Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc;
 
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio = -1;
     RealVect m_coarse_bc_loc;
     const MultiFab* m_coarse_data_for_bc = nullptr;
-
 
     /**
     * \brief functions

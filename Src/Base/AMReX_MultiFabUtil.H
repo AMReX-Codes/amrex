@@ -142,11 +142,13 @@ namespace amrex
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio);
 
-    //! Computes divergence of face-data stored in the umac MultiFab. It is
-    //! assumed that umac has at least 1 ghost cell and ghost cells have been
-    //! filled.
+    //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom);
+
+    //! Computes gradient of face-data stored in the umac MultiFab.
+    void computeGradient (MultiFab& grad, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
+                          const Geometry& geom);
 
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);

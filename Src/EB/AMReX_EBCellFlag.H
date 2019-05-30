@@ -1,9 +1,9 @@
 #ifndef AMREX_EBCELLFLAG_H_
 #define AMREX_EBCELLFLAG_H_
 
-#include <array>
 #include <cstdint>
 #include <iostream>
+#include <AMReX_Array.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabFactory.H>
@@ -16,7 +16,7 @@ public:
 
     EBCellFlag () = default;
     EBCellFlag (const EBCellFlag& rhs) noexcept = default;
-    constexpr EBCellFlag (uint32_t i) : flag(i) {}
+    explicit constexpr EBCellFlag (uint32_t i) : flag(i) {}
     EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
     EBCellFlag& operator= (uint32_t i) { flag = i; return *this; }
 
@@ -101,6 +101,12 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
+    bool isConnected (int i, int j, int k) const {
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
+        return flag & (1 << n);
+    }
+
+    AMREX_GPU_HOST_DEVICE
     void setDisconnected () {
         flag &= one_lower_mask;
     }
@@ -133,10 +139,10 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    static constexpr EBCellFlag TheDefaultCell () { return {default_value}; }
+    static constexpr EBCellFlag TheDefaultCell () { return EBCellFlag{default_value}; }
 
     AMREX_GPU_HOST_DEVICE
-    static constexpr EBCellFlag TheCoveredCell () { return {covered_value}; }
+    static constexpr EBCellFlag TheCoveredCell () { return EBCellFlag{covered_value}; }
 
 private:
 

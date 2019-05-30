@@ -301,7 +301,8 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
     const Vector<std::string>& derives = (varNames.size()==0 ? amrdToMimic.PlotVarNames() : varNames);
     AMREX_ASSERT(derives.size()==(*mfa[0]).nComp());
     int ntype = derives.size();
-    int finestLevel = amrdToMimic.FinestLevel();    
+    int finestLevel = mfa.size() - 1;
+    AMREX_ALWAYS_ASSERT(finestLevel >= 0);
     
     if (ParallelDescriptor::IOProcessor())
         if (!amrex::UtilCreateDirectory(oFile,0755))

@@ -11,7 +11,7 @@ add_library( amrex )
 set_target_properties( amrex
    PROPERTIES
    Fortran_MODULE_DIRECTORY
-   ${PROJECT_BINARY_DIR}/mod_files 
+   ${PROJECT_BINARY_DIR}/mod_files
    INTERFACE_INCLUDE_DIRECTORIES
    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
    )
@@ -67,7 +67,7 @@ if (ENABLE_LINEAR_SOLVERS)
       )
 endif ()
 
-if (ENABLE_FORTRAN_INTERFACES) 
+if (ENABLE_FORTRAN_INTERFACES)
    add_subdirectory(F_Interfaces)
 endif ()
 
@@ -77,7 +77,7 @@ endif ()
 
 #
 # Optional external components
-# 
+#
 if (ENABLE_AMRDATA)
    add_subdirectory(Extern/amrdata)
    target_link_libraries(amrex
@@ -90,16 +90,12 @@ if (ENABLE_PROFPARSER)
    add_subdirectory(Extern/ProfParser)
 endif ()
 
-if (ENABLE_3D_NODAL_MLMG)
-   add_subdirectory(Extern/Algoim)
-endif ()
-
 if (ENABLE_SENSEI_INSITU)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
 if (ENABLE_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS4)   
+   add_subdirectory(Extern/SUNDIALS4)
 endif ()
 
 if (ENABLE_CONDUIT)
@@ -110,21 +106,16 @@ if (ENABLE_HYPRE)
    add_subdirectory(Extern/HYPRE)
 endif ()
 
+find_package(Python)
 #
-# Here we generate AMReX_BuildInfo.cpp
-# If Python < 2.7, script won't work so
-# we do not include this in the library
+# If Python >= 2.7 is available, generate AMReX_BuildInfo.cpp
+# If Python is not available, do not include AMReX_BuildInfo.cpp in library
+# AMReX_Buildinfo.cpp is optional, not required.
 #
-#
-# Check for Python >= 2.7: this is needed to build AMReX_BuildInfo.cpp
-# This is not a required package. This provides PYTHONINTERP_FOUND and
-# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR
-#
-find_package (PythonInterp QUIET)
 
-if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
+if ( Python_Interpreter_FOUND AND (NOT (Python_VERSION VERSION_LESS "2.7") ) )
    add_custom_command(
-      COMMAND  ${PROJECT_SOURCE_DIR}/Tools/C_scripts/makebuildinfo_C.py
+      COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/Tools/C_scripts/makebuildinfo_C.py
       --amrex_home "${PROJECT_SOURCE_DIR}"
       --COMP ${CMAKE_C_COMPILER_ID} --COMP_VERSION ${CMAKE_C_COMPILER_VERSION}
       --FCOMP ${CMAKE_Fortran_COMPILER_ID} --FCOMP_VERSION ${CMAKE_C_COMPILER_VERSION}
@@ -133,8 +124,24 @@ if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating AMReX_buildInfo.cpp" )
   
-   target_sources( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
+   target_sources( amrex
+      PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp
+      )
 endif ()
+
+# Add ${PROJECT_SOURCE_DIR}/Tools/C_scripts/ to include set
+# This is because AMReX_buildInfo.H could be used by application code
+# from within the build tree even if AMReX_buildInfo.cpp is not generated
+target_sources( amrex
+   PRIVATE
+   ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
+   )
+
+target_include_directories(amrex
+   PUBLIC
+   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/Tools/C_scripts>
+   )
 
 #
 # Make all headers as PUBLIC HEADERS so that they get installed
@@ -146,7 +153,7 @@ list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
 set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
 
 #
-# If ENABLE_CUDA, make C++ files be compiled as CUDA sources 
+# If ENABLE_CUDA, make C++ files be compiled as CUDA sources
 #
 if (ENABLE_CUDA)
    set(AMREX_CUDA_SOURCES ${AMREX_SOURCES})
@@ -156,9 +163,7 @@ endif ()
 
 
 #
-# Install amrex  -- Export 
-# 
+# Install amrex  -- Export
+#
 include(AMReXInstallHelpers)
 install_amrex(Flags_CXX Flags_Fortran Flags_FPE)
-
-

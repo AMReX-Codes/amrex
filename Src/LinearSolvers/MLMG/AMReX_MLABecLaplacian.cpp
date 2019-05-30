@@ -26,6 +26,8 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
 
     MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
+    const int ncomp = getNComp();
+
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -43,7 +45,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                                                     IntVect::TheDimensionVector(idim));
                 m_b_coeffs[amrlev][mglev][idim].define(ba,
                                                        m_dmap[amrlev][mglev],
-                                                       1, 0, MFInfo(), *m_factory[amrlev][mglev]);
+                                                       ncomp, 0, MFInfo(), *m_factory[amrlev][mglev]);
             }
         }
     }
@@ -77,8 +79,11 @@ void
 MLABecLaplacian::setBCoeffs (int amrlev,
                              const Array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
+    const int ncomp = getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
+        for (int icomp = 0; icomp < ncomp; ++icomp) {
+            MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, icomp, 1, 0);
+        }
     }
     m_needs_update = true;
 }
@@ -134,28 +139,16 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& fine_b_coeffs = m_b_coeffs[flev  ].back();
     auto& crse_a_coeffs = m_a_coeffs[flev-1].front();
     auto& crse_b_coeffs = m_b_coeffs[flev-1].front();
-    auto& crse_geom     = m_geom    [flev-1][0];
 
     if (m_a_scalar != 0.0) {
+        // We coarsen from the back of flev to the front of flev-1.
+        // So we use mg_coarsen_ratio.
         amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
     }
-     
-    Array<MultiFab,AMREX_SPACEDIM> bb;
-    Vector<MultiFab*> crse(AMREX_SPACEDIM);
-    Vector<MultiFab const*> fine(AMREX_SPACEDIM);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        BoxArray ba = fine_b_coeffs[idim].boxArray();
-        ba.coarsen(mg_coarsen_ratio);
-        bb[idim].define(ba, fine_b_coeffs[idim].DistributionMap(), 1, 0);
-        crse[idim] = &bb[idim];
-        fine[idim] = &fine_b_coeffs[idim];
-    }
-    IntVect ratio {mg_coarsen_ratio};
-    amrex::average_down_faces(fine, crse, ratio, 0);
 
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        crse_b_coeffs[idim].ParallelCopy(bb[idim], crse_geom.periodicity());
-    }
+    amrex::average_down_faces(amrex::GetArrOfConstPtrs(fine_b_coeffs),
+                              amrex::GetArrOfPtrs(crse_b_coeffs),
+                              mg_coarsen_ratio, 0);
 }
 
 void
@@ -189,9 +182,9 @@ MLABecLaplacian::prepareForSolve ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {
@@ -229,6 +222,8 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
 
+    const int ncomp = getNComp();
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -245,7 +240,7 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
             mlabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                            dxinv, ascalar, bscalar);
+                            dxinv, ascalar, bscalar, ncomp);
         });
     }
 }
@@ -265,6 +260,8 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
 
+    const int ncomp = getNComp();
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -280,7 +277,7 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
             mlabeclap_normalize(tbx, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                dxinv, ascalar, bscalar);
+                                dxinv, ascalar, bscalar, ncomp);
         });
     }
 }
@@ -321,7 +318,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 #endif
 
-    const int nc = 1;
+    const int nc = getNComp();
     const Real* h = m_geom[amrlev][mglev].CellSize();
     AMREX_D_TERM(const Real dhx = m_b_scalar/(h[0]*h[0]);,
                  const Real dhy = m_b_scalar/(h[1]*h[1]);,
@@ -419,18 +416,19 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
     const int mglev = 0;
     const Box& box = mfi.tilebox();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const int ncomp = getNComp();
     FFlux(box, dxinv, m_b_scalar,
           Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
                                                               &(m_b_coeffs[amrlev][mglev][1][mfi]),
                                                               &(m_b_coeffs[amrlev][mglev][2][mfi]))},
-          flux, sol, face_only);
+          flux, sol, face_only, ncomp);
 }
 
 void
 MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
                         Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
                         Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
-                        FArrayBox const& sol, int face_only)
+                        FArrayBox const& sol, int face_only, int ncomp)
 {
     AMREX_D_TERM(const auto bx = bcoef[0]->array();,
                  const auto by = bcoef[1]->array();,
@@ -447,7 +445,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         int blen = box.length(0);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
-            mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen);
+            mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*dxinv[1];
@@ -455,7 +453,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         blen = box.length(1);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
-            mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen);
+            mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen, ncomp);
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -464,7 +462,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         blen = box.length(2);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
         {
-            mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen);
+            mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen, ncomp);
         });
 #endif
     }
@@ -474,14 +472,14 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         Box bflux = amrex::surroundingNodes(box, 0);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
-            mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac);
+            mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac, ncomp);
         });
 #if (AMREX_SPACEDIM >= 2)
         fac = bscalar*dxinv[1];
         bflux = amrex::surroundingNodes(box, 1);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
-            mlabeclap_flux_y(tbox, fyarr, solarr, by, fac);
+            mlabeclap_flux_y(tbox, fyarr, solarr, by, fac, ncomp);
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
@@ -489,7 +487,7 @@ MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
         bflux = amrex::surroundingNodes(box, 2);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
         {
-            mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac);
+            mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac, ncomp);
         });
 #endif
     }
@@ -508,9 +506,9 @@ MLABecLaplacian::update ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
-    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
-    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet);
+    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
         {

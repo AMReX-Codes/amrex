@@ -253,10 +253,40 @@ use AMReX, an external AMReX library can be created instead. In this approach, o
 runs ``./configure``, followed by ``make`` and ``make install``.
 Other make options include ``make distclean`` and ``make uninstall``.  In the top
 AMReX directory, one can run ``./configure -h`` to show the various options for
-the configure script. This approach is built on the AMReX GNU Make system. Thus
+the configure script. In particular, one can specify the installation path for the AMReX library using::
+
+  ./configure --prefix=[AMReX library path]
+
+This approach is built on the AMReX GNU Make system. Thus
 the section on :ref:`sec:build:make` is recommended if any fine tuning is
 needed.  The result of ``./configure`` is ``GNUmakefile`` in the AMReX
 top directory.  One can modify the make file for fine tuning.
+
+To compile an application code against the external AMReX library, it
+is necessary to set appropriate compiler flags and set the library
+paths for linking. To assist with this, when the AMReX library is
+built, a configuration file is created in ``[AMReX library path]/lib/pkgconfig/amrex.pc``.
+This file contains the Fortran and
+C++ flags used to compile the AMReX library as well as the appropriate
+library and include entries.
+
+The following sample GNU Makefile will compile a ``main.cpp`` source
+file against an external AMReX library, using the C++ flags and
+library paths used to build AMReX::
+
+  AMREX_LIBRARY_HOME ?= [AMReX library path]
+
+  LIBDIR := $(AMREX_LIBRARY_HOME)/lib
+  INCDIR := $(AMREX_LIBRARY_HOME)/include
+
+  COMPILE_CPP_FLAGS ?= $(shell awk '/Cflags:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc)
+  COMPILE_LIB_FLAGS ?= $(shell awk '/Libs:/ {$$1=$$2=""; print $$0}' $(LIBDIR)/pkgconfig/amrex.pc)
+
+  CFLAGS := -I$(INCDIR) $(COMPILE_CPP_FLAGS)
+  LFLAGS := -L$(LIBDIR) $(COMPILE_LIB_FLAGS)
+
+  all:
+          g++ -o main.exe main.cpp $(CFLAGS) $(LFLAGS)
 
 .. _sec:build:cmake:
 
@@ -394,12 +424,6 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES,NO          |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_3D_NODAL_MGML         |  Enable 3D nodal projection                     | NO          | YES,NO          |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ALGOIM_INSTALL_DIR           |  Path to Algoim installation directory          |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | BLITZ_INSTALL_DIR            |  Path to Blitz installation directory           |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_SUNDIALS              |  Enable SUNDIALS 4 interfaces                   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_SENSEI_IN_SITU        |  Enable SENSEI_IN_SITU infrastucture            | NO          | YES, NO         |
@@ -424,12 +448,6 @@ If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
 they will be initialized with the value of the environmental variables ``FFLAGS``/
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
 are defined, AMReX default flags are used.
-
-The option ``ENABLE_3D_NODAL_MGML`` enables AMReX 3D nodal projection. This option requires
-two external libraries: Blitz and Algoim. The user can provide the location of
-both libraries via ``BLITZ_INSTALL_DIR`` and ``ALGOIM_INSTALL_DIR``. However, if one or both of these
-options is not provided, AMReX will download and build Blitz and/or Algoim automatically.
-It should be noted that AMReX 2D nodal projection does not require the use of external libraries.
 
 For a detailed explanation of CUDA support in CMake, refer to section :ref:`sec:gpu:build`.
 

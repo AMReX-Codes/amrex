@@ -932,7 +932,7 @@ launch, is shown here:
             plusone_cudacpp(tbx, *fab);
             plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
                              BL_TO_FORTRAN_ANYD(*fab));
-        }
+        });
 
         /* MACRO VARIATION
         /

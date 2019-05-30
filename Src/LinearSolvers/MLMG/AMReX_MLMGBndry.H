@@ -26,8 +26,8 @@ public:
     MLMGBndry& operator= (const MLMGBndry& rhs) = delete;
     MLMGBndry& operator= (MLMGBndry&& rhs) = delete;
 
-    void setLOBndryConds (const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
-                          const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
+    void setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo,
+                          const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& hi,
                           int ratio, const RealVect& a_loc);
 
     static void setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& domain,

@@ -55,7 +55,6 @@ set(AMREX_ENABLE_AMRDATA            @ENABLE_AMRDATA@)
 set(AMREX_ENABLE_PARTICLES          @ENABLE_PARTICLES@)
 set(AMREX_ENABLE_DP_PARTICLES       @ENABLE_DP_PARTICLES@)
 set(AMREX_ENABLE_SENSEI_INSITU      @ENABLE_SENSEI_INSITU@)
-set(AMREX_ENABLE_3D_NODAL_MLMG      @ENABLE_3D_NODAL_MLMG@)
 set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
 set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
 
@@ -86,7 +85,7 @@ set(AMREX_ENABLE_HYPRE              @ENABLE_HYPRE@)
 # Find dependencies if needed
 #
 if (AMREX_ENABLE_MPI)
-   set( _mpi_components CXX )
+   set( _mpi_components "C" )
    if (AMREX_ENABLE_FORTRAN_INTERFACES)
          set( _mpi_components "${_mpi_components} Fortran" )
    endif ()
@@ -98,19 +97,6 @@ if (AMREX_ENABLE_OMP)
    find_dependency(OpenMP REQUIRED)
 endif ()
 
-if (AMREX_ENABLE_3D_NODAL_MLMG)
-   # External libs
-   set(BLITZ_INSTALL_PREFIX @BLITZ_INSTALL_PREFIX@)
-   set(_NO_BLITZ_DEPENDENCY_NEEDED @_NO_BLITZ_DEPENDENCY_NEEDED@)
-
-   if (BLITZ_INSTALL_PREFIX)
-      if (NOT _NO_BLITZ_DEPENDENCY_NEEDED)
-         find_dependency(blitz HINTS @BLITZ_INSTALL_PREFIX@)
-      endif ()
-   else ()
-      find_dependency(blitz REQUIRED HINTS @CMAKE_INSTALL_PREFIX@)   
-   endif ()
-endif ()
 
 if (AMREX_ENABLE_SUNDIALS)
    find_dependency(SUNDIALS 4 COMPONENTS nvecserial cvode arkode REQUIRED )

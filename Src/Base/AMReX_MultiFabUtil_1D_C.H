@@ -287,6 +287,22 @@ void amrex_compute_divergence (Box const& bx, FArrayBox& divufab, FArrayBox cons
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+inline
+void amrex_compute_gradient (Box const& bx, Array4<Real> const& grad,
+                             Array4<Real const> const& u,
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+    const Real dxi = dxinv[0];
+
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        grad(i,0,0) = dxi * (u(i+1,0,0)-u(i,0,0));
+    }
+}
+
 }
 
 #endif

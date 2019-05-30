@@ -483,6 +483,7 @@ protected:
 public:
 #ifdef USE_PERILLA
     std::vector<std::vector<RegionGraph*> > graphArray;
+    std::vector<RegionGraph*> amrGraphArray;
     std::vector<RegionGraph*> &get_graphArray(int level){return graphArray[level];}
 #endif
 
