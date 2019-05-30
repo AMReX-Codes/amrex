@@ -477,12 +477,12 @@ WarpX::ReadParameters ()
     }
 
     {
-	ParmParse pp("algo");
-    current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
-    charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
-    field_gathering_algo = GetAlgorithmInteger(pp, "charge_deposition");
-    particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
-    maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
+        ParmParse pp("algo");
+        current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
+        charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
+        field_gathering_algo = GetAlgorithmInteger(pp, "charge_deposition");
+        particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
+        maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
     }
 
 #ifdef WARPX_USE_PSATD
