@@ -59,7 +59,8 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac)
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                         RunOn runon)
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
 
@@ -93,7 +94,8 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                         const FArrayBox& dm)
+                         const FArrayBox& dm,
+                         RunOn runon)
 {
     BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
