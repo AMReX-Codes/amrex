@@ -562,7 +562,7 @@ Numerics and algorithms
     The algorithm for the FDTD Maxwell field solver. Available options are:
 
      - ``yee``: Yee FDTD solver.
-     - ``ckc``: Cole-Karkkainen solver with Cowan
+     - ``ckc``: (not available in ``RZ`` geometry) Cole-Karkkainen solver with Cowan
        coefficients (see `Cowan, PRSTAB 16 (2013) <https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.16.041303>`__)
 
      If ``algo.maxwell_fdtd_solver`` is not specified, ``yee`` is the default.
@@ -722,13 +722,13 @@ Diagnostics and output
     The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
 
 * ``slice.coarsening_ratio`` (`2 integers in 2D`, `3 integers in 3D`; default `1`)
-    The coarsening ratio input must be greater than 0. Default is 1 in all directions. 
-    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1. 
+    The coarsening ratio input must be greater than 0. Default is 1 in all directions.
+    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1.
 
 * ``slice.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps for the slice. Use a
     negative number to disable slice generation and slice data dumping.
-    
+
 
 
 Checkpoints and restart

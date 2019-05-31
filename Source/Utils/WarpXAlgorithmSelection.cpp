@@ -7,7 +7,7 @@
 
 const std::map<std::string, int> maxwell_solver_algo_to_int = {
     {"yee",     MaxwellSolverAlgo::Yee },
-#ifndef AMREX_USE_GPU // Only available on CPU
+#ifndef WARPX_RZ // Not available in RZ
     {"ckc",     MaxwellSolverAlgo::CKC },
 #endif
     {"default", MaxwellSolverAlgo::Yee }
