@@ -1,4 +1,6 @@
 #include <WarpXAlgorithmSelection.H>
+#include <map>
+#include <algorithm>
 
 // Define dictionary with correspondance between user-input strings,
 // and corresponding integer for use inside the code (e.g. in PICSAR).
@@ -53,6 +55,8 @@ GetAlgorithmInteger( amrex::ParmParse& pp, const char* pp_search_key ){
     // Read user input ; use "default" if it is not found
     std::string algo = "default";
     pp.query( pp_search_key, algo );
+    // Convert to lower case
+    std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
 
     // Pick the right dictionary
     std::map<std::string, int> algo_to_int;

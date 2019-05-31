@@ -485,7 +485,7 @@ WarpX::ReadParameters ()
         ParmParse pp("algo");
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
-        field_gathering_algo = GetAlgorithmInteger(pp, "charge_deposition");
+        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
         particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
         maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
     }
@@ -524,7 +524,7 @@ WarpX::ReadParameters ()
        amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
        Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
        // set default slice_crse_ratio //
-       for (int idim=0; idim < AMREX_SPACEDIM; ++idim ) 
+       for (int idim=0; idim < AMREX_SPACEDIM; ++idim )
        {
           slice_crse_ratio[idim] = 1;
        }
@@ -543,7 +543,7 @@ WarpX::ReadParameters ()
        }
 
     }
- 
+
 }
 
 // This is a virtual function.
