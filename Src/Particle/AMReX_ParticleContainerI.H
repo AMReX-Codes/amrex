@@ -50,12 +50,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
         }
-        if ( ( not std::is_standard_layout<ParticleType>::value    ) or 
-             ( not std::is_trivial<ParticleType>::value            )    )
-        {
-            amrex::Abort("Particle type must be standard layout and trivial.");
-        }
 
+        static_assert(std::is_standard_layout<ParticleType>::value
+                   && std::is_trivial<ParticleType>::value,
+                      "Particle type must be standard layout and trivial.");
+        
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
 
@@ -4045,7 +4044,6 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
             tile_box.grow(ng);
@@ -4057,7 +4055,7 @@ AssignCellDensitySingleLevel (int rho_index,
             auto rhoarr = fab.array();
 #endif
                         
-            if (dxi == pdxi)
+            if (particle_lvl_offset == 0)
             {
                 AMREX_FOR_1D( np, i,
                 {
