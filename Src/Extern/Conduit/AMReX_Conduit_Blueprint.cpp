@@ -310,16 +310,18 @@ MultiLevelToBlueprint (int n_levels,
     }
 
     Node info;
-    // blueprint verify makes sure we conform to whats expected
+    // if we have mesh data, use blueprint verify
+    // to make sure we conform to whats expected
     // for a multi-domain mesh 
-    if(!blueprint::mesh::verify(res,info))
+    
+    if(!res.dtype().is_empty() && 
+       !blueprint::mesh::verify(res,info))
     {
         // ERROR -- doesn't conform to the mesh blueprint
         // show what went wrong
         amrex::Print() << "ERROR: Conduit Mesh Blueprint Verify Failed!\n"
                        << info.to_json();
     }
-
 
 }
 
