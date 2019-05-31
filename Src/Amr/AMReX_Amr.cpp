@@ -1183,7 +1183,7 @@ Amr::checkInput ()
         }
     }
 
-    if( ! Geometry::ProbDomain().ok()) {
+    if( ! Geom(0).ProbDomain().ok()) {
         amrex::Error("Amr::checkInput: bad physical problem size");
     }
 
@@ -1266,16 +1266,16 @@ Amr::readProbinFile (int& a_init)
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   AMREX_ZFILL(Geometry::ProbLo()),
-			   AMREX_ZFILL(Geometry::ProbHi()));
+			   AMREX_ZFILL(Geom(0).ProbLo()),
+			   AMREX_ZFILL(Geom(0).ProbHi()));
 
 #else
 
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   Geometry::ProbLo(),
-			   Geometry::ProbHi());
+			   Geom(0).ProbLo(),
+			   Geom(0).ProbHi());
 #endif
 
             piEnd = amrex::second();
@@ -1543,8 +1543,8 @@ Amr::restart (const std::string& filename)
     Vector<Box> inputs_domain(max_level+1);
     for (int lev = 0; lev <= max_level; ++lev)
     {
-	Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
-       inputs_domain[lev] = bx;
+        Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
+        inputs_domain[lev] = bx;
     }
 
     if (max_level >= mx_lev) {
@@ -1710,6 +1710,13 @@ Amr::restart (const std::string& filename)
        }
     }
 
+    // Old checkpoints do not store isPeriodic.
+    // So we have to set it after restart.
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        amr_level[lev]->geom.setPeriodicity(Geom(lev).isPeriodic());
+    }
+
     // Save the number of steps taken so far. This mainly
     // helps in the edge case where we end up not taking
     // any timesteps before the run terminates, so that
@@ -1719,17 +1726,17 @@ Amr::restart (const std::string& filename)
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-	Box restart_domain(Geom(lev).Domain());
-       if ( ! (inputs_domain[lev] == restart_domain) )
-       {
-           std::ostringstream ss;
-           ss  << "Problem at level " << lev << '\n'
-	       << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
-	       << "Domain according to checkpoint file is " << restart_domain      << '\n'
-	       << "Amr::restart() failed -- box from inputs file does not "
-	       << "equal box from restart file. \n";
-           amrex::Abort(ss.str());
-       }
+        Box restart_domain(Geom(lev).Domain());
+        if ( ! (inputs_domain[lev] == restart_domain) )
+        {
+            std::ostringstream ss;
+            ss  << "Problem at level " << lev << '\n'
+                << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
+                << "Domain according to checkpoint file is " << restart_domain      << '\n'
+                << "Amr::restart() failed -- box from inputs file does not "
+                << "equal box from restart file. \n";
+            amrex::Abort(ss.str());
+        }
     }
 
     if (verbose > 0)

@@ -43,6 +43,7 @@ public:
     static int size () noexcept { return m_instance.size(); }
 
     virtual const Level& getLevel (const Geometry & geom) const = 0;
+    virtual const Geometry& getGeometry (const Box& domain) const = 0;
     virtual const Box& coarsestDomain () const = 0;
 
 protected:
@@ -69,6 +70,7 @@ public:
     virtual ~IndexSpaceImp () {}
 
     virtual const Level& getLevel (const Geometry& geom) const final;
+    virtual const Geometry& getGeometry (const Box& dom) const final;
     virtual const Box& coarsestDomain () const final {
         return m_geom.back().Domain();
     }

@@ -79,7 +79,7 @@ MLCellLinOp::defineAuxData ()
     }
 
 #if (AMREX_SPACEDIM != 3)
-    bool no_metric_term = Geometry::IsCartesian() || !info.has_metric_term;
+    bool no_metric_term = m_geom[0][0].IsCartesian() || !info.has_metric_term;
     m_metric_factor.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -211,7 +211,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                 AMREX_ALWAYS_ASSERT(m_coarse_data_crse_ratio > 0);
                 const Box& cbx = amrex::coarsen(m_geom[0][0].Domain(), m_coarse_data_crse_ratio);
                 m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, ncomp,
-                                                Geometry::periodicity(cbx));
+                                                m_geom[0][0].periodicity(cbx));
             } else {
                 m_crse_sol_br[amrlev]->setVal(0.0);
             }
@@ -913,7 +913,8 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
         for (int icomp = 0; icomp < m_ncomp; ++icomp) {
             RealTuple & bloc  = bcloc[mfi][icomp];
             BCTuple   & bctag = bcond[mfi][icomp];
-            MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc[icomp], hibc[icomp], dx, ratio, a_loc);
+            MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc[icomp], hibc[icomp],
+                                dx, ratio, a_loc, geom.isPeriodicArray());
         }
     }
 }
@@ -923,7 +924,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
     
-    if (Geometry::IsCartesian() || !info.has_metric_term) return;
+    if (m_geom[amrlev][mglev].IsCartesian() || !info.has_metric_term) return;
 
     const int ncomp = rhs.nComp();
       
@@ -957,7 +958,7 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
 
-    if (Geometry::IsCartesian() || !info.has_metric_term) return;
+    if (m_geom[amrlev][mglev].IsCartesian() || !info.has_metric_term) return;
 
     const int ncomp = rhs.nComp();
 
@@ -1039,7 +1040,7 @@ MLCellLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionM
                 irce[i] = 1.0/rce[i];
             }
 
-            if (Geometry::IsSPHERICAL()) {
+            if (geom.IsSPHERICAL()) {
                 for (auto& x : rcc) {
                     x = x*x;
                 }

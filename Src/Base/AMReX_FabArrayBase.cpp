@@ -1115,7 +1115,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 #ifdef AMREX_USE_EB
         if (index_space)
         {
-            fact_crse_patch = makeEBFabFactory(index_space, Geometry(cdomain),
+            fact_crse_patch = makeEBFabFactory(index_space,
+                                               index_space->getGeometry(cdomain),
                                                ba_crse_patch,
                                                dm_crse_patch,
                                                {0,0,0}, EBSupport::basic);
@@ -1288,7 +1289,7 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
 #if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             if (include_periodic) {
                 bx.grow(idim, ng[idim]);
             }
