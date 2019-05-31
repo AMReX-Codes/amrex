@@ -711,9 +711,9 @@ and the indexing space domain. For example,
       Real yhi = geom.ProbHi(1);             // y-direction upper corner
       const Real* dx = geom.CellSize();      // Cell size for each direction
       const Box& domain = geom.Domain();     // Index domain
-      bool is_per = Geometry::isPeriodic(0); // Is periodic in x-direction?
-      if (Geometry::isAllPeriodic()) {}      // Periodic in all direction?
-      if (Geometry::isAnyPeriodic()) {}      // Periodic in any direction?
+      bool is_per = geom.isPeriodic(0);      // Is periodic in x-direction?
+      if (geom.isAllPeriodic()) {}           // Periodic in all direction?
+      if (geom.isAnyPeriodic()) {}           // Periodic in any direction?
 
 
 .. _sec:basics:ba:
@@ -2130,7 +2130,7 @@ The basic idea behind physical boundary conditions is as follows:
          {
              for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
              {
-                 if (Geometry::isPeriodic(idim))
+                 if (geom.isPeriodic(idim))
                  {
                      bc[n].setLo(idim, BCType::int_dir); // interior
                      bc[n].setHi(idim, BCType::int_dir);
