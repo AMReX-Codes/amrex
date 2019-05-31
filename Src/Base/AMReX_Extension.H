@@ -94,6 +94,10 @@
 #endif
 
 
+// __attribute__((weak))
+
+#define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
+
 #endif /* !BL_LANG_FORT */
 
 #endif
