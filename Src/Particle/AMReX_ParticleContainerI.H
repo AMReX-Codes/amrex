@@ -4055,7 +4055,7 @@ AssignCellDensitySingleLevel (int rho_index,
             auto rhoarr = fab.array();
 #endif
                         
-            if (dxi == pdxi)
+            if (particle_lvl_offset == 0)
             {
                 AMREX_FOR_1D( np, i,
                 {
