@@ -64,8 +64,8 @@ Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
 {
     BL_PROFILE("BilinearFilter::ApplyStencil(FArrayBox)");
     ncomp = std::min(ncomp, srcfab.nComp());
-    const auto& src = srcfab.array(mfi);
-    const auto& dst = dstfab.array(mfi);
+    const auto& src = srcfab.array();
+    const auto& dst = dstfab.array();
     const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
 
     // tmpfab has enough ghost cells for the stencil
@@ -74,7 +74,7 @@ Filter::ApplyStencil (FArrayBox& dstfab, const FArrayBox& srcfab,
     auto const& tmp = tmp_fab.array();
 
     // Copy values in srcfab into tmpfab
-    const Box& ibx = gbx & srcmf[mfi].box();
+    const Box& ibx = gbx & srcfab.box();
     AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
         {
             if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
