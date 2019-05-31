@@ -4044,7 +4044,6 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
             tile_box.grow(ng);
