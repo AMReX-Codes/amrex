@@ -39,11 +39,11 @@ public:
 
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt) noexcept;
+                  const Real* dx, Real dt, RunOn gpu_or_cpu) noexcept;
 
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt) noexcept;
+                  const Real* dx, Real dt, RunOn gpu_or_cpu) noexcept;
 
     void Reflux (MultiFab& state, int dc = 0);
 
