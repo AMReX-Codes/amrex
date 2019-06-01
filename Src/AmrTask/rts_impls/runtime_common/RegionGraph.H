@@ -222,6 +222,7 @@ namespace amrex{
 	    void syncWorkerThreads(){
 		worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
 	    }
+
 	    void syncWorkerThreads(int numthreads){
 		worker[perilla::wid()]->barr->sync(numthreads);
 	    }
@@ -319,6 +320,4 @@ namespace amrex{
 	    ~RegionGraph();
     };
 }//end namespace
-
-
 #endif

@@ -13,7 +13,6 @@ Package::Package()
     source = 0;
     destination = 0;
     completed = false;
-    notified = false;
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
@@ -37,7 +36,6 @@ Package::Package(int size)
     source = 0;
     destination = 0;
     completed = false;
-    notified = false;
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
@@ -51,6 +49,10 @@ Package::Package(int src, int dest)
     bufSize = 0;
     source = src;
     destination = dest;
+    completed = false;
+    served = false;
+    request = MPI_REQUEST_NULL;
+    packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
     memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
@@ -58,14 +60,11 @@ Package::Package(int src, int dest)
 
 Package::Package(int src, int dest, int size)
 {
-    source = src;
-    destination = dest;
     databuf = new double[size];
     bufSize = size;
-    source = 0;
-    destination = 0;
+    source = src;
+    destination = dest;
     completed = false;
-    notified = false;
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
@@ -91,11 +90,11 @@ void Package::completeRequest(void)
     pthread_mutex_unlock(&packageLock);
 }
 
-void Package::completeRequest(bool lockIgnore)
+void Package::completeRequest(bool canAvoidLock)
 {
-    if(!lockIgnore)pthread_mutex_lock(&packageLock);
+    if(!canAvoidLock)pthread_mutex_lock(&packageLock);
     completed = true;
-    if(!lockIgnore)pthread_mutex_unlock(&packageLock);
+    if(!canAvoidLock)pthread_mutex_unlock(&packageLock);
 }
 
 bool Package::checkRequest(void)
@@ -110,7 +109,6 @@ void Package::generatePackage(int size)
     source = 0;
     destination = 0;
     completed = false;
-    notified = false;
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
@@ -137,18 +135,24 @@ int PackageQueue::queueSize(void)
     return size;
 }
 
-int PackageQueue::queueSize(bool lockIgnore)
+int PackageQueue::queueSize(bool canAvoidLock)
 {
     int size;
-    if(!lockIgnore)pthread_mutex_lock(&queueLock);
+    if(!canAvoidLock)pthread_mutex_lock(&queueLock);
     size = n;
-    if(!lockIgnore)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLock)pthread_mutex_unlock(&queueLock);
     return size;
 }
 
 void PackageQueue::enqueue(Package* package)
 {
     pthread_mutex_lock(&queueLock);
+#ifdef PERILLA_DEBUG
+    if(n==perilla::MSG_QUEUE_DEFAULT_MAXSIZE){
+        printf("Failed to Enqueue: Queue Overflow\n");
+        exit(0);
+    }
+#endif
     buffer[rear] = package;
     prear = rear;    
     rear = (rear+1)%perilla::MSG_QUEUE_DEFAULT_MAXSIZE;
@@ -156,20 +160,32 @@ void PackageQueue::enqueue(Package* package)
     pthread_mutex_unlock(&queueLock);
 }
 
-void PackageQueue::enqueue(Package* package, bool lockIgnore)
+void PackageQueue::enqueue(Package* package, bool canAvoidLock)
 {
-    if(!lockIgnore)pthread_mutex_lock(&queueLock);
+    if(!canAvoidLock)pthread_mutex_lock(&queueLock);
+#ifdef PERILLA_DEBUG
+    if(n==perilla::MSG_QUEUE_DEFAULT_MAXSIZE){
+        printf("Failed to Enqueue: Queue Overflow\n");
+        exit(0);
+    }
+#endif
     buffer[rear] = package;
     prear = rear;
     rear = (rear+1)%perilla::MSG_QUEUE_DEFAULT_MAXSIZE;
     n++;
-    if(!lockIgnore)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLock)pthread_mutex_unlock(&queueLock);
 }
 
 Package* PackageQueue::dequeue(void)
 {
     Package* package = 0;
     pthread_mutex_lock(&queueLock);
+#ifdef PERILLA_DEBUG
+    if(n<0){
+        printf("Failed to Dequeue: Queue Empty\n");
+        exit(0);
+    }
+#endif
     package = buffer[front];
     front = (front+1)%perilla::MSG_QUEUE_DEFAULT_MAXSIZE;
     n--;
@@ -177,17 +193,20 @@ Package* PackageQueue::dequeue(void)
     return package;
 }
 
-Package* PackageQueue::dequeue(bool lockIgnore)
+Package* PackageQueue::dequeue(bool canAvoidLock)
 {
-    lockIgnore = false;
     Package* package = 0;
-    if(!lockIgnore)pthread_mutex_lock(&queueLock);
-    if(n<0)
-	std::cout<< "Q size " << n << " front " << front <<std::endl;
+    if(!canAvoidLock)pthread_mutex_lock(&queueLock);
+#ifdef PERILLA_DEBUG
+    if(n<0){
+        printf("Failed to Dequeue: Queue Empty\n");
+        exit(0);
+    }
+#endif
     package = buffer[front];
     front = (front+1)%perilla::MSG_QUEUE_DEFAULT_MAXSIZE;
     n--;
-    if(!lockIgnore)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLock)pthread_mutex_unlock(&queueLock);
     return package;
 }
 
@@ -195,16 +214,17 @@ Package* PackageQueue::getRear(void)
 {
     Package* package = 0;
     pthread_mutex_lock(&queueLock);
-    package = buffer[prear];
+    if(n) package = buffer[prear];
     pthread_mutex_unlock(&queueLock);
     return package;
 }
-Package* PackageQueue::getRear(bool lockIgnore)
+
+Package* PackageQueue::getRear(bool canAvoidLock)
 {
     Package* package = 0;
-    if(!lockIgnore)pthread_mutex_lock(&queueLock);
-    package = buffer[prear];
-    if(!lockIgnore)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLock)pthread_mutex_lock(&queueLock);
+    if(n) package = buffer[prear];
+    if(!canAvoidLock)pthread_mutex_unlock(&queueLock);
     return package;
 }
 
@@ -212,29 +232,30 @@ Package* PackageQueue::getFront(void)
 {
     Package* package = 0;
     pthread_mutex_lock(&queueLock);
-    package = buffer[front];
+    if(n) package = buffer[front];
     pthread_mutex_unlock(&queueLock);
     return package;
 }
 
-Package* PackageQueue::getFront(bool lockIgnore)
+Package* PackageQueue::getFront(bool canAvoidLock)
 {
     Package* package = 0;
-    if(!lockIgnore) pthread_mutex_lock(&queueLock);
-    package = buffer[front];
-    if(!lockIgnore) pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLock) pthread_mutex_lock(&queueLock);
+    if(n) package = buffer[front];
+    if(!canAvoidLock) pthread_mutex_unlock(&queueLock);
     return package;
 }
 
-void PackageQueue::emptyQueue(){
+void PackageQueue::emptyQueue(bool canAvoidLock){
+    if(!canAvoidLock) pthread_mutex_lock(&queueLock);
     while(n){
-	Package* p= dequeue(false);
+	Package* p= dequeue(true);
 	delete p;
     }
+    if(!canAvoidLock) pthread_mutex_unlock(&queueLock);
 }
 
 PackageQueue::~PackageQueue()
 {
-    emptyQueue();   
+    emptyQueue(true);   
 }
-
