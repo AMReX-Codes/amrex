@@ -245,7 +245,8 @@ public:
                   int              srccomp,
                   int              destcomp,
                   int              numcomp,
-                  Real             mult) noexcept;
+                  Real             mult,
+                  RunOn            gpu_or_cpu) noexcept;
 
     /**
     * \brief Increment flux correction with fine data.
@@ -266,7 +267,8 @@ public:
                   int              srccomp,
                   int              destcomp,
                   int              numcomp,
-                  Real             mult) noexcept;
+                  Real             mult,
+                  RunOn            gpu_or_cpu) noexcept;
 
     /**
     * \brief Set flux correction data for a fine box (given by boxno) to a given value.
@@ -282,7 +284,8 @@ public:
                      int              boxno,
                      int              destcomp,
                      int              numcomp,
-                     Real             val) noexcept;
+                     Real             val,
+                     RunOn            gpu_or_cpu) noexcept;
 
     /**
     * \brief Apply flux correction.  Note that this takes the coarse Geometry.
