@@ -2065,7 +2065,7 @@ Amr::timeStep (int  level,
 	    }
  	    Perilla::updateMetadata_done++;
 	}
-        delete metadataChanged;
+        delete [] metadataChanged;
 #endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
@@ -2383,7 +2383,7 @@ Amr::coarseTimeStep (Real stop_time)
             	    //}
                     flattenedGraphArray.clear();
 	            //perilla::syncWorkers();
-                    //if(perilla::wid()==0) Perilla::syncProcesses();
+                    if(perilla::wid()==0) Perilla::syncProcesses();
                     break;
                 }
 	    }
