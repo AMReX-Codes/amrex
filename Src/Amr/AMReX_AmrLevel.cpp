@@ -3046,7 +3046,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                              }
                           }
 			  Box c_dom= amrex::coarsen(geom_fine->Domain(), m_amrlevel.crse_ratio);
-                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom);
+                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom, NULL);
                       }
 #ifdef USE_PERILLA_PTHREADS
 //                    perilla::syncAllThreads();

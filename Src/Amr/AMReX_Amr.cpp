@@ -52,7 +52,9 @@
 #include <WorkerThread.H>
 #include <Perilla.H>
 #ifdef USE_PERILLA
+//#ifndef USE_PERILLA_ON_DEMAND
     pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
+//#endif
 #ifdef PERILLA_USE_UPCXX
 extern struct rMsgMap_t{
     std::map< int, std::map< int,  std::list< Package* > > > map;
@@ -2063,7 +2065,7 @@ Amr::timeStep (int  level,
 	    }
  	    Perilla::updateMetadata_done++;
 	}
-        delete[] metadataChanged;
+        delete metadataChanged;
 #endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
@@ -2102,7 +2104,7 @@ Amr::timeStep (int  level,
     BL_PROFILE_REGION_STOP("amr_level.advance");
 
 #if defined(USE_PERILLA_PTHREADS) || defined(USE_PERILLA_OMP)
-    perilla::syncWorkerThreads();
+    perilla::syncAllWorkerThreads();
     if(perilla::isMasterThread())
     {
 #endif
@@ -2242,7 +2244,6 @@ Amr::coarseTimeStep (Real stop_time)
     BL_PROFILE_REGION_START(stepName.str());
 
 #ifdef USE_PERILLA
-    std::vector<RegionGraph*> flattenedGraphArray;
 #ifdef USE_PERILLA_PTHREADS
     //mpi+pthreads (default) or upcxx+pthreads
     }
@@ -2356,21 +2357,36 @@ Amr::coarseTimeStep (Real stop_time)
             Perilla::communicateTags();
         }
     }
+    Perilla::syncProcesses();
 
 #ifdef USE_PERILLA_OMP
-#pragma omp parallel
+//    int nThreads= perilla::NUM_THREAD_TEAMS * perilla::NUM_THREADS_PER_TEAM; 
+// num_threads(nThreads)
+#pragma omp parallel default(shared)
     {
         if(perilla::isCommunicationThread())
         {
+   	    std::vector<RegionGraph*> flattenedGraphArray;
             while(true){
                 Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
                 Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
+	            //perilla::syncWorkers();
+	            //if(perilla::wid()==0){
+                        //Perilla::syncProcesses();
+                        /*for(int g=0; g<flattenedGraphArray.size(); g++)
+                        {
+                            //cancel messages preposted previously
+                            flattenedGraphArray[g]->graphTeardown();
+                        }*/
+            	    //}
                     flattenedGraphArray.clear();
+	            //perilla::syncWorkers();
+                    //if(perilla::wid()==0) Perilla::syncProcesses();
                     break;
                 }
-            }
+	    }
         }
         else{
             timeStep(0,cumtime,1,1,stop_time);

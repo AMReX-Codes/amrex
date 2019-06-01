@@ -39,13 +39,13 @@ void RegionQueue::addRegion(int r)
     pthread_mutex_unlock(&queueLock);
 }
 
-void RegionQueue::addRegion(int r, bool lockIgnored)
+void RegionQueue::addRegion(int r, bool canAvoidLockd)
 {
-    if(!lockIgnored)pthread_mutex_lock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_lock(&queueLock);
     buffer[rear] = r;
     rear = (rear+1)%max_size;
     n++;
-    if(!lockIgnored)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_unlock(&queueLock);
 }
 
 int RegionQueue::removeRegion()
@@ -59,14 +59,14 @@ int RegionQueue::removeRegion()
     return r;
 }
 
-int RegionQueue::removeRegion(bool lockIgnored)
+int RegionQueue::removeRegion(bool canAvoidLockd)
 {
     int r;
-    if(!lockIgnored)pthread_mutex_lock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_lock(&queueLock);
     r = buffer[front];
     front = (front+1)%max_size;
     n--;
-    if(!lockIgnored)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_unlock(&queueLock);
     return r;
 }
 
@@ -75,11 +75,11 @@ int RegionQueue::getFrontRegion()
     return buffer[front];
 }
 
-int RegionQueue::getFrontRegion(bool lockIgnored)
+int RegionQueue::getFrontRegion(bool canAvoidLockd)
 {
-    if(!lockIgnored)pthread_mutex_lock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_lock(&queueLock);
     return buffer[front];
-    if(!lockIgnored)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_unlock(&queueLock);
 }
 
 int RegionQueue::queueSize()
@@ -91,12 +91,12 @@ int RegionQueue::queueSize()
     return size;
 }
 
-int RegionQueue::queueSize(bool lockIgnored)
+int RegionQueue::queueSize(bool canAvoidLockd)
 {
     int size;
-    if(!lockIgnored)pthread_mutex_lock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_lock(&queueLock);
     size = n;
-    if(!lockIgnored)pthread_mutex_unlock(&queueLock);
+    if(!canAvoidLockd)pthread_mutex_unlock(&queueLock);
     return size;
 }
 //////////////////////// class RegionQueue Definition End /////////////////////////////////////  
