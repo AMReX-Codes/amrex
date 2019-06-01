@@ -677,7 +677,7 @@ getInterpolatedScalar(
             if ( F_fp.is_nodal() ){
                 IntVect refinement_vector{AMREX_D_DECL(r_ratio, r_ratio, r_ratio)};
                 node_bilinear_interp.interp(cfab, 0, ffab, 0, 1,
-                        finebx, refinement_vector, {}, {}, {}, 0, 0);
+                        finebx, refinement_vector, {}, {}, {}, 0, 0, RunOn::Cpu);
             } else {
                 amrex::Abort("Unknown field staggering.");
             }
