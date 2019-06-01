@@ -6,7 +6,7 @@
 #endif
 
 namespace amrex {
-    enum struct RunOn { Gpu, Cpu };
+    enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
 }
 
 namespace amrex {
