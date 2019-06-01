@@ -1385,7 +1385,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           fineAmrLevel.geom,
                           bcr,
                           m_scomp,
-                          m_index);
+                          m_index,
+                          RunOn::Cpu);
             //
             // Copy intersect finefab into next level m_cboxes.
             //
@@ -1583,7 +1584,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 			   geom,
 			   bcr,
 			   SComp,
-			   idx);
+			   idx, RunOn::Gpu);
 	}
 
 	StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
@@ -2505,7 +2506,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                                            cgeom,
                                            fgeom,
                                            bcr,
-                                           idummy1, idummy2);
+                                           idummy1, idummy2, RunOn::Cpu);
                           }
                         else
                           {
@@ -2529,7 +2530,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                                                cgeom,
                                                fgeom,
                                                bcr,
-                                               idummy1, idummy2);
+                                               idummy1, idummy2, RunOn::Cpu);
 
                                 }
                             }
@@ -2553,7 +2554,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                                                  cgeom,
                                                  fgeom,
                                                  bcr,
-                                                 idummy1, idummy2);
+                                                 idummy1, idummy2, RunOn::Cpu);
 
                                 }
                             }

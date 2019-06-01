@@ -282,7 +282,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     FArrayBox const* crsep = &crse;
     FArrayBox* finep = &fine;
 
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep),
+    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
                             && runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
     const Box& crse_region = CoarseBox(fine_region,ratio);
@@ -511,7 +511,7 @@ PCInterp::interp (const FArrayBox& crse,
     FArrayBox const* crsep = &crse;
     FArrayBox* finep = &fine;
 
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep),
+    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
                             && runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
@@ -565,7 +565,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     FArrayBox const* crsep = &crse;
     FArrayBox* finep = &fine;
 
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep),
+    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
                             && runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
     const Box& crse_region = CoarseBox(fine_region,ratio);
@@ -615,7 +615,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                                     const IntVect&   ratio,
                                     const Geometry&  crse_geom,
                                     const Geometry&  fine_geom,
-                                    Vector<BCRec>& bcr)
+                                    Vector<BCRec>&   bcr,
+                                    RunOn            runon)
 {
     BL_PROFILE("CellConservativeProtected::protect()");
     BL_ASSERT(bcr.size() >= ncomp);

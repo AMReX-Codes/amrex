@@ -1079,7 +1079,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 					cgeom,
 					fgeom,
 					bcr,
-					idummy1, idummy2);
+					idummy1, idummy2, RunOn::Cpu);
 			    }
 			    else
 			    {
@@ -1103,7 +1103,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 						cgeom,
 						fgeom,
 						bcr,
-						idummy1, idummy2);
+						idummy1, idummy2, RunOn::Cpu);
 
 				    }
 				}
@@ -1128,7 +1128,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 							cgeom,
 							fgeom,
 							bcr,
-							idummy1, idummy2);
+							idummy1, idummy2, RunOn::Cpu);
 					    }
 					}
 
@@ -1260,7 +1260,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 					cgeom,
 					fgeom,
 					bcr,
-					idummy1, idummy2);
+					idummy1, idummy2, RunOn::Cpu);
 			    }
 			    else
 			    {
@@ -1284,7 +1284,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 						cgeom,
 						fgeom,
 						bcr,
-						idummy1, idummy2);
+						idummy1, idummy2, RunOn::Cpu);
 
 				    }
 				}
@@ -1323,7 +1323,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 							cgeom,
 							fgeom,
 							bcr,
-							idummy1, idummy2);
+							idummy1, idummy2, RunOn::Cpu);
 					    }
 					}
 				}

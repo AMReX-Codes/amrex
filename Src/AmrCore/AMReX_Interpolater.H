@@ -109,7 +109,8 @@ public:
                           const IntVect&   ratio,
                           const Geometry&  crse_geom,
                           const Geometry&  fine_geom,
-                          Vector<BCRec>&    bcr) {};
+                          Vector<BCRec>&   bcr,
+                          RunOn            gpu_or_cpu) {};
 
     virtual InterpolaterBoxCoarsener BoxCoarsener (const IntVect& ratio);
 
