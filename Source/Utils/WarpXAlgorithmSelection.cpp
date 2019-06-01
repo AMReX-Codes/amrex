@@ -68,6 +68,8 @@ GetAlgorithmInteger( amrex::ParmParse& pp, const char* pp_search_key ){
         algo_to_int = current_deposition_algo_to_int;
     } else if (pp_search_key == "charge_deposition") {
         algo_to_int = charge_deposition_algo_to_int;
+    } else if (pp_search_key == "field_gathering") {
+        algo_to_int = gathering_algo_to_int;
     } else {
         std::string pp_search_string = pp_search_key;
         amrex::Abort("Unknown algorithm type: " + pp_search_string);
