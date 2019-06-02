@@ -112,11 +112,7 @@ AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineareaadd (Box const& bx, Array4<Real> const& reg, const int rcomp,
                      Array4<Real const> const& area,
                      Array4<Real const> const& flx, const int fcomp, const int ncomp,
-<<<<<<< HEAD
-                     const int dir, IntVect const& ratio, const Real mult) noexcept
-=======
                      const int dir, Dim3 const& ratio, const Real mult) noexcept
->>>>>>> weiqun/dev
 {
     const auto lo  = amrex::lbound(bx);
     const auto hi  = amrex::ubound(bx);
