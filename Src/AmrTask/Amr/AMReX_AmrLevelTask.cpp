@@ -1299,7 +1299,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           fineAmrLevel.geom,
                           bcr,
                           m_scomp,
-                          m_index);
+                          m_index, RunOn::Cpu);
             //
             // Copy intersect finefab into next level m_cboxes.
             //
@@ -1474,7 +1474,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 			   geom,
 			   bcr,
 			   SComp,
-			   idx);
+			   idx, RunOn::Cpu);
 	}
 
 	StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
