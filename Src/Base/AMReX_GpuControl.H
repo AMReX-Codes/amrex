@@ -38,7 +38,7 @@ namespace Cuda {
     struct LaunchSafeGuard
     {
         explicit LaunchSafeGuard (bool flag) noexcept
-            : m_old(setLaunchRegion(in_launch_region && flag)) {}
+            : m_old(setLaunchRegion(flag)) {}
         ~LaunchSafeGuard () { setLaunchRegion(m_old); }
     private:
         bool m_old;
@@ -47,7 +47,7 @@ namespace Cuda {
     struct GraphSafeGuard
     {
         explicit GraphSafeGuard (bool flag) noexcept
-            : m_old(setGraphRegion(in_graph_region && flag)) {}
+            : m_old(setGraphRegion(flag)) {}
         ~GraphSafeGuard () { setGraphRegion(m_old); }
     private:
         bool m_old;
