@@ -821,15 +821,15 @@ WarpX::WriteSlicePlotFile () const
         amrex::Print() << " raw spltname " << raw_spltname << "\n";
         const DistributionMapping &dm = Efield_slice[lev][0]->DistributionMap();
  
-        WriteRawField( *Efield_slice[lev][0], dm, raw_spltname, level_prefix, "Ex_slice", lev, 1);
-        WriteRawField( *Efield_slice[lev][1], dm, raw_spltname, level_prefix, "Ey_slice", lev, 1);
-        WriteRawField( *Efield_slice[lev][2], dm, raw_spltname, level_prefix, "Ez_slice", lev, 1);
-        WriteRawField( *Bfield_slice[lev][0], dm, raw_spltname, level_prefix, "Bx_slice", lev, 1);
-        WriteRawField( *Bfield_slice[lev][1], dm, raw_spltname, level_prefix, "By_slice", lev, 1);
-        WriteRawField( *Bfield_slice[lev][2], dm, raw_spltname, level_prefix, "Bz_slice", lev, 1);
-        WriteRawField( *current_slice[lev][0], dm, raw_spltname, level_prefix, "jx_slice", lev,1);
-        WriteRawField( *current_slice[lev][1], dm, raw_spltname, level_prefix, "jy_slice", lev,1);
-        WriteRawField( *current_slice[lev][2], dm, raw_spltname, level_prefix, "jz_slice", lev,1);
+        WriteRawField( *Efield_slice[lev][0], dm, raw_spltname, level_prefix, "Ex_slice", lev, 0);
+        WriteRawField( *Efield_slice[lev][1], dm, raw_spltname, level_prefix, "Ey_slice", lev, 0);
+        WriteRawField( *Efield_slice[lev][2], dm, raw_spltname, level_prefix, "Ez_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][0], dm, raw_spltname, level_prefix, "Bx_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][1], dm, raw_spltname, level_prefix, "By_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][2], dm, raw_spltname, level_prefix, "Bz_slice", lev, 0);
+        WriteRawField( *current_slice[lev][0], dm, raw_spltname, level_prefix, "jx_slice", lev,0);
+        WriteRawField( *current_slice[lev][1], dm, raw_spltname, level_prefix, "jy_slice", lev,0);
+        WriteRawField( *current_slice[lev][2], dm, raw_spltname, level_prefix, "jz_slice", lev,0);
         if ( F_fp[lev] ) WriteRawField( *F_slice[lev], dm, raw_spltname, level_prefix, "F_slice", lev, 0);
         if (plot_rho) {
             MultiFab rho_new(*rho_slice[lev], amrex::make_alias, 1, 1);
