@@ -1,8 +1,8 @@
 
 #include <AMReX.H>
-#include <AMReX_CudaAsyncFab.H>
-#include <AMReX_CudaAsyncFabImpl.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuAsyncFab.H>
+#include <AMReX_GpuAsyncFabImpl.H>
+#include <AMReX_GpuDevice.H>
 
 #ifdef AMREX_USE_GPU
 
@@ -17,7 +17,7 @@ AMREX_HIP_OR_CUDA(
     }
 #else
     void CUDART_CB amrex_devicefab_delete (void* p) {
-        delete (amrex::Cuda::AsyncFabImpl*)p;
+        delete (amrex::Gpu::AsyncFabImpl*)p;
     }
 #endif
 

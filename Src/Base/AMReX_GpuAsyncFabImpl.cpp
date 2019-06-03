@@ -1,8 +1,8 @@
-#include <AMReX_CudaAsyncFabImpl.H>
+#include <AMReX_GpuAsyncFabImpl.H>
 
 #ifdef AMREX_USE_GPU
 
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 #include <AMReX_Vector.H>
 #include <cstring>
 #include <mutex>

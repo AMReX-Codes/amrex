@@ -5,7 +5,7 @@
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuError.H>
 #include <AMReX_CudaRange.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 #include <AMReX_Box.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
