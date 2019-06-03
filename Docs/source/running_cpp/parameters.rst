@@ -187,6 +187,15 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+    * ``gaussian_beam``: Inject particle beam with gaussian distribution in 
+      space in all directions. This requires additional parameters: 
+      ``<species_name>.q_tot`` (beam charge), 
+      ``<species_name>.npart`` (number of particles in the beam), 
+      ``<species_name>.x/y/z_m`` (average position in `x/y/z`), 
+      ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`), 
+      and optional argument ``<species_name>.do_symmetrize`` (whether to 
+      symmetrize the beam in the x and y directions).
+
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at
     initialization. This can be required whith a moving window and/or when
@@ -466,14 +475,14 @@ Laser initialization
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``<laser_name>.do_continuous_injection`` (`0` or `1`) optional (default `0`).
-    Whether or not to use continuous injection (`0` or not `0`).
-    If the antenna starts outside of the simulation domain but enters it
-    at some point (due to moving window or moving antenna in the boosted
-    frame), use this so that the laser antenna is injected when it reaches
-    the box boundary. If running in a boosted frame, this requires the
-    boost direction, moving window direction and laser propagation direction
-    to be along `z`. If not running in a boosted frame, this requires the
-    moving window and laser propagation directions to be the same (`x`, `y`
+    Whether or not to use continuous injection.
+    If the antenna starts outside of the simulation domain but enters it 
+    at some point (due to moving window or moving antenna in the boosted 
+    frame), use this so that the laser antenna is injected when it reaches 
+    the box boundary. If running in a boosted frame, this requires the 
+    boost direction, moving window direction and laser propagation direction 
+    to be along `z`. If not running in a boosted frame, this requires the 
+    moving window and laser propagation directions to be the same (`x`, `y` 
     or `z`)
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
