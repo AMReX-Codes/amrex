@@ -26,6 +26,11 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // store it into member data.
     pp.query("size_in_inches", size_in_inches);
 
+#define WARPX_QED
+#ifdef WARPX_QED
+    plot_flags.resize(PIdx::nattribs + 6, 1);
+#endif
+
 }
 
 void PhotonParticleContainer::InitData()
@@ -57,7 +62,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
 
-    // Using new pusher for positions    
+    // Using new pusher for positions
     const amrex_real zero_mass = 0.0;
     const amrex_real zero_charge = 0.0;
     warpx_particle_pusher_positions(&np,

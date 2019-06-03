@@ -45,6 +45,13 @@ endif
   DEFINES += -DWARPX_USE_PY
 endif
 
+ifeq ($(QED),TRUE)
+  CXXFLAGS += -DWARPX_QED
+  CFLAGS   += -DWARPX_QED
+  FFLAGS   += -DWARPX_QED
+  F90FLAGS += -DWARPX_QED
+endif
+
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
@@ -98,7 +105,7 @@ ifeq ($(USE_OPENPMD), TRUE)
    DEFINES += -DWARPX_USE_OPENPMD -DopenPMD_HAVE_MPI=1
    LIBRARIES += -lopenPMD -lhdf5
 endif
-   
+
 
 ifeq ($(USE_PSATD),TRUE)
   FFTW_HOME ?= NOT_SET
@@ -139,7 +146,7 @@ ifeq ($(USE_HDF5),TRUE)
     endif
     DEFINES += -DWARPX_USE_HDF5
     LIBRARIES += -lhdf5 -lz
-endif     
+endif
 
 # job_info support
 CEXE_sources += AMReX_buildInfo.cpp
@@ -186,7 +193,7 @@ else
 
 ifdef WarpxBinDir
 
-all: $(executable) 
+all: $(executable)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@if [ ! -d $(WarpxBinDir) ]; then mkdir -p $(WarpxBinDir); fi
 	$(SILENT) mv -f $(executable) $(WarpxBinDir)/
@@ -195,7 +202,7 @@ all: $(executable)
 
 else
 
-all: $(executable) 
+all: $(executable)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
@@ -203,7 +210,7 @@ endif
 
 endif
 
-AMReX_buildInfo.cpp: 
+AMReX_buildInfo.cpp:
 	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
           --amrex_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \

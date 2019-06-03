@@ -22,8 +22,6 @@
 // concrete class dervied from WarpXParticlContainer.
 //
 
-//Enable QED effects
-#define WARPX_QED
 
 #ifdef WARPX_QED
 //BW ENGINE
