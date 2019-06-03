@@ -369,7 +369,7 @@ def convert_headers(inputs):
     hout.write("\n")
     hout.write("#include <AMReX_ArrayLim.H>\n")
     hout.write("#include <AMReX_BLFort.H>\n")
-    hout.write("#include <AMReX_CudaDevice.H>\n")
+    hout.write("#include <AMReX_GpuDevice.H>\n")
     hout.write("\n")
 
     hdrmh = os.path.basename(hf.name).strip(".H")

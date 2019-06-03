@@ -7,7 +7,7 @@
 #include <memory>
 #include <AMReX_Arena.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 
 #ifdef AMREX_USE_GPU
 extern "C" {

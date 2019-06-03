@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <memory>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 
 namespace amrex {
 namespace Cuda {

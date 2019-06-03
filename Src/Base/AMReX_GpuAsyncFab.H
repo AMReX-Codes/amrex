@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_ASYNC_FAB_H_
-#define AMREX_CUDA_ASYNC_FAB_H_
+#ifndef AMREX_GPU_ASYNC_FAB_H_
+#define AMREX_GPU_ASYNC_FAB_H_
 
 #include <memory>
 #include <AMReX_Box.H>

@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_DEVICE_H_
-#define AMREX_CUDA_DEVICE_H_
+#ifndef AMREX_GPU_DEVICE_H_
+#define AMREX_GPU_DEVICE_H_
 
 #include <cstdlib>
 #include <memory>

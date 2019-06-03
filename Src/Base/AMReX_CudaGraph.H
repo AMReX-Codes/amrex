@@ -5,7 +5,7 @@
 
 #include <AMReX.H>
 #include <AMReX_Array.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 
 namespace amrex {
 
