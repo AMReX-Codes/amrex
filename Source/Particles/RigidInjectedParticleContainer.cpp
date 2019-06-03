@@ -77,7 +77,6 @@ RigidInjectedParticleContainer::RemapParticles()
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
-
                     auto& attribs = pti.GetAttribs();
                     auto& uxp = attribs[PIdx::ux];
                     auto& uyp = attribs[PIdx::uy];

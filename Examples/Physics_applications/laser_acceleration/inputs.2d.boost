@@ -1,8 +1,8 @@
 #################################
 ######### BOX PARAMETERS ########
 #################################
-# max_step = 2700
-stop_time = 1.9e-12
+max_step = 1000
+# stop_time = 1.9e-12
 amr.n_cell =  128 1024
 amr.max_grid_size = 64
 amr.blocking_factor = 32
@@ -19,10 +19,8 @@ geometry.prob_hi     =  128.e-6     0.96e-6
 #################################
 warpx.verbose = 1
 amrex.v = 1
-algo.current_deposition = 2
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 1
+algo.current_deposition = direct-vectorized
+algo.particle_pusher = vay
 algo.maxwell_fdtd_solver = ckc
 interpolation.nox = 3
 interpolation.noy = 3
@@ -39,7 +37,7 @@ warpx.serialize_ics = 1
 #################################
 ####### BOOST PARAMETERS ########
 #################################
-warpx.gamma_boost = 10.
+warpx.gamma_boost = 30.
 warpx.boost_direction = z
 warpx.do_boosted_frame_diagnostic = 1
 warpx.num_snapshots_lab = 7
@@ -62,11 +60,11 @@ electrons.momentum_distribution_type = "gaussian"
 electrons.xmin = -120.e-6
 electrons.xmax =  120.e-6
 electrons.zmin = 0.5e-3
-electrons.zmax = .0035
+electrons.zmax = 1.
 electrons.profile                 = "predefined"
 electrons.predefined_profile_name = "parabolic_channel"
 #         predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
-electrons.predefined_profile_params = .5e-3     .5e-3     2.e-3     .5e-3       50.e-6   3.5e24
+electrons.predefined_profile_params = .5e-3     .5e-3     2.e-3     .5e-3       50.e-6   3.5e25
 electrons.do_continuous_injection = 1
 
 ions.charge = q_e
@@ -77,11 +75,11 @@ ions.momentum_distribution_type = "gaussian"
 ions.xmin = -120.e-6
 ions.xmax =  120.e-6
 ions.zmin = 0.5e-3
-ions.zmax = .0035
+ions.zmax = 1.
 ions.profile                 = "predefined"
 ions.predefined_profile_name = "parabolic_channel"
 #    predefined_profile_params = z_start   ramp_up   plateau   ramp_down   rc       n0
-ions.predefined_profile_params = .5e-3     .5e-3     2.e-3     .5e-3       50.e-6   3.5e24
+ions.predefined_profile_params = .5e-3     .5e-3     2.e-3     .5e-3       50.e-6   3.5e25
 ions.do_continuous_injection = 1
 
 beam.charge = -q_e
