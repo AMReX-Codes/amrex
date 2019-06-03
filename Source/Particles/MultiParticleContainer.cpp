@@ -161,6 +161,11 @@ MultiParticleContainer::InitData ()
     pc_tmp->InitData();
 
 #ifdef WARPX_QED
+
+    //Helper function
+    auto does_file_exist = [](const char *fileName)
+    {return (std::ifstream{fileName}).good(); };
+
     //Initialize the lookup tables
     //Generates tables if they do not exist
     if(!does_file_exist("bw_engine_dndt.bin")){
