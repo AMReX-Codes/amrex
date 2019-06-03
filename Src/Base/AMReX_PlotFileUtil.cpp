@@ -102,11 +102,11 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
         HeaderFile << time << '\n';
         HeaderFile << finest_level << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            HeaderFile << Geometry::ProbLo(i) << ' ';
+            HeaderFile << geom[0].ProbLo(i) << ' ';
 	}
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-            HeaderFile << Geometry::ProbHi(i) << ' ';
+            HeaderFile << geom[0].ProbHi(i) << ' ';
 	}
         HeaderFile << '\n';
         for (int i = 0; i < finest_level; ++i) {
@@ -127,7 +127,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 	    }
             HeaderFile << '\n';
         }
-        HeaderFile << (int) Geometry::Coord() << '\n';
+        HeaderFile << (int) geom[0].Coord() << '\n';
         HeaderFile << "0\n";
 
 	for (int level = 0; level <= finest_level; ++level) {

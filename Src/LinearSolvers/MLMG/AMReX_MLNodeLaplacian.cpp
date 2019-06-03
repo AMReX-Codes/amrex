@@ -92,7 +92,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-    m_is_rz = Geometry::IsRZ();
+    m_is_rz = m_geom[0][0].IsRZ();
 #endif
 }
 
@@ -921,7 +921,7 @@ MLNodeLaplacian::buildMasks ()
 
                 Box ccdomain_p = ccdomain;
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    if (Geometry::isPeriodic(idim)) {
+                    if (geom.isPeriodic(idim)) {
                         ccdomain_p.grow(idim, 1);
                     }
                 }
@@ -1101,7 +1101,7 @@ MLNodeLaplacian::buildStencil ()
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Geometry::IsRZ(),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_geom[0][0].IsRZ(),
                                      "MLNodeLaplacian::buildStencil: cylindrical not supported for RAP");
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -1264,7 +1264,7 @@ MLNodeLaplacian::buildStencil ()
 
 
     // This is only needed at the bottom.
-    m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0);
+    m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0) * m_normalization_threshold;
 }
 
 void

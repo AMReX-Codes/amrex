@@ -51,6 +51,16 @@ void Perilla::clearMyTagMap(){
     Perilla::myTagMap.clear();
 }
 
+
+void Perilla::flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, std::vector<RegionGraph*> &graphArray){
+    graphArray.clear();
+    int gCnt=0;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
+    for(int l=0; l<graphArrayHierarchy.size(); l++)
+        for(int g=0; g<graphArrayHierarchy[l].size(); g++)
+            graphArray.push_back(graphArrayHierarchy[l][g]);
+}
+
 void Perilla::communicateTags()
 {
     int myProc = ParallelDescriptor::MyProc();
@@ -264,12 +274,12 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
         }
     }
 
-#pragma omp parallel shared(rg, mf, numfabs, np, TheFB, recv_cctc, send_cctc)
+//#pragma omp parallel shared(rg, mf, numfabs, np, TheFB, recv_cctc, send_cctc)
     {
         //int tg = omp_get_thread_num();
         int fg;
 //        if(WorkerThread::perilla_isCommunicationThread())
-#pragma omp single
+//#pragma omp single
         {
             //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
             //mf->sMap.reserve(numfabs);
@@ -279,13 +289,13 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
             rg->alloc_sMap(mf);
             rg->alloc_rMap(mf);
         }
-#pragma omp barrier      
+//#pragma omp barrier      
         //if(tid==0)                              
         {
             //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
             //mf->sMap.reserve(numfabs);
             //mf->rMap.reserve(numfabs);
-#pragma omp for
+//#pragma omp for
             for(int f=0; f<numfabs; f++) //        !create local communication metadata for each fab
             {
 //                if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
@@ -317,9 +327,9 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                 }
             }
         }
-#pragma omp barrier
+//#pragma omp barrier
         //now we know how many copying segments each fab owns as source and destination allocate memory for metadata   
-#pragma omp for
+//#pragma omp for
         for(int f=0; f<numfabs; f++)
         {
             //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);   /// need to check if computing correct ???????
@@ -338,10 +348,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                 rg->lMap[f]->l_con.dcpyCnt = 0;
             }
         }
-#pragma omp barrier
+//#pragma omp barrier
         if(np > 1)
         {
-#pragma omp for
+//#pragma omp for
             for(int f=0; f<numfabs; f++)
             {
 //                if(WorkerThread::perilla_isMasterWorkerThread() && WorkerThread::isMyRegion(tg,f))
@@ -388,7 +398,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
             }
  //           if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
             {
-#pragma omp for
+//#pragma omp for
                 for(int f=0; f<numfabs; f++)
                 {
                     rg->rMap[f]->r_con.nrcv = 0;
@@ -434,7 +444,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
     } // omp parallel
     //std::cout<< "counting done " <<std::endl;
     //    !!touch data to bind pages to the NUMA node
-#pragma omp parallel shared(mf, numfabs, TheFB, recv_cctc, send_cctc)
+//#pragma omp parallel shared(mf, numfabs, TheFB, recv_cctc, send_cctc)
     {
 //        int tg = WorkerThread::perilla_wid();
 
@@ -443,7 +453,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
         //      std::cout<< "Barr 5" <<std::endl;
         int fg, scnt, dcnt;
 
-#pragma omp for
+//#pragma omp for
         for(int f=0; f<numfabs; f++)
         {
             //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
@@ -494,7 +504,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                                 ((double*)local_ptr)[j]= 0;
 #else
                             for(int j=0; j<psize; j++)
-                                tmpPkg->databuf[j] = 0;
+                                ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                             rg->lMap[f]->l_con.scpy[scnt].pQueue.enqueue(tmpPkg);
                         }
@@ -530,7 +540,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                                 ((double*)local_ptr)[j]= 0;
 #else
                             for(int j=0; j<psize; j++)
-                                tmpPkg->databuf[j] = 0;
+                                ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                             rg->lMap[f]->l_con.dcpy[dcnt].pQueue.enqueue(tmpPkg);
                         }
@@ -542,10 +552,10 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
             }
         }// for(f<numfabs)
 
-#pragma omp barrier       
+//#pragma omp barrier       
 
  //       if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-#pragma omp for
+//#pragma omp for
             for(int f=0; f<numfabs; f++)
             {
                 for(int i=0; i<rg->lMap[f]->l_con.nscpy; i++)
@@ -625,7 +635,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                                 ((double*)local_ptr)[j]= 0;
 #else
                                 for(int j=0; j<psize; j++)
-                                    tmpPkg->databuf[j] = 0;
+                                    ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                 rg->lMap[f]->r_con.rcv[nrcv].pQueue.enqueue(tmpPkg);
                             }
@@ -679,7 +689,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                                 ((double*)local_ptr)[j]= 0;
 #else
                                 for(int j=0; j<psize; j++)
-                                    tmpPkg->databuf[j] = 0;
+                                    ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                 rg->lMap[f]->r_con.snd[nsnd].pQueue.enqueue(tmpPkg);
                             }
@@ -727,7 +737,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                                 ((double*)local_ptr)[j]= 0;
 #else
                         for(int j=0; j<rg->lMap[f]->r_con.snd[i].sz; j++)
-                            tmpPkg->databuf[j] = 0;
+                            ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                         rg->sMap[f]->r_con.snd[i].pQueue.enqueue(tmpPkg);
                     }
@@ -789,7 +799,7 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
                                 ((double*)local_ptr)[j]= 0;
 #else
                         for(int j=0; j<rg->lMap[f]->r_con.rcv[i].sz; j++)
-                            tmpPkg->databuf[j] = 0;
+                            ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                         rg->rMap[f]->r_con.rcv[i].pQueue.enqueue(tmpPkg);
                     }
@@ -1016,7 +1026,6 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			frontPackage->completed = false;
 			frontPackage->served = false;
 			frontPackage->request = MPI_REQUEST_NULL;
-			frontPackage->notified = false;
 			rg->sMap[f]->r_con.snd[i].recycleQueue.enqueue(frontPackage,true);
 			pthread_mutex_unlock(&(rg->sMap[f]->r_con.sndLock));
 			pthread_mutex_lock(&(rg->lMap[f]->r_con.sndLock));
@@ -1117,7 +1126,6 @@ exit(0);
 
 	    Package *sndPackage = graph->lMap[f]->r_con.snd[i].recycleQueue.dequeue(true);	  
 	    mf->m_fabs_v[f]->copyToMem(graph->lMap[f]->r_con.snd[i].sbx,0,nComp,sndPackage->databuf);
-	    sndPackage->notified = false;
 	    graph->lMap[f]->r_con.snd[i].pQueue.enqueue( sndPackage,true );
 	    //!the local message handler will detect the change and notify the remote message handler =>read access
 	    //!the remote message handler first modifies the front item of this queue, then it push this item back to the message pool
@@ -1220,7 +1228,6 @@ exit(0);
 	    Package *rcvPackage = graph->lMap[f]->r_con.rcv[i].pQueue.dequeue(true);
 	    mf->m_fabs_v[f]->copyFromMem(graph->lMap[f]->r_con.rcv[i].dbx,0,nComp,rcvPackage->databuf);
 	    rcvPackage->completed = false;
-	    rcvPackage->notified = false;
 	    graph->lMap[f]->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);
 	}
     if(!singleT)
@@ -1422,7 +1429,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                 ((double*)local_ptr)[j]= 0;
 #else
                                     for(int j=0; j<psize; j++)
-                                        tmpPkg->databuf[j] = 0;
+                                        ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                     cpSrc->l_con.scpy[scnt].pQueue.enqueue(tmpPkg);
                                 }
@@ -1478,7 +1485,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                 ((double*)local_ptr)[j]= 0;
 #else
                                             for(int j=0; j<psize; j++)
-                                                tmpPkg->databuf[j] = 0;
+                                                ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                             cpSrc->r_con.snd[scnt].pQueue.enqueue(tmpPkg);
                                         }
@@ -1633,7 +1640,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 #else
 
                                         for(int j=0; j<psize; j++)
-                                            tmpPkg->databuf[j] = 0;
+                                            ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                         cpDst->l_con.dcpy[dcnt].pQueue.enqueue(tmpPkg);
                                     }
@@ -1663,7 +1670,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                 ((double*)local_ptr)[j]= 0;
 #else
                                     for(int j=0; j<psize; j++)
-                                        tmpPkg->databuf[j] = 0;
+                                        ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                     cpdDst->l_con.dcpy[i].pQueue.enqueue(tmpPkg);
                                 }
@@ -1718,7 +1725,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                 ((double*)local_ptr)[j]= 0;
 #else
                                                 for(int j=0; j<psize; j++)
-                                                    tmpPkg->databuf[j] = 0;
+                                                    ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                                 cpDst->r_con.rcv[dcnt].pQueue.enqueue(tmpPkg);
                                             }
@@ -1748,7 +1755,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                 ((double*)local_ptr)[j]= 0;
 #else
                                         for(int j=0; j<psize; j++)
-                                            tmpPkg->databuf[j] = 0;
+                                            ((double*)tmpPkg->databuf)[j] = 0;
 #endif
                                         cpdDst->r_con.rcv[i].pQueue.enqueue(tmpPkg);
                                     }
@@ -1989,7 +1996,6 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
                 ///*
                 Package* rcvPackage = cpDst->r_con.rcv[i].pQueue.dequeue(true);                               // corrected from recycleQ to pQ
                 mfDst->m_fabs_v[f]->copyFromMem(cpDst->r_con.rcv[i].dbx,dstcomp,nc,rcvPackage->databuf); 
-                rcvPackage->notified = false;
                 rcvPackage->completed = false;
                 rcvPackage->served = false;
                 rcvPackage->request = MPI_REQUEST_NULL;
@@ -2033,7 +2039,6 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
 
                     Package* rcvPackage = cpDst->r_con.rcv[i].pQueue.dequeue(true);                               // corrected from recycleQ to pQ
                     mfDst->m_fabs_v[f]->copyFromMem(cpDst->r_con.rcv[i].dbx,dstcomp,nc,rcvPackage->databuf);
-                    rcvPackage->notified = false;
                     rcvPackage->completed = false;
                     rcvPackage->served = false;
                     rcvPackage->request = MPI_REQUEST_NULL;
@@ -2862,8 +2867,6 @@ exit(0);
 
 		Package* sndPackage = cpSrc->r_con.snd[i].recycleQueue.dequeue(true);
 		mfSrc->m_fabs_v[f]->copyToMem(cpSrc->r_con.snd[i].sbx,srccomp,nc,sndPackage->databuf);
-		sndPackage->notified = false;
-		sndPackage->notified = false;
 		cpSrc->r_con.snd[i].pQueue.enqueue(sndPackage,true);
 	    }
 
@@ -2891,8 +2894,6 @@ exit(0);
 
 		    Package* sndPackage = cpSrc->r_con.snd[i].recycleQueue.dequeue(true);
 		    mfSrc->m_fabs_v[f]->copyToMem(cpSrc->r_con.snd[i].sbx,srccomp,nc,sndPackage->databuf);
-		    sndPackage->notified = false;
-		    sndPackage->notified = false;
 		    cpSrc->r_con.snd[i].pQueue.enqueue(sndPackage,true);
 
 		}
@@ -3000,7 +3001,6 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
 
 		Package* rcvPackage = cpDst->r_con.rcv[i].pQueue.dequeue(true);                               // corrected from recycleQ to pQ
 		mfDst->m_fabs_v[f]->copyFromMem(cpDst->r_con.rcv[i].dbx,dstcomp,nc,rcvPackage->databuf);	      
-		rcvPackage->notified = false;
 		rcvPackage->completed = false;
 		cpDst->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);                         // corrected from pQ to recycleQ	      
 		//*/
@@ -3042,7 +3042,6 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
 
 		    Package* rcvPackage = cpDst->r_con.rcv[i].pQueue.dequeue(true);                               // corrected from recycleQ to pQ
 		    mfDst->m_fabs_v[f]->copyFromMem(cpDst->r_con.rcv[i].dbx,dstcomp,nc,rcvPackage->databuf);	      
-		    rcvPackage->notified = false;
 		    rcvPackage->completed = false;
 		    cpDst->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);                         // corrected from pQ to recycleQ	      
 		    //*/
@@ -3267,7 +3266,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			    frontPackage->completed = false;
 			    frontPackage->served = false;
 			    frontPackage->request = MPI_REQUEST_NULL;
-			    frontPackage->notified = false;
 			    graphArray[g]->sCopyMapHead->map[f]->r_con.snd[i].recycleQueue.enqueue(frontPackage, true);
 */
 			    //pthread_mutex_unlock(&(graphArray[g]->sCopyMapHead->map[f]->r_con.sndLock));
@@ -3337,7 +3335,6 @@ void Perilla::resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, 
 				graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.enqueue(rcvMetaPackage,true);
 
 				Package* rcvPackage = cpDst->r_con.rcv[i].pQueue.dequeue(true);                               // corrected from recycleQ to pQ
-				rcvPackage->notified = false;
 				rcvPackage->completed = false;
 				cpDst->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);                         // corrected from pQ to recycleQ
 
@@ -3395,7 +3392,6 @@ void Perilla::resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, 
 	    graphArray[lgID]->rCopyMapHead->map[df]->r_con.rcv[i].recycleQueue.enqueue(rcvMetaPackage,true);
 
 	    Package* rcvPackage = cpdDst->r_con.rcv[i].pQueue.dequeue(true);                               // corrected from recycleQ to pQ
-	    rcvPackage->notified = false;
 	    rcvPackage->completed = false;
 	    cpdDst->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);                         // corrected from pQ to recycleQ
 

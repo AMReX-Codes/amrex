@@ -207,7 +207,7 @@ namespace amrex
                                        cgeom,
                                        fgeom,
                                        bcr,
-                                       idummy1, idummy2);
+                                       idummy1, idummy2, RunOn::Gpu);
 
                         post_interp(dfab, dbx, dcomp, ncomp);
                     }
@@ -347,7 +347,7 @@ namespace amrex
                                cgeom,
                                fgeom,
                                bcr,
-                               idummy1, idummy2);
+                               idummy1, idummy2, RunOn::Gpu);
 
                 post_interp(dfab, dbx, dcomp, ncomp);
             }

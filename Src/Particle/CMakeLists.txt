@@ -13,6 +13,7 @@ target_sources( amrex
    AMReX_ParticleMPIUtil.cpp
    AMReX_Particles.H
    AMReX_ParGDB.H
+   AMReX_Particle_mod_K.H
    AMReX_TracerParticles.H
    AMReX_NeighborParticles.H
    AMReX_NeighborParticlesI.H
@@ -30,10 +31,7 @@ target_sources( amrex
    AMReX_ArrayOfStructs.H
    AMReX_Functors.H
    AMReX_ParticleTile.H
-   AMReX_Particles_F.H
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
-   AMReX_Particle_mod_${DIM}d.F90
    AMReX_KDTree_${DIM}d.F90
-   AMReX_OMPDepositionHelper_nd.F90
    )

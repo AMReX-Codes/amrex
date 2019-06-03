@@ -115,7 +115,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
     Box domain_grown = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             m_ngrow[idim] = 0;
         } else {
             m_ngrow[idim] = std::min(m_ngrow[idim], domain_grown.length(idim));
