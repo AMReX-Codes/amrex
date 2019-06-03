@@ -35,6 +35,37 @@ class AmrMeshInSituBridge;
 }
 #endif
 
+//Enable QED effects
+#define WARPX_QED
+
+#ifdef WARPX_QED
+//BW ENGINE
+//#define PXRMP_GPU __host__ __device__
+#define PXRMP_WITH_SI_UNITS
+#include "breit_wheeler_engine.hpp"
+//Alias for the picsar::multi_physics namespace
+namespace pxrmp =  picsar::multi_physics;
+
+//RNG wrapper BW engine
+class amrex_rng_wrapper
+{
+public:
+    //Get rnd number uniformly distributed in [a,b)
+    amrex::Real unf(amrex::Real a, amrex::Real b)
+    {
+        return (b-a)*amrex::Random() + a;
+    }
+
+    //Get rnd number with exponential distribution
+    amrex::Real exp(amrex::Real l)
+    {
+        amrex::Real zero_plus_to_one = 1.0 - unf(0.0, 1.0);
+        return -log(zero_plus_to_one)/l;
+    }
+};
+//___________________________________________
+#endif
+
 enum struct DtType : int
 {
     Full = 0,
@@ -151,7 +182,7 @@ public:
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
-    
+
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
@@ -492,7 +523,7 @@ private:
     int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
-    
+
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
