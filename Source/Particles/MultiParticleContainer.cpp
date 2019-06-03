@@ -11,6 +11,11 @@ using namespace amrex;
 constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
 
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
+#ifdef WARPX_QED
+    :
+    bw_engine{std::move(amrex_rng_wrapper{})}//, default_lambda};//, bw_ctrl};
+#endif
+
 {
     ReadParameters();
 
@@ -27,7 +32,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         }
         allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
     }
-    
+
     for (int i = nspecies; i < nspecies+nlasers; ++i) {
         allcontainers[i].reset(new LaserParticleContainer(amr_core,i, lasers_names[i-nspecies]));
     }
@@ -195,7 +200,7 @@ MultiParticleContainer::Evolve (int lev,
                                 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                 MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* cjx,  MultiFab* cjy, MultiFab* cjz, 
+                                MultiFab* cjx,  MultiFab* cjy, MultiFab* cjz,
                                 MultiFab* rho,
                                 const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                 const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
@@ -211,7 +216,7 @@ MultiParticleContainer::Evolve (int lev,
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
                rho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
-    }    
+    }
 }
 
 void
@@ -407,7 +412,7 @@ MultiParticleContainer
 {
 
     BL_PROFILE("MultiParticleContainer::GetLabFrameData");
-    
+
     // Loop over particle species
     for (int i = 0; i < nspecies_boosted_frame_diags; ++i){
         int isp = map_species_boosted_frame_diags[i];
@@ -416,41 +421,41 @@ MultiParticleContainer
         pc->GetParticleSlice(direction, z_old, z_new, t_boost, t_lab, dt, diagnostic_particles);
         // Here, diagnostic_particles[lev][index] is a WarpXParticleContainer::DiagnosticParticleData
         // where "lev" is the AMR level and "index" is a [grid index][tile index] pair.
-        
+
         // Loop over AMR levels
         for (int lev = 0; lev <= pc->finestLevel(); ++lev){
-            // Loop over [grid index][tile index] pairs 
-            // and Fills parts[species number i] with particle data from all grids and 
-            // tiles in diagnostic_particles. parts contains particles from all 
+            // Loop over [grid index][tile index] pairs
+            // and Fills parts[species number i] with particle data from all grids and
+            // tiles in diagnostic_particles. parts contains particles from all
             // AMR levels indistinctly.
             for (auto it = diagnostic_particles[lev].begin(); it != diagnostic_particles[lev].end(); ++it){
                 // it->first is the [grid index][tile index] key
-                // it->second is the corresponding 
+                // it->second is the corresponding
                 // WarpXParticleContainer::DiagnosticParticleData value
                 parts[i].GetRealData(DiagIdx::w).insert(  parts[i].GetRealData(DiagIdx::w  ).end(),
                                                           it->second.GetRealData(DiagIdx::w  ).begin(),
                                                           it->second.GetRealData(DiagIdx::w  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::x).insert(  parts[i].GetRealData(DiagIdx::x  ).end(),
                                                           it->second.GetRealData(DiagIdx::x  ).begin(),
                                                           it->second.GetRealData(DiagIdx::x  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::y).insert(  parts[i].GetRealData(DiagIdx::y  ).end(),
                                                           it->second.GetRealData(DiagIdx::y  ).begin(),
                                                           it->second.GetRealData(DiagIdx::y  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::z).insert(  parts[i].GetRealData(DiagIdx::z  ).end(),
                                                           it->second.GetRealData(DiagIdx::z  ).begin(),
                                                           it->second.GetRealData(DiagIdx::z  ).end());
-                
+
                 parts[i].GetRealData(DiagIdx::ux).insert(  parts[i].GetRealData(DiagIdx::ux).end(),
                                                            it->second.GetRealData(DiagIdx::ux).begin(),
                                                            it->second.GetRealData(DiagIdx::ux).end());
-                
+
                 parts[i].GetRealData(DiagIdx::uy).insert(  parts[i].GetRealData(DiagIdx::uy).end(),
                                                            it->second.GetRealData(DiagIdx::uy).begin(),
                                                            it->second.GetRealData(DiagIdx::uy).end());
-                
+
                 parts[i].GetRealData(DiagIdx::uz).insert(  parts[i].GetRealData(DiagIdx::uz).end(),
                                                            it->second.GetRealData(DiagIdx::uz).begin(),
                                                            it->second.GetRealData(DiagIdx::uz).end());
@@ -461,7 +466,7 @@ MultiParticleContainer
 
 /* \brief Continuous injection for particles initially outside of the domain.
  * \param injection_box: Domain where new particles should be injected.
- * Loop over all WarpXParticleContainer in MultiParticleContainer and 
+ * Loop over all WarpXParticleContainer in MultiParticleContainer and
  * calls virtual function ContinuousInjection.
  */
 void
@@ -477,7 +482,7 @@ MultiParticleContainer::ContinuousInjection(const RealBox& injection_box) const
 
 /* \brief Update position of continuous injection parameters.
  * \param dt: simulation time step (level 0)
- * All classes inherited from WarpXParticleContainer do not have 
+ * All classes inherited from WarpXParticleContainer do not have
  * a position to update (PhysicalParticleContainer does not do anything).
  */
 void

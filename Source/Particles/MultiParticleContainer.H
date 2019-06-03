@@ -52,24 +52,24 @@ public:
                         const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks);
 
     ///
-    /// This evolves all the particles by one PIC time step, including charge deposition, the 
+    /// This evolves all the particles by one PIC time step, including charge deposition, the
     /// field solve, and pushing the particles, for all the species in the MultiParticleContainer.
     /// This is the electrostatic version.
     ///
-    void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E, 
-                         amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
+    void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                         amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                    amrex::Real t, amrex::Real dt);
 
     ///
-    /// This pushes the particle positions by one half time step for all the species in the 
+    /// This pushes the particle positions by one half time step for all the species in the
     /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint. This is the electrostatic version.
-    /// 
+    ///
     void PushXES (amrex::Real dt);
 
     ///
     /// This deposits the particle charge onto rho, accumulating the value for all the species
-    /// in the MultiParticleContainer. rho is assumed to contain node-centered multifabs. 
+    /// in the MultiParticleContainer. rho is assumed to contain node-centered multifabs.
     /// This version is hard-coded for CIC deposition.
     ///
     void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, bool local = false);
@@ -80,14 +80,14 @@ public:
     ///
     amrex::Real sumParticleCharge(bool local = false);
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     ///
     /// Performs the field gather operation using the input fields E and B, for all the species
     /// in the MultiParticleContainer. This is the electromagnetic version of the field gather.
     ///
     void FieldGather (int lev,
                       const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-                      const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
+                      const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);
 
     ///
     /// This evolves all the particles by one PIC time step, including current deposition, the
@@ -97,8 +97,8 @@ public:
     void Evolve (int lev,
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-		 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz, 
-		 amrex::MultiFab* cjx,  amrex::MultiFab* cjy, amrex::MultiFab* cjz, 
+		 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz,
+		 amrex::MultiFab* cjx,  amrex::MultiFab* cjy, amrex::MultiFab* cjz,
                  amrex::MultiFab* rho, amrex::MultiFab* crho,
 		 const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
 		 const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
@@ -108,7 +108,7 @@ public:
     /// This pushes the particle positions by one half time step for all the species in the
     /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint. This is the electromagnetic version.
-    /// 
+    ///
     void PushX (amrex::Real dt);
 
     ///
@@ -116,7 +116,7 @@ public:
     /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint.  It is also used to synchronize particles at the
     /// the end of the run.  This is the electromagnetic version.
-    /// 
+    ///
     void PushP (int lev, amrex::Real dt,
                 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);
@@ -125,14 +125,14 @@ public:
     /// This deposits the particle charge onto a node-centered MultiFab and returns a unique ptr
     /// to it. The charge density is accumulated over all the particles in the MultiParticleContainer
     /// This version uses PICSAR routines to perform the deposition.
-    ///    
+    ///
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile( const std::string& dir,
                         const amrex::Vector<std::string>& real_names) const;
-    
+
     void Restart (const std::string& dir);
 
     void PostRestart ();
@@ -174,7 +174,7 @@ public:
                          const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
                          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
 
-    // Inject particles during the simulation (for particles entering the 
+    // Inject particles during the simulation (for particles entering the
     // simulation domain after some iterations, due to flowing plasma and/or
     // moving window).
     void ContinuousInjection(const amrex::RealBox& injection_box) const;
@@ -182,10 +182,10 @@ public:
     void UpdateContinuousInjectionPosition(amrex::Real dt) const;
     int doContinuousInjection() const;
 
-    // 
+    //
     // Parameters for the Cherenkov corrector in the FDTD solver.
     // Both stencils are calculated ar runtime.
-    // 
+    //
     // Number of coefficients for the stencil of the NCI corrector.
     // The stencil is applied in the z direction only.
     static constexpr int nstencilz_fdtd_nci_corr=5;
@@ -196,7 +196,12 @@ public:
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
-    
+
+    //bw_engine is a public member of the MultiParticleContainer object
+#ifdef WARPX_QED
+    pxrmp::breit_wheeler_engine<amrex::Real, amrex_rng_wrapper> bw_engine;
+#endif
+
 protected:
 
     // Particle container types
@@ -221,7 +226,7 @@ private:
 
     // Number of species dumped in BoostedFrameDiagnostics
     int nspecies_boosted_frame_diags = 0;
-    // map_species_boosted_frame_diags[i] is the species ID in 
+    // map_species_boosted_frame_diags[i] is the species ID in
     // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
     std::vector<int> map_species_boosted_frame_diags;
     int do_boosted_frame_diags = 0;
