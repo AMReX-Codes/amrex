@@ -605,7 +605,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     !> @param[in] particle_pusher_algo Particle pusher algorithm [UNUSED]
     subroutine warpx_particle_pusher_positions(np,xp,yp,zp,uxp,uyp,uzp, &
                                     gaminv,&
-                                    ex,ey,ez,bx,by,bz,q,m,dt, &
+                                    m,dt, &
                                     particle_pusher_algo) &
          bind(C, name="warpx_particle_pusher_positions")
 
@@ -613,9 +613,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
         REAL(amrex_real),INTENT(IN)       :: xp(np),yp(np),zp(np)
         REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
-        REAL(amrex_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
-        REAL(amrex_real),INTENT(IN)       :: bx(np),by(np),bz(np)
-        REAL(amrex_real),INTENT(IN)       :: q,m,dt
+        REAL(amrex_real),INTENT(IN)       :: m,dt
         INTEGER(c_long), INTENT(IN)   :: particle_pusher_algo
 
         INTEGER(c_long) :: ip

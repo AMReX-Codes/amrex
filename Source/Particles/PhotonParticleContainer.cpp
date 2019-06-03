@@ -65,16 +65,13 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
 
     // Using new pusher for positions
     const amrex_real zero_mass = 0.0;
-    const amrex_real zero_charge = 0.0;
     warpx_particle_pusher_positions(&np,
                       xp.dataPtr(),
                       yp.dataPtr(),
                       zp.dataPtr(),
                       uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                       giv.dataPtr(),
-                      Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                      Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                      &zero_charge, &zero_mass, &dt,
+                      &zero_mass, &dt,
                       &WarpX::particle_pusher_algo);
 }
 
@@ -102,6 +99,7 @@ PhotonParticleContainer::Evolve (int lev,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
                                        t, dt);
+
 }
 
 
