@@ -106,7 +106,7 @@ PhotonParticleContainer::Evolve (int lev,
 
 
 #ifdef WARPX_QED
-    void PhysicalParticleContainer::InitOpticalDepth(){
+    void PhotonParticleContainer::InitOpticalDepth(){
 
     }
 #endif
