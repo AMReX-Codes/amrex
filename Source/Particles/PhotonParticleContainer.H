@@ -4,7 +4,9 @@
 #include <PhysicalParticleContainer.H>
 #include <AMReX_Vector.H>
 
-#include "breit_wheeler_engine_wrapper.h"
+#ifdef WARPX_QED
+    #include "breit_wheeler_engine_wrapper.h"
+#endif
 
 class PhotonParticleContainer
     : public PhysicalParticleContainer

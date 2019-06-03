@@ -11,8 +11,6 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
-#include "breit_wheeler_engine_wrapper.h"
-
 using namespace amrex;
 
 PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecies,
