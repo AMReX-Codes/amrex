@@ -108,10 +108,7 @@ int main(int argc, char *argv[]) {
     }
     usleep(msps);  // ---- to make the output readable
 
-
-
-    bool bFinalizeMPI(true);
-    amrex::Finalize(bFinalizeMPI);
+    amrex::Finalize();
 
     return 0;
 }

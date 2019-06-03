@@ -351,7 +351,7 @@ AsyncFillPatchIterator::~AsyncFillPatchIterator () {
 
 			Box c_dom= amrex::coarsen(geom_fine->Domain(), m_amrlevel.crse_ratio);
 
-			m_fpc = &FabArrayBase::TheFPinfo(*smf_fine[0], m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom);
+			m_fpc = &FabArrayBase::TheFPinfo(*smf_fine[0], m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom, NULL);
 
 			if (!m_fpc->ba_crse_patch.empty())
 			{
@@ -1079,7 +1079,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 					cgeom,
 					fgeom,
 					bcr,
-					idummy1, idummy2);
+					idummy1, idummy2, RunOn::Cpu);
 			    }
 			    else
 			    {
@@ -1103,7 +1103,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 						cgeom,
 						fgeom,
 						bcr,
-						idummy1, idummy2);
+						idummy1, idummy2, RunOn::Cpu);
 
 				    }
 				}
@@ -1128,7 +1128,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 							cgeom,
 							fgeom,
 							bcr,
-							idummy1, idummy2);
+							idummy1, idummy2, RunOn::Cpu);
 					    }
 					}
 
@@ -1260,7 +1260,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 					cgeom,
 					fgeom,
 					bcr,
-					idummy1, idummy2);
+					idummy1, idummy2, RunOn::Cpu);
 			    }
 			    else
 			    {
@@ -1284,7 +1284,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 						cgeom,
 						fgeom,
 						bcr,
-						idummy1, idummy2);
+						idummy1, idummy2, RunOn::Cpu);
 
 				    }
 				}
@@ -1323,7 +1323,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 							cgeom,
 							fgeom,
 							bcr,
-							idummy1, idummy2);
+							idummy1, idummy2, RunOn::Cpu);
 					    }
 					}
 				}

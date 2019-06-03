@@ -71,12 +71,12 @@ writePlotFile (const std::string&        dir,
 	dx[j].resize(BL_SPACEDIM);
 	for (int k = 0; k < BL_SPACEDIM; k++)
 	{
-	    dx[j][k] = (Geometry::ProbHi(k) - Geometry::ProbLo(k))/domain[j].length(k);
+	    dx[j][k] = (geom.ProbHi(k) - geom.ProbLo(k))/domain[j].length(k);
 	}
 	if (j==0)
 	{
 	    grid_loc[j].resize(1);
-	    grid_loc[j][0] = RealBox(Geometry::ProbLo(),Geometry::ProbHi());
+	    grid_loc[j][0] = RealBox(geom.ProbLo(),geom.ProbHi());
 	} else {
 	    grid_loc[j].resize(grids.size());
 	    for (int L=0; L < grids.size(); L++)
@@ -158,9 +158,9 @@ writePlotFile (const std::string&        dir,
 	    // finest amr level
 	    os << finestLevel << '\n';
 	    // prob domain
-	    for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbLo(i) << ' ';
+	    for (i = 0; i < BL_SPACEDIM; i++) os << geom.ProbLo(i) << ' ';
 	    os << '\n';
-	    for (i = 0; i < BL_SPACEDIM; i++) os << Geometry::ProbHi(i) << ' ';
+	    for (i = 0; i < BL_SPACEDIM; i++) os << geom.ProbHi(i) << ' ';
 	    os << '\n';
 	    // refinement ratio
 	    for (i = 0; i < finestLevel; i++) os << refRatio << ' ';

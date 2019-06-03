@@ -1563,7 +1563,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
 {
     Box domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             int n = domain_box.length(idim);
             domain_box.grow(idim, n);
         }

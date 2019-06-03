@@ -72,10 +72,9 @@ Adv::advance (Real time,
     }
     FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
-    AsyncFillPatchIterator::initialSend(SborderFPI, upperAFPI, NUM_GROW, prev_time, State_Type, 0, NUM_STATE, iteration);
     syncAllWorkerThreads();
 
-    for (RGIter rgi(SborderFPI, upperAFPI, *(Sborder), NUM_GROW, prev_time, State_Type, 0, NUM_STATE, iteration); rgi.isValid(); ++rgi){
+    for (RGIter rgi(SborderFPI, upperAFPI, *(Sborder), NUM_GROW, state[State_Type].prevTime(), State_Type, 0, NUM_STATE, iteration); rgi.isValid(); ++rgi){
 	int f = rgi.currentRegion;
 	int fid = S_new.IndexArray()[f];
 	int fis = Sborder->IndexArray()[f];

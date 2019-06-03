@@ -7,12 +7,20 @@
 #ifdef AMREX_USE_GPU
 
 extern "C" {
+
+#if defined(AMREX_USE_HIP) || (__CUDACC_VER_MAJOR__ < 10)
 AMREX_HIP_OR_CUDA(
     void  HIPRT_CB amrex_devicefab_delete ( hipStream_t stream,  hipError_t error, void* p),
     void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p))
     {
         delete (amrex::Gpu::AsyncFabImpl*)p;
     }
+#else
+    void CUDART_CB amrex_devicefab_delete (void* p) {
+        delete (amrex::Cuda::AsyncFabImpl*)p;
+    }
+#endif
+
 }
 
 #endif
@@ -60,7 +68,7 @@ AsyncFab::clear ()
     if (Gpu::inLaunchRegion())
     {
         if (m_impl != nullptr) {
-// CUDA 10        AMREX_CUDA_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(), amrex_devicefab_delete, p));
+#if defined(AMREX_USE_HIP) || (__CUDACC_VER_MAJOR__ < 10)
             AMREX_HIP_OR_CUDA(
                 AMREX_HIP_SAFE_CALL(  hipStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_devicefab_delete,
@@ -68,6 +76,10 @@ AsyncFab::clear ()
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_devicefab_delete,
                                                            m_impl, 0)););
+#else
+            cudaHostFn_t clear = amrex_devicefab_delete;
+            AMREX_GPU_SAFE_CALL(cudaLaunchHostFunc(Gpu::gpuStream(), clear, m_impl));
+#endif
         }
     }
     else
