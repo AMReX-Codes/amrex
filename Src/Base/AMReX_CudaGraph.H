@@ -102,12 +102,12 @@ struct CudaGraph
         cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
                    cudaMemcpyHostToDevice);
 
-        Cuda::Device::setStreamIndex(0);
+        Gpu::Device::setStreamIndex(0);
 
-        cudaGraphLaunch(m_graph, amrex::Cuda::Device::cudaStream());
+        cudaGraphLaunch(m_graph, amrex::Gpu::Device::cudaStream());
 
-        Cuda::Device::resetStreamIndex();
-        Cuda::Device::synchronize();
+        Gpu::Device::resetStreamIndex();
+        Gpu::Device::synchronize();
     }
 };
 

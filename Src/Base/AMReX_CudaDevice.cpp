@@ -492,7 +492,7 @@ Device::startGraphStreamRecording()
         // Should make multiple options for building for future flexibility.
         //   (and add each cuda API call to a unique function so users can make their own).
 
-        cudaStream_t currentStream = cuda_stream;
+        cudaStream_t currentStream = gpu_stream;
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
@@ -502,7 +502,7 @@ Device::startGraphStreamRecording()
         AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
 #endif
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
     }
 }
 
@@ -518,13 +518,13 @@ Device::stopGraphStreamRecording()
         //   (and add each cuda API call to a unique function so users can make their own).
 
         cudaGraph_t     graph[numCudaStreams()];
-        cudaStream_t currentStream = cuda_stream;
+        cudaStream_t currentStream = gpu_stream;
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
             AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
 
         cudaGraph_t     graphFull;
         cudaGraphNode_t emptyNode, placeholder;
