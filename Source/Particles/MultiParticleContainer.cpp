@@ -159,6 +159,27 @@ MultiParticleContainer::InitData ()
         pc->InitData();
     }
     pc_tmp->InitData();
+
+#ifdef WARPX_QED
+    //Initialize the lookup tables
+    //Generates tables if they do not exist
+    if(!does_file_exist("bw_engine_dndt.bin")){
+        bw_engine.compute_dN_dt_lookup_table(&std::cout);
+        bw_engine.write_dN_dt_table("bw_engine_dndt.bin");
+    }
+    else{
+        bw_engine.read_dN_dt_table("bw_engine_dndt.bin");
+    }
+
+    if(!does_file_exist("bw_engine_pair.bin")){
+        bw_engine.compute_cumulative_pair_table(&std::cout);
+        bw_engine.write_cumulative_pair_table("bw_engine_pair.bin");
+    }
+    else{
+        bw_engine.read_cumulative_pair_table("bw_engine_pair.bin");
+    }
+#endif
+
 }
 
 
