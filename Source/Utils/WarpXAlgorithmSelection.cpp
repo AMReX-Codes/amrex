@@ -1,6 +1,7 @@
 #include <WarpXAlgorithmSelection.H>
 #include <map>
 #include <algorithm>
+#include <cstring>
 
 // Define dictionary with correspondance between user-input strings,
 // and corresponding integer for use inside the code (e.g. in PICSAR).
@@ -60,15 +61,15 @@ GetAlgorithmInteger( amrex::ParmParse& pp, const char* pp_search_key ){
 
     // Pick the right dictionary
     std::map<std::string, int> algo_to_int;
-    if (pp_search_key == "maxwell_fdtd_solver") {
+    if (0 == std::strcmp(pp_search_key, "maxwell_fdtd_solver")) {
         algo_to_int = maxwell_solver_algo_to_int;
-    } else if (pp_search_key == "particle_pusher") {
+    } else if (0 == std::strcmp(pp_search_key, "particle_pusher")) {
         algo_to_int = particle_pusher_algo_to_int;
-    } else if (pp_search_key == "current_deposition") {
+    } else if (0 == std::strcmp(pp_search_key, "current_deposition")) {
         algo_to_int = current_deposition_algo_to_int;
-    } else if (pp_search_key == "charge_deposition") {
+    } else if (0 == std::strcmp(pp_search_key, "charge_deposition")) {
         algo_to_int = charge_deposition_algo_to_int;
-    } else if (pp_search_key == "field_gathering") {
+    } else if (0 == std::strcmp(pp_search_key, "field_gathering")) {
         algo_to_int = gathering_algo_to_int;
     } else {
         std::string pp_search_string = pp_search_key;
