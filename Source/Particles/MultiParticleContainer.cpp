@@ -10,12 +10,12 @@ using namespace amrex;
 
 constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
 
-MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 #ifdef WARPX_QED
-    :
-    bw_engine{std::move(amrex_rng_wrapper{})}//, default_lambda};//, bw_ctrl};
+MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core):
+        bw_engine{std::move(amrex_rng_wrapper{})}//, default_lambda};//, bw_ctrl};
+#else
+MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 #endif
-
 {
     ReadParameters();
 

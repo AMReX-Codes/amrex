@@ -229,9 +229,9 @@ public:
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
     //bw_engine is a public member of the MultiParticleContainer object
-//#ifdef WARPX_QED
+#ifdef WARPX_QED
     pxrmp::breit_wheeler_engine<amrex::Real, amrex_rng_wrapper> bw_engine;
-//#endif
+#endif
 
 protected:
 
