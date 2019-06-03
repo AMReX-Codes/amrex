@@ -19,10 +19,8 @@ geometry.prob_hi     =  128.e-6     0.96e-6
 #################################
 warpx.verbose = 1
 amrex.v = 1
-algo.current_deposition = 2
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 1
+algo.current_deposition = direct-vectorized
+algo.particle_pusher = vay
 algo.maxwell_fdtd_solver = ckc
 interpolation.nox = 3
 interpolation.noy = 3

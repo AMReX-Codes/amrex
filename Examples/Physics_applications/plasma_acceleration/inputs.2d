@@ -18,10 +18,6 @@ warpx.fine_tag_hi    =   12.e-6 -100.e-6
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 algo.maxwell_fdtd_solver = ckc
 warpx.use_filter = 1
 warpx.do_pml = 1
