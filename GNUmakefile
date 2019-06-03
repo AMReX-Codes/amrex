@@ -5,8 +5,8 @@ OPENBC_HOME ?= ../openbc_poisson
 DEBUG	= FALSE
 #DEBUG	= TRUE
 
-#DIM     = 2
-DIM	= 3
+DIM     = 2
+#DIM	= 3
 
 COMP = gcc
 #COMP = intel
