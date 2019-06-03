@@ -28,7 +28,7 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
 
 #ifdef WARPX_QED
     AddRealComp("tau");
-    plot_flags.resize(PIdx::nattribs + 6, 1);
+    plot_flags.resize(PIdx::nattribs + 1, 1);
 #endif
 
 }
