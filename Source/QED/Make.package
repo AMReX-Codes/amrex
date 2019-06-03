@@ -1,0 +1,5 @@
+CEXE_headers += WarpXConst.H
+CEXE_headers += WarpXUtil.H
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/QED
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/QED

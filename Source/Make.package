@@ -7,4 +7,3 @@ CEXE_headers += WarpX.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source
-INCLUDE_LOCATIONS += $(PICSAR_HOME)/src/multi_physics/QED/src

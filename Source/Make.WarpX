@@ -45,13 +45,6 @@ endif
   DEFINES += -DWARPX_USE_PY
 endif
 
-ifeq ($(QED),TRUE)
-  CXXFLAGS += -DWARPX_QED
-  CFLAGS   += -DWARPX_QED
-  FFLAGS   += -DWARPX_QED
-  F90FLAGS += -DWARPX_QED
-endif
-
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
@@ -77,6 +70,16 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
   include $(AMREX_HOME)/Src/Amr/Make.package
   include $(AMREX_HOME)/Src/Extern/SENSEI/Make.package
 endif
+
+ifeq ($(QED),TRUE)
+  INCLUDE_LOCATIONS += $(PICSAR_HOME)/src/multi_physics/QED/src
+  CXXFLAGS += -DWARPX_QED
+  CFLAGS   += -DWARPX_QED
+  FFLAGS   += -DWARPX_QED
+  F90FLAGS += -DWARPX_QED
+  include $(WARPX_HOME)/Source/QED/Make.package
+endif
+
 
 include $(PICSAR_HOME)/src/Make.package
 
