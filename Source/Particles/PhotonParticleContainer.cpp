@@ -26,8 +26,8 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // store it into member data.
     pp.query("size_in_inches", size_in_inches);
 
-#define WARPX_QED
 #ifdef WARPX_QED
+    AddRealComp("tau");
     plot_flags.resize(PIdx::nattribs + 6, 1);
 #endif
 

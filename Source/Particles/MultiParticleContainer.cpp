@@ -72,13 +72,6 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         pc_tmp->AddRealComp("uyold");
         pc_tmp->AddRealComp("uzold");
     }
-
-#ifdef WARPX_QED
-    //Add a tau field (optical depth) for all photon species
-    for (int i = 0; i < nspecies; ++i)
-        allcontainers[i]->AddRealComp("tau");
-#endif
-
 }
 
 void
