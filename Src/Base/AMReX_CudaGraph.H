@@ -33,7 +33,7 @@ template <typename T, typename U>
 CopyMemory
 makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp)
 {
-#if defined(__GNUG__) && __GNUC__ < 5
+#if __cplusplus < 201402L
     CopyMemory mem;
     mem.src = (void*)(src.p);
     mem.dst = (void*)(dst.p);
