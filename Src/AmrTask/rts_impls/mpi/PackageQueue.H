@@ -11,11 +11,10 @@ private:
   int source, destination;
 public:
   double *databuf;
-  int bufSize;
   pthread_mutex_t packageLock;
+  volatile int bufSize;
   volatile bool completed; //message transfer is done
   volatile bool served; //message transfer request has been served but may have not completed
-  volatile bool notified;
   MPI_Request request; //!for MPI
   Package();
   ~Package();
@@ -25,7 +24,7 @@ public:
   void setPackageSource(int src);
   void setPackageDestination(int dest);
   void completeRequest(void);
-  void completeRequest(bool lockIgnore);
+  void completeRequest(bool canAvoidLock);
   bool checkRequest(void);
   void generatePackage(int size);
 };
@@ -44,16 +43,16 @@ public:
   PackageQueue();
   ~PackageQueue();
   int queueSize(void);  
-  int queueSize(bool lockIgnore);
+  int queueSize(bool canAvoidLock);
   void enqueue(Package* package);  
-  void enqueue(Package* package, bool lockIgnore);
+  void enqueue(Package* package, bool canAvoidLock);
   Package* dequeue(void);  
-  Package* dequeue(bool lockIgnore);
+  Package* dequeue(bool canAvoidLock);
   Package* getRear(void);
-  Package* getRear(bool lockIgnore);
+  Package* getRear(bool canAvoidLock);
   Package* getFront(void);
-  Package* getFront(bool lockIgnore);
-  void emptyQueue();
+  Package* getFront(bool canAvoidLock);
+  void emptyQueue(bool canAvoidLock);
 };
 #endif
 

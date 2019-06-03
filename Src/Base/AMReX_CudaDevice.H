@@ -35,6 +35,7 @@ public:
     // for backward compatibility
     static cudaStream_t cudaStream () noexcept { return gpu_stream; }
 #endif
+    static int numGpuStreams () { return max_gpu_streams; }
 #endif
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
@@ -43,6 +44,53 @@ public:
 
     static void synchronize ();
     static void streamSynchronize ();
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+    // Generic graph selection. These should be called by users. 
+    static void startGraphRecording(bool first_iter);
+    static cudaGraphExec_t stopGraphRecording(bool last_iter);
+
+    // Capture graphs per iteration
+    static void startGraphIterRecording();
+    static void stopGraphIterRecording();
+    static cudaGraphExec_t assembleGraphIter();
+
+    // Capture graphs along streams
+    static void startGraphStreamRecording();
+    static cudaGraphExec_t stopGraphStreamRecording();
+
+    // Instantiate a created cudaGtaph
+    static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
+
+    // Execute an instantiated cudaGraphExec
+    static void executeGraph(cudaGraphExec_t &graphExec);
+
+    // Set type of graph recording.
+    // Currently 2 options, so bool used. Change later if needed. 
+    static inline bool isGraphPerStream() { return graph_per_stream; }
+    static inline bool isNotGraphPerIter() { return graph_per_stream; }
+
+    static inline bool isGraphPerIter() { return !graph_per_stream; }
+    static inline bool isNotGraphPerStream() { return !graph_per_stream; }
+
+    static inline bool setGraphPerStream () {
+        bool r = graph_per_stream;
+        graph_per_stream = true;
+        return r;
+    }
+
+    static inline bool setGraphPerIter () {
+        bool r = graph_per_stream;
+        graph_per_stream = false;
+        return r;
+    }
+
+#endif
+
+    static void htod_memcpy       (void* p_d, const void* p_h, const std::size_t sz);
+    static void dtoh_memcpy       (void* p_h, const void* p_d, const std::size_t sz);
+    static void htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz);
+    static void dtoh_memcpy_async (void* p_h,const  void* p_d, const std::size_t sz);
 
     static void mem_advise_set_preferred (void* p, const std::size_t sz, const int device);
     static void mem_advise_set_readonly (void* p, const std::size_t sz);
@@ -85,6 +133,10 @@ private:
     static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
     static gpuStream_t gpu_stream;
     static gpuDeviceProp_t device_prop;
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+    static bool graph_per_stream;
+    static Vector<cudaGraph_t> cuda_graphs;
+#endif
 #endif
 };
 

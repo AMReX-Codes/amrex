@@ -489,7 +489,7 @@ MFIter::operator++ () noexcept
         if (use_gpu) {
             Gpu::Device::setStreamIndex(currentIndex);
             AMREX_GPU_ERROR_CHECK();
-#ifdef DEBUG
+#ifdef AMREX_DEBUG
 //            Gpu::synchronize();
 #endif
         }

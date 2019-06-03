@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../..
-ADR_DIR  ?= $(AMREX_HOME)/Tutorials/Amr/Advection_AmrLevel
+ADR_DIR  ?= $(AMREX_HOME)/Tutorials/SENSEI/Advection_AmrLevel
 
 TOP := $(ADR_DIR)
 

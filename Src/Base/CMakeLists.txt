@@ -195,7 +195,8 @@ target_sources( amrex
    AMReX_GpuAsyncArray.H
    AMReX_GpuAsyncArray.cpp
    AMReX_CudaElixir.H
-   AMReX_CudaElixir.cpp   
+   AMReX_CudaElixir.cpp
+   AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
    AMReX_Machine.H
    AMReX_Machine.cpp

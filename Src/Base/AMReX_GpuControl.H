@@ -18,26 +18,49 @@
 #endif
 
 namespace amrex {
+    enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
+}
+
+namespace amrex {
 namespace Gpu {
 
 #if defined(AMREX_USE_GPU)
 
     extern bool in_launch_region;
 
-    inline bool inLaunchRegion () noexcept { return in_launch_region; }
-    inline bool notInLaunchRegion () noexcept { return !in_launch_region; }
+    inline bool inLaunchRegion() noexcept { return in_launch_region; }
+    inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
 
     inline bool setLaunchRegion (bool launch) noexcept {
-        bool r =  in_launch_region;
+        bool r = in_launch_region;
         in_launch_region = launch;
+        return r;
+    }
+
+    extern bool in_graph_region;
+    inline bool inGraphRegion() { return (in_graph_region && in_launch_region); }
+    inline bool notInGraphRegion() { return (!in_graph_region || !in_launch_region); }
+
+    inline bool setGraphRegion (bool graph) {
+        bool r = in_graph_region;
+        in_graph_region = graph;
         return r;
     }
 
     struct LaunchSafeGuard
     {
         explicit LaunchSafeGuard (bool flag) noexcept
-            : m_old(setLaunchRegion(in_launch_region && flag)) {}
+            : m_old(setLaunchRegion(flag)) {}
         ~LaunchSafeGuard () { setLaunchRegion(m_old); }
+    private:
+        bool m_old;
+    };
+
+    struct GraphSafeGuard
+    {
+        explicit GraphSafeGuard (bool flag) noexcept
+            : m_old(setGraphRegion(flag)) {}
+        ~GraphSafeGuard () { setGraphRegion(m_old); }
     private:
         bool m_old;
     };
@@ -48,9 +71,18 @@ namespace Gpu {
     inline static constexpr bool notInLaunchRegion () { return true; }
     inline static constexpr bool setLaunchRegion (bool) { return false; }
 
+    inline static constexpr bool inGraphRegion () { return false; }
+    inline static constexpr bool notInGraphRegion () { return true; }
+    inline static constexpr bool setGraphRegion (bool) { return false; }
+
     struct LaunchSafeGuard
     {
         explicit LaunchSafeGuard (bool) {}
+    };
+
+    struct GraphSafeGuard
+    {
+        explicit GraphSafeGuard (bool) {}
     };
 
 #endif

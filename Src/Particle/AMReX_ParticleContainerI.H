@@ -50,12 +50,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
         }
-        if ( ( not std::is_standard_layout<ParticleType>::value    ) or 
-             ( not std::is_trivial<ParticleType>::value            )    )
-        {
-            amrex::Abort("Particle type must be standard layout and trivial.");
-        }
 
+        static_assert(std::is_standard_layout<ParticleType>::value
+                   && std::is_trivial<ParticleType>::value,
+                      "Particle type must be standard layout and trivial.");
+        
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
 
@@ -321,12 +320,12 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld, 
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-    bool outside = AMREX_D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
-                          || p.m_rdata.pos[0] >= Geometry::ProbHi(0),
-                          || p.m_rdata.pos[1] <  Geometry::ProbLo(1)
-                          || p.m_rdata.pos[1] >= Geometry::ProbHi(1),
-                          || p.m_rdata.pos[2] <  Geometry::ProbLo(2)
-                          || p.m_rdata.pos[2] >= Geometry::ProbHi(2));
+    bool outside = AMREX_D_TERM(p.m_rdata.pos[0] <  Geom(0).ProbLo(0)
+                             || p.m_rdata.pos[0] >= Geom(0).ProbHi(0),
+                             || p.m_rdata.pos[1] <  Geom(0).ProbLo(1)
+                             || p.m_rdata.pos[1] >= Geom(0).ProbHi(1),
+                             || p.m_rdata.pos[2] <  Geom(0).ProbLo(2)
+                             || p.m_rdata.pos[2] >= Geom(0).ProbHi(2));
 
     bool success;
     if (outside)
@@ -3660,7 +3659,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	  auto tile = kv.first.second;
 	  const auto& src_tile = kv.second;
           
-	  auto& dst_tile = GetParticles(host_lev)[std::make_pair(grid,tile)];
+	  auto& dst_tile = DefineAndReturnParticleTile(host_lev, grid, tile);
 	  auto old_size = dst_tile.GetArrayOfStructs().size();
 	  auto new_size = old_size + src_tile.size();
 	  dst_tile.resize(new_size);
@@ -4045,7 +4044,6 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
             tile_box.grow(ng);
@@ -4057,7 +4055,7 @@ AssignCellDensitySingleLevel (int rho_index,
             auto rhoarr = fab.array();
 #endif
                         
-            if (dxi == pdxi)
+            if (particle_lvl_offset == 0)
             {
                 AMREX_FOR_1D( np, i,
                 {
