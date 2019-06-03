@@ -30,6 +30,14 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
                         const Vector<std::string> &int_comp_names,
                         conduit::Node &res)
 {
+    // particles have their own precision option
+    // we can't rely on the `Real` type 
+    #ifdef BL_SINGLE_PRECISION_PARTICLES
+        typedef float  ParticleRealType;
+    #else
+        typedef double ParticleRealType;
+    #endif
+
     int num_particles = ptile.GetArrayOfStructs().size();
     int struct_size   = sizeof(Particle<NStructReal, NStructInt>);
 
@@ -61,18 +69,18 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
     // point locations from from aos
     //----------------------------------//
 
-    n_coords["values/x"].set_external(const_cast<Real*>(&p_aos.m_rdata.pos[0]),
+    n_coords["values/x"].set_external(const_cast<ParticleRealType*>(&p_aos.m_rdata.pos[0]),
                                       num_particles,
                                       0,
                                       struct_size);
 #if AMREX_SPACEDIM > 1
-    n_coords["values/y"].set_external(const_cast<Real*>(&p_aos.m_rdata.pos[1]),
+    n_coords["values/y"].set_external(const_cast<ParticleRealType*>(&p_aos.m_rdata.pos[1]),
                                       num_particles,
                                       0,
                                       struct_size);
 #endif
 #if AMREX_SPACEDIM > 2
-    n_coords["values/z"].set_external(const_cast<Real*>(&p_aos.m_rdata.pos[2]),
+    n_coords["values/z"].set_external(const_cast<ParticleRealType*>(&p_aos.m_rdata.pos[2]),
                                       num_particles,
                                       0,
                                       struct_size);
@@ -118,7 +126,7 @@ ParticleTileToBlueprint(const ParticleTile<NStructReal,
         conduit::Node &n_f = n_fields[real_comp_names[vname_real_idx]];
         n_f["topology"] = "particles";
         n_f["association"] = "element";
-        n_f["values"].set_external(const_cast<Real*>(&p_aos.m_rdata.arr[i]),
+        n_f["values"].set_external(const_cast<ParticleRealType*>(&p_aos.m_rdata.arr[i]),
                                    num_particles,
                                    0,
                                    struct_size);
