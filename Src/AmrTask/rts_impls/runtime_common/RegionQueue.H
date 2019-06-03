@@ -19,12 +19,12 @@ public:
   RegionQueue(int numTasks);
   ~RegionQueue();
   void addRegion(int r);
-  void addRegion(int r, bool lockIgnore);
+  void addRegion(int r, bool canAvoidLock);
   int removeRegion();
-  int removeRegion(bool lockIgnore);  
+  int removeRegion(bool canAvoidLock);  
   int getFrontRegion();
-  int getFrontRegion(bool lockIgnore);
-  int queueSize(bool lockIgnore);
+  int getFrontRegion(bool canAvoidLock);
+  int queueSize(bool canAvoidLock);
   int queueSize();
   void reallocate();
 };

@@ -1,4 +1,5 @@
 
 # UPC++
 
-CXX = upc++
+CXX = upcxx
+#upc++

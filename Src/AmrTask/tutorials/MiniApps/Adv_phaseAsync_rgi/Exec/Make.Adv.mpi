@@ -1,10 +1,6 @@
 AMREX_HOME = ../../../../../../../
 ADR_DIR  ?= $(AMREX_HOME)/Src/AmrTask/tutorials/MiniApps/Adv_phaseAsync_rgi
 TOP := $(ADR_DIR)
-UPCXX_INSTALL=/home/users/nnguyent/upcxx
-PPFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta PPFLAGS)
-LDFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta LDFLAGS)
-LIBFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta LIBFLAGS) 
 
 TOP := $(ADR_DIR)
 
@@ -15,9 +11,7 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
-include $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads/perilla.mak
-include $(AMREX_HOME)/Src/AmrTask/rts_impls/pthreads_common/perilla.mak
-include $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads/Make.package
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi/Make.package
 
 Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
 Bpack   += $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
@@ -25,7 +19,7 @@ Blocs   += $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi
 CXXFLAGS += $(PPFLAGS) 
 libraries += $(LDFLAGS)
 
@@ -33,7 +27,7 @@ vpathdir += $(AMREX_HOME)/Src/Boundary
 vpathdir += $(AMREX_HOME)/Src/Base
 vpathdir += $(AMREX_HOME)/Src/Amr
 vpathdir += $(AMREX_HOME)/Src/AmrCore
-vpathdir += $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads
+vpathdir += $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi
 
 
 INCLUDE_LOCATIONS += $(Blocs)
