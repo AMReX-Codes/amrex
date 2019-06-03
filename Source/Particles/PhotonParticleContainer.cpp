@@ -36,6 +36,7 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
 void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
+
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
     }
@@ -102,3 +103,10 @@ PhotonParticleContainer::Evolve (int lev,
                                        cBx, cBy, cBz,
                                        t, dt);
 }
+
+
+#ifdef WARPX_QED
+    void InitOpticalDepth(){
+        
+    }
+#endif

@@ -63,6 +63,11 @@ public:
                               int lev,
                               amrex::Real dt ) override {};
 
+
+#ifdef WARPX_QED
+    virtual void InitOpticalDepth();
+#endif
+
 private:
 
     amrex::Real size_in_inches = 1.;
