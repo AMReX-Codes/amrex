@@ -11,6 +11,8 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
+#include "breit_wheeler_engine_wrapper.h"
+
 using namespace amrex;
 
 PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecies,
@@ -36,10 +38,6 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
 void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
-
-#ifdef WARPX_QED    
-    InitOpticalDepth();
-#endif
 
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
@@ -110,7 +108,12 @@ PhotonParticleContainer::Evolve (int lev,
 
 
 #ifdef WARPX_QED
-    void PhotonParticleContainer::InitOpticalDepth(){
-
-    }
+void PhotonParticleContainer::InitOpticalDepth(
+    WarpXParIter& pti,
+    warpx_breit_wheeler_engine& engine)
+{
+    auto& taus = pti.GetAttribs(particle_comps["tau"]);
+    for(auto& tau: taus)
+        tau = engine.get_optical_depth();
+}
 #endif

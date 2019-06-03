@@ -4,6 +4,8 @@
 #include <PhysicalParticleContainer.H>
 #include <AMReX_Vector.H>
 
+#include "breit_wheeler_engine_wrapper.h"
+
 class PhotonParticleContainer
     : public PhysicalParticleContainer
 {
@@ -63,9 +65,11 @@ public:
                               int lev,
                               amrex::Real dt ) override {};
 
-
+//This function initialises the optical depth of the photons
 #ifdef WARPX_QED
-    virtual void InitOpticalDepth();
+    virtual void InitOpticalDepth(
+                                    WarpXParIter& pti,
+                                    warpx_breit_wheeler_engine& engine);
 #endif
 
 private:
