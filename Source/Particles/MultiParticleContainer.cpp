@@ -10,13 +10,15 @@ using namespace amrex;
 
 constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
 
-#ifdef WARPX_QED
+
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core):
-        bw_engine{std::move(amrex_rng_wrapper{})}//, default_lambda};//, bw_ctrl};
-#else
-MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
-#endif
+    bw_engine{std::move(init_warpx_breit_wheeler_engine())}
 {
+
+#ifdef WARPX_QED
+    
+#endif
+
     ReadParameters();
 
     allcontainers.resize(nspecies + nlasers);

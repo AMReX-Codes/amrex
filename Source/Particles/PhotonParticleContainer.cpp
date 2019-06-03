@@ -37,6 +37,10 @@ void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
 
+#ifdef WARPX_QED    
+    InitOpticalDepth();
+#endif
+
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
     }
