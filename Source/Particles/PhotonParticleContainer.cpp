@@ -22,7 +22,7 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // where <species> is the name of your species
     ParmParse pp(species_name);
 
-    // read <species>.size_in_inches in the input file, and 
+    // read <species>.size_in_inches in the input file, and
     // store it into member data.
     pp.query("size_in_inches", size_in_inches);
 
@@ -56,13 +56,20 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     auto& Byp = attribs[PIdx::By];
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
-    
-    // Probably want to push photons in some way here.
-    // PhysicalParticleContainer::PushPX is probably
-    // a good start. Let's start by writing CPU code.
-    for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
-    {
-    }
+
+    // Using new pusher for positions    
+    const amrex_real zero_mass = 0.0;
+    const amrex_real zero_charge = 0.0;
+    warpx_particle_pusher_positions(&np,
+                      xp.dataPtr(),
+                      yp.dataPtr(),
+                      zp.dataPtr(),
+                      uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                      giv.dataPtr(),
+                      Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                      Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
+                      &zero_charge, &zero_mass, &dt,
+                      &WarpX::particle_pusher_algo);
 }
 
 void
@@ -77,7 +84,7 @@ PhotonParticleContainer::Evolve (int lev,
                                         Real t, Real dt)
 {
     // This does gather, push and depose.
-    // Push and depose have been re-written for photon, 
+    // Push and depose have been re-written for photon,
     // so they do not do anything.
     // Currently, I guess photons do gather fields from the mesh.
     PhysicalParticleContainer::Evolve (lev,

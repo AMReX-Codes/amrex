@@ -87,7 +87,7 @@ extern "C"
                             const amrex_real* uxp, const amrex_real* uyp, const amrex_real* uzp,
                             amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
                             amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
-    
+
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -167,6 +167,16 @@ extern "C"
 			const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
 			const long* particle_pusher_algo);
 
+      // Particle pusher (positions)
+
+  void warpx_particle_pusher_positions(const long* np,
+    amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
+    amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp, amrex::Real* gaminv,
+    const amrex::Real* exp, const amrex::Real* eyp,const amrex::Real* ezp,
+    const amrex::Real* bxp, const amrex::Real* byp,const amrex::Real* bzp,
+    const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
+    const long* particle_pusher_algo);
+
 
     // Laser pusher
 
@@ -185,7 +195,7 @@ extern "C"
        amrex::Real* u_Xx, amrex::Real* u_Xy, amrex::Real* u_Xz,
        amrex::Real* u_Yx, amrex::Real* u_Yy, amrex::Real* u_Yz,
        amrex::Real* positionx, amrex::Real* positiony, amrex::Real* positionz );
-  
+
   void update_laser_particle( const long* np,
        amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
        amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp,
@@ -194,7 +204,7 @@ extern "C"
        amrex::Real* nvecx, amrex::Real* nvecy, amrex::Real* nvecz,
        amrex::Real* mobility, amrex::Real* dt,  const amrex::Real* c,
        const amrex::Real* beta_boost, const amrex::Real* gamma_boost );
-  
+
     // Maxwell solver
 
         void warpx_push_evec(

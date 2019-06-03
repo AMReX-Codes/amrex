@@ -117,7 +117,7 @@ contains
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
     pxr_l_nodal = l_nodal .eq. 1
-    
+
     exg_nguards = ixyzmin - exg_lo
     eyg_nguards = ixyzmin - eyg_lo
     ezg_nguards = ixyzmin - ezg_lo
@@ -268,7 +268,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 #ifdef WARPX_RZ
     integer(c_long) :: type_rz_depose = 1
 #endif
-    
+
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: rho_nvalid(AMREX_SPACEDIM), rho_nguards(AMREX_SPACEDIM)
     rho_nvalid = rho_ntot - 2*rho_ng
@@ -387,7 +387,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
-#ifdef WARPX_RZ    
+#ifdef WARPX_RZ
     integer(c_long) :: type_rz_depose = 1
 #endif
     ! Compute the number of valid cells and guard cells
@@ -586,6 +586,58 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         )
 
   end subroutine warpx_push_evec
+
+
+  ! _________________________________________________________________
+    !>
+    !> @brief
+    !> Main subroutine for the particle positions
+    !>
+    !> @param[in] np number of super-particles
+    !> @param[in] xp,yp,zp particle position arrays
+    !> @param[in] uxp,uyp,uzp normalized momentum in each direction
+    !> @param[in] gaminv particle Lorentz factors
+    !> @param[in] ex,ey,ez particle electric fields in each direction [UNUSED]
+    !> @param[in] bx,by,bz particle magnetic fields in each direction [UNUSED]
+    !> @param[in] q charge
+    !> @param[in] m masse
+    !> @param[in] dt time step
+    !> @param[in] particle_pusher_algo Particle pusher algorithm [UNUSED]
+    subroutine warpx_particle_pusher_positions(np,xp,yp,zp,uxp,uyp,uzp, &
+                                    gaminv,&
+                                    ex,ey,ez,bx,by,bz,q,m,dt, &
+                                    particle_pusher_algo) &
+         bind(C, name="warpx_particle_pusher_positions")
+
+         INTEGER(c_long), INTENT(IN)   :: np
+        REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
+        REAL(amrex_real),INTENT(IN)       :: xp(np),yp(np),zp(np)
+        REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
+        REAL(amrex_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
+        REAL(amrex_real),INTENT(IN)       :: bx(np),by(np),bz(np)
+        REAL(amrex_real),INTENT(IN)       :: q,m,dt
+        INTEGER(c_long), INTENT(IN)   :: particle_pusher_algo
+
+        INTEGER(c_long) :: ip
+
+        IF (m > 0.0) THEN
+          CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+        ELSE
+          DO ip=1, np
+            gaminv(ip) = 0.0
+          END DO
+        END IF
+
+      !!!! --- push particle species positions a time step
+#if (AMREX_SPACEDIM == 3) || (defined WARPX_RZ)
+        CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
+#elif (AMREX_SPACEDIM == 2)
+        CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
+#endif
+
+    end subroutine warpx_particle_pusher_positions
+
+
 
   ! _________________________________________________________________
   !>
