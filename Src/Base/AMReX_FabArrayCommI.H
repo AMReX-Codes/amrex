@@ -88,7 +88,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             });
                         }
     
-                        bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                        bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
                         cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
                         if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
                     }
@@ -328,7 +328,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         }
                     }
     
-                    bool last_iter( sit() == (N_snds-1) ); 
+                    bool last_iter = sit() == (N_snds-1);
                     cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
                     if (last_iter) { const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( graphExec ); }
                 }
@@ -420,6 +420,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
+    if (N_locs > 0)
     {
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
@@ -459,7 +460,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         for (int t = 0; t<tags.size(); ++t)
                         {
                             Gpu::Device::setStreamIndex(cuda_stream++);
-                            Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0) && (t == 0) );
+                            Gpu::Device::startGraphRecording(idx==0);
 
                             const auto& tag = tags[t];
                             const Dim3 offset = tag.offset.dim3();
@@ -474,10 +475,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                                 }
                             });
 
-                            bool last_iter( (mfi.LocalIndex() == (this->local_size()-1)) && (t == tags.size()-1) );
+                            bool last_iter = idx == launches;
                             cudaGraphExec_t graphExec = Gpu::Device::stopGraphRecording(last_iter);
                             if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
-
                         }
                     }
                 }
@@ -656,7 +656,7 @@ FabArray<FAB>::FillBoundary_finish ()
                             });
                         }
     
-                        bool last_iter( mfi.LocalIndex() == (this->local_size()-1) );
+                        bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
                         cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
                         if (last_iter) { const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( graphExec ); }
                     }
@@ -1079,6 +1079,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
+        if (N_locs > 0)
 	{
             bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
             if (Gpu::inLaunchRegion() || !is_thread_safe)
