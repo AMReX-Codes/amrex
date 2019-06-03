@@ -102,11 +102,13 @@ CNS::variableSetUp ()
 {
     read_params();
 
+    Geometry const* gg = AMReX::top()->getDefaultGeometry();
+
     cns_init_fort(phys_bc.lo(), phys_bc.hi(),
                   PhysBCType::interior, PhysBCType::inflow, PhysBCType::outflow,
                   PhysBCType::symmetry, PhysBCType::slipwall, PhysBCType::noslipwall,
                   ParallelDescriptor::MyProc(),
-                  Geometry::ProbLo(), Geometry::ProbHi());
+                  gg->ProbLo(), gg->ProbHi());
 
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;

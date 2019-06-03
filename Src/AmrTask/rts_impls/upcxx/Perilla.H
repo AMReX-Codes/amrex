@@ -41,11 +41,11 @@ namespace amrex{
 	static void serviceLocalRequests(RegionGraph *graph, int tg);
 	static void serviceRemoteRequests(RegionGraph *graph, int graphID, int nGraphs);
 	static void serviceRemoteRequests(RegionGraph *graph);  
-	static void serviceSingleGraphComm(RegionGraph* graph, int tid);
-	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bool cpyAcross, int tid);
+	//static void serviceSingleGraphComm(RegionGraph* graph, int tid);
+	//static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bool cpyAcross, int tid);
 	static void serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid);
         static void flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> >graphArray, std::vector<RegionGraph*> &flattenedGraphArray);
-	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, int tid);
+	//static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, int tid);
 	static void fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f);
 	static void fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f,  bool singleT);
 

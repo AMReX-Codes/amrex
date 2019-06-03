@@ -90,10 +90,6 @@ if (ENABLE_PROFPARSER)
    add_subdirectory(Extern/ProfParser)
 endif ()
 
-if (ENABLE_3D_NODAL_MLMG)
-   add_subdirectory(Extern/Algoim)
-endif ()
-
 if (ENABLE_SENSEI_INSITU)
    add_subdirectory(Extern/SENSEI)
 endif ()
@@ -109,7 +105,6 @@ endif ()
 if (ENABLE_HYPRE)
    add_subdirectory(Extern/HYPRE)
 endif ()
-
 
 find_package(Python)
 #

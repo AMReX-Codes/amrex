@@ -16,8 +16,16 @@ class AmrMesh
 {
 public:
     AmrMesh ();
-    AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord=-1,
-             Vector<IntVect> refrat = Vector<IntVect>());
+
+    AmrMesh (const RealBox* rb, int max_level_in,
+             const Vector<int>& n_cell_in, int coord=-1,
+             Vector<IntVect> refrat = Vector<IntVect>(),
+             const int* is_per = nullptr);
+
+    AmrMesh (const RealBox& rb, int max_level_in,
+             const Vector<int>& n_cell_in, int coord,
+             Vector<IntVect> const& ref_ratios,
+             Array<int,AMREX_SPACEDIM> const& is_per);
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
@@ -205,9 +213,12 @@ protected:
 
 private:
     void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
-                      Vector<IntVect> refrat = Vector<IntVect>());
+                      Vector<IntVect> refrat = Vector<IntVect>(),
+                      const RealBox* rb = nullptr, int coord = -1,
+                      const int* is_per = nullptr);
 
-    static void ProjPeriodic (BoxList& bd, const Geometry& geom);
+    static void ProjPeriodic (BoxList& bd, const Box& domain,
+                              Array<int,AMREX_SPACEDIM> const& is_per);
 };
 
 }

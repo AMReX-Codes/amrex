@@ -6,6 +6,10 @@
 #endif
 
 namespace amrex {
+    enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
+}
+
+namespace amrex {
 namespace Cuda {
 
 #if defined(AMREX_USE_GPU)

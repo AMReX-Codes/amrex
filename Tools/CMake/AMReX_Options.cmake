@@ -157,13 +157,6 @@ if (ENABLE_CONDUIT)
 endif ()
 
 
-if (ENABLE_LINEAR_SOLVERS AND (DIM EQUAL 3) AND (NOT USE_XSDK_DEFAULTS) )
-   option(ENABLE_3D_NODAL_MLMG "Enable 3D nodal MLMG" OFF)
-   print_option(ENABLE_3D_NODAL_MLMG)
-else ()
-   set(ENABLE_3D_NODAL_MLMG OFF CACHE INTERNAL "Enable 3D nodal MLMG")
-endif ()
-
 #
 # External packages
 #
@@ -178,15 +171,6 @@ else ()
    set(ENABLE_HYPRE OFF CACHE INTERNAL "Enable Hypre interfaces")
 endif ()
 
-#
-# This options are paths to external libraries installation directories
-#
-if (USE_XSDK_DEFAULTS)
-   set( ALGOIM_INSTALL_DIR "" CACHE PATH
-      "Path to Algoim installation directory")
-   set(  BLITZ_INSTALL_DIR "" CACHE PATH
-      "Path to Blitz installation directory")
-endif ()
 
 #
 # Compilation options
