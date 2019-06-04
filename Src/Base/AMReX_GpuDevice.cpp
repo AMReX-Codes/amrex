@@ -493,7 +493,7 @@ Device::startGraphStreamRecording()
         //   (and add each cuda API call to a unique function so users can make their own).
 
         cudaStream_t currentStream = gpu_stream;
-        for (int i=0; i<numCudaStreams(); ++i)
+        for (int i=0; i<numGpuStreams(); ++i)
         {
             setStreamIndex(i);
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
@@ -517,9 +517,9 @@ Device::stopGraphStreamRecording()
         // Should make multiple options for building for future flexibility.
         //   (and add each cuda API call to a unique function so users can make their own).
 
-        cudaGraph_t     graph[numCudaStreams()];
+        cudaGraph_t     graph[numGpuStreams()];
         cudaStream_t currentStream = gpu_stream;
-        for (int i=0; i<numCudaStreams(); ++i)
+        for (int i=0; i<numGpuStreams(); ++i)
         {
             setStreamIndex(i);
             AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
@@ -531,13 +531,13 @@ Device::stopGraphStreamRecording()
 
         AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
         AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
-        for (int i=0; i<numCudaStreams(); ++i)
+        for (int i=0; i<numGpuStreams(); ++i)
         {
             AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
         }
         graphExec = instantiateGraph(graphFull);
 
-        for (int i=0; i<numCudaStreams(); ++i)
+        for (int i=0; i<numGpuStreams(); ++i)
         {
             AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
         }
