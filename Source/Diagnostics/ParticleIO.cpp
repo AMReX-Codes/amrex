@@ -74,15 +74,45 @@ MultiParticleContainer::Checkpoint (const std::string& dir) const
 }
 
 void
-MultiParticleContainer::WritePlotFile (const std::string& dir,
-                                       const Vector<std::string>& real_names) const
+MultiParticleContainer::WritePlotFile (const std::string& dir) const
 {
     Vector<std::string> int_names;    
     Vector<int> int_flags;
-    
+
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-        auto& pc = allcontainers[i];
+        auto& pc = allcontainers[i];                
         if (pc->plot_species) {
+
+            Vector<std::string> real_names;
+            real_names.push_back("weight");
+
+            real_names.push_back("momentum_x");
+            real_names.push_back("momentum_y");
+            real_names.push_back("momentum_z");
+            
+            real_names.push_back("Ex");
+            real_names.push_back("Ey");
+            real_names.push_back("Ez");
+            
+            real_names.push_back("Bx");
+            real_names.push_back("By");
+            real_names.push_back("Bz");
+            
+#ifdef WARPX_RZ
+            real_names.push_back("theta");
+#endif
+            
+            if (WarpX::do_boosted_frame_diagnostic && pc->DoBoostedFrameDiags())
+            {
+                real_names.push_back("xold");
+                real_names.push_back("yold");
+                real_names.push_back("zold");
+                
+                real_names.push_back("uxold");
+                real_names.push_back("uyold");
+                real_names.push_back("uzold");
+            }
+                        
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
             // real_names contains a list of all particle attributes.
