@@ -128,14 +128,14 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
+                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
 
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
 
-                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
+                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Gpu::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
 
             BL_PROFILE_VAR_STOP(cgc);
@@ -151,7 +151,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[mfi.LocalIndex()], amrex::Cuda::Device::cudaStream())); 
+                AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[mfi.LocalIndex()], amrex::Gpu::Device::cudaStream())); 
             }
 
             amrex::Gpu::Device::synchronize();
@@ -169,17 +169,17 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR("CREATE: StreamPerGraph", cgc);
 
-            cudaGraph_t     graph[amrex::numGpuStreams()];
-            cudaGraphExec_t graphExec[amrex::numGpuStreams()];
+            cudaGraph_t     graph[amrex::Gpu::numGpuStreams()];
+            cudaGraphExec_t graphExec[amrex::Gpu::numGpuStreams()];
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 if (mfi.LocalIndex() == 0)
                 {
-                    for (int i=0; i<amrex::numGpuStreams(); ++i)
+                    for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
                     {
                         amrex::Gpu::Device::setStreamIndex(i);
-                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
+                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
                     }
                     amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
                 } 
@@ -193,10 +193,10 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
-                    for (int i=0; i<amrex::numGpuStreams(); ++i)
+                    for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
                     {
                         amrex::Gpu::Device::setStreamIndex(i); 
-                        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[i])));
+                        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Gpu::Device::cudaStream(), &(graph[i])));
                     }  
                 }
             }
@@ -204,7 +204,7 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR_STOP(cgc);
             BL_PROFILE_VAR("INSTANTIATE: StreamPerGraph", cgi);
 
-            for (int i = 0; i<amrex::numGpuStreams(); ++i)
+            for (int i = 0; i<amrex::Gpu::numGpuStreams(); ++i)
             {
                 AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec[i], graph[i], NULL, NULL, 0));
             }
@@ -212,10 +212,10 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR_STOP(cgi);
             BL_PROFILE_VAR("LAUNCH: StreamPerGraph", cgl);
 
-            for (int i = 0; i<amrex::numGpuStreams(); ++i)
+            for (int i = 0; i<amrex::Gpu::numGpuStreams(); ++i)
             {
                 amrex::Gpu::Device::setStreamIndex(i); 
-                AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[i], amrex::Cuda::Device::cudaStream())); 
+                AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[i], amrex::Gpu::Device::cudaStream())); 
             }
 
             amrex::Gpu::Device::synchronize();
@@ -240,7 +240,7 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
+                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
 
                 // ..................
                 const Box bx = mfi.validbox();
@@ -249,7 +249,7 @@ int main (int argc, char* argv[])
                 MFIterLoopFunc(bx, val, a);
                 // ..................
 
-                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
+                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Gpu::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
 
             cudaGraph_t     graphFull;
@@ -271,7 +271,7 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR("LAUNCH: IterGraph", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
-            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Gpu::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
             amrex::Gpu::Device::resetStreamIndex();
 
@@ -290,17 +290,17 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR("CREATE: StreamGraph", cgc);
 
-            cudaGraph_t     graph[amrex::numGpuStreams()];
+            cudaGraph_t     graph[amrex::Gpu::numGpuStreams()];
             cudaGraphExec_t graphExec;
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 if (mfi.LocalIndex() == 0)
                 {
-                    for (int i=0; i<amrex::numGpuStreams(); ++i)
+                    for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
                     {
                         amrex::Gpu::Device::setStreamIndex(i);
-                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
+                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream()));
                     }
                     amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
                 } 
@@ -314,10 +314,10 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
-                    for (int i=0; i<amrex::numGpuStreams(); ++i)
+                    for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
                     {
                         amrex::Gpu::Device::setStreamIndex(i); 
-                        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[i])));
+                        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Gpu::Device::cudaStream(), &(graph[i])));
                     }
                 }
             }
@@ -327,7 +327,7 @@ int main (int argc, char* argv[])
 
             AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
             AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
-            for (int i=0; i<amrex::numGpuStreams(); ++i)
+            for (int i=0; i<amrex::Gpu::numGpuStreams(); ++i)
             {
                 AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
             }
@@ -341,7 +341,7 @@ int main (int argc, char* argv[])
             BL_PROFILE_VAR("LAUNCH: StreamGraph", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
-            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Gpu::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
             amrex::Gpu::Device::resetStreamIndex();
 
@@ -354,7 +354,7 @@ int main (int argc, char* argv[])
             *val = 10.0;
 
             amrex::Gpu::Device::setStreamIndex(0); 
-            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Gpu::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
 
             BL_PROFILE_VAR_STOP(cgrl);

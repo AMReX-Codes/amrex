@@ -97,6 +97,7 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
+    amrex::Gpu::GraphSafeGuard gpu_gsg(true);
     {
 
         // AMREX_SPACEDIM: number of dimensions
