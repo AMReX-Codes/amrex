@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <AMReX_Gpu.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
@@ -97,6 +98,7 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
+    amrex::Gpu::GraphSafeGuard gpu_gsg(true);
     {
 
         // AMREX_SPACEDIM: number of dimensions
@@ -662,7 +664,7 @@ int main (int argc, char* argv[])
 
                 // Method to directly add individual memcpy_asyncs to the graph. 
                 CopyMemory* cgh = cgraph.getHostPtr(idx);
-                Gpu::Device::htod_memcpy_async(cgd, cgh, sizeof(CopyMemory));
+                Gpu::htod_memcpy_async(cgd, cgh, sizeof(CopyMemory));
 
                 AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                 {
@@ -774,7 +776,7 @@ int main (int argc, char* argv[])
                                         cudaMemcpyHostToDevice, graph_stream));
                     AMREX_GPU_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
 
-                    for (int i=0; i<Gpu::Device::numCudaStreams(); ++i)
+                    for (int i=0; i<Gpu::Device::numGpuStreams(); ++i)
                     {
                         Gpu::Device::setStreamIndex(i);
                         if (!(Gpu::Device::cudaStream() == graph_stream))
@@ -803,7 +805,7 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
-                    for (int i=0; i<Gpu::Device::numCudaStreams(); ++i)
+                    for (int i=0; i<Gpu::Device::numGpuStreams(); ++i)
                     {
                         Gpu::Device::setStreamIndex(i);
                         if (!(Gpu::Device::cudaStream() == graph_stream))
