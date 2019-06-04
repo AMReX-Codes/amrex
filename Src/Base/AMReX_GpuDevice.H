@@ -35,7 +35,7 @@ public:
     // for backward compatibility
     static cudaStream_t cudaStream () noexcept { return gpu_stream; }
 #endif
-    static int numGpuStreams () { return max_gpu_streams; }
+    static int numGpuStreams () noexcept { return max_gpu_streams; }
 #endif
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
@@ -147,6 +147,12 @@ inline gpuStream_t
 gpuStream () noexcept
 {
     return Device::gpuStream();
+}
+
+inline int
+numGpuStreams () noexcept
+{
+    return Device::numGpuStreams();
 }
 #endif
 
