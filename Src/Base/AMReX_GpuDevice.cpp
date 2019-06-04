@@ -548,6 +548,50 @@ Device::stopGraphStreamRecording()
 }
 
 cudaGraphExec_t
+Device::stopGraphStreamRecording(cudaGraph_t rootGraph)
+{
+    cudaGraphExec_t graphExec;
+
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        // Note: This builds a graph per stream and then assembles them into a single graph. 
+        // Should make multiple options for building for future flexibility.
+        //   (and add each cuda API call to a unique function so users can make their own).
+
+        cudaGraph_t     graph[numGpuStreams()];
+        cudaStream_t currentStream = gpu_stream;
+        for (int i=0; i<numGpuStreams(); ++i)
+        {
+            setStreamIndex(i);
+            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
+        }
+        gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+
+        cudaGraph_t     graphFull;
+        cudaGraphNode_t rootNode, placeholder;
+
+        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&rootNode, graphFull, NULL, 0, rootGraph));
+
+        for (int i=0; i<numGpuStreams(); ++i)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &rootNode, 1, graph[i]));
+        }
+        graphExec = instantiateGraph(graphFull);
+
+        for (int i=0; i<numGpuStreams(); ++i)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
+        }
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+    }
+
+    return graphExec;
+}
+
+
+
+cudaGraphExec_t
 Device::instantiateGraph(cudaGraph_t graph)
 {
 

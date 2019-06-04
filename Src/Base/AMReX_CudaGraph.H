@@ -106,8 +106,8 @@ struct CudaGraph
     cudaGraph_t copyRootGraph() const { return copyGraph; }
     void createRootGraph() {
         // Assumed that this happens outside MFIter. Might work, but why? 
-        Cuda::Device::setStreamIndex(0);
-        cudaStream_t currentStream = Cuda::Device::cudaStream();
+        Gpu::Device::setStreamIndex(0);
+        cudaStream_t currentStream = Gpu::Device::cudaStream();
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
         AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(currentStream));
 #else
@@ -117,7 +117,7 @@ struct CudaGraph
                         cudaMemcpyHostToDevice, currentStream);
 
         AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(currentStream, &copyGraph));
-        Cuda::Device::resetStreamIndex();
+        Gpu::Device::resetStreamIndex();
     }
     void executeGraph () const {
 //        cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
