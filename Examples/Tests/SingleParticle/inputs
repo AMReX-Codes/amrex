@@ -1,0 +1,23 @@
+max_step = 1
+amr.n_cell = 16 16
+amr.max_level = 0
+amr.blocking_factor = 8
+amr.max_grid_size = 8
+amr.plot_int = 1
+geometry.coord_sys   = 0
+geometry.is_periodic = 0 0
+geometry.prob_lo     = -8 -12
+geometry.prob_hi     =  8  12
+warpx.do_pml = 0
+algo.charge_deposition = standard
+algo.field_gathering = standard
+warpx.cfl = 1.0
+
+particles.nspecies = 1
+particles.species_names = electron
+electron.charge = -q_e
+electron.mass = m_e
+electron.injection_style = "SingleParticle"
+electron.single_particle_pos = 0.0   0.0 0.0
+electron.single_particle_vel = 1.e20 0.0 0.0  # gamma*beta
+electron.single_particle_weight = 1.0

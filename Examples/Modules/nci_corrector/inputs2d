@@ -25,10 +25,7 @@ warpx.verbose = 1
 warpx.use_filter = 1
 
 # Algorithms
-algo.current_deposition = 1
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
+algo.current_deposition = esirkepov
 interpolation.nox = 3
 interpolation.noy = 3
 interpolation.noz = 3
