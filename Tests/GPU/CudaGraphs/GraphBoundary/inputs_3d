@@ -1,0 +1,8 @@
+nsteps = 10
+ 
+n_cell = 256 
+max_grid_size = 64 
+nghost = 1 
+ncomp = 1
+
+amrex.v = 1
