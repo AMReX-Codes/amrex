@@ -124,6 +124,7 @@ function ( set_amrex_defines )
    # 
    # CUDA
    #
+   add_amrex_define( AMREX_USE_GPU  NO_LEGACY IF ENABLE_CUDA )
    add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF ENABLE_CUDA )
    add_amrex_define( AMREX_USE_NVML NO_LEGACY IF ENABLE_CUDA )
    add_amrex_define( AMREX_GPU_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
