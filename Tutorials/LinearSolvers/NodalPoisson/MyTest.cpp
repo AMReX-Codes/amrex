@@ -3,6 +3,7 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -117,6 +118,12 @@ MyTest::compute_norms () const
         const Real* dx = geom[ilev].CellSize();
         Real dvol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
         amrex::Print() << "    1-norm  : " << error.norm1(0, geom[ilev].periodicity())*dvol << "\n";
+
+        amrex::IntVect unit = amrex::IntVect::TheUnitVector();
+        amrex::WriteMultiLevelPlotfile("solution", 2, {&solution[0], &solution[1]},
+                                 {"solution"}, {geom[0], geom[1]}, 0.0, {0, 0},
+                                 {unit, 2 * unit});
+
     }
 }
 
