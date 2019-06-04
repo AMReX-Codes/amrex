@@ -91,6 +91,36 @@ class ManagedVector
 
 /**
 
+   This is an amrex::Vector allocated using pinned memory.
+
+ **/
+template <class T>
+class PinnedVector
+    :
+    public Vector<T, CudaPinnedAllocator<T> >
+    {
+    public:
+
+    using Vector<T, CudaPinnedAllocator<T> >::Vector;
+
+    void assign(typename thrust::host_vector<T>::size_type count, const T& value )
+    {
+        if (Gpu::inLaunchRegion())
+        {
+	    thrust::fill(thrust::device,
+	  	         thrust::raw_pointer_cast(this->data()),
+		         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+	    this->Vector<T, CudaPinnedAllocator<T> >::assign(count, value);
+        }
+    }
+};
+
+
+/**
+
    This is thrust::device_vector allocated using managed memory.
 
  **/
@@ -280,6 +310,9 @@ public:
 
     template <class T>
     using ManagedVector = Vector<T>;
+
+    template <class T>
+    using PinnedVector = Vector<T>;
 
     template <class T>
     using ManagedDeviceVector = Vector<T>;
