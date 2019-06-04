@@ -1657,7 +1657,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
 
-                Gpu::Device::streamSynchronize();
+                Gpu::streamSynchronize();
 
                 if (num_particles == 0) continue;
 
@@ -2355,7 +2355,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
                               grid_indices.end(),
                               host_grids.begin());
 
-            Gpu::Device::streamSynchronize();
+            Gpu::streamSynchronize();
 
             for (int j = 0; j < np; ++j) {
                 if (grid_indices[j] != i) 
@@ -3682,7 +3682,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	}
       }
     
-    Gpu::Device::streamSynchronize();
+    Gpu::streamSynchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

@@ -1,5 +1,5 @@
 
-#include <AMReX_CudaUtility.H>
+#include <AMReX_GpuUtility.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -7,7 +7,7 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
 std::ostream&
 operator<< (std::ostream& os, const dim3& d)
@@ -18,13 +18,13 @@ operator<< (std::ostream& os, const dim3& d)
 
 #endif
 
-namespace Cuda {
+namespace Gpu {
 
 StreamIter::StreamIter (const int n, bool is_thread_safe) noexcept
     : m_n(n), m_i(0), m_threadsafe(is_thread_safe)
 {
-#if defined(AMREX_USE_CUDA)
-    Cuda::Device::setStreamIndex(m_i);
+#if defined(AMREX_USE_GPU)
+    Gpu::Device::setStreamIndex(m_i);
 #elif defined(_OPENMP)
     int nthreads = omp_get_num_threads();
     if (nthreads > 1) {
@@ -43,20 +43,20 @@ StreamIter::StreamIter (const int n, bool is_thread_safe) noexcept
 }
 
 StreamIter::~StreamIter () {
-#ifdef AMREX_USE_CUDA
-    Cuda::Device::synchronize();
+#ifdef AMREX_USE_GPU
+    Gpu::synchronize();
     AMREX_GPU_ERROR_CHECK();
-    Cuda::Device::resetStreamIndex();
+    Gpu::Device::resetStreamIndex();
 #endif
 }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 void
 StreamIter::operator++ () noexcept
 {
     ++m_i;
     if (m_threadsafe) {
-        Cuda::Device::setStreamIndex(m_i);
+        Gpu::Device::setStreamIndex(m_i);
         AMREX_GPU_ERROR_CHECK();
     }
 }

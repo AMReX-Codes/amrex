@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <memory>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 
 namespace amrex {
 namespace Cuda {
@@ -32,14 +32,14 @@ void
 Elixir::clear () noexcept
 {
 #ifdef AMREX_USE_CUDA
-    if (inLaunchRegion())
+    if (Gpu::inLaunchRegion())
     {
         if (m_p != nullptr) {
             void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));
             p[0] = m_p;
             p[1] = (void*)m_arena;
-            AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
-                                                      amrex_elixir_delete, p, 0));
+            AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
+                                                       amrex_elixir_delete, p, 0));
         }
     }
     else

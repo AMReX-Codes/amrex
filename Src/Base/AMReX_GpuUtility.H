@@ -1,8 +1,9 @@
-#ifndef AMREX_CUDA_UTILITY_H_
-#define AMREX_CUDA_UTILITY_H_
+#ifndef AMREX_GPU_UTILITY_H_
+#define AMREX_GPU_UTILITY_H_
 
 #include <AMReX_GpuQualifiers.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuControl.H>
+#include <AMReX_GpuDevice.H>
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
@@ -14,7 +15,7 @@
 #endif
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -49,7 +50,12 @@ namespace Cuda {
     }
 
     inline bool isDevicePtr (void const* p) noexcept {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_HIP)
+        hipPointerAttribute_t attrib;
+        // const_cast: earlier versions of hip have a bug
+        hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+        return r == hipSuccess && attrib.memoryType == hipMemoryTypeDevice;
+#elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
         void* data[] = { (void*)(&mem_type) };
@@ -61,7 +67,12 @@ namespace Cuda {
     }
 
     inline bool isPinnedPtr (void const* p) noexcept {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_HIP)
+        hipPointerAttribute_t attrib;
+        // const_cast: earlier versions of hip have a bug
+        hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+        return r == hipSuccess && attrib.memoryType == hipMemoryTypeHost;
+#elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
         void* data[] = { (void*)(&mem_type) };
@@ -73,7 +84,18 @@ namespace Cuda {
     }
 
     inline bool isGpuPtr (void const* p) noexcept {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_HIP)
+        if (isManaged(p)) { // We might be using CUDA/NVCC
+            return true;
+        } else {
+            hipPointerAttribute_t attrib;
+            // const_cast: earlier versions of hip have a bug
+            hipError_t r = hipPointerGetAttributes(&attrib, const_cast<void*>(p));
+            return r == hipSuccess &&
+                (attrib.memoryType == hipMemoryTypeHost   ||
+                 attrib.memoryType == hipMemoryTypeDevice);
+        }
+#elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
         void* data[] = { (void*)(&mem_type) };
@@ -90,7 +112,7 @@ namespace Cuda {
 
     namespace Atomic {
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         namespace detail {
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -147,13 +169,13 @@ namespace Cuda {
                 return __longlong_as_double(old);
             }
         } // namespace detail
-#endif  // AMREX_USE_CUDA
+#endif  // AMREX_USE_GPU
 
         template<class T>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (T* sum, T value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicAdd(sum, value);
 #else
             *sum += value;
@@ -163,7 +185,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (long* sum, long value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicAdd((unsigned long long*)sum, static_cast<unsigned long long>(value));
 #else
             *sum += value;
@@ -174,7 +196,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (T* m, T value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             detail::atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -184,7 +206,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (int* m, int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -194,7 +216,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (unsigned int* m, unsigned int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -204,7 +226,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (unsigned long long int* m, unsigned long long int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicMin(m, value);
 #else
             *m = (*m) < value ? (*m) : value;
@@ -215,7 +237,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (T* m, T value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             detail::atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -225,7 +247,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (int* m, int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -235,7 +257,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (unsigned int* m, unsigned int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -245,7 +267,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (unsigned long long int* m, unsigned long long int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicMax(m, value);
 #else
             *m = (*m) > value ? (*m) : value;
@@ -255,7 +277,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Or (int* m, int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicOr(m, value);
 #else
             *m = (*m) || value; 
@@ -265,7 +287,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void And (int* m, int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             atomicAnd(m, value);
 #else
             *m = (*m) && value; 
@@ -275,7 +297,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         unsigned int Inc (unsigned int* m, unsigned int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             return atomicInc(m, value);
 #else
             return (*m)++;
@@ -285,7 +307,7 @@ namespace Cuda {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         unsigned int Dec (unsigned int* m, unsigned int value) noexcept
         {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
             return atomicDec(m, value);
 #else
             return (*m)--;
@@ -296,10 +318,10 @@ namespace Cuda {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool isnan(T m) noexcept
+    bool isnan (T m) noexcept
     {
-#if defined(__CUDA_ARCH__)
-        return isnan(m);
+#ifdef AMREX_DEVICE_COMPILE
+        return ::isnan(m);
 #else
         return std::isnan(m);
 #endif
@@ -307,10 +329,10 @@ namespace Cuda {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool isinf(T m) noexcept
+    bool isinf (T m) noexcept
     {
-#ifdef __CUDA_ARCH__
-        return isinf(m);
+#ifdef AMREX_DEVICE_COMPILE
+        return ::isinf(m);
 #else
         return std::isinf(m);
 #endif
@@ -331,7 +353,7 @@ namespace Cuda {
 
         bool isValid () const noexcept { return m_i < m_n; }
 
-#if !defined(AMREX_USE_CUDA)
+#if !defined(AMREX_USE_GPU)
         void operator++ () noexcept { ++m_i; }
 #else
         void operator++ () noexcept;
@@ -343,14 +365,14 @@ namespace Cuda {
         bool m_threadsafe;
     };
 
-} // namespace Cuda
+} // namespace Gpu
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 std::ostream& operator<< (std::ostream& os, const dim3& d);
 #endif
 
-using Cuda::isnan;
-using Cuda::isinf;
+using Gpu::isnan;
+using Gpu::isinf;
 
 } // namespace amrex
 

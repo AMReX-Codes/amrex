@@ -54,7 +54,7 @@
     { \
       dim3 numBlocks, numThreads; \
       amrex::Gpu::Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
-      function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::cudaStream()>>>(__VA_ARGS__); \
+      function<<<numBlocks, numThreads, 0, amrex::Gpu::gpuStream()>>>(__VA_ARGS__); \
       AMREX_GPU_ERROR_CHECK(); \
     }
 
@@ -90,14 +90,14 @@
       dim3 function##numBlocks, function##numThreads; \
       amrex::Gpu::Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
       AMREX_GPU_SAFE_CALL(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
-      cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::Device::cudaStream()>>> \
+      cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::gpuStream()>>> \
 
 #else
 
 #define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function##numBlocks, function##numThreads; \
       amrex::Gpu::Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
-      cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::Device::cudaStream()>>> \
+      cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::gpuStream()>>> \
 
 #endif
 

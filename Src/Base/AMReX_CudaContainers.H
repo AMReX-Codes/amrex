@@ -76,7 +76,7 @@ class ManagedVector
 
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        if (Cuda::inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
 	    thrust::fill(thrust::device,
 	  	         thrust::raw_pointer_cast(this->data()),
@@ -136,7 +136,7 @@ public:
 
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        if (Cuda::inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             thrust::fill(thrust::device,
                          thrust::raw_pointer_cast(this->data()),
@@ -196,7 +196,7 @@ public:
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        if (Cuda::inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             thrust::fill(thrust::device,
                          thrust::raw_pointer_cast(this->data()),
@@ -257,7 +257,7 @@ public:
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        if (Cuda::inLaunchRegion())
+        if (Gpu::inLaunchRegion())
         {
             thrust::fill(thrust::device,
                          thrust::raw_pointer_cast(this->data()),
