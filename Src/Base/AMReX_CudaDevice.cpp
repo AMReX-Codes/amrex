@@ -38,6 +38,12 @@ dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 
 cudaDeviceProp Device::device_prop;
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+bool Device::graph_per_stream = true;
+Vector<cudaGraph_t> Device::cuda_graphs;
+#endif
+
 #endif
 
 void
@@ -277,6 +283,7 @@ Device::initialize_cuda ()
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
+
 #endif
 }
 
@@ -313,6 +320,206 @@ Device::streamSynchronize ()
     AMREX_GPU_SAFE_CALL(cudaStreamSynchronize(cuda_stream));
 #endif
 }
+
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+
+void 
+Device::startGraphRecording(bool first_iter)
+{
+    if (isGraphPerStream())
+    {
+        if (first_iter) {
+            startGraphStreamRecording();
+        }
+    } else {
+        startGraphIterRecording();
+    }
+}
+
+cudaGraphExec_t
+Device::stopGraphRecording(bool last_iter)
+{
+    if (isGraphPerStream())
+    {
+        if (last_iter) {
+            return stopGraphStreamRecording();
+        }
+    } else {
+        stopGraphIterRecording();
+        if (last_iter) {
+            return assembleGraphIter();
+        }
+    }
+
+    return NULL;
+}
+
+
+void
+Device::startGraphIterRecording()
+{
+    if (inLaunchRegion() && inGraphRegion())
+    {
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+#else  
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
+#endif
+    }
+}
+
+void
+Device::stopGraphIterRecording()
+{
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        cudaGraph_t curr_graph;
+        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(curr_graph)));
+
+        cuda_graphs.push_back(curr_graph);
+    }
+}
+
+cudaGraphExec_t
+Device::assembleGraphIter()
+{
+    cudaGraphExec_t graphExec;
+
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        cudaGraph_t     graphFull;
+        cudaGraphNode_t emptyNode, placeholder;
+
+        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
+
+        for (auto it = cuda_graphs.begin(); it != cuda_graphs.end(); ++it)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, *it));
+        }
+
+        graphExec = instantiateGraph(graphFull);
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+    }
+
+    for (int i=0; i<cuda_graphs.size(); ++i)
+    {
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(cuda_graphs[i]));
+    }
+    cuda_graphs.clear();
+
+    return graphExec;
+}
+
+void
+Device::startGraphStreamRecording()
+{
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        // Note: This builds a graph per stream and then assembles them into a single graph. 
+        // Should make multiple options for building for future flexibility.
+        //   (and add each cuda API call to a unique function so users can make their own).
+
+        cudaStream_t currentStream = cuda_stream;
+        for (int i=0; i<numCudaStreams(); ++i)
+        {
+            setStreamIndex(i);
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+#else  
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
+#endif
+        }
+        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+    }
+}
+
+cudaGraphExec_t
+Device::stopGraphStreamRecording()
+{
+    cudaGraphExec_t graphExec;
+
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        // Note: This builds a graph per stream and then assembles them into a single graph. 
+        // Should make multiple options for building for future flexibility.
+        //   (and add each cuda API call to a unique function so users can make their own).
+
+        cudaGraph_t     graph[numCudaStreams()];
+        cudaStream_t currentStream = cuda_stream;
+        for (int i=0; i<numCudaStreams(); ++i)
+        {
+            setStreamIndex(i);
+            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
+        }
+        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+
+        cudaGraph_t     graphFull;
+        cudaGraphNode_t emptyNode, placeholder;
+
+        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
+        for (int i=0; i<numCudaStreams(); ++i)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
+        }
+        graphExec = instantiateGraph(graphFull);
+
+        for (int i=0; i<numCudaStreams(); ++i)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
+        }
+        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+    }
+
+    return graphExec;
+}
+
+cudaGraphExec_t
+Device::instantiateGraph(cudaGraph_t graph)
+{
+
+    cudaGraphExec_t graphExec;
+
+#ifdef AMREX_DEBUG 
+//  Implementes cudaGraphInstantiate error logging feature.
+//  Upon error, delays abort until message is output. 
+    constexpr int log_size = 1028;
+    char graph_log[log_size];
+    graph_log[0]='\0';
+
+    cudaGraphInstantiate(&graphExec, graph, NULL, &(graph_log[0]), log_size); 
+
+    if (graph_log[0] != '\0')
+    {
+        amrex::Print() << graph_log << std::endl;
+        AMREX_GPU_ERROR_CHECK();
+    }
+#else
+
+    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
+
+#endif
+
+    return graphExec;
+
+}
+
+void
+Device::executeGraph(cudaGraphExec_t &graphExec)
+{
+    if (inLaunchRegion() && inGraphRegion())
+    {
+        setStreamIndex(0);
+        AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, cudaStream()));
+        synchronize();
+        resetStreamIndex();
+    }
+}
+
+#endif
+
 
 void
 Device::htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) {
