@@ -379,14 +379,14 @@ Device::setStreamIndex (const int idx) noexcept
 }
 
 void
-Device::synchronize ()
+Device::synchronize () noexcept
 {
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
 }
 
 void
-Device::streamSynchronize ()
+Device::streamSynchronize () noexcept
 {
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpu_stream));,
                        AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpu_stream)); )

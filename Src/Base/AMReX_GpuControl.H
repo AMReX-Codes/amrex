@@ -10,7 +10,7 @@
 #elif defined(AMREX_USE_CUDA)
 #define AMREX_HIP_OR_CUDA(a,b) b
 #else
-#define AMREX_HIP_OR_CUDA(a,b) ((void)0)
+#define AMREX_HIP_OR_CUDA(a,b) ((void)0);
 #endif
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)

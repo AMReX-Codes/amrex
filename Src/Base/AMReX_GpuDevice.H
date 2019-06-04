@@ -42,8 +42,8 @@ public:
 
     static int deviceId () noexcept;
 
-    static void synchronize ();
-    static void streamSynchronize ();
+    static void synchronize () noexcept;
+    static void streamSynchronize () noexcept;
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     // Generic graph selection. These should be called by users. 
@@ -141,11 +141,14 @@ private:
 };
 
 // Put these in amrex::Gpu
+
+#if defined(AMREX_USE_GPU)
 inline gpuStream_t
 gpuStream () noexcept
 {
     return Device::gpuStream();
 }
+#endif
 
 inline void
 synchronize () noexcept
