@@ -1,0 +1,49 @@
+#!/bin/bash -l
+#SBATCH -C gpu
+#SBATCH -t 00:05:00 
+#SBATCH -J AMREX_GPU
+#SBATCH -o AMREX_GPU.o%j
+#SBATCH -A nstaff 
+
+#SBATCH -N 1
+#SBATCH -n 8 
+#SBATCH -c 10
+#SBATCH --gres=gpu:8
+#SBATCH --ntasks-per-node=8
+
+# Note: Given exclusive configuration mode,
+#       you MUST specify your desired resources up top like this.
+#       Cannot put it in the srun line alone.
+#       (You can force lower than your full request in the srun line,
+#        or put the configuration again for safety, but shouldn't be needed.)
+# ============
+# -N                = nodes
+# -n                = tasks (MPI ranks)
+# -c                = CPU per task (full coriGPU node, c*n <= 80)
+# --gres=gpu:       = GPUs per node (full coriGPU node, 8)
+# --ntasks-per-node = number of tasks (MPI ranks) per node (full node, 8)
+#
+
+# For one node:  -N 1, -n  8, -c 10, --gres=gpu:8 --ntasks-per-node 8
+# For two nodes: -N 2, -n 16, -c 10, --gres=gpu:8 --ntasks-per-node 8
+
+# salloc commands:
+# ================
+# Single node:
+# salloc -N 1 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A (your_repo)
+# Multi node:
+# salloc -N 2 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A (your_repo)
+
+# environment setup:
+# ==================
+# module purge
+# module load modules esslurm gcc cuda mvapich2 
+
+srun -n 8 -c 10 --gres=gpu:8 ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+
+#srun -n 8 -c 10 --gres=gpu:8 ./main3d.gnu.DEBUG.TPROF.MPI.CUDA.ex inputs_3d
+
+#srun nvprof -o nvprof.${SLURM_TASK_PID}.nvvp ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+#srun nv-nsight-cu-cli -o profile ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+#srun nsys profile ./main3d.gnu.TPROF.MPI.CUDA.ex inputs_3d
+#srun ./profile.sh
