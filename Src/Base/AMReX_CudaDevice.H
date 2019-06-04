@@ -45,6 +45,7 @@ public:
     // Capture graphs along streams
     static void startGraphStreamRecording();
     static cudaGraphExec_t stopGraphStreamRecording();
+    static cudaGraphExec_t stopGraphStreamRecording(cudaGraph_t rootGraph);
 
     // Instantiate a created cudaGtaph
     static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
