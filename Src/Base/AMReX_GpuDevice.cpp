@@ -28,10 +28,10 @@ int Device::device_id = 0;
 int Device::verbose = 0;
 
 #if defined(AMREX_USE_CUDA)
-constexpr int Device::max_cuda_streams;
+constexpr int Device::max_gpu_streams;
 
-std::array<cudaStream_t,Device::max_cuda_streams> Device::cuda_streams;
-cudaStream_t Device::cuda_stream;
+std::array<cudaStream_t,Device::max_gpu_streams> Device::gpu_streams;
+cudaStream_t Device::gpu_stream;
 
 dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
@@ -81,7 +81,7 @@ Device::Initialize ()
     // Count the number of CUDA visible devices.
 
     int cuda_device_count;
-    AMREX_GPU_SAFE_CALL(cudaGetDeviceCount(&cuda_device_count));
+    AMREX_CUDA_SAFE_CALL(cudaGetDeviceCount(&cuda_device_count));
 
     if (cuda_device_count <= 0) {
         amrex::Abort("No CUDA device found");
@@ -184,8 +184,8 @@ Device::Initialize ()
 
     }
 
-    AMREX_GPU_SAFE_CALL(cudaSetDevice(device_id));
-    AMREX_GPU_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
+    AMREX_CUDA_SAFE_CALL(cudaSetDevice(device_id));
+    AMREX_CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
@@ -218,16 +218,16 @@ Device::Finalize ()
 
     cudaProfilerStop();
 
-    for (int i = 0; i < max_cuda_streams; ++i)
+    for (int i = 0; i < max_gpu_streams; ++i)
     {
-        AMREX_GPU_SAFE_CALL(cudaStreamDestroy(cuda_streams[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_streams[i]));
     }
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
 
-    AMREX_GPU_SAFE_CALL(cudaDeviceReset());
+    AMREX_CUDA_SAFE_CALL(cudaDeviceReset());
 #endif
 }
 
@@ -235,7 +235,7 @@ void
 Device::initialize_cuda ()
 {
 #if defined(AMREX_USE_CUDA)
-    AMREX_GPU_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
+    AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
     if (device_prop.warpSize != 32) {
         amrex::Warning("Warp size != 32");
@@ -244,19 +244,19 @@ Device::initialize_cuda ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
 
     // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
-    AMREX_GPU_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+    AMREX_CUDA_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
 
     if (sizeof(Real) == 8) {
-        AMREX_GPU_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
     } else if (sizeof(Real) == 4) {
-        AMREX_GPU_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+        AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
     }
 
-    for (int i = 0; i < max_cuda_streams; ++i) {
-        AMREX_GPU_SAFE_CALL(cudaStreamCreate(&cuda_streams[i]));
+    for (int i = 0; i < max_gpu_streams; ++i) {
+        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_streams[i]));
     }
 
-    cuda_stream = cuda_streams[0];
+    gpu_stream = gpu_streams[0];
 
     ParmParse pp("device");
 
@@ -298,29 +298,12 @@ Device::setStreamIndex (const int idx) noexcept
 {
 #ifdef AMREX_USE_CUDA
     if (idx < 0) {
-        cuda_stream = 0;
+        gpu_stream = 0;
     } else {
-        cuda_stream = cuda_streams[idx % max_cuda_streams];
+        gpu_stream = gpu_streams[idx % max_gpu_streams];
     }
 #endif
 }
-
-void
-Device::synchronize ()
-{
-#ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
-#endif
-}
-
-void
-Device::streamSynchronize ()
-{
-#ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaStreamSynchronize(cuda_stream));
-#endif
-}
-
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
@@ -362,9 +345,9 @@ Device::startGraphIterRecording()
     if (inLaunchRegion() && inGraphRegion())
     {
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
-        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+        AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
 #else  
-        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
+        AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
 #endif
     }
 }
@@ -375,7 +358,7 @@ Device::stopGraphIterRecording()
     if (inLaunchRegion() && inGraphRegion())
     {
         cudaGraph_t curr_graph;
-        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(curr_graph)));
+        AMREX_CUDA_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(curr_graph)));
 
         cuda_graphs.push_back(curr_graph);
     }
@@ -391,21 +374,21 @@ Device::assembleGraphIter()
         cudaGraph_t     graphFull;
         cudaGraphNode_t emptyNode, placeholder;
 
-        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
-        AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
+        AMREX_CUDA_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_CUDA_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
 
         for (auto it = cuda_graphs.begin(); it != cuda_graphs.end(); ++it)
         {
-            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, *it));
+            AMREX_CUDA_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, *it));
         }
 
         graphExec = instantiateGraph(graphFull);
-        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+        AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(graphFull));
     }
 
     for (int i=0; i<cuda_graphs.size(); ++i)
     {
-        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(cuda_graphs[i]));
+        AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(cuda_graphs[i]));
     }
     cuda_graphs.clear();
 
@@ -421,17 +404,17 @@ Device::startGraphStreamRecording()
         // Should make multiple options for building for future flexibility.
         //   (and add each cuda API call to a unique function so users can make their own).
 
-        cudaStream_t currentStream = cuda_stream;
+        cudaStream_t currentStream = gpu_stream;
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
 #if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
-        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+        AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
 #else  
-        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
+        AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(cudaStream(), cudaStreamCaptureModeGlobal));
 #endif
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
     }
 }
 
@@ -447,31 +430,31 @@ Device::stopGraphStreamRecording()
         //   (and add each cuda API call to a unique function so users can make their own).
 
         cudaGraph_t     graph[numCudaStreams()];
-        cudaStream_t currentStream = cuda_stream;
+        cudaStream_t currentStream = gpu_stream;
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
-            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
+            AMREX_CUDA_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
 
         cudaGraph_t     graphFull;
         cudaGraphNode_t rootNode, placeholder;
 
-        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
-        AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&rootNode, graphFull, NULL, 0));
+        AMREX_CUDA_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_CUDA_SAFE_CALL(cudaGraphAddEmptyNode(&rootNode, graphFull, NULL, 0));
 
         for (int i=0; i<numCudaStreams(); ++i)
         {
-            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &rootNode, 1, graph[i]));
+            AMREX_CUDA_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &rootNode, 1, graph[i]));
         }
         graphExec = instantiateGraph(graphFull);
 
         for (int i=0; i<numCudaStreams(); ++i)
         {
-            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
+            AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(graph[i]));
         }
-        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+        AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(graphFull));
     }
 
     return graphExec;
@@ -489,31 +472,31 @@ Device::stopGraphStreamRecording(cudaGraph_t rootGraph)
         //   (and add each cuda API call to a unique function so users can make their own).
 
         cudaGraph_t     graph[numCudaStreams()];
-        cudaStream_t currentStream = cuda_stream;
+        cudaStream_t currentStream = gpu_stream;
         for (int i=0; i<numCudaStreams(); ++i)
         {
             setStreamIndex(i);
-            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
+            AMREX_CUDA_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
         }
-        cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+        gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
 
         cudaGraph_t     graphFull;
         cudaGraphNode_t rootNode, placeholder;
 
-        AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
-        AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&rootNode, graphFull, NULL, 0, rootGraph));
+        AMREX_CUDA_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+        AMREX_CUDA_SAFE_CALL(cudaGraphAddChildGraphNode(&rootNode, graphFull, NULL, 0, rootGraph));
 
         for (int i=0; i<numCudaStreams(); ++i)
         {
-            AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &rootNode, 1, graph[i]));
+            AMREX_CUDA_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &rootNode, 1, graph[i]));
         }
         graphExec = instantiateGraph(graphFull);
 
         for (int i=0; i<numCudaStreams(); ++i)
         {
-            AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
+            AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(graph[i]));
         }
-        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+        AMREX_CUDA_SAFE_CALL(cudaGraphDestroy(graphFull));
     }
 
     return graphExec;
@@ -541,7 +524,7 @@ Device::instantiateGraph(cudaGraph_t graph)
     }
 #else
 
-    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
+    AMREX_CUDA_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0)); 
 
 #endif
 
@@ -555,7 +538,7 @@ Device::executeGraph(cudaGraphExec_t &graphExec)
     if (inLaunchRegion() && inGraphRegion())
     {
         setStreamIndex(0);
-        AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, cudaStream()));
+        AMREX_CUDA_SAFE_CALL(cudaGraphLaunch(graphExec, cudaStream()));
         synchronize();
         resetStreamIndex();
     }
@@ -568,7 +551,7 @@ void
 Device::htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
 #endif
 
 }
@@ -577,7 +560,7 @@ void
 Device::dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
 #endif
 
 }
@@ -586,7 +569,7 @@ void
 Device::htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_stream));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpu_stream));
 #endif
 
 }
@@ -595,7 +578,7 @@ void
 Device::dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) {
 
 #ifdef AMREX_USE_CUDA
-    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_stream));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpu_stream));
 #endif
 
 }
@@ -605,7 +588,7 @@ Device::mem_advise_set_preferred (void* p, const std::size_t sz, const int devic
 
 #ifdef AMREX_USE_CUDA
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-        AMREX_GPU_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
+        AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
 #endif
 
 }
@@ -614,7 +597,7 @@ void
 Device::mem_advise_set_readonly (void* p, const std::size_t sz) {
 #ifdef AMREX_USE_CUDA
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
-        AMREX_GPU_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+        AMREX_CUDA_SAFE_CALL(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
 }
 
@@ -850,7 +833,7 @@ Device::freeMemAvailable ()
 {
 #ifdef AMREX_USE_CUDA
     std::size_t f, t;
-    AMREX_GPU_SAFE_CALL(cudaMemGetInfo(&f,&t));
+    AMREX_CUDA_SAFE_CALL(cudaMemGetInfo(&f,&t));
     return f;
 #else
     return 0;
