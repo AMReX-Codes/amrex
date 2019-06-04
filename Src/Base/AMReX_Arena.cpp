@@ -58,7 +58,7 @@ Arena::allocate_system (std::size_t nbytes)
                              + " Asked: " + std::to_string(nbytes));
             }
         }
-<
+
         if (arena_info.device_use_managed_memory)
         {
             AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
