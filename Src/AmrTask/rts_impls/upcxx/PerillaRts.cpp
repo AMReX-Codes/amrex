@@ -204,7 +204,7 @@ namespace perilla{
 #endif
 
     void RTS::Barrier(){
-	//nothing
+	upcxx::barrier();
     }
 
 }//end namespace

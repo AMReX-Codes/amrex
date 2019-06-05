@@ -26,7 +26,16 @@ class AmrCore
 public:
 
     AmrCore ();
-    AmrCore (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord=-1, Vector<IntVect> ref_ratios = Vector<IntVect>());
+
+    AmrCore (const RealBox* rb, int max_level_in,
+             const Vector<int>& n_cell_in, int coord=-1,
+             Vector<IntVect> ref_ratios = Vector<IntVect>(),
+             const int* is_per = nullptr);
+
+    AmrCore (const RealBox& rb, int max_level_in,
+             const Vector<int>& n_cell_in, int coord,
+             Vector<IntVect> const& ref_ratios,
+             Array<int,AMREX_SPACEDIM> const& is_per);
 
     AmrCore (const AmrCore& rhs) = delete;
     AmrCore& operator= (const AmrCore& rhs) = delete;

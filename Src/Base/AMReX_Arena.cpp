@@ -25,6 +25,7 @@ namespace {
     bool use_buddy_allocator = false;
     long buddy_allocator_size = 0L;
     long the_arena_init_size = 0L;
+    bool abort_on_out_of_gpu_memory = false;
 }
 
 const unsigned int Arena::align_size;
@@ -43,28 +44,38 @@ void*
 Arena::allocate_system (std::size_t nbytes)
 {
 #ifdef AMREX_USE_CUDA
-    Gpu::Device::freeMemAvailable();
     void * p;
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_GPU_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
-    }
-    else if (arena_info.device_use_managed_memory)
-    {
-        AMREX_GPU_SAFE_CALL(cudaMallocManaged(&p, nbytes));
-        if (arena_info.device_set_readonly)
-        {
-            Gpu::Device::mem_advise_set_readonly(p, nbytes);
-        }
-        if (arena_info.device_set_preferred)
-        {
-            const int device = Gpu::Device::deviceId();
-            Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
-        }
+        AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
     }
     else
     {
-        AMREX_GPU_SAFE_CALL(cudaMalloc(&p, nbytes));
+        if (abort_on_out_of_gpu_memory) {
+            std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
+            if (nbytes >= free_mem_avail) {
+                amrex::Abort("Out of gpu memory. Free: " + std::to_string(free_mem_avail)
+                             + " Asked: " + std::to_string(nbytes));
+            }
+        }
+
+        if (arena_info.device_use_managed_memory)
+        {
+            AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
+            if (arena_info.device_set_readonly)
+            {
+                Gpu::Device::mem_advise_set_readonly(p, nbytes);
+            }
+            if (arena_info.device_set_preferred)
+            {
+                const int device = Gpu::Device::deviceId();
+                Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
+            }
+        }
+        else
+        {
+            AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));
+        }
     }
     return p;
 #else
@@ -78,11 +89,11 @@ Arena::deallocate_system (void* p)
 #ifdef AMREX_USE_CUDA
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_GPU_SAFE_CALL(cudaFreeHost(p));
+        AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));
     }
     else
     {
-        AMREX_GPU_SAFE_CALL(cudaFree(p));
+        AMREX_CUDA_SAFE_CALL(cudaFree(p));
     }
 #else
     std::free(p);
@@ -105,6 +116,7 @@ Arena::Initialize ()
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
     pp.query("the_arena_init_size", the_arena_init_size);
+    pp.query("abort_on_out_of_gpu_memory", abort_on_out_of_gpu_memory);
 
 #ifdef AMREX_USE_GPU
     if (use_buddy_allocator)

@@ -18,15 +18,17 @@ extern "C"
 
     void amrex_fi_geometry_get_pmask (int is_per[3])
     {
+        Geometry* gg = AMReX::top()->getDefaultGeometry();
 	for (int i = 0; i < BL_SPACEDIM; ++i)
-	    is_per[i] = Geometry::isPeriodic(i);
+	    is_per[i] = gg->isPeriodic(i);
     }
 
     void amrex_fi_geometry_get_probdomain (Real problo[3], Real probhi[3])
     {
+        Geometry* gg = AMReX::top()->getDefaultGeometry();
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    problo[i] = Geometry::ProbLo(i);
-	    probhi[i] = Geometry::ProbHi(i);
+	    problo[i] = gg->ProbLo(i);
+	    probhi[i] = gg->ProbHi(i);
 	}
     }
 

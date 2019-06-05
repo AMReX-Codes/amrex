@@ -20,6 +20,7 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
     const BoxArray& ba     = boxes();
     const Real*     dx     = geom.CellSize();
     const Box&      domain = geom.Domain();
+    const GpuArray<int,AMREX_SPACEDIM>& is_periodic = geom.isPeriodicArray();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -33,7 +34,8 @@ MLMGBndry::setLOBndryConds (const Vector<Array<LinOpBCType,AMREX_SPACEDIM> >& lo
 
         for (int icomp = 0; icomp < nComp(); ++icomp) {
             BCTuple bct;
-            setBoxBC(bloc, bct, grd, domain, lo[icomp], hi[icomp], dx, ratio, a_loc);
+            setBoxBC(bloc, bct, grd, domain, lo[icomp], hi[icomp], dx, ratio,
+                     a_loc, is_periodic);
             for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
                 bctag[idim][icomp] = bct[idim];
             }
@@ -45,14 +47,15 @@ void
 MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& domain,
                      const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
                      const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                     const Real* dx, int ratio, const RealVect& a_loc)
+                     const Real* dx, int ratio, const RealVect& a_loc,
+                     const GpuArray<int,AMREX_SPACEDIM>& is_periodic)
 {
     for (OrientationIter fi; fi; ++fi)
     {
         const Orientation face = fi();
         const int         dir  = face.coordDir();
         
-        if (domain[face] == bx[face] && !Geometry::isPeriodic(dir))
+        if (domain[face] == bx[face] && !is_periodic[dir])
         {
             // All physical bc values are located on face.
             bloc[face]  = 0;

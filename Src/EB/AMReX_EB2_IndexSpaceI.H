@@ -35,7 +35,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
         int ng = (ilev > required_coarsening_level) ? 0 : m_ngrow.back()/2;
 
         Box cdomain = amrex::coarsen(m_geom.back().Domain(),2);
-        Geometry cgeom(cdomain);
+        Geometry cgeom = amrex::coarsen(m_geom.back(),2);
         m_gslevel.emplace_back(this, ilev, EB2::max_grid_size, ng, cgeom, m_gslevel[ilev-1]);
         if (!m_gslevel.back().isOK()) {
             m_gslevel.pop_back();
@@ -61,4 +61,13 @@ IndexSpaceImp<G>::getLevel (const Geometry& geom) const
     auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
     int i = std::distance(m_domain.begin(), it);
     return m_gslevel[i];
+}
+
+template <typename G>
+const Geometry&
+IndexSpaceImp<G>::getGeometry (const Box& dom) const
+{
+    auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
+    int i = std::distance(m_domain.begin(), it);
+    return m_geom[i];
 }

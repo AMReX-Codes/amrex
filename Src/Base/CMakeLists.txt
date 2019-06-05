@@ -184,18 +184,19 @@ target_sources( amrex
    AMReX_CudaLaunch.cpp 
    AMReX_CudaContainers.H
    AMReX_CudaReduce.H
-   AMReX_CudaDevice.H
-   AMReX_CudaDevice.cpp
-   AMReX_CudaUtility.H
-   AMReX_CudaUtility.cpp
-   AMReX_CudaAsyncFab.H
-   AMReX_CudaAsyncFab.cpp
-   AMReX_CudaAsyncFabImpl.H
-   AMReX_CudaAsyncFabImpl.cpp
-   AMReX_CudaAsyncArray.H
-   AMReX_CudaAsyncArray.cpp
+   AMReX_GpuDevice.H
+   AMReX_GpuDevice.cpp
+   AMReX_GpuUtility.H
+   AMReX_GpuUtility.cpp
+   AMReX_GpuAsyncFab.H
+   AMReX_GpuAsyncFab.cpp
+   AMReX_GpuAsyncFabImpl.H
+   AMReX_GpuAsyncFabImpl.cpp
+   AMReX_GpuAsyncArray.H
+   AMReX_GpuAsyncArray.cpp
    AMReX_CudaElixir.H
-   AMReX_CudaElixir.cpp   
+   AMReX_CudaElixir.cpp
+   AMReX_CudaGraph.H
    # Machine model -----------------------------------------------------------
    AMReX_Machine.H
    AMReX_Machine.cpp
