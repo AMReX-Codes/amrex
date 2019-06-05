@@ -72,6 +72,11 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
 endif
 
 ifeq ($(QED),TRUE)
+  BOOST_ROOT ?= NOT_SET
+  ifneq ($(BOOST_ROOT),NOT_SET)
+    VPATH_LOCATIONS += $(BOOST_ROOT)
+    INCLUDE_LOCATIONS += $(BOOST_ROOT)
+  endif
   INCLUDE_LOCATIONS += $(PICSAR_HOME)/src/multi_physics/QED/src
   CXXFLAGS += -DWARPX_QED
   CFLAGS   += -DWARPX_QED

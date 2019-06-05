@@ -218,6 +218,11 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
       CALL depose_rho_vecHVv2_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
                nxguard,nyguard,nzguard,lvect)
+
+    ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
+      CALL depose_rho_vecHVv2_2_2_2(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                 nxguard,nyguard,nzguard,lvect)
+
     ELSE
       CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
                   nxguard,nyguard,nzguard,nox,noy,noz, &

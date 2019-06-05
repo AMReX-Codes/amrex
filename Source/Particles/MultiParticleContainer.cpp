@@ -8,8 +8,6 @@
 
 using namespace amrex;
 
-constexpr int MultiParticleContainer::nstencilz_fdtd_nci_corr;
-
 #ifdef WARPX_QED
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core):
     bw_engine{std::move(init_warpx_breit_wheeler_engine())}

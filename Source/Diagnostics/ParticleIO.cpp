@@ -5,6 +5,53 @@
 using namespace amrex;
 
 void
+RigidInjectedParticleContainer::ReadHeader (std::istream& is)
+{
+    is >> charge >> mass;
+    WarpX::GotoNextLine(is);
+
+    int nlevs;
+    is >> nlevs;
+    WarpX::GotoNextLine(is);
+
+    AMREX_ASSERT(zinject_plane_levels.size() == 0);
+    AMREX_ASSERT(done_injecting.size() == 0);
+
+    for (int i = 0; i < nlevs; ++i)
+    {
+        int zinject_plane_tmp;
+        is >> zinject_plane_tmp;
+        zinject_plane_levels.push_back(zinject_plane_tmp);
+        WarpX::GotoNextLine(is);        
+    } 
+
+    for (int i = 0; i < nlevs; ++i)
+    {
+        int done_injecting_tmp;
+        is >> done_injecting_tmp;
+        done_injecting.push_back(done_injecting_tmp);
+        WarpX::GotoNextLine(is);
+    }     
+}
+
+void
+RigidInjectedParticleContainer::WriteHeader (std::ostream& os) const
+{
+    // no need to write species_id
+    os << charge << " " << mass << "\n";
+    int nlevs = zinject_plane_levels.size();
+    os << nlevs << "\n";
+    for (int i = 0; i < nlevs; ++i)
+    {
+        os << zinject_plane_levels[i] << "\n";
+    }
+    for (int i = 0; i < nlevs; ++i)
+    {
+        os << done_injecting[i] << "\n";
+    }
+}
+
+void
 WarpXParticleContainer::ReadHeader (std::istream& is)
 {
     is >> charge >> mass;
