@@ -1,11 +1,11 @@
-#ifndef AMREX_CUDA_ASYNC_FAB_IMPL_H_
-#define AMREX_CUDA_ASYNC_FAB_IMPL_H_
+#ifndef AMREX_GPU_ASYNC_FAB_IMPL_H_
+#define AMREX_GPU_ASYNC_FAB_IMPL_H_
 
 #include <memory>
 #include <AMReX_FArrayBox.H>
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 class AsyncFabImpl
 {
@@ -27,7 +27,7 @@ public:
 
 private:
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
 #ifdef AMREX_FAB_IS_PINNED
 

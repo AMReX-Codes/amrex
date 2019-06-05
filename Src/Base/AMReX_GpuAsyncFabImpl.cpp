@@ -1,8 +1,8 @@
-#include <AMReX_CudaAsyncFabImpl.H>
+#include <AMReX_GpuAsyncFabImpl.H>
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 #include <AMReX_Vector.H>
 #include <cstring>
 #include <mutex>
@@ -12,7 +12,7 @@
 #endif
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 #ifdef AMREX_FAB_IS_PINNED
 
@@ -170,12 +170,11 @@ void
 AsyncFabImpl::copy_htod ()
 {
     auto dest = static_cast<BaseFabData<Real>*>(m_gpu_fab.get());
-    if (inLaunchRegion())
+    if (Gpu::inLaunchRegion())
     {
         m_cpu_fab_data = m_cpu_fab;
         m_cpu_fab_data.setOwner(false);
-        AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(dest, &m_cpu_fab_data, sizeof(BaseFabData<Real>),
-                                            cudaMemcpyHostToDevice, Device::cudaStream()));
+        Gpu::htod_memcpy_async(dest, &m_cpu_fab_data, sizeof(BaseFabData<Real>));
     }
     else
     {
@@ -193,7 +192,7 @@ AsyncFabImpl::copy_htod ()
 #else
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 void AsyncFabImpl::Initialize () {}
 void AsyncFabImpl::Finalize () {}

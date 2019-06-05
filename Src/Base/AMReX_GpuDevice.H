@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_DEVICE_H_
-#define AMREX_CUDA_DEVICE_H_
+#ifndef AMREX_GPU_DEVICE_H_
+#define AMREX_GPU_DEVICE_H_
 
 #include <cstdlib>
 #include <memory>
@@ -10,7 +10,16 @@
 #include <AMReX_GpuControl.H>
 
 namespace amrex {
-namespace Cuda {
+
+#if defined(AMREX_USE_HIP)
+using gpuStream_t     = hipStream_t;
+using gpuDeviceProp_t = hipDeviceProp_t;
+#elif defined(AMREX_USE_CUDA)
+using gpuStream_t     = cudaStream_t;
+using gpuDeviceProp_t = cudaDeviceProp;
+#endif
+
+namespace Gpu {
 
 class Device
 {
@@ -20,17 +29,21 @@ public:
     static void Initialize ();
     static void Finalize ();
 
-#if defined(AMREX_USE_CUDA)
-    static cudaStream_t cudaStream () noexcept { return cuda_stream; }
-    static int numCudaStreams () { return max_cuda_streams; }
+#if defined(AMREX_USE_GPU)
+    static gpuStream_t gpuStream () noexcept { return gpu_stream; }
+#ifdef AMREX_USE_CUDA
+    // for backward compatibility
+    static cudaStream_t cudaStream () noexcept { return gpu_stream; }
+#endif
+    static int numGpuStreams () noexcept { return max_gpu_streams; }
 #endif
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
 
     static int deviceId () noexcept;
 
-    static void synchronize ();
-    static void streamSynchronize ();
+    static void synchronize () noexcept;
+    static void streamSynchronize () noexcept;
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     // Generic graph selection. These should be called by users. 
@@ -82,7 +95,7 @@ public:
     static void mem_advise_set_preferred (void* p, const std::size_t sz, const int device);
     static void mem_advise_set_readonly (void* p, const std::size_t sz);
 
-#if defined(AMREX_USE_CUDA)
+#ifdef AMREX_USE_GPU
     static void setNumThreadsMin (int nx, int ny, int nz) noexcept;
     static void n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
@@ -101,28 +114,92 @@ public:
 
     static std::size_t freeMemAvailable ();
 
+#ifdef AMREX_USE_GPU
+    static int warp_size;
+#endif
+
 private:
 
-    static void initialize_cuda ();
+    static void initialize_gpu ();
 
     static int device_id;
     static int verbose;
 
-#if defined(AMREX_USE_CUDA)
-    static constexpr int max_cuda_streams = 16;
-    static std::array<cudaStream_t,max_cuda_streams> cuda_streams;
-    static cudaStream_t cuda_stream;
-
+#ifdef AMREX_USE_GPU
+    static constexpr int max_gpu_streams = 16;
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
-    static cudaDeviceProp device_prop;
+    static std::array<gpuStream_t,max_gpu_streams> gpu_streams;
+    static gpuStream_t gpu_stream;
+    static gpuDeviceProp_t device_prop;
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
 #endif
 #endif
 };
+
+// Put these in amrex::Gpu
+
+#if defined(AMREX_USE_GPU)
+inline gpuStream_t
+gpuStream () noexcept
+{
+    return Device::gpuStream();
+}
+
+inline int
+numGpuStreams () noexcept
+{
+    return Device::numGpuStreams();
+}
+#endif
+
+inline void
+synchronize () noexcept
+{
+   AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
+                      AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
+}
+
+inline void
+streamSynchronize () noexcept
+{
+    Device::streamSynchronize();
+}
+
+inline void
+htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpy(p_d, p_h, sz, hipMemcpyHostToDevice));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice)); )
+}
+
+inline void
+dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToHost));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost)); )
+}
+
+inline void
+htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpuStream()));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpuStream())); )
+}
+
+inline void
+dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpuStream()));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpuStream())); )
+}
 
 }}
 
