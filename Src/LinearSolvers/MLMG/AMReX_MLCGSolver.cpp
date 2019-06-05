@@ -26,12 +26,12 @@ sxay (MultiFab&       ss,
       const MultiFab& xx,
       Real            a,
       const MultiFab& yy,
-      int             yycomp)
+      int             yycomp,
+      int             nghost = 0)
 {
     BL_PROFILE("CGSolver::sxay()");
 
     const int ncomp  = ss.nComp();
-    const int nghost = ss.nGrow();
     const int sscomp = 0;
     const int xxcomp = 0;
     MultiFab::LinComb(ss, 1.0, xx, xxcomp, a, yy, yycomp, sscomp, ncomp, nghost);
@@ -150,8 +150,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         else
         {
             const Real beta = (rho/rho_1)*(alpha/omega);
-            sxay(p, p, -omega, v);
-            sxay(p, r,   beta, p);
+            sxay(p, p, -omega, v, nghost);
+            sxay(p, r,   beta, p, nghost);
         }
         MultiFab::Copy(ph,p,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
@@ -165,8 +165,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	{
             ret = 2; break;
 	}
-        sxay(sol, sol,  alpha, ph);
-        sxay(s,     r, -alpha,  v);
+        sxay(sol, sol,  alpha, ph, nghost);
+        sxay(s,     r, -alpha,  v, nghost);
 
         //Subtract mean from s 
 //        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, s);
@@ -205,8 +205,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	{
             ret = 3; break;
 	}
-        sxay(sol, sol,  omega, sh);
-        sxay(r,     s, -omega,  t);
+        sxay(sol, sol,  omega, sh, nghost);
+        sxay(r,     s, -omega,  t, nghost);
 
 //        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
 
@@ -324,7 +324,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         else
         {
             Real beta = rho/rho_1;
-            sxay(p, z, beta, p);
+            sxay(p, z, beta, p, nghost);
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
 
@@ -345,8 +345,8 @@ MLCGSolver::solve_cg (MultiFab&       sol,
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        sxay(sol, sol, alpha, p);
-        sxay(  r,   r,-alpha, q);
+        sxay(sol, sol, alpha, p, nghost);
+        sxay(  r,   r,-alpha, q, nghost);
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
