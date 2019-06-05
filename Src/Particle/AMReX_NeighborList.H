@@ -134,7 +134,7 @@ public:
             unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
             unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
             pcell[i] = (uix * ny + uiy) * nz + uiz;
-            Cuda::Atomic::Add(&pcount[pcell[i]], 1u);
+            Gpu::Atomic::Add(&pcount[pcell[i]], 1u);
         });
 
         thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
@@ -146,7 +146,7 @@ public:
         
         AMREX_FOR_1D ( np, i,
         {
-            unsigned int index = Cuda::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
+            unsigned int index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
             pperm[index] = i;
         });
     

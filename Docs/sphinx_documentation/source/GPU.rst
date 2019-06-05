@@ -1062,7 +1062,7 @@ the destructor of :cpp:`MFIter`.  This ensures that all GPU work
 inside of an :cpp:`MFIter` loop will complete before code outside of
 the loop is executed. Any CUDA kernel launches made outside of an 
 :cpp:`MFIter` loop must ensure appropriate device synchronization
-occurs. This can be done by calling :cpp:`Gpu::Device::synchronize()`.
+occurs. This can be done by calling :cpp:`Gpu::synchronize()`.
 
 CUDA supports multiple streams and kernels. Kernels launched in the 
 same stream are executed sequentially, but different streams of kernel
@@ -1297,8 +1297,8 @@ However, due to asynchronicity, determining the source of the error
 can be difficult.  Even if GPU kernels launched earlier in the code 
 result in a CUDA error, the error may not be output at a nearby call to
 :cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.  When tracking down a CUDA
-launch error, :cpp:`Gpu::Device::synchronize()` and 
-:cpp:`Gpu::Device::streamSynchronize()` can be used to synchronize
+launch error, :cpp:`Gpu::synchronize()` and 
+:cpp:`Gpu::streamSynchronize()` can be used to synchronize
 the device or the CUDA stream, respectively, and track down the specific
 launch that causes the error.
 

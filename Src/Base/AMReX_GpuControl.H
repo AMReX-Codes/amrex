@@ -1,8 +1,20 @@
 #ifndef AMREX_GPU_CONTROL_H_
 #define AMREX_GPU_CONTROL_H_
 
-#ifndef AMREX_CUDA_MAX_THREADS
-#define AMREX_CUDA_MAX_THREADS 256
+#ifndef AMREX_GPU_MAX_THREADS
+#define AMREX_GPU_MAX_THREADS 256
+#endif
+
+#if defined(AMREX_USE_HIP)
+#define AMREX_HIP_OR_CUDA(a,b) a
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_HIP_OR_CUDA(a,b) b
+#else
+#define AMREX_HIP_OR_CUDA(a,b) ((void)0);
+#endif
+
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#define AMREX_DEVICE_COMPILE 1
 #endif
 
 namespace amrex {
@@ -10,7 +22,7 @@ namespace amrex {
 }
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 #if defined(AMREX_USE_GPU)
 

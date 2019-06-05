@@ -7,7 +7,7 @@
 
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
-#include <AMReX_CudaDevice.H>
+#include <AMReX_GpuDevice.H>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -43,7 +43,7 @@ namespace amrex {
                 amrex::Abort();
             }
 
-            const int device = Cuda::Device::deviceId();
+            const int device = Gpu::Device::deviceId();
             AMREX_GPU_SAFE_CALL(cudaMemAdvise(result, n*sizeof(T), 
                                               cudaMemAdviseSetPreferredLocation, device));
 
