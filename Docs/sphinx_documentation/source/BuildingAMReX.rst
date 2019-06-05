@@ -321,7 +321,7 @@ build directory, we advise against doing so.  After the installation is
 complete, builddir can be removed.
 
 
-Cmake and macOS
+CMake and macOS
 ---------------
 
 You can also specify your own compiler in cmake using the
@@ -463,24 +463,66 @@ to include the following line in the appropriate CMakeLists.txt file:
 
 ::
 
-    find_package(AMReX 18 [REQUIRED])
+    find_package(AMReX)
 
-    
-To specify a search path for the AMReX library, set the environmental variable
-``AMReX_ROOT`` to point to the AMReX installation directory or add
-``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation for your 
-project. More details on how CMake search for external packages can be find 
-`here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
-In the above snippet, ``18`` refer to the minimum AMReX version supporting
-the import feature discussed here. 
-Linking AMReX to any target defined in your CMake project is done by including
-the following line in the appropriate CMakeLists.txt file
+
+Calls to ``find_package(AMReX)`` will find a valid installation of AMReX, if present,
+and import its settings and targets into your CMake project.
+Imported AMReX targets can be linked to any of your targets, after they have been made available
+following a successful call to ``find_package(AMReX)``, by including
+the following line in the appropriate CMakeLists.txt file:
 
 .. highlight:: cmake
 
 ::
 
-    target_link_libraries( <your-target-name>  AMReX::amrex )
+    target_link_libraries( <your-target-name>  AMReX::<amrex-target-name> )
 
-The above snippet will take care of properly linking ``<your-target-name>``
-to AMReX and to all the required transitive dependencies.
+    
+In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:cmaketargets:
+
+.. table:: AMReX targets available for import. 
+
+   +-----------------------+-------------------------------------------------+
+   | Target name           | Description                                     |
+   +=======================+=================================================+
+   | amrex                 |  AMReX library                                  |
+   +-----------------------+-------------------------------------------------+
+   | Flags_CXX             |  C++ flags preset (interface)                   |
+   +-----------------------+-------------------------------------------------+
+   | Flags_Fortran         |  Fortran flags preset (interface)               |
+   +-----------------------+-------------------------------------------------+
+   | Flags_FPE             |  Floating Point Exception flags (interface)     |
+   +-----------------------+-------------------------------------------------+   
+.. raw:: latex
+
+   \end{center}
+
+  
+As an example, the following CMake code will find and import AMReX, link it to target ``Foo``
+and use the AMReX flags preset to compile ``Foo``'s C++ sources:
+
+
+.. highlight:: cmake
+
+::
+
+    find_package(AMReX REQUIRED)
+    target_link_libraries( Foo  AMReX::amrex AMReX::Flags_CXX )
+
+
+The keyword ``REQUIRED`` in the snippet above will cause a fatal error if AMReX is not found.
+
+
+You can tell CMake to look for the AMReX library in non-standard path by setting the environmental variable
+``AMReX_ROOT`` to point to the AMReX installation directory or by adding
+``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.  
+More details on ``find_package`` can be found 
+`here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
+
