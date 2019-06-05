@@ -21,10 +21,6 @@ geometry.prob_hi     =  20.e-6    20.e-6    12.e-6
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # CFL
 warpx.cfl = 1.0

@@ -16,10 +16,6 @@ geometry.prob_hi     =  20.e-6    20.e-6
 #################################
 warpx.serialize_ics = 1
 warpx.verbose = 1
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 warpx.cfl = 1.0
 amr.plot_int = 10
 

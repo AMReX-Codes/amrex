@@ -7,6 +7,7 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -161,8 +162,6 @@ WarpX::InitNCICorrector ()
 {
     if (WarpX::use_fdtd_nci_corr)
     {
-        mypc->fdtd_nci_stencilz_ex.resize(max_level+1);
-        mypc->fdtd_nci_stencilz_by.resize(max_level+1);
         for (int lev = 0; lev <= max_level; ++lev)
         {
             const Geometry& gm = Geom(lev);
@@ -174,10 +173,15 @@ WarpX::InitNCICorrector ()
                 dz = dx[1];
             }
             cdtodz = PhysConst::c * dt[lev] / dz;
-            WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
-                                    (mypc->fdtd_nci_stencilz_by)[lev].data(),
-                                    mypc->nstencilz_fdtd_nci_corr, cdtodz,
-                                    WarpX::l_lower_order_in_v);
+
+            // Initialize Godfrey filters
+            // Same filter for fields Ex, Ey and Bz
+            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, WarpX::l_lower_order_in_v) );
+            // Same filter for fields Bx, By and Ez
+            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, WarpX::l_lower_order_in_v) );
+            // Compute Godfrey filters stencils
+            nci_godfrey_filter_exeybz[lev]->ComputeStencils();
+            nci_godfrey_filter_bxbyez[lev]->ComputeStencils();
         }
     }
 }

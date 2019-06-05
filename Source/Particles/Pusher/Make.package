@@ -1,0 +1,4 @@
+CEXE_headers += GetAndSetPosition.H
+CEXE_headers += UpdatePosition.H
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/Pusher
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/Pusher

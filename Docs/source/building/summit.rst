@@ -15,7 +15,7 @@ correct branch:
     git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
     git clone --branch development https://github.com/AMReX-Codes/amrex.git
 
-Then, use the following set of commands to compile:
+Then, ``cd`` into the directory ``WarpX`` and use the following set of commands to compile:
 
 ::
 

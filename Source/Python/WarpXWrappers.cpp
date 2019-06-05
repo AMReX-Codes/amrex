@@ -89,7 +89,7 @@ extern "C"
 
     void amrex_finalize (int finalize_mpi)
     {
-	amrex::Finalize(finalize_mpi);
+	amrex::Finalize();
     }
 
     void warpx_init ()

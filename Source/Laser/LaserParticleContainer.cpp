@@ -78,14 +78,14 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         parser.define(field_function);
         parser.registerVariables({"X","Y","t"});
 
-        ParmParse pp("my_constants");
+        ParmParse ppc("my_constants");
         std::set<std::string> symbols = parser.symbols();
         symbols.erase("X");
         symbols.erase("Y");
         symbols.erase("t"); // after removing variables, we are left with constants
         for (auto it = symbols.begin(); it != symbols.end(); ) {
             Real v;
-            if (pp.query(it->c_str(), v)) {
+            if (ppc.query(it->c_str(), v)) {
                 parser.setConstant(*it, v);
                 it = symbols.erase(it);
             } else {
@@ -150,7 +150,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 	u_Y = {0., 1., 0.};
 #endif
 
-    laser_injection_box= Geometry::ProbDomain();
+    laser_injection_box= Geom(0).ProbDomain();
     {
         Vector<Real> lo, hi;
         if (pp.queryarr("prob_lo", lo)) {
@@ -428,8 +428,6 @@ LaserParticleContainer::Evolve (int lev,
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             Real wt = amrex::second();
-
-            const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
 

@@ -16,10 +16,6 @@ geometry.prob_hi     = 0.00015 0.00015 1.e-06
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 algo.maxwell_fdtd_solver = ckc
 warpx.verbose = 1
 warpx.plot_raw_fields = 0
@@ -95,10 +91,6 @@ driverback.uz_m = 200000.
 driverback.ux_th = 2.
 driverback.uy_th = 2.
 driverback.uz_th = 20000.
-driverback.zinject_plane = 0.
-driverback.rigid_advance = true
-driverback.projected = true
-driverback.focused = false
 driverback.do_backward_propagation = true
 
 plasma_e.charge = -q_e

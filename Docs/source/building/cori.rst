@@ -51,6 +51,40 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
         module swap PrgEnv-intel PrgEnv-gnu
         make -j 16 COMP=gnu
 
+GPU Build
+---------
+
+To compile on the experimental GPU nodes on Cori, you first need to purge
+your modules, most of which won't work on the GPU nodes.
+
+   ::
+
+	module purge
+
+Then, you need to load the following modules:
+
+    ::
+
+        module load esslurm cuda pgi openmpi/3.1.0-ucx
+
+Currently, you need to use OpenMPI; mvapich2 seems not to work.
+
+Then, you need to use slurm to request access to a GPU node:
+
+    ::
+
+        salloc -C gpu -N 1 -t 30 -c 10 --gres=gpu:1 --mem=30GB -A m1759
+       
+This reserves 10 logical cores (5 physical), 1 GPU, and 30 GB of RAM for your job.
+Note that you can't cross-compile for the GPU nodes - you have to log on to one
+and then build your software.
+
+Finally, navigate to the base of the WarpX repository and compile in GPU mode:
+
+    ::
+
+        make -j 16 COMP=pgi USE_GPU=TRUE
+
 
 Building WarpX with openPMD support
 -----------------------------------

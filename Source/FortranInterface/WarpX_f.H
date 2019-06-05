@@ -39,12 +39,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
-#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_COPY_SLICE                  warpx_copy_slice_3d
-#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
-#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
-
-
 #elif (AMREX_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
@@ -68,11 +62,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
-#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_COPY_SLICE                  warpx_copy_slice_2d
-#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
-#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
-
 #ifdef WARPX_RZ
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_rz
 #else
@@ -92,11 +81,6 @@ extern "C"
                             amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
                             amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
     
-    void WRPX_COPY_SLICE(const int* lo, const int* hi,
-                         const amrex_real* tmp, const int* tlo, const int* thi,
-                         amrex_real* buf, const int* blo, const int* bhi,
-                         const int* ncomp, const int* i_boost, const int* i_lab);
-
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -349,10 +333,6 @@ extern "C"
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
                                       const amrex::Real* prob_hi);
 
-    void WRPX_LORENTZ_TRANSFORM_Z(amrex::Real* data, const int* dlo, const int* dhi,
-                                  const int* tlo, const int* thi,
-                                  const amrex::Real* gamma_boost, const amrex::Real* beta_boost);
-
 //  These functions are used to evolve E and B in the PML
 
     void WRPX_COMPUTE_DIVB (const int* lo, const int* hi,
@@ -467,14 +447,6 @@ extern "C"
                         BL_FORT_FAB_ARG_ANYD(crse),
                         const BL_FORT_FAB_ARG_ANYD(fine),
                         const int* ncomp);
-
-    void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int,
-                                const amrex::Real, const int);
-
-    void WRPX_PXR_GODFREY_FILTER (const int* lo, const int* hi,
-                                  amrex_real* fou, const int* olo, const int* ohi,
-                                  const amrex_real* fin, const int* ilo, const int* ihi,
-                                  const amrex_real* stencil, const int* nsten);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);
