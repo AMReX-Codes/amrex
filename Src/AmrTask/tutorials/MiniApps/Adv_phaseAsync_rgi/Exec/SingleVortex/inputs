@@ -1,5 +1,5 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 10
+max_step = 100
 stop_time = 2.0
 
 # PROBLEM SIZE & GEOMETRY
@@ -7,7 +7,7 @@ geometry.is_periodic =  1  1  1
 geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0.0  0.0  0.0 
 geometry.prob_hi     =  1.0  1.0  1.0
-amr.n_cell           =  64   64   64
+amr.n_cell           =  128   128   128
 
 # TIME STEP CONTROL
 adv.cfl            = 0.7     # cfl number for hyperbolic system
@@ -25,7 +25,7 @@ amr.max_level       = 2       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratios
 amr.regrid_int      = 2      # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation
-amr.max_grid_size   = 32
+amr.max_grid_size   = 16
 
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 0     # 0 will disable checkpoint files

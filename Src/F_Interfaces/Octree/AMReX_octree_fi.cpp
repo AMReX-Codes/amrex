@@ -185,9 +185,9 @@ extern "C" {
         MultiFab lmf(amrex::coarsen(lba,rr),ldm,ncomp,0);
 
         MultiFab fvolume;
-        if (!Geometry::IsCartesian())
+        const Geometry& fgeom = famrcore->Geom(flev);
+        if (!fgeom.IsCartesian())
         {
-            const Geometry& fgeom = famrcore->Geom(flev);
             fgeom.GetVolume(fvolume, lba, ldm, 0);
         }
 
@@ -200,7 +200,7 @@ extern "C" {
             FArrayBox * crsefab = lmf.fabPtr(mfi);
             const int li = li_leaf_to_full[mfi.LocalIndex()];
             FArrayBox const* finefab = fine->fabPtrAtLocalIdx(li);
-            if (Geometry::IsCartesian()) {
+            if (fgeom.IsCartesian()) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
                     amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,rr);

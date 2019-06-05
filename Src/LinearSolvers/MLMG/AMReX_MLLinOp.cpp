@@ -468,13 +468,13 @@ MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
     m_lobc.resize(ncomp,a_lobc);
     m_hibc.resize(ncomp,a_hibc);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (m_geom[0][0].isPeriodic(idim)) {
             AMREX_ALWAYS_ASSERT(a_lobc[idim] == BCType::Periodic);
             AMREX_ALWAYS_ASSERT(a_hibc[idim] == BCType::Periodic);
         }
         if (a_lobc[idim] == BCType::Periodic or
             a_hibc[idim] == BCType::Periodic) {
-            AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+            AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
         }
     }
 }
@@ -490,13 +490,13 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
     m_hibc = a_hibc;
     for (int icomp = 0; icomp < ncomp; ++icomp) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (Geometry::isPeriodic(idim)) {
+            if (m_geom[0][0].isPeriodic(idim)) {
                 AMREX_ALWAYS_ASSERT(m_lobc[icomp][idim] == BCType::Periodic);
                 AMREX_ALWAYS_ASSERT(m_hibc[icomp][idim] == BCType::Periodic);
             }
             if (m_lobc[icomp][idim] == BCType::Periodic or
                 m_hibc[icomp][idim] == BCType::Periodic) {
-                AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+                AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
             }
         }
     }

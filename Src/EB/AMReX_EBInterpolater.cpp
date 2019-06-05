@@ -31,10 +31,11 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
                                   const Geometry&  fine_geom,
                                   Vector<BCRec> const&  bcr,
                                   int              actual_comp,
-                                  int              actual_state)
+                                  int              actual_state,
+                                  RunOn            runon)
 {
     CellConservativeLinear::interp(crse, crse_comp, fine, fine_comp, ncomp, fine_region, ratio,
-                                   crse_geom, fine_geom, bcr, actual_comp, actual_state);
+                                   crse_geom, fine_geom, bcr, actual_comp, actual_state, runon);
 
     const Box& target_fine_region = fine_region & fine.box();
 

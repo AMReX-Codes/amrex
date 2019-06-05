@@ -752,7 +752,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
         amrex::Print() << "InitFromBinaryFile() time: " << runtime << '\n';
     }
 
-    Gpu::Device::streamSynchronize();
+    Gpu::streamSynchronize();
 }
 
 //
@@ -1079,7 +1079,7 @@ InitRandom (long                    icount,
         amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
     }
 
-    Gpu::Device::streamSynchronize();
+    Gpu::streamSynchronize();
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1396,5 +1396,5 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
         amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
     }
 
-    Gpu::Device::streamSynchronize();
+    Gpu::streamSynchronize();
 }

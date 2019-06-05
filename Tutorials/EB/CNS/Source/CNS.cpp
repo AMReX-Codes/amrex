@@ -314,7 +314,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 
     if (!refine_boxes.empty())
     {
-        const Real* problo = Geometry::ProbLo();
+        const Real* problo = geom.ProbLo();
         const Real* dx = geom.CellSize();
 
 #ifdef _OPENMP

@@ -677,13 +677,15 @@ AmrLevelAdv::read_params ()
     pp.query("cfl",cfl);
     pp.query("do_reflux",do_reflux);
 
+    Geometry const* gg = AMReX::top()->getDefaultGeometry();
+
     // This tutorial code only supports Cartesian coordinates.
-    if (! Geometry::IsCartesian()) {
+    if (! gg->IsCartesian()) {
 	amrex::Abort("Please set geom.coord_sys = 0");
     }
 
     // This tutorial code only supports periodic boundaries.
-    if (! Geometry::isAllPeriodic()) {
+    if (! gg->isAllPeriodic()) {
 	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 

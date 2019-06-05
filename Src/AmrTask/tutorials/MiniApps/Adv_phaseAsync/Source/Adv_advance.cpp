@@ -186,7 +186,7 @@ Adv::advance (Real time,
 	    if (do_reflux) {
 		if (current) {
 		    for (int i = 0; i < BL_SPACEDIM ; i++)
-			current->FineAdd(fluxes[i][f], i, fluxes[i].IndexArray()[f], 0, 0, NUM_STATE, 1.0);
+			current->FineAdd(fluxes[i][f], i, fluxes[i].IndexArray()[f], 0, 0, NUM_STATE, 1.0, RunOn::Cpu);
 		}
 	    }
 	    SborderFPI[iteration-1]->destGraph->regionComputed(f);

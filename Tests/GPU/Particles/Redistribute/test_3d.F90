@@ -33,9 +33,9 @@ subroutine move_particles(np, particles, vxp, vyp, vzp, dx)
 !$acc loop gang vector private(velmag)
   do ip = 1, np
      velmag = sqrt(vxp(ip)*vxp(ip) + vyp(ip)*vyp(ip) + vzp(ip)*vzp(ip))
-     particles(ip)%pos(0) = particles(ip)%pos(0) + 0.5d0*vxp(ip)*dx(1) / velmag
-     particles(ip)%pos(1) = particles(ip)%pos(1) + 0.5d0*vyp(ip)*dx(2) / velmag
-     particles(ip)%pos(2) = particles(ip)%pos(2) + 0.5d0*vzp(ip)*dx(3) / velmag
+     particles(ip)%pos(1) = particles(ip)%pos(1) + 0.5d0*vxp(ip)*dx(1) / velmag
+     particles(ip)%pos(2) = particles(ip)%pos(2) + 0.5d0*vyp(ip)*dx(2) / velmag
+     particles(ip)%pos(3) = particles(ip)%pos(3) + 0.5d0*vzp(ip)*dx(3) / velmag
   end do
 !$acc end loop
 !$acc end parallel
