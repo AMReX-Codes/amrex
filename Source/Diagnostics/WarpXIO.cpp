@@ -614,37 +614,7 @@ WarpX::WritePlotFile () const
         }
     }
 
-    Vector<std::string> particle_varnames;
-    particle_varnames.push_back("weight");
-
-    particle_varnames.push_back("momentum_x");
-    particle_varnames.push_back("momentum_y");
-    particle_varnames.push_back("momentum_z");
-
-    particle_varnames.push_back("Ex");
-    particle_varnames.push_back("Ey");
-    particle_varnames.push_back("Ez");
-
-    particle_varnames.push_back("Bx");
-    particle_varnames.push_back("By");
-    particle_varnames.push_back("Bz");
-
-#ifdef WARPX_RZ
-    particle_varnames.push_back("theta");
-#endif
-
-    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-    {
-        particle_varnames.push_back("xold");
-        particle_varnames.push_back("yold");
-        particle_varnames.push_back("zold");
-
-        particle_varnames.push_back("uxold");
-        particle_varnames.push_back("uyold");
-        particle_varnames.push_back("uzold");
-    }
-
-    mypc->WritePlotFile(plotfilename, particle_varnames);
+    mypc->WritePlotFile(plotfilename);
 
     WriteJobInfo(plotfilename);
 
