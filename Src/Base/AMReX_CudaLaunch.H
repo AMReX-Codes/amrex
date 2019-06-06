@@ -4,7 +4,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuError.H>
-#include <AMReX_CudaRange.H>
+#include <AMReX_GpuRange.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Box.H>
 #include <AMReX_Extension.H>
@@ -29,7 +29,7 @@
         const auto amrex_i_ec = amrex::Cuda::ExecutionConfig(amrex_i_npts); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+            for (auto const amrex_i_i : amrex::Gpu::Range(amrex_i_npts)) { \
                 const auto IV = BX.atOffset(amrex_i_i); \
                 block \
             } \
@@ -38,7 +38,7 @@
     } \
     else { \
         long amrex_i_npts = BX.numPts(); \
-        for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+        for (auto const amrex_i_i : amrex::Gpu::Range(amrex_i_npts)) { \
             const auto IV = BX.atOffset(amrex_i_i); \
             block \
         } \
@@ -51,7 +51,7 @@
         const auto amrex_i_ec = amrex::Cuda::ExecutionConfig(amrex_i_npts);   \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+            for (auto const amrex_i_i : amrex::Gpu::Range(amrex_i_npts)) { \
                 const auto IV = BX.atOffset(amrex_i_i); \
                 block \
             } \
@@ -68,14 +68,14 @@
         const auto amrex_i_ec = amrex::Cuda::ExecutionConfig(TN);             \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (auto const TI : amrex::Cuda::Range(TN)) { \
+            for (auto const TI : amrex::Gpu::Range(TN)) { \
                 block \
             } \
         }); \
         AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
-        for (auto const TI : amrex::Cuda::Range(TN)) { \
+        for (auto const TI : amrex::Gpu::Range(TN)) { \
             block \
         } \
     }
@@ -92,11 +92,11 @@
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
-            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
                     break; \
-            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            case 1: for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
                         block2 \
                     } \
             } \
@@ -104,10 +104,10 @@
         AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
-        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+        for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
             block1 \
         } \
-        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+        for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
             block2 \
         } \
     }
@@ -126,15 +126,15 @@
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
-            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
                     break; \
-            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            case 1: for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
                         block2 \
                     } \
                     break; \
-            case 2: for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+            case 2: for (auto const TI3 : amrex::Gpu::Range(TN3)) { \
                         block3 \
                     } \
             } \
@@ -142,13 +142,13 @@
         AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
-        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+        for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
             block1 \
         } \
-        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+        for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
             block2 \
         } \
-        for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+        for (auto const TI3 : amrex::Gpu::Range(TN3)) { \
             block3 \
         } \
     }
@@ -159,7 +159,7 @@
         auto amrex_i_ec = amrex::Cuda::ExecutionConfig(TN); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (auto const TI : amrex::Cuda::Range(TN)) { \
+            for (auto const TI : amrex::Gpu::Range(TN)) { \
                 block \
             } \
         }); \
@@ -181,11 +181,11 @@
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
-            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
                     break; \
-            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            case 1: for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
                         block2 \
                     } \
             } \
@@ -210,14 +210,14 @@
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             switch (blockIdx.y) { \
-            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
                     break; \
-            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            case 1: for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
                         block2 \
                     } \
-            case 2: for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+            case 2: for (auto const TI3 : amrex::Gpu::Range(TN3)) { \
                         block3 \
                     } \
             } \
@@ -565,7 +565,7 @@
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
     { \
         long amrex_i_npts = BX.numPts(); \
-        for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+        for (auto const amrex_i_i : amrex::Gpu::Range(amrex_i_npts)) { \
             const auto IV = BX.atOffset(amrex_i_i); \
             block \
         } \
@@ -575,30 +575,30 @@
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { \
-        for (auto const TI : amrex::Cuda::Range(TN)) { \
+        for (auto const TI : amrex::Gpu::Range(TN)) { \
             block \
         } \
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { \
-        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+        for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
             block1 \
         } \
-        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+        for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
             block2 \
         } \
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { \
-        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+        for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
             block1 \
         } \
-        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+        for (auto const TI2 : amrex::Gpu::Range(TN2)) { \
             block2 \
         } \
-        for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+        for (auto const TI3 : amrex::Gpu::Range(TN3)) { \
             block3 \
         } \
     }
@@ -826,7 +826,7 @@ void launch (T const& n, L f) noexcept
     const auto ec = Cuda::ExecutionConfig(n);
     amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, Gpu::gpuStream()>>>(
     [=] AMREX_GPU_DEVICE () noexcept {
-        for (auto const i : Cuda::Range(n)) {
+        for (auto const i : Gpu::Range(n)) {
             f(i);
         }
     });

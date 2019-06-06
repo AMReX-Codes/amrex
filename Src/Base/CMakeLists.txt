@@ -187,10 +187,10 @@ target_sources( amrex
    AMReX_GpuElixir.H
    AMReX_GpuElixir.cpp
    AMReX_GpuMemory.H
+   AMReX_GpuRange.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaAllocators.H
    AMReX_CudaAllocators.cpp
-   AMReX_CudaRange.H
    AMReX_CudaAllocators.H
    AMReX_CudaLaunch.H
    AMReX_CudaLaunch.cpp 
