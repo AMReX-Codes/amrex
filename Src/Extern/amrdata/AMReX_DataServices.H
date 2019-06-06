@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------
 // DataServices.H
 // ---------------------------------------------------------------
-#ifndef _DATASERVICES_H_
-#define _DATASERVICES_H_
+#ifndef AMREX_DATASERVICES_H_
+#define AMREX_DATASERVICES_H_
 
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>

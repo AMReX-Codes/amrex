@@ -8,22 +8,22 @@
 #ifndef BL_LANG_FORT
 
 #if   defined(BL_FORT_USE_UPPERCASE)
-#define __BL_FORT_NAME__(A,B) A
+#define AMREX_FORT_NAME(A,B) A
 #elif defined(BL_FORT_USE_LOWERCASE)
-#define __BL_FORT_NAME__(A,B) B
+#define AMREX_FORT_NAME(A,B) B
 #elif defined(BL_FORT_USE_UNDERSCORE)
-#define __BL_FORT_NAME__(A,B) B##_
+#define AMREX_FORT_NAME(A,B) B##_
 #else
 #error "One of BL_FORT_USE_{UPPERCASE,LOWERCASE,UNDERSCORE} must be defined"
 #endif
 
 #ifdef __cplusplus
-#define BL_FORT_PROC_DECL(A,B) extern "C" void __BL_FORT_NAME__(A,B)
+#define BL_FORT_PROC_DECL(A,B) extern "C" void AMREX_FORT_NAME(A,B)
 #else
-#define BL_FORT_PROC_DECL(A,B) void __BL_FORT_NAME__(A,B)
+#define BL_FORT_PROC_DECL(A,B) void AMREX_FORT_NAME(A,B)
 #endif
-#define BL_FORT_PROC_CALL(A,B) __BL_FORT_NAME__(A,B)
-#define BL_FORT_PROC_NAME(A,B) __BL_FORT_NAME__(A,B)
+#define BL_FORT_PROC_CALL(A,B) AMREX_FORT_NAME(A,B)
+#define BL_FORT_PROC_NAME(A,B) AMREX_FORT_NAME(A,B)
 
 #define BL_FORT_FAB_ARG(A) amrex_real* A##_fab, AMREX_ARLIM_P(A##_lo), AMREX_ARLIM_P(A##_hi)
 #define BL_FORT_IFAB_ARG(A) int* A##_fab, AMREX_ARLIM_P(A##_lo), AMREX_ARLIM_P(A##_hi)
