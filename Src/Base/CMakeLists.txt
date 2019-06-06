@@ -173,6 +173,9 @@ target_sources( amrex
    AMReX_GpuControl.H
    AMReX_GpuControl.cpp
    AMReX_GpuLaunch.H
+   AMReX_GpuLaunch.cpp
+   AMReX_GpuLaunchMacrosG.H
+   AMReX_GpuLaunchMacrosC.H
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp
@@ -192,8 +195,6 @@ target_sources( amrex
    AMReX_CudaAllocators.H
    AMReX_CudaAllocators.cpp
    AMReX_CudaAllocators.H
-   AMReX_CudaLaunch.H
-   AMReX_CudaLaunch.cpp 
    AMReX_CudaContainers.H
    AMReX_CudaReduce.H
    AMReX_CudaGraph.H

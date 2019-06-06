@@ -1,4 +1,4 @@
-#include <AMReX_CudaLaunch.H>
+#include <AMReX_GpuLaunch.H>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_LayoutData.H>
 
