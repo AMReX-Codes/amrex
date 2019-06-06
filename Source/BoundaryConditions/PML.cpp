@@ -407,13 +407,76 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
 }
 
+// BoxArray
+// PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
+// {
+//     Box domain = geom.Domain();
+//     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+//         if ( ! geom.isPeriodic(idim) ) {
+//             domain.grow(idim, ncell);
+//         }
+//     }
+//
+//     BoxList bl;
+//     for (int i = 0, N = grid_ba.size(); i < N; ++i)
+//     {
+//         const Box& grid_bx = grid_ba[i];
+//         const IntVect& grid_bx_sz = grid_bx.size();
+//         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
+//                                          "Consider using larger amr.blocking_factor");
+//
+//         Box bx = grid_bx;
+//         bx.grow(ncell);
+//         bx &= domain;
+//
+//         Vector<Box> bndryboxes;
+// #if (AMREX_SPACEDIM == 3)
+//         int kbegin = -1, kend = 1;
+// #else
+//         int kbegin =  0, kend = 0;
+// #endif
+//         for (int kk = kbegin; kk <= kend; ++kk) {
+//             for (int jj = -1; jj <= 1; ++jj) {
+//                 for (int ii = -1; ii <= 1; ++ii) {
+//                     if (ii != 0 || jj != 0 || kk != 0) {
+//                         Box b = grid_bx;
+//                         b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+//                         b &= bx;
+//                         if (b.ok()) {
+//                             bndryboxes.push_back(b);
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         const BoxList& noncovered = grid_ba.complementIn(bx);
+//         for (const Box& b : noncovered) {
+//             for (const auto& bb : bndryboxes) {
+//                 Box ib = b & bb;
+//                 if (ib.ok()) {
+//                     bl.push_back(ib);
+//                 }
+//             }
+//         }
+//     }
+//
+//     BoxArray ba(bl);
+//     ba.removeOverlap(false);
+//
+//     return ba;
+// }
+
 BoxArray
 PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
 {
     Box domain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
-            domain.grow(idim, ncell);
+            // Create the simulation area (inside the whole domain) (only if non-periodical boundary conditions)
+            domain.grow(idim, -ncell); // I don't know if that works
+            // domain.growHi(idim, -ncell);
+            // domain.growLo(idim, -ncell);
         }
     }
 
@@ -421,13 +484,16 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     for (int i = 0, N = grid_ba.size(); i < N; ++i)
     {
         const Box& grid_bx = grid_ba[i];
-        const IntVect& grid_bx_sz = grid_bx.size();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
-                                         "Consider using larger amr.blocking_factor");
+        // const IntVect& grid_bx_sz = grid_bx.size();
+        // AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
+        //                                  "Consider using larger amr.blocking_factor");
 
         Box bx = grid_bx;
-        bx.grow(ncell);
-        bx &= domain;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            bx.grow(idim, -ncell);
+        }
+        bx &= domain; // is this step necessary? We're always inside the domain by doing so, even if there are some periodical boundary conditions...
+        const IntVect& bx_sz = bx.size();
 
         Vector<Box> bndryboxes;
 #if (AMREX_SPACEDIM == 3)
@@ -439,9 +505,10 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             for (int jj = -1; jj <= 1; ++jj) {
                 for (int ii = -1; ii <= 1; ++ii) {
                     if (ii != 0 || jj != 0 || kk != 0) {
-                        Box b = grid_bx;
-                        b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        b &= bx;
+                        Box b = bx; //grid_bx;
+                        // b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        b &= grid_bx;// bx;
                         if (b.ok()) {
                             bndryboxes.push_back(b);
                         }
@@ -450,7 +517,10 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             }
         }
 
-        const BoxList& noncovered = grid_ba.complementIn(bx);
+        // const BoxList& grid_ba_reduced = grid_ba.complementIn(bx);
+        BoxArray domain_ba = BoxArray(domain);
+
+        const BoxList& noncovered = domain_ba.complementIn(grid_bx); //grid_ba.complementIn(bx);
         for (const Box& b : noncovered) {
             for (const auto& bb : bndryboxes) {
                 Box ib = b & bb;
