@@ -53,9 +53,11 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         // the FFT plan, the valid dimensions are those of the real-space box.
         IntVect fft_size = realspace_ba[mfi].length();
 #ifdef AMREX_USE_GPU
-        // Add cuFFT-specific code
+        // Create cuFFT plans
         // Creating 3D plan for real to complex -- double precision
         // Assuming CUDA is used for programming GPU 
+        // Note that D2Z is inherently forward plan 
+        // and  Z2D is inherently backward plan 
         cufftResult result;
 #if (AMREX_SPACEDIM == 3)
         result = cufftPlan3d( &forward_plan[mfi], fft_size[2], 
@@ -70,8 +72,6 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
            amrex::Print() << " cufftplan3d backward failed! \n";
         }
 #else
-        // Add 2D cuFFT-spacific code for D2Z
-        // Note that D2Z is inherently forward plan 
         result = cufftPlan2d( &forward_plan[mfi], fft_size[1], 
                               fft_size[0], CUFFT_D2Z );
         if ( result != CUFFT_SUCCESS ) {
@@ -117,7 +117,7 @@ SpectralFieldData::~SpectralFieldData()
     if (tmpRealField.size() > 0){
         for ( MFIter mfi(tmpRealField); mfi.isValid(); ++mfi ){
 #ifdef AMREX_USE_GPU
-            // Add cuFFT-specific code
+            // Destroy cuFFT plans
             cufftDestroy( forward_plan[mfi] );
             cufftDestroy( backward_plan[mfi] );
 #else
@@ -168,8 +168,9 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
 
         // Perform Fourier transform from `tmpRealField` to `tmpSpectralField`
 #ifdef AMREX_USE_GPU
-        // Add cuFFT-specific code ; make sure that this is done on the same
-        // GPU stream as the above copy
+        // Perform Fast Fourier Transform on GPU using cuFFT 
+        // make sure that this is done on the same 
+        // GPU stream as the above copy        
         cufftResult result;
         cudaStream_t stream = amrex::Gpu::Device::cudaStream(); 
         cufftSetStream ( forward_plan[mfi], stream);
@@ -270,7 +271,8 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 
         // Perform Fourier transform from `tmpSpectralField` to `tmpRealField`
 #ifdef AMREX_USE_GPU
-        // Add cuFFT-specific code ; make sure that this is done on the same
+        // Perform Fast Fourier Transform on GPU using cuFFT. 
+        // make sure that this is done on the same 
         // GPU stream as the above copy
         cufftResult result;
         cudaStream_t stream = amrex::Gpu::Device::cudaStream(); 

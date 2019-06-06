@@ -1,8 +1,6 @@
 #ifndef WARPX_PSATD_ALGORITHM_H_
 #define WARPX_PSATD_ALGORITHM_H_
 
-//#include <SpectralKSpace.H>
-//#include <SpectralFieldData.H>
 #include <SpectralBaseAlgorithm.H>
 
 /* \brief Class that updates the field in spectral space
@@ -10,7 +8,6 @@
  */
 class PsatdAlgorithm : public SpectralBaseAlgorithm
 {
-    using SpectralCoefficients = amrex::FabArray< amrex::BaseFab <amrex::Real> >;
 
     public:
         PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
@@ -25,7 +22,6 @@ class PsatdAlgorithm : public SpectralBaseAlgorithm
         void pushSpectralFields(SpectralFieldData& f) const override final;
 
     private:
-        // Modified finite-order vectors
         SpectralCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
 };
 
