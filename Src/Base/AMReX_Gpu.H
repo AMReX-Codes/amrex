@@ -18,8 +18,8 @@ namespace amrex { namespace Cuda {} }
 #include <AMReX_GpuAsyncArray.H>
 #include <AMReX_GpuAsyncFab.H>
 #include <AMReX_GpuElixir.H>
+#include <AMReX_GpuMemory.H>
 
-#include <AMReX_CudaMemory.H>
 #include <AMReX_CudaRange.H>
 #include <AMReX_CudaReduce.H>
 #include <AMReX_CudaAllocators.H>
