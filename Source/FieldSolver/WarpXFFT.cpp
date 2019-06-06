@@ -56,6 +56,7 @@ BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
         for (const auto& b : bl) {
             fab.setVal(nonowner, b, 0, 1);
         }
+
     }
 
     return mask;
@@ -89,7 +90,7 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
 
         const FArrayBox& srcfab = mf_fft[mfi];
         const Box& srcbox = srcfab.box();
-
+ 
         if (srcbox.contains(bx))
         {
             // Copy the interior region (without guard cells)
@@ -107,6 +108,8 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
     // the cell that has non-zero mask is the one which is retained.
     mf.setVal(0.0, 0);
     mf.ParallelAdd(mftmp);
+
+  
 }
 
 }
@@ -449,34 +452,23 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     	amrex::Abort("WarpX::PushPSATD: TODO");
         }
 #else // AMREX_USE_CUDA is defined ; running on GPU
-        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.")
+        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
 #endif
     } else {
         // Not using the hybrid decomposition
         auto& solver = *spectral_solver_fp[lev];
 
         // Perform forward Fourier transform
-        amrex::Print() <<  " FT Ex \n";  
         solver.ForwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
-        amrex::Print() <<  " FT Ey \n";  
         solver.ForwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
-        amrex::Print() <<  " FT Ez \n";  
         solver.ForwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
-        amrex::Print() <<  " FT Bx \n";  
         solver.ForwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
-        amrex::Print() <<  " FT By \n";  
         solver.ForwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
-        amrex::Print() <<  " FT Bz \n";  
         solver.ForwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
-        amrex::Print() <<  " FT jx \n";  
         solver.ForwardTransform(*current_fp_fft[lev][0], SpectralFieldIndex::Jx);
-        amrex::Print() <<  " FT jy \n";  
         solver.ForwardTransform(*current_fp_fft[lev][1], SpectralFieldIndex::Jy);
-        amrex::Print() <<  " FT jz \n";  
         solver.ForwardTransform(*current_fp_fft[lev][2], SpectralFieldIndex::Jz);
-        amrex::Print() <<  " FT rho old \n";  
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_old, 0);
-        amrex::Print() <<  " FT rho new \n";  
         solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_new, 1);
 
         // Advance fields in spectral space
@@ -489,6 +481,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         solver.BackwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
         solver.BackwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
         solver.BackwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
+
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
@@ -505,5 +498,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
-    amrex::Print() << " coped data from fft to valid \n";
+
 }
+
+
