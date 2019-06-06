@@ -12,7 +12,8 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Vector.H>
-#include <AMReX_CudaMemory.H>
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 
 namespace amrex
 {
@@ -30,7 +31,7 @@ class BoxCommHelper;
 * Box is a dimension dependent class, so SPACEDIM must be
 * defined as either 1, 2, or 3 when compiling.
 */
-class Box // : public Gpu::Managed
+class Box
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
     friend class BoxCommHelper;

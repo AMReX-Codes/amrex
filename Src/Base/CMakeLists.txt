@@ -186,11 +186,11 @@ target_sources( amrex
    AMReX_GpuAsyncArray.cpp
    AMReX_GpuElixir.H
    AMReX_GpuElixir.cpp
+   AMReX_GpuMemory.H
    # CUDA --------------------------------------------------------------------
    AMReX_CudaAllocators.H
    AMReX_CudaAllocators.cpp
    AMReX_CudaRange.H
-   AMReX_CudaMemory.H
    AMReX_CudaAllocators.H
    AMReX_CudaLaunch.H
    AMReX_CudaLaunch.cpp 
