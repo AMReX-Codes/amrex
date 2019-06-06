@@ -176,6 +176,8 @@ target_sources( amrex
    AMReX_GpuLaunch.cpp
    AMReX_GpuLaunchMacrosG.H
    AMReX_GpuLaunchMacrosC.H
+   AMReX_GpuLaunchFunctsG.H
+   AMReX_GpuLaunchFunctsC.H
    AMReX_GpuError.H
    AMReX_GpuDevice.H
    AMReX_GpuDevice.cpp

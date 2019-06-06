@@ -13,6 +13,34 @@
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
 #endif
 
+#if defined(AMREX_USE_HIP)
+#define AMREX_threadIdx_x hipThreadIdx_x
+#define AMREX_threadIdx_y hipThreadIdx_y
+#define AMREX_threadIdx_z hipThreadIdx_z
+#define AMREX_blockIdx_x hipBlockIdx_x
+#define AMREX_blockIdx_y hipBlockIdx_y
+#define AMREX_blockIdx_z hipBlockIdx_z
+#define AMREX_blockDim_x hipBlockDim_x
+#define AMREX_blockDim_y hipBlockDim_y
+#define AMREX_blockDim_z hipBlockDim_z
+#define AMREX_gridDim_x hipGridDim_x
+#define AMREX_gridDim_y hipGridDim_y
+#define AMREX_gridDim_z hipGridDim_z
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_threadIdx_x threadIdx.x
+#define AMREX_threadIdx_y threadIdx.y
+#define AMREX_threadIdx_z threadIdx.z
+#define AMREX_blockIdx_x blockIdx.x
+#define AMREX_blockIdx_y blockIdx.y
+#define AMREX_blockIdx_z blockIdx.z
+#define AMREX_blockDim_x blockDim.x
+#define AMREX_blockDim_y blockDim.y
+#define AMREX_blockDim_z blockDim.z
+#define AMREX_gridDim_x gridDim.x
+#define AMREX_gridDim_y gridDim.y
+#define AMREX_gridDim_z gridDim.z
+#endif
+
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 #define AMREX_DEVICE_COMPILE 1
 #endif

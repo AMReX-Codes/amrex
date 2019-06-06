@@ -1,7 +1,7 @@
-#ifndef AMREX_CPU_LAUNCH_MACROS_H_
-#define AMREX_CPU_LAUNCH_MACROS_H_
+#ifndef AMREX_GPU_LAUNCH_MACROS_C_H_
+#define AMREX_GPU_LAUNCH_MACROS_C_H_
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
     { \
         long amrex_i_npts = BX.numPts(); \
         for (auto const amrex_i_i : amrex::Gpu::Range(amrex_i_npts)) { \
@@ -10,16 +10,16 @@
         } \
     }
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOXIV(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(__VA_ARGS__)
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOXIV(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(__VA_ARGS__)
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { \
         for (auto const TI : amrex::Gpu::Range(TN)) { \
             block \
         } \
     }
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
     { \
         for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
             block1 \
@@ -29,7 +29,7 @@
         } \
     }
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
     { \
         for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
             block1 \
@@ -42,25 +42,25 @@
         } \
     }
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(__VA_ARGS__)
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_2(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(__VA_ARGS__)
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_3(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(__VA_ARGS__)
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(__VA_ARGS__)
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \
         const amrex::Box& tbb = bbb; \
         block \
     }
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOX(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(__VA_ARGS__)
+#define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_BOX(...) AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_BOX(__VA_ARGS__)
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_id,block) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_id,block) \
     { \
         const amrex::Box& tbb = bbb; \
         block \
     }
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
+#define AMREX_GPU_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
     { \
         const amrex::Box& tbx = bbx; \
         blockx \
@@ -70,18 +70,18 @@
         blockz \
     }
 
-#define AMREX_CUDA_FOR_1D_IMPL(n,i,block) \
+#define AMREX_GPU_FOR_1D_IMPL(n,i,block) \
         for (auto i = decltype(n){0}; i < n; ++i) {     \
             block \
         }
 
-#define AMREX_CUDA_PARALLEL_FOR_1D_IMPL(n,i,block) \
+#define AMREX_GPU_PARALLEL_FOR_1D_IMPL(n,i,block) \
         AMREX_PRAGMA_SIMD \
         for (auto i = decltype(n){0}; i < n; ++i) {     \
             block \
         }
 
-#define AMREX_CUDA_FOR_3D_IMPL(box,i,j,k,block) \
+#define AMREX_GPU_FOR_3D_IMPL(box,i,j,k,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -92,7 +92,7 @@
         }}} \
     }
 
-#define AMREX_CUDA_PARALLEL_FOR_3D_IMPL(box,i,j,k,block) \
+#define AMREX_GPU_PARALLEL_FOR_3D_IMPL(box,i,j,k,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -104,7 +104,7 @@
         }}} \
     }
 
-#define AMREX_CUDA_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
+#define AMREX_GPU_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -116,7 +116,7 @@
         }}}} \
     }
 
-#define AMREX_CUDA_PARALLEL_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
+#define AMREX_GPU_PARALLEL_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -129,21 +129,21 @@
         }}}} \
     }
 
-#define AMREX_CUDA_HOST_DEVICE_FOR_1D(...) AMREX_CUDA_FOR_1D_IMPL(__VA_ARGS__);
-#define AMREX_CUDA_DEVICE_FOR_1D(...)      AMREX_CUDA_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_HOST_DEVICE_FOR_1D(...) AMREX_GPU_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_DEVICE_FOR_1D(...)      AMREX_GPU_FOR_1D_IMPL(__VA_ARGS__);
 
-#define AMREX_CUDA_HOST_DEVICE_FOR_3D(...) AMREX_CUDA_FOR_3D_IMPL(__VA_ARGS__);
-#define AMREX_CUDA_DEVICE_FOR_3D(...)      AMREX_CUDA_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_HOST_DEVICE_FOR_3D(...) AMREX_GPU_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_DEVICE_FOR_3D(...)      AMREX_GPU_FOR_3D_IMPL(__VA_ARGS__);
 
-#define AMREX_CUDA_HOST_DEVICE_FOR_4D(...) AMREX_CUDA_FOR_4D_IMPL(__VA_ARGS__);
-#define AMREX_CUDA_DEVICE_FOR_4D(...)      AMREX_CUDA_FOR_4D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_HOST_DEVICE_FOR_4D(...) AMREX_GPU_FOR_4D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_DEVICE_FOR_4D(...)      AMREX_GPU_FOR_4D_IMPL(__VA_ARGS__);
 
-#define AMREX_CUDA_DEVICE_PARALLEL_FOR_1D(...)      AMREX_CUDA_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
-#define AMREX_CUDA_DEVICE_PARALLEL_FOR_3D(...)      AMREX_CUDA_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
-#define AMREX_CUDA_DEVICE_PARALLEL_FOR_4D(...)      AMREX_CUDA_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_DEVICE_PARALLEL_FOR_1D(...)      AMREX_GPU_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_DEVICE_PARALLEL_FOR_3D(...)      AMREX_GPU_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_GPU_DEVICE_PARALLEL_FOR_4D(...)      AMREX_GPU_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
-#define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
-#define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) function(__VA_ARGS__);
+#define AMREX_GPU_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
+#define AMREX_GPU_LAUNCH_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
+#define AMREX_GPU_LAUNCH_GLOBAL(strategy, function, ...) function(__VA_ARGS__);
 
 #endif

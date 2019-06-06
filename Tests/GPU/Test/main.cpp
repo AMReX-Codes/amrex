@@ -84,7 +84,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
 
-    amrex::Cuda::ExecutionConfig simple_config(1,1);
+    amrex::Gpu::ExecutionConfig simple_config(1,1);
 
     // Malloc
     {
