@@ -222,9 +222,7 @@ WarpX::FillBoundaryE ()
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        amrex::Print() << " lev " << lev << " in fill bndry E \n";
         FillBoundaryE(lev);
-        amrex::Print() << " lev " << lev << " after fill bndry E \n";
     }
 }
 
@@ -273,12 +271,9 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         pml[lev]->FillBoundaryE(patch_type);
         }
 
-        amrex::Print() << " before defining multifab \n";
         const auto& cperiod = Geom(lev-1).periodicity();
         Vector<MultiFab*> mf{Efield_cp[lev][0].get(),Efield_cp[lev][1].get(),Efield_cp[lev][2].get()};
-        amrex::Print() << " before amrex fill bndry \n";
         amrex::FillBoundary(mf, cperiod);
-        amrex::Print() << " after amrex fill bndry \n";
     }
 }
 

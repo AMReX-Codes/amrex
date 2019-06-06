@@ -1388,9 +1388,7 @@ PhysicalParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-            amrex::Print() << " before deposit chage \n";
             if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
-            amrex::Print() << " after deposit chage \n";
             
             if (! do_not_push)
             {

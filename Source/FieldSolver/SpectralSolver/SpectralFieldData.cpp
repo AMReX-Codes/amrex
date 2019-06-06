@@ -55,7 +55,7 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
 #ifdef AMREX_USE_GPU
         // Add cuFFT-specific code
         // Creating 3D plan for real to complex -- double precision
-
+        // Assuming CUDA is used for programming GPU 
         cufftResult result;
 #if (AMREX_SPACEDIM == 3)
         result = cufftPlan3d( &forward_plan[mfi], fft_size[2], 
@@ -63,21 +63,26 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
         if ( result != CUFFT_SUCCESS ) {
            amrex::Print() << " cufftplan3d forward failed! \n";
         }
-#else
-        // Add 2D cuFFT-spacific code for D2Z
-        // Note that D2Z is inherently forward plan 
-#endif
 
-#if (AMREX_SPACEDIM == 3)
         result = cufftPlan3d( &backward_plan[mfi], fft_size[2], 
                               fft_size[1], fft_size[0], CUFFT_Z2D);
         if ( result != CUFFT_SUCCESS ) {
            amrex::Print() << " cufftplan3d backward failed! \n";
         }
 #else
-        // Add 2D cuFFT-specific code for Z2D
-        // Note that Z2D is inherently backward plan
+        // Add 2D cuFFT-spacific code for D2Z
+        // Note that D2Z is inherently forward plan 
+        result = cufftPlan2d( &forward_plan[mfi], fft_size[1], 
+                              fft_size[0], CUFFT_D2Z );
+        if ( result != CUFFT_SUCCESS ) {
+           amrex::Print() << " cufftplan2d forward failed! \n";
+        }
 
+        result = cufftPlan2d( &backward_plan[mfi], fft_size[1], 
+                               fft_size[0], CUFFT_Z2D );
+        if ( result != CUFFT_SUCCESS ) {
+           amrex::Print() << " cufftplan2d backward failed! \n";
+        }
 #endif
 
 #else
