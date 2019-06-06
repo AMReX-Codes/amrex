@@ -1090,7 +1090,6 @@ MLMG::buildFineMask ()
     BL_PROFILE("MLMG::buildFineMask()");
 
     if (!fine_mask.empty()) return;
-    const int ncomp = linop.getNComp();
 
     fine_mask.clear();
     fine_mask.resize(namrlevs);
