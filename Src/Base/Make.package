@@ -45,7 +45,11 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H AMReX_GpuError.H
+C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuError.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchMacrosC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H
+C$(AMREX_BASE)_sources += AMReX_GpuLaunch.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
@@ -69,8 +73,8 @@ C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
 
 C$(AMREX_BASE)_headers += AMReX_CudaReduce.H AMReX_CudaGraph.H AMReX_CudaContainers.H
 
-C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp
-C$(AMREX_BASE)_headers += AMReX_CudaLaunch.H   AMReX_CudaAllocators.H
+C$(AMREX_BASE)_sources += AMReX_CudaAllocators.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaAllocators.H
 
 #
 # I/O stuff.
