@@ -65,8 +65,8 @@ C$(AMREX_BASE)_sources += AMReX_GpuAsyncFabImpl.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaElixir.H
-C$(AMREX_BASE)_sources += AMReX_CudaElixir.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuElixir.H
+C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
 
 #
 # I/O stuff.
