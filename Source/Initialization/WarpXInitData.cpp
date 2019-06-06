@@ -322,6 +322,7 @@ WarpX::InitLevelData (int lev, Real time)
 void
 WarpX::InitLevelDataFFT (int lev, Real time)
 {
+ 
     Efield_fp_fft[lev][0]->setVal(0.0);
     Efield_fp_fft[lev][1]->setVal(0.0);
     Efield_fp_fft[lev][2]->setVal(0.0);
@@ -346,6 +347,7 @@ WarpX::InitLevelDataFFT (int lev, Real time)
         current_cp_fft[lev][2]->setVal(0.0);
         rho_cp_fft[lev]->setVal(0.0);
     }
+
 }
 
 #endif

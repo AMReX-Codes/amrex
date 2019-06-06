@@ -669,7 +669,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
 
 #ifdef AMREX_USE_GPU
-      data_ptr = (*crhomf)[pti].dataPtr();
+      data_ptr = (*crhomf)[pti].dataPtr(icomp);
       auto rholen = (*crhomf)[pti].length();
 #else
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
