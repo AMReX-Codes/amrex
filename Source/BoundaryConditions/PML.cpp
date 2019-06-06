@@ -534,6 +534,15 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     BoxArray ba(bl);
     ba.removeOverlap(false);
 
+    BoxList bl_2 = BoxList(ba);
+
+    amrex::Print() << "Printing PML boxes AFTER cleaning" << std::endl;
+    amrex::Print() << "[" << std::endl;
+    for (const Box& b: bl_2) {
+      amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
+    }
+    amrex::Print()<< "];" << std::endl;
+
     return ba;
 }
 
