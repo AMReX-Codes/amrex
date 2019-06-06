@@ -50,11 +50,10 @@ C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H AM
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
 
-C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_CudaRange.H AMReX_CudaContainers.H
-C$(AMREX_BASE)_headers += AMReX_CudaReduce.H AMReX_CudaGraph.H
+C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 
-C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_CudaLaunch.cpp AMReX_GpuUtility.cpp AMReX_CudaAllocators.cpp
-C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_CudaLaunch.H   AMReX_GpuUtility.H   AMReX_CudaAllocators.H
+C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
+C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncFab.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncFab.cpp
@@ -67,6 +66,11 @@ C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuElixir.H
 C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
+
+C$(AMREX_BASE)_headers += AMReX_CudaReduce.H AMReX_CudaGraph.H AMReX_CudaContainers.H
+
+C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaLaunch.H   AMReX_CudaAllocators.H
 
 #
 # I/O stuff.
