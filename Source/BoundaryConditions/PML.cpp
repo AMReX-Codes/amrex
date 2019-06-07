@@ -329,7 +329,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window)
+          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
@@ -355,12 +355,24 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, ngb));
     pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, ngb));
 
+
     pml_E_fp[0]->setVal(0.0);
     pml_E_fp[1]->setVal(0.0);
     pml_E_fp[2]->setVal(0.0);
     pml_B_fp[0]->setVal(0.0);
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
+
+
+    if (pml_has_particles){
+      // pml_J_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Jx_nodal_flag), dm, 2, ngb));
+      // pml_J_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Jy_nodal_flag), dm, 2, ngb));
+      // pml_J_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Jz_nodal_flag), dm, 2, ngb));
+      // pml_J_fp[0]->setVal(0.0);
+      // pml_J_fp[1]->setVal(0.0);
+      // pml_J_fp[2]->setVal(0.0);
+
+    }
 
     if (do_dive_cleaning)
     {
@@ -400,6 +412,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         {
             pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), cdm, 3, ngf));
             pml_F_cp->setVal(0.0);
+            amrex::Print() << "PML HAS PARTICLES "<< std::endl;
         }
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
@@ -648,12 +661,12 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             }
         }
     }
-    amrex::Print() << "Printing PML boxes BEFORE cleaning" << std::endl;
-    amrex::Print() << "[" << std::endl;
-    for (const Box& b: bl) {
-      amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
-    }
-    amrex::Print()<< "];" << std::endl;
+    // amrex::Print() << "Printing PML boxes BEFORE cleaning" << std::endl;
+    // amrex::Print() << "[" << std::endl;
+    // for (const Box& b: bl) {
+    //   amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
+    // }
+    // amrex::Print()<< "];" << std::endl;
 
     BoxArray ba(bl);
     ba.removeOverlap(false);

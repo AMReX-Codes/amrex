@@ -88,7 +88,7 @@ WarpX::InitDiagnostics () {
         const Real* current_lo = geom[0].ProbLo();
         const Real* current_hi = geom[0].ProbHi();
         Real dt_boost = dt[0];
-        
+
 	// Find the positions of the lab-frame box that corresponds to the boosted-frame box at t=0
 	Real zmin_lab = current_lo[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
 	Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
@@ -97,7 +97,7 @@ WarpX::InitDiagnostics () {
 					       zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
                                                num_snapshots_lab, gamma_boost,
-                                               t_new[0], dt_boost, 
+                                               t_new[0], dt_boost,
                                                moving_window_dir, geom[0]));
     }
 }
@@ -118,10 +118,10 @@ WarpX::InitFromScratch ()
 
     InitPML();
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     if (do_electrostatic) {
         getLevelMasks(masks);
-        
+
         // the plus one is to convert from num_cells to num_nodes
         getLevelMasks(gather_masks, n_buffer + 1);
     }
@@ -134,13 +134,13 @@ WarpX::InitPML ()
     if (do_pml)
     {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window));
+                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window, 1)); //pml_has_particles));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
                                    pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning,
-                                   do_moving_window));
+                                   do_moving_window, 1)); //pml_has_particles));
         }
     }
 }
@@ -226,7 +226,7 @@ WarpX::InitOpenbc ()
     Vector<int> alllohi(6*nprocs,100000);
 
     MPI_Allgather(lohi, 6, MPI_INT, alllohi.data(), 6, MPI_INT, ParallelDescriptor::Communicator());
-    
+
     BoxList bl{IndexType::TheNodeType()};
     for (int i = 0; i < nprocs; ++i)
     {
@@ -252,7 +252,7 @@ WarpX::InitOpenbc ()
     rho_openbc.copy(*rho, 0, 0, 1, rho->nGrow(), 0, gm.periodicity(), FabArrayBase::ADD);
 
     const Real* dx = gm.CellSize();
-    
+
     warpx_openbc_potential(rho_openbc[myproc].dataPtr(), phi_openbc[myproc].dataPtr(), dx);
 
     BoxArray nba = boxArray(lev);
