@@ -22,7 +22,7 @@ void For (T n, L f) noexcept
     const auto ec = Gpu::ExecutionConfig(n);
     amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, Gpu::gpuStream()>>>(
     [=] AMREX_GPU_DEVICE () noexcept {
-        for (T i = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, stride = AMREX_blockDim_x*AMREX_gridDim_x;
+        for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              i < n; i += stride) {
             f(i);
         }
@@ -45,7 +45,7 @@ void For (Box const& box, L f) noexcept
     const auto ec = Gpu::ExecutionConfig(ncells);
     amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, amrex::Gpu::gpuStream()>>>(
     [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, stride = AMREX_blockDim_x*AMREX_gridDim_x;
+        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             int k =  icell /   (len.x*len.y);
             int j = (icell - k*(len.x*len.y)) /   len.x;
@@ -74,7 +74,7 @@ void For (Box const& box, T ncomp, L f) noexcept
     const auto ec = Gpu::ExecutionConfig(ncells);
     amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, amrex::Gpu::gpuStream()>>>(
     [=] AMREX_GPU_DEVICE () noexcept {
-        for (int icell = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, stride = AMREX_blockDim_x*AMREX_gridDim_x;
+        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
              icell < ncells; icell += stride) {
             int k =  icell /   (len.x*len.y);
             int j = (icell - k*(len.x*len.y)) /   len.x;

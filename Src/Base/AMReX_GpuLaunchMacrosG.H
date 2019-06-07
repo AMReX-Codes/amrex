@@ -70,7 +70,7 @@
         amrex_i_nblocks.y = 2; \
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            switch (AMREX_blockIdx_y) { \
+            switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
@@ -104,7 +104,7 @@
         amrex_i_nblocks.y = 3; \
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            switch (AMREX_blockIdx_y) { \
+            switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
@@ -159,7 +159,7 @@
         amrex_i_nblocks.y = 2; \
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            switch (AMREX_blockIdx_y) { \
+            switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
@@ -188,7 +188,7 @@
         amrex_i_nblocks.y = 3; \
         amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            switch (AMREX_blockIdx_y) { \
+            switch (blockIdx.y) { \
             case 0: for (auto const TI1 : amrex::Gpu::Range(TN1)) { \
                         block1 \
                     } \
@@ -214,7 +214,7 @@
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             long amrex_i_numpts = bbb.numPts(); \
-            long amrex_i_tid = AMREX_blockDim_x*AMREX_blockIdx_x + AMREX_threadIdx_x; \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / amrex::Gpu::Device::warp_size; \
             long amrex_i_lid = amrex_i_tid - amrex_i_wid*amrex::Gpu::Device::warp_size; \
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_GPU_NCELLS_PER_THREAD*amrex::Gpu::Device::warp_size; \
@@ -238,7 +238,7 @@
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             long amrex_i_numpts = bbb.numPts(); \
-            long amrex_i_tid = AMREX_blockDim_x*AMREX_blockIdx_x + AMREX_threadIdx_x; \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / amrex::Gpu::Device::warp_size; \
             long amrex_i_lid = amrex_i_tid - amrex_i_wid*amrex::Gpu::Device::warp_size; \
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_GPU_NCELLS_PER_THREAD*amrex::Gpu::Device::warp_size; \
@@ -264,7 +264,7 @@
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
             long amrex_i_numpts = bbb.numPts(); \
-            long amrex_i_tid = AMREX_blockDim_x*AMREX_blockIdx_x + AMREX_threadIdx_x; \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / amrex::Gpu::Device::warp_size; \
             long amrex_i_lid = amrex_i_tid - amrex_i_wid*amrex::Gpu::Device::warp_size; \
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_GPU_NCELLS_PER_THREAD*amrex::Gpu::Device::warp_size; \
@@ -287,7 +287,7 @@
         const auto amrex_i_ec = Gpu::ExecutionConfig(max_pts); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            long amrex_i_tid = AMREX_blockDim_x*AMREX_blockIdx_x + AMREX_threadIdx_x; \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / amrex::Gpu::Device::warp_size; \
             long amrex_i_lid = amrex_i_tid - amrex_i_wid*amrex::Gpu::Device::warp_size; \
             const long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_GPU_NCELLS_PER_THREAD*amrex::Gpu::Device::warp_size; \
@@ -329,9 +329,9 @@
         [=] AMREX_GPU_DEVICE () noexcept { \
             const auto amrex_i_lo = bbb.loVect3d(); \
             const auto amrex_i_hi = bbb.hiVect3d(); \
-            for (int amrex_i_k = amrex_i_lo[2] + AMREX_blockIdx_z * AMREX_blockDim_z + AMREX_threadIdx_z; amrex_i_k <= amrex_i_hi[2]; amrex_i_k += AMREX_blockDim_z * AMREX_gridDim_z) { \
-            for (int amrex_i_j = amrex_i_lo[1] + AMREX_blockIdx_y * AMREX_blockDim_y + AMREX_threadIdx_y; amrex_i_j <= amrex_i_hi[1]; amrex_i_j += AMREX_blockDim_y * AMREX_gridDim_y) { \
-            for (int amrex_i_i = amrex_i_lo[0] + AMREX_blockIdx_x * AMREX_blockDim_x + AMREX_threadIdx_x; amrex_i_i <= amrex_i_hi[0]; amrex_i_i += AMREX_blockDim_x * AMREX_gridDim_x) { \
+            for (int amrex_i_k = amrex_i_lo[2] + blockIdx.z * blockDim.z + threadIdx.z; amrex_i_k <= amrex_i_hi[2]; amrex_i_k += blockDim.z * gridDim.z) { \
+            for (int amrex_i_j = amrex_i_lo[1] + blockIdx.y * blockDim.y + threadIdx.y; amrex_i_j <= amrex_i_hi[1]; amrex_i_j += blockDim.y * gridDim.y) { \
+            for (int amrex_i_i = amrex_i_lo[0] + blockIdx.x * blockDim.x + threadIdx.x; amrex_i_i <= amrex_i_hi[0]; amrex_i_i += blockDim.x * gridDim.x) { \
                 amrex::Box tbb(IntVect(AMREX_D_DECL(amrex_i_i,amrex_i_j,amrex_i_k)), \
                                IntVect(AMREX_D_DECL(amrex_i_i,amrex_i_j,amrex_i_k)), \
                                bbb.type()); \
@@ -389,7 +389,7 @@
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(n); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int i = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, amrex_i_stride = AMREX_blockDim_x*AMREX_gridDim_x; \
+            for (int i = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
                      i < n; i += amrex_i_stride) { \
                 block \
             } \
@@ -406,7 +406,7 @@
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(n); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int i = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, amrex_i_stride = AMREX_blockDim_x*AMREX_gridDim_x; \
+            for (int i = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
                      i < n; i += amrex_i_stride) { \
                 block \
             } \
@@ -427,7 +427,7 @@
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, amrex_i_stride = AMREX_blockDim_x*AMREX_gridDim_x; \
+            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
                      amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                 int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
                 int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
@@ -459,7 +459,7 @@
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, amrex_i_stride = AMREX_blockDim_x*AMREX_gridDim_x; \
+            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
                      amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                 int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
                 int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
@@ -486,7 +486,7 @@
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, amrex_i_stride = AMREX_blockDim_x*AMREX_gridDim_x; \
+            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
                      amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                 int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
                 int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
@@ -519,7 +519,7 @@
         const auto amrex_i_ec = amrex::Gpu::ExecutionConfig(amrex_i_ncells); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Gpu::gpuStream()>>>( \
         [=] AMREX_GPU_DEVICE () noexcept { \
-            for (int amrex_i_icell = AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, amrex_i_stride = AMREX_blockDim_x*AMREX_gridDim_x; \
+            for (int amrex_i_icell = blockDim.x*blockIdx.x+threadIdx.x, amrex_i_stride = blockDim.x*gridDim.x; \
                      amrex_i_icell < amrex_i_ncells; amrex_i_icell += amrex_i_stride) { \
                 int k =  amrex_i_icell /   (amrex_i_len.x*amrex_i_len.y); \
                 int j = (amrex_i_icell - k*(amrex_i_len.x*amrex_i_len.y)) /   amrex_i_len.x; \
