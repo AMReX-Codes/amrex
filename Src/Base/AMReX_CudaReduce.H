@@ -56,7 +56,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceSum (T* data, T& sum) noexcept
 {
-    int tid = AMREX_threadIdx_x;
+    int tid = threadIdx.x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -117,7 +117,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceMin (T* data, T& dmin) noexcept
 {
-    int tid = AMREX_threadIdx_x;
+    int tid = threadIdx.x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -178,7 +178,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceMax (T* data, T& dmax) noexcept
 {
-    int tid = AMREX_threadIdx_x;
+    int tid = threadIdx.x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -239,7 +239,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceAnd (T* data, T& r) noexcept
 {
-    int tid = AMREX_threadIdx_x;
+    int tid = threadIdx.x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -300,7 +300,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceOr (T* data, T& r) noexcept
 {
-    int tid = AMREX_threadIdx_x;
+    int tid = threadIdx.x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {

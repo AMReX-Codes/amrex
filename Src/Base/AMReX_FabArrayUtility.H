@@ -47,12 +47,12 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 for (auto const tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab);
                 }
-                sdata[AMREX_threadIdx_x] = tsum;
+                sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
                 Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
+                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
         }
 
@@ -116,12 +116,12 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 for (auto const tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab1, *fab2);
                 }
-                sdata[AMREX_threadIdx_x] = tsum;
+                sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
                 Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
+                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
         }
 
@@ -186,12 +186,12 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 for (auto const tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab1, *fab2, *fab3);
                 }
-                sdata[AMREX_threadIdx_x] = tsum;
+                sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
                 Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
+                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
         }
 
@@ -257,12 +257,12 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
                     value_type local_tmin = f(tbx, *fab);
                     tmin = amrex::min(tmin, local_tmin);
                 }
-                sdata[AMREX_threadIdx_x] = tmin;
+                sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
                 Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Min(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
             });
         }
 
@@ -331,12 +331,12 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                     value_type local_tmin = f(tbx, *fab1, *fab2);
                     tmin = amrex::min(tmin, local_tmin);
                 }
-                sdata[AMREX_threadIdx_x] = tmin;
+                sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
                 Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Min(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
             });
         }
 
@@ -404,12 +404,12 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                     value_type local_tmax = f(tbx, *fab);
                     tmax = amrex::max(tmax, local_tmax);
                 }
-                sdata[AMREX_threadIdx_x] = tmax;
+                sdata[threadIdx.x] = tmax;
                 __syncthreads();
 
                 Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Max(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
             });
         }
 
@@ -478,12 +478,12 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                     value_type local_tmax = f(tbx, *fab1, *fab2);
                     tmax = amrex::max(tmax, local_tmax);
                 }
-                sdata[AMREX_threadIdx_x] = tmax;
+                sdata[threadIdx.x] = tmax;
                 __syncthreads();
 
                 Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Max(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
             });
         }
 
@@ -544,12 +544,12 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr && f(tbx, *fab);
                 }
-                sdata[AMREX_threadIdx_x] = tr;
+                sdata[threadIdx.x] = tr;
                 __syncthreads();
 
                 Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::And(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
             });
         }
 
@@ -613,12 +613,12 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr && f(tbx, *fab1, *fab2);
                 }
-                sdata[AMREX_threadIdx_x] = tr;
+                sdata[threadIdx.x] = tr;
                 __syncthreads();
 
                 Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::And(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
             });
         }
 
@@ -679,12 +679,12 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr || f(tbx, *fab);
                 }
-                sdata[AMREX_threadIdx_x] = tr;
+                sdata[threadIdx.x] = tr;
                 __syncthreads();
 
                 Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Or(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
             });
         }
 
@@ -748,12 +748,12 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr || f(tbx, *fab1, *fab2);
                 }
-                sdata[AMREX_threadIdx_x] = tr;
+                sdata[threadIdx.x] = tr;
                 __syncthreads();
 
                 Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
 
-                if (AMREX_threadIdx_x == 0) Gpu::Atomic::Or(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
             });
         }
 
