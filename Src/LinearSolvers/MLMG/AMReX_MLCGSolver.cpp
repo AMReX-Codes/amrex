@@ -27,7 +27,7 @@ sxay (MultiFab&       ss,
       Real            a,
       const MultiFab& yy,
       int             yycomp,
-      int             nghost = 0)
+      int             nghost)
 {
     BL_PROFILE("CGSolver::sxay()");
 
@@ -42,9 +42,10 @@ void
 sxay (MultiFab&       ss,
       const MultiFab& xx,
       Real            a,
-      const MultiFab& yy)
+      const MultiFab& yy,
+      const int       nghost)
 {
-    sxay(ss,xx,a,yy,0);
+    sxay(ss,xx,a,yy,0,nghost);
 }
 
 }
