@@ -392,7 +392,9 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |   
+   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | FAB_IS_PINNED                |  Allocate BaseFab in pinned memory              | NO          | YES, NO         |      
    +------------------------------+-------------------------------------------------+-------------+-----------------+   
    | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |    
    +------------------------------+-------------------------------------------------+-------------+-----------------+

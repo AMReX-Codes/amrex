@@ -1,10 +1,10 @@
-#ifndef AMREX_CUDAELIXIR_H_
-#define AMREX_CUDAELIXIR_H_
+#ifndef AMREX_GPUELIXIR_H_
+#define AMREX_GPUELIXIR_H_
 
 #include <AMReX_Arena.H>
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 class Elixir
 {
@@ -44,7 +44,7 @@ private:
 
 }
 
-using Cuda::Elixir;
+using Gpu::Elixir;
 }
 
 #endif

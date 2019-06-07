@@ -489,10 +489,10 @@ StateData::FillBoundary (FArrayBox&     dest,
         }
     }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     // Add a synchronize here in case the user code launched kernels
     // to handle the boundary fills.
-    AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
+    Gpu::synchronize();
 #endif
 }
 

@@ -5,7 +5,7 @@ module amrex_mlmg_interp_module
   implicit none
 
   private
-  public :: amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
+  public :: amrex_mlmg_lin_nd_interp, amrex_mlmg_lin_nd_interp_ghostnodes, amrex_mlmg_eb_cc_interp
 
 contains
 
@@ -37,6 +37,46 @@ contains
     
   end subroutine amrex_mlmg_lin_nd_interp
 
+  subroutine amrex_mlmg_lin_nd_interp_ghostnodes (clo, chi, flo, fhi, fine, fdlo, fdhi, crse, cdlo, cdhi, nc) &
+       bind(c,name='amrex_mlmg_lin_nd_interp_ghostnodes')
+    integer, dimension(2) :: clo, chi, flo, fhi, fdlo, fdhi, cdlo, cdhi
+    integer, intent(in) :: nc
+    real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),fdlo(2):fdhi(2),nc)
+    real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),cdlo(2):cdhi(2),nc)
+    
+    integer :: i,j,n
+
+
+    ! Interpolate from coarse grid to fine grid
+    do n = 1, nc
+       do    j = flo(2), fhi(2)
+          do i = flo(1), fhi(1)
+             if (MOD(j,2) .ne. 0 .and. MOD(i,2) .ne. 0) then
+                ! Fine node at center of cell
+                fine(i,j,n) = 0.25d0*( &
+                     crse(i/2,j/2,n) + &
+                     crse(i/2 + 1, j/2, n) + &
+                     crse(i/2, j/2 + 1, n) + &
+                     crse(i/2 + 1, j/2 + 1, n))
+             else if (MOD(j,2) .ne. 0) then
+                ! Fine node along a vertical cell edge
+                fine(i,j,n) = 0.5d0*( &
+                     crse(i/2,j/2,n) + &
+                     crse(i/2,j/2+1,n)) 
+             else if (MOD(i,2) .ne. 0) then
+                ! Fine node along a horizontal cell edge
+                fine(i,j,n) = 0.5d0*( &
+                     crse(i/2,j/2,n) + &
+                     crse(i/2+1,j/2,n))
+             else
+                ! Fine node coincident with coarse node
+                fine(i,j,n) = crse(i/2,j/2,n)
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine amrex_mlmg_lin_nd_interp_ghostnodes
 
   subroutine amrex_mlmg_eb_cc_interp (lo, hi, ff, fflo, ffhi, cc, cclo, cchi, &
        flag, glo, ghi, ratio, nc) &

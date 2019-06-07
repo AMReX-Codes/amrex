@@ -84,7 +84,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
 
-    amrex::Cuda::ExecutionConfig simple_config(1,1);
+    amrex::Gpu::ExecutionConfig simple_config(1,1);
 
     // Malloc
     {
@@ -108,7 +108,7 @@ int main (int argc, char* argv[])
 
       cudaMemcpy(&n, n_d, sizeof(int), cudaMemcpyDeviceToHost);
       cudaFree(n_d);
-      amrex::Gpu::Device::synchronize();
+      amrex::Gpu::synchronize();
 
       std::cout << "n after = " << n << std::endl << std::endl;
     }
@@ -131,7 +131,7 @@ int main (int argc, char* argv[])
          printf("n during = %i\n", *n);
       });
 
-      amrex::Gpu::Device::synchronize();
+      amrex::Gpu::synchronize();
 
       std::cout << "n after = " << *n << std::endl << std::endl;
 
@@ -158,7 +158,7 @@ int main (int argc, char* argv[])
          printf("n during = %i\n", *n);
       });
 
-      amrex::Gpu::Device::synchronize();
+      amrex::Gpu::synchronize();
 
       std::cout << "n after = " << *n << std::endl << std::endl;
 
@@ -189,7 +189,7 @@ int main (int argc, char* argv[])
          printf("n during = %i\n", *p);
       });
 
-      amrex::Gpu::Device::synchronize();
+      amrex::Gpu::synchronize();
 
       for (int i=0;i<5;i++)
       {

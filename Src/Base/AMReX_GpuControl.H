@@ -1,8 +1,48 @@
 #ifndef AMREX_GPU_CONTROL_H_
 #define AMREX_GPU_CONTROL_H_
 
-#ifndef AMREX_CUDA_MAX_THREADS
-#define AMREX_CUDA_MAX_THREADS 256
+#ifndef AMREX_GPU_MAX_THREADS
+#define AMREX_GPU_MAX_THREADS 256
+#endif
+
+#if defined(AMREX_USE_HIP)
+#define AMREX_HIP_OR_CUDA(a,b) a
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_HIP_OR_CUDA(a,b) b
+#else
+#define AMREX_HIP_OR_CUDA(a,b) ((void)0);
+#endif
+
+#if defined(AMREX_USE_HIP)
+#define AMREX_threadIdx_x hipThreadIdx_x
+#define AMREX_threadIdx_y hipThreadIdx_y
+#define AMREX_threadIdx_z hipThreadIdx_z
+#define AMREX_blockIdx_x hipBlockIdx_x
+#define AMREX_blockIdx_y hipBlockIdx_y
+#define AMREX_blockIdx_z hipBlockIdx_z
+#define AMREX_blockDim_x hipBlockDim_x
+#define AMREX_blockDim_y hipBlockDim_y
+#define AMREX_blockDim_z hipBlockDim_z
+#define AMREX_gridDim_x hipGridDim_x
+#define AMREX_gridDim_y hipGridDim_y
+#define AMREX_gridDim_z hipGridDim_z
+#elif defined(AMREX_USE_CUDA)
+#define AMREX_threadIdx_x threadIdx.x
+#define AMREX_threadIdx_y threadIdx.y
+#define AMREX_threadIdx_z threadIdx.z
+#define AMREX_blockIdx_x blockIdx.x
+#define AMREX_blockIdx_y blockIdx.y
+#define AMREX_blockIdx_z blockIdx.z
+#define AMREX_blockDim_x blockDim.x
+#define AMREX_blockDim_y blockDim.y
+#define AMREX_blockDim_z blockDim.z
+#define AMREX_gridDim_x gridDim.x
+#define AMREX_gridDim_y gridDim.y
+#define AMREX_gridDim_z gridDim.z
+#endif
+
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#define AMREX_DEVICE_COMPILE 1
 #endif
 
 namespace amrex {
@@ -10,26 +50,45 @@ namespace amrex {
 }
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 #if defined(AMREX_USE_GPU)
 
     extern bool in_launch_region;
 
-    inline bool inLaunchRegion () noexcept { return in_launch_region; }
-    inline bool notInLaunchRegion () noexcept { return !in_launch_region; }
+    inline bool inLaunchRegion() noexcept { return in_launch_region; }
+    inline bool notInLaunchRegion() noexcept { return !in_launch_region; }
 
     inline bool setLaunchRegion (bool launch) noexcept {
-        bool r =  in_launch_region;
+        bool r = in_launch_region;
         in_launch_region = launch;
+        return r;
+    }
+
+    extern bool in_graph_region;
+    inline bool inGraphRegion() { return (in_graph_region && in_launch_region); }
+    inline bool notInGraphRegion() { return (!in_graph_region || !in_launch_region); }
+
+    inline bool setGraphRegion (bool graph) {
+        bool r = in_graph_region;
+        in_graph_region = graph;
         return r;
     }
 
     struct LaunchSafeGuard
     {
         explicit LaunchSafeGuard (bool flag) noexcept
-            : m_old(setLaunchRegion(in_launch_region && flag)) {}
+            : m_old(setLaunchRegion(flag)) {}
         ~LaunchSafeGuard () { setLaunchRegion(m_old); }
+    private:
+        bool m_old;
+    };
+
+    struct GraphSafeGuard
+    {
+        explicit GraphSafeGuard (bool flag) noexcept
+            : m_old(setGraphRegion(flag)) {}
+        ~GraphSafeGuard () { setGraphRegion(m_old); }
     private:
         bool m_old;
     };
@@ -40,9 +99,18 @@ namespace Cuda {
     inline static constexpr bool notInLaunchRegion () { return true; }
     inline static constexpr bool setLaunchRegion (bool) { return false; }
 
+    inline static constexpr bool inGraphRegion () { return false; }
+    inline static constexpr bool notInGraphRegion () { return true; }
+    inline static constexpr bool setGraphRegion (bool) { return false; }
+
     struct LaunchSafeGuard
     {
         explicit LaunchSafeGuard (bool) {}
+    };
+
+    struct GraphSafeGuard
+    {
+        explicit GraphSafeGuard (bool) {}
     };
 
 #endif

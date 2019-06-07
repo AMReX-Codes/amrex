@@ -2,6 +2,7 @@
 #define AMREX_CUDA_REDUCE_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_Utility.H>
 
 namespace amrex {
@@ -55,7 +56,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceSum (T* data, T& sum) noexcept
 {
-    int tid = threadIdx.x;
+    int tid = AMREX_threadIdx_x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -116,7 +117,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceMin (T* data, T& dmin) noexcept
 {
-    int tid = threadIdx.x;
+    int tid = AMREX_threadIdx_x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -177,7 +178,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceMax (T* data, T& dmax) noexcept
 {
-    int tid = threadIdx.x;
+    int tid = AMREX_threadIdx_x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -238,7 +239,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceAnd (T* data, T& r) noexcept
 {
-    int tid = threadIdx.x;
+    int tid = AMREX_threadIdx_x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
@@ -299,7 +300,7 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceOr (T* data, T& r) noexcept
 {
-    int tid = threadIdx.x;
+    int tid = AMREX_threadIdx_x;
     if (blockSize >= 1024) {
         if (tid < 512) {
             for (int n = tid+512; n < blockSize; n += 512) {
