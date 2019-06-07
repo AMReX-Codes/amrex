@@ -67,190 +67,191 @@ namespace
     }
 }
 
-// SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
-// {
-//     BL_ASSERT(box.cellCentered());
-//
-//     const IntVect& sz = box.size();
-//     const int*     lo = box.loVect();
-//     const int*     hi = box.hiVect();
-//
-//     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-//     {
-//         sigma         [idim].resize(sz[idim]+1);
-//         sigma_star    [idim].resize(sz[idim]  );
-//         sigma_fac     [idim].resize(sz[idim]+1);
-//         sigma_star_fac[idim].resize(sz[idim]  );
-//
-//         sigma         [idim].m_lo = lo[idim];
-//         sigma         [idim].m_hi = hi[idim]+1;
-//         sigma_star    [idim].m_lo = lo[idim];
-//         sigma_star    [idim].m_hi = hi[idim];
-//         sigma_fac     [idim].m_lo = lo[idim];
-//         sigma_fac     [idim].m_hi = hi[idim]+1;
-//         sigma_star_fac[idim].m_lo = lo[idim];
-//         sigma_star_fac[idim].m_hi = hi[idim];
-//     }
-//
-//     Array<Real,AMREX_SPACEDIM> fac;
-//     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-//         fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
-//     }
-//
-//     const std::vector<std::pair<int,Box> >& isects = grids.intersections(box, false, ncell);
-//
-//     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-//     {
-//         int jdim = (idim+1) % AMREX_SPACEDIM;
-// #if (AMREX_SPACEDIM == 3)
-//         int kdim = (idim+2) % AMREX_SPACEDIM;
-// #endif
-//
-//         Vector<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
-//         for (const auto& kv : isects)
-//         {
-//             const Box& grid_box = grids[kv.first];
-//
-//             if (amrex::grow(grid_box, idim, ncell).intersects(box))
-//             {
-//                 direct_faces.push_back(kv.first);
-//             }
-//             else if (amrex::grow(grid_box, jdim, ncell).intersects(box))
-//             {
-//                 side_faces.push_back(kv.first);
-//             }
-// #if (AMREX_SPACEDIM == 3)
-//             else if (amrex::grow(grid_box, kdim, ncell).intersects(box))
-//             {
-//                 side_faces.push_back(kv.first);
-//             }
-//             else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
-//                                  jdim,ncell).intersects(box))
-//             {
-//                 direct_side_edges.push_back(kv.first);
-//             }
-//             else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
-//                                  kdim,ncell).intersects(box))
-//             {
-//                 direct_side_edges.push_back(kv.first);
-//             }
-//             else if (amrex::grow(amrex::grow(grid_box,jdim,ncell),
-//                                  kdim,ncell).intersects(box))
-//             {
-//                 side_side_edges.push_back(kv.first);
-//             }
-// #endif
-//             else
-//             {
-//                 corners.push_back(kv.first);
-//             }
-//         }
-//
-//         for (auto gid : corners)
-//         {
-//             const Box& grid_box = grids[gid];
-//
-//             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
-//             lobox.grow(jdim,ncell);
-// #if (AMREX_SPACEDIM == 3)
-//             lobox.grow(kdim,ncell);
-// #endif
-//             Box looverlap = lobox & box;
-//             if (looverlap.ok()) {
-//                 FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
-//             }
-//
-//             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
-//             hibox.grow(jdim,ncell);
-// #if (AMREX_SPACEDIM == 3)
-//             hibox.grow(kdim,ncell);
-// #endif
-//             Box hioverlap = hibox & box;
-//             if (hioverlap.ok()) {
-//                 FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
-//             }
-//
-//             if (!looverlap.ok() && !hioverlap.ok()) {
-//                 amrex::Abort("SigmaBox::SigmaBox(): corners, how did this happen?\n");
-//             }
-//         }
-//
-// #if (AMREX_SPACEDIM == 3)
-//         for (auto gid : side_side_edges)
-//         {
-//             const Box& grid_box = grids[gid];
-//             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
-//             if (overlap.ok()) {
-//                 FillZero(idim, sigma[idim], sigma_star[idim], overlap);
-//             } else {
-//                 amrex::Abort("SigmaBox::SigmaBox(): side_side_edges, how did this happen?\n");
-//             }
-//         }
-//
-//         for (auto gid : direct_side_edges)
-//         {
-//             const Box& grid_box = grids[gid];
-//
-//             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
-//             Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
-//             if (looverlap.ok()) {
-//                 FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
-//             }
-//
-//             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
-//             Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
-//             if (hioverlap.ok()) {
-//                 FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
-//             }
-//
-//             if (!looverlap.ok() && !hioverlap.ok()) {
-//                 amrex::Abort("SigmaBox::SigmaBox(): direct_side_edges, how did this happen?\n");
-//             }
-//         }
-// #endif
-//
-//         for (auto gid : side_faces)
-//         {
-//             const Box& grid_box = grids[gid];
-// #if (AMREX_SPACEDIM == 2)
-//             const Box& overlap = amrex::grow(grid_box,jdim,ncell) & box;
-// #else
-//             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
-// #endif
-//             if (overlap.ok()) {
-//                 FillZero(idim, sigma[idim], sigma_star[idim], overlap);
-//             } else {
-//                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
-//             }
-//         }
-//
-//         for (auto gid : direct_faces)
-//         {
-//             const Box& grid_box = grids[gid];
-//
-//             const Box& lobox = amrex::adjCellLo(grid_box, idim, ncell);
-//             Box looverlap = lobox & box;
-//             if (looverlap.ok()) {
-//                 FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
-//             }
-//
-//             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
-//             Box hioverlap = hibox & box;
-//             if (hioverlap.ok()) {
-//                 FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
-//             }
-//
-//             if (!looverlap.ok() && !hioverlap.ok()) {
-//                 amrex::Abort("SigmaBox::SigmaBox(): direct faces, how did this happen?\n");
-//             }
-//         }
-//
-//         if (direct_faces.size() > 1) {
-//             amrex::Abort("SigmaBox::SigmaBox(): direct_faces.size() > 1, Box gaps not wide enough?\n");
-//         }
-//     }
-// }
+SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
+{
+    BL_ASSERT(box.cellCentered());
 
+    const IntVect& sz = box.size();
+    const int*     lo = box.loVect();
+    const int*     hi = box.hiVect();
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        sigma         [idim].resize(sz[idim]+1);
+        sigma_star    [idim].resize(sz[idim]  );
+        sigma_fac     [idim].resize(sz[idim]+1);
+        sigma_star_fac[idim].resize(sz[idim]  );
+
+        sigma         [idim].m_lo = lo[idim];
+        sigma         [idim].m_hi = hi[idim]+1;
+        sigma_star    [idim].m_lo = lo[idim];
+        sigma_star    [idim].m_hi = hi[idim];
+        sigma_fac     [idim].m_lo = lo[idim];
+        sigma_fac     [idim].m_hi = hi[idim]+1;
+        sigma_star_fac[idim].m_lo = lo[idim];
+        sigma_star_fac[idim].m_hi = hi[idim];
+    }
+
+    Array<Real,AMREX_SPACEDIM> fac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
+    }
+
+    const std::vector<std::pair<int,Box> >& isects = grids.intersections(box, false, ncell);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        int jdim = (idim+1) % AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM == 3)
+        int kdim = (idim+2) % AMREX_SPACEDIM;
+#endif
+
+        Vector<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
+        for (const auto& kv : isects)
+        {
+            const Box& grid_box = grids[kv.first];
+
+            if (amrex::grow(grid_box, idim, ncell).intersects(box))
+            {
+                direct_faces.push_back(kv.first);
+            }
+            else if (amrex::grow(grid_box, jdim, ncell).intersects(box))
+            {
+                side_faces.push_back(kv.first);
+            }
+#if (AMREX_SPACEDIM == 3)
+            else if (amrex::grow(grid_box, kdim, ncell).intersects(box))
+            {
+                side_faces.push_back(kv.first);
+            }
+            else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
+                                 jdim,ncell).intersects(box))
+            {
+                direct_side_edges.push_back(kv.first);
+            }
+            else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
+                                 kdim,ncell).intersects(box))
+            {
+                direct_side_edges.push_back(kv.first);
+            }
+            else if (amrex::grow(amrex::grow(grid_box,jdim,ncell),
+                                 kdim,ncell).intersects(box))
+            {
+                side_side_edges.push_back(kv.first);
+            }
+#endif
+            else
+            {
+                corners.push_back(kv.first);
+            }
+        }
+
+        for (auto gid : corners)
+        {
+            const Box& grid_box = grids[gid];
+
+            Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
+            lobox.grow(jdim,ncell);
+#if (AMREX_SPACEDIM == 3)
+            lobox.grow(kdim,ncell);
+#endif
+            Box looverlap = lobox & box;
+            if (looverlap.ok()) {
+                FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
+            }
+
+            Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
+            hibox.grow(jdim,ncell);
+#if (AMREX_SPACEDIM == 3)
+            hibox.grow(kdim,ncell);
+#endif
+            Box hioverlap = hibox & box;
+            if (hioverlap.ok()) {
+                FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
+            }
+
+            if (!looverlap.ok() && !hioverlap.ok()) {
+                amrex::Abort("SigmaBox::SigmaBox(): corners, how did this happen?\n");
+            }
+        }
+
+#if (AMREX_SPACEDIM == 3)
+        for (auto gid : side_side_edges)
+        {
+            const Box& grid_box = grids[gid];
+            const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
+            if (overlap.ok()) {
+                FillZero(idim, sigma[idim], sigma_star[idim], overlap);
+            } else {
+                amrex::Abort("SigmaBox::SigmaBox(): side_side_edges, how did this happen?\n");
+            }
+        }
+
+        for (auto gid : direct_side_edges)
+        {
+            const Box& grid_box = grids[gid];
+
+            Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
+            Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
+            if (looverlap.ok()) {
+                FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
+            }
+
+            Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
+            Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
+            if (hioverlap.ok()) {
+                FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
+            }
+
+            if (!looverlap.ok() && !hioverlap.ok()) {
+                amrex::Abort("SigmaBox::SigmaBox(): direct_side_edges, how did this happen?\n");
+            }
+        }
+#endif
+
+        for (auto gid : side_faces)
+        {
+            const Box& grid_box = grids[gid];
+#if (AMREX_SPACEDIM == 2)
+            const Box& overlap = amrex::grow(grid_box,jdim,ncell) & box;
+#else
+            const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
+#endif
+            if (overlap.ok()) {
+                FillZero(idim, sigma[idim], sigma_star[idim], overlap);
+            } else {
+                amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
+            }
+        }
+
+        for (auto gid : direct_faces)
+        {
+            const Box& grid_box = grids[gid];
+
+            const Box& lobox = amrex::adjCellLo(grid_box, idim, ncell);
+            Box looverlap = lobox & box;
+            if (looverlap.ok()) {
+                FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
+            }
+
+            const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
+            Box hioverlap = hibox & box;
+            if (hioverlap.ok()) {
+                FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
+            }
+
+            if (!looverlap.ok() && !hioverlap.ok()) {
+                amrex::Abort("SigmaBox::SigmaBox(): direct faces, how did this happen?\n");
+            }
+        }
+
+        if (direct_faces.size() > 1) {
+            amrex::Abort("SigmaBox::SigmaBox(): direct_faces.size() > 1, Box gaps not wide enough?\n");
+        }
+    }
+}
+
+#if 0
 SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
 {
     BL_ASSERT(box.cellCentered());
@@ -460,7 +461,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         }
     }
 }
-
+#endif
 void
 SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 {
@@ -590,8 +591,15 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_F_fp.reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()), dm, 3, ngf));
         pml_F_fp->setVal(0.0);
     }
+    Box domain0 = amrex::grow(geom->Domain(), -ncell);
+    // for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+    //         if ( ! geom->isPeriodic(idim) ) {
+    //             domain0.grow(idim, -ncell);
+    //         }
+    // }
+    const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
-    sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell, delta));
+    sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba_reduced, geom->CellSize(), ncell, delta));
 
     if (cgeom)
     {
