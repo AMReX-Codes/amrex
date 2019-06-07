@@ -379,6 +379,7 @@ WarpX::ReadParameters ()
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
+        pp.query("pml_has_particles", pml_has_particles);
 
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("dump_plotfiles", dump_plotfiles);

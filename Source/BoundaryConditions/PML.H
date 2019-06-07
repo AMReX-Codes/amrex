@@ -151,9 +151,11 @@ private:
 
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_fp;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_fp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_J_fp;
 
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_cp;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_cp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_J_cp;
 
     std::unique_ptr<amrex::MultiFab> pml_F_fp;
     std::unique_ptr<amrex::MultiFab> pml_F_cp;

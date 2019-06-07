@@ -365,12 +365,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
 
     if (pml_has_particles){
-      // pml_J_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Jx_nodal_flag), dm, 2, ngb));
-      // pml_J_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Jy_nodal_flag), dm, 2, ngb));
-      // pml_J_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Jz_nodal_flag), dm, 2, ngb));
-      // pml_J_fp[0]->setVal(0.0);
-      // pml_J_fp[1]->setVal(0.0);
-      // pml_J_fp[2]->setVal(0.0);
+      pml_J_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 2, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
+      pml_J_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 2, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
+      pml_J_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 2, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
+      pml_J_fp[0]->setVal(0.0);
+      pml_J_fp[1]->setVal(0.0);
+      pml_J_fp[2]->setVal(0.0);
+      amrex::Print() << "PML HAS PARTICLES "<< std::endl;
 
     }
 
@@ -412,7 +413,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         {
             pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), cdm, 3, ngf));
             pml_F_cp->setVal(0.0);
-            amrex::Print() << "PML HAS PARTICLES "<< std::endl;
+
         }
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));

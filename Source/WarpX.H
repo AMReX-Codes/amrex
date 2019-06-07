@@ -149,12 +149,12 @@ public:
     BilinearFilter bilinear_filter;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
-    
+
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
-    
+
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
@@ -485,6 +485,7 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
+    int pml_has_particles = 0;
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
@@ -495,7 +496,7 @@ private:
     int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
-    
+
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
