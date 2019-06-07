@@ -1,6 +1,8 @@
 #ifndef AMREX_GPU_CONTROL_H_
 #define AMREX_GPU_CONTROL_H_
 
+#include <AMReX_GpuQualifiers.H>
+
 #ifndef AMREX_GPU_MAX_THREADS
 #define AMREX_GPU_MAX_THREADS 256
 #endif
@@ -11,10 +13,6 @@
 #define AMREX_HIP_OR_CUDA(a,b) b
 #else
 #define AMREX_HIP_OR_CUDA(a,b) ((void)0);
-#endif
-
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-#define AMREX_DEVICE_COMPILE 1
 #endif
 
 namespace amrex {
