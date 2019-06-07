@@ -510,125 +510,125 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                 for (int ii = -1; ii <= 1; ++ii) {
                     if (ii != 0 || jj != 0 || kk != 0) {
                     // if ((ii != 0 && jj == 0 && kk == 0)||(ii == 0 && jj != 0 && kk == 0)||(ii == 0 && jj == 0 && kk != 0)) {
-                        // if(ii!=0 && jj!=0){
-                        //   int xlimg, xlimd, ylimg, ylimd;
-                        //   if (ii == -1){
-                        //     xlimg = grid_bx.smallEnd()[0];
-                        //     xlimd = limInfDomain[0];
-                        //   }
-                        //   else if (ii = 1) {
-                        //     xlimg = grid_bx.bigEnd()[0];
-                        //     xlimd = limSupDomain[0];
-                        //   }
-                        //
-                        //   if (jj == -1){
-                        //     ylimg = grid_bx.smallEnd()[1];
-                        //     ylimd = limInfDomain[1];
-                        //   }
-                        //   else if (jj = 1){
-                        //     ylimg = grid_bx.bigEnd()[1];
-                        //     ylimd = limSupDomain[1];
-                        //   }
-                        //
-                        //   if (xlimd==xlimg && ylimd==ylimg){
-                        //     amrex::Print() << "INDICES : i = " << ii << " j = " << jj << std::endl;
-                        //     Box b = grid_bx; //grid_bx;
-                        //     b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //     b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //     b &= grid_bx;// grid_bx;
-                        //     amrex::Print() << "BOITE = [" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
-                        //     if (b.ok()) {
-                        //         bndryboxes.push_back(b);
-                        //         amrex::Print() << "WAS SUCCESSFULY ADDED!" << std::endl;
-                        //     }
-                        //   }
-                        //
-                        // }
-                        //
-                        // //
-                        // // Box b;
-                        // // if ((xlimg==xlimd)||(ylimg==ylimd)){
-                        // //   b = grid_bx; //grid_bx; grid_bx = GRANDE BOITE
-                        // //   b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        // //   b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        // // }
-                        // // else {
-                        // //   b = bx; //grid_bx; bx = PETITE BOITE
-                        // //   b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        // // }
-                        //
-                        // // b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        // else if (ii == 0){
-                        //     int ylimg, ylimd;
-                        //     if (jj == -1){
-                        //         ylimg = grid_bx.smallEnd()[1];
-                        //         ylimd = limInfDomain[1];
-                        //     }
-                        //     else if (jj = 1){
-                        //         ylimg = grid_bx.bigEnd()[1];
-                        //         ylimd = limSupDomain[1];
-                        //     }
-                        //
-                        //     if (ylimd==ylimg){
-                        //         Box b = grid_bx; //grid_bx;
-                        //         b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //         b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //         b &= grid_bx;// grid_bx;
-                        //         if (b.ok()) {
-                        //             bndryboxes.push_back(b);
-                        //         }
-                        //
-                        //     }
-                        //
-                        //     else {
-                        //         Box b = bx; //grid_bx;
-                        //         b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //         b &= grid_bx;// grid_bx;
-                        //         if (b.ok()) {
-                        //             bndryboxes.push_back(b);
-                        //         }
-                        //     }
-                        //
-                        // }
-                        //
-                        // else if (jj == 0){
-                        //   int xlimg, xlimd;
-                        //   if (ii == -1){
-                        //     xlimg = grid_bx.smallEnd()[0];
-                        //     xlimd = limInfDomain[0];
-                        //   }
-                        //   else if (ii = 1) {
-                        //     xlimg = grid_bx.bigEnd()[0];
-                        //     xlimd = limSupDomain[0];
-                        //   }
-                        //   if (xlimd==xlimg){
-                        //       Box b = grid_bx; //grid_bx;
-                        //       b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //       b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //       b &= grid_bx;// grid_bx;
-                        //       if (b.ok()) {
-                        //           bndryboxes.push_back(b);
-                        //       }
-                        //
-                        //   }
-                        //
-                        //   else {
-                        //       Box b = bx; //grid_bx;
-                        //       b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        //       b &= grid_bx;// grid_bx;
-                        //       if (b.ok()) {
-                        //           bndryboxes.push_back(b);
-                        //       }
-                        //   }
-                        //
-                        // }
-                        Box b = grid_bx; //grid_bx;
-                        b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
-                        b &= grid_bx;// grid_bx;
-                        if (b.ok()) {
-                            bndryboxes.push_back(b);
+                        if(ii!=0 && jj!=0){
+                          int xlimg, xlimd, ylimg, ylimd;
+                          if (ii == -1){
+                            xlimg = grid_bx.smallEnd()[0];
+                            xlimd = limInfDomain[0];
+                          }
+                          else if (ii = 1) {
+                            xlimg = grid_bx.bigEnd()[0];
+                            xlimd = limSupDomain[0];
+                          }
+
+                          if (jj == -1){
+                            ylimg = grid_bx.smallEnd()[1];
+                            ylimd = limInfDomain[1];
+                          }
+                          else if (jj = 1){
+                            ylimg = grid_bx.bigEnd()[1];
+                            ylimd = limSupDomain[1];
+                          }
+
+                          if (xlimd==xlimg && ylimd==ylimg){
+                            amrex::Print() << "INDICES : i = " << ii << " j = " << jj << std::endl;
+                            Box b = grid_bx; //grid_bx;
+                            b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                            b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                            b &= grid_bx;// grid_bx;
+                            amrex::Print() << "BOITE = [" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
+                            if (b.ok()) {
+                                bndryboxes.push_back(b);
+                                amrex::Print() << "WAS SUCCESSFULY ADDED!" << std::endl;
+                            }
+                          }
+
                         }
+
+                        //
+                        // Box b;
+                        // if ((xlimg==xlimd)||(ylimg==ylimd)){
+                        //   b = grid_bx; //grid_bx; grid_bx = GRANDE BOITE
+                        //   b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        //   b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        // }
+                        // else {
+                        //   b = bx; //grid_bx; bx = PETITE BOITE
+                        //   b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        // }
+
+                        // b.shift(grid_bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        else if (ii == 0){
+                            int ylimg, ylimd;
+                            if (jj == -1){
+                                ylimg = grid_bx.smallEnd()[1];
+                                ylimd = limInfDomain[1];
+                            }
+                            else if (jj = 1){
+                                ylimg = grid_bx.bigEnd()[1];
+                                ylimd = limSupDomain[1];
+                            }
+
+                            if (ylimd==ylimg){
+                                Box b = grid_bx; //grid_bx;
+                                b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                                b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                                b &= grid_bx;// grid_bx;
+                                if (b.ok()) {
+                                    bndryboxes.push_back(b);
+                                }
+
+                            }
+
+                            else {
+                                Box b = bx; //grid_bx;
+                                b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                                b &= grid_bx;// grid_bx;
+                                if (b.ok()) {
+                                    bndryboxes.push_back(b);
+                                }
+                            }
+
+                        }
+
+                        else if (jj == 0){
+                          int xlimg, xlimd;
+                          if (ii == -1){
+                            xlimg = grid_bx.smallEnd()[0];
+                            xlimd = limInfDomain[0];
+                          }
+                          else if (ii = 1) {
+                            xlimg = grid_bx.bigEnd()[0];
+                            xlimd = limSupDomain[0];
+                          }
+                          if (xlimd==xlimg){
+                              Box b = grid_bx; //grid_bx;
+                              b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                              b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                              b &= grid_bx;// grid_bx;
+                              if (b.ok()) {
+                                  bndryboxes.push_back(b);
+                              }
+
+                          }
+
+                          else {
+                              Box b = bx; //grid_bx;
+                              b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                              b &= grid_bx;// grid_bx;
+                              if (b.ok()) {
+                                  bndryboxes.push_back(b);
+                              }
+                          }
+
+                        }
+                        // Box b = grid_bx; //grid_bx;
+                        // b.shift(bx_sz * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        // b.shift(ncell * IntVect{AMREX_D_DECL(ii,jj,kk)});
+                        // b &= grid_bx;// grid_bx;
+                        // if (b.ok()) {
+                        //     bndryboxes.push_back(b);
+                        // }
                     }
 
                 }
