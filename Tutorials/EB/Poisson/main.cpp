@@ -36,19 +36,11 @@ int main (int argc, char* argv[])
         DistributionMapping dmap;
         {
             RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-
-            // periodicity
-            // note there is currently an AMReX issue with enclosed domains that do not touch the boundary
-            // you must specifiy Dirichlet domain boundary conditions so AMReX doesn't think the
-            // problem is singular
             Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
-
-            Geometry::Setup(&rb, 0, is_periodic.data());
-
             Box domain(IntVect{AMREX_D_DECL(0,0,0)},
                        IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
-            geom.define(domain);
-            
+            geom.define(domain, rb, CoordSys::cartesian, is_periodic);
+
             grids.define(domain); // define the BoxArray to be a single grid
             grids.maxSize(max_grid_size); // chop domain up into boxes with length max_Grid_size
 
@@ -77,7 +69,6 @@ int main (int argc, char* argv[])
         MultiFab q  (grids, dmap, 1, 0, MFInfo(), factory);
         MultiFab phi(grids, dmap, 1, 0, MFInfo(), factory);
 
-        q.setVal(0.0);
         InitData(q);
 
         LPInfo info;
@@ -88,7 +79,6 @@ int main (int argc, char* argv[])
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_lo;
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_hi;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            // see comment about boundary conditions above
             bc_lo[idim] = LinOpBCType::Dirichlet;
             bc_hi[idim] = LinOpBCType::Dirichlet;
         }
@@ -98,7 +88,7 @@ int main (int argc, char* argv[])
         mlebabec.setDomainBC(bc_lo,bc_hi);
 
         // see AMReX_MLLinOp.H for an explanation
-        mlebabec.setLevelBC(0, NULL);
+        mlebabec.setLevelBC(0, nullptr);
     
         // operator looks like (ACoef - div BCoef grad) phi = rhs
 
@@ -126,6 +116,11 @@ int main (int argc, char* argv[])
 
         // set homogeneous Dirichlet BC for EB
         mlebabec.setEBHomogDirichlet(0,beta);
+
+        // Note that there is currently an AMReX issue for cases that
+        // the domain is all-periodic and the EB does not touch the
+        // domain boundaries.  In these cases, AMReX will think the
+        // problem is singular even if the EB is set to be Dirichlet.
 
         MLMG mlmg(mlebabec);
 
