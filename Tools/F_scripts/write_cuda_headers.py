@@ -369,7 +369,7 @@ def convert_headers(inputs):
     hout.write("\n")
     hout.write("#include <AMReX_ArrayLim.H>\n")
     hout.write("#include <AMReX_BLFort.H>\n")
-    hout.write("#include <AMReX_CudaDevice.H>\n")
+    hout.write("#include <AMReX_GpuDevice.H>\n")
     hout.write("\n")
 
     hdrmh = os.path.basename(hf.name).strip(".H")
@@ -641,13 +641,13 @@ def convert_cxx(inputs):
             hout.write("if (amrex::Gpu::inLaunchRegion()) {\n")
             hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
             if box:
-                hout.write("    amrex::Cuda::Device::box_threads_and_blocks({}, {}numBlocks, {}numThreads);\n".format(box, func_name, func_name))
+                hout.write("    amrex::Gpu::Device::box_threads_and_blocks({}, {}numBlocks, {}numThreads);\n".format(box, func_name, func_name))
             else:
-                hout.write("    amrex::Cuda::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
+                hout.write("    amrex::Gpu::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
             hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
                        "    AMREX_GPU_SAFE_CALL(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
                        "#endif\n".format(func_name))
-            hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, {}, amrex::Cuda::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, smem, args))
+            hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, {}, amrex::Gpu::gpuStream()>>>\n    ({});\n".format(func_name, func_name, func_name, smem, args))
 
             # Catch errors in the launch configuration.
 

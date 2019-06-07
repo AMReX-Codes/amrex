@@ -142,8 +142,8 @@ public:
     int getMaxOrder () const noexcept { return maxorder; }
 
     virtual BottomSolver getDefaultBottomSolver () const { return BottomSolver::bicgstab; }
-
     virtual int getNComp () const { return 1; }
+    virtual int getNGrow () const { return 0; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}

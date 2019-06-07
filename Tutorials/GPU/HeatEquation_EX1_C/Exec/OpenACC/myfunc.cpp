@@ -51,7 +51,6 @@ void advance (MultiFab& phi_old,
                            BL_TO_FORTRAN_ANYD(*fluxz),
                            BL_TO_FORTRAN_ANYD(*phi_fab), dzinv);
     }
-    Gpu::Device::synchronize();
 
     for(MFIter mfi(phi_old, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -71,7 +70,6 @@ void advance (MultiFab& phi_old,
                        dt,dxinv,dyinv ,dzinv
                        );
     }
-    Gpu::Device::synchronize();
 }
 
 void init_phi(MultiFab& phi_new, Geometry const& geom)
