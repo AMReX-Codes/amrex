@@ -103,7 +103,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     
     for (int i = lo_x; i <= hi_x; ++i) {
         if (i < rho.begin.x || i >= rho.end.x) continue;
-        amrex::Real wx = std::min(hx - i, 1.0) - std::max(lx - i, 0.0);
+        amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
                 
         amrex::Real weight = wx*factor;
                 
@@ -131,10 +131,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     
     for (int i = lo_x; i <= hi_x; ++i) {
         if (i < rho.begin.x || i >= rho.end.x) continue;
-        amrex::Real wx = std::min(hx - i, 1.0) - std::max(lx - i, 0.0);
+        amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
         for (int j = lo_y; j <= hi_y; ++j) {
             if (j < rho.begin.y || j >= rho.end.y) continue;
-            amrex::Real wy = std::min(hy - j, 1.0) - std::max(ly - j, 0.0);
+            amrex::Real wy = amrex::min(hy - j, 1.0) - amrex::max(ly - j, 0.0);
                 
             amrex::Real weight = wx*wy*factor;
                 
@@ -167,13 +167,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     
     for (int i = lo_x; i <= hi_x; ++i) {
         if (i < rho.begin.x || i >= rho.end.x) continue;
-        amrex::Real wx = std::min(hx - i, 1.0) - std::max(lx - i, 0.0);
+        amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
         for (int j = lo_y; j <= hi_y; ++j) {
             if (j < rho.begin.y || j >= rho.end.y) continue;
-            amrex::Real wy = std::min(hy - j, 1.0) - std::max(ly - j, 0.0);
+            amrex::Real wy = amrex::min(hy - j, 1.0) - amrex::max(ly - j, 0.0);
             for (int k = lo_z; k <= hi_z; ++k) {
                 if (k < rho.begin.z || k >= rho.end.z) continue;
-                amrex::Real wz = std::min(hz - k, 1.0) - std::max(lz - k, 0.0);
+                amrex::Real wz = amrex::min(hz - k, 1.0) - amrex::max(lz - k, 0.0);
                 
                 amrex::Real weight = wx*wy*wz*factor;
                 
