@@ -406,7 +406,7 @@ else
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
-  CPPFLAGS += -DBL_MEM_PROFILING -DAMREX_MEM_PROFILING
+  CPPFLAGS += -DAMREX_MEM_PROFILING
   MProfSuffix := .MPROF
 else
   MProfSuffix :=

@@ -1,6 +1,5 @@
-
-#ifndef BL_BARENA_H
-#define BL_BARENA_H
+#ifndef AMREX_BARENA_H_
+#define AMREX_BARENA_H_
 
 #include <AMReX_Arena.H>
 
@@ -30,4 +29,4 @@ public:
 
 }
 
-#endif /*BL_BARENA_H*/
+#endif

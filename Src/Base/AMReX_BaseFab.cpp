@@ -4,7 +4,7 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_BLFort.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -41,7 +41,7 @@ BaseFab_Initialize ()
         }
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
                          ([] () -> MemProfiler::MemInfo {
                              return {amrex::TotalBytesAllocatedInFabs(),

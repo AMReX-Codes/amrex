@@ -12,7 +12,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -143,7 +143,7 @@ AmrCoreAdv::Evolve ()
             static_cast<amrex::AmrMesh*>(this), {&phi_new}, {{"phi"}});
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         {
             std::ostringstream ss;
             ss << "[STEP " << step+1 << "]";
