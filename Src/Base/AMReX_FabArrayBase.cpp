@@ -8,7 +8,7 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -120,7 +120,7 @@ FabArrayBase::Initialize ()
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::add(m_TAC_stats.name, std::function<MemProfiler::MemInfo()>
 		     ([] () -> MemProfiler::MemInfo {
 			 return {m_TAC_stats.bytes, m_TAC_stats.bytes_hwm};
@@ -517,7 +517,7 @@ FabArrayBase::flushCPC (bool no_assertion) const
 	    }
 	}
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_CPC_stats.bytes -= it->second->bytes();
 #endif
 	m_CPC_stats.recordErase(it->second->m_nuse);
@@ -544,7 +544,7 @@ FabArrayBase::flushCPCache ()
 	}
     }
     m_TheCPCache.clear();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_CPC_stats.bytes = 0L;
 #endif
 }
@@ -582,7 +582,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     // Have to build a new one
     CPC* new_cpc = new CPC(*this, dstng, src, srcng, period);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_CPC_stats.bytes += new_cpc->bytes();
     m_CPC_stats.bytes_hwm = std::max(m_CPC_stats.bytes_hwm, m_CPC_stats.bytes);
 #endif    
@@ -995,7 +995,7 @@ FabArrayBase::flushFB (bool no_assertion) const
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_FBC_stats.bytes -= it->second->bytes();
 #endif
 	m_FBC_stats.recordErase(it->second->m_nuse);
@@ -1013,7 +1013,7 @@ FabArrayBase::flushFBCache ()
 	delete it->second;
     }
     m_TheFBCache.clear();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_FBC_stats.bytes = 0L;
 #endif
 }
@@ -1177,7 +1177,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     // Have to build a new one
     FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain, index_space);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_FPinfo_stats.bytes += new_fpc->bytes();
     m_FPinfo_stats.bytes_hwm = std::max(m_FPinfo_stats.bytes_hwm, m_FPinfo_stats.bytes);
 #endif
@@ -1221,7 +1221,7 @@ FabArrayBase::flushFPinfo (bool no_assertion)
 	    }
 	} 
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	m_FPinfo_stats.bytes -= it->second->bytes();
 #endif
 	m_FPinfo_stats.recordErase(it->second->m_nuse);
@@ -1342,7 +1342,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
     // Have to build a new one
     CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng, include_periodic, include_physbndry);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_CFinfo_stats.bytes += new_cfinfo->bytes();
     m_CFinfo_stats.bytes_hwm = std::max(m_CFinfo_stats.bytes_hwm, m_CFinfo_stats.bytes);
 #endif
@@ -1363,7 +1363,7 @@ FabArrayBase::flushCFinfo (bool no_assertion)
     auto er_it = m_TheCrseFineCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it)
     {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         m_CFinfo_stats.bytes -= it->second->bytes();
 #endif
         m_CFinfo_stats.recordErase(it->second->m_nuse);
@@ -1420,7 +1420,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	    buildTileArray(tilesize, *p);
 	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	    m_TAC_stats.bytes += p->bytes();
 	    m_TAC_stats.bytes_hwm = std::max(m_TAC_stats.bytes_hwm,
 					     m_TAC_stats.bytes);
@@ -1545,7 +1545,7 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 	    for (TAMap::const_iterator tai_it = tao_it->second.begin();
 		 tai_it != tao_it->second.end(); ++tai_it)
 	    {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 		m_TAC_stats.bytes -= tai_it->second.bytes();
 #endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
@@ -1558,7 +1558,7 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
             const IntVect& crse_ratio = boxArray().crseRatio();
 	    TAMap::iterator tai_it = tai.find(std::pair<IntVect,IntVect>(tileSize,crse_ratio));
 	    if (tai_it != tai.end()) {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 		m_TAC_stats.bytes -= tai_it->second.bytes();
 #endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
@@ -1581,7 +1581,7 @@ FabArrayBase::flushTileArrayCache ()
 	}
     }
     m_TheTileArrayCache.clear();
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     m_TAC_stats.bytes = 0L;
 #endif
 }

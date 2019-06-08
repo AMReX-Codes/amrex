@@ -39,7 +39,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -583,7 +583,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     }
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif
