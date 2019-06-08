@@ -43,12 +43,12 @@ public:
                      const int orig_comp);
 
     bool RunOnGPU () const noexcept { return m_run_on_gpu; }
-    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
+//    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
 protected:
     BndryFuncDefault   m_func   = nullptr;
     BndryFunc3DDefault m_func3D = nullptr;
-    bool m_run_on_gpu = false;
+    const bool m_run_on_gpu = false;
 };
 
 /**
