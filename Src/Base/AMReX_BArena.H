@@ -9,7 +9,7 @@ namespace amrex {
 /**
 * \brief A Concrete Class for Dynamic Memory Management
 * This is the simplest dynamic memory management class derived from Arena.
-* Makes calls to ::operator new() and ::operator delete().
+* Makes calls to std::malloc and std::free.
 */
 
 class BArena
