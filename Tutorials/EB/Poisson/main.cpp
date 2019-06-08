@@ -35,7 +35,7 @@ int main (int argc, char* argv[])
         DistributionMapping dmap;
         {
             RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-            Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+            Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,1,1)};
             Box domain(IntVect{AMREX_D_DECL(0,0,0)},
                        IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
             geom.define(domain, rb, CoordSys::cartesian, is_periodic);
@@ -78,8 +78,8 @@ int main (int argc, char* argv[])
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_lo;
         std::array<LinOpBCType,AMREX_SPACEDIM> bc_hi;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            bc_lo[idim] = LinOpBCType::Dirichlet;
-            bc_hi[idim] = LinOpBCType::Dirichlet;
+            bc_lo[idim] = LinOpBCType::Periodic;
+            bc_hi[idim] = LinOpBCType::Periodic;
         }
 
         // Boundary of the whole domain. This functions must be called,
@@ -115,11 +115,6 @@ int main (int argc, char* argv[])
 
         // set homogeneous Dirichlet BC for EB
         mlebabec.setEBHomogDirichlet(0,beta);
-
-        // Note that there is currently an AMReX issue for cases that
-        // the domain is all-periodic and the EB does not touch the
-        // domain boundaries.  In these cases, AMReX will think the
-        // problem is singular even if the EB is set to be Dirichlet.
 
         MLMG mlmg(mlebabec);
 
