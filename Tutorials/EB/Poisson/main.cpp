@@ -21,7 +21,6 @@ int main (int argc, char* argv[])
         int verbose = 1;
         int n_cell = 128;
         int max_grid_size = 32;
-        int is_periodic = 1;
 
         // read parameters
         {
