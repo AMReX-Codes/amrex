@@ -218,6 +218,12 @@ public:
 
     FArrayBox (const Box& b, int ncomp, Real* p) noexcept;
 
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real> const& a) : BaseFab<Real>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real const> const& a) : BaseFab<Real>(a) {}
+
     //!  The destructor.
     ~FArrayBox () = default;
 
