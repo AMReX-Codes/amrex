@@ -6,7 +6,7 @@ namespace amrex
 
 namespace {
 
-void dummy_cpu_fill_extdir (Box const& bx, FArrayBox& dest,
+void dummy_cpu_fill_extdir (Box const& bx, Array4<Real> const& dest,
                             const int dcomp, const int numcomp,
                             GeometryData const& geom, const Real time,
                             const BCRec* bcr, const int bcomp,
@@ -18,7 +18,7 @@ void dummy_cpu_fill_extdir (Box const& bx, FArrayBox& dest,
 struct dummy_gpu_fill_extdir
 {
     AMREX_GPU_DEVICE
-    void operator() (const IntVect& iv, FArrayBox& dest,
+    void operator() (const IntVect& iv, Array4<Real> const& dest,
                      const int dcomp, const int numcomp,
                      GeometryData const& geom, const Real time,
                      const BCRec* bcr, const int bcomp,
