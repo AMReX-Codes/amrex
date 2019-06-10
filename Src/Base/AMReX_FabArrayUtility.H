@@ -23,7 +23,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
     using value_type = typename FAB::value_type;
     value_type sm = 0;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_sm(sm);
@@ -52,7 +52,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
+                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
@@ -93,7 +93,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_sm(sm);
@@ -124,7 +124,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
+                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
@@ -165,7 +165,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_sm(sm);
@@ -198,7 +198,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS>(sdata, *block_sum);
+                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
             });
@@ -237,7 +237,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_r(r);
@@ -271,7 +271,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
                 sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
-                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
             });
@@ -312,7 +312,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_r(r);
@@ -348,7 +348,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
-                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
             });
@@ -389,7 +389,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_r(r);
@@ -423,7 +423,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tmax;
                 __syncthreads();
 
-                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
             });
@@ -464,7 +464,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<value_type> ds_r(r);
@@ -500,7 +500,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 sdata[threadIdx.x] = tmax;
                 __syncthreads();
 
-                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
             });
@@ -539,7 +539,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 {
     int r = true;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<int> ds_r(r);
@@ -568,7 +568,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
             });
@@ -609,7 +609,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 {
     int r = true;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<int> ds_r(r);
@@ -640,7 +640,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
             });
@@ -679,7 +679,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 {
     int r = false;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<int> ds_r(r);
@@ -708,7 +708,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
             });
@@ -749,7 +749,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 {
     int r = false;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
         Gpu::DeviceScalar<int> ds_r(r);
@@ -780,7 +780,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
 
-                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS>(sdata, *block_r);
+                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                 if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
             });
