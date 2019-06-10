@@ -169,6 +169,8 @@ private:
                                          const amrex::BoxArray& grid_ba, int ncell);
 
     static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
+    static void CopyJinPMLs (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
+    static void CopyField_fromPML_toReg (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 
 #endif
