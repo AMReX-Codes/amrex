@@ -742,6 +742,7 @@ PML::CopyJinPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     pml.ParallelCopy(reg, ncp, 0, 0, IntVect(0), ngp, period); // pour J il n'y a qu'une seule composante!!! Et pour B il n'y en a que 2!!! Comment est-ce que ca marche?
 }
 
+void
 PML::CopyField_fromPML_toReg (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
     const IntVect& ngr = reg.nGrowVect();
