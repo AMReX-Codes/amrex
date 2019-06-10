@@ -410,6 +410,8 @@ void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
 void
 WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
 {
+#ifndef AMREX_USE_CUDA // Running on CPU ; use PICSAR code for the hybrid FFT
+
     BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
 
@@ -484,5 +486,8 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
+#else // AMREX_USE_CUDA is defined ; running on GPU
+        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
 
 }
