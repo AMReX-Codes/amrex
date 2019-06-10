@@ -32,7 +32,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB const* fab = fa.fabPtr(mfi);
+            const auto& arr = fa.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -43,9 +43,11 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 value_type* block_sum = gsm.dataPtr();
                 value_type* sdata = block_sum + 1;
 
+                const FAB fab(arr);
+
                 value_type tsum = 0.0;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tsum += f(tbx, *fab);
+                    tsum += f(tbx, fab);
                 }
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
@@ -100,8 +102,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB1 const* fab1 = fa1.fabPtr(mfi);
-            FAB2 const* fab2 = fa2.fabPtr(mfi);
+            const auto& arr1 = fa1.array(mfi);
+            const auto& arr2 = fa2.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -112,9 +114,12 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 value_type* block_sum = gsm.dataPtr();
                 value_type* sdata = block_sum + 1;
 
+                const FAB1 fab1(arr1);
+                const FAB2 fab2(arr2);
+
                 value_type tsum = 0.0;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tsum += f(tbx, *fab1, *fab2);
+                    tsum += f(tbx, fab1, fab2);
                 }
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
@@ -169,9 +174,9 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB1 const* fab1 = fa1.fabPtr(mfi);
-            FAB2 const* fab2 = fa2.fabPtr(mfi);
-            FAB3 const* fab3 = fa3.fabPtr(mfi);
+            const auto& arr1 = fa1.array(mfi);
+            const auto& arr2 = fa2.array(mfi);
+            const auto& arr3 = fa2.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -182,9 +187,13 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 value_type* block_sum = gsm.dataPtr();
                 value_type* sdata = block_sum + 1;
 
+                const FAB1 fab1(arr1);
+                const FAB2 fab2(arr2);
+                const FAB3 fab3(arr3);
+
                 value_type tsum = 0.0;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tsum += f(tbx, *fab1, *fab2, *fab3);
+                    tsum += f(tbx, fab1, fab2, fab3);
                 }
                 sdata[threadIdx.x] = tsum;
                 __syncthreads();
@@ -237,7 +246,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB const* fab = fa.fabPtr(mfi);
+            const auto& arr = fa.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -248,13 +257,15 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+                const FAB fab(arr);
+
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
 #else
                 value_type tmin = value_max;
 #endif
                 for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmin = f(tbx, *fab);
+                    value_type local_tmin = f(tbx, fab);
                     tmin = amrex::min(tmin, local_tmin);
                 }
                 sdata[threadIdx.x] = tmin;
@@ -310,8 +321,8 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB1 const* fab1 = fa1.fabPtr(mfi);
-            FAB2 const* fab2 = fa2.fabPtr(mfi);
+            const auto& arr1 = fa1.array(mfi);
+            const auto& arr2 = fa2.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -322,13 +333,16 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+                const FAB1 fab1(arr1);
+                const FAB2 fab2(arr2);
+
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
 #else
                 value_type tmin = value_max;
 #endif
                 for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmin = f(tbx, *fab1, *fab2);
+                    value_type local_tmin = f(tbx, fab1, fab2);
                     tmin = amrex::min(tmin, local_tmin);
                 }
                 sdata[threadIdx.x] = tmin;
@@ -384,7 +398,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB const* fab = fa.fabPtr(mfi);
+            const auto& arr = fa.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -395,13 +409,15 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+                const FAB fab(arr);
+
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
 #else
                 value_type tmax = value_lowest;
 #endif
                 for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmax = f(tbx, *fab);
+                    value_type local_tmax = f(tbx, fab);
                     tmax = amrex::max(tmax, local_tmax);
                 }
                 sdata[threadIdx.x] = tmax;
@@ -457,8 +473,8 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB1 const* fab1 = fa1.fabPtr(mfi);
-            FAB2 const* fab2 = fa2.fabPtr(mfi);
+            const auto& arr1 = fa1.array(mfi);
+            const auto& arr2 = fa2.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -469,13 +485,16 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+                const FAB1 fab1(arr1);
+                const FAB2 fab2(arr2);
+
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
 #else
                 value_type tmax = value_lowest;
 #endif
                 for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmax = f(tbx, *fab1, *fab2);
+                    value_type local_tmax = f(tbx, fab1, fab2);
                     tmax = amrex::max(tmax, local_tmax);
                 }
                 sdata[threadIdx.x] = tmax;
@@ -529,7 +548,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB const* fab = fa.fabPtr(mfi);
+            const auto& arr = fa.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -540,9 +559,11 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
+                const FAB fab(arr);
+
                 int tr = true;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr && f(tbx, *fab);
+                    tr = tr && f(tbx, fab);
                 }
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
@@ -597,8 +618,8 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB1 const* fab1 = fa1.fabPtr(mfi);
-            FAB2 const* fab2 = fa2.fabPtr(mfi);
+            const auto& arr1 = fa1.array(mfi);
+            const auto& arr2 = fa2.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -609,9 +630,12 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
+                const FAB1 fab1(arr1);
+                const FAB2 fab2(arr2);
+
                 int tr = true;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr && f(tbx, *fab1, *fab2);
+                    tr = tr && f(tbx, fab1, fab2);
                 }
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
@@ -664,7 +688,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB const* fab = fa.fabPtr(mfi);
+            const auto& arr = fa.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -675,9 +699,11 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
+                const FAB fab(arr);
+
                 int tr = false;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr || f(tbx, *fab);
+                    tr = tr || f(tbx, fab);
                 }
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
@@ -732,8 +758,8 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FAB1 const* fab1 = fa1.fabPtr(mfi);
-            FAB2 const* fab2 = fa2.fabPtr(mfi);
+            const auto& arr1 = fa1.array(mfi);
+            const auto& arr2 = fa2.array(mfi);
 
             const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
@@ -744,9 +770,12 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
+                const FAB1 fab1(arr1);
+                const FAB2 fab2(arr2);
+
                 int tr = false;
                 for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr || f(tbx, *fab1, *fab2);
+                    tr = tr || f(tbx, fab1, fab2);
                 }
                 sdata[threadIdx.x] = tr;
                 __syncthreads();
