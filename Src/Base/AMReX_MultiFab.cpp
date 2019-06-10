@@ -581,7 +581,6 @@ MultiFab::contains_nan (int scomp,
                         const IntVect& ngrow,
                         bool local) const
 {
-    // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
@@ -612,7 +611,6 @@ MultiFab::contains_inf (int scomp,
                         IntVect const& ngrow,
 			bool local) const
 {
-    // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
