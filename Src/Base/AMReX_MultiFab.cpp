@@ -556,14 +556,13 @@ MultiFab::define (const BoxArray&            bxs,
 void
 MultiFab::initVal ()
 {
-    // Done in FArrayBox. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox* fab = this->fabPtr(mfi);
-	fab->initVal();
+        FArrayBox& fab = (*this)[mfi];
+	fab.initVal();
     }
 }
 
