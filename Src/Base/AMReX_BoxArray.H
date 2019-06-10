@@ -68,7 +68,7 @@ struct BARef
     void define (std::istream& is, int& ndims);
     //!
     void resize (long n);
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     void updateMemoryUsage_box (int s);
     void updateMemoryUsage_hash (int s);
 #endif

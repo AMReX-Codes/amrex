@@ -39,7 +39,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -149,7 +149,7 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 #endif
@@ -175,7 +175,7 @@ amrex::Error (const std::string& msg)
 void
 amrex::Abort (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
     assert(0);
@@ -205,7 +205,7 @@ amrex::Abort (const std::string& msg)
 void
 amrex::Warning (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 #endif
@@ -229,7 +229,7 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -583,7 +583,7 @@ amrex::Finalize (amrex::AMReX* pamrex)
     }
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif

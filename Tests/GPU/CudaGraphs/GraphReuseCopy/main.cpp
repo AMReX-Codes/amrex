@@ -251,7 +251,7 @@ int main (int argc, char* argv[])
                 int ncells = bx.numPts();
                 const auto lo  = amrex::lbound(bx);
                 const auto len = amrex::length(bx);
-                const auto ec = Cuda::ExecutionConfig(ncells);
+                const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
                 AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
@@ -327,7 +327,7 @@ int main (int argc, char* argv[])
                 int ncells = bx.numPts();
                 const auto lo  = amrex::lbound(bx);
                 const auto len = amrex::length(bx);
-                const auto ec = Cuda::ExecutionConfig(ncells);
+                const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
                 AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,

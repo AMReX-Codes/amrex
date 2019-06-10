@@ -16,7 +16,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 

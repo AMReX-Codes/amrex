@@ -43,11 +43,13 @@ Arena::align (std::size_t s)
 void*
 Arena::allocate_system (std::size_t nbytes)
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     void * p;
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL ( hipHostAlloc(&p, nbytes, hipHostMallocMapped));,
+            AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped)););
     }
     else
     {
@@ -61,7 +63,13 @@ Arena::allocate_system (std::size_t nbytes)
 
         if (arena_info.device_use_managed_memory)
         {
+#if defined(__CUDACC__)
             AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
+#elif defined(AMREX_FAB_IS_MANAGED)
+            static_assert(false, "HIP does not support managed memory yet");
+#else
+            AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));
+#endif
             if (arena_info.device_set_readonly)
             {
                 Gpu::Device::mem_advise_set_readonly(p, nbytes);
@@ -74,7 +82,8 @@ Arena::allocate_system (std::size_t nbytes)
         }
         else
         {
-            AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));
+            AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
+                              AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes)););
         }
     }
     return p;
@@ -86,14 +95,16 @@ Arena::allocate_system (std::size_t nbytes)
 void
 Arena::deallocate_system (void* p)
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     if (arena_info.device_use_hostalloc)
     {
-        AMREX_CUDA_SAFE_CALL(cudaFreeHost(p));
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipFreeHost(p));,
+                          AMREX_CUDA_SAFE_CALL(cudaFreeHost(p)););
     }
     else
     {
-        AMREX_CUDA_SAFE_CALL(cudaFree(p));
+        AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL ( hipFree(p));,
+                          AMREX_CUDA_SAFE_CALL(cudaFree(p)););
     }
 #else
     std::free(p);

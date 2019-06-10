@@ -1,6 +1,5 @@
-
-#ifndef BL_BARENA_H
-#define BL_BARENA_H
+#ifndef AMREX_BARENA_H_
+#define AMREX_BARENA_H_
 
 #include <AMReX_Arena.H>
 
@@ -9,7 +8,7 @@ namespace amrex {
 /**
 * \brief A Concrete Class for Dynamic Memory Management
 * This is the simplest dynamic memory management class derived from Arena.
-* Makes calls to ::operator new() and ::operator delete().
+* Makes calls to std::malloc and std::free.
 */
 
 class BArena
@@ -30,4 +29,4 @@ public:
 
 }
 
-#endif /*BL_BARENA_H*/
+#endif

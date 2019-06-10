@@ -1,4 +1,3 @@
-
 #ifndef AMREX_ARRAY_H_
 #define AMREX_ARRAY_H_
 
@@ -11,6 +10,7 @@
 #include <cstdio>
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_REAL.H>
@@ -89,7 +89,7 @@ namespace amrex {
         void index_assert (int i, int j, int k) const
         {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z) {
-#ifdef __CUDA_ARCH__
+#ifdef AMREX_DEVICE_COMPILE
                 std::printf(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
                             i, j, k, begin.x, end.x-1, begin.y, end.y-1, begin.z, end.z-1);
                 amrex::Abort();
@@ -127,7 +127,7 @@ namespace amrex {
 
 // If on GPUs, use a simple array wrapper that 
 // designates needed functions as __host__ __device__
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+#ifdef AMREX_USE_GPU
 
 namespace amrex {
     template <class T, std::size_t N>

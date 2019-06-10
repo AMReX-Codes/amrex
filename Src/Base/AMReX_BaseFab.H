@@ -3140,7 +3140,7 @@ BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
                 AMREX_PRAGMA_SIMD
 #endif
                 for (int i = 0; i < len.x; ++i) {
-#ifndef __CUDA_ARCH__
+#ifndef AMREX_DEVICE_COMPILE
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
