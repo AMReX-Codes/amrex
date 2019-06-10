@@ -71,7 +71,6 @@ Advanced building instructions
    rzgeometry
    gpu_local
    python
-   spack
 
 Building for specific platforms
 -------------------------------
