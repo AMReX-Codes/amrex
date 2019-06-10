@@ -17,30 +17,30 @@
 using namespace amrex;
 
 void
-WarpX::EvolveB (Real dt)
+WarpX::EvolveB (Real a_dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveB(lev, dt);
+        EvolveB(lev, a_dt);
     }
 }
 
 void
-WarpX::EvolveB (int lev, Real dt)
+WarpX::EvolveB (int lev, Real a_dt)
 {
     BL_PROFILE("WarpX::EvolveB()");
-    EvolveB(lev, PatchType::fine, dt);
+    EvolveB(lev, PatchType::fine, a_dt);
     if (lev > 0)
     {
-        EvolveB(lev, PatchType::coarse, dt);
+        EvolveB(lev, PatchType::coarse, a_dt);
     }
 }
 
 void
-WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
+WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
 {
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
-    Real dtsdx = dt/dx[0], dtsdy = dt/dx[1], dtsdz = dt/dx[2];
+    Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];
 
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
     if (patch_type == PatchType::fine)
@@ -65,6 +65,10 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
+    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // in which case it is actually rmin.
+    const Real xmin = Geom(0).ProbLo(0);
+
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -76,10 +80,6 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
-        // xmin is only used by the picsar kernel with cylindrical geometry,
-        // in which case it is actually rmin.
-        const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
 
         if (do_nodal) {
             auto const& Bxfab = Bx->array(mfi);
@@ -164,30 +164,30 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 }
 
 void
-WarpX::EvolveE (Real dt)
+WarpX::EvolveE (Real a_dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        EvolveE(lev, dt);
+        EvolveE(lev, a_dt);
     }
 }
 
 void
-WarpX::EvolveE (int lev, Real dt)
+WarpX::EvolveE (int lev, Real a_dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
-    EvolveE(lev, PatchType::fine, dt);
+    EvolveE(lev, PatchType::fine, a_dt);
     if (lev > 0)
     {
-        EvolveE(lev, PatchType::coarse, dt);
+        EvolveE(lev, PatchType::coarse, a_dt);
     }
 }
 
 void
-WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
+WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 {
-    const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
-    const Real c2dt = (PhysConst::c*PhysConst::c) * dt;
+    const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * a_dt;
+    const Real c2dt = (PhysConst::c*PhysConst::c) * a_dt;
 
     int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
@@ -224,6 +224,10 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
+    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // in which case it is actually rmin.
+    const Real xmin = Geom(0).ProbLo(0);
+
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -235,10 +239,6 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-
-        // xmin is only used by the picsar kernel with cylindrical geometry,
-        // in which case it is actually rmin.
-        const Real xmin = mfi.tilebox().smallEnd(0)*dx[0];
 
         if (do_nodal) {
             auto const& Exfab = Ex->array(mfi);
@@ -358,27 +358,27 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
 }
 
 void
-WarpX::EvolveF (Real dt, DtType dt_type)
+WarpX::EvolveF (Real a_dt, DtType a_dt_type)
 {
     if (!do_dive_cleaning) return;
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
-        EvolveF(lev, dt, dt_type);
+        EvolveF(lev, a_dt, a_dt_type);
     }
 }
 
 void
-WarpX::EvolveF (int lev, Real dt, DtType dt_type)
+WarpX::EvolveF (int lev, Real a_dt, DtType a_dt_type)
 {
     if (!do_dive_cleaning) return;
 
-    EvolveF(lev, PatchType::fine, dt, dt_type);
-    if (lev > 0) EvolveF(lev, PatchType::coarse, dt, dt_type);
+    EvolveF(lev, PatchType::fine, a_dt, a_dt_type);
+    if (lev > 0) EvolveF(lev, PatchType::coarse, a_dt, a_dt_type);
 }
 
 void
-WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
+WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
 {
     if (!do_dive_cleaning) return;
 
@@ -388,7 +388,7 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
 
     int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const auto& dx = WarpX::CellSize(patch_level);
-    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+    const std::array<Real,3> dtsdx {a_dt/dx[0], a_dt/dx[1], a_dt/dx[2]};
 
     MultiFab *Ex, *Ey, *Ez, *rho, *F;
     if (patch_type == PatchType::fine)
@@ -408,12 +408,12 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
         F = F_cp[lev].get();
     }
 
-    const int rhocomp = (dt_type == DtType::FirstHalf) ? 0 : 1;
+    const int rhocomp = (a_dt_type == DtType::FirstHalf) ? 0 : 1;
 
     MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
     ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
     MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
-    MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
+    MultiFab::Saxpy(*F, a_dt, src, 0, 0, 1, 0);
 
     if (do_pml && pml[lev]->ok())
     {

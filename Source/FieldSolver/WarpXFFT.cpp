@@ -56,6 +56,7 @@ BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
         for (const auto& b : bl) {
             fab.setVal(nonowner, b, 0, 1);
         }
+
     }
 
     return mask;
@@ -107,6 +108,8 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
     // the cell that has non-zero mask is the one which is retained.
     mf.setVal(0.0, 0);
     mf.ParallelAdd(mftmp);
+
+
 }
 
 }
@@ -481,4 +484,5 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
+
 }

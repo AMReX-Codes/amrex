@@ -299,7 +299,10 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
     amrex::Vector<MultiFab>& mf_avg, const int ngrow) const
 {
     // Count how many different fields should be written (ncomp)
-    const int ncomp = 3*3
+    const int ncomp = 0
+        + static_cast<int>(plot_E_field)*3
+        + static_cast<int>(plot_B_field)*3
+        + static_cast<int>(plot_J_field)*3
         + static_cast<int>(plot_part_per_cell)
         + static_cast<int>(plot_part_per_grid)
         + static_cast<int>(plot_part_per_proc)
@@ -321,15 +324,21 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         // Go through the different fields, pack them into mf_avg[lev],
         // add the corresponding names to `varnames` and increment dcomp
         int dcomp = 0;
-        AverageAndPackVectorField(mf_avg[lev], current_fp[lev], dcomp, ngrow);
-        if(lev==0) for(auto name:{"jx","jy","jz"}) varnames.push_back(name);
-        dcomp += 3;
-        AverageAndPackVectorField(mf_avg[lev], Efield_aux[lev], dcomp, ngrow);
-        if(lev==0) for(auto name:{"Ex","Ey","Ez"}) varnames.push_back(name);
-        dcomp += 3;
-        AverageAndPackVectorField(mf_avg[lev], Bfield_aux[lev], dcomp, ngrow);
-        if(lev==0) for(auto name:{"Bx","By","Bz"}) varnames.push_back(name);
-        dcomp += 3;
+        if (plot_J_field) {
+            AverageAndPackVectorField(mf_avg[lev], current_fp[lev], dcomp, ngrow);
+            if(lev==0) for(auto name:{"jx","jy","jz"}) varnames.push_back(name);
+            dcomp += 3;
+        }
+        if (plot_E_field) {
+            AverageAndPackVectorField(mf_avg[lev], Efield_aux[lev], dcomp, ngrow);
+            if(lev==0) for(auto name:{"Ex","Ey","Ez"}) varnames.push_back(name);
+            dcomp += 3;
+        }
+        if (plot_B_field) {
+            AverageAndPackVectorField(mf_avg[lev], Bfield_aux[lev], dcomp, ngrow);
+            if(lev==0) for(auto name:{"Bx","By","Bz"}) varnames.push_back(name);
+            dcomp += 3;
+        }
 
         if (plot_part_per_cell)
         {
@@ -651,7 +660,6 @@ getInterpolatedScalar(
     interpolated_F->setVal(0.);
 
     // Loop through the boxes and interpolate the values from the _cp data
-    const int use_limiter = 0;
 #ifdef _OPEMP
 #pragma omp parallel
 #endif
@@ -669,7 +677,7 @@ getInterpolatedScalar(
             if ( F_fp.is_nodal() ){
                 IntVect refinement_vector{AMREX_D_DECL(r_ratio, r_ratio, r_ratio)};
                 node_bilinear_interp.interp(cfab, 0, ffab, 0, 1,
-                        finebx, refinement_vector, {}, {}, {}, 0, 0);
+                        finebx, refinement_vector, {}, {}, {}, 0, 0, RunOn::Cpu);
             } else {
                 amrex::Abort("Unknown field staggering.");
             }

@@ -23,10 +23,6 @@ geometry.prob_hi     =  2.    2.    2.
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # interpolation
 interpolation.nox = 3
@@ -102,8 +98,3 @@ warpx.do_pml = 0
 warpx.do_moving_window = 0
 warpx.moving_window_dir = z
 warpx.moving_window_v = 1.0 # in units of the speed of light
-
-# Particle Injection
-warpx.do_plasma_injection = 0
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 1 0

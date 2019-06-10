@@ -25,6 +25,10 @@ WarpX::EvolveEM (int numsteps)
     static int last_check_file_step = 0;
     static int last_insitu_step = 0;
 
+    if (do_compute_max_step_from_zmax){
+        computeMaxStepBoostAccelerator(geom[0]);
+    }
+
     int numsteps_max;
     if (numsteps < 0) {  // Note that the default argument is numsteps = -1
         numsteps_max = max_step;
@@ -80,12 +84,14 @@ WarpX::EvolveEM (int numsteps)
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
             is_synchronized = false;
+
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
             FillBoundaryE();
             FillBoundaryB();
             UpdateAuxilaryData();
+
         }
 
         if (do_subcycling == 0 || finest_level == 0) {
@@ -128,6 +134,8 @@ WarpX::EvolveEM (int numsteps)
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
+        // slice generation //
+        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);        
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -172,7 +180,8 @@ WarpX::EvolveEM (int numsteps)
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
-        if (to_make_plot || do_insitu)
+        // slice gen //
+	if (to_make_plot || do_insitu || to_make_slice_plot)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -188,11 +197,19 @@ WarpX::EvolveEM (int numsteps)
             last_insitu_step = step+1;
 
             if (to_make_plot)
-                WritePlotFile();
+    	        WritePlotFile();
+
+            if (to_make_slice_plot)
+            {
+                InitializeSliceMultiFabs ();
+                SliceGenerationForDiagnostics();
+                WriteSlicePlotFile();
+                ClearSliceMultiFabs ();
+            }
 
             if (do_insitu)
                 UpdateInSitu();
-        }
+	}
 
         if (check_int > 0 && (step+1) % check_int == 0) {
             last_check_file_step = step+1;
@@ -268,6 +285,7 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_beforedeposition) warpx_py_beforedeposition();
 #endif
     PushParticlesandDepose(cur_time);
+
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 #endif
@@ -503,6 +521,50 @@ WarpX::ComputeDt ()
     }
 }
 
+/* \brief computes max_step for wakefield simulation in boosted frame.
+ * \param geom: Geometry object that contains simulation domain.
+ * 
+ * max_step is set so that the simulation stop when the lower corner of the 
+ * simulation box passes input parameter zmax_plasma_to_compute_max_step.
+ */
+void
+WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
+    // Sanity checks: can use zmax_plasma_to_compute_max_step only if 
+    // the moving window and the boost are all in z direction.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        WarpX::moving_window_dir == AMREX_SPACEDIM-1,
+        "Can use zmax_plasma_to_compute_max_step only if " +
+        "moving window along z. TODO: all directions.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        maxLevel() == 0,
+        "Can use zmax_plasma_to_compute_max_step only if " +
+        "max level = 0.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
+        (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
+        (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
+        "Can use zmax_plasma_to_compute_max_step only if " +
+        "warpx.boost_direction = z. TODO: all directions.");
+
+    // Lower end of the simulation domain. All quantities are given in boosted 
+    // frame except zmax_plasma_to_compute_max_step.
+    const Real zmin_domain_boost = a_geom.ProbLo(AMREX_SPACEDIM-1);
+    // End of the plasma: Transform input argument
+    // zmax_plasma_to_compute_max_step to boosted frame.
+    const Real len_plasma_boost = zmax_plasma_to_compute_max_step/gamma_boost;
+    // Plasma velocity
+    const Real v_plasma_boost = -beta_boost * PhysConst::c;
+    // Get time at which the lower end of the simulation domain passes the 
+    // upper end of the plasma (in the z direction).
+    const Real interaction_time_boost = (len_plasma_boost-zmin_domain_boost)/
+        (moving_window_v-v_plasma_boost);
+    // Divide by dt, and update value of max_step.
+    const int computed_max_step = interaction_time_boost/dt[0];
+    max_step = computed_max_step;
+    Print()<<"max_step computed in computeMaxStepBoostAccelerator: "
+           <<computed_max_step<<std::endl;
+}
+
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).
  * In practice, set all fields to 0 on a section of the simulation domain
  * (as for a perfect conductor with a given thickness). 
@@ -543,19 +605,19 @@ WarpX::applyMirrors(Real time){
             NullifyMF(Bz, lev, z_min, z_max);
             if (lev>0){
                 // Get coarse patch field MultiFabs
-                MultiFab& Ex = *Efield_cp[lev][0].get();
-                MultiFab& Ey = *Efield_cp[lev][1].get();
-                MultiFab& Ez = *Efield_cp[lev][2].get();
-                MultiFab& Bx = *Bfield_cp[lev][0].get();
-                MultiFab& By = *Bfield_cp[lev][1].get();
-                MultiFab& Bz = *Bfield_cp[lev][2].get();
+                MultiFab& cEx = *Efield_cp[lev][0].get();
+                MultiFab& cEy = *Efield_cp[lev][1].get();
+                MultiFab& cEz = *Efield_cp[lev][2].get();
+                MultiFab& cBx = *Bfield_cp[lev][0].get();
+                MultiFab& cBy = *Bfield_cp[lev][1].get();
+                MultiFab& cBz = *Bfield_cp[lev][2].get();
                 // Set each field to zero between z_min and z_max
-                NullifyMF(Ex, lev, z_min, z_max);
-                NullifyMF(Ey, lev, z_min, z_max);
-                NullifyMF(Ez, lev, z_min, z_max);
-                NullifyMF(Bx, lev, z_min, z_max);
-                NullifyMF(By, lev, z_min, z_max);
-                NullifyMF(Bz, lev, z_min, z_max);
+                NullifyMF(cEx, lev, z_min, z_max);
+                NullifyMF(cEy, lev, z_min, z_max);
+                NullifyMF(cEz, lev, z_min, z_max);
+                NullifyMF(cBx, lev, z_min, z_max);
+                NullifyMF(cBy, lev, z_min, z_max);
+                NullifyMF(cBz, lev, z_min, z_max);
             }
         }
     }

@@ -17,10 +17,6 @@ warpx.fine_tag_hi =  5.e-6   -25.e-6
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
 interpolation.noy = 3
 interpolation.noz = 3
@@ -53,6 +49,7 @@ electrons.zmin =  10.e-6
 electrons.profile = constant
 electrons.density = 2.e23  # number of electrons per m^3
 electrons.momentum_distribution_type = "constant"
+electrons.do_continuous_injection = 1
 
 beam.charge = -q_e
 beam.mass = m_e
@@ -74,10 +71,6 @@ beam.uz_m = 500.
 beam.ux_th = 2.
 beam.uy_th = 2.
 beam.uz_th = 50.
-# Particle Injection
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 0
 
 #################################
 ############ PLASMA #############

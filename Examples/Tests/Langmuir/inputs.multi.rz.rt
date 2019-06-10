@@ -11,9 +11,7 @@ amr.max_grid_size = 64
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
 
-amr.plot_int = 1 #40   # How often to write plotfiles.  "<= 0" means no plotfiles.
-warpx.plot_raw_fields = 1
-warpx.plot_raw_fields_guards = 0
+amr.plot_int = 40   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 1                  # 0: Cartesian
@@ -27,10 +25,7 @@ warpx.serialize_ics = 1
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 1
-algo.particle_pusher = 0
+algo.field_gathering = standard
 
 # Interpolation
 interpolation.nox = 1
@@ -40,8 +35,11 @@ interpolation.noz = 1
 # CFL
 warpx.cfl = 1.0
 
+# Having this turned on makes for a more sensitive test
+warpx.do_dive_cleaning = 1
+
 # Parameters for the plasma wave
-my_constants.epsilon = 0.001
+my_constants.epsilon = 0.01
 my_constants.kp = 266125.0928256017
 my_constants.k0 = 314159.2653589793
 my_constants.w0 = 5.e-6

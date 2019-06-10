@@ -1,5 +1,9 @@
 \input{newcommands}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Inputs and outputs}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 Initialization of the plasma columns and drivers (laser or particle beam) is performed via the specification of multidimensional functions that describe the initial state with, if needed, a time dependence, or from reconstruction of distributions based on experimental data. Care is needed when initializing quantities in parallel to avoid double counting and ensure smoothness of the distributions at the interface of computational domains. When the sum of the initial distributions of charged particles is not charge neutral, initial fields are computed using generally a static approximation with Poisson solves accompanied by proper relativistic scalings \cite{Vaypop2008, CowanPRSTAB13}.
 
 Outputs include dumps of particle and field quantities at regular intervals, histories of particle distributions moments, spectra, etc, and plots of the various quantities. In parallel simulations, the diagnostic subroutines need to handle additional complexity from the domain decomposition, as well as large amount of data that may necessitate data reduction in some form before saving to disk.

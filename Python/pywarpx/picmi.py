@@ -94,24 +94,25 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
         #species.zmin
         #species.zmax
 
+        # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.velocity_divergence, 0.)):
             species.momentum_distribution_type = "radial_expansion"
-            species.u_over_r = self.velocity_divergence[0]
-            #species.u_over_y = self.velocity_divergence[1]
-            #species.u_over_z = self.velocity_divergence[2]
+            species.u_over_r = self.velocity_divergence[0]/c
+            #species.u_over_y = self.velocity_divergence[1]/c
+            #species.u_over_z = self.velocity_divergence[2]/c
         elif np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.centroid_velocity[0]
-            species.uy_m = self.centroid_velocity[1]
-            species.uz_m = self.centroid_velocity[2]
-            species.ux_th = self.rms_velocity[0]
-            species.uy_th = self.rms_velocity[1]
-            species.uz_th = self.rms_velocity[2]
+            species.ux_m = self.centroid_velocity[0]/c
+            species.uy_m = self.centroid_velocity[1]/c
+            species.uz_m = self.centroid_velocity[2]/c
+            species.ux_th = self.rms_velocity[0]/c
+            species.uy_th = self.rms_velocity[1]/c
+            species.uz_th = self.rms_velocity[2]/c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.centroid_velocity[0]
-            species.uy = self.centroid_velocity[1]
-            species.uz = self.centroid_velocity[2]
+            species.ux = self.centroid_velocity[0]/c
+            species.uy = self.centroid_velocity[1]/c
+            species.uz = self.centroid_velocity[2]/c
 
 
 class UniformDistribution(picmistandard.PICMI_UniformDistribution):
@@ -139,27 +140,23 @@ class UniformDistribution(picmistandard.PICMI_UniformDistribution):
         species.profile = "constant"
         species.density = self.density
 
+        # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.directed_velocity[0]
-            species.uy_m = self.directed_velocity[1]
-            species.uz_m = self.directed_velocity[2]
-            species.ux_th = self.rms_velocity[0]
-            species.uy_th = self.rms_velocity[1]
-            species.uz_th = self.rms_velocity[2]
+            species.ux_m = self.directed_velocity[0]/c
+            species.uy_m = self.directed_velocity[1]/c
+            species.uz_m = self.directed_velocity[2]/c
+            species.ux_th = self.rms_velocity[0]/c
+            species.uy_th = self.rms_velocity[1]/c
+            species.uz_th = self.rms_velocity[2]/c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.directed_velocity[0]
-            species.uy = self.directed_velocity[1]
-            species.uz = self.directed_velocity[2]
+            species.ux = self.directed_velocity[0]/c
+            species.uy = self.directed_velocity[1]/c
+            species.uz = self.directed_velocity[2]/c
 
         if self.fill_in:
-            pywarpx.warpx.do_plasma_injection = 1
-            if not hasattr(pywarpx.warpx, 'injected_plasma_species'):
-                pywarpx.warpx.injected_plasma_species = []
-
-            pywarpx.warpx.injected_plasma_species.append(species_number)
-            pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
+            species.do_continuous_injection = 1
 
 
 class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
@@ -190,27 +187,23 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         for k,v in self.user_defined_kw.items():
             setattr(pywarpx.my_constants, k, v)
 
+        # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.directed_velocity[0]
-            species.uy_m = self.directed_velocity[1]
-            species.uz_m = self.directed_velocity[2]
-            species.ux_th = self.rms_velocity[0]
-            species.uy_th = self.rms_velocity[1]
-            species.uz_th = self.rms_velocity[2]
+            species.ux_m = self.directed_velocity[0]/c
+            species.uy_m = self.directed_velocity[1]/c
+            species.uz_m = self.directed_velocity[2]/c
+            species.ux_th = self.rms_velocity[0]/c
+            species.uy_th = self.rms_velocity[1]/c
+            species.uz_th = self.rms_velocity[2]/c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.directed_velocity[0]
-            species.uy = self.directed_velocity[1]
-            species.uz = self.directed_velocity[2]
+            species.ux = self.directed_velocity[0]/c
+            species.uy = self.directed_velocity[1]/c
+            species.uz = self.directed_velocity[2]/c
 
         if self.fill_in:
-            pywarpx.warpx.do_plasma_injection = 1
-            if not hasattr(pywarpx.warpx, 'injected_plasma_species'):
-                pywarpx.warpx.injected_plasma_species = []
-
-            pywarpx.warpx.injected_plasma_species.append(species_number)
-            pywarpx.warpx.num_injected_species = len(pywarpx.warpx.injected_plasma_species)
+            species.do_continuous_injection = 1
 
 
 class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
