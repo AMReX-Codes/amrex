@@ -37,7 +37,7 @@ std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
 gpuStream_t                                     Device::gpu_stream;
 gpuDeviceProp_t                                 Device::device_prop;
 
-int                                             Device::warp_size = 0;
+constexpr int                                   Device::warp_size;
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 bool Device::graph_per_stream = true;
@@ -309,8 +309,6 @@ Device::initialize_gpu ()
 #else
     AMREX_CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
-    warp_size = device_prop.warpSize;
-
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(device_prop.major >= 6, "Compute capability must be >= 6");
 
     // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
@@ -328,7 +326,8 @@ Device::initialize_gpu ()
 
 #endif
 
-    warp_size = device_prop.warpSize;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
+
     gpu_stream = gpu_streams[0];
 
     ParmParse pp("device");
