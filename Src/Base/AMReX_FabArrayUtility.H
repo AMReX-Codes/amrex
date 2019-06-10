@@ -34,7 +34,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -103,7 +103,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -173,7 +173,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
             FAB2 const* fab2 = fa2.fabPtr(mfi);
             FAB3 const* fab3 = fa3.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -239,7 +239,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -313,7 +313,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -386,7 +386,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -460,7 +460,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -531,7 +531,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(
@@ -600,7 +600,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(
@@ -666,7 +666,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             FAB const* fab = fa.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(
@@ -735,7 +735,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             FAB1 const* fab1 = fa1.fabPtr(mfi);
             FAB2 const* fab2 = fa2.fabPtr(mfi);
 
-            const auto ec = amrex::Cuda::ExecutionConfig(bx.numPts()/32L);
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(

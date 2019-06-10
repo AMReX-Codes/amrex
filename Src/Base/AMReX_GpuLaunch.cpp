@@ -1,12 +1,11 @@
-#include <AMReX_CudaLaunch.H>
+#include <AMReX_GpuLaunch.H>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_LayoutData.H>
 
 namespace amrex {
+namespace Gpu {
 
-namespace Cuda {
-
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks)
 {
     gs = LayoutData<GridSize>(fa.boxArray(),fa.DistributionMap());
@@ -22,5 +21,4 @@ void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, i
 }
 #endif
 
-}  // namespace Cuda
-}  // namespace amrex
+}}

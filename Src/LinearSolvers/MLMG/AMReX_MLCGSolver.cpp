@@ -26,14 +26,15 @@ sxay (MultiFab&       ss,
       const MultiFab& xx,
       Real            a,
       const MultiFab& yy,
-      int             yycomp)
+      int             yycomp,
+      int             nghost)
 {
     BL_PROFILE("CGSolver::sxay()");
 
     const int ncomp  = ss.nComp();
     const int sscomp = 0;
     const int xxcomp = 0;
-    MultiFab::LinComb(ss, 1.0, xx, xxcomp, a, yy, yycomp, sscomp, ncomp, 0);
+    MultiFab::LinComb(ss, 1.0, xx, xxcomp, a, yy, yycomp, sscomp, ncomp, nghost);
 }
 
 inline
@@ -41,9 +42,10 @@ void
 sxay (MultiFab&       ss,
       const MultiFab& xx,
       Real            a,
-      const MultiFab& yy)
+      const MultiFab& yy,
+      const int       nghost)
 {
-    sxay(ss,xx,a,yy,0);
+    sxay(ss,xx,a,yy,0,nghost);
 }
 
 }
@@ -82,24 +84,24 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 {
     BL_PROFILE("MLCGSolver::bicgstab");
 
-    const int nghost = sol.nGrow(), ncomp = sol.nComp();
+    const int ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab ph(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
+    MultiFab sh(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
     ph.setVal(0.0);
     sh.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab p    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab s    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab rh   (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab v    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab t    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab p    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab s    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab rh   (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab v    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab t    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
@@ -109,8 +111,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
  
-    MultiFab::Copy(sorig,sol,0,0,ncomp,0);
-    MultiFab::Copy(rh,   r,  0,0,ncomp,0);
+    MultiFab::Copy(sorig,sol,0,0,ncomp,nghost);
+    MultiFab::Copy(rh,   r,  0,0,ncomp,nghost);
 
     sol.setVal(0);
 
@@ -144,15 +146,15 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	}
         if ( nit == 1 )
         {
-            MultiFab::Copy(p,r,0,0,ncomp,0);
+            MultiFab::Copy(p,r,0,0,ncomp,nghost);
         }
         else
         {
             const Real beta = (rho/rho_1)*(alpha/omega);
-            sxay(p, p, -omega, v);
-            sxay(p, r,   beta, p);
+            sxay(p, p, -omega, v, nghost);
+            sxay(p, r,   beta, p, nghost);
         }
-        MultiFab::Copy(ph,p,0,0,ncomp,0);
+        MultiFab::Copy(ph,p,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
@@ -164,8 +166,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	{
             ret = 2; break;
 	}
-        sxay(sol, sol,  alpha, ph);
-        sxay(s,     r, -alpha,  v);
+        sxay(sol, sol,  alpha, ph, nghost);
+        sxay(s,     r, -alpha,  v, nghost);
 
         //Subtract mean from s 
 //        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, s);
@@ -182,7 +184,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 
-        MultiFab::Copy(sh,s,0,0,ncomp,0);
+        MultiFab::Copy(sh,s,0,0,ncomp,nghost);
         Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
@@ -204,8 +206,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	{
             ret = 3; break;
 	}
-        sxay(sol, sol,  omega, sh);
-        sxay(r,     s, -omega,  t);
+        sxay(sol, sol,  omega, sh, nghost);
+        sxay(r,     s, -omega,  t, nghost);
 
 //        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
 
@@ -245,12 +247,12 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.plus(sorig, 0, ncomp, 0);
+        sol.plus(sorig, 0, ncomp, nghost);
     } 
     else 
     {
         sol.setVal(0);
-        sol.plus(sorig, 0, ncomp, 0);
+        sol.plus(sorig, 0, ncomp, nghost);
     }
 
     return ret;
@@ -264,21 +266,21 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 {
     BL_PROFILE("MLCGSolver::cg");
 
-    const int nghost = sol.nGrow(), ncomp = sol.nComp();
+    const int ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab p(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab p(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
     p.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab z    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab q    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab z    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab q    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
-    MultiFab::Copy(sorig,sol,0,0,ncomp,0);
+    MultiFab::Copy(sorig,sol,0,0,ncomp,nghost);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
@@ -308,7 +310,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     for (; nit <= maxiter; ++nit)
     {
-        MultiFab::Copy(z,r,0,0,ncomp,0);
+        MultiFab::Copy(z,r,0,0,ncomp,nghost);
 
         Real rho = dotxy(z,r);
 
@@ -318,12 +320,12 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         }
         if (nit == 1)
         {
-            MultiFab::Copy(p,z,0,0,ncomp,0);
+            MultiFab::Copy(p,z,0,0,ncomp,nghost);
         }
         else
         {
             Real beta = rho/rho_1;
-            sxay(p, z, beta, p);
+            sxay(p, z, beta, p, nghost);
         }
         Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
 
@@ -344,8 +346,8 @@ MLCGSolver::solve_cg (MultiFab&       sol,
                            << " rho " << rho
                            << " alpha " << alpha << '\n';
         }
-        sxay(sol, sol, alpha, p);
-        sxay(  r,   r,-alpha, q);
+        sxay(sol, sol, alpha, p, nghost);
+        sxay(  r,   r,-alpha, q, nghost);
         rnorm = norm_inf(r);
 
         if ( verbose > 2 )
@@ -378,12 +380,12 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.plus(sorig, 0, ncomp, 0);
+        sol.plus(sorig, 0, ncomp, nghost);
     } 
     else 
     {
         sol.setVal(0);
-        sol.plus(sorig, 0, ncomp, 0);
+        sol.plus(sorig, 0, ncomp, nghost);
     }
 
     return ret;

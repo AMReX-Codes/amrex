@@ -5,7 +5,7 @@ include seg fault, interruption by the user (control-c), assertion
 errors, and floating point exceptions (NaNs, divided by zero and
 overflow).  The handling of seg fault, assertion errors and
 interruption by control-C are enabled by default. (Note that in C++
-AMReX, BL_ASSERT() is only on when compiled with DEBUG=TRUE or
+AMReX, AMREX_ASSERT() is only on when compiled with DEBUG=TRUE or
 USE_ASSERTION=TRUE.)  The trapping of floating point exceptions is not
 enabled by default unless the code is compiled with TEST=TRUE or
 DEBUG=TRUE in C++ AMReX, or TEST=t or NDEBUG= in Fortran AMReX.  For
@@ -29,13 +29,13 @@ could do
 
    #include <AMReX_BLBackTrace.H>
    
-   #ifdef BL_BACKTRACING
+   #ifdef AMREX_BACKTRACING
        std::ostringstream ss;
        ss << "state.box() = " << state.box() << " cell = " << cell;
        BL_BACKTRACE_PUSH(ss.str()); // PUSH takes std::string
    #endif
        Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
-   #ifdef BL_BACKTRACING
+   #ifdef AMREX_BACKTRACING
        BL_BACKTRACE_POP(); // One can omit this line.  In that case,
                            // there is an implicit POP when "PUSH" is
                            // out of scope.

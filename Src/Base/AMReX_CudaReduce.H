@@ -2,6 +2,7 @@
 #define AMREX_CUDA_REDUCE_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_Utility.H>
 
 namespace amrex {

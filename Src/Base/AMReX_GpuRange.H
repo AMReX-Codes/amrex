@@ -1,13 +1,14 @@
-#ifndef AMREX_CUDA_RANGE_H_
-#define AMREX_CUDA_RANGE_H_
+#ifndef AMREX_GPU_RANGE_H_
+#define AMREX_GPU_RANGE_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_GpuError.H>
 #include <AMReX_Box.H>
 #include <AMReX_TypeTraits.H>
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
 namespace range_detail {
 
@@ -24,7 +25,7 @@ long at (T const& b, long offset) noexcept { return offset; }
 AMREX_GPU_HOST_DEVICE
 AMREX_INLINE long size (Box const& b) noexcept
 {
-#ifdef __CUDA_ARCH__
+#ifdef AMREX_DEVICE_COMPILE
     return b.numPts();
 #else
     return 1;
@@ -34,7 +35,7 @@ AMREX_INLINE long size (Box const& b) noexcept
 AMREX_GPU_HOST_DEVICE
 AMREX_INLINE Box at (Box const& b, long offset) noexcept
 {
-#ifdef __CUDA_ARCH__
+#ifdef AMREX_DEVICE_COMPILE
     auto len = b.length3d();
     long k = offset / (len[0]*len[1]);
     long j = (offset - k*(len[0]*len[1])) / len[0];
@@ -77,7 +78,7 @@ struct range_impl
 
     AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
-#ifdef __CUDA_ARCH__
+#ifdef AMREX_DEVICE_COMPILE
         return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #else
         return iterator(m_b,0,1);

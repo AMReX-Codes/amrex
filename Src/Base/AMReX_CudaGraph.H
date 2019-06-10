@@ -1,5 +1,5 @@
-#ifndef _AMREX_CUDA_GRAPH_H_
-#define _AMREX_CUDA_GRAPH_H_
+#ifndef AMREX_CUDA_GRAPH_H_
+#define AMREX_CUDA_GRAPH_H_
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
