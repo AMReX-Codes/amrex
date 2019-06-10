@@ -106,8 +106,10 @@ public:
 
     std::array<amrex::MultiFab*,3> GetE_fp ();
     std::array<amrex::MultiFab*,3> GetB_fp ();
+    std::array<amrex::MultiFab*,3> Getj_fp ();
     std::array<amrex::MultiFab*,3> GetE_cp ();
     std::array<amrex::MultiFab*,3> GetB_cp ();
+    std::array<amrex::MultiFab*,3> Getj_cp ();
 
     amrex::MultiFab* GetF_fp ();
     amrex::MultiFab* GetF_cp ();

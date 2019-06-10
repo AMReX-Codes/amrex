@@ -137,6 +137,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
     {
         const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+        const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -338,6 +339,12 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+#if (AMREX_SPACEDIM==2)
+           BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
+           BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
+           BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
+                             &mu_c2_dt,
+#endif
                              &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
 
             if (pml_F)
@@ -435,4 +442,3 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
         }
     }
 }
-

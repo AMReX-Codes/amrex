@@ -133,7 +133,7 @@ WarpX::EvolveEM (int numsteps)
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
         // slice generation //
-        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);        
+        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -142,7 +142,7 @@ WarpX::EvolveEM (int numsteps)
         // We might need to move j because we are going to make a plotfile.
 
         int num_moved = MoveWindow(move_j);
-        
+
         if (max_level == 0) {
             int num_redistribute_ghost = num_moved + 1;
             mypc->RedistributeLocal(num_redistribute_ghost);
@@ -225,7 +225,7 @@ WarpX::EvolveEM (int numsteps)
         // End loop on time steps
     }
 
-    bool write_plot_file = plot_int > 0 && istep[0] > last_plot_file_step 
+    bool write_plot_file = plot_int > 0 && istep[0] > last_plot_file_step
         && (max_time_reached || istep[0] >= max_step);
 
     bool do_insitu = (insitu_start >= istep[0]) && (insitu_int > 0) &&
@@ -252,7 +252,7 @@ WarpX::EvolveEM (int numsteps)
             UpdateInSitu();
     }
 
-    if (check_int > 0 && istep[0] > last_check_file_step && 
+    if (check_int > 0 && istep[0] > last_check_file_step &&
         (max_time_reached || istep[0] >= max_step)) {
         WriteCheckPointFile();
     }
@@ -302,8 +302,11 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryF();
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
     FillBoundaryB();
+    // if do particles in pmls:
+    // copy J (créer une fonction qui peut le faire ô EvolveB) de grille physique vers grille de pml
     EvolveE(dt[0]); // We now have E^{n+1}
     FillBoundaryE();
+    // if DO_PML : copy E de pmls dans domaine physique
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
@@ -311,6 +314,8 @@ WarpX::OneStep_nosub (Real cur_time)
         FillBoundaryE();
     }
     FillBoundaryB();
+    // if do_pml : copy B de pmls dans domaine physique
+
 #endif
 }
 
@@ -520,13 +525,13 @@ WarpX::ComputeDt ()
 
 /* \brief computes max_step for wakefield simulation in boosted frame.
  * \param geom: Geometry object that contains simulation domain.
- * 
- * max_step is set so that the simulation stop when the lower corner of the 
+ *
+ * max_step is set so that the simulation stop when the lower corner of the
  * simulation box passes input parameter zmax_plasma_to_compute_max_step.
  */
 void
 WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
-    // Sanity checks: can use zmax_plasma_to_compute_max_step only if 
+    // Sanity checks: can use zmax_plasma_to_compute_max_step only if
     // the moving window and the boost are all in z direction.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         WarpX::moving_window_dir == AMREX_SPACEDIM-1,
@@ -543,7 +548,7 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
         "Can use zmax_plasma_to_compute_max_step only if " +
         "warpx.boost_direction = z. TODO: all directions.");
 
-    // Lower end of the simulation domain. All quantities are given in boosted 
+    // Lower end of the simulation domain. All quantities are given in boosted
     // frame except zmax_plasma_to_compute_max_step.
     const Real zmin_domain_boost = a_geom.ProbLo(AMREX_SPACEDIM-1);
     // End of the plasma: Transform input argument
@@ -551,7 +556,7 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
     const Real len_plasma_boost = zmax_plasma_to_compute_max_step/gamma_boost;
     // Plasma velocity
     const Real v_plasma_boost = -beta_boost * PhysConst::c;
-    // Get time at which the lower end of the simulation domain passes the 
+    // Get time at which the lower end of the simulation domain passes the
     // upper end of the plasma (in the z direction).
     const Real interaction_time_boost = (len_plasma_boost-zmin_domain_boost)/
         (moving_window_v-v_plasma_boost);
@@ -564,7 +569,7 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
 
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).
  * In practice, set all fields to 0 on a section of the simulation domain
- * (as for a perfect conductor with a given thickness). 
+ * (as for a perfect conductor with a given thickness).
  * The mirror normal direction has to be parallel to the z axis.
  */
 void
@@ -581,10 +586,10 @@ WarpX::applyMirrors(Real time){
         }
         // Loop over levels
         for(int lev=0; lev<=finest_level; lev++){
-            // Make sure that the mirror contains at least 
+            // Make sure that the mirror contains at least
             // mirror_z_npoints[i_mirror] cells
             Real dz = WarpX::CellSize(lev)[2];
-            Real z_max = std::max(z_max_tmp, 
+            Real z_max = std::max(z_max_tmp,
                                   z_min+mirror_z_npoints[i_mirror]*dz);
             // Get fine patch field MultiFabs
             MultiFab& Ex = *Efield_fp[lev][0].get();

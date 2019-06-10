@@ -368,9 +368,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
 
     if (pml_has_particles){
-      pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 2, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
-      pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 2, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
-      pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 2, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
+      pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
+      pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
+      pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
       pml_j_fp[0]->setVal(0.0);
       pml_j_fp[1]->setVal(0.0);
       pml_j_fp[2]->setVal(0.0);
@@ -423,9 +423,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         if (pml_has_particles)
         {
-            pml_j_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::jx_nodal_flag), cdm, 2, ngb));
-            pml_j_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::jy_nodal_flag), cdm, 2, ngb));
-            pml_j_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::jz_nodal_flag), cdm, 2, ngb));
+            pml_j_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::jx_nodal_flag), cdm, 1, ngb));
+            pml_j_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::jy_nodal_flag), cdm, 1, ngb));
+            pml_j_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::jz_nodal_flag), cdm, 1, ngb));
             pml_j_cp[0]->setVal(0.0);
             pml_j_cp[1]->setVal(0.0);
             pml_j_cp[2]->setVal(0.0);
@@ -533,6 +533,12 @@ PML::GetB_fp ()
 }
 
 std::array<MultiFab*,3>
+PML::Getj_fp ()
+{
+    return {pml_j_fp[0].get(), pml_j_fp[1].get(), pml_j_fp[2].get()};
+}
+
+std::array<MultiFab*,3>
 PML::GetE_cp ()
 {
     return {pml_E_cp[0].get(), pml_E_cp[1].get(), pml_E_cp[2].get()};
@@ -542,6 +548,12 @@ std::array<MultiFab*,3>
 PML::GetB_cp ()
 {
     return {pml_B_cp[0].get(), pml_B_cp[1].get(), pml_B_cp[2].get()};
+}
+
+std::array<MultiFab*,3>
+PML::Getj_cp ()
+{
+    return {pml_j_cp[0].get(), pml_j_cp[1].get(), pml_j_cp[2].get()};
 }
 
 MultiFab*
