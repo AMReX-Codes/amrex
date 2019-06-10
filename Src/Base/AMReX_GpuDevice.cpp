@@ -622,13 +622,15 @@ Device::instantiateGraph(cudaGraph_t graph)
 }
 
 void
-Device::executeGraph(cudaGraphExec_t &graphExec)
+Device::executeGraph(cudaGraphExec_t &graphExec, bool synch)
 {
     if (inLaunchRegion() && inGraphRegion())
     {
         setStreamIndex(0);
         AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, cudaStream()));
-        synchronize();
+        if (synch) {
+            synchronize();
+        }
         resetStreamIndex();
     }
 }
