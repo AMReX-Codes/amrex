@@ -639,6 +639,32 @@ PML::ExchangeE (PatchType patch_type,
 }
 
 void
+PML::CopyJinPMLs (PatchType patch_type,
+                const std::array<amrex::MultiFab*,3>& jp)
+{
+    if (patch_type == PatchType::fine && pml_j_fp[0] && jp[0])
+    {
+        CopyRegInPMLs(*pml_j_fp[0], *jp[0], *m_geom);
+        CopyRegInPMLs(*pml_j_fp[1], *jp[1], *m_geom);
+        CopyRegInPMLs(*pml_j_fp[2], *jp[2], *m_geom);
+    }
+    else if (patch_type == PatchType::coarse && pml_j_cp[0] && jp[0])
+    {
+        CopyRegInPMLs(*pml_j_cp[0], *jp[0], *m_cgeom);
+        CopyRegInPMLs(*pml_j_cp[1], *jp[1], *m_cgeom);
+        CopyRegInPMLs(*pml_j_cp[2], *jp[2], *m_cgeom);
+    }
+}
+
+void
+PML::CopyJinPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
+                const std::array<amrex::MultiFab*,3>& j_cp)
+{
+    CopyJinPMLs(PatchType::fine, j_fp);
+    CopyJinPMLs(PatchType::coarse, j_cp);
+}
+
+void
 PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
 {
     ExchangeF(PatchType::fine, F_fp);
@@ -699,7 +725,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 }
 
 void
-PML::CopyJinPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
+PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
     // const IntVect& ngr = reg.nGrowVect();
     const IntVect& ngp = pml.nGrowVect();

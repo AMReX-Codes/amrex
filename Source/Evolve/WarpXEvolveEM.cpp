@@ -304,6 +304,9 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryB();
     // if do particles in pmls:
     // copy J (créer une fonction qui peut le faire ô EvolveB) de grille physique vers grille de pml
+    // if (pml_has_particles){
+    //     // CopyJinPMLs(MultiFab& pml, MultiFab& reg, const Geometry& geom);
+    // }
     EvolveE(dt[0]); // We now have E^{n+1}
     FillBoundaryE();
     // if DO_PML : copy E de pmls dans domaine physique
