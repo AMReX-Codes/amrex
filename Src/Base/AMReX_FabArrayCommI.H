@@ -68,7 +68,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     
                     int idx = 0;
                     // Record the graph.
-                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
                         amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
     
@@ -303,7 +303,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     
                 // Record the graph.
                 int idx = 0;
-                for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
+                for (Gpu::StreamIter sit(N_snds,Gpu::StreamItInfo().DisableDeviceSync(),is_thread_safe);
+                                     sit.isValid(); ++sit)
                 {
                     amrex::Gpu::Device::startGraphRecording( sit() == 0 );
     
@@ -454,7 +455,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     
                     int idx = 0;
                     int cuda_stream = 0;
-                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
                         const auto& tags = loc_copy_tags[mfi];
                         for (int t = 0; t<tags.size(); ++t)
@@ -637,7 +638,7 @@ FabArray<FAB>::FillBoundary_finish ()
                     const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
     
                     int idx = 0;
-                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                    for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
                         amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
     
