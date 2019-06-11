@@ -66,7 +66,7 @@ function (configure_amrex)
       
       set_target_properties( amrex
          PROPERTIES
-         CUDA_STANDARD 11     # Adds -std=<standard>
+         CUDA_STANDARD 14     # Adds -std=<standard>
          CUDA_STANDARD_REQUIRED ON
          CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
          CUDA_RESOLVE_DEVICE_SYMBOLS OFF
@@ -314,7 +314,7 @@ function ( set_compiler_flags_preset _target )
    set(_cxx_apple       "$<AND:${_cxx},${_apple}>")
 
 
-   set(_cxx_std c++11)
+   set(_cxx_std c++14)
    
    target_compile_options(  ${_target}
          PUBLIC
