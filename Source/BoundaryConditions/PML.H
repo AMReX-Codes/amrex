@@ -126,8 +126,8 @@ public:
                     const std::array<amrex::MultiFab*,3>& E_cp);
     void CopyJinPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
-    void CopyFieldInReg (const std::array<amrex::MultiFab*,3>& j_fp,
-                    const std::array<amrex::MultiFab*,3>& j_cp);
+    void CopyFieldInReg (const std::array<amrex::MultiFab*,3>& E_fp,
+                    const std::array<amrex::MultiFab*,3>& E_cp);
 
     void ExchangeB (PatchType patch_type,
 		    const std::array<amrex::MultiFab*,3>& Bp);
@@ -136,7 +136,7 @@ public:
     void CopyJinPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
     void CopyFieldInReg (PatchType patch_type,
-                    const std::array<amrex::MultiFab*,3>& jp);
+                    const std::array<amrex::MultiFab*,3>& Ep);
 
     void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp);
     void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp);

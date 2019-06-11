@@ -683,11 +683,11 @@ PML::CopyFieldInReg (PatchType patch_type,
 }
 
 void
-PML::CopyFieldInReg (const std::array<amrex::MultiFab*,3>& j_fp,
-                const std::array<amrex::MultiFab*,3>& j_cp)
+PML::CopyFieldInReg (const std::array<amrex::MultiFab*,3>& E_fp,
+                const std::array<amrex::MultiFab*,3>& E_cp)
 {
-    CopyFieldInReg(PatchType::fine, j_fp);
-    CopyFieldInReg(PatchType::coarse, j_cp);
+    CopyFieldInReg(PatchType::fine, E_fp);
+    CopyFieldInReg(PatchType::coarse, E_cp);
 }
 
 void
