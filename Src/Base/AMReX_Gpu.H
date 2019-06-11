@@ -4,7 +4,7 @@
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>
 namespace amrex { namespace Hip {} }
-#elif AMREX_USE_CUDA
+#elif defined(AMREX_USE_CUDA)
 namespace amrex { namespace Cuda {} }
 #endif
 
