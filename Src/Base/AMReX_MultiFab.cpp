@@ -766,89 +766,88 @@ IntVect
 MultiFab::minIndex (int comp,
                     int nghost) const
 {
-    // TODO GPU -- CHECK
-
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
-    Real mn = std::numeric_limits<Real>::max();
+    Real mn = this->min(comp, nghost, true);
     IntVect loc;
 
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        int tmp[1+AMREX_SPACEDIM] = {0};
+        amrex::Gpu::AsyncArray<int> aa(tmp, 1+AMREX_SPACEDIM);
+        int* p = aa.data();
+        // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
+        // The first is used as semaphore and the others for intvect.
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+            const Box& bx = amrex::grow(mfi.validbox(), nghost);
+            const Array4<Real const> arr = this->array(mfi);
+            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+            {
+                int* sem = p;
+                if (*sem == 0) {
+                    const FArrayBox fab(arr);
+                    IntVect t_loc = fab.indexFromValue(mn, tbx, comp);
+                    if (tbx.contains(t_loc)) {
+                        if (atomicExch(sem,1) == 0) {
+                            AMREX_D_TERM(p[1] = t_loc[0];,
+                                         p[2] = t_loc[1];,
+                                         p[3] = t_loc[2];);
+                        }
+                    }
+                }
+            });
+        }
+    }
+    else
 #endif
     {
-        Real priv_mn = std::numeric_limits<Real>::max();
-        IntVect priv_loc;
-
-        amrex::Gpu::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
-        Real* p = local_mn.dataPtr();
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        IntVect priv_loc = IntVect::TheMinVector();
+	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = this->fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-            {
-                Real t = fab->min(tbx,comp);
-                amrex::Gpu::Atomic::Min(p, t);
-            });
+	    const Box& bx = mfi.growntilebox(nghost);
+            const FArrayBox& fab = (*this)[mfi];
+            IntVect t_loc = fab.indexFromValue(mn, bx, comp);
+            if (bx.contains(t_loc)) {
+                priv_loc = t_loc;
+            };
 	}
-        priv_mn = std::min(priv_mn, local_mn.dataValue());
-       
 
-        amrex::Gpu::DeviceScalar<IntVect> local_loc(IntVect::TheZeroVector());
-        IntVect* l = local_loc.dataPtr();
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = this->fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-            {
-                IntVect t_loc = fab->indexFromValue(priv_mn, tbx,comp);
-
-                if (tbx.contains(t_loc))
-                {
-                    *l = t_loc; // For total safety, this should be a Gpu::Atomic.
-                };
-	    });
-	}
-        priv_loc = local_loc.dataValue();
+        bool f = true;
 
 #ifdef _OPENMP
 #pragma omp critical (multifab_minindex)
 #endif
 	{
-	    if (priv_mn < mn) {
-		mn = priv_mn;
-		loc = priv_loc;
-	    }
+            if (f && priv_loc.allGT(IntVect::TheMinVector())) {
+                f = false;
+                loc = priv_loc;
+            }
 	}
     }
+    }
 
+#ifdef BL_USE_MPI
     const int NProcs = ParallelContext::NProcsSub();
     if (NProcs > 1)
     {
-        Vector<Real> mns(NProcs);
-        Vector<int>  locs(NProcs * AMREX_SPACEDIM);
-
-        auto comm = ParallelContext::CommunicatorSub();
-        ParallelAllGather::AllGather(mn, mns.dataPtr(), comm);
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
-        ParallelAllGather::AllGather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), comm);
-
-        mn  = mns[0];
-        loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-        for (int i = 1; i < NProcs; i++)
-        {
-            if (mns[i] < mn)
-            {
-                mn = mns[i];
-                const int j = AMREX_SPACEDIM * i;
-                loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
-            }
-        }
+        struct {
+            Real mn;
+            int rank;
+        } in, out;
+        in.mn = mn;
+        in.rank = ParallelContext::MyProcSub();
+        MPI_Datatype datatype = (sizeof(Real) == sizeof(double))
+            ? MPI_DOUBLE_INT : MPI_FLOAT_INT;
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+        MPI_Allreduce(&in,  &out, 1, datatype, MPI_MINLOC, comm);
+        MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
     }
+#endif
 
     return loc;
 }
