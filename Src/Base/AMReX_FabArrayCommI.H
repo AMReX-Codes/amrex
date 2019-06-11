@@ -70,7 +70,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     // Record the graph.
                     for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
-                        amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
+                        amrex::Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0),
+                                                                 const_cast<FB&>(TheFB).m_localCopy.getHostPtr(0),
+                                                                 (TheFB).m_localCopy.getDevicePtr(0),
+                                                                 std::size_t(sizeof(CopyMemory)*N_loc) );
     
                         const auto& tags = loc_copy_tags[mfi];
                         for (auto const & tag : tags)
@@ -306,7 +309,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 for (Gpu::StreamIter sit(N_snds,Gpu::StreamItInfo().DisableDeviceSync(),is_thread_safe);
                                      sit.isValid(); ++sit)
                 {
-                    amrex::Gpu::Device::startGraphRecording( sit() == 0 );
+                    amrex::Gpu::Device::startGraphRecording( (sit() == 0),
+                                                             const_cast<FB&>(TheFB).m_copyToBuffer.getHostPtr(0),
+                                                             (TheFB).m_copyToBuffer.getDevicePtr(0),
+                                                             std::size_t(sizeof(CopyMemory)*launches) );
     
                     const int j = sit();
                     char* dptr = send_data[j];
@@ -463,7 +469,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         for (int t = 0; t<tags.size(); ++t)
                         {
                             Gpu::Device::setStreamIndex(cuda_stream++);
-                            Gpu::Device::startGraphRecording(idx==0);
+                            amrex::Gpu::Device::startGraphRecording( (idx == 0),
+                                                                     const_cast<FB&>(TheFB).m_localCopy.getHostPtr(0),
+                                                                     (TheFB).m_localCopy.getDevicePtr(0),
+                                                                     std::size_t(sizeof(CopyMemory)*launches) );
 
                             const auto& tag = tags[t];
                             const Dim3 offset = tag.offset.dim3();
@@ -642,7 +651,10 @@ FabArray<FAB>::FillBoundary_finish ()
                     int idx = 0;
                     for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
                     {
-                        amrex::Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0 );
+                        amrex::Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0),
+                                                                 const_cast<FB&>(TheFB).m_copyFromBuffer.getHostPtr(0),
+                                                                 (TheFB).m_copyFromBuffer.getDevicePtr(0),
+                                                                 std::size_t(sizeof(CopyMemory)*launches) );
     
                         const auto& tags = recv_copy_tags[mfi];
                         for (auto const & tag : tags)
