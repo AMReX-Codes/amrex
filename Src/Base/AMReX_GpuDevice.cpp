@@ -516,6 +516,8 @@ Device::startGraphStreamRecording()
 #endif
         }
         gpu_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+
+        use_events = false;
     }
 }
 

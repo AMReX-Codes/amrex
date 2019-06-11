@@ -120,14 +120,13 @@ struct CudaGraph
         Gpu::Device::resetStreamIndex();
     }
     void executeGraph (bool synch = true) const {
+        if (!Gpu::Device::memcpyInGraph())
+        {
+            cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
+                       cudaMemcpyHostToDevice);
+        }
+
         Gpu::Device::executeGraph(m_graph, synch);
-/*
-        Gpu::Device::setStreamIndex(0);
-
-        cudaGraphLaunch(m_graph, amrex::Gpu::Device::cudaStream());
-
-        Gpu::Device::resetStreamIndex();
-*/
     }
 };
 

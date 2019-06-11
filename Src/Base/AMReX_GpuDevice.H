@@ -62,6 +62,10 @@ public:
     static cudaGraphExec_t stopGraphStreamRecording();
     static cudaGraphExec_t stopGraphStreamRecording(cudaGraph_t rootGraph);
 
+    // Likely a temporary function while testing.
+    // Get whether StreamRecord was performed with events and memcpy in the graph or not.
+    static int memcpyInGraph () noexcept { return use_events; }
+
     // Instantiate a created cudaGtaph
     static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
 
