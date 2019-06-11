@@ -53,6 +53,9 @@ const int MPI_GROUP_NULL    = 0;
 const int MPI_PROC_NULL     = 0;
 const int MPI_MAX_PROCESSOR_NAME = 64;
 
+const int MPI_MINLOC = 0;
+const int MPI_MAXLOC = 0;
+
 namespace amrex {
 namespace ParallelDescriptor
 {

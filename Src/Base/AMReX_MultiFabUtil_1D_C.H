@@ -11,46 +11,47 @@ namespace amrex {
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
+void amrex_avg_nd_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& nd,
                          int cccomp, int ndcomp, int ncomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto nd = ndfab.view(lo,ndcomp);
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
 
     for (int n = 0; n < ncomp; ++n) {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            cc(i,0,0,n) = 0.5*(nd(i,0,0,n)+nd(i+1,0,0,n));
+        for (int i = lo.x; i <= hi.x; ++i) {
+            cc(i,0,0,n+cccomp) = 0.5*(nd(i,0,0,n+ndcomp)+nd(i+1,0,0,n+ndcomp));
         }
     }
 }
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& exfab, int cccomp) noexcept
+void amrex_avg_eg_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& Ex,
+                         int cccomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto Ex = exfab.view(lo);
-    
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+
     AMREX_PRAGMA_SIMD
-    for (int i = 0; i < len.x; ++i) {
-        cc(i,0,0) = Ex(i,0,0);
+    for (int i = lo.x; i <= hi.x; ++i) {
+        cc(i,0,0,cccomp) = Ex(i,0,0);
     }
 }
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& fxfab, int cccomp, GeometryData const& gd) noexcept
+void amrex_avg_fc_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& fx,
+                         int cccomp, GeometryData const& gd) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto fx = fxfab.view(lo);
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
 
     const int coord_type = gd.Coord();
 
@@ -59,8 +60,8 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
     case 0:
     {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            cc(i,0,0) = 0.5 * ( fx(i,0,0) + fx(i+1,0,0) );
+        for (int i = lo.x; i <= hi.x; ++i) {
+            cc(i,0,0,cccomp) = 0.5 * ( fx(i,0,0) + fx(i+1,0,0) );
         }
         break;
     }
@@ -69,11 +70,11 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
         const Real problo = gd.ProbLo(0);
         const Real dx = gd.CellSize(0);
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            Real rlo = problo + (i+lo.x)*dx;
-            Real rhi = problo + (i+1+lo.x)*dx;
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real rlo = problo + i*dx;
+            Real rhi = problo + (i+1)*dx;
             Real rcen = 0.5*(rlo+rhi);
-            cc(i,0,0) = 0.5 * ( rlo*fx(i,0,0) + rhi*fx(i+1,0,0) ) / rcen;
+            cc(i,0,0,cccomp) = 0.5 * ( rlo*fx(i,0,0) + rhi*fx(i+1,0,0) ) / rcen;
         }
         break;
     }
@@ -82,11 +83,11 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
         const Real problo = gd.ProbLo(0);
         const Real dx = gd.CellSize(0);
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            Real rlo = problo + (i+lo.x)*dx;
-            Real rhi = problo + (i+1+lo.x)*dx;
+        for (int i = lo.x; i <= hi.x; ++i) {
+            Real rlo = problo + i*dx;
+            Real rhi = problo + (i+1)*dx;
             Real rcen = 0.5*(rlo+rhi);
-            cc(i,0,0) = 0.5 * ( rlo*rlo*fx(i,0,0) + rhi*rhi*fx(i+1,0,0) ) / (rcen*rcen);
+            cc(i,0,0,cccomp) = 0.5 * ( rlo*rlo*fx(i,0,0) + rhi*rhi*fx(i+1,0,0) ) / (rcen*rcen);
         }
         break;
     }
