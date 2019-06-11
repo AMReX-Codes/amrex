@@ -252,10 +252,10 @@ int main (int argc, char* argv[])
                 int ncells = bx.numPts();
                 const auto lo  = amrex::lbound(bx);
                 const auto len = amrex::length(bx);
-                const auto ec = Cuda::ExecutionConfig(ncells);
+                const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
-                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
+                AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
                                          lo, len, ncells,
                                          offset, src, dst,
                                          0, 0, 1);
@@ -328,10 +328,10 @@ int main (int argc, char* argv[])
                 int ncells = bx.numPts();
                 const auto lo  = amrex::lbound(bx);
                 const auto len = amrex::length(bx);
-                const auto ec = Cuda::ExecutionConfig(ncells);
+                const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
-                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
+                AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
                                          lo, len, ncells,
                                          offset, &(src_fab_d[idx]), &(dst_fab_d[idx]), 0, 0, 1); 
 
@@ -755,37 +755,13 @@ int main (int argc, char* argv[])
 
             // Creates appropriate device storage of graph parameters.
             CudaGraph<CopyMemory> cgraph(x.local_size());
-            cudaGraph_t mfiter_graph;
-            cudaStream_t graph_stream;
-            cudaEvent_t memcpy_event = {0};
-            AMREX_GPU_SAFE_CALL( cudaEventCreate(&memcpy_event) );
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
-                if (mfi.LocalIndex() == 0)
-                {
-                    graph_stream = Gpu::Device::cudaStream();
-#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
-                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
-#else
-                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
-#endif
-                    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(cgraph.getDevicePtr(0),
-                                        cgraph.getHostPtr(0),
-                                        std::size_t(sizeof(CopyMemory)*x.local_size()),
-                                        cudaMemcpyHostToDevice, graph_stream));
-                    AMREX_GPU_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
-
-                    for (int i=0; i<Gpu::Device::numGpuStreams(); ++i)
-                    {
-                        Gpu::Device::setStreamIndex(i);
-                        if (!(Gpu::Device::cudaStream() == graph_stream))
-                        {
-                            AMREX_GPU_SAFE_CALL(cudaStreamWaitEvent(Gpu::Device::cudaStream(), memcpy_event, 0)); 
-                        }
-                    }
-                    Gpu::Device::setStreamIndex(0);
-                } 
+                Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0,
+                                                  cgraph.getHostPtr(0),
+                                                  cgraph.getDevicePtr(0),
+                                                  std::size_t(sizeof(CopyMemory)*x.local_size()) );
 
                 const Box bx = mfi.validbox();
                 int idx = mfi.LocalIndex();
@@ -803,26 +779,9 @@ int main (int argc, char* argv[])
                     }
                 });
 
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                {
-                    for (int i=0; i<Gpu::Device::numGpuStreams(); ++i)
-                    {
-                        Gpu::Device::setStreamIndex(i);
-                        if (!(Gpu::Device::cudaStream() == graph_stream))
-                        {
-                            cudaEventRecord(memcpy_event, Gpu::Device::cudaStream());
-                            cudaStreamWaitEvent(graph_stream, memcpy_event, 0); 
-                        }
-                    }
-                    Gpu::Device::setStreamIndex(0);
-
-                    cudaGraphExec_t graphExec;
-                    AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(graph_stream, &mfiter_graph));
-                    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec,mfiter_graph,NULL,NULL,0));
-                    cgraph.setGraph(graphExec);
-
-                    AMREX_GPU_SAFE_CALL( cudaEventDestroy(memcpy_event) );
-                }
+                bool last_iter = (mfi.LocalIndex() == (x.local_size() - 1));
+                cudaGraphExec_t graphExec = Gpu::Device::stopGraphRecording(last_iter);
+                if (last_iter) { cgraph.setGraph(graphExec); } 
             }
 
             BL_PROFILE_VAR_STOP(goc);
@@ -892,6 +851,138 @@ int main (int argc, char* argv[])
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
 
         }
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        amrex::Print() << "=============" << std::endl;
+        amrex::Print() << "Using Graph Object w/ Event Waits, no Streams" << std::endl;
+
+        {
+            x.setVal(213.3089);
+            y.setVal(66.6);
+
+            BL_PROFILE("Streamless");
+            BL_PROFILE_VAR("Streamless: create", goc);
+
+            // Creates appropriate device storage of graph parameters.
+            CudaGraph<CopyMemory> cgraph(x.local_size());
+            cudaGraph_t mfiter_graph;
+            cudaStream_t graph_stream;
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                if (mfi.LocalIndex() == 0)
+                {
+                    Gpu::Device::setStreamIndex(0);
+                    graph_stream = amrex::Gpu::gpuStream(); 
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
+#else
+                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
+#endif
+                    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(cgraph.getDevicePtr(0),
+                                        cgraph.getHostPtr(0),
+                                        std::size_t(sizeof(CopyMemory)*x.local_size()),
+                                        cudaMemcpyHostToDevice, graph_stream));
+                } 
+                Gpu::Device::setStreamIndex(0);
+
+                const Box bx = mfi.validbox();
+                int idx = mfi.LocalIndex();
+                Dim3 offset = {0,0,0};
+
+                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
+                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                {
+                    // Build the Array4's.
+                    auto const dst = cgd->getDst<Real>();
+                    auto const src = cgd->getSrc<Real>();
+                    int scomp   = cgd->scomp;
+                    for (int n = 0; n < cgd->ncomp; ++n) {
+                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                    }
+                });
+
+                if (mfi.LocalIndex() == (x.local_size() - 1) )
+                {
+                    Gpu::Device::setStreamIndex(0);
+
+                    cudaGraphExec_t graphExec;
+                    AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(graph_stream, &mfiter_graph));
+                    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec,mfiter_graph,NULL,NULL,0));
+                    cgraph.setGraph(graphExec);
+                }
+            }
+
+            BL_PROFILE_VAR_STOP(goc);
+
+// --------- Launch the graph  ----------
+
+            BL_PROFILE_VAR("Streamless: launch", gol);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
+                                                            y[mfi].array(),
+                                                            0, 1));
+            }
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(gol);
+
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
+
+            x.setVal(55.5e-5);
+            y.setVal(0.0);
+
+            BL_PROFILE_VAR("Streamless: relaunch", cgfrl);
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfrl);
+
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph on different MFIters  ----------
+
+            x.setVal(0.16752);
+            v.setVal(0.0);
+            w.setVal(0.17e-5);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
+                                                            v[mfi].array(),
+                                                            0, 1));
+            }
+
+            BL_PROFILE_VAR("Streamless: diff", cgfdiff);
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfdiff);
+
+            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
+
+        }
+
+
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
