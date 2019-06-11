@@ -48,7 +48,7 @@ public:
 protected:
     BndryFuncDefault   m_func   = nullptr;
     BndryFunc3DDefault m_func3D = nullptr;
-    const bool m_run_on_gpu = false;
+    bool m_run_on_gpu = false;
 };
 
 /**

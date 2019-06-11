@@ -22,11 +22,11 @@ struct CopyMemory
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    Array4<T const> getSrc () { return Array4<T const>(static_cast<T const*>(src), src_begin, src_end); }
+    Array4<T const> getSrc () { return Array4<T const>(static_cast<T const*>(src), src_begin, src_end, scomp+ncomp); }
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    Array4<T> getDst () { return Array4<T>(static_cast<T*>(dst), dst_begin, dst_end); }
+    Array4<T> getDst () { return Array4<T>(static_cast<T*>(dst), dst_begin, dst_end, scomp+ncomp); }
 };
 
 template <typename T, typename U>

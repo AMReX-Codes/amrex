@@ -347,7 +347,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     for (auto const& tag : cctc)
                     {
                         const_cast<FB&>(TheFB).m_copyToBuffer.setParams(idx++, makeCopyMemory(this->array(tag.srcIndex),
-                                                                                 amrex::makeArray4((value_type*)(dptr), tag.sbox),
+                                                                                 amrex::makeArray4((value_type*)(dptr),
+                                                                                                   tag.sbox,
+                                                                                                   scomp+ncomp),
                                                                                  scomp, ncomp));
     
                         dptr += (tag.sbox.numPts() * ncomp * sizeof(value_type));
@@ -378,7 +380,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     {
                         const Box& bx = tag.sbox;
                         auto const sfab = this->array(tag.srcIndex);
-                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
+                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx,ncomp);
                         AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, ii, jj, kk, n,
                         {
                             pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+scomp);
@@ -670,7 +672,9 @@ FabArray<FAB>::FillBoundary_finish ()
                     const auto & tags = recv_copy_tags[mfi];
                     for (auto const & tag : tags)
                     {
-                        const_cast<FB&>(TheFB).m_copyFromBuffer.setParams(idx++, makeCopyMemory(amrex::makeArray4((value_type*)(tag.p), tag.dbox),
+                        const_cast<FB&>(TheFB).m_copyFromBuffer.setParams(idx++, makeCopyMemory(amrex::makeArray4((value_type*)(tag.p),
+                                                                                                                  tag.dbox,
+                                                                                                                  fb_scomp+fb_ncomp),
                                                                                                 dst_array,
                                                                                                 fb_scomp, fb_ncomp));
                     } 
@@ -695,7 +699,7 @@ FabArray<FAB>::FillBoundary_finish ()
                     const int ncomp = fb_ncomp;
                     for (auto const & tag : tags)
                     {
-                        auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox);
+                        auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox, ncomp);
                         AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
                         {
                             dfab(i,j,k,n+scomp) = pfab(i,j,k,n);
@@ -1037,7 +1041,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     {
                         const Box& bx = tag.sbox;
                         auto const sfab = src.array(tag.srcIndex);
-                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
+                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx,NC);
                         AMREX_HOST_DEVICE_FOR_4D ( bx, NC, ii, jj, kk, n,
                         {
                             pfab(ii,jj,kk,n) = sfab(ii,jj,kk,SC+n);
@@ -1207,7 +1211,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     if (op == FabArrayBase::COPY)
                     {
                         for (auto const& void_tag : void_copy_tags) {
-                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox);
+                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox, NC);
                             AMREX_HOST_DEVICE_FOR_4D ( void_tag.dbox, NC, i, j, k, n,
                             {
                                 dfab(i,j,k,DC+n) = pfab(i,j,k,n);
@@ -1215,7 +1219,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         }
                     } else {
                         for (auto const& void_tag : void_copy_tags) {
-                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox);
+                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox, NC);
                             AMREX_HOST_DEVICE_FOR_4D ( void_tag.dbox, NC, i, j, k, n,
                             {
                                 dfab(i,j,k,DC+n) += pfab(i,j,k,n);
@@ -1665,7 +1669,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                     {
                         const Box& bx = tag.sbox;
                         auto const sfab = fabarray.array(tag.srcIndex);
-                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
+                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx,nc);
                         AMREX_HOST_DEVICE_FOR_4D ( bx, nc, i, j, k, n,
                         {
                             pfab(i,j,k,n) = sfab(i,j,k,n+sc);
@@ -1822,7 +1826,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                         auto dfab = fabarray.array(mfi);
                         for (auto const& tag : tags)
                         {
-                            auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox);
+                            auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox, nc);
                             AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, nc, i, j, k, n,
                             {
                                 dfab(i,j,k,n+sc) = pfab(i,j,k,n);
