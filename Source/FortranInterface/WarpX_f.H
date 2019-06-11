@@ -381,6 +381,7 @@ extern "C"
                             BL_FORT_FAB_ARG_3D(jx),
                             BL_FORT_FAB_ARG_3D(jy),
                             BL_FORT_FAB_ARG_3D(jz),
+                            const int* flag,
                             const amrex::Real* mudt,
 #endif
                             const amrex::Real* dtsdx,

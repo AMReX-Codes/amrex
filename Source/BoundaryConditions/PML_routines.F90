@@ -434,12 +434,14 @@ contains
        &                             jx, jxlo, jxhi, &
        &                             jy, jylo, jyhi, &
        &                             jz, jzlo, jzhi, &
+       &                             pml_has_particles, &
        &                             mudt, dtsdx, dtsdy, dtsdz) &
        bind(c,name='warpx_push_pml_evec_2d')
     integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
          Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
          Bxlo(2), Bxhi(2), Bylo(2), Byhi(2), Bzlo(2), Bzhi(2), &
-         jxlo(2), jxhi(2), jylo(2), jyhi(2), jzlo(2), jzhi(2)
+         jxlo(2), jxhi(2), jylo(2), jyhi(2), jzlo(2), jzhi(2), &
+         pml_has_particles
     real(amrex_real), intent(in) :: mudt, dtsdx, dtsdy, dtsdz
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),2)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),2)
@@ -455,28 +457,45 @@ contains
 
     do    k = xlo(2), xhi(2)
        do i = xlo(1), xhi(1)
-          Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-               &                        -By(i,k-1,1)-By(i,k-1,2))&
-               &                        - mudt  * jx(i,k)
+          if (pml_has_particles==1) then
+            Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+                 &                        -By(i,k-1,1)-By(i,k-1,2))&
+                 &                        - mudt  * jx(i,k)
+          else
+            Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+                 &                        -By(i,k-1,1)-By(i,k-1,2))
+          end if
        end do
     end do
 
     do    k = ylo(2), yhi(2)
        do i = ylo(1), yhi(1)
-          Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
-               &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))&
-               &                        - mudt * 0.5 * jy(i,k)
-          Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
-               &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))&
-               &                        - mudt * 0.5 * jy(i,k)
+          if (pml_has_particles==1) then
+            Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
+                 &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))&
+                 &                        - mudt * 0.5 * jy(i,k)
+            Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
+                 &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))&
+                 &                        - mudt * 0.5 * jy(i,k)
+          else
+            Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
+                 &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))
+            Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
+                 &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))
+          end if
        end do
     end do
 
     do    k = zlo(2), zhi(2)
        do i = zlo(1), zhi(1)
-          Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
-               &                        -By(i-1,k,1)-By(i-1,k,2))&
-               &                        - mudt * jz(i,k)
+          if (pml_has_particles==1) then
+            Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
+                 &                        -By(i-1,k,1)-By(i-1,k,2))&
+                 &                        - mudt * jz(i,k)
+          else
+            Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
+                 &                        -By(i-1,k,1)-By(i-1,k,2))
+          end if
        end do
     end do
 
