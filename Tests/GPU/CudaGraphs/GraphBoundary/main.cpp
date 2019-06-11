@@ -205,6 +205,7 @@ int main (int argc, char* argv[])
             gpu_even = (graph_init - graph_avg)/(gpu_avg - graph_avg);
             amrex::Print() << "Average time per GPU FillBoundary = " << gpu_avg << std::endl;
             amrex::Print() << "   Graphed FillBoundary(s) needed to break even = " << gpu_even << std::endl;
+            amrex::Print() << "   Average expected maximum speedup = " << (gpu_avg/graph_avg) << std::endl;
         }
     
         // Check the results of Graph vs. CPU and GPU.
