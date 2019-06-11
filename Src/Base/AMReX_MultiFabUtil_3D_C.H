@@ -10,75 +10,69 @@ namespace amrex {
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
+void amrex_avg_nd_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& nd,
                          int cccomp, int ndcomp, int ncomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto nd = ndfab.view(lo,ndcomp);
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
 
     for (int n = 0; n < ncomp; ++n) {
-        for (int k = 0; k < len.z; ++k) {
-        for (int j = 0; j < len.y; ++j) {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            cc(i,j,k,n) = 0.125*( nd(i,j  ,k  ,n) + nd(i+1,j  ,k  ,n)
-                                + nd(i,j+1,k  ,n) + nd(i+1,j+1,k  ,n)
-                                + nd(i,j  ,k+1,n) + nd(i+1,j  ,k+1,n)
-                                + nd(i,j+1,k+1,n) + nd(i+1,j+1,k+1,n));
+        for (int i = lo.x; i <= hi.x; ++i) {
+            cc(i,j,k,n+cccomp) = 0.125*( nd(i,j  ,k  ,n+ndcomp) + nd(i+1,j  ,k  ,n+ndcomp)
+                                       + nd(i,j+1,k  ,n+ndcomp) + nd(i+1,j+1,k  ,n+ndcomp)
+                                       + nd(i,j  ,k+1,n+ndcomp) + nd(i+1,j  ,k+1,n+ndcomp)
+                                       + nd(i,j+1,k+1,n+ndcomp) + nd(i+1,j+1,k+1,n+ndcomp));
         }}}
     }
 }
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& exfab, FArrayBox const& eyfab, FArrayBox const& ezfab,
+void amrex_avg_eg_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& Ex,
+                         Array4<Real const> const& Ey,
+                         Array4<Real const> const& Ez,
                          int cccomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto Ex = exfab.view(lo);
-    const auto Ey = eyfab.view(lo);
-    const auto Ez = ezfab.view(lo);
-    
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                cc(i,j,k,0) = 0.25 * ( Ex(i,j,k) + Ex(i,j+1,k) + Ex(i,j,k+1) + Ex(i,j+1,k+1) );
-                cc(i,j,k,1) = 0.25 * ( Ey(i,j,k) + Ey(i+1,j,k) + Ey(i,j,k+1) + Ey(i+1,j,k+1) );
-                cc(i,j,k,2) = 0.25 * ( Ez(i,j,k) + Ez(i+1,j,k) + Ez(i,j+1,k) + Ez(i+1,j+1,k) );
-            }
-        }
-    }
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        cc(i,j,k,0+cccomp) = 0.25 * ( Ex(i,j,k) + Ex(i,j+1,k) + Ex(i,j,k+1) + Ex(i,j+1,k+1) );
+        cc(i,j,k,1+cccomp) = 0.25 * ( Ey(i,j,k) + Ey(i+1,j,k) + Ey(i,j,k+1) + Ey(i+1,j,k+1) );
+        cc(i,j,k,2+cccomp) = 0.25 * ( Ez(i,j,k) + Ez(i+1,j,k) + Ez(i,j+1,k) + Ez(i+1,j+1,k) );
+    }}}
 }
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& fxfab, FArrayBox const& fyfab, FArrayBox const& fzfab,
+void amrex_avg_fc_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& fx,
+                         Array4<Real const> const& fy,
+                         Array4<Real const> const& fz,
                          int cccomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto fx = fxfab.view(lo);
-    const auto fy = fyfab.view(lo);
-    const auto fz = fzfab.view(lo);
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                cc(i,j,k,0) = 0.5 * ( fx(i,j,k) + fx(i+1,j,k) );
-                cc(i,j,k,1) = 0.5 * ( fy(i,j,k) + fy(i,j+1,k) );
-                cc(i,j,k,2) = 0.5 * ( fz(i,j,k) + fz(i,j,k+1) );
-            }
-        }
-    }
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        cc(i,j,k,0+cccomp) = 0.5 * ( fx(i,j,k) + fx(i+1,j,k) );
+        cc(i,j,k,1+cccomp) = 0.5 * ( fy(i,j,k) + fy(i,j+1,k) );
+        cc(i,j,k,2+cccomp) = 0.5 * ( fz(i,j,k) + fz(i,j,k+1) );
+    }}}
 }
 
 AMREX_GPU_HOST_DEVICE
