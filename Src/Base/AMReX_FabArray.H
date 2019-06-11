@@ -1236,8 +1236,6 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    // TODO gpu
-
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
@@ -1891,8 +1889,6 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
-    // TODO gpu
-
     clearThisBD();  // The new boxarry will have a different ID.
     for(int id(0); id < AMREX_SPACEDIM; ++id)
     {

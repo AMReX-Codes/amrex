@@ -118,7 +118,11 @@ public:
     static std::size_t freeMemAvailable ();
 
 #ifdef AMREX_USE_GPU
-    static int warp_size;
+#ifdef AMREX_USE_CUDA
+    static constexpr int warp_size = 32;
+#else
+    static constexpr int warp_size = 64;
+#endif
 #endif
 
 private:

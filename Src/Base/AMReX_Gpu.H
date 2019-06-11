@@ -4,7 +4,7 @@
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>
 namespace amrex { namespace Hip {} }
-#elif AMREX_USE_CUDA
+#elif defined(AMREX_USE_CUDA)
 namespace amrex { namespace Cuda {} }
 #endif
 
@@ -20,8 +20,8 @@ namespace amrex { namespace Cuda {} }
 #include <AMReX_GpuElixir.H>
 #include <AMReX_GpuMemory.H>
 #include <AMReX_GpuRange.H>
+#include <AMReX_GpuReduce.H>
 
-#include <AMReX_CudaReduce.H>
 #include <AMReX_CudaAllocators.H>
 #include <AMReX_CudaContainers.H>
 #include <AMReX_CudaGraph.H>
