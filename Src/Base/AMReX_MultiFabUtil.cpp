@@ -65,12 +65,12 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.growntilebox(ngrow);
-            FArrayBox* ccfab = cc.fabPtr(mfi);
-            FArrayBox const* ndfab = nd.fabPtr(mfi);
+            Array4<Real> const& ccarr = cc.array(mfi);
+            Array4<Real const> const& ndarr = nd.array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                amrex_avg_nd_to_cc(tbx, *ccfab, *ndfab, dcomp, scomp, ncomp);
+                amrex_avg_nd_to_cc(tbx, ccarr, ndarr, dcomp, scomp, ncomp);
             });
         }
     }
@@ -87,14 +87,14 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.growntilebox(ngrow);
-            FArrayBox* ccfab = cc.fabPtr(mfi);
-            AMREX_D_TERM(FArrayBox const* exfab = edge[0]->fabPtr(mfi);,
-                         FArrayBox const* eyfab = edge[1]->fabPtr(mfi);,
-                         FArrayBox const* ezfab = edge[2]->fabPtr(mfi););
+            Array4<Real> const& ccarr = cc.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& exarr = edge[0]->array(mfi);,
+                         Array4<Real const> const& eyarr = edge[1]->array(mfi);,
+                         Array4<Real const> const& ezarr = edge[2]->array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                amrex_avg_eg_to_cc(tbx, *ccfab, AMREX_D_DECL(*exfab,*eyfab,*ezfab), dcomp);
+                amrex_avg_eg_to_cc(tbx, ccarr, AMREX_D_DECL(exarr,eyarr,ezarr), dcomp);
             });
         }
     }
@@ -128,17 +128,17 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.growntilebox(ngrow);
-            FArrayBox* ccfab = cc.fabPtr(mfi);
-            AMREX_D_TERM(FArrayBox const* fxfab = fc[0]->fabPtr(mfi);,
-                         FArrayBox const* fyfab = fc[1]->fabPtr(mfi);,
-                         FArrayBox const* fzfab = fc[2]->fabPtr(mfi););
+            Array4<Real> const& ccarr = cc.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->array(mfi);,
+                         Array4<Real const> const& fyarr = fc[1]->array(mfi);,
+                         Array4<Real const> const& fzarr = fc[2]->array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
 #if (AMREX_SPACEDIM == 1)
-                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp, GeometryData());
+                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp, GeometryData());
 #else
-                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp);
+                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), dcomp);
 #endif
             });
         }
@@ -159,17 +159,17 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.tilebox();
-            FArrayBox* ccfab = cc.fabPtr(mfi);
-            AMREX_D_TERM(FArrayBox const* fxfab = fc[0]->fabPtr(mfi);,
-                         FArrayBox const* fyfab = fc[1]->fabPtr(mfi);,
-                         FArrayBox const* fzfab = fc[2]->fabPtr(mfi););
+            Array4<Real> const& ccarr = cc.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->array(mfi);,
+                         Array4<Real const> const& fyarr = fc[1]->array(mfi);,
+                         Array4<Real const> const& fzarr = fc[2]->array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
 #if (AMREX_SPACEDIM == 1)
-                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0, gd);
+                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0, gd);
 #else
-                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0);
+                amrex_avg_fc_to_cc(tbx, ccarr, AMREX_D_DECL(fxarr,fyarr,fzarr), 0);
 #endif
             });
         }
