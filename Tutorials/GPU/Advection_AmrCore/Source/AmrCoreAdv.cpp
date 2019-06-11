@@ -12,7 +12,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -143,7 +143,7 @@ AmrCoreAdv::Evolve ()
             static_cast<amrex::AmrMesh*>(this), {&phi_new}, {{"phi"}});
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         {
             std::ostringstream ss;
             ss << "[STEP " << step+1 << "]";
@@ -660,7 +660,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                                          std::max(ngbxx.bigEnd(1)+1, ngbxy.bigEnd(1)),
                                                          0)));
 
-            AsyncFab psifab(psibox, 1);
+            FArrayBox psifab(psibox, 1);
+            Elixir psieli = psifab.elixir();
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
             auto prob_lo = geom[lev].ProbLoArray();
@@ -693,8 +694,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          });
                         );
 
-            psifab.clear();
-
         // ======== FLUX CALC AND UPDATE =========
 
 	    const Box& bx = mfi.tilebox();
@@ -711,16 +710,19 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& dqbxy = amrex::grow(bx, IntVect{1, 2, 1});,
                          const Box& dqbxz = amrex::grow(bx, IntVect{1, 1, 2}););
 
-            AsyncFab slope2fab (amrex::grow(bx, 2), 1);
+            FArrayBox slope2fab (amrex::grow(bx, 2), 1);
+            Elixir slope2eli = slope2fab.elixir();
             Array4<Real> slope2 = slope2fab.array();
-            AsyncFab slope4fab (amrex::grow(bx, 1), 1);
+            FArrayBox slope4fab (amrex::grow(bx, 1), 1);
+            Elixir slope4eli = slope4fab.elixir();
             Array4<Real> slope4 = slope4fab.array();
 
             // compute longitudinal fluxes
             // ===========================
 
             // x -------------------------
-            AsyncFab phixfab (gbx, 1);
+            FArrayBox phixfab (gbx, 1);
+            Elixir phixeli = phixfab.elixir();
             Array4<Real> phix = phixfab.array();
 
             amrex::launch(dqbxx,
@@ -742,7 +744,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             // y -------------------------
-            AsyncFab phiyfab (gbx, 1);
+            FArrayBox phiyfab (gbx, 1);
+            Elixir phiyeli = phiyfab.elixir();
             Array4<Real> phiy = phiyfab.array();
 
             amrex::launch(dqbxy,
@@ -764,7 +767,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             // z -------------------------
-            AsyncFab phizfab (gbx, 1);
+            FArrayBox phizfab (gbx, 1);
+            Elixir phizeli = phizfab.elixir();
             Array4<Real> phiz = phizfab.array();
 
             amrex::launch(dqbxz,
@@ -785,9 +789,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                 flux_z(i, j, k, statein, vel[2], phiz, slope4, dtdx); 
             });
 
-            slope2fab.clear();
-            slope4fab.clear();
-
             // compute transverse fluxes
             // ===========================
 
@@ -796,8 +797,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& gbxz = amrex::grow(bx, 2, 1););
 
             // xy & xz --------------------
-            AsyncFab phix_yfab (gbx, 1);
-            AsyncFab phix_zfab (gbx, 1);
+            FArrayBox phix_yfab (gbx, 1);
+            FArrayBox phix_zfab (gbx, 1);
+            Elixir phix_yeli = phix_yfab.elixir();
+            Elixir phix_zeli = phix_zfab.elixir();
             Array4<Real> phix_y = phix_yfab.array();
             Array4<Real> phix_z = phix_zfab.array();
 
@@ -820,8 +823,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             }); 
 
             // yz & yz --------------------
-            AsyncFab phiy_xfab (gbx, 1);
-            AsyncFab phiy_zfab (gbx, 1);
+            FArrayBox phiy_xfab (gbx, 1);
+            FArrayBox phiy_zfab (gbx, 1);
+            Elixir phiy_xeli = phiy_xfab.elixir();
+            Elixir phiy_zeli = phiy_zfab.elixir();
             Array4<Real> phiy_x = phiy_xfab.array();
             Array4<Real> phiy_z = phiy_zfab.array();
 
@@ -844,8 +849,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             }); 
 
             // zx & zy --------------------
-            AsyncFab phiz_xfab (gbx, 1);
-            AsyncFab phiz_yfab (gbx, 1);
+            FArrayBox phiz_xfab (gbx, 1);
+            FArrayBox phiz_yfab (gbx, 1);
+            Elixir phiz_xeli = phiz_xfab.elixir();
+            Elixir phiz_yeli = phiz_yfab.elixir();
             Array4<Real> phiz_x = phiz_xfab.array();
             Array4<Real> phiz_y = phiz_yfab.array();
 
@@ -895,17 +902,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                phiz, phix_y, phiy_x,
                                flux[2], dtdx);
             });
-
-            // Flux has been updated. These temporaries are no longer needed.
-            phixfab.clear();
-            phiyfab.clear();
-            phizfab.clear();
-            phix_yfab.clear();
-            phix_zfab.clear();
-            phiy_xfab.clear();
-            phiy_zfab.clear();
-            phiz_xfab.clear();
-            phiz_yfab.clear();
 
             // compute new state (stateout) and scale fluxes based on face area.
             // ===========================
@@ -1072,7 +1068,8 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                                                          std::max(nbxx.bigEnd(1)+1,   nbxy.bigEnd(1)),
                                                          0)));
 
-            AsyncFab psifab(psibox, 1);
+            FArrayBox psifab(psibox, 1);
+            Elixir psieli = psifab.elixir();
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
             auto prob_lo = geom[lev].ProbLoArray();
@@ -1104,7 +1101,6 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                          });
                         );
 
-            psifab.clear();
 	}
     }
 

@@ -79,7 +79,7 @@ struct range_impl
     AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
 #ifdef AMREX_DEVICE_COMPILE
-        return iterator(m_b, AMREX_blockDim_x*AMREX_blockIdx_x+AMREX_threadIdx_x, AMREX_blockDim_x*AMREX_gridDim_x);
+        return iterator(m_b, blockDim.x*blockIdx.x+threadIdx.x, blockDim.x*gridDim.x);
 #else
         return iterator(m_b,0,1);
 #endif

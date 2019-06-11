@@ -72,10 +72,12 @@ public:
         }
         default:
         {
-#if (AMREX_SPACEDIM == 3)
             d2 = pos.x*pos.x+pos.y*pos.y;
-#endif
+#if (AMREX_SPACEDIM == 3)
             pdir = pos.z;
+#else
+            pdir = 0.0;
+#endif
             break;
         }
         }

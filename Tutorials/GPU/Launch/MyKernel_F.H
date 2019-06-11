@@ -7,9 +7,6 @@
 extern "C" {
 #endif
 
-AMREX_GPU_DEVICE void plusone_cudafort (const int* lo, const int* hi,
-                                        amrex_real* dat, const int* dlo, const int* dhi);
-
 #ifdef AMREX_USE_ACC
 void plusone_acc (const int* lo, const int* hi,
                   amrex_real* dat, const int* dlo, const int* dhi);

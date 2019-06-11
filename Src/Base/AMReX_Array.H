@@ -1,4 +1,3 @@
-
 #ifndef AMREX_ARRAY_H_
 #define AMREX_ARRAY_H_
 
@@ -11,6 +10,7 @@
 #include <cstdio>
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_REAL.H>
@@ -35,6 +35,7 @@ namespace amrex {
         long nstride;
         Dim3 begin;
         Dim3 end;
+        int  ncomp;
 
         template <class U=T, class = typename std::enable_if<std::is_const<U>::value>::type >
         AMREX_GPU_HOST_DEVICE
@@ -44,24 +45,26 @@ namespace amrex {
               kstride(rhs.kstride),
               nstride(rhs.nstride),
               begin(rhs.begin),
-              end(rhs.end)
+              end(rhs.end),
+              ncomp(rhs.ncomp)
             {}
 
         AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end) noexcept
+        constexpr Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end, int a_ncomp) noexcept
             : p(a_p),
               jstride(a_end.x-a_begin.x),
               kstride(jstride*(a_end.y-a_begin.y)),
               nstride(kstride*(a_end.z-a_begin.z)),
               begin(a_begin),
-              end(a_end)
+              end(a_end),
+              ncomp(a_ncomp)
             {}
 
         template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k);
+            index_assert(i,j,k,0);
 #endif
             return p[(i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride];
         }
@@ -70,7 +73,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k);
+            index_assert(i,j,k,n);
 #endif
             return p[(i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride+n*nstride];
         }
@@ -79,26 +82,39 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k);
+            index_assert(i,j,k,0);
 #endif
             return p + ((i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride);
         }
 
+        template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T* ptr (int i, int j, int k, int n) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i,j,k,0);
+#endif
+            return p + ((i-begin.x)+(j-begin.y)*jstride+(k-begin.z)*kstride+n*nstride);
+        }
+
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         AMREX_GPU_HOST_DEVICE inline
-        void index_assert (int i, int j, int k) const
+        void index_assert (int i, int j, int k, int n) const
         {
-            if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z) {
-#ifdef __CUDA_ARCH__
-                std::printf(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
-                            i, j, k, begin.x, end.x-1, begin.y, end.y-1, begin.z, end.z-1);
+            if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z
+                || n < 0 || n >= ncomp) {
+#ifdef AMREX_DEVICE_COMPILE
+                std::printf(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
+                            i, j, k, n, begin.x, end.x-1, begin.y, end.y-1,
+                            begin.z, end.z-1, ncomp-1);
                 amrex::Abort();
 #else
                 std::stringstream ss;
-                ss << " (" << i << "," << j << "," << k << ") is out of bound ("
+                ss << " (" << i << "," << j << "," << k << "," <<  n
+                   << ") is out of bound ("
                    << begin.x << ":" << end.x-1 << ","
                    << begin.y << ":" << end.y-1 << ","
-                   << begin.z << ":" << end.z-1 << ")";
+                   << begin.z << ":" << end.z-1 << ","
+                   << "0:" << ncomp-1 << ")";
                 amrex::Abort(ss.str());
 #endif
             }
@@ -110,7 +126,7 @@ namespace amrex {
     AMREX_GPU_HOST_DEVICE
     Array4<Tto> ToArray4 (Array4<Tfrom> const& a_in)
     {
-        return Array4<Tto>((Tto*)(a_in.p), a_in.begin, a_in.end);
+        return Array4<Tto>((Tto*)(a_in.p), a_in.begin, a_in.end, a_in.ncomp);
     }
 
     inline std::ostream& operator<< (std::ostream& os, const Dim3& d) {
@@ -120,14 +136,14 @@ namespace amrex {
 
     template <typename T>
     std::ostream& operator<< (std::ostream& os, const Array4<T>& a) {
-        os << '(' << a.begin << ',' << a.end << ')';
+        os << "((" << a.begin << ',' << a.end << ")," << a.ncomp << ')';
         return os;
     }
 }
 
 // If on GPUs, use a simple array wrapper that 
 // designates needed functions as __host__ __device__
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+#ifdef AMREX_USE_GPU
 
 namespace amrex {
     template <class T, std::size_t N>

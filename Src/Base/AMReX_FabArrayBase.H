@@ -479,7 +479,7 @@ protected:
 
     //
     //! parallel copy or add
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 public:
 #endif
     struct CPC
@@ -523,7 +523,7 @@ public:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 protected:
 #endif
     //
