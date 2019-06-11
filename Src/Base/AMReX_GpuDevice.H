@@ -48,6 +48,7 @@ public:
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     // Generic graph selection. These should be called by users. 
     static void startGraphRecording(bool first_iter);
+    static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
 
     // Capture graphs per iteration
@@ -57,6 +58,7 @@ public:
 
     // Capture graphs along streams
     static void startGraphStreamRecording();
+    static void startGraphStreamRecording(void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphStreamRecording();
     static cudaGraphExec_t stopGraphStreamRecording(cudaGraph_t rootGraph);
 
@@ -137,6 +139,7 @@ private:
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
+    static bool use_events;
 #endif
 #endif
 };
