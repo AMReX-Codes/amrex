@@ -305,9 +305,18 @@ WarpX::OneStep_nosub (Real cur_time)
     // if do particles in pmls:
     // copy J (créer une fonction qui peut le faire ô EvolveB) de grille physique vers grille de pml
     if (do_pml && pml_has_particles){
-        // CopyJinPMLs(MultiFab& pml, MultiFab& reg, const Geometry& geom);
-        // pml[0].CopyJinPMLs(const std::array<amrex::MultiFab*,3>& j_fp,
-        //                 const std::array<amrex::MultiFab*,3>& j_cp)
+        // copy current computed on mother grid to PMLs
+        for (int lev = 0; lev <= finest_level; ++lev)
+        {
+            if (pml[lev]->ok()){
+                pml[lev]->CopyJinPMLs({ current_fp[lev][0].get(),
+                                      current_fp[lev][1].get(),
+                                      current_fp[lev][2].get() },
+                                    { current_cp[lev][0].get(),
+                                      current_cp[lev][1].get(),
+                                      current_cp[lev][2].get() });
+            }
+        }
     }
     EvolveE(dt[0]); // We now have E^{n+1}
     FillBoundaryE();
