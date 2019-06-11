@@ -804,7 +804,7 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
     else
 #endif
     {
-        bool f = true;
+        bool f = false;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -820,14 +820,17 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
                 };
             }
 
+            if (priv_loc.allGT(IntVect::TheMinVector())) {
+                bool old;
 #ifdef _OPENMP
-#pragma omp critical (multifab_mmindex)
+#pragma omp atomic capture
 #endif
-            {
-                if (f && priv_loc.allGT(IntVect::TheMinVector())) {
-                    f = false;
-                    loc = priv_loc;
+                {
+                    old = f;
+                    f = true;
                 }
+
+                if (old == false) loc = priv_loc;
             }
         }
     }
