@@ -71,10 +71,9 @@ Advanced building instructions
    rzgeometry
    gpu_local
    python
-   spack
 
-Building for specific plateforms
---------------------------------
+Building for specific platforms
+-------------------------------
 
 .. toctree::
    :maxdepth: 1

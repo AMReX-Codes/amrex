@@ -57,6 +57,10 @@ public:
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
 
+    virtual void ReadHeader (std::istream& is) override;
+
+    virtual void WriteHeader (std::ostream& os) const override;
+    
 private:
 
     // User input quantities

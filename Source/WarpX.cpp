@@ -17,6 +17,7 @@
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
+#include <WarpXAlgorithmSelection.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -35,11 +36,11 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
-long WarpX::current_deposition_algo = 3;
-long WarpX::charge_deposition_algo = 0;
-long WarpX::field_gathering_algo = 1;
-long WarpX::particle_pusher_algo = 0;
-int WarpX::maxwell_fdtd_solver_id = 0;
+long WarpX::current_deposition_algo;
+long WarpX::charge_deposition_algo;
+long WarpX::field_gathering_algo;
+long WarpX::particle_pusher_algo;
+int WarpX::maxwell_fdtd_solver_id;
 
 long WarpX::nmodes = 1;
 long WarpX::ncomps = 1;
@@ -121,7 +122,7 @@ WarpX::ResetInstance ()
 {
     delete m_instance;
     m_instance = nullptr;
-}	
+}
 
 WarpX::WarpX ()
 {
@@ -231,6 +232,11 @@ WarpX::WarpX ()
 #ifdef BL_USE_SENSEI_INSITU
     insitu_bridge = nullptr;
 #endif
+
+    // NCI Godfrey filters can have different stencils
+    // at different levels (the stencil depends on c*dt/dz)
+    nci_godfrey_filter_exeybz.resize(nlevs_max);
+    nci_godfrey_filter_bxbyez.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -279,10 +285,10 @@ WarpX::ReadParameters ()
 
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
-    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is 
+    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is
     // specified by the user, 0 otherwise.
-    do_compute_max_step_from_zmax = 
-        pp.query("zmax_plasma_to_compute_max_step", 
+    do_compute_max_step_from_zmax =
+        pp.query("zmax_plasma_to_compute_max_step",
                   zmax_plasma_to_compute_max_step);
 
     pp.queryarr("B_external", B_external);
@@ -321,7 +327,7 @@ WarpX::ReadParameters ()
                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
         pp.query("lab_data_directory", lab_data_directory);
-        
+
         std::string s;
         pp.get("boost_direction", s);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
@@ -483,29 +489,12 @@ WarpX::ReadParameters ()
     }
 
     {
-	ParmParse pp("algo");
-	pp.query("current_deposition", current_deposition_algo);
-	pp.query("charge_deposition", charge_deposition_algo);
-	pp.query("field_gathering", field_gathering_algo);
-	pp.query("particle_pusher", particle_pusher_algo);
-	std::string s_solver = "";
-	pp.query("maxwell_fdtd_solver", s_solver);
-        std::transform(s_solver.begin(),
-                       s_solver.end(),
-                       s_solver.begin(),
-                       ::tolower);
-	// if maxwell_fdtd_solver is specified, set the value
-	// of maxwell_fdtd_solver_id accordingly.
-        // Otherwise keep the default value maxwell_fdtd_solver_id=0
-        if (s_solver != "") {
-            if (s_solver == "yee") {
-                maxwell_fdtd_solver_id = 0;
-            } else if (s_solver == "ckc") {
-                maxwell_fdtd_solver_id = 1;
-            } else {
-                amrex::Abort("Unknown FDTD Solver type " + s_solver);
-            }
-        }
+        ParmParse pp("algo");
+        current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
+        charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
+        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
+        particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
+        maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
     }
 
 #ifdef WARPX_USE_PSATD
@@ -534,6 +523,34 @@ WarpX::ReadParameters ()
         pp.query("config", insitu_config);
         pp.query("pin_mesh", insitu_pin_mesh);
     }
+
+    // for slice generation //
+    {
+       ParmParse pp("slice");
+       amrex::Vector<Real> slice_lo(AMREX_SPACEDIM);
+       amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
+       Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
+       // set default slice_crse_ratio //
+       for (int idim=0; idim < AMREX_SPACEDIM; ++idim )
+       {
+          slice_crse_ratio[idim] = 1;
+       }
+       pp.queryarr("dom_lo",slice_lo,0,AMREX_SPACEDIM);
+       pp.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
+       pp.queryarr("coarsening_ratio",slice_crse_ratio,0,AMREX_SPACEDIM);
+       pp.query("plot_int",slice_plot_int);
+       slice_realbox.setLo(slice_lo);
+       slice_realbox.setHi(slice_hi);
+       slice_cr_ratio = IntVect(AMREX_D_DECL(1,1,1));
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+       {
+          if (slice_crse_ratio[idim] > 1 ) {
+             slice_cr_ratio[idim] = slice_crse_ratio[idim];
+          }
+       }
+
+    }
+
 }
 
 // This is a virtual function.
@@ -635,7 +652,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + NCIGodfreyFilter::stencil_width;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
@@ -851,8 +868,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
-
-
 }
 
 std::array<Real,3>

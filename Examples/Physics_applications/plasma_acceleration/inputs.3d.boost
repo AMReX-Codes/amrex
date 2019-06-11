@@ -16,10 +16,6 @@ geometry.prob_hi     = 0.00015 0.00015 1.e-06
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 algo.maxwell_fdtd_solver = ckc
 warpx.verbose = 1
 warpx.plot_raw_fields = 0

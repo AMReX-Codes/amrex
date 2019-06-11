@@ -246,7 +246,7 @@ void
 WarpX::FillBoundaryE (int lev, PatchType patch_type)
 {
     if (patch_type == PatchType::fine)
-    {
+    {        
         if (do_pml && pml[lev]->ok())
         {
     	    pml[lev]->ExchangeE(patch_type,

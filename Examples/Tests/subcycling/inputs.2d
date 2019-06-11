@@ -37,10 +37,6 @@ warpx.n_current_deposition_buffer = 0
 warpx.n_field_gather_buffer = 0
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 algo.maxwell_fdtd_solver = "ckc"
 
 # CFL
