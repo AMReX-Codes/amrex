@@ -49,8 +49,15 @@ public:
 
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+    AMREX_GPU_HOST_DEVICE
+    explicit IArrayBox (Array4<int> const& a) : BaseFab<int>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit IArrayBox (Array4<int const> const& a) : BaseFab<int>(a) {}
+
     //!  The destructor.
-    ~IArrayBox () = default;
+    AMREX_GPU_HOST_DEVICE
+    ~IArrayBox () {}
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
 

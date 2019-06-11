@@ -14,7 +14,7 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_FabArrayUtility.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -23,7 +23,7 @@ namespace amrex {
 namespace
 {
     bool initialized = false;
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     int num_multifabs     = 0;
     int num_multifabs_hwm = 0;
 #endif
@@ -450,7 +450,7 @@ MultiFab::Initialize ()
 
     amrex::ExecOnFinalize(MultiFab::Finalize);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::add("MultiFab", std::function<MemProfiler::NBuildsInfo()>
 		     ([] () -> MemProfiler::NBuildsInfo {
 			 return {num_multifabs, num_multifabs_hwm};
@@ -466,7 +466,7 @@ MultiFab::Finalize ()
 
 MultiFab::MultiFab () noexcept
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -491,7 +491,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
     if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -501,7 +501,7 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
     :
     FabArray<FArrayBox>(rhs, maketype, scomp, ncomp)
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -510,7 +510,7 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
 MultiFab::MultiFab (MultiFab&& rhs) noexcept
     : FabArray<FArrayBox>(std::move(rhs))
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -518,7 +518,7 @@ MultiFab::MultiFab (MultiFab&& rhs) noexcept
 
 MultiFab::~MultiFab()
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     --num_multifabs;
 #endif
 }
@@ -556,14 +556,13 @@ MultiFab::define (const BoxArray&            bxs,
 void
 MultiFab::initVal ()
 {
-    // Done in FArrayBox. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox* fab = this->fabPtr(mfi);
-	fab->initVal();
+        FArrayBox& fab = (*this)[mfi];
+	fab.initVal();
     }
 }
 

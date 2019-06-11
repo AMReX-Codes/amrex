@@ -244,6 +244,13 @@ else
   FAB_IS_PINNED := FALSE
 endif
 
+ifdef FAB_IS_MANAGED
+  FAB_IS_MANAGED := $(strip $(FAB_IS_MANAGED))
+else
+  FAB_IS_MANAGED := TRUE
+endif
+# By default, FAB_IS_MANAGED is TURE and FAB_IS_PINNED is FALSE
+
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
 else
@@ -391,7 +398,7 @@ else
         TINY_PROFILE = FALSE
     endif
     ifeq ($(TINY_PROFILE),TRUE)
-        CPPFLAGS    += -DBL_TINY_PROFILING -DAMREX_TINY_PROFILING
+        CPPFLAGS    += -DAMREX_TINY_PROFILING
         ProfSuffix	:= .TPROF
     else
         ProfSuffix	:=
@@ -399,21 +406,21 @@ else
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
-  CPPFLAGS += -DBL_MEM_PROFILING -DAMREX_MEM_PROFILING
+  CPPFLAGS += -DAMREX_MEM_PROFILING
   MProfSuffix := .MPROF
 else
   MProfSuffix :=
 endif
 
 ifeq ($(TEST),TRUE)
-    CPPFLAGS += -DBL_TESTING -DAMREX_TESTING
+    CPPFLAGS += -DAMREX_TESTING
     ifneq ($(DEBUG),TRUE)
         DebugSuffix := .TEST
     endif
 endif
 
 ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING -DAMREX_BACKTRACING -DAMREX_TESTING
+    CPPFLAGS += -DAMREX_BACKTRACING -DAMREX_TESTING
     BTSuffix := .BT
 else
     BTSuffix :=
@@ -506,12 +513,21 @@ ifeq ($(USE_HIP),TRUE)
 
     DEFINES += -DAMREX_USE_HIP
 
-    ifeq ($(HIP_PLATFORM),nvcc)
-        DEFINES += -DAMREX_USE_CUDA
-    endif
-
     ifeq ($(FAB_IS_PINNED),TRUE)
         DEFINES += -DAMREX_FAB_IS_PINNED
+        ifeq ($(FAB_IS_MANAGED),TRUE)
+            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
+        endif
+    endif
+
+    ifeq ($(HIP_PLATFORM),nvcc)
+        DEFINES += -DAMREX_USE_CUDA
+        ifeq ($(FAB_IS_MANAGED),TRUE)
+            DEFINES += -DAMREX_FAB_IS_MANAGED
+            ifeq ($(FAB_IS_PINNED),TRUE)
+                $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
+            endif
+        endif
     endif
 
     GPUSuffix := .HIP
@@ -563,6 +579,16 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifeq ($(FAB_IS_PINNED),TRUE)
         DEFINES += -DAMREX_FAB_IS_PINNED
+        ifeq ($(FAB_IS_MANAGED),TRUE)
+            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
+        endif
+    endif
+
+    ifeq ($(FAB_IS_MANAGED),TRUE)
+        DEFINES += -DAMREX_FAB_IS_MANAGED
+        ifeq ($(FAB_IS_PINNED),TRUE)
+            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
+        endif
     endif
 
     GPUSuffix := .CUDA

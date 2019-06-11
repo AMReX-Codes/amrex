@@ -182,6 +182,7 @@ FArrayBox::operator= (Real v) noexcept
     return *this;
 }
 
+// Note that initval is not GPU friendly.
 void
 FArrayBox::initVal () noexcept
 {

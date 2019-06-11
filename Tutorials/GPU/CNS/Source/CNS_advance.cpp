@@ -87,18 +87,20 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                      auto const& fzfab = fluxes[2].array(mfi););
 
         const Box& bxg2 = amrex::grow(bx,2);
-        AsyncFab q(qtmp,bxg2, nprim);
-        auto const& qfab = q.array();
+        qtmp.resize(bxg2, nprim);
+        Elixir qeli = qtmp.elixir();
+        auto const& q = qtmp.array();
 
         amrex::ParallelFor(bxg2,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_ctoprim(i, j, k, sfab, qfab);
+            cns_ctoprim(i, j, k, sfab, q);
         });
 
         const Box& bxg1 = amrex::grow(bx,1);
-        AsyncFab slope(slopetmp,bxg1,neqns);
-        auto const& slopefab = slope.array();
+        slopetmp.resize(bxg1,neqns);
+        Elixir slopeeli = slopetmp.elixir();
+        auto const& slope = slopetmp.array();
 
         // x-direction
         int cdir = 0;
@@ -106,13 +108,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(xslpbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_slope_x(i, j, k, slopefab, qfab);
+            cns_slope_x(i, j, k, slope, q);
         });
         const Box& xflxbx = amrex::surroundingNodes(bx,cdir);
         amrex::ParallelFor(xflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_riemann_x(i, j, k, fxfab, slopefab, qfab);
+            cns_riemann_x(i, j, k, fxfab, slope, q);
             for (int n = neqns; n < ncons; ++n) fxfab(i,j,k,n) = 0.0;
         });
 
@@ -122,13 +124,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(yslpbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_slope_y(i, j, k, slopefab, qfab);
+            cns_slope_y(i, j, k, slope, q);
         });
         const Box& yflxbx = amrex::surroundingNodes(bx,cdir);
         amrex::ParallelFor(yflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_riemann_y(i, j, k, fyfab, slopefab, qfab);
+            cns_riemann_y(i, j, k, fyfab, slope, q);
             for (int n = neqns; n < ncons; ++n) fyfab(i,j,k,n) = 0.0;
         });
 
@@ -138,19 +140,19 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         amrex::ParallelFor(zslpbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_slope_z(i, j, k, slopefab, qfab);
+            cns_slope_z(i, j, k, slope, q);
         });
         const Box& zflxbx = amrex::surroundingNodes(bx,cdir);
         amrex::ParallelFor(zflxbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_riemann_z(i, j, k, fzfab, slopefab, qfab);
+            cns_riemann_z(i, j, k, fzfab, slope, q);
             for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = 0.0;
         });
 
         // don't have to do this, but we could
-        q.clear(); // don't need them anymore
-        slope.clear();
+        qeli.clear(); // don't need them anymore
+        slopeeli.clear();
 
         amrex::ParallelFor(bx, ncons,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept

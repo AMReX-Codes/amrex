@@ -40,7 +40,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -2454,7 +2454,7 @@ Amr::coarseTimeStep (Real stop_time)
 	});
 #endif
 
-#ifndef BL_MEM_PROFILING
+#ifndef AMREX_MEM_PROFILING
         long min_fab_kilobytes  = amrex::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
@@ -2473,7 +2473,7 @@ Amr::coarseTimeStep (Real stop_time)
 #endif
     }
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     {
 	std::ostringstream ss;
 	ss << "[STEP " << level_steps[0] << "]";

@@ -118,9 +118,6 @@ public:
 
     void operator= (Real r);
     //
-    //! Initialize FArrayBoxes
-    void initVal ();
-    //
     /**
     * \brief Returns the minimum value contained in component comp of the
     * MultiFab.  The parameter nghost determines the number of
@@ -628,6 +625,8 @@ private:
     //! Some useful typedefs.
     typedef FabArrayBase::CopyComTagsContainer CopyComTagsContainer;
     typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
+
+    void initVal ();
 };
 
 inline void GccPlacaterMF ()

@@ -468,7 +468,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 
 // --------------------------------------------
-#elif defined(BL_TINY_PROFILING)
+#elif defined(AMREX_TINY_PROFILING)
 
 #include <AMReX_TinyProfiler.H>
 
