@@ -54,6 +54,7 @@ struct GeometryData
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int isPeriodic (const int i) const noexcept { return is_periodic[i]; }
  //! Coordinates type
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int Coord () const noexcept { return coord; }
 
 public:
