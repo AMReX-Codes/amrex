@@ -358,7 +358,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
             }
     
-            // Launch Graph
+            // Launch Graph synched, so copyToBuffer is complete prior to posting sends.
             TheFB.m_copyToBuffer.executeGraph();
 
         }
@@ -501,7 +501,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
     
                 // Launch Graph
-                TheFB.m_localCopy.executeGraph();
+                TheFB.m_localCopy.executeGraph(false);
 
             }
             else
