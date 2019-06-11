@@ -320,21 +320,20 @@ WarpX::OneStep_nosub (Real cur_time)
     }
     EvolveE(dt[0]); // We now have E^{n+1}
     FillBoundaryE();
-
-    if (do_pml) {
-        // copy E from pmls to mothergrid
-        for (int lev = 0; lev <= finest_level; ++lev)
-        {
-            if (pml[lev]->ok()){
-                pml[lev]->CopyFieldInReg({ Efield_fp[lev][0].get(),
-                                      Efield_fp[lev][1].get(),
-                                      Efield_fp[lev][2].get() },
-                                    { Efield_cp[lev][0].get(),
-                                      Efield_cp[lev][1].get(),
-                                      Efield_cp[lev][2].get() });
-            }
-        }
-    }
+    // if (do_pml) {
+    //     // copy E from pmls to mothergrid
+    //     for (int lev = 0; lev <= finest_level; ++lev)
+    //     {
+    //         if (pml[lev]->ok()){
+    //             pml[lev]->CopyFieldInReg({ Efield_fp[lev][0].get(),
+    //                                   Efield_fp[lev][1].get(),
+    //                                   Efield_fp[lev][2].get() },
+    //                                 { Efield_cp[lev][0].get(),
+    //                                   Efield_cp[lev][1].get(),
+    //                                   Efield_cp[lev][2].get() });
+    //         }
+    //     }
+    // }
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
@@ -342,20 +341,20 @@ WarpX::OneStep_nosub (Real cur_time)
         FillBoundaryE();
     }
     FillBoundaryB();
-    if (do_pml) {
-        // copy B from pmls to mothergrid
-        for (int lev = 0; lev <= finest_level; ++lev)
-        {
-            if (pml[lev]->ok()){
-                pml[lev]->CopyFieldInReg({ Bfield_fp[lev][0].get(),
-                                      Bfield_fp[lev][1].get(),
-                                      Bfield_fp[lev][2].get() },
-                                    { Bfield_cp[lev][0].get(),
-                                      Bfield_cp[lev][1].get(),
-                                      Bfield_cp[lev][2].get() });
-            }
-        }
-    }
+    // if (do_pml) {
+    //     // copy B from pmls to mothergrid
+    //     for (int lev = 0; lev <= finest_level; ++lev)
+    //     {
+    //         if (pml[lev]->ok()){
+    //             pml[lev]->CopyFieldInReg({ Bfield_fp[lev][0].get(),
+    //                                   Bfield_fp[lev][1].get(),
+    //                                   Bfield_fp[lev][2].get() },
+    //                                 { Bfield_cp[lev][0].get(),
+    //                                   Bfield_cp[lev][1].get(),
+    //                                   Bfield_cp[lev][2].get() });
+    //         }
+    //     }
+    // }
 
 #endif
 }

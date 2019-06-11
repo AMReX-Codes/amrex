@@ -384,17 +384,23 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
 
+    pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
+    pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
+    pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
+    pml_j_fp[0]->setVal(0.0);
+    pml_j_fp[1]->setVal(0.0);
+    pml_j_fp[2]->setVal(0.0);
 
-    if (pml_has_particles){
-      pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
-      pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
-      pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
-      pml_j_fp[0]->setVal(0.0);
-      pml_j_fp[1]->setVal(0.0);
-      pml_j_fp[2]->setVal(0.0);
-      amrex::Print() << "PML HAS PARTICLES - fine"<< std::endl;
-
-    }
+    // if (pml_has_particles){
+    //   pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
+    //   pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
+    //   pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
+    //   pml_j_fp[0]->setVal(0.0);
+    //   pml_j_fp[1]->setVal(0.0);
+    //   pml_j_fp[2]->setVal(0.0);
+    //   amrex::Print() << "PML HAS PARTICLES - fine"<< std::endl;
+    //
+    // }
 
     if (do_dive_cleaning)
     {
@@ -438,17 +444,22 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
             pml_F_cp->setVal(0.0);
 
         }
-
-        if (pml_has_particles)
-        {
-            pml_j_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::jx_nodal_flag), cdm, 1, ngb));
-            pml_j_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::jy_nodal_flag), cdm, 1, ngb));
-            pml_j_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::jz_nodal_flag), cdm, 1, ngb));
-            pml_j_cp[0]->setVal(0.0);
-            pml_j_cp[1]->setVal(0.0);
-            pml_j_cp[2]->setVal(0.0);
-            amrex::Print() << "PML HAS PARTICLES - coarse"<< std::endl;
-        }
+        pml_j_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::jx_nodal_flag), cdm, 1, ngb));
+        pml_j_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::jy_nodal_flag), cdm, 1, ngb));
+        pml_j_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::jz_nodal_flag), cdm, 1, ngb));
+        pml_j_cp[0]->setVal(0.0);
+        pml_j_cp[1]->setVal(0.0);
+        pml_j_cp[2]->setVal(0.0);
+        // if (pml_has_particles)
+        // {
+        //     pml_j_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::jx_nodal_flag), cdm, 1, ngb));
+        //     pml_j_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::jy_nodal_flag), cdm, 1, ngb));
+        //     pml_j_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::jz_nodal_flag), cdm, 1, ngb));
+        //     pml_j_cp[0]->setVal(0.0);
+        //     pml_j_cp[1]->setVal(0.0);
+        //     pml_j_cp[2]->setVal(0.0);
+        //     amrex::Print() << "PML HAS PARTICLES - coarse"<< std::endl;
+        // }
 
         // sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba_reduced, cgeom->CellSize(), ncell, delta));
@@ -714,6 +725,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     const IntVect& ngp = pml.nGrowVect();
     const int ncp = pml.nComp();
     const auto& period = geom.periodicity();
+    int ncells = 10;
 
     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
 
@@ -735,11 +747,19 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
         {
             const FArrayBox& src = tmpregmf[mfi];
             FArrayBox& dst = reg[mfi];
-            const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-            for (const Box& bx : bl)
-            {
-                dst.copy(src, bx, 0, bx, 0, 1);
-            }
+            // BoxList
+            // Box box1 = dst.box();
+            // amrex::grow(box1, -ncells);
+            // Box box2 = mfi.validbox();
+            // amrex::Print() << "dst.box() = ["<< box1.smallEnd()[0] << ", "<<box1.smallEnd()[1] << ", "<<box1.bigEnd()[0] << ", "<<box1.bigEnd()[1] << "]"<< std::endl;
+            // amrex::Print() << "mfi.validbox() = ["<< box2.smallEnd()[0] << ", "<<box2.smallEnd()[1] << ", "<<box2.bigEnd()[0] << ", "<<box2.bigEnd()[1] << "]"<< std::endl;
+            // const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox()); //amrex::boxDiff(dst.box(), mfi.validbox());
+            // for (const Box& bx : bl)
+            // {
+            //     dst.copy(src, bx, 0, bx, 0, 1);
+            // }
+            Box bx = src.box(); //amrex::grow(src.box(), -ngp);// PML box without ghost cell //
+            dst.copy(src, bx, 0, bx, 0, 1);
         }
     }
 
@@ -791,7 +811,7 @@ PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     // MultiFab::Copy(tmpregmf,reg,0,0,1,0);
     // tmpregmf.setVal(0.0, 1, ncp-1, 0);
     // pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
-    pml.ParallelCopy(reg, ncp, 0, 0, IntVect(0), ngp, period); // pour J il n'y a qu'une seule composante!!! Et pour B il n'y en a que 2!!! Comment est-ce que ca marche?
+    pml.ParallelCopy(reg, 0, 0, ncp, IntVect(0), ngp, period); // pour J il n'y a qu'une seule composante!!! Et pour B il n'y en a que 2!!! Comment est-ce que ca marche?
 }
 
 void

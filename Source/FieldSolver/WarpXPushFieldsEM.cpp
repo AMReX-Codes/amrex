@@ -348,7 +348,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                              &mu_c2_dt,
 #endif
                              &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
-
+                             
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(
