@@ -304,12 +304,17 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryB();
     // if do particles in pmls:
     // copy J (créer une fonction qui peut le faire ô EvolveB) de grille physique vers grille de pml
-    // if (pml_has_particles){
-    //     // CopyJinPMLs(MultiFab& pml, MultiFab& reg, const Geometry& geom);
-    // }
+    if (do_pml && pml_has_particles){
+        // CopyJinPMLs(MultiFab& pml, MultiFab& reg, const Geometry& geom);
+        // pml[0].CopyJinPMLs(const std::array<amrex::MultiFab*,3>& j_fp,
+        //                 const std::array<amrex::MultiFab*,3>& j_cp)
+    }
     EvolveE(dt[0]); // We now have E^{n+1}
     FillBoundaryE();
     // if DO_PML : copy E de pmls dans domaine physique
+    if (do_pml) {
+        // copy field B from PMLs to domain
+    }
     EvolveF(0.5*dt[0], DtType::SecondHalf);
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
@@ -318,6 +323,9 @@ WarpX::OneStep_nosub (Real cur_time)
     }
     FillBoundaryB();
     // if do_pml : copy B de pmls dans domaine physique
+    if (do_pml){
+        // copy field B from PMLs to domain
+    }
 
 #endif
 }
