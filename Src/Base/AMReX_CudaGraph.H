@@ -119,16 +119,15 @@ struct CudaGraph
         AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(currentStream, &copyGraph));
         Gpu::Device::resetStreamIndex();
     }
-    void executeGraph () const {
-//        cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
-//                   cudaMemcpyHostToDevice);
-
+    void executeGraph (bool synch = true) const {
+        Gpu::Device::executeGraph(m_graph, synch);
+/*
         Gpu::Device::setStreamIndex(0);
 
         cudaGraphLaunch(m_graph, amrex::Gpu::Device::cudaStream());
 
         Gpu::Device::resetStreamIndex();
-        Gpu::Device::synchronize();
+*/
     }
 };
 

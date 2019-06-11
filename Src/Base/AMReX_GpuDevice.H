@@ -66,7 +66,7 @@ public:
     static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
 
     // Execute an instantiated cudaGraphExec
-    static void executeGraph(cudaGraphExec_t &graphExec, bool synch = true);
+    static void executeGraph(const cudaGraphExec_t &graphExec, bool synch = true);
 
     // Set type of graph recording.
     // Currently 2 options, so bool used. Change later if needed. 
