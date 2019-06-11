@@ -698,7 +698,7 @@ Device::instantiateGraph(cudaGraph_t graph)
 }
 
 void
-Device::executeGraph(cudaGraphExec_t &graphExec, bool synch)
+Device::executeGraph(const cudaGraphExec_t &graphExec, bool synch)
 {
     if (inLaunchRegion() && inGraphRegion())
     {
