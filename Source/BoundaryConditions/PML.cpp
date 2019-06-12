@@ -695,6 +695,7 @@ PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
+
     const IntVect& ngr = reg.nGrowVect();
     const IntVect& ngp = pml.nGrowVect();
     const int ncp = pml.nComp();
@@ -702,11 +703,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 
     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
     tmpregmf.setVal(0.0, 0, ncp, ngr);
-    tmpregmf.setVal(0.0, 0, ncp, ngr);
-    tmpregmf.setVal(0.0, 0, ncp, ngr);
     MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), ncp, ngp);
-    totpmlmf.setVal(0.0, 0, ncp, ngp);
-    totpmlmf.setVal(0.0, 0, ncp, ngp);
     totpmlmf.setVal(0.0, 0, ncp, ngp);
     // realise sum of splitted fields inside pml
     MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
@@ -716,15 +713,14 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     totpmlmf.setVal(0.0, 1, ncp-1, 0);
     reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-
     if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
     {
         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
         tmpregmf.setVal(0.0, 1, ncp-1, 0);
         totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, IntVect(0), ngp, period);
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
         for (MFIter mfi(pml); mfi.isValid(); ++mfi)
         {
             const FArrayBox& src = totpmlmf[mfi];
@@ -742,45 +738,23 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 void
 PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
-    // const IntVect& ngr = reg.nGrowVect();
-    const IntVect& ngp = pml.nGrowVect();
-    const int ncp = pml.nComp();
-    const auto& period = geom.periodicity();
-
-    // MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-
-//     if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
-//     {
-//         MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
-//         MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
-//         if (ncp == 3) {
-//             MultiFab::Add(totpmlmf,pml,2,0,1,0);
-//         }
-//
-//         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-//         tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
-//
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
-//         for (MFIter mfi(reg); mfi.isValid(); ++mfi)
-//         {
-//             const FArrayBox& src = tmpregmf[mfi];
-//             FArrayBox& dst = reg[mfi];
-//             const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-//             for (const Box& bx : bl)
-//             {
-//                 dst.copy(src, bx, 0, bx, 0, 1);
-//             }
-//         }
-//     }
+  const IntVect& ngr = reg.nGrowVect();
+  const IntVect& ngp = pml.nGrowVect();
+  // const int ncp = pml.nComp();
+  const auto& period = geom.periodicity();
 
-    // Copy from regular data to PML's first component
-    // Zero out the second (and third) component
-    // MultiFab::Copy(tmpregmf,reg,0,0,1,0);
-    // tmpregmf.setVal(0.0, 1, ncp-1, 0);
-    // pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
-    pml.ParallelCopy(reg, 0, 0, ncp, IntVect(0), ngp, period); // pour J il n'y a qu'une seule composante!!! Et pour B il n'y en a que 2!!! Comment est-ce que ca marche?
+  // MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), 1, ngr);
+  // tmpregmf.setVal(0.0, 0, 1, ngr);
+  // MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, ngp);
+  // totpmlmf.setVal(0.0, 0, 1, ngp);
+  // realise sum of splitted fields inside pml
+
+
+  pml.ParallelCopy(reg, 0, 0, 1, ngr, ngp, period);
+
 }
 
 void
