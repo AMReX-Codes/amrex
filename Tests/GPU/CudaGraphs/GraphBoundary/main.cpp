@@ -110,7 +110,8 @@ int main (int argc, char* argv[])
         Real cpu_avg, gpu_avg, graph_avg, graph_init, gpu_even;
 
         // With CPU
-        Gpu::setLaunchRegion(false); 
+        Gpu::setLaunchRegion(false);
+        Gpu::setGraphRegion(false); 
         {
             // Setup the data outside the FillBoundary timers.
             setup(mf_cpu, geom);
