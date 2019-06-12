@@ -314,6 +314,17 @@ namespace Gpu {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        int Exch (int* address, int val) noexcept {
+#ifdef AMREX_DEVICE_COMPILE
+            return atomicExch(address, val);
+#else
+            int old = *address;
+            *address = val;
+            return old;
+#endif
+        }
+
     } // namespace Atomic
 
     template <class T>

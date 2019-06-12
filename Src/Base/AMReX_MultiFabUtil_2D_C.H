@@ -10,64 +10,60 @@ namespace amrex {
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
+void amrex_avg_nd_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& nd,
                          int cccomp, int ndcomp, int ncomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto nd = ndfab.view(lo,ndcomp);
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
 
     for (int n = 0; n < ncomp; ++n) {
-        for (int j = 0; j < len.y; ++j) {
+        for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            cc(i,j,0,n) = 0.25*(nd(i,j,0,n)+nd(i+1,j,0,n)+nd(i,j+1,0,n)+nd(i+1,j+1,0,n));
-        }
-        }
+        for (int i = lo.x; i <= hi.x; ++i) {
+            cc(i,j,0,n+cccomp) = 0.25*( nd(i,j  ,0,n+ndcomp) + nd(i+1,j  ,0,n+ndcomp)
+                                      + nd(i,j+1,0,n+ndcomp) + nd(i+1,j+1,0,n+ndcomp));
+        }}
     }
 }
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& exfab, FArrayBox const& eyfab,
+void amrex_avg_eg_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& Ex,
+                         Array4<Real const> const& Ey,
                          int cccomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto Ex = exfab.view(lo);
-    const auto Ey = eyfab.view(lo);
-    
-    for     (int j = 0; j < len.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            cc(i,j,0,0) = 0.5 * ( Ex(i,j,0) + Ex(i,j+1,0) );
-            cc(i,j,0,1) = 0.5 * ( Ey(i,j,0) + Ey(i+1,j,0) );
-        }
-    }
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
+
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        cc(i,j,0,0+cccomp) = 0.5 * ( Ex(i,j,0) + Ex(i,j+1,0) );
+        cc(i,j,0,1+cccomp) = 0.5 * ( Ey(i,j,0) + Ey(i+1,j,0) );
+    }}
 }
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& fxfab, FArrayBox const& fyfab,
+void amrex_avg_fc_to_cc (Box const& bx,
+                         Array4<Real      > const& cc,
+                         Array4<Real const> const& fx,
+                         Array4<Real const> const& fy,
                          int cccomp) noexcept
 {
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo,cccomp);
-    const auto fx = fxfab.view(lo);
-    const auto fy = fyfab.view(lo);
+    const auto lo = lbound(bx);
+    const auto hi = ubound(bx);
 
-    for     (int j = 0; j < len.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            cc(i,j,0,0) = 0.5 * ( fx(i,j,0) + fx(i+1,j,0) );
-            cc(i,j,0,1) = 0.5 * ( fy(i,j,0) + fy(i,j+1,0) );
-        }
-    }
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        cc(i,j,0,0+cccomp) = 0.5 * ( fx(i,j,0) + fx(i+1,j,0) );
+        cc(i,j,0,1+cccomp) = 0.5 * ( fy(i,j,0) + fy(i,j+1,0) );
+    }}
 }
 
 AMREX_GPU_HOST_DEVICE
