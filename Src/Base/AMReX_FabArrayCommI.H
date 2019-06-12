@@ -509,7 +509,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     }
                 }
     
-                // Launch Graph
+                // Launch Graph without synch. Local work is entirely independent.
                 TheFB.m_localCopy.executeGraph(false);
 
             }
@@ -585,6 +585,7 @@ FabArray<FAB>::FillBoundary_finish ()
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();
 
+    int launches = 0;
     Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
     LayoutData<Vector<VoidCopyTag> > recv_copy_tags;
     if (N_rcvs > 0)
@@ -611,12 +612,51 @@ FabArray<FAB>::FillBoundary_finish ()
                     {
                         recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
                         dptr += tag.dbox.numPts() * fb_ncomp * sizeof(value_type);
+                        launches++;
                     }
                     BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
                 }
             }
         }
     }
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+    if (Gpu::inGraphRegion()) { 
+
+        if ( !(TheFB.m_copyFromBuffer.ready()) )
+        {
+            const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
+    
+            int idx = 0;
+            for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
+            {
+                amrex::Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0),
+                                                         const_cast<FB&>(TheFB).m_copyFromBuffer.getHostPtr(0),
+                                                         (TheFB).m_copyFromBuffer.getDevicePtr(0),
+                                                         std::size_t(sizeof(CopyMemory)*launches) );
+    
+                const auto& tags = recv_copy_tags[mfi];
+                for (auto const & tag : tags)
+                {
+                    CopyMemory* cmem = TheFB.m_copyFromBuffer.getDevicePtr(idx++);
+                    AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
+                    {
+                        auto const pfab = cmem->getSrc<value_type>();
+                        auto const dfab = cmem->getDst<value_type>();
+                        for (int n = 0; n < cmem->ncomp; ++n)
+                        {
+                            dfab(i,j,k,n+(cmem->scomp)) = pfab(i,j,k,n);
+                        }
+                    });
+                }
+    
+                bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
+                cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
+                if (last_iter) { const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( graphExec ); }
+            }
+        }
+    }
+#endif
 
     int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
 
@@ -638,45 +678,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
             if (Gpu::inGraphRegion()) { 
 
-                if ( !(TheFB.m_copyFromBuffer.ready()) )
-                {
-                    // Set size of copyFromBuffer
-                    int launches = 0;
-                    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-                    {
-                        launches += recv_copy_tags[mfi].size();
-                    }        
-                    const_cast<FB&>(TheFB).m_copyFromBuffer.resize(launches);
-    
-                    int idx = 0;
-                    for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
-                    {
-                        amrex::Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0),
-                                                                 const_cast<FB&>(TheFB).m_copyFromBuffer.getHostPtr(0),
-                                                                 (TheFB).m_copyFromBuffer.getDevicePtr(0),
-                                                                 std::size_t(sizeof(CopyMemory)*launches) );
-    
-                        const auto& tags = recv_copy_tags[mfi];
-                        for (auto const & tag : tags)
-                        {
-                            CopyMemory* cmem = TheFB.m_copyFromBuffer.getDevicePtr(idx++);
-                            AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
-                            {
-                                auto const pfab = cmem->getSrc<value_type>();
-                                auto const dfab = cmem->getDst<value_type>();
-                                for (int n = 0; n < cmem->ncomp; ++n)
-                                {
-                                    dfab(i,j,k,n+(cmem->scomp)) = pfab(i,j,k,n);
-                                }
-                            });
-                        }
-    
-                        bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
-                        cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
-                        if (last_iter) { const_cast<FB&>(TheFB).m_copyFromBuffer.setGraph( graphExec ); }
-                    }
-                }
-    
+                // Setup graph.   
                 int idx = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
@@ -692,7 +694,7 @@ FabArray<FAB>::FillBoundary_finish ()
                     } 
                 }
     
-                // Launch Graph
+                // Launch Graph - synced because next action is freeing recv buffer.
                 TheFB.m_copyFromBuffer.executeGraph();
 
             }
