@@ -157,15 +157,24 @@ public:
     * component comp of the MultiFab.
     */
     Real norm0 (int comp = 0, int nghost = 0, bool local = false) const;
+    Real norminf (int comp = 0, int nghost = 0, bool local = false) const {
+        return norm0(comp,nghost,local);
+    }
 
     Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
+    Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
+        return norm0(mask,comp,nghost,local);
+    }
 
     /**
     * \brief Returns the maximum *absolute* values contained in
     * each component of "comps" of the MultiFab.  No ghost cells are used.
     */
-
     Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false) const;
+    Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false) const {
+        return norm0(comps,nghost,local);
+    }
+
     /**
     * \brief Returns the L1 norm of component "comp" over the MultiFab.
     * No ghost cells are used.  This version has no double counting for nodal data.
