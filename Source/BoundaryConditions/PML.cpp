@@ -15,7 +15,7 @@ using namespace amrex;
 
 namespace
 {
-    static void FillLo (int idim, Sigma& sigma, Sigma& sigma_star,
+    static void FillLo (int idim, Sigma& sigma, Sigma& sigma_cum, Sigma& sigma_star,
                         const Box& overlap, const Box& grid, Real fac)
     {
         int glo = grid.smallEnd(idim);
@@ -35,7 +35,7 @@ namespace
         }
     }
 
-    static void FillHi (int idim, Sigma& sigma, Sigma& sigma_star,
+    static void FillHi (int idim, Sigma& sigma, Sigma& sigma_cum, Sigma& sigma_star,
                         const Box& overlap, const Box& grid, Real fac)
     {
         int ghi = grid.bigEnd(idim);
@@ -77,16 +77,22 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         sigma         [idim].resize(sz[idim]+1);
+        sigma_cum     [idim].resize(sz[idim]+1);
         sigma_star    [idim].resize(sz[idim]  );
         sigma_fac     [idim].resize(sz[idim]+1);
+        sigma_cum_fac [idim].resize(sz[idim]+1);
         sigma_star_fac[idim].resize(sz[idim]  );
 
         sigma         [idim].m_lo = lo[idim];
         sigma         [idim].m_hi = hi[idim]+1;
+        sigma_cum     [idim].m_lo = lo[idim];
+        sigma_cum     [idim].m_hi = hi[idim]+1;
         sigma_star    [idim].m_lo = lo[idim];
         sigma_star    [idim].m_hi = hi[idim];
         sigma_fac     [idim].m_lo = lo[idim];
         sigma_fac     [idim].m_hi = hi[idim]+1;
+        sigma_cum_fac [idim].m_lo = lo[idim];
+        sigma_cum_fac [idim].m_hi = hi[idim]+1;
         sigma_star_fac[idim].m_lo = lo[idim];
         sigma_star_fac[idim].m_hi = hi[idim];
     }
@@ -156,7 +162,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 #endif
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
-                FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
+                FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
@@ -166,7 +172,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 #endif
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
-                FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
+                FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -193,13 +199,13 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
             Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (looverlap.ok()) {
-                FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
+                FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (hioverlap.ok()) {
-                FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
+                FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -230,13 +236,13 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& lobox = amrex::adjCellLo(grid_box, idim, ncell);
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
-                FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
+                FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
             }
 
             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
-                FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
+                FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {

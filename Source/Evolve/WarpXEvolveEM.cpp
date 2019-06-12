@@ -314,6 +314,7 @@ WarpX::OneStep_nosub (Real cur_time)
             }
         }
     }
+    // DAMP J!!!!!!
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF();
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
