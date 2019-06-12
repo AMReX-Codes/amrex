@@ -1,7 +1,11 @@
 #
-# This test requires CUDA to be enabled
+# This test requires CUDA and pgfortran to be enabled
 #
-if (NOT ENABLE_CUDA)
+if ( NOT ENABLE_CUDA )
+   return ()
+endif ()
+
+if ( NOT ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "PGI") )
    return ()
 endif ()
 
@@ -40,7 +44,7 @@ set_target_properties( ${EXENAME}
    Fortran
    LINK_FLAGS
    "${amrex_fortran_flags}"
-   CUDA_STANDARD 11               # Adds -std=c++11
+   CUDA_STANDARD 14               # Adds -std=c++14
    CUDA_STANDARD_REQUIRED ON
    CUDA_SEPARABLE_COMPILATION ON  
    CUDA_RESOLVE_DEVICE_SYMBOLS OFF # This is crucial to avoid the device code linkage step
