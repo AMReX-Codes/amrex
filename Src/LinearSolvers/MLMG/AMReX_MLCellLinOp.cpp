@@ -79,19 +79,7 @@ MLCellLinOp::defineAuxData ()
     }
 
 #if (AMREX_SPACEDIM != 3)
-    bool no_metric_term = m_geom[0][0].IsCartesian() || !info.has_metric_term;
-    m_metric_factor.resize(m_num_amr_levels);
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
-    {
-        m_metric_factor[amrlev].resize(m_num_mg_levels[amrlev]);
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
-        {
-            m_metric_factor[amrlev][mglev].reset(new MetricFactor(m_grids[amrlev][mglev],
-                                                                  m_dmap[amrlev][mglev],
-                                                                  m_geom[amrlev][mglev],
-                                                                  no_metric_term));
-        }
-    }
+    m_has_metric_term = !m_geom[0][0].IsCartesian() && info.has_metric_term;
 #endif
 }
 
@@ -886,13 +874,15 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
     
-    if (m_geom[amrlev][mglev].IsCartesian() || !info.has_metric_term) return;
+    if (!m_has_metric_term) return;
 
     const int ncomp = rhs.nComp();
-      
-    const auto& mfac = *m_metric_factor[amrlev][mglev];
 
-    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+    bool cc = rhs.ixType().cellCentered(0);
+
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Real dx = geom.CellSize(0);
+    const Real probxlo = geom.ProbLo(0);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -900,17 +890,28 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
-        const Vector<Real>& r = (nextra==0) ? mfac.cellCenters(mfi) : mfac.cellEdges(mfi);
-        const Box& vbx = mfi.validbox();
-        const int rlo = vbx.loVect()[0];
-        const int rhi = vbx.hiVect()[0] + nextra;
-        AsyncArray<Real> r_as(r.data(),rhi-rlo+1);
-        Real const* rp = r_as.data();
-        const auto& rhsfab = rhs.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
-        {
-            rhsfab(i,j,k,n) *= rp[i-rlo];
-        });
+        Array4<Real> const& rhsarr = rhs.array(mfi);
+        if (cc) {
+            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real rc = probxlo + (i+0.5)*dx;
+#if (AMREX_SPACEDIM == 2)
+                rhsarr(i,j,k,n) *= rc;
+#else
+                rhsarr(i,j,k,n) *= rc*rc;
+#endif
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real re = probxlo + i*dx;
+#if (AMREX_SPACEDIM == 2)
+                rhsarr(i,j,k,n) *= re;
+#else
+                rhsarr(i,j,k,n) *= re*re;
+#endif
+            });
+        }
     }
 #endif
 }
@@ -919,108 +920,49 @@ void
 MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
-
-    if (m_geom[amrlev][mglev].IsCartesian() || !info.has_metric_term) return;
+    
+    if (!m_has_metric_term) return;
 
     const int ncomp = rhs.nComp();
 
-    const auto& mfac = *m_metric_factor[amrlev][mglev];
+    bool cc = rhs.ixType().cellCentered(0);
 
-    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Real dx = geom.CellSize(0);
+    const Real probxlo = geom.ProbLo(0);
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
-        const Vector<Real>& r = (nextra==0) ? mfac.invCellCenters(mfi) : mfac.invCellEdges(mfi);
-        const Box& vbx = mfi.validbox();
-        const int rlo = vbx.loVect()[0];
-        const int rhi = vbx.hiVect()[0] + nextra;
-        AsyncArray<Real> r_as(r.data(), rhi-rlo+1);
-        Real const* rp = r_as.data();
-        const auto& rhsfab = rhs.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
-        {
-            rhsfab(i,j,k,n) *= rp[i-rlo];
-        });
+        Array4<Real> const& rhsarr = rhs.array(mfi);
+        if (cc) {
+            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real rcinv = 1.0/(probxlo + (i+0.5)*dx);
+#if (AMREX_SPACEDIM == 2)
+                rhsarr(i,j,k,n) *= rcinv;
+#else
+                rhsarr(i,j,k,n) *= rcinv*rcinv;
+#endif
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            {
+                Real re = probxlo + i*dx;
+                Real reinv = (re==0.0) ? 0.0 : 1./re;
+#if (AMREX_SPACEDIM == 2)
+                rhsarr(i,j,k,n) *= reinv;
+#else
+                rhsarr(i,j,k,n) *= reinv*reinv;
+#endif
+            });
+        }
     }
 #endif
 }
-
-#if (AMREX_SPACEDIM != 3)
-
-MLCellLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
-                                         const Geometry& geom, bool null_metric)
-    : r_cellcenter(ba,dm),
-      r_celledge(ba,dm),
-      inv_r_cellcenter(ba,dm),
-      inv_r_celledge(ba,dm)
-{
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(r_cellcenter); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-
-        if (null_metric)
-        {
-            const int N = bx.length(0);
-            auto& rcc = r_cellcenter[mfi];
-            rcc.resize(N, 1.0);
-            auto& rce = r_celledge[mfi];
-            rce.resize(N+1, 1.0);
-            auto& ircc = inv_r_cellcenter[mfi];
-            ircc.resize(N, 1.0);
-            auto& irce = inv_r_celledge[mfi];
-            irce.resize(N+1, 1.0);
-        }
-        else
-        {
-            auto& rcc = r_cellcenter[mfi];
-            geom.GetCellLoc(rcc, bx, 0);
-            
-            auto& rce = r_celledge[mfi];
-            geom.GetEdgeLoc(rce, bx, 0);
-            
-            auto& ircc = inv_r_cellcenter[mfi];
-            const int N = rcc.size();
-            ircc.resize(N);
-            for (int i = 0; i < N; ++i) {
-                ircc[i] = 1.0/rcc[i];
-            }
-            
-            auto& irce = inv_r_celledge[mfi];
-            irce.resize(N+1);
-            if (rce[0] == 0.0) {
-                irce[0] = 0.0;
-            } else {
-                irce[0] = 1.0/rce[0];
-            }
-            for (int i = 1; i < N+1; ++i) {
-                irce[i] = 1.0/rce[i];
-            }
-
-            if (geom.IsSPHERICAL()) {
-                for (auto& x : rcc) {
-                    x = x*x;
-                }
-                for (auto& x : rce) {
-                    x = x*x;
-                }
-                for (auto& x : ircc) {
-                    x = x*x;
-                }
-                for (auto& x : irce) {
-                    x = x*x;
-                }                    
-            }
-        }
-    }
-}
-
-#endif
 
 void
 MLCellLinOp::update ()
