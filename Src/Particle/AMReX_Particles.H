@@ -748,7 +748,9 @@ public:
     void EnforcePeriodicGPU ();
 #endif
 
-    void AddRealComp (bool communicate=true)
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddRealComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
@@ -756,7 +758,9 @@ public:
         SetParticleSize();
     }
 
-    void AddIntComp (bool communicate=true)
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddIntComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;

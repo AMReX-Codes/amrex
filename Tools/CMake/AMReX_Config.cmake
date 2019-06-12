@@ -66,7 +66,7 @@ function (configure_amrex)
       
       set_target_properties( amrex
          PROPERTIES
-         CUDA_STANDARD 11     # Adds -std=<standard>
+         CUDA_STANDARD 14     # Adds -std=<standard>
          CUDA_STANDARD_REQUIRED ON
          CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
          CUDA_RESOLVE_DEVICE_SYMBOLS OFF
@@ -77,21 +77,29 @@ function (configure_amrex)
       # I haven't find a way to set host compiler flags for all the
       # possible configurations.
       #
-      get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
+      get_target_property( _amrex_flags_1 amrex COMPILE_OPTIONS)
 
       if (NOT CMAKE_CXX_FLAGS)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
-         list(APPEND _amrex_flags ${_amrex_flags_2})
       endif ()
 
+      set(_amrex_flags)
+      if (_amrex_flags_1)
+         list(APPEND _amrex_flags ${_amrex_flags_1})
+      endif ()
+      if (_amrex_flags_2)
+         list(APPEND _amrex_flags ${_amrex_flags_2})
+      endif ()
+      
       evaluate_genex(_amrex_flags _amrex_cxx_flags
          LANG   CXX
          COMP   ${CMAKE_CXX_COMPILER_ID}
          CONFIG ${CMAKE_BUILD_TYPE}
          STRING )
 
-      target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)
-
+      if (_amrex_cxx_flags)
+         target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)
+      endif ()
    endif ()
    
 
@@ -148,9 +156,13 @@ function (configure_amrex)
 
    #
    # If CUDA is enabled, add manually libcuda because CMake does not find it
+   # Do the same for nvToolsExt if tiny profiler is on
    #
    if (ENABLE_CUDA)
-      target_link_libraries(amrex PUBLIC cuda)   
+      target_link_libraries(amrex PUBLIC cuda)
+      if (ENABLE_TINY_PROFILE)
+          target_link_libraries(amrex PUBLIC nvToolsExt)
+      endif ()
    endif ()
 
    #
@@ -314,7 +326,7 @@ function ( set_compiler_flags_preset _target )
    set(_cxx_apple       "$<AND:${_cxx},${_apple}>")
 
 
-   set(_cxx_std c++11)
+   set(_cxx_std c++14)
    
    target_compile_options(  ${_target}
          PUBLIC
