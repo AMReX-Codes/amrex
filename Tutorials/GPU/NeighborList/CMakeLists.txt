@@ -27,16 +27,18 @@ set_source_files_properties(${SRC_DIR}/main.cpp ${SRC_DIR}/MDParticleContainer.c
 set_target_properties( ${EXENAME}
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY
-   ${CMAKE_CURRENT_BINARY_DIR}/Launch
+   ${CMAKE_CURRENT_BINARY_DIR}
    # LINK_FLAGS
    # "-Wl,--warn-unresolved-symbols"
-   CXX_STANDARD 14               # Adds -std=c++11
+   CXX_STANDARD 14               # Adds -std=c++14
    CXX_STANDARD_REQUIRED ON
-   CUDA_STANDARD 14               # Adds -std=c++11
+   CUDA_STANDARD 14               # Adds -std=c++14
    CUDA_STANDARD_REQUIRED ON
    CUDA_SEPARABLE_COMPILATION ON  # This add -dc flag
    )
 
 target_link_libraries(${EXENAME} amrex)
+
+file( COPY inputs DESTINATION ${CMAKE_CURRENT_BINARY_DIR} )
 
 add_tutorial(${EXENAME})   
