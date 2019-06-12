@@ -748,7 +748,7 @@ public:
     void EnforcePeriodicGPU ();
 #endif
 
-    template <typename T, typename Y = std::enable_if_t<std::is_same<T, bool>{}> >
+    template <typename T, typename Y = std::enable_if<std::is_same<T, bool>::value> >
     void AddRealComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
@@ -757,7 +757,7 @@ public:
         SetParticleSize();
     }
 
-    template <typename T, typename Y = std::enable_if_t<std::is_same<T, bool>{}> >
+    template <typename T, typename Y = std::enable_if<std::is_same<T, bool>::value> >
     void AddIntComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
