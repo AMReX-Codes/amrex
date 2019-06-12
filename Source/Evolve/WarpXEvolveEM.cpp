@@ -314,7 +314,12 @@ WarpX::OneStep_nosub (Real cur_time)
             }
         }
     }
-    // DAMP J!!!!!!
+
+    if (do_pml && do_pml_j_damping){
+        // damp current in pmls
+        amrex::Print() << "===== DAMPING IN PMLs =====" << std::endl;
+    }
+
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF();
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
