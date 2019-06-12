@@ -148,9 +148,13 @@ function (configure_amrex)
 
    #
    # If CUDA is enabled, add manually libcuda because CMake does not find it
+   # Do the same for nvToolsExt if tiny profiler is on
    #
    if (ENABLE_CUDA)
-      target_link_libraries(amrex PUBLIC cuda)   
+      target_link_libraries(amrex PUBLIC cuda)
+      if (ENABLE_TINY_PROFILE)
+          target_link_libraries(amrex PUBLIC nvToolsExt)
+      endif ()
    endif ()
 
    #
