@@ -896,6 +896,42 @@ contains
 
   end subroutine warpx_damp_pml_2d
 
+  subroutine warpx_dampJ_pml_2d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+       &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
+       &                        sigjx, sjxlo, sjxhi, sigjz, sjzlo, sjzhi) &
+       bind(c,name='warpx_dampJ_pml_2d')
+    integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+         jxlo, jxhi, jylo, jyhi, jzlo, jzhi
+    integer, intent(in), value :: sjxlo, sjxhi, sjzlo, sjzhi
+    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2)) !,1)
+    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2)) !,1)
+    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2)) !,1)
+    real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
+    real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
+
+    integer :: i,k
+
+    do    k = tjxlo(2), tjxhi(2)
+       do i = tjxlo(1), tjxhi(1)
+          jx(i,k) = jx(i,k) * sigjz(k)
+       end do
+    end do
+
+    do    k = tjylo(2), tjyhi(2)
+       do i = tjylo(1), tjyhi(1)
+          jy(i,k) = jy(i,k) * sigjz(k)
+       end do
+    end do
+
+    do    k = tjzlo(2), tjzhi(2)
+       do i = tjzlo(1), tjzhi(1)
+          jz(i,k) = jz(i,k) * sigjx(i)
+       end do
+    end do
+
+
+  end subroutine warpx_dampJ_pml_2d
+
 
   subroutine warpx_damp_pml_3d (texlo, texhi, teylo, teyhi, tezlo, tezhi, &
        &                        tbxlo, tbxhi, tbylo, tbyhi, tbzlo, tbzhi, &
