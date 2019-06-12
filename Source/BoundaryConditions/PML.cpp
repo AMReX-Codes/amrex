@@ -676,32 +676,6 @@ PML::CopyJinPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
 }
 
 void
-PML::CopyFieldInReg (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Ep)
-{
-    if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
-    {
-        CopyPMLinReg(*pml_E_fp[0], *Ep[0], *m_geom);
-        CopyPMLinReg(*pml_E_fp[0], *Ep[0], *m_geom);
-        CopyPMLinReg(*pml_E_fp[0], *Ep[0], *m_geom);
-    }
-    else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
-    {
-        CopyPMLinReg(*pml_E_fp[0], *Ep[0], *m_cgeom);
-        CopyPMLinReg(*pml_E_fp[0], *Ep[0], *m_cgeom);
-        CopyPMLinReg(*pml_E_fp[0], *Ep[0], *m_cgeom);
-    }
-}
-
-void
-PML::CopyFieldInReg (const std::array<amrex::MultiFab*,3>& E_fp,
-                const std::array<amrex::MultiFab*,3>& E_cp)
-{
-    CopyFieldInReg(PatchType::fine, E_fp);
-    CopyFieldInReg(PatchType::coarse, E_cp);
-}
-
-void
 PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
 {
     ExchangeF(PatchType::fine, F_fp);
@@ -718,49 +692,6 @@ PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
     }
 }
 
-// void
-// PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
-// {
-//     const IntVect& ngr = reg.nGrowVect();
-//     const IntVect& ngp = pml.nGrowVect();
-//     const int ncp = pml.nComp();
-//     const auto& period = geom.periodicity();
-//
-//     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-//
-//     if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
-//     {
-//         MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
-//         MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
-//         if (ncp == 3) {
-//             MultiFab::Add(totpmlmf,pml,2,0,1,0);
-//         }
-//
-//         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-//         tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
-//
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//         for (MFIter mfi(reg); mfi.isValid(); ++mfi)
-//         {
-//             const FArrayBox& src = tmpregmf[mfi];
-//             FArrayBox& dst = reg[mfi];
-//             const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox()); //amrex::boxDiff(dst.box(), mfi.validbox());
-//             for (const Box& bx : bl)
-//             {
-//                 dst.copy(src, bx, 0, bx, 0, 1);
-//             }
-//         }
-//     }
-//
-//     // Copy from regular data to PML's first component
-//     // Zero out the second (and third) component
-//     MultiFab::Copy(tmpregmf,reg,0,0,1,0);
-//     tmpregmf.setVal(0.0, 1, ncp-1, 0);
-//     pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
-// }
-
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
@@ -770,7 +701,6 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     const auto& period = geom.periodicity();
 
     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-    // MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
     tmpregmf.setVal(0.0, 0, ncp, ngr);
     tmpregmf.setVal(0.0, 0, ncp, ngr);
     tmpregmf.setVal(0.0, 0, ncp, ngr);
@@ -784,8 +714,6 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
         MultiFab::Add(totpmlmf,pml,2,0,1,0);
     }
     totpmlmf.setVal(0.0, 1, ncp-1, 0);
-    // MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-    // tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
     reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
 
 #ifdef _OPENMP
@@ -796,11 +724,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     {
         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
         tmpregmf.setVal(0.0, 1, ncp-1, 0);
-        // MultiFab::Copy(totpmlmf, pml, 0, 0, ncp, ngp);
-        // amrex::Print() << "======= BEFORE ParallelCopy " << std::endl;
-        totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, IntVect(0), ngp, period); //totpmlmf.ParallelCopy(tmpregmf,0, 0, ncp, IntVect(0), ngp, period);
-        // totpmlmf.setVal(0.0, 1, ncp-1, 0);
-        // amrex::Print() << "======= AFTER ParallelCopy " << std::endl;
+        totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, IntVect(0), ngp, period);
         for (MFIter mfi(pml); mfi.isValid(); ++mfi)
         {
             const FArrayBox& src = totpmlmf[mfi];
@@ -812,14 +736,6 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
             }
         }
     }
-
-    // // Copy from regular data to PML's first component
-    // // Zero out the second (and third) component
-    // MultiFab::Copy(tmpregmf,reg,0,0,1,0);
-    // tmpregmf.setVal(0.0, 1, ncp-1, 0);
-    // pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
-
-
 }
 
 
@@ -865,49 +781,6 @@ PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     // tmpregmf.setVal(0.0, 1, ncp-1, 0);
     // pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
     pml.ParallelCopy(reg, 0, 0, ncp, IntVect(0), ngp, period); // pour J il n'y a qu'une seule composante!!! Et pour B il n'y en a que 2!!! Comment est-ce que ca marche?
-}
-
-void
-PML::CopyPMLinReg(MultiFab& pml, MultiFab& reg, const Geometry& geom)
-{
-    const IntVect& ngr = reg.nGrowVect();
-    const IntVect& ngp = pml.nGrowVect();
-    const int ncp = pml.nComp();
-    const auto& period = geom.periodicity();
-
-    MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-
-    if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
-    {
-        MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
-        MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
-        if (ncp == 3) {
-            MultiFab::Add(totpmlmf,pml,2,0,1,0);
-        }
-
-        MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-        tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(reg); mfi.isValid(); ++mfi)
-        {
-            const FArrayBox& src = tmpregmf[mfi];
-            FArrayBox& dst = reg[mfi];
-            const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-            for (const Box& bx : bl)
-            {
-                dst.copy(src, bx, 0, bx, 0, 1);
-            }
-        }
-    }
-
-    // // Copy from regular data to PML's first component
-    // // Zero out the second (and third) component
-    // MultiFab::Copy(tmpregmf,reg,0,0,1,0);
-    // tmpregmf.setVal(0.0, 1, ncp-1, 0);
-    // pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
 }
 
 void
