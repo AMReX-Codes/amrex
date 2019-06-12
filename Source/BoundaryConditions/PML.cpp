@@ -23,10 +23,19 @@ namespace
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
         int sslo = sigma_star.m_lo;
+        Real cumsum = 0.;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(glo-i);
             sigma[i-slo] = fac*(offset*offset);
+
+        }
+        for (int j = olo; j <= ohi+1; ++j)
+        {
+            int i = -j + (ohi+olo+1);
+            cumsum = cumsum + sigma[i-slo];
+            sigma_cum[i-slo] = cumsum;
+
         }
         for (int i = olo; i <= ohi; ++i)
         {
@@ -43,10 +52,13 @@ namespace
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
         int sslo = sigma_star.m_lo;
+        Real cumsum = 0.;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
+            cumsum = cumsum+sigma[i-slo];
+            sigma_cum[i-slo] = cumsum;
         }
         for (int i = olo; i <= ohi; ++i)
         {
