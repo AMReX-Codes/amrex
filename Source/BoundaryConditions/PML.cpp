@@ -33,7 +33,7 @@ namespace
         for (int j = olo; j <= ohi+1; ++j)
         {
             int i = -j + (ohi+olo+1);
-            cumsum = cumsum + sigma[i-slo];
+            cumsum = cumsum + sigma[i-slo]/(PhysConst::ep0*PhysConst::c);
             sigma_cum[i-slo] = cumsum;
 
         }
@@ -57,7 +57,7 @@ namespace
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            cumsum = cumsum+sigma[i-slo];
+            cumsum = cumsum+sigma[i-slo]/(PhysConst::ep0*PhysConst::c);
             sigma_cum[i-slo] = cumsum;
         }
         for (int i = olo; i <= ohi; ++i)
@@ -298,10 +298,12 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
             if (sigma[idim][i] == 0.0)
             {
                 sigma_fac[idim][i] = 1.0;
+                sigma_cum_fac[idim][i] = 1.0;
             }
             else
             {
                 sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
+                sigma_cum_fac[idim][i] = std::exp(-sigma_cum[idim][i] * *dx);
             }
         }
     }
