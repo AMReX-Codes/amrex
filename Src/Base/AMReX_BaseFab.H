@@ -112,7 +112,7 @@ struct BaseFabData
         : dptr(a_dptr), domain(a_domain), nvar(a_nvar),
           truesize(a_truesize), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
         {}
-    BaseFabData () = default;
+    BaseFabData () noexcept = default;
     T*      dptr;     //!< The data pointer.
     Box     domain;   //!< My index space.
     int     nvar;     //!< Number components.
@@ -195,7 +195,7 @@ public:
     typedef T         value_type;
     typedef Allocator allocator_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
-    BaseFab ();
+    BaseFab () noexcept;
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx,
@@ -217,20 +217,20 @@ public:
     BaseFab (const Box& bx, int ncomp, T* p);
 
     AMREX_GPU_HOST_DEVICE
-    explicit BaseFab (Array4<T> const& a);
+    explicit BaseFab (Array4<T> const& a) noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    explicit BaseFab (Array4<T> const& a, IndexType t);
+    explicit BaseFab (Array4<T> const& a, IndexType t) noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    explicit BaseFab (Array4<T const> const& a);
+    explicit BaseFab (Array4<T const> const& a) noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    explicit BaseFab (Array4<T const> const& a, IndexType t);
+    explicit BaseFab (Array4<T const> const& a, IndexType t) noexcept;
 
     //! The destructor deletes the array memory.
     AMREX_GPU_HOST_DEVICE
-    ~BaseFab ();
+    ~BaseFab () noexcept;
 
     BaseFab (const BaseFab<T,Allocator>& rhs) = delete;
     BaseFab<T,Allocator>& operator= (const BaseFab<T,Allocator>& rhs) = delete;
@@ -1952,7 +1952,7 @@ BaseFab<T,Allocator>::define ()
 }
 
 template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab ()
+BaseFab<T,Allocator>::BaseFab () noexcept
     : BaseFabData<T>{nullptr, Box(), 0, 0L, false, false}
 {}
 
@@ -1991,7 +1991,7 @@ BaseFab<T,Allocator>::BaseFab (const Box& bx, int ncomp, T* p)
 }
 
 template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T> const& a)
+BaseFab<T,Allocator>::BaseFab (Array4<T> const& a) noexcept
     : BaseFabData<T>(a.p,
                      Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
                          IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
@@ -1999,7 +1999,7 @@ BaseFab<T,Allocator>::BaseFab (Array4<T> const& a)
 {}
 
 template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t)
+BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t) noexcept
     : BaseFabData<T>(a.p,
                      Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
                          IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
@@ -2007,7 +2007,7 @@ BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t)
 {}
 
 template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a)
+BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a) noexcept
     : BaseFabData<T>(const_cast<T*>(a.p),
                      Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
                          IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
@@ -2015,7 +2015,7 @@ BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a)
 {}
 
 template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t)
+BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
     : BaseFabData<T>(const_cast<T*>(a.p),
                      Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
                          IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
@@ -2023,7 +2023,7 @@ BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t)
 {}
 
 template <class T, class Allocator>
-BaseFab<T,Allocator>::~BaseFab ()
+BaseFab<T,Allocator>::~BaseFab () noexcept
 {
 #ifndef AMREX_DEVICE_COMPILE
     clear();
