@@ -1548,14 +1548,8 @@ Limitations
 GPU support in AMReX is still under development.  There are some known
 limitations:
 
-- By default, AMReX assumes the MPI library used is GPU aware.  The
-  communication buffers given to MPI functions are allocated in device
-  memory.
-
 - OpenMP is currently not compatible with building AMReX with CUDA. 
   ``USE_CUDA=TRUE`` and ``USE_OMP=TRUE`` will fail to compile.
-
-- CMake is not yet supported for building AMReX GPU support.
 
 - Many multi-level functions in AMReX have not been ported to GPUs.
 
