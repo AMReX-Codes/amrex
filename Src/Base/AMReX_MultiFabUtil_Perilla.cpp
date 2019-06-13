@@ -116,7 +116,7 @@ namespace amrex
 	int lfi = crse_S_fine.IndexArray()[f];
  	const Box& tbx = crse_S_fine[ lfi ].box();
 	
-        amrex_avgdown_with_vol(tbx,crse_S_fine[lfi],S_fine[lfi],fvolume[lfi],
+        amrex_avgdown_with_vol(tbx,crse_S_fine[lfi].array(),S_fine[lfi].array(),fvolume[lfi].array(),
                                0,scomp,ncomp,ratio);
 	//}
 
