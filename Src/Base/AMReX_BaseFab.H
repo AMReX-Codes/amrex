@@ -25,6 +25,7 @@
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_FabAllocator.H>
+#include <AMReX_Utility.H>
 
 #include <AMReX_Gpu.H>
 

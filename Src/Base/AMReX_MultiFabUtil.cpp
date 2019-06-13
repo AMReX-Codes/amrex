@@ -204,19 +204,19 @@ namespace amrex
                          const Box& zbx = mfi.nodaltilebox(2););
             const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
-            AMREX_D_TERM(FArrayBox* fxfab = fc[0]->fabPtr(mfi);,
-                         FArrayBox* fyfab = fc[1]->fabPtr(mfi);,
-                         FArrayBox* fzfab = fc[2]->fabPtr(mfi););
-            FArrayBox const* ccfab = cc.fabPtr(mfi);
+            AMREX_D_TERM(Array4<Real> const& fxarr = fc[0]->array(mfi);,
+                         Array4<Real> const& fyarr = fc[1]->array(mfi);,
+                         Array4<Real> const& fzarr = fc[2]->array(mfi););
+            Array4<Real const> const& ccarr = cc.array(mfi);
             
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
 #if (AMREX_SPACEDIM == 1)
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
+                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr, gd);
 #else
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
-                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab);
+                                   AMREX_D_DECL(fxarr,fyarr,fzarr), ccarr);
 #endif
             });
 	}
