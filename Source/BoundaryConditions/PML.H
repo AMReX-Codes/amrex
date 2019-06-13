@@ -24,6 +24,10 @@
     (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
     (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi
 
+#define WRPX_PML_SIGMAJ_TO_FORTRAN(x)                              \
+    (x).sigma_cum_fac[0].data(), (x).sigma_cum_fac[0].m_lo, (x).sigma_cum_fac[0].m_hi, \
+    (x).sigma_cum_fac[1].data(), (x).sigma_cum_fac[1].m_lo, (x).sigma_cum_fac[1].m_hi
+
 #endif
 
 struct Sigma : amrex::Vector<amrex::Real>
