@@ -114,14 +114,7 @@ endif ()
 # CUDA
 # 
 if (@ENABLE_CUDA@)
-   # Ensure app code uses the same host compiler and flags used to
-   # build amrex.
-   macro (setup_cuda)
-      message(STATUS "Setting CUDA host compiler to @CMAKE_CUDA_HOST_COMPILER@")
-      set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CUDA_HOST_COMPILER@)
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
-      enable_language(CUDA)
-   endmacro ()
+   include(AMReX_SetupCUDA)
 endif ()
 
 
