@@ -98,14 +98,16 @@ void amrex_avg_fc_to_cc (Box const& bx,
 
 AMREX_GPU_HOST_DEVICE
 inline
-void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, FArrayBox& fxfab,
-                         FArrayBox const& ccfab, GeometryData const& gd) noexcept
+void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx,
+                         Array4<Real> const& fx,
+                         Array4<Real const> const& cc,
+                         GeometryData const& gd) noexcept
 {
-    const auto lo = lbound(ndbx);
-    const auto fx = fxfab.view(lo);
-    const auto cc = ccfab.view(lo);
+    const auto ndlo = lbound(ndbx);
+    const auto ndhi = ubound(ndbx);
 
-    const auto xlen = length(ndbx,xbx);
+    const auto xlo = amrex::elemwiseMax(ndlo, lbound(xbx));
+    const auto xhi = amrex::elemwiseMin(ndhi, ubound(xbx));
 
     const int coord_type = gd.Coord();
 
@@ -114,7 +116,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, FArrayBox& fxfab,
     case 0:
     {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < xlen.x; ++i) {
+        for (int i = xlo.x; i <= xhi.x; ++i) {
             fx(i,0,0) = 0.5*(cc(i-1,0,0) + cc(i,0,0));
         }
         break;
@@ -124,9 +126,9 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, FArrayBox& fxfab,
         const Real problo = gd.ProbLo(0);
         const Real dx = gd.CellSize(0);
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < xlen.x; ++i) {
-            Real rlo = problo + (i+lo.x-0.5)*dx;
-            Real rhi = problo + (i+lo.x+0.5)*dx;
+        for (int i = xlo.x; i <= xhi.x; ++i) {
+            Real rlo = problo + (i-0.5)*dx;
+            Real rhi = problo + (i+0.5)*dx;
             Real rcen = 0.5*(rlo+rhi);
             fx(i,0,0) = 0.5*(rlo*cc(i-1,0,0) + rhi*cc(i,0,0)) / rcen;
         }
@@ -137,9 +139,9 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, FArrayBox& fxfab,
         const Real problo = gd.ProbLo(0);
         const Real dx = gd.CellSize(0);
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < xlen.x; ++i) {
-            Real rlo = problo + (i+lo.x-0.5)*dx;
-            Real rhi = problo + (i+lo.x+0.5)*dx;
+        for (int i = xlo.x; i <= xhi.x; ++i) {
+            Real rlo = problo + (i-0.5)*dx;
+            Real rhi = problo + (i+0.5)*dx;
             Real rcen = 0.5*(rlo+rhi);
             fx(i,0,0) = 0.5*(rlo*rlo*cc(i-1,0,0) + rhi*rhi*cc(i,0,0)) / (rcen*rcen);
         }

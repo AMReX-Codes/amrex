@@ -69,26 +69,26 @@ void amrex_avg_fc_to_cc (Box const& bx,
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
-                         FArrayBox& fxfab, FArrayBox& fyfab,
-                         FArrayBox const& ccfab) noexcept
+                         Array4<Real> const& fx, Array4<Real> const& fy,
+                         Array4<Real const> const& cc) noexcept
 {
-    const auto lo = lbound(ndbx);
-    const auto fx = fxfab.view(lo);
-    const auto fy = fyfab.view(lo);
-    const auto cc = ccfab.view(lo);
+    const auto ndlo = lbound(ndbx);
+    const auto ndhi = ubound(ndbx);
+    const auto xlo = amrex::elemwiseMax(ndlo, lbound(xbx));
+    const auto ylo = amrex::elemwiseMax(ndlo, lbound(ybx));
+    const auto xhi = amrex::elemwiseMin(ndhi, ubound(xbx));
+    const auto yhi = amrex::elemwiseMin(ndhi, ubound(ybx));
 
-    const auto xlen = length(ndbx,xbx);
-    for     (int j = 0; j < xlen.y; ++j) {
+    for     (int j = xlo.y; j <= xhi.y; ++j) {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < xlen.x; ++i) {
+        for (int i = xlo.x; i <= xhi.x; ++i) {
             fx(i,j,0) = 0.5*(cc(i-1,j,0) + cc(i,j,0));
         }
     }
 
-    const auto ylen = length(ndbx,ybx);
-    for     (int j = 0; j < ylen.y; ++j) {
+    for     (int j = ylo.y; j <= yhi.y; ++j) {
         AMREX_PRAGMA_SIMD
-        for (int i = 0; i < ylen.x; ++i) {
+        for (int i = ylo.x; i <= yhi.x; ++i) {
             fy(i,j,0) = 0.5*(cc(i,j-1,0) + cc(i,j,0));
         }
     }
