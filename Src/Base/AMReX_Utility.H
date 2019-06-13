@@ -358,6 +358,16 @@ namespace amrex
     {
         return max(max(a,b),c...);
     }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 elemwiseMin (Dim3 const& a, Dim3 const& b) noexcept {
+        return Dim3{amrex::min(a.x,b.x),amrex::min(a.y,b.y),amrex::min(a.z,b.z)};
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 elemwiseMax (Dim3 const& a, Dim3 const& b) noexcept {
+        return Dim3{amrex::max(a.x,b.x),amrex::max(a.y,b.y),amrex::max(a.z,b.z)};
+    }
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
