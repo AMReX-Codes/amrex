@@ -1144,11 +1144,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
             thrust::tuple<int, int>(0, 0), functors::tupleAdd());
 
-        if (m_grids_tmp[old_np-1] == gid) {
-            new_np = m_lo[old_np-1] + 1;
-        } else {
-            new_np = m_lo[old_np-1];
-        }
+        int last_gid_host, last_lo_host;
+        Gpu::dtoh_memcpy(&last_gid_host, m_grids_tmp.data() + old_np - 1, sizeof(int));
+        Gpu::dtoh_memcpy(&last_lo_host, m_lo.data() + old_np - 1, sizeof(int));
+        new_np = last_gid_host == gid ? last_lo_host : last_lo_host + 1;
             
         num_moved = old_np - new_np;
 
