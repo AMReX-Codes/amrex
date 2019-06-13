@@ -41,7 +41,7 @@ namespace amrex
 	    {
 	      const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
 	      
-              amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
+              amrex_avgdown(tbx,crse_S_fine[lfi].array(),S_fine[lfi].array(),0,scomp,ncomp,ratio);
 	    }
 	RG_fine->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
 	
