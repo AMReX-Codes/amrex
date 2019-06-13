@@ -629,9 +629,10 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
 |                   | Description                                                           |   Type      | Default     |
 +===================+=======================================================================+=============+=============+
 | aggregation_type  | How to create virtual particles from finer levels. The options are:   | String      | "None"      |
-|                   |     "None" - don't do any aggregation.                                |             |             |
-|                   |     "Cell" - when creating virtuals, combine all particles that are   |             |             |
-|                   |              in the same cell.                                        |             |             |
+|                   |                                                                       |             |             |
+|                   | "None" - don't do any aggregation.                                    |             |             |
+|                   | "Cell" - when creating virtuals, combine all particles that are       |             |             |
+|                   | in the same cell.                                                     |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 | aggregation_buffer| If aggregation on, the number of cells around the coarse/fine         | Int         | 2           |
 |                   | boundary in which no aggregation should be performed.                 |             |             |
