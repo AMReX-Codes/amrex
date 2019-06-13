@@ -1526,7 +1526,8 @@ Inputs Parameters
 
 .. _sec:gpu:parameters:
 
-The following inputs parameters control the behaviour of amrex when running on GPUs.
+The following inputs parameters control the behaviour of amrex when running on GPUs. They should be prefaced
+by "amrex" in your :cpp:`inputs` file.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 |                   | Description                                                           |   Type      | Default     |
