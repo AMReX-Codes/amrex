@@ -128,7 +128,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 #if (AMREX_SPACEDIM == 3)
             amrex_avgdown(tbx, crse_fab, fine_fab, 0, scomp, ncomp, ratio);
 #else
-            amrex_avgdown_with_vol(tbx, crse_fab, fine_fab, vol_fine[mfi],
+            amrex_avgdown_with_vol(tbx, crse_fab.array(), fine_fab.array(), vol_fine[mfi].array(),
                                    0, scomp, ncomp, ratio);
 #endif
         }
@@ -427,7 +427,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             if (fabtyp == FabType::covered) {
                 divufab.setVal(0.0, bx, 0, 1);
             } else if (fabtyp == FabType::regular) {
-                amrex_compute_divergence(bx,divufab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
+                amrex_compute_divergence(bx,divufab.array(),AMREX_D_DECL(ufab.array(),vfab.array(),wfab.array()),dxinv);
             } else {
                 amrex_compute_eb_divergence(BL_TO_FORTRAN_BOX(bx),
                                             BL_TO_FORTRAN_ANYD(divufab),

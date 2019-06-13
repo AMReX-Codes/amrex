@@ -272,13 +272,13 @@ namespace amrex
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& bx = mfi.tilebox();
-            FArrayBox* crsefab = crse_S_fine.fabPtr(mfi);
-            FArrayBox const* finefab = S_fine.fabPtr(mfi);
-            FArrayBox const* finevolfab = fvolume.fabPtr(mfi);
+            Array4<Real> const& crsearr = crse_S_fine.array(mfi);
+            Array4<Real const> const& finearr = S_fine.array(mfi);
+            Array4<Real const> const& finevolarr = fvolume.array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                amrex_avgdown_with_vol(tbx,*crsefab,*finefab,*finevolfab,
+                amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
                                        0,scomp,ncomp,ratio);
             });
 	}
@@ -706,14 +706,14 @@ namespace amrex
         for (MFIter mfi(divu,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            FArrayBox* divufab = divu.fabPtr(mfi);
-            AMREX_D_TERM(FArrayBox const* ufab = umac[0]->fabPtr(mfi);,
-                         FArrayBox const* vfab = umac[1]->fabPtr(mfi);,
-                         FArrayBox const* wfab = umac[2]->fabPtr(mfi););
+            Array4<Real> const& divuarr = divu.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& uarr = umac[0]->array(mfi);,
+                         Array4<Real const> const& varr = umac[1]->array(mfi);,
+                         Array4<Real const> const& warr = umac[2]->array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
-                amrex_compute_divergence(tbx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+                amrex_compute_divergence(tbx,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
             });
         }
     }
