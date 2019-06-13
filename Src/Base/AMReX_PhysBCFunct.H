@@ -157,7 +157,7 @@ public:
             Vector<BCRec> bcrs(ncomp);
             for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
-                FArrayBox* dest = mf.fabPtr(mfi);
+                FArrayBox& dest = mf[mfi];
                 const Box& bx = mfi.fabbox();
 
                 //! if there are cells not in the valid + periodic grown box
@@ -169,7 +169,7 @@ public:
                     amrex::setBC(bx, domain, bccomp, 0, ncomp, m_bcr, bcrs);
 
                     //! Note that we pass 0 as starting component of bcrs.
-                    m_f(bx, *dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
+                    m_f(bx, dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
                 }
             }
         }
@@ -189,12 +189,6 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
                                 const Vector<BCRec>& bcr, const int bcomp,
                                 const int orig_comp)
 {
-    Array4<Real> const& fab = dest.array();
-    const auto geomdata = geom.data();
-
-    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
-    BCRec* bcr_p = bcr_aa.data();
-
     const IntVect& len = bx.length();
 
     Box gdomain = geom.Domain();
@@ -205,6 +199,12 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
     }
 
     if (gdomain.contains(bx)) return;
+
+    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    BCRec* bcr_p = bcr_aa.data();
+
+    Array4<Real> const& fab = dest.array();
+    const auto geomdata = geom.data();
 
     const auto f_user = m_user_f;
 
