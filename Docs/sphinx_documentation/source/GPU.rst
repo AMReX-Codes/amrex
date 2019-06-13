@@ -1521,7 +1521,24 @@ AMReX for GPUs:
 
 .. ===================================================================
 
+Inputs Parameters
+=================
 
+.. _sec:gpu:parameters:
+
+The following inputs parameters control the behaviour of amrex when running on GPUs.
+
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+|                   | Description                                                           |   Type      | Default     |
++===================+=======================================================================+=============+=============+
+| use_gpu_aware_mpi | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False       |
+|                   | If true, the buffers will use device memory. If false, they will use  |             |             |
+|                   | pinned memory. In practice, we find it is usually not worth it to use |             |             |
+|                   | GPU aware MPI.                                                        |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+
+
+   
 Limitations
 ===========
 

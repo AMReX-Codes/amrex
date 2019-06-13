@@ -577,6 +577,69 @@ The binary file format is currently readable by :cpp:`yt`. In additional, there 
 ``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a 
 format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
+Inputs parameters
+=================
+
+.. _sec:Particles:parameters:
+
+There are several runtime parameters users can set in their :cpp:`inputs` files that control the
+behavior of the AMReX particle classes. These are summarized below. They should be preceded by
+"particles" in your inputs deck.  
+
+The first set of parameters concerns the tiling capability of the ParticleContainer. If you are seeing poor performance
+with OpenMP, the first thing to look at is whether there are enough tiles available for each thread to work on.
+
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+|                   | Description                                                           |   Type      | Default     |
++===================+=======================================================================+=============+=============+
+| do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | False       |
+|                   | and off when running on GPUs.                                         |             |             | 
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+| tile_size         | If tiling is on, the maximum tile_size to in each direction           | Ints        | 1024000,8,8 |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+
+The next set concerns runtime parameters that control the particle IO. Parallel file systems tend not to like it when
+too many MPI tasks touch the disk at once. Additionally, performance can degrade if all MPI tasks try writing to the
+same file, or if too many small files are created. In general, the "correct" values of these parameters will depend on the
+size of your problem (i.e., number of boxes, number of MPI tasks), as well as the system you are using. If you are experiencing
+problems with particle IO, you could try varying some / all of these parameters. 
+
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+|                   | Description                                                           |   Type      | Default     |
++===================+=======================================================================+=============+=============+
+| particles_nfiles  | How many files to use when writing particle data to plt directories   | Int         | 1024        |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+| nreaders          | How many MPI tasks to use as readers when initializing particles      | Ints        | 64          |
+|                   | from binary files.                                                    |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+| nparts_per_read   | How many particles each task should read from said files before       | Ints        | 100000      |
+|                   | calling Redistribute                                                  |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+| datadigits_read   | This for backwards compatibility, don't use unless you need to read   | Int         | 5           |
+|                   | and old (pre mid 2017) AMReX dataset.                                 |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+| use_prepost       | This is an optimization for large particle datasets that groups MPI   | Bool        | False       |
+|                   | calls needed during the IO together. Try it seeing poor IO speeds     |             |             |
+|                   | on large problems.                                                    |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+
+The following runtime parameters affect the behavior of virtual particles in Nyx.
+
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+|                   | Description                                                           |   Type      | Default     |
++===================+=======================================================================+=============+=============+
+| aggregation_type  | How to create virtual particles from finer levels. The options are:   | String      | "None"      |
+|                   |     "None" - don't do any aggregation.                                |             |             |
+|                   |     "Cell" - when creating virtuals, combine all particles that are   |             |             |
+|                   |              in the same cell.                                        |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+| aggregation_buffer| If aggregation on, the number of cells around the coarse/fine         | Int         | 2           |
+|                   | boundary in which no aggregation should be performed.                 |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+
+Finally, the `amrex.use_gpu_aware_mpi` switch can also affect the behavior of the particle communication routines when
+running on GPU platforms like Summit. We recommend leaving it off.
+
 .. [1]
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
