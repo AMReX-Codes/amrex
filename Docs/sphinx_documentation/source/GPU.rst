@@ -217,15 +217,10 @@ the following code into the appropriate CMakeLists.txt file:
    # Add custom CUDA flags
    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}  <your-CUDA-flags>")
 
-   # Setup CUDA environment in host project
-   setup_cuda()
-
 
 The snippet of code above will find a CUDA-enabled installation of AMReX and setup
-the CUDA compilation of the host project via the AMReX-provided macro ``setup_cuda()``.
-The host project should **not call directly** ``enable_language(CUDA)`` and should add
-custom CUDA flags **before** calling ``setup_cuda()``.
-
+the CUDA support in the host project CMake via the AMReX-provided macro ``setup_cuda()``.
+The host project should **not call directly** ``enable_language(CUDA)``.
 
 
 
