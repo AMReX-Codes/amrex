@@ -322,12 +322,12 @@ namespace amrex
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& bx = mfi.growntilebox(nGrow);
-            FArrayBox* crsefab = crse_S_fine.fabPtr(mfi);
-            FArrayBox const* finefab = S_fine.fabPtr(mfi);
+            Array4<Real> const& crsearr = crse_S_fine.array(mfi);
+            Array4<Real const> const& finearr = S_fine.array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-                amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
             });
         }
 
@@ -359,18 +359,18 @@ namespace amrex
             {
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& bx = mfi.tilebox();
-                FArrayBox* crsefab = S_crse.fabPtr(mfi);
-                FArrayBox const* finefab = S_fine.fabPtr(mfi);
+                Array4<Real> const& crsearr = S_crse.array(mfi);
+                Array4<Real const> const& finearr = S_fine.array(mfi);
 
                 if (is_cell_centered) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
-                        amrex_avgdown(tbx,*crsefab,*finefab,scomp,scomp,ncomp,ratio);
+                        amrex_avgdown(tbx,crsearr,finearr,scomp,scomp,ncomp,ratio);
                     });
                 } else {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
-                        amrex_avgdown_nodes(tbx,*crsefab,*finefab,scomp,scomp,ncomp,ratio);
+                        amrex_avgdown_nodes(tbx,crsearr,finearr,scomp,scomp,ncomp,ratio);
                     });
                 }
             }
@@ -386,8 +386,8 @@ namespace amrex
             {
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& bx = mfi.tilebox();
-                FArrayBox* crsefab = crse_S_fine.fabPtr(mfi);
-                FArrayBox const* finefab = S_fine.fabPtr(mfi);
+                Array4<Real> const& crsearr = crse_S_fine.array(mfi);
+                Array4<Real const> const& finearr = S_fine.array(mfi);
 
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
@@ -396,12 +396,12 @@ namespace amrex
                 if (is_cell_centered) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
-                        amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                        amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
                     });
                 } else {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
-                        amrex_avgdown_nodes(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                        amrex_avgdown_nodes(tbx,crsearr,finearr,0,scomp,ncomp,ratio);
                     });
                 }
             }
@@ -471,12 +471,12 @@ namespace amrex
             for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
-                FArrayBox* crsefab = crse.fabPtr(mfi);
-                FArrayBox const* finefab = fine.fabPtr(mfi);
+                Array4<Real> const& crsearr = crse.array(mfi);
+                Array4<Real const> const& finearr = fine.array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown_faces(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, dir);
+                    amrex_avgdown_faces(tbx, crsearr, finearr, 0, 0, ncomp, ratio, dir);
                 });
             }
         }
@@ -534,12 +534,12 @@ namespace amrex
             for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
-                FArrayBox* crsefab = crse.fabPtr(mfi);
-                FArrayBox const* finefab = fine.fabPtr(mfi);
+                Array4<Real> const& crsearr = crse.array(mfi);
+                Array4<Real const> const& finearr = fine.array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown_edges(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, dir);
+                    amrex_avgdown_edges(tbx, crsearr, finearr, 0, 0, ncomp, ratio, dir);
                 });
             }
         }
@@ -570,12 +570,12 @@ namespace amrex
             for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
-                FArrayBox* crsefab = crse.fabPtr(mfi);
-                FArrayBox const* finefab = fine.fabPtr(mfi);
+                Array4<Real> const& crsearr = crse.array(mfi);
+                Array4<Real const> const& finearr = fine.array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown_nodes(tbx,*crsefab,*finefab,0,0,ncomp,ratio);
+                    amrex_avgdown_nodes(tbx,crsearr,finearr,0,0,ncomp,ratio);
                 });
             }
         }
@@ -637,8 +637,8 @@ namespace amrex
         {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
-            FArrayBox* slice_fab = slice->fabPtr(mfi);
-            FArrayBox const* full_fab = cc.fabPtr(full_gid);
+            Array4<Real> const& slice_arr = slice->array(mfi);
+            Array4<Real const> const& full_arr = cc.array(full_gid);
 
             const Box& tile_box  = mfi.tilebox();
 
@@ -646,7 +646,7 @@ namespace amrex
             {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
                 {
-                    amrex_fill_slice_interp(thread_box, *slice_fab, *full_fab,
+                    amrex_fill_slice_interp(thread_box, slice_arr, full_arr,
                                             0, start_comp, ncomp,
                                             dir, coord, geomdata);
                 });
@@ -655,7 +655,9 @@ namespace amrex
             {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
                 {
-                    slice_fab->copy(*full_fab, thread_box, start_comp, thread_box, 0, ncomp);
+                    const FArrayBox full_fab(full_arr);
+                    FArrayBox slice_fab(slice_arr);
+                    slice_fab.copy(full_fab, thread_box, start_comp, thread_box, 0, ncomp);
                 });
             }
         }

@@ -126,7 +126,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
         if (typ == FabType::regular || typ == FabType::covered)
         {
 #if (AMREX_SPACEDIM == 3)
-            amrex_avgdown(tbx, crse_fab, fine_fab, 0, scomp, ncomp, ratio);
+            amrex_avgdown(tbx, crse_fab.array(), fine_fab.array(), 0, scomp, ncomp, ratio);
 #else
             amrex_avgdown_with_vol(tbx, crse_fab.array(), fine_fab.array(), vol_fine[mfi].array(),
                                    0, scomp, ncomp, ratio);
@@ -195,7 +195,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 
                 if (typ == FabType::regular || typ == FabType::covered)
                 {
-                    amrex_avgdown(tbx,crse_fab,fine_fab,scomp,scomp,ncomp,ratio);
+                    amrex_avgdown(tbx,crse_fab.array(),fine_fab.array(),scomp,scomp,ncomp,ratio);
                 }
                 else
                 {
@@ -226,7 +226,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                 
                 if (typ == FabType::regular || typ == FabType::covered)
                 {
-                    amrex_avgdown(tbx,crse_fab,fine_fab,0,scomp,ncomp,ratio);
+                    amrex_avgdown(tbx,crse_fab.array(),fine_fab.array(),0,scomp,ncomp,ratio);
                 }
                 else if (typ == FabType::singlevalued)
                 {
@@ -285,7 +285,7 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
                
                     if(typ == FabType::regular || typ == FabType::covered) 
                     {    
-                        amrex_avgdown_faces(tbx, (*crse[n])[mfi], (*fine[n])[mfi], 0, 0, ncomp, ratio, n);
+                        amrex_avgdown_faces(tbx, (*crse[n])[mfi].array(), (*fine[n])[mfi].array(), 0, 0, ncomp, ratio, n);
                     }
                     else
                     {
