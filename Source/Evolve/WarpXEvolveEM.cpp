@@ -318,6 +318,7 @@ WarpX::OneStep_nosub (Real cur_time)
     if (do_pml && do_pml_j_damping){
         // damp current in pmls
         amrex::Print() << "===== DAMPING IN PMLs =====" << std::endl;
+        DampJPML();
     }
 
     EvolveF(0.5*dt[0], DtType::FirstHalf);
