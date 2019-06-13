@@ -303,7 +303,7 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
             else
             {
                 sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
-                sigma_cum_fac[idim][i] = std::exp(-sigma_cum[idim][i] * *dx);
+                sigma_cum_fac[idim][i] = std::exp(-sigma_cum[idim][i]*dx[idim]);
             }
         }
     }
