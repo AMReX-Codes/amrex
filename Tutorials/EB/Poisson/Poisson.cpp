@@ -11,7 +11,8 @@ void InitData (MultiFab& State)
     {
         const Box& bx = mfi.growntilebox();
         const Array4<Real>& q = State.array(mfi);
-        amrex::ParallelFor(bx, [=] (int i, int j, int k)
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (i==70 and j==70 and k==0) {
                 q(i,j,k) = 1.0;
