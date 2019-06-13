@@ -222,7 +222,13 @@ public:
     explicit FArrayBox (Array4<Real> const& a) : BaseFab<Real>(a) {}
 
     AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real> const& a, IndexType t) : BaseFab<Real>(a,t) {}
+
+    AMREX_GPU_HOST_DEVICE
     explicit FArrayBox (Array4<Real const> const& a) : BaseFab<Real>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit FArrayBox (Array4<Real const> const& a, IndexType t) : BaseFab<Real>(a,t) {}
 
     //!  The destructor.
     AMREX_GPU_HOST_DEVICE

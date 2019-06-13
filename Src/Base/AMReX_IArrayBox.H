@@ -53,7 +53,13 @@ public:
     explicit IArrayBox (Array4<int> const& a) : BaseFab<int>(a) {}
 
     AMREX_GPU_HOST_DEVICE
+    explicit IArrayBox (Array4<int> const& a, IndexType t) : BaseFab<int>(a,t) {}
+
+    AMREX_GPU_HOST_DEVICE
     explicit IArrayBox (Array4<int const> const& a) : BaseFab<int>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit IArrayBox (Array4<int const> const& a, IndexType t) : BaseFab<int>(a,t) {}
 
     //!  The destructor.
     AMREX_GPU_HOST_DEVICE
