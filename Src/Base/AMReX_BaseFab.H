@@ -219,7 +219,13 @@ public:
     explicit BaseFab (Array4<T> const& a);
 
     AMREX_GPU_HOST_DEVICE
+    explicit BaseFab (Array4<T> const& a, IndexType t);
+
+    AMREX_GPU_HOST_DEVICE
     explicit BaseFab (Array4<T const> const& a);
+
+    AMREX_GPU_HOST_DEVICE
+    explicit BaseFab (Array4<T const> const& a, IndexType t);
 
     //! The destructor deletes the array memory.
     AMREX_GPU_HOST_DEVICE
@@ -1992,10 +1998,26 @@ BaseFab<T,Allocator>::BaseFab (Array4<T> const& a)
 {}
 
 template<class T, class Allocator>
+BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t)
+    : BaseFabData<T>(a.p,
+                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+                     a.ncomp, a.ncomp*a.nstride, false, false)
+{}
+
+template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a)
     : BaseFabData<T>(const_cast<T*>(a.p),
                      Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
                          IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+                     a.ncomp, a.ncomp*a.nstride, false, false)
+{}
+
+template<class T, class Allocator>
+BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t)
+    : BaseFabData<T>(const_cast<T*>(a.p),
+                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
                      a.ncomp, a.ncomp*a.nstride, false, false)
 {}
 
