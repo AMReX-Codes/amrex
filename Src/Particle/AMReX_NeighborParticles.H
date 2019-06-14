@@ -26,7 +26,8 @@ template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
-
+    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
+    
     struct MaskComps
     {
         enum {
@@ -197,6 +198,12 @@ public:
     void fillNeighbors();
 
     ///
+    /// This does an "inverse" fillNeighbors operation, meaning that it adds
+    /// data from the ghost particles to the corresponding real ones.
+    ///
+    void sumNeighbors(int scomp, int ncomp);
+    
+    ///
     /// This updates the neighbors with their current particle data.
     ///
     void updateNeighbors();
@@ -270,10 +277,12 @@ public:
     void printNeighborListCPU(const std::string& prefix);
     
     void fillNeighborsCPU ();
+
+    void sumNeighborsCPU(int scomp, int ncomp);
     
     void updateNeighborsCPU (bool reuse_rcv_counts=true);
     
-    void clearNeighborsCPU ();
+    void clearNeighborsCPU ();    
 
 #endif
 
