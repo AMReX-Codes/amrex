@@ -48,12 +48,23 @@ public:
 
     /**
     * \brief construct from input stream
-    *
-    * \param is
     */
     explicit Mask (std::istream& is);
 
-    ~Mask () = default;
+    AMREX_GPU_HOST_DEVICE
+    explicit Mask (Array4<int> const& a) noexcept : BaseFab<int>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit Mask (Array4<int> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit Mask (Array4<int const> const& a) noexcept : BaseFab<int>(a) {}
+
+    AMREX_GPU_HOST_DEVICE
+    explicit Mask (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
+
+    AMREX_GPU_HOST_DEVICE
+    ~Mask () noexcept {};
 
     Mask (Mask&& rhs) noexcept = default;
 
