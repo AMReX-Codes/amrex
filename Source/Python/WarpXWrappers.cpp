@@ -20,11 +20,11 @@ namespace
         *shapes = (int*) malloc(shapesize * (*num_boxes) * sizeof(int));
         double** data = (double**) malloc((*num_boxes) * sizeof(double*));
         
-        int i = 0;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
+        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi ) {
+            int i = mfi.LocalIndex();
             data[i] = (double*) mf[mfi].dataPtr();
             for (int j = 0; j < AMREX_SPACEDIM; ++j) {
                 (*shapes)[shapesize*i+j] = mf[mfi].box().length(j); 

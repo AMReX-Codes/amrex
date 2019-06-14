@@ -1,12 +1,20 @@
 # --- This defines the wrapper functions that directly call the underlying compiled routines
 import os
 import sys
+import atexit
 import ctypes
 from ctypes.util import find_library as _find_library
 import numpy as np
 from numpy.ctypeslib import ndpointer as _ndpointer
 
 from .Geometry import geometry
+
+try:
+    # --- If mpi4py is going to be used, this needs to be imported
+    # --- before libwarpx is loaded (though don't know why)
+    from mpi4py import MPI
+except ImportError:
+    pass
 
 # --- Is there a better way of handling constants?
 clight = 2.99792458e+8 # m/s
@@ -184,6 +192,7 @@ def initialize(argv=None):
     libwarpx.warpx_init()
 
 
+@atexit.register
 def finalize(finalize_mpi=1):
     '''
 
@@ -618,7 +627,7 @@ def _get_mesh_field_list(warpx_func, level, direction, include_ghosts):
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
+            grid_data.append(arr[tuple([slice(ng, -ng) for _ in range(dim)])])
 
     _libc.free(shapes)
     _libc.free(data)
