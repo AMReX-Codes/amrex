@@ -1521,7 +1521,25 @@ AMReX for GPUs:
 
 .. ===================================================================
 
+Inputs Parameters
+=================
 
+.. _sec:gpu:parameters:
+
+The following inputs parameters control the behaviour of amrex when running on GPUs. They should be prefaced
+by "amrex" in your :cpp:`inputs` file.
+
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+|                   | Description                                                           |   Type      | Default     |
++===================+=======================================================================+=============+=============+
+| use_gpu_aware_mpi | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False       |
+|                   | If true, the buffers will use device memory. If false, they will use  |             |             |
+|                   | pinned memory. In practice, we find it is usually not worth it to use |             |             |
+|                   | GPU aware MPI.                                                        |             |             |
++-------------------+-----------------------------------------------------------------------+-------------+-------------+
+
+
+   
 Limitations
 ===========
 
@@ -1530,14 +1548,8 @@ Limitations
 GPU support in AMReX is still under development.  There are some known
 limitations:
 
-- By default, AMReX assumes the MPI library used is GPU aware.  The
-  communication buffers given to MPI functions are allocated in device
-  memory.
-
 - OpenMP is currently not compatible with building AMReX with CUDA. 
   ``USE_CUDA=TRUE`` and ``USE_OMP=TRUE`` will fail to compile.
-
-- CMake is not yet supported for building AMReX GPU support.
 
 - Many multi-level functions in AMReX have not been ported to GPUs.
 
