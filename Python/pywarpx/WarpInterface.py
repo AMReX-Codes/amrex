@@ -128,7 +128,7 @@ class _WarpX_YEEFIELDtype(object):
         return self._Jz_wrap[...]
 
 
-class WARPX_EM3D(warp.EM3D):
+class WarpX_EM3D(warp.EM3D):
     """Mirrors part of the Warp EM3D class, mostly diagnostics.
     """
     def __init__(self, picmi_grid, level=0):
