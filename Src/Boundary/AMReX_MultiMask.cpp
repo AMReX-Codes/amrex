@@ -46,7 +46,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
             Array4<int> const& m_arr = m_fa.array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( face_box, tbx,
             {
-                Mask m(a_arr, tbx.ixType());
+                Mask m(m_arr, tbx.ixType());
                 m.setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
                 const Box& dbox = geomdomain & tbx;
                 if (dbox.ok()) {
