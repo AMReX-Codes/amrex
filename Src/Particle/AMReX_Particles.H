@@ -306,8 +306,10 @@ public:
 
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
-    void reserveData();
-    void resizeData();
+          ParGDBBase* GetParGDB ()       { return m_gdb; }
+    
+    void reserveData ();
+    void resizeData ();
 
     void RedefineDummyMF (int lev);
 
