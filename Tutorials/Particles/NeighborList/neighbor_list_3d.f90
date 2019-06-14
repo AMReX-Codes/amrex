@@ -11,6 +11,7 @@
        real(amrex_particle_real) :: pos(3)     !< Position
        real(amrex_particle_real) :: vel(3)     !< Particle velocity
        real(amrex_particle_real) :: acc(3)     !< Particle acceleration
+       real(amrex_particle_real) :: test       !< test comp
        integer(c_int)            :: id         !< Particle id
        integer(c_int)            :: cpu        !< Particle cpu
     end type particle_t
@@ -19,6 +20,7 @@
        real(amrex_particle_real) :: pos(3)     !< Position
        real(amrex_particle_real) :: vel(3)     !< Particle velocity
        real(amrex_particle_real) :: acc(3)     !< Particle acceleration
+       real(amrex_particle_real) :: test       !< test comp
        integer(c_int)            :: id         !< Particle id
        integer(c_int)            :: cpu        !< Particle cpu
     end type neighbor_t
