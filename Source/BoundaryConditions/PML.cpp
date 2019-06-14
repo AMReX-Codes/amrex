@@ -33,7 +33,7 @@ namespace
         for (int j = olo; j <= ohi+1; ++j)
         {
             int i = -j + (ohi+olo+1);
-            cumsum = cumsum + sigma[i-slo]/(PhysConst::ep0*PhysConst::c);
+            cumsum = cumsum + sigma[i-slo]/PhysConst::c;
             sigma_cum[i-slo] = cumsum;
 
         }
@@ -57,7 +57,7 @@ namespace
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            cumsum = cumsum+sigma[i-slo]/(PhysConst::ep0*PhysConst::c);
+            cumsum = cumsum+sigma[i-slo]/PhysConst::c;
             sigma_cum[i-slo] = cumsum;
         }
         for (int i = olo; i <= ohi; ++i)
@@ -67,13 +67,14 @@ namespace
         }
     }
 
-    static void FillZero (int idim, Sigma& sigma, Sigma& sigma_star, const Box& overlap)
+    static void FillZero (int idim, Sigma& sigma, Sigma& sigma_cum, Sigma& sigma_star, const Box& overlap)
     {
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
         int sslo = sigma_star.m_lo;
         std::fill(sigma.begin()+(olo-slo), sigma.begin()+(ohi+2-slo), 0.0);
+        std::fill(sigma_cum.begin()+(olo-slo), sigma_cum.begin()+(ohi+2-slo), 0.0);
         std::fill(sigma_star.begin()+(olo-sslo), sigma_star.begin()+(ohi+1-sslo), 0.0);
     }
 }
@@ -198,7 +199,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& grid_box = grids[gid];
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
             if (overlap.ok()) {
-                FillZero(idim, sigma[idim], sigma_star[idim], overlap);
+                FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_side_edges, how did this happen?\n");
             }
@@ -235,7 +236,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
 #endif
             if (overlap.ok()) {
-                FillZero(idim, sigma[idim], sigma_star[idim], overlap);
+                FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
             }
@@ -291,6 +292,7 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 void
 SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 {
+    // amrex::Print()<< "===== computing PML-E factors ====="<< std::endl;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         for (int i = 0, N = sigma[idim].size(); i < N; ++i)
@@ -304,6 +306,11 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
             {
                 sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
                 sigma_cum_fac[idim][i] = std::exp(-sigma_cum[idim][i]*dx[idim]);
+                // amrex::Print()<< "sigma["<<idim<<"]["<<i<<"] = "<<sigma[idim][i]<< std::endl;
+                // amrex::Print()<< "sigma_cum["<<idim<<"]["<<i<<"] = "<<sigma_cum[idim][i]<< std::endl;
+                // amrex::Print()<< "sigma_cum*dx = "<<sigma_cum[idim][i]*dx[idim]<< std::endl;
+                // amrex::Print()<< "sigma_cum_fac["<<idim<<"]["<<i<<"] = "<<sigma_cum_fac[idim][i]<< std::endl;
+
             }
         }
     }
@@ -544,14 +551,14 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     BoxArray ba(bl);
     ba.removeOverlap(false);
 
-    BoxList bl_2 = BoxList(ba);
-
-    amrex::Print() << "Printing PML boxes AFTER cleaning" << std::endl;
-    amrex::Print() << "[" << std::endl;
-    for (const Box& b: bl_2) {
-      amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
-    }
-    amrex::Print()<< "];" << std::endl;
+    // BoxList bl_2 = BoxList(ba);
+    //
+    // amrex::Print() << "Printing PML boxes AFTER cleaning" << std::endl;
+    // amrex::Print() << "[" << std::endl;
+    // for (const Box& b: bl_2) {
+    //   amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
+    // }
+    // amrex::Print()<< "];" << std::endl;
 
     return ba;
 }
@@ -813,7 +820,8 @@ PML::CopyPMLsInReg (MultiFab& pml, MultiFab& reg, const Geometry& geom)
   const IntVect& ngp = pml.nGrowVect();
   const auto& period = geom.periodicity();
 
-  reg.ParallelCopy(pml, 0, 0, 1, IntVect(0), ngr, period);
+  // reg.ParallelCopy(pml, 0, 0, 1, IntVect(0), ngr, period);
+  reg.ParallelCopy(pml, 0, 0, 1, ngp, ngr, period);
 
 }
 

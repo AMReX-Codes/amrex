@@ -913,19 +913,19 @@ contains
 
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * sigjz(k)
+          jx(i,k) = jx(i,k) * sigjx(i) !sigjz(k)
        end do
     end do
 
     do    k = tjylo(2), tjyhi(2)
        do i = tjylo(1), tjyhi(1)
-          jy(i,k) = jy(i,k) * sigjz(k)
+          jy(i,k) = jy(i,k) * sigjx(i) !sigjz(k)
        end do
     end do
 
     do    k = tjzlo(2), tjzhi(2)
        do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * sigjx(i)
+          jz(i,k) = jz(i,k) * sigjz(k) !sigjx(k)
        end do
     end do
 

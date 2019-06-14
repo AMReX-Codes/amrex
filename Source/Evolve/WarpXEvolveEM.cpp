@@ -318,7 +318,11 @@ WarpX::OneStep_nosub (Real cur_time)
     if (do_pml && do_pml_j_damping){
         // damp current in pmls
         // amrex::Print() << "===== DAMPING IN PMLs =====" << std::endl;
+
+        // amrex::Print()<< "===== DAMPING J ====="<< std::endl;
+        // amrex::Print()<< "[AV DAMP]  max_Jx_pml = "<< pml[0]->Getj_fp()[0]->min(0) << std::endl;
         DampJPML();
+        // amrex::Print()<< "[AP DAMP]  max_Jx_pml = "<< pml[0]->Getj_fp()[0]->min(0) << std::endl;
     }
 
     EvolveF(0.5*dt[0], DtType::FirstHalf);
@@ -336,12 +340,17 @@ WarpX::OneStep_nosub (Real cur_time)
         for (int lev = 0; lev <= finest_level; ++lev)
         {
             if (pml[lev]->ok()){
+                // amrex::Print()<< "[AV COPY]  max_Jx     = "<< current_fp[lev][0].get()->min(0) << std::endl;
+                // amrex::Print()<< "[AV COPY]  max_Jx_pml = "<< pml[lev]->Getj_fp()[0]->min(0) << std::endl;
+                // amrex::Print()<< "===== Copy J from PML to Reg ====="<< std::endl;
                 pml[lev]->CopyJinReg({ current_fp[lev][0].get(),
                                       current_fp[lev][1].get(),
                                       current_fp[lev][2].get() },
                                     { current_cp[lev][0].get(),
                                       current_cp[lev][1].get(),
                                       current_cp[lev][2].get() });
+                // amrex::Print()<< "[AP COPY]  max_Jx     = "<< current_fp[lev][0].get()->min(0) << std::endl;
+
             }
         }
     }
