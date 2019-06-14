@@ -50,6 +50,8 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     m_crse_flag.setVal(crse_cell);
 
+    // TODO gpu
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -336,6 +338,8 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     {
         const Box& lobx = amrex::adjCellLo(bx, idim);
         const Box& hibx = amrex::adjCellHi(bx, idim);
+        FArrayBox const* f = flux[idim];
+        bool is_device_ptr = Gpu::isDevicePtr(f);
         for (FArrayBox* cfp : cfp_fabs)
         {
             {
@@ -344,11 +348,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                 if (lobx_is.ok())
                 {
                     auto d = cfp->array();
-                    FArrayBox const* f = flux[idim];
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     if (use_gpu) {
-                        if (Gpu::isDevicePtr(f)) {
+                        if (is_device_ptr) {
                             AMREX_LAUNCH_DEVICE_LAMBDA ( lobx_is, tmpbox,
                             {
                                 yafluxreg_fineadd(tmpbox, d, f->array(), dtdxs, nc, dirside, rr);
@@ -371,11 +374,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                 if (hibx_is.ok())
                 {
                     auto d = cfp->array();
-                    FArrayBox const* f = flux[idim];
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     if (use_gpu) {
-                        if (Gpu::isDevicePtr(f)) {
+                        if (is_device_ptr) {
                             AMREX_LAUNCH_DEVICE_LAMBDA ( hibx_is, tmpbox,
                             {
                                 yafluxreg_fineadd(tmpbox, d, f->array(), dtdxs, nc, dirside, rr);
