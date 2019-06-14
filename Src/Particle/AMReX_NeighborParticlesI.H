@@ -78,6 +78,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             comm_size += sizeof(int);
         }
     }
+    comm_size += 3*sizeof(int);
     cdata_size = comm_size;
 }
 
@@ -319,6 +320,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tmp_local_map[lev][index].resize(num_threads);
             local_map[lev][index];
             buffer_tag_cache[lev][index].resize(num_threads);
+            inverse_tags[lev][index];
         }
     }
 
@@ -489,6 +491,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[nim.src_level][src_index][nim.thread_num];
             tags[nim.src_index].dst_index = buffer_offset + i*cdata_size;
+        }
+    }
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        for (const auto& kv : neighbors[lev])
+        {
+            inverse_tags[lev][kv.first].resize(kv.second.size());
         }
     }
 }
@@ -676,6 +686,7 @@ resizeContainers(const int num_levels)
         neighbor_list.resize(num_levels);
         mask_ptr.resize(num_levels);
         buffer_tag_cache.resize(num_levels);
+        inverse_tags.resize(num_levels);
         local_neighbor_sizes.resize(num_levels);
     }
 

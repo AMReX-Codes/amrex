@@ -120,6 +120,13 @@ class NeighborParticleContainer
         }
     };
 
+    struct InverseCopyTag
+    {
+        int src_grid;
+        int src_tile;
+        int src_index;
+    };
+    
     struct NeighborCommTag {
 
         NeighborCommTag(int pid, int lid, int gid, int tid)
@@ -327,6 +334,7 @@ protected:
 
     IntVect computeRefFac(const int src_lev, const int lev);
 
+    amrex::Vector<std::map<PairIndex, amrex::Vector<InverseCopyTag> > > inverse_tags;
     amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
     amrex::Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
