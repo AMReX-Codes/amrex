@@ -90,7 +90,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     const NeighborCopyTag& tag = tags[i];
                     const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
                     ParticleType p = particles[tag.src_index];  // copy
-                    p.id() = tag.src_index;
                     if (periodicity.isAnyPeriodic()) {
                         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                             if (not periodicity.isPeriodic(dir)) continue;
@@ -105,6 +104,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         ParticleVector& buffer = neighbors[tag.level][dst_index];
                         AMREX_ASSERT(tag.dst_index < buffer.size());
                         std::memcpy(&buffer[tag.dst_index], &p, pdata_size);
+                        auto& itags = inverse_tags[tag.level][dst_index];
+                        AMREX_ASSERT(tag.dst_index < itags.size());
+                        itags[tag.dst_index].src_grid = src_index.first;
+                        itags[tag.dst_index].src_tile = src_index.second;
+                        itags[tag.dst_index].src_index = tag.src_index;
                     } else {
                         char* dst = &send_data[who][tag.dst_index];
                         char* src = (char *) &p;
@@ -122,6 +126,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             }
                             src += sizeof(int);
                         }
+                        std::memcpy(dst, &(src_index.first),  sizeof(int)); dst += sizeof(int);
+                        std::memcpy(dst, &(src_index.second), sizeof(int)); dst += sizeof(int);
+                        std::memcpy(dst, &(tag.src_index),    sizeof(int)); dst += sizeof(int);
                     }
                 }
             }
@@ -294,13 +301,16 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
 
                 np = size / cdata_size;
 
-                BL_ASSERT(size % cdata_size == 0);
+                AMREX_ASSERT(size % cdata_size == 0);
 
                 PairIndex dst_index(gid, tid);
+                AMREX_ASSERT(neighbors[lev][dst_index].size() ==
+                             inverse_tags[lev][dst_index].size());
                 size_t old_size = neighbors[lev][dst_index].size();
                 size_t new_size = neighbors[lev][dst_index].size() + np;
                 neighbors[lev][dst_index].resize(new_size);
-
+                inverse_tags[lev][dst_index].resize(new_size);
+                
                 char* dst = (char*) &neighbors[lev][dst_index][old_size];
                 char* src = buffer;
 
@@ -320,6 +330,15 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                         dst += sizeof(int);
                     }
                     dst = ((char*) &neighbors[lev][dst_index][old_size+n]) + pdata_size;
+
+                    std::memcpy(&(inverse_tags[lev][dst_index][n].src_grid), src, sizeof(int));
+                    src += sizeof(int);
+                    
+                    std::memcpy(&(inverse_tags[lev][dst_index][n].src_tile), src, sizeof(int));
+                    src += sizeof(int);
+                    
+                    std::memcpy(&(inverse_tags[lev][dst_index][n].src_index), src, sizeof(int));
+                    src += sizeof(int);
                 }
                 buffer += size;
             }
