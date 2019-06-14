@@ -100,6 +100,10 @@ int main(int argc, char* argv[])
         if (do_nl) { myPC.computeForcesNL(); } 
         else {       myPC.computeForces();   }
 
+        int scomp = 2*BL_SPACEDIM;
+        int ncomp = 1;
+        myPC.sumNeighbors(scomp, ncomp);
+        
         myPC.clearNeighbors();
 
         myPC.moveParticles(dt);
