@@ -364,7 +364,7 @@ protected:
 
     static bool use_mask;
 
-    bool enable_inverse = true;
+    static bool enable_inverse;
 
 #ifdef AMREX_USE_CUDA
     void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
