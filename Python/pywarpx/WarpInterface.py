@@ -81,51 +81,58 @@ class _WarpX_YEEFIELDtype(object):
         self.nyguard = self._Ex_wrap.nghosts
         self.nzguard = self._Ex_wrap.nghosts
 
+    def _get_wrapped_array(self, wrapper):
+        result = wrapper[...]
+        if len(result.shape) == 2:
+            # --- Add the middle dimension that Warp is expecting
+            result.shape = [result.shape[0], 1, result.shape[1]]
+        return result
+
     @property
     def Exp(self):
-        return self._Ex_wrap[...]
+        return self._get_wrapped_array(self._Ex_wrap)
     @property
     def Eyp(self):
-        return self._Ey_wrap[...]
+        return self._get_wrapped_array(self._Ey_wrap)
     @property
     def Ezp(self):
-        return self._Ez_wrap[...]
+        return self._get_wrapped_array(self._Ez_wrap)
     @property
     def Bxp(self):
-        return self._Bx_wrap[...]
+        return self._get_wrapped_array(self._Bx_wrap)
     @property
     def Byp(self):
-        return self._By_wrap[...]
+        return self._get_wrapped_array(self._By_wrap)
     @property
     def Bzp(self):
-        return self._Bz_wrap[...]
+        return self._get_wrapped_array(self._Bz_wrap)
     @property
     def Ex(self):
-        return self._Ex_wrap[...]
+        return self._get_wrapped_array(self._Ex_wrap)
     @property
     def Ey(self):
-        return self._Ey_wrap[...]
+        return self._get_wrapped_array(self._Ey_wrap)
     @property
     def Ez(self):
-        return self._Ez_wrap[...]
+        return self._get_wrapped_array(self._Ez_wrap)
     @property
     def Bx(self):
-        return self._Bx_wrap[...]
+        return self._get_wrapped_array(self._Bx_wrap)
     @property
     def By(self):
-        return self._By_wrap[...]
+        return self._get_wrapped_array(self._By_wrap)
     @property
     def Bz(self):
-        return self._Bz_wrap[...]
+        return self._get_wrapped_array(self._Bz_wrap)
     @property
     def Jx(self):
-        return self._Jx_wrap[...]
+        return self._get_wrapped_array(self._Jx_wrap)
     @property
     def Jy(self):
-        return self._Jy_wrap[...]
+        return self._get_wrapped_array(self._Jy_wrap)
     @property
     def Jz(self):
-        return self._Jz_wrap[...]
+        return self._get_wrapped_array(self._Jz_wrap)
 
 
 class WarpX_EM3D(warp.EM3D):
