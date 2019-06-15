@@ -61,7 +61,7 @@ class NeighborParticleContainer
                << nim.src_level << " " << nim.src_grid << " " << nim.src_tile << " " << nim.src_index
                << nim.thread_num;
             if (!os.good())
-                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+                amrex::Error("operator<<(ostream&, const NeighborIndexMap& nim) failed");
             return os;
         }
 
@@ -115,7 +115,7 @@ class NeighborParticleContainer
         {
             os << tag.level << " " << tag.grid << " " << tag.tile << " " << tag.periodic_shift;
             if (!os.good())
-                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+                amrex::Error("operator<<(ostream&, const NeighborCopyTag&) failed");
             return os;
         }
     };
@@ -131,7 +131,7 @@ class NeighborParticleContainer
     {
         os << tag.src_grid << " " << tag.src_tile << " " << tag.src_index;
         if (!os.good())
-            amrex::Error("operator<<(ostream&, const InverseCopyTag& tag) failed");
+            amrex::Error("operator<<(ostream&, const InverseCopyTag&) failed");
         return os;
     }
     
@@ -170,7 +170,7 @@ class NeighborParticleContainer
         {
             os << tag.proc_id << " " << tag.level_id << " " << tag.grid_id << " " << tag.tile_id;
             if (!os.good())
-                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+                amrex::Error("operator<<(ostream&, const NeighborCommTag&) failed");
             return os;
         }
     };
