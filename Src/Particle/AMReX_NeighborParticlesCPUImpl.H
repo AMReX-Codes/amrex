@@ -22,6 +22,16 @@ NeighborParticleContainer<NStructReal, NStructInt>
     {
         amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }
+
+    for (int lev = 0; lev < this->numLevels(); ++lev)
+    {
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            PairIndex src_index(pti.index(), pti.LocalTileIndex());
+            InverseCopyTag& tag = inverse_tags[lev][src_index];
+            amrex::Print() << tag << "\n";
+        }
+    }
 }
 
 template <int NStructReal, int NStructInt>
