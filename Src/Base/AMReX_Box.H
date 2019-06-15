@@ -11,6 +11,7 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Array4.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
