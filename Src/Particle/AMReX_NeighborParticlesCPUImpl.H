@@ -18,9 +18,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::sumNeighborsCPU(int scomp, int ncomp) {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
 
-    if (not enable_inverse)
+    if ( not enableInverse() )
     {
-        amrex::Abort("Need to set enable_inverse to true to use sumNeighbors. \n");
+        amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }
 }
 
@@ -70,7 +70,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         ParticleVector& buffer = neighbors[tag.level][dst_index];
                         AMREX_ASSERT(tag.dst_index < buffer.size());
                         std::memcpy(&buffer[tag.dst_index], &p, pdata_size);
-                        if (enable_inverse)
+                        if ( enableInverse() )
                         {
                             auto& itags = inverse_tags[tag.level][dst_index];
                             AMREX_ASSERT(tag.dst_index < itags.size());
@@ -95,7 +95,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             }
                             src += sizeof(int);
                         }
-                        if (enable_inverse)
+                        if ( enableInverse() )
                         {
                             std::memcpy(dst,&(src_index.first),sizeof(int)); dst += sizeof(int);
                             std::memcpy(dst,&(src_index.second),sizeof(int)); dst += sizeof(int);
@@ -279,7 +279,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 size_t old_size = neighbors[lev][dst_index].size();
                 size_t new_size = neighbors[lev][dst_index].size() + np;
                 neighbors[lev][dst_index].resize(new_size);
-                if (enable_inverse)
+                if ( enableInverse() )
                 {
                     AMREX_ASSERT(neighbors[lev][dst_index].size() ==
                                  inverse_tags[lev][dst_index].size());
@@ -306,7 +306,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                     }
                     dst = ((char*) &neighbors[lev][dst_index][old_size+n]) + pdata_size;
 
-                    if (enable_inverse)
+                    if ( enableInverse() )
                     {
                         std::memcpy(&(inverse_tags[lev][dst_index][n].src_grid),src,sizeof(int));
                         src += sizeof(int);
