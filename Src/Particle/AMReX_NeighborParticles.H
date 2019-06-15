@@ -328,8 +328,10 @@ protected:
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
-    void fillNeighborsMPI(bool reuse_rcv_counts);
+    void fillNeighborsMPI (bool reuse_rcv_counts);
 
+    void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours);
+    
     ///
     /// Perform handshake to figure out how many bytes each proc should receive
     ///
