@@ -522,16 +522,17 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
 
                     if ( enableInverse() )
                     {
-                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_grid),src,sizeof(int));
+                        auto& tag = inverse_tags[lev][dst_index][old_size+n];
+                        std::memcpy(&(tag.src_grid),src,sizeof(int));
                         src += sizeof(int);
                         
-                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_tile),src,sizeof(int));
+                        std::memcpy(&(tag.src_tile),src,sizeof(int));
                         src += sizeof(int);
                         
-                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_index),src,sizeof(int));
+                        std::memcpy(&(tag.src_index),src,sizeof(int));
                         src += sizeof(int);
 
-                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_level),src,sizeof(int));
+                        std::memcpy(&(tag.src_level),src,sizeof(int));
                         src += sizeof(int);
                     }
                 }
