@@ -112,25 +112,25 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
-    FArrayBox const* crsep = &crse;
-    FArrayBox* finep = &fine;
-
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
-                            && runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
     int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
     const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    AsyncFab as_slopefab(cslope_bx, num_slope);
-    FArrayBox* slopefab = as_slopefab.fabPtr();
+    FArrayBox slopefab(cslope_bx, num_slope);
+    Elixir slopeeli = slopefab.elixir();
+
+    Array4<Real const> const& crsearr = crse.array();
+    Array4<Real> const& finearr = fine.array();
+    Array4<Real> const& slopearr = slopefab.array();
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
     {
-        amrex::nodebilin_slopes(tbx, *slopefab, *crsep, crse_comp, ncomp, ratio);
+        amrex::nodebilin_slopes(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
     });
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
     {
-        amrex::nodebilin_interp(tbx, *finep, fine_comp, ncomp, *slopefab, *crsep, crse_comp, ratio);
+        amrex::nodebilin_interp(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
     });
 }
 
@@ -279,11 +279,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     AMREX_ASSERT(fine.box().contains(fine_region));
 
-    FArrayBox const* crsep = &crse;
-    FArrayBox* finep = &fine;
+    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
-                            && runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    Array4<Real const> const& crsearr = crse.array();
+    Array4<Real> const& finearr = fine.array();
 
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
@@ -301,8 +300,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //      lin_lim = true : factors (one for all components) for x, y and z-direction
     //      lin_lim = false: min for every component followed by max for every component
     const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
-    AsyncFab as_ccfab(cslope_bx, ntmp);
-    FArrayBox* ccfab = as_ccfab.fabPtr();
+    FArrayBox ccfab(cslope_bx, ntmp);
+    Elixir cceli = ccfab.elixir();
+    Array4<Real> const& ccarr = ccfab.array();
 
     const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
 
@@ -312,37 +312,38 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     if (do_linear_limiting) {
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
         {
-            amrex::cellconslin_slopes_linlim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
+            amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
         });
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
         {
-            amrex::cellconslin_interp(tbx, *finep, fine_comp, ncomp, *ccfab, *crsep, crse_comp,
+            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                       voff, ratio);
         });
     } else {
         const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
-        AsyncFab as_fafab(fslope_bx, ncomp);
-        FArrayBox* fafab = as_fafab.fabPtr();
+        FArrayBox fafab(fslope_bx, ncomp);
+        Elixir faeli = fafab.elixir();
+        Array4<Real> const& faarr = fafab.array();
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
         {
-            amrex::cellconslin_slopes_mclim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
+            amrex::cellconslin_slopes_mclim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
         });
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fslope_bx, tbx,
         {
-            amrex::cellconslin_fine_alpha(tbx, *fafab, *ccfab, ncomp, voff, ratio);
+            amrex::cellconslin_fine_alpha(tbx, faarr, ccarr, ncomp, voff, ratio);
         });
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
         {
-            amrex::cellconslin_slopes_mmlim(tbx, *ccfab, *fafab, ncomp, ratio);
+            amrex::cellconslin_slopes_mmlim(tbx, ccarr, faarr, ncomp, ratio);
         });
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
         {
-            amrex::cellconslin_interp(tbx, *finep, fine_comp, ncomp, *ccfab, *crsep, crse_comp,
+            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                       voff, ratio);
         });
     }
@@ -508,15 +509,14 @@ PCInterp::interp (const FArrayBox& crse,
 {
     BL_PROFILE("PCInterp::interp()");
 
-    FArrayBox const* crsep = &crse;
-    FArrayBox* finep = &fine;
+    Array4<Real const> const& crsearr = crse.array();
+    Array4<Real> const& finearr = fine.array();;
 
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
-                            && runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
     {
-        amrex::pcinterp_interp(tbx,*finep,fine_comp,ncomp,*crsep,crse_comp,ratio);
+        amrex::pcinterp_interp(tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
     });
 }
 
@@ -562,11 +562,10 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     AMREX_ASSERT(fine.box().contains(fine_region));
 
-    FArrayBox const* crsep = &crse;
-    FArrayBox* finep = &fine;
+    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
 
-    Gpu::LaunchSafeGuard lg(Gpu::isGpuPtr(crsep) && Gpu::isGpuPtr(finep)
-                            && runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    Array4<Real const> const& crsearr = crse.array();
+    Array4<Real> const& finearr = fine.array();
 
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
@@ -583,8 +582,9 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     // then followed by
     //                      factors (one for all components) for x, y and z-direction
     const int ntmp = (ncomp+1)*AMREX_SPACEDIM;
-    AsyncFab as_ccfab(cslope_bx, ntmp);
-    FArrayBox* ccfab = as_ccfab.fabPtr();
+    FArrayBox ccfab(cslope_bx, ntmp);
+    Elixir cceli = ccfab.elixir();
+    Array4<Real> const& ccarr = ccfab.array();
 
     const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
 
@@ -593,12 +593,12 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
     {
-        amrex::cellconslin_slopes_linlim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
+        amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
     });
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
     {
-        amrex::cellconslin_interp(tbx, *finep, fine_comp, ncomp, *ccfab, *crsep, crse_comp,
+        amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                   voff, ratio);
     });
 }
