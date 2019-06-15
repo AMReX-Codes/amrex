@@ -3,6 +3,9 @@ template <int NStructReal, int NStructInt>
 bool NeighborParticleContainer<NStructReal, NStructInt>::use_mask = false;
 
 template <int NStructReal, int NStructInt>
+bool NeighborParticleContainer<NStructReal, NStructInt>::enable_inverse = false;
+
+template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
 ::NeighborParticleContainer(ParGDBBase* gdb, int ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
