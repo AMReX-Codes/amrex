@@ -293,6 +293,10 @@ public:
 
 #endif
 
+    void setEnableInverse(bool flag) { enable_inverse = flag; }
+
+    bool enableInverse() { return enable_inverse; }
+    
 protected:
 
     void cacheNeighborInfo();
