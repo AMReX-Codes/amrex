@@ -18,43 +18,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::sumNeighborsCPU(int scomp, int ncomp) {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
 
-    ParticleContainerType tmp_pc(this->GetParGDB());
-
-    for (int lev = 0; lev < this->numLevels(); ++lev)
-    {
-        auto& tmp_plevel = tmp_pc.GetParticles(lev);
-        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
-        {
-            PairIndex index(pti.index(), pti.LocalTileIndex());
-            ParticleVector& neighbs = neighbors[lev][index];
-            for( const auto& neighb : neighbs)
-            {
-                tmp_plevel[index].push_back(neighb);                
-            }
-        }
-    }
-
-    tmp_pc.Redistribute();
-
-    for (int lev = 0; lev < this->numLevels(); ++lev)
-    {
-        const auto& tmp_plevel = tmp_pc.GetParticles(lev);
-        auto& plevel = this->GetParticles(lev);
-        for (MyParIter pti(tmp_pc, lev); pti.isValid(); ++pti)
-        {
-            PairIndex index(pti.index(), pti.LocalTileIndex());
-            const auto& tmp_tile = tmp_plevel.at(index);
-            const auto& tmp_particles = tmp_tile.GetArrayOfStructs()();
-            for( const auto& tmp : tmp_particles)
-            {
-                ParticleType& p = plevel[index].GetArrayOfStructs()[tmp.id()];
-                for (int comp = scomp; comp < scomp + ncomp; ++comp)
-                {
-                    p.rdata(comp) += tmp.rdata(comp);
-                }
-            }
-        }
-    }    
 }
 
 template <int NStructReal, int NStructInt>
