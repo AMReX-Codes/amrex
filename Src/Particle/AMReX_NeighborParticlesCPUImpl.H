@@ -4,7 +4,7 @@
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::fillNeighborsCPU() {
+::fillNeighborsCPU () {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsCPU");
     BuildMasks();
     GetNeighborCommTags();
@@ -23,7 +23,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     {
         amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }
-
+    
     const int MyProc = ParallelDescriptor::MyProc();
     
     for (int lev = 0; lev < this->numLevels(); ++lev)
@@ -43,7 +43,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 const int dst_proc = this->ParticleDistributionMap(lev)[dst_grid];
                 const int dst_tile = tag.src_tile;
                 const int dst_index = tag.src_index;
-
+                const int dst_level = tag.src_level;
+                
                 if (dst_proc == MyProc)
                 {
                     PairIndex dst_index(dst_grid, dst_tile);
@@ -61,7 +62,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::updateNeighborsCPU(bool reuse_rcv_counts) {
+::updateNeighborsCPU (bool reuse_rcv_counts) {
 
     BL_PROFILE_VAR("NeighborParticleContainer::updateNeighborsCPU", update);
 
@@ -111,6 +112,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             itags[tag.dst_index].src_grid = src_index.first;
                             itags[tag.dst_index].src_tile = src_index.second;
                             itags[tag.dst_index].src_index = tag.src_index;
+                            itags[tag.dst_index].src_level = lev;
                         }
                     } else {
                         char* dst = &send_data[who][tag.dst_index];
@@ -134,6 +136,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             std::memcpy(dst,&(src_index.first),sizeof(int)); dst += sizeof(int);
                             std::memcpy(dst,&(src_index.second),sizeof(int)); dst += sizeof(int);
                             std::memcpy(dst,&(tag.src_index),sizeof(int)); dst += sizeof(int);
+                            std::memcpy(dst,&(lev),sizeof(int)); dst += sizeof(int);
                         }
                     }
                 }
@@ -158,7 +161,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::clearNeighborsCPU()
+::clearNeighborsCPU ()
 {
     BL_PROFILE("NeighborParticleContainer::clearNeighborsCPU");
 
@@ -174,7 +177,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-getRcvCountsMPI() {
+getRcvCountsMPI () {
 
     BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
 
@@ -350,6 +353,9 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                         
                         std::memcpy(&(inverse_tags[lev][dst_index][n].src_index),src,sizeof(int));
                         src += sizeof(int);
+
+                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_level),src,sizeof(int));
+                        src += sizeof(int);
                     }
                 }
                 buffer += size;
@@ -363,7 +369,7 @@ template <int NStructReal, int NStructInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborListCPU(CheckPair check_pair, bool sort) {
+buildNeighborListCPU (CheckPair check_pair, bool sort) {
 
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     AMREX_ASSERT(this->OK());
@@ -481,7 +487,7 @@ buildNeighborListCPU(CheckPair check_pair, bool sort) {
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-printNeighborListCPU(const std::string& prefix)
+printNeighborListCPU (const std::string& prefix)
 {
     BL_PROFILE("NeighborParticleContainer::printNeighborListCPU");
 

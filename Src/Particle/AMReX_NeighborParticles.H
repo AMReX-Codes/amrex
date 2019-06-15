@@ -125,11 +125,12 @@ class NeighborParticleContainer
         int src_grid;
         int src_tile;
         int src_index;
+        int src_level;
     };
 
     friend std::ostream& operator<< (std::ostream& os, const InverseCopyTag& tag)
     {
-        os << tag.src_grid << " " << tag.src_tile << " " << tag.src_index;
+        os << tag.src_level << " " << tag.src_grid << " " << tag.src_tile << " " << tag.src_index;
         if (!os.good())
             amrex::Error("operator<<(ostream&, const InverseCopyTag&) failed");
         return os;
