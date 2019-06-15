@@ -13,6 +13,7 @@
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Dim3.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
