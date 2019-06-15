@@ -15,7 +15,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::sumNeighborsCPU (int scomp, int ncomp)
+::sumNeighborsCPU (int real_start_comp, int real_num_comp)
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
     
@@ -55,7 +55,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     auto& dst_parts = dst_ptile.GetArrayOfStructs();
                     auto& p = dst_parts[dst_index];
                     
-                    for (int comp = scomp; comp < scomp + ncomp; ++comp)
+                    for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
                     {
                         p.rdata(comp) += neighb.rdata(comp);                        
                     }
@@ -65,14 +65,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 {
                     auto& sdata = isend_data[dst_proc];
                     auto old_size = sdata.size();
-                    auto new_size = old_size + ncomp*sizeof(Real) + 4*sizeof(int);
+                    auto new_size = old_size + real_num_comp*sizeof(Real) + 4*sizeof(int);
                     sdata.resize(new_size);
                     char* dst = &sdata[old_size];
                     std::memcpy(dst, &dst_grid, sizeof(int)); dst += sizeof(int);
                     std::memcpy(dst, &dst_tile, sizeof(int)); dst += sizeof(int);
                     std::memcpy(dst, &dst_index, sizeof(int)); dst += sizeof(int);
                     std::memcpy(dst, &dst_level, sizeof(int)); dst += sizeof(int);
-                    for (int comp = scomp; comp < scomp + ncomp; ++comp)
+                    for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
                     {
                         Real data = neighb.rdata(comp);
                         std::memcpy(dst, &data, sizeof(Real));
@@ -83,13 +83,13 @@ NeighborParticleContainer<NStructReal, NStructInt>
         }
     }
 
-    sumNeighborsMPI(isend_data, scomp, ncomp);
+    sumNeighborsMPI(isend_data, real_start_comp, real_num_comp);
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int scomp, int ncomp) 
+sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int real_start_comp, int real_num_comp) 
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsMPI");
     
@@ -197,7 +197,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int scomp, int ncomp)
     {
         ParallelDescriptor::Waitall(rreqs, stats);
 
-        const size_t data_size = ncomp*sizeof(Real) + 4 * sizeof(int);
+        const size_t data_size = real_num_comp*sizeof(Real) + 4 * sizeof(int);
         
         if (recvdata.size() % data_size != 0) {
             amrex::Print() << recvdata.size() << " " << data_size << "\n";
@@ -224,7 +224,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int scomp, int ncomp)
             auto& parts = ptile.GetArrayOfStructs();
             auto& p = parts[index];
 
-            for (int comp = scomp; comp < scomp + ncomp; ++comp)
+            for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
             {
                 Real data;
                 std::memcpy(&data, buffer, sizeof(Real));
