@@ -25,6 +25,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
     
     const int MyProc = ParallelDescriptor::MyProc();
+
+    std::map<int, Vector<char> > isend_data;
     
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
@@ -34,7 +36,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const auto& tags = inverse_tags[lev][src_index];
             const auto& neighbs = neighbors[lev][src_index];            
             AMREX_ASSERT(tags.size() == neighbs.size());
-
+            
             const int num_neighbs = neighbs.size();
             for (int i = 0; i < num_neighbs; ++i)
             {
@@ -51,14 +53,149 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     auto pair = std::make_pair(dst_grid, dst_tile);
                     auto& dst_ptile = this->GetParticles(dst_level)[pair];
                     auto& dst_parts = dst_ptile.GetArrayOfStructs();
-                    auto& p = dst_parts[i];
-
-                    for (int comp = scomp; comp < scomp + ncomp; ++comp) 
-                        p.rdata(comp) += neighb.rdata(comp);                    
-                }                
-            }
+                    auto& p = dst_parts[dst_index];
+                    
+                    for (int comp = scomp; comp < scomp + ncomp; ++comp)
+                        p.rdata(comp) += neighb.rdata(comp);
+                }
+                
+                else
+                {
+                    auto& sdata = isend_data[dst_proc];
+                    auto old_size = sdata.size();
+                    auto new_size = old_size + ncomp*sizeof(Real) + 4*sizeof(int);
+                    sdata.resize(new_size);
+                    char* dst = &sdata[old_size];
+                    for (int comp = scomp; comp < ncomp; ++comp)
+                    {
+                        Real data = neighb.rdata(comp);
+                        std::memcpy(dst, &data, sizeof(Real));
+                        dst += sizeof(Real);
+                    }
+                    std::memcpy(dst, &dst_grid, sizeof(int)); dst += sizeof(int);
+                    std::memcpy(dst, &dst_tile, sizeof(int)); dst += sizeof(int);
+                    std::memcpy(dst, &dst_index, sizeof(int)); dst += sizeof(int);
+                    std::memcpy(dst, &dst_level, sizeof(int)); dst += sizeof(int);
+                }
+            }                    
         }
     }
+
+    sumNeighborsMPI(send_data);
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+sumNeighborsMPI (std::map<int, Vector<char> >& not_ours) {
+
+    BL_PROFILE("NeighborParticleContainer::sumNeighborsMPI");
+
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    AMREX_ASSERT(send_data.size() == neighbor_procs.size());
+
+    Vector<long> isnds(NProcs, 0);
+    Vector<long> ircvs(NProcs, 0);
+    for (int i = 0; i < NProcs; ++i)
+        ircvs[i] = 0;
+    
+    {
+        // each proc figures out how many bytes it will send, and how
+        // many it will receive
+        
+        long num_isnds = 0;
+        for (const auto& kv : not_ours)
+        {
+            num_isnds      += kv.second.size();
+            isnds[kv.first] = kv.second.size();
+        }
+        ParallelDescriptor::ReduceLongMax(num_isnds);
+        
+        if (num_isnds == 0) return;
+        
+        const int num_ircvs = neighbor_procs.size();
+        Vector<MPI_Status>  stats(num_ircvs);
+        Vector<MPI_Request> rreqs(num_ircvs);
+        
+        const int SeqNum = ParallelDescriptor::SeqNum();
+        
+        // Post receives
+        for (int i = 0; i < num_ircvs; ++i)
+        {
+            const int Who = neighbor_procs[i];
+            const long Cnt = 1;
+            
+            AMREX_ASSERT(Who >= 0 && Who < NProcs);
+            
+            rreqs[i] = ParallelDescriptor::Arecv(&ircvs[Who], Cnt, Who, SeqNum).req();
+        }
+        
+        // Send.
+        for (int i = 0; i < num_ircvs; ++i) {
+        const int Who = neighbor_procs[i];
+        const long Cnt = 1;
+        
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+        
+        ParallelDescriptor::Send(&isnds[Who], Cnt, Who, SeqNum);
+        }
+        
+        if (num_ircvs > 0) ParallelDescriptor::Waitall(rreqs, stats);        
+    }
+    
+    Vector<int> RcvProc;
+    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (ircvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += ircvs[i];
+        }
+    }
+
+    const int nrcvs = RcvProc.size();
+    Vector<MPI_Status>  stats(nrcvs);
+    Vector<MPI_Request> rreqs(nrcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    // Allocate data for rcvs as one big chunk.
+    Vector<char> recvdata(TotRcvBytes);
+
+    // Post receives.
+    for (int i = 0; i < nrcvs; ++i) {
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = rcvs[Who];
+
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+
+        rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+    }
+
+    // Send.
+    for (const auto& kv : not_ours) {
+        const auto Who = kv.first;
+        const auto Cnt = kv.second.size();
+        
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+    }
+
+    // unpack the received data and put them into the proper neighbor buffers
+    if (nrcvs > 0)
+    {
+        ParallelDescriptor::Waitall(rreqs, stats);
+    }
+#endif
 }
 
 template <int NStructReal, int NStructInt>
@@ -208,7 +345,7 @@ getRcvCountsMPI () {
     Vector<MPI_Request> rreqs(num_rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
-
+    
     // Post receives
     for (int i = 0; i < num_rcvs; ++i) {
         const int Who = neighbor_procs[i];
