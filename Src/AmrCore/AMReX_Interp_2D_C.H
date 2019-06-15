@@ -353,7 +353,7 @@ cellconslin_slopes_mmlim (Box const& bx, Array4<Real> const& slopes,
 AMREX_GPU_HOST_DEVICE inline void
 pcinterp_interp (Box const& bx,
                  Array4<Real> const& fine, const int fcomp, const int ncomp,
-                 Array4<Real const> const& crsefab, const int ccomp,
+                 Array4<Real const> const& crse, const int ccomp,
                  IntVect const& ratio) noexcept
 {
     const auto lo = amrex::lbound(bx);
