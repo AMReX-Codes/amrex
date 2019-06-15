@@ -38,6 +38,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int num_neighbs = neighbs.size();
             for (int i = 0; i < num_neighbs; ++i)
             {
+                const auto& neighb = neighbs[i];
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
                 const int dst_proc = this->ParticleDistributionMap(lev)[dst_grid];
@@ -47,13 +48,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 
                 if (dst_proc == MyProc)
                 {
-                    PairIndex dst_index(dst_grid, dst_tile);
-                    
+                    auto pair = std::make_pair(dst_grid, dst_tile);
+                    auto& dst_ptile = this->GetParticles(dst_level)[pair];
+                    auto& dst_parts = dst_ptile.GetArrayOfStructs();
+                    auto& p = dst_parts[i];
+
+                    for (int comp = scomp; comp < scomp + ncomp; ++comp) 
+                        p.rdata(comp) += neighb.rdata(comp);                    
                 }                
-            }
-            for (const auto& tag : tags)
-            {
-                amrex::AllPrintToFile("tags") << tag << "\n";
             }
         }
     }
