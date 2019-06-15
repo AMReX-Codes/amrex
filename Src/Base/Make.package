@@ -91,6 +91,8 @@ C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp AMRe
 C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
 C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
+C$(AMREX_BASE)_headers += AMReX_Dim3.H
+
 #
 # Real space.
 #
@@ -115,6 +117,7 @@ C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
 C$(AMREX_BASE)_headers += AMReX_MakeType.H
 C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
 
+C$(AMREX_BASE)_headers += AMReX_Array4.H
 C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp
 C$(AMREX_BASE)_headers += AMReX_BaseFab.H AMReX_BaseFabUtility.H
 C$(AMREX_BASE)_headers += AMReX_FabFactory.H
