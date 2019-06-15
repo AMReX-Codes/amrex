@@ -15,7 +15,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::sumNeighborsCPU (int real_start_comp, int real_num_comp)
+::sumNeighborsCPU (int real_start_comp, int real_num_comp,
+                   int int_start_comp,  int int_num_comp)
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
     
@@ -59,13 +60,18 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     {
                         p.rdata(comp) += neighb.rdata(comp);                        
                     }
+
+                    for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
+                    {
+                        p.idata(comp) += neighb.idata(comp);                        
+                    }
                 }
                 
                 else
                 {
                     auto& sdata = isend_data[dst_proc];
                     auto old_size = sdata.size();
-                    auto new_size = old_size + real_num_comp*sizeof(Real) + 4*sizeof(int);
+                    auto new_size = old_size + real_num_comp*sizeof(Real) + int_num_comp*sizeof(int) + 4*sizeof(int);
                     sdata.resize(new_size);
                     char* dst = &sdata[old_size];
                     std::memcpy(dst, &dst_grid, sizeof(int)); dst += sizeof(int);
@@ -78,18 +84,26 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         std::memcpy(dst, &data, sizeof(Real));
                         dst += sizeof(Real);
                     }
+                    for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
+                    {
+                        int data = neighb.idata(comp);
+                        std::memcpy(dst, &data, sizeof(int));
+                        dst += sizeof(int);
+                    }
                 }
             }                    
         }
     }
 
-    sumNeighborsMPI(isend_data, real_start_comp, real_num_comp);
+    sumNeighborsMPI(isend_data, real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int real_start_comp, int real_num_comp) 
+sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
+                 int real_start_comp, int real_num_comp,
+                 int int_start_comp, int int_num_comp) 
 {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsMPI");
     
@@ -197,7 +211,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int real_start_comp, in
     {
         ParallelDescriptor::Waitall(rreqs, stats);
 
-        const size_t data_size = real_num_comp*sizeof(Real) + 4 * sizeof(int);
+        const size_t data_size = real_num_comp*sizeof(Real) + int_num_comp*sizeof(int) + 4 * sizeof(int);
         
         if (recvdata.size() % data_size != 0) {
             amrex::Print() << recvdata.size() << " " << data_size << "\n";
@@ -230,6 +244,14 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int real_start_comp, in
                 std::memcpy(&data, buffer, sizeof(Real));
                 p.rdata(comp) += data;
                 buffer += sizeof(Real);
+            }
+
+            for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
+            {
+                int data;
+                std::memcpy(&data, buffer, sizeof(int));
+                p.idata(comp) += data;
+                buffer += sizeof(int);
             }
         }
     }
