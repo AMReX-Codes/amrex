@@ -15,23 +15,44 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::sumNeighborsCPU(int scomp, int ncomp) {
+::sumNeighborsCPU (int scomp, int ncomp)
+{
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
-
+    
     if ( not enableInverse() )
     {
         amrex::Abort("Need to enable inverse to true to use sumNeighbors. \n");
     }
 
+    const int MyProc = ParallelDescriptor::MyProc();
+    
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             const auto& tags = inverse_tags[lev][src_index];
+            const auto& neighbs = neighbors[lev][src_index];            
+            AMREX_ASSERT(tags.size() == neighbs.size());
+
+            const int num_neighbs = neighbs.size();
+            for (int i = 0; i < num_neighbs; ++i)
+            {
+                const auto& tag = tags[i];
+                const int dst_grid = tag.src_grid;
+                const int dst_proc = this->ParticleDistributionMap(lev)[dst_grid];
+                const int dst_tile = tag.src_tile;
+                const int dst_index = tag.src_index;
+
+                if (dst_proc == MyProc)
+                {
+                    PairIndex dst_index(dst_grid, dst_tile);
+                    
+                }                
+            }
             for (const auto& tag : tags)
             {
-                amrex::Print() << tag << "\n";
+                amrex::AllPrintToFile("tags") << tag << "\n";
             }
         }
     }
@@ -211,7 +232,7 @@ getRcvCountsMPI() {
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-fillNeighborsMPI(bool reuse_rcv_counts) {
+fillNeighborsMPI (bool reuse_rcv_counts) {
 
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
 
@@ -291,13 +312,13 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 PairIndex dst_index(gid, tid);
                 size_t old_size = neighbors[lev][dst_index].size();
                 size_t new_size = neighbors[lev][dst_index].size() + np;
-                neighbors[lev][dst_index].resize(new_size);
                 if ( enableInverse() )
                 {
                     AMREX_ASSERT(neighbors[lev][dst_index].size() ==
                                  inverse_tags[lev][dst_index].size());
                     inverse_tags[lev][dst_index].resize(new_size);
                 }
+                neighbors[lev][dst_index].resize(new_size);
                 
                 char* dst = (char*) &neighbors[lev][dst_index][old_size];
                 char* src = buffer;
