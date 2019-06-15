@@ -1145,9 +1145,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::tuple<int, int>(0, 0), functors::tupleAdd());
 
         int last_gid_host, last_lo_host;
-        Gpu::dtoh_memcpy(&last_gid_host, m_grids_tmp.data() + old_np - 1, sizeof(int));
-        Gpu::dtoh_memcpy(&last_lo_host, m_lo.data() + old_np - 1, sizeof(int));
-        new_np = last_gid_host == gid ? last_lo_host : last_lo_host + 1;
+        Gpu::dtoh_memcpy(&last_gid_host, thrust::raw_pointer_cast(m_grids_tmp.data()) + old_np - 1, sizeof(int));
+        Gpu::dtoh_memcpy(&last_lo_host, thrust::raw_pointer_cast(m_lo.data()) + old_np - 1, sizeof(int));
+        new_np = (last_gid_host == gid) ? last_lo_host + 1 : last_lo_host;
             
         num_moved = old_np - new_np;
 
