@@ -28,8 +28,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
-            InverseCopyTag& tag = inverse_tags[lev][src_index];
-            amrex::Print() << tag << "\n";
+            const auto& tags = inverse_tags[lev][src_index];
+            for (const auto& tag : tags)
+            {
+                amrex::Print() << tag << "\n";
+            }
         }
     }
 }
