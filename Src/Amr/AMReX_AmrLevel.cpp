@@ -1642,7 +1642,7 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngrow);
-                FArrayBox& derfab = mf[mfi];
+                FArrayBox& derfab = (*mf)[mfi];
                 FArrayBox const& datafab = srcMF[mfi];
                 rec->derFuncFab()(bx, derfab, 0, dncomp, datafab, geom, time, rec->getBC(), level);
             }
