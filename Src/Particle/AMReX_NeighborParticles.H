@@ -217,7 +217,8 @@ public:
     /// This does an "inverse" fillNeighbors operation, meaning that it adds
     /// data from the ghost particles to the corresponding real ones.
     ///
-    void sumNeighbors (int scomp, int ncomp);
+    void sumNeighbors (int real_start_comp, int real_num_comp,
+                       int int_start_comp, int int_num_comp);
     
     ///
     /// This updates the neighbors with their current particle data.
@@ -294,7 +295,8 @@ public:
     
     void fillNeighborsCPU ();
 
-    void sumNeighborsCPU (int scomp, int ncomp);
+    void sumNeighborsCPU (int real_start_comp, int real_num_comp,
+                          int int_start_comp, int int_num_comp);
     
     void updateNeighborsCPU (bool reuse_rcv_counts=true);
     
@@ -330,7 +332,9 @@ protected:
     ///
     void fillNeighborsMPI (bool reuse_rcv_counts);
 
-    void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int scomp, int ncomp);
+    void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
+                          int real_start_comp, int real_num_comp,
+                          int int_start_comp, int int_num_comp);
     
     ///
     /// Perform handshake to figure out how many bytes each proc should receive

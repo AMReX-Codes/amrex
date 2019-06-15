@@ -2243,7 +2243,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 #ifndef AMREX_USE_CUDA
         for (int j = 0; j < npart; ++j)
-	  {
+        {
             auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
             
             char* pbuf = recvdata.data() + j*superparticle_size;

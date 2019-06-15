@@ -623,11 +623,12 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::sumNeighbors (int scomp, int ncomp) {
+::sumNeighbors (int real_start_comp, int real_num_comp,
+                int int_start_comp,  int int_num_comp) {
 #ifdef AMREX_USE_CUDA
     amrex::Abort("Not implemented.");
 #else
-    sumNeighborsCPU(scomp, ncomp);
+    sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 #endif
 }
 
