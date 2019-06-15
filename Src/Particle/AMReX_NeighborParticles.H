@@ -330,7 +330,7 @@ protected:
     ///
     void fillNeighborsMPI (bool reuse_rcv_counts);
 
-    void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours);
+    void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int scomp, int ncomp);
     
     ///
     /// Perform handshake to figure out how many bytes each proc should receive

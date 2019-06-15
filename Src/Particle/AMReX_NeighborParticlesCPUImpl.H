@@ -56,7 +56,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     auto& p = dst_parts[dst_index];
                     
                     for (int comp = scomp; comp < scomp + ncomp; ++comp)
-                        p.rdata(comp) += neighb.rdata(comp);
+                    {
+                        p.rdata(comp) += neighb.rdata(comp);                        
+                    }
                 }
                 
                 else
@@ -66,36 +68,36 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     auto new_size = old_size + ncomp*sizeof(Real) + 4*sizeof(int);
                     sdata.resize(new_size);
                     char* dst = &sdata[old_size];
-                    for (int comp = scomp; comp < ncomp; ++comp)
+                    std::memcpy(dst, &dst_grid, sizeof(int)); dst += sizeof(int);
+                    std::memcpy(dst, &dst_tile, sizeof(int)); dst += sizeof(int);
+                    std::memcpy(dst, &dst_index, sizeof(int)); dst += sizeof(int);
+                    std::memcpy(dst, &dst_level, sizeof(int)); dst += sizeof(int);
+                    for (int comp = scomp; comp < scomp + ncomp; ++comp)
                     {
                         Real data = neighb.rdata(comp);
                         std::memcpy(dst, &data, sizeof(Real));
                         dst += sizeof(Real);
                     }
-                    std::memcpy(dst, &dst_grid, sizeof(int)); dst += sizeof(int);
-                    std::memcpy(dst, &dst_tile, sizeof(int)); dst += sizeof(int);
-                    std::memcpy(dst, &dst_index, sizeof(int)); dst += sizeof(int);
-                    std::memcpy(dst, &dst_level, sizeof(int)); dst += sizeof(int);
                 }
             }                    
         }
     }
 
-    sumNeighborsMPI(send_data);
+    sumNeighborsMPI(isend_data, scomp, ncomp);
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-sumNeighborsMPI (std::map<int, Vector<char> >& not_ours) {
-
+sumNeighborsMPI (std::map<int, Vector<char> >& not_ours, int scomp, int ncomp) 
+{
     BL_PROFILE("NeighborParticleContainer::sumNeighborsMPI");
-
+    
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
-
-    AMREX_ASSERT(send_data.size() == neighbor_procs.size());
-
+    
+    AMREX_ASSERT(not_ours.size() == neighbor_procs.size());
+    
     Vector<long> isnds(NProcs, 0);
     Vector<long> ircvs(NProcs, 0);
     for (int i = 0; i < NProcs; ++i)
@@ -169,7 +171,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours) {
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
-        const auto Cnt    = rcvs[Who];
+        const auto Cnt    = ircvs[Who];
 
         AMREX_ASSERT(Cnt > 0);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
@@ -194,6 +196,42 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours) {
     if (nrcvs > 0)
     {
         ParallelDescriptor::Waitall(rreqs, stats);
+
+        const size_t data_size = ncomp*sizeof(Real) + 4 * sizeof(int);
+        
+        if (recvdata.size() % data_size != 0) {
+            amrex::Print() << recvdata.size() << " " << data_size << "\n";
+            if (this->m_verbose) {
+                amrex::AllPrint() << "NeighborParticles::sumNeighbors: sizes = "
+                                  << recvdata.size() << ", " << data_size << "\n";
+            }
+            amrex::Abort("NeighborParticles::sumNeighbors: How did this happen?");
+        }
+
+        int npart = recvdata.size() / data_size;
+        
+        char* buffer = recvdata.data();
+        for (int j = 0; j < npart; ++j)
+        {
+            int grid, tile, index, lev;
+            std::memcpy(&grid,  buffer, sizeof(int)); buffer += sizeof(int);
+            std::memcpy(&tile,  buffer, sizeof(int)); buffer += sizeof(int);
+            std::memcpy(&index,  buffer, sizeof(int)); buffer += sizeof(int);
+            std::memcpy(&lev, buffer, sizeof(int)); buffer += sizeof(int);
+
+            auto pair = std::make_pair(grid, tile);
+            auto& ptile = this->GetParticles(lev)[pair];
+            auto& parts = ptile.GetArrayOfStructs();
+            auto& p = parts[index];
+
+            for (int comp = scomp; comp < scomp + ncomp; ++comp)
+            {
+                Real data;
+                std::memcpy(&data, buffer, sizeof(Real));
+                p.rdata(comp) += data;
+                buffer += sizeof(Real);
+            }
+        }
     }
 #endif
 }
