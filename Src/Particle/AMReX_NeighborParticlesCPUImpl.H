@@ -18,6 +18,10 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::sumNeighborsCPU(int scomp, int ncomp) {
     BL_PROFILE("NeighborParticleContainer::sumNeighborsCPU");
 
+    if (not enable_inverse)
+    {
+        amrex::Abort("Need to set enable_inverse to true to use sumNeighbors. \n");
+    }
 }
 
 template <int NStructReal, int NStructInt>
