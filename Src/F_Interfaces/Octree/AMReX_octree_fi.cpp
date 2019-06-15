@@ -197,19 +197,19 @@ extern "C" {
         for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            FArrayBox * crsefab = lmf.fabPtr(mfi);
+            Array4<Real> const& crsearr = lmf.array(mfi);
             const int li = li_leaf_to_full[mfi.LocalIndex()];
-            FArrayBox const* finefab = fine->fabPtrAtLocalIdx(li);
+            Array4<Real const> const& finearr = fine->fabHostPtrAtLocalIdx(li)->array();
             if (fgeom.IsCartesian()) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,rr);
+                    amrex_avgdown(tbx,crsearr,finearr,0,scomp,ncomp,rr);
                 });
             } else {
-                FArrayBox const* finevolfab = fvolume.fabPtr(mfi);
+                Array4<Real const> const& finevolarr = fvolume.array(mfi);
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
-                    amrex_avgdown_with_vol(tbx,*crsefab,*finefab,*finevolfab,
+                    amrex_avgdown_with_vol(tbx,crsearr,finearr,finevolarr,
                                            0,scomp,ncomp,rr);
                 });
             }
