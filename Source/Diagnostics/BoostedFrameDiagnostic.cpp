@@ -754,9 +754,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             MultiFab tmp(slice_ba, data_buffer_[i]->DistributionMap(), ncomp, 0);
             tmp.copy(*slice, 0, 0, ncomp);
             
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
             CopySlice(tmp, *data_buffer_[i], i_lab, map_actual_fields_to_dump);
         }
