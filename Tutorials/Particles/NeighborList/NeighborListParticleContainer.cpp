@@ -12,7 +12,7 @@ NeighborListParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int                         ncells)
-    : NeighborParticleContainer<2*BL_SPACEDIM+1, 0> 
+    : NeighborParticleContainer<2*BL_SPACEDIM+1, 1> 
     (geom, dmap, ba, ncells)
 {}
 
@@ -22,7 +22,7 @@ NeighborListParticleContainer(const Vector<Geometry>            & geom,
                               const Vector<BoxArray>            & ba,
                               const Vector<int>                 & rr,
                               int                               ncells)
-    : NeighborParticleContainer<2*BL_SPACEDIM+1, 0> 
+    : NeighborParticleContainer<2*BL_SPACEDIM+1, 1> 
     (geom, dmap, ba, rr, ncells)
 {}
 
@@ -70,6 +70,8 @@ void NeighborListParticleContainer::InitParticles()
 #endif
 
             p.rdata(2*BL_SPACEDIM) = 1;
+
+            p.idata(0) = 1;
             
             particle_tile.push_back(p);
         }
