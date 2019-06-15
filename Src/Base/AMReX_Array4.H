@@ -13,7 +13,7 @@ namespace amrex {
         long kstride;
         long nstride;
         Dim3 begin;
-        Dim3 end;
+        Dim3 end;  // end is hi + 1
         int  ncomp;
 
         template <class U=T, class = typename std::enable_if<std::is_const<U>::value>::type >
@@ -38,6 +38,17 @@ namespace amrex {
               end(a_end),
               ncomp(a_ncomp)
             {}
+
+        template <class U,
+                  class = typename std::enable_if
+                  <std::is_same<typename std::remove_const<T>::type,
+                                typename std::remove_const<U>::type>::value>::type >
+        AMREX_GPU_HOST_DEVICE
+        constexpr Array4 (Array4<U> const& rhs, int start_comp) noexcept
+            : Array4((T*)(rhs.ptr(rhs.begin.x,rhs.begin.y,rhs.begin.z,start_comp)),
+                     rhs.begin, rhs.end, rhs.ncomp-start_comp)
+
+        {}
 
         template <class U=T, class = typename std::enable_if<!std::is_void<U>::value>::type >
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -151,14 +162,35 @@ namespace amrex {
 
     template <class Tto, class Tfrom>
     AMREX_GPU_HOST_DEVICE
-    Array4<Tto> ToArray4 (Array4<Tfrom> const& a_in)
+    Array4<Tto> ToArray4 (Array4<Tfrom> const& a_in) noexcept
     {
         return Array4<Tto>((Tto*)(a_in.p), a_in.begin, a_in.end, a_in.ncomp);
     }
 
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 lbound (Array4<T> const& a) noexcept
+    {
+        return a.begin;
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 ubound (Array4<T> const& a) noexcept
+    {
+        return Dim3{a.end.x-1,a.end.y-1,a.end.z-1};
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Dim3 length (Array4<T> const& a) noexcept
+    {
+        return Dim3{a.end.x-a.begin.x,a.end.y-a.begin.y,a.end.z-a.begin.z};
+    }
+
     template <typename T>
     std::ostream& operator<< (std::ostream& os, const Array4<T>& a) {
-        os << "((" << a.begin << ',' << a.end << ")," << a.ncomp << ')';
+        os << "((" << lbound(a) << ',' << ubound(a) << ")," << a.ncomp << ')';
         return os;
     }
 
