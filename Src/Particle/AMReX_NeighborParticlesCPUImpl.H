@@ -76,7 +76,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #pragma omp single
         num_threads = omp_get_num_threads();
 #endif
-
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             auto& particles = pti.GetArrayOfStructs();
@@ -104,11 +103,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         ParticleVector& buffer = neighbors[tag.level][dst_index];
                         AMREX_ASSERT(tag.dst_index < buffer.size());
                         std::memcpy(&buffer[tag.dst_index], &p, pdata_size);
-                        auto& itags = inverse_tags[tag.level][dst_index];
-                        AMREX_ASSERT(tag.dst_index < itags.size());
-                        itags[tag.dst_index].src_grid = src_index.first;
-                        itags[tag.dst_index].src_tile = src_index.second;
-                        itags[tag.dst_index].src_index = tag.src_index;
+                        if (enable_inverse)
+                        {
+                            auto& itags = inverse_tags[tag.level][dst_index];
+                            AMREX_ASSERT(tag.dst_index < itags.size());
+                            itags[tag.dst_index].src_grid = src_index.first;
+                            itags[tag.dst_index].src_tile = src_index.second;
+                            itags[tag.dst_index].src_index = tag.src_index;
+                        }
                     } else {
                         char* dst = &send_data[who][tag.dst_index];
                         char* src = (char *) &p;
@@ -126,9 +128,12 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             }
                             src += sizeof(int);
                         }
-                        std::memcpy(dst, &(src_index.first),  sizeof(int)); dst += sizeof(int);
-                        std::memcpy(dst, &(src_index.second), sizeof(int)); dst += sizeof(int);
-                        std::memcpy(dst, &(tag.src_index),    sizeof(int)); dst += sizeof(int);
+                        if (enable_inverse)
+                        {
+                            std::memcpy(dst,&(src_index.first),sizeof(int)); dst += sizeof(int);
+                            std::memcpy(dst,&(src_index.second),sizeof(int)); dst += sizeof(int);
+                            std::memcpy(dst,&(tag.src_index),sizeof(int)); dst += sizeof(int);
+                        }
                     }
                 }
             }
@@ -304,12 +309,15 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 AMREX_ASSERT(size % cdata_size == 0);
 
                 PairIndex dst_index(gid, tid);
-                AMREX_ASSERT(neighbors[lev][dst_index].size() ==
-                             inverse_tags[lev][dst_index].size());
                 size_t old_size = neighbors[lev][dst_index].size();
                 size_t new_size = neighbors[lev][dst_index].size() + np;
                 neighbors[lev][dst_index].resize(new_size);
-                inverse_tags[lev][dst_index].resize(new_size);
+                if (enable_inverse)
+                {
+                    AMREX_ASSERT(neighbors[lev][dst_index].size() ==
+                                 inverse_tags[lev][dst_index].size());
+                    inverse_tags[lev][dst_index].resize(new_size);
+                }
                 
                 char* dst = (char*) &neighbors[lev][dst_index][old_size];
                 char* src = buffer;
@@ -331,14 +339,17 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                     }
                     dst = ((char*) &neighbors[lev][dst_index][old_size+n]) + pdata_size;
 
-                    std::memcpy(&(inverse_tags[lev][dst_index][n].src_grid), src, sizeof(int));
-                    src += sizeof(int);
-                    
-                    std::memcpy(&(inverse_tags[lev][dst_index][n].src_tile), src, sizeof(int));
-                    src += sizeof(int);
-                    
-                    std::memcpy(&(inverse_tags[lev][dst_index][n].src_index), src, sizeof(int));
-                    src += sizeof(int);
+                    if (enable_inverse)
+                    {
+                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_grid),src,sizeof(int));
+                        src += sizeof(int);
+                        
+                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_tile),src,sizeof(int));
+                        src += sizeof(int);
+                        
+                        std::memcpy(&(inverse_tags[lev][dst_index][n].src_index),src,sizeof(int));
+                        src += sizeof(int);
+                    }
                 }
                 buffer += size;
             }
