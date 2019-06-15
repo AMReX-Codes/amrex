@@ -78,7 +78,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             comm_size += sizeof(int);
         }
     }
-    comm_size += 3*sizeof(int);
+    if (enable_inverse) comm_size += 3*sizeof(int);
     cdata_size = comm_size;
 }
 
@@ -320,7 +320,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tmp_local_map[lev][index].resize(num_threads);
             local_map[lev][index];
             buffer_tag_cache[lev][index].resize(num_threads);
-            inverse_tags[lev][index];
         }
     }
 
@@ -494,11 +493,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
         }
     }
 
-    for (int lev = 0; lev < this->numLevels(); ++lev)
+    if (enable_inverse)
     {
-        for (const auto& kv : neighbors[lev])
+        for (int lev = 0; lev < this->numLevels(); ++lev)
         {
-            inverse_tags[lev][kv.first].resize(kv.second.size());
+            for (const auto& kv : neighbors[lev])
+            {
+                inverse_tags[lev][kv.first].resize(kv.second.size());
+            }
         }
     }
 }
@@ -686,8 +688,8 @@ resizeContainers(const int num_levels)
         neighbor_list.resize(num_levels);
         mask_ptr.resize(num_levels);
         buffer_tag_cache.resize(num_levels);
-        inverse_tags.resize(num_levels);
         local_neighbor_sizes.resize(num_levels);
+        if (enable_inverse) inverse_tags.resize(num_levels);
     }
 
     AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and
