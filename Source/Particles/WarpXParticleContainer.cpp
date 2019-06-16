@@ -949,10 +949,11 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                FArrayBox* costfab = cost->fabPtr(pti);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                Array4<Real> const& costarr = cost->array(pti);
+                amrex::ParallelFor(tbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    costfab->plus(wt, work_box);
+                    costarr(i,j,k) += wt;
                 });
             }
         }
