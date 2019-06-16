@@ -344,6 +344,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     jx_nguards = jx_ng
     jy_nguards = jy_ng
     jz_nguards = jz_ng
+    pxr_l_nodal = l_nodal .eq. 1
 
 ! Dimension 3
 #if (AMREX_SPACEDIM==3)
@@ -361,8 +362,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         jy,jy_nguards,jy_nvalid,            &
         jz,jz_nguards,jz_nvalid,            &
         np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
-        xmin,zmin,dt,dx,dz,nox,noz,lvect,   &
-        pxr_l_nodal,current_depo_algo)
+        xmin,zmin,dt,dx,dz,nox,noz,pxr_l_nodal, &
+        lvect,current_depo_algo)
 #endif
 
   end subroutine warpx_current_deposition
