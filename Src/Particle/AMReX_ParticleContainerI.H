@@ -1718,9 +1718,8 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local)
 {
-
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
-
+    
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = amrex::second();
   
@@ -2131,13 +2130,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
     long NumSnds = 0;
-    if (local > 0) {
+    if (local > 0)
+    {
         AMREX_ALWAYS_ASSERT(lev_min == 0);
         AMREX_ALWAYS_ASSERT(lev_max == 0);
         BuildRedistributeMask(0, local);
         NumSnds = doHandShakeLocal(not_ours, neighbor_procs, Snds, Rcvs);
     }
-    else {
+    else
+    {
         NumSnds = doHandShake(not_ours, Snds, Rcvs);
     }
 
@@ -2146,7 +2147,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     if ((not local) and NumSnds == 0)
         return;  // There's no parallel work to do.
 
-    if (local) {
+    if (local)
+    {
         long tot_snds_this_proc = 0;
         long tot_rcvs_this_proc = 0;
         for (int i = 0; i < NNeighborProcs; ++i) {
@@ -2241,7 +2243,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 #ifndef AMREX_USE_CUDA
         for (int j = 0; j < npart; ++j)
-	  {
+        {
             auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
             
             char* pbuf = recvdata.data() + j*superparticle_size;

@@ -511,6 +511,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif
                 {
                     int cuda_stream = 0;
+                    ignore_unused(cuda_stream);
                     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                     {
                         const auto& tags = loc_copy_tags[mfi];
