@@ -1104,7 +1104,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int* lo_ptr     = thrust::raw_pointer_cast(m_lo.data());
         int* hi_ptr     = thrust::raw_pointer_cast(m_hi.data());
         int* output_ptr = thrust::raw_pointer_cast(m_output.data());
-        BaseFab<int>* mask_ptr = redistribute_mask_ptr->fabPtr(mfi);
+        auto mask_arr   = redistribute_mask_ptr->array(mfi);
         ParticleType* p_ptr = &(aos[0]);
 
         //
@@ -1124,7 +1124,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             iv += domain.smallEnd();
 
-	    int grid_id = (*mask_ptr)(iv);
+	    int grid_id = mask_arr(iv);
 
             grids_ptr[i] = grid_id;
 
@@ -1145,9 +1145,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::tuple<int, int>(0, 0), functors::tupleAdd());
 
         int last_gid_host, last_lo_host;
-        Gpu::dtoh_memcpy(&last_gid_host, m_grids_tmp.data() + old_np - 1, sizeof(int));
-        Gpu::dtoh_memcpy(&last_lo_host, m_lo.data() + old_np - 1, sizeof(int));
-        new_np = last_gid_host == gid ? last_lo_host : last_lo_host + 1;
+        Gpu::dtoh_memcpy(&last_gid_host, thrust::raw_pointer_cast(m_grids_tmp.data()) + old_np - 1, sizeof(int));
+        Gpu::dtoh_memcpy(&last_lo_host, thrust::raw_pointer_cast(m_lo.data()) + old_np - 1, sizeof(int));
+        new_np = (last_gid_host == gid) ? last_lo_host + 1 : last_lo_host;
             
         num_moved = old_np - new_np;
 
@@ -1180,7 +1180,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
                               functors::assignParticleGrid(geom.data(),
                                                            (*redistribute_mask_ptr)[mfi].box(),
-                                                           redistribute_mask_ptr->fabPtr(mfi)));
+                                                           redistribute_mask_ptr->array(mfi)));
 
             //
             // Partition the particle data so that particles that stay come first,
@@ -2422,7 +2422,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
 			  aos().begin(), aos().begin() + np, grid_indices.begin(),
                           functors::assignParticleGrid(geom.data(),
                                          (*redistribute_mask_ptr)[mfi].box(),
-                                         redistribute_mask_ptr->fabPtr(mfi)));
+                                         redistribute_mask_ptr->array(mfi)));
 
         int count = thrust::count_if(grid_indices.begin(),
                                      grid_indices.end(),

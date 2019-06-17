@@ -1024,7 +1024,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 #endif
 		for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
 		{
-		    fph->fill(*m_fabs.fabPtr(mfi),DComp,mfi.index());
+		    fph->fill(m_fabs[mfi],DComp,mfi.index());
 		}
 		
 		delete fph;
@@ -1571,11 +1571,9 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    
             amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-            FArrayBox const* crsefab = crseMF.fabPtr(mfi);
-            FArrayBox* finefab = mf.fabPtr(mfi);
-	    mapper->interp(*crsefab,
+	    mapper->interp(crseMF[mfi],
 			   0,
-			   *finefab,
+			   mf[mfi],
 			   DComp,
 			   NComp,
 			   dbx,
@@ -1644,9 +1642,9 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngrow);
-                FArrayBox* derfab = mf->fabPtr(mfi);
-                FArrayBox const* datafab = srcMF.fabPtr(mfi);
-                rec->derFuncFab()(bx, *derfab, 0, dncomp, *datafab, geom, time, rec->getBC(), level);
+                FArrayBox& derfab = (*mf)[mfi];
+                FArrayBox const& datafab = srcMF[mfi];
+                rec->derFuncFab()(bx, derfab, 0, dncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
         else
@@ -1793,9 +1791,9 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
             for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox();
-                FArrayBox* derfab = mf.fabPtr(mfi);
-                FArrayBox const* datafab = srcMF.fabPtr(mfi);
-                rec->derFuncFab()(bx, *derfab, dcomp, ncomp, *datafab, geom, time, rec->getBC(), level);
+                FArrayBox& derfab = mf[mfi];
+                FArrayBox const& datafab = srcMF[mfi];
+                rec->derFuncFab()(bx, derfab, dcomp, ncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
         else

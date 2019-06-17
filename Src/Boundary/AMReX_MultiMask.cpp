@@ -43,13 +43,14 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
 	{
 	    const Box& face_box = m_fa[mfi].box();
-            Mask* m = m_fa.fabPtr(mfi);
+            Array4<int> const& m_arr = m_fa.array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( face_box, tbx,
             {
-                m->setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
+                Mask m(m_arr, tbx.ixType());
+                m.setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
                 const Box& dbox = geomdomain & tbx;
                 if (dbox.ok()) {
-                    m->setVal(bndrydata_not_covered, dbox, DestComp{0}, NumComps{ncomp});
+                    m.setVal(bndrydata_not_covered, dbox, DestComp{0}, NumComps{ncomp});
                 }
             });
         }
@@ -60,6 +61,8 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 #endif
     if (initval)
     {
+        // TODO gpu
+
 	Vector<IntVect> pshifts(26);
 	std::vector< std::pair<int,Box> > isects;
 
