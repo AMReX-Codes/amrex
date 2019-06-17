@@ -1,5 +1,7 @@
-
+#include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_TracerParticles.H>
+//#include "AMReX_TracerParticles.H"
+#include "AMReX_TracerParticle_mod_K.H"
 
 namespace amrex {
 
@@ -161,11 +163,12 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
         auto& pmap = GetParticles(lev);
 	for (auto& kv : pmap) {                           
 	  int grid = kv.first.first;                    
-	  auto& pbox           = kv.second.GetArrayOfStructs();
-	  const int n          = pbox.size();
+	  auto& aos           = kv.second.GetArrayOfStructs();
+	  const int n          = aos.size();
 	  const FArrayBox& fab = Ucc[grid];
-	  auto * p_gpu_fab = &fab;
-	  auto * p_pbox = &pbox;
+	  const auto uccarr = fab.array();
+	  auto  p_gpu_fab = &fab;
+	  auto  p_pbox = aos().data();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -174,7 +177,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 	  //for (int i = 0; i < n; i++)             // Loop through particles on a box
             {
 	       
-	      ParticleType p  = *p_pbox[i];
+	      ParticleType p  = p_pbox[i];
 	      
                 //if (p.m_idata.id <= 0) continue;
 		BL_ASSERT(p.m_idata.id <= 0);
@@ -182,7 +185,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		Real v[AMREX_SPACEDIM];
 
 		//ParticleType::Interp(p, geomdata, fab, idx, v, AMREX_SPACEDIM); 
-		ParticleType::amrex_interpolate_CIC_2(p,geomdata,p_gpu_fab,idx,v,AMREX_SPACEDIM);
+		amrex_interpolate_CIC_2 (p,geomdata,uccarr,idx,v,AMREX_SPACEDIM);
 
 		if (ipass == 0) {
 		    //
