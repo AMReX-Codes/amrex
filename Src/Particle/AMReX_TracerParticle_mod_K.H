@@ -7,33 +7,44 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Geometry.H>
 #include <cmath>
+#include <AMReX_REAL.H>
+#include <AMReX_IntVect.H>
 
-template <typename P> 
+//template <typename P> 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void amrex_interpolate_CIC_2 (P const& p, const GeometryData& geomdata, const *FArrayBox& p_fab, 
-			amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
-			amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& v,
-			int AMREX_SPACEDIM)  
-{
-  BL_Profile("Particle<Nreal, Nint>::Interp()");
+void amrex_interpolate_CIC_2(auto p, auto geomdata, auto uccarr, auto idx, auto val, auto comp){
+
+
+
+//void amrex_interpolate_CIC_2 (auto p, const amrex::GeometryData geomdata, 
+			      //const amrex::FArrayBox * p_fab,
+//			      const amrex::Array4<const double>  p_fab,
+//			      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
+//			      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>  val,
+//			      int comp)  
+//{
+
+
+  //BL_Profile("Particle<Nreal, Nint>::Interp()");
   BL_ASSERT(idx != 0);
   BL_ASSERT(val != 0);
   
   const int   M   = AMREX_D_TERM(2,+2,+4);
-  const Real* plo = geomdata.Problo();
-  const Real* dx  = geomdata.cellsize();
-  auto fab = *p_fab;  
+  const amrex::Real* plo = geomdata.ProbLo();
+  const amrex::Real* dx  = geomdata.CellSize();
+  //const amrex::FArrayBox fab = *p_fab;
 
-  Real    fracs[M];
-  IntVect cells[M];
+  amrex::Real    fracs[M];
+  amrex::IntVect cells[M];
   
-  const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(p.m_rdata.pos[0] - plo[0]/dx[0] + Real(0.5), 
-						  p.m_rdata.pos[1] - plo[1]/dx[1] + Real(0.5), 
-						  p.m_rdata.pos[2] - plo[2]/dx[2] + Real(0.5))};
+  const amrex::Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(p.m_rdata.pos[0] - plo[0]/dx[0] + 
+							 amrex::Real(0.5), 
+							 p.m_rdata.pos[1] - plo[1]/dx[1] + amrex::Real(0.5), 
+							 p.m_rdata.pos[2] - plo[2]/dx[2] + amrex::Real(0.5))};
 
-  const IntVect cell(AMREX_D_DECL(std::floor(len[0]), std::floor(len[1]), std::floor(len[2])));
+  amrex::IntVect cell(AMREX_D_DECL(std::floor(len[0]), std::floor(len[1]), std::floor(len[2])));
 
-  const Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2])};
+  const amrex::Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2])};
   
 
  
@@ -104,11 +115,13 @@ void amrex_interpolate_CIC_2 (P const& p, const GeometryData& geomdata, const *F
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) 
     {
-      BL_ASSERT( (idx[i] >= 0) && (idx[i] < fab.nComp()) );
-      val[i] = 0 
+      BL_ASSERT( (idx[i] >= 0) && (idx[i] < uccarr.nComp()) );
+      val[i] = 0; 
 	for (int j = 0; j<M; j++)
 	{ 
-          val[i] += fab(cells[i], comp)*fracs[i];
+          val[j] += uccarr(cells[j][0],cells[j][1],cells[j][2], comp)*fracs[j];
         } 
    
     }
+}
+#endif

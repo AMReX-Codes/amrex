@@ -80,11 +80,11 @@ struct Particle
 
     static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
-  static void amrex_interpolate_CIC_2 (const Particle<NReal, NInt>& prt, const GeometryData& geomdata,
-                                       const FArrayBox * p_fab,const int* idx, Real* val,
-				       //amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
-				       //amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& v,
-				       int comp); 
+  //  static void amrex_interpolate_CIC_2 (const Particle<NReal, NInt>& prt, const GeometryData& geomdata,
+  //	       const FArrayBox * p_fab,const int* idx, Real* val,
+				       //				       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
+  //				       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& v,
+  //				       int comp); 
 
     static const std::string& Version ();
 
