@@ -91,14 +91,14 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_val,
-                                      int Ncomp, int cpt = 1, int num_streams = Gpu::Device::numCudaStreams())
+                                      int Ncomp, int cpt = 1, int num_streams = Gpu::Device::numGpuStreams())
 {
     src_fab.setVal(src_val);
     dst_fab.setVal(dst_val);
 
-    if (num_streams > Gpu::Device::numCudaStreams())
+    if (num_streams > Gpu::Device::numGpuStreams())
     {
-        num_streams = Gpu::Device::numCudaStreams();
+        num_streams = Gpu::Device::numGpuStreams();
         std::cout << "Too many streams requested. Using maximum value of " << num_streams << std::endl;
     }
 
@@ -120,11 +120,11 @@ void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst
         const auto len = amrex::length(bx);
         const Dim3 offset = {0,0,0};
 
-        const auto ec = Cuda::ExecutionConfig((bx.numPts()+cpt-1)/cpt);
-        AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
-                                 lo, len, ncells,
-                                 offset, src, dst,
-                                 0, 0, Ncomp);
+        const auto ec = Gpu::ExecutionConfig((bx.numPts()+cpt-1)/cpt);
+        AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
+                                lo, len, ncells,
+                                offset, src, dst,
+                                0, 0, Ncomp);
     }
     BL_PROFILE_VAR_STOP(standard);
 
@@ -207,12 +207,12 @@ void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_va
     AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(src_d,    src_h,    lsize*sizeof(Array4<Real>), cudaMemcpyHostToDevice));
     AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(dst_d,    dst_h,    lsize*sizeof(Array4<Real>), cudaMemcpyHostToDevice));
 
-    const auto ec = Cuda::ExecutionConfig(((bx_h[0].numPts()*simul)+cpt-1)/cpt);
+    const auto ec = Gpu::ExecutionConfig(((bx_h[0].numPts()*simul)+cpt-1)/cpt);
 
-    AMREX_CUDA_LAUNCH_GLOBAL(ec, copy, lsize, 
-			     bx_d, offset_d,
-			     src_d, dst_d,
-			     0, 0, Ncomp, simul);
+    AMREX_GPU_LAUNCH_GLOBAL(ec, copy, lsize, 
+                            bx_d, offset_d,
+                            src_d, dst_d,
+                            0, 0, Ncomp, simul);
 
     amrex::Gpu::Device::synchronize();
 
