@@ -1,6 +1,6 @@
 #include <AMReX_TracerParticle_mod_K.H>
 #include <AMReX_TracerParticles.H>
-//#include "AMReX_TracerParticles.H"
+#include "AMReX_TracerParticles.H"
 #include "AMReX_TracerParticle_mod_K.H"
 
 namespace amrex {
@@ -184,8 +184,8 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
 		Real v[AMREX_SPACEDIM];
 
-		//ParticleType::Interp(p, geomdata, fab, idx, v, AMREX_SPACEDIM); 
-		amrex_interpolate_CIC_2 (p,geomdata,uccarr,idx,v,AMREX_SPACEDIM);
+		//ParticleType::Interp(p, geomdata, fab, idx, v, AMREX_SPACEDIM); e
+                amrex_interpolate_CIC_2 (p,geomdata,uccarr,idx,v,AMREX_SPACEDIM);
 
 		if (ipass == 0) {
 		    //

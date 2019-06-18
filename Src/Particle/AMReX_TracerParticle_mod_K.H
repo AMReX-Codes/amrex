@@ -1,6 +1,6 @@
 #ifndef AMREX_TRACERPARTICLE_MOD_K_H
 #define AMREX_TRACERPARTICLE_MOD_K_H
-
+//#include <iostream>
 #include <AMReX_TracerParticles.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
@@ -11,18 +11,24 @@
 #include <AMReX_IntVect.H>
 
 //template <typename P> 
+//AMREX_GPU_HOST_DEVICE AMREX_INLINE
+//void amrex_interpolate_CIC_2(const int p, 
+//			     const GeometryData& geomdata, 
+//			     array4<Real> const& uccar, 
+//			     int idx, 
+//			     int val, 
+//			     int comp){
+
+//template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void amrex_interpolate_CIC_2(auto p, auto geomdata, auto uccarr, auto idx, auto val, auto comp){
-
-
-
-//void amrex_interpolate_CIC_2 (auto p, const amrex::GeometryData geomdata, 
-			      //const amrex::FArrayBox * p_fab,
-//			      const amrex::Array4<const double>  p_fab,
-//			      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
-//			      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>  val,
-//			      int comp)  
-//{
+void amrex_interpolate_CIC_2 (amrex::Particle<2, 0> p, 
+			      const amrex::GeometryData & geomdata, 
+			      const amrex::Array4<const double> &  uccarr,
+			      //amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
+			      const int idx,
+			      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> &  val,
+			      const int comp)  
+{
 
 
   //BL_Profile("Particle<Nreal, Nint>::Interp()");
@@ -120,6 +126,7 @@ void amrex_interpolate_CIC_2(auto p, auto geomdata, auto uccarr, auto idx, auto 
 	for (int j = 0; j<M; j++)
 	{ 
           val[j] += uccarr(i,j, comp)*fracs[j];
+	  //amrex::print(val[j]);
         } 
    
     }
