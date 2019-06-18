@@ -159,8 +159,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
 
-    int idx[AMREX_SPACEDIM] = {AMREX_D_DECL(0,1,2)};
-
     for (int ipass = 0; ipass < 2; ipass++)               
     {
         auto& pmap = GetParticles(lev);
