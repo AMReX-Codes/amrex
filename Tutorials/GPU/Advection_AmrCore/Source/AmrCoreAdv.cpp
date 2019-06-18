@@ -314,7 +314,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
     const MultiFab& state = phi_new[lev];
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
     {
 	
