@@ -17,7 +17,6 @@
 #endif
 
 #include <AmrCoreAdv.H>
-#include <AmrCoreAdv_F.H>
 
 using namespace amrex;
 
@@ -396,10 +395,20 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
-        BndryFuncArray bfunc(phifill);
-	PhysBCFunct<BndryFuncArray> physbc(geom[lev],bcs,bfunc);
-	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
-				     geom[lev], physbc, 0);
+        if(Gpu::inLaunchRegion())
+        {
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > physbc(geom[lev],bcs,gpu_bndry_func);
+            amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp, 
+                                        geom[lev], physbc, 0);
+        }
+        else
+        {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> physbc(geom[lev],bcs,bndry_func);
+            amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp, 
+                                        geom[lev], physbc, 0);
+        }
     }
     else
     {
@@ -408,16 +417,30 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        BndryFuncArray bfunc(phifill);
-        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
-        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
-
 	Interpolater* mapper = &cell_cons_interp;
 
-	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
-				   0, icomp, ncomp, geom[lev-1], geom[lev],
-				   cphysbc, 0, fphysbc, 0, refRatio(lev-1),
-				   mapper, bcs, 0);
+        if(Gpu::inLaunchRegion())
+        {
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
+
+            amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+                                      0, icomp, ncomp, geom[lev-1], geom[lev],
+                                      cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                      mapper, bcs, 0);
+        }
+        else
+        {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[lev-1],bcs,bndry_func);
+            PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[lev],bcs,bndry_func);
+
+            amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+                                      0, icomp, ncomp, geom[lev-1], geom[lev],
+                                      cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                      mapper, bcs, 0);
+        }
     }
 }
 
@@ -431,20 +454,32 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     Vector<MultiFab*> cmf;
     Vector<Real> ctime;
     GetData(lev-1, time, cmf, ctime);
+    Interpolater* mapper = &cell_cons_interp;
     
     if (cmf.size() != 1) {
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
 
-    BndryFuncArray bfunc(phifill);
-    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
-    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
+    if(Gpu::inLaunchRegion())
+    {
+        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
 
-    Interpolater* mapper = &cell_cons_interp;
+        amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
+                                     cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                     mapper, bcs, 0);
+    }
+    else
+    {
+        CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+        PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[lev-1],bcs,bndry_func);
+        PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[lev],bcs,bndry_func);
 
-    amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
-				 cphysbc, 0, fphysbc, 0, refRatio(lev-1),
-				 mapper, bcs, 0);
+        amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
+                                     cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                     mapper, bcs, 0);
+    }
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
