@@ -1367,7 +1367,7 @@ BoxArray::getHashMap () const
     if (m_ref->HasHashMap()) return BoxHashMap;
 
 #ifdef _OPENMP
-    #pragma omp critical(intersections_lock)
+#pragma omp critical(intersections_lock)
 #endif
     {
         if (BoxHashMap.empty() && size() > 0)
@@ -1397,11 +1397,15 @@ BoxArray::getHashMap () const
             m_ref->bbox =boundingbox.coarsen(maxext);
             m_ref->bbox.normalize();
 
-	    m_ref->has_hashmap = true;
-
 #ifdef AMREX_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
 #endif
+
+#ifdef _OPENMP
+#pragma omp flush
+#pragma omp atomic write
+#endif
+            m_ref->has_hashmap = true;
         }
     }
 
