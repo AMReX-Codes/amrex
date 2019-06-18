@@ -25,106 +25,29 @@ void amrex_interpolate_CIC_2 (const P& p,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 			      const amrex::Array4<const double> &  uccarr,
 			      amrex::Real * val,
-			      const int comp)  
+			      const int ncomp)  
 {
-
-
-  //BL_Profile("Particle<Nreal, Nint>::Interp()");
-  //BL_ASSERT(idx != 0);
   BL_ASSERT(val != 0);
   
-  const int   M   = AMREX_D_TERM(2,+2,+4);
-  //const amrex::FArrayBox fab = *p_fab;
-
-  amrex::Real    fracs[M];
-  amrex::IntVect cells[M];
+  amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+  amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
   
-  const amrex::Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(p.m_rdata.pos[0] - plo[0]*dxi[0] + 
-							 amrex::Real(0.5), 
-							 p.m_rdata.pos[1] - plo[1]*dxi[1] + amrex::Real(0.5), 
-							 p.m_rdata.pos[2] - plo[2]*dxi[2] + amrex::Real(0.5))};
-
-  amrex::IntVect cell(AMREX_D_DECL(std::floor(len[0]), std::floor(len[1]), std::floor(len[2])));
-
-  const amrex::Real frac[AMREX_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2])};
+  int i = std::floor(lx);
+  int j = std::floor(ly);
   
+  amrex::Real xint = lx - i;
+  amrex::Real yint = ly - j;
+  
+  amrex::Real sx[] = {1.-xint, xint};
+  amrex::Real sy[] = {1.-yint, yint};
 
- 
-#if (AMREX_SPACEDIM == 1)
-  // high
-  fracs[0] = frac[0];
-  cells[0] = cell;
-  // low
-  fracs[1] = 1-frac[0];
-  cell[0]  = cell[0] - 1;
-  cells[1] = cell;
-
-#elif (AMREX_SPACEDIM == 2)
-  // HH
-  fracs[0] = frac[0] * frac[1];
-  cells[0] = cell;
-  // LH
-  fracs[1] = (1-frac[0])*frac[1];
-  cell[0]  = cell[0] - 1;
-  cells[1] = cell;
-  // LL
-  fracs[2] = (1-frac[0]) * (1-frac[1]);
-  cell[1]  = cell[1] - 1;
-  cells[2] = cell;
-  // HL
-  fracs[3] = frac[0] * (1-frac[1]);
-  cell[0]  = cell[0] + 1;
-  cells[3] = cell;
-
-
-#elif (AMREX_SPACEDIM == 3)
-
-  //! HHH                                                                                            
-  fracs[0] = frac[0] * frac[1] * frac[2];
-  cells[0] = cell;
-  // LHH                                                                                             
-  fracs[1] = (1-frac[0]) * frac[1] * frac[2];
-  cell[0]  = cell[0] - 1;
-  cells[1] = cell;
-  // LLH                                                                                             
-  fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
-  cell[1]  = cell[1] - 1;
-  cells[2] = cell;
-  // HLH                                                                                             
-  fracs[3] = frac[0] * (1-frac[1]) * frac[2];
-  cell[0]  = cell[0] + 1;
-  cells[3] = cell;
-  // HHL                                                                                             
-  fracs[4] = frac[0] * frac[1] * (1-frac[2]);
-  cell[2]  = cell[2] - 1;
-  cells[4] = cell;
-  // LHL                                                                                             
-  fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
-  cell[0]  = cell[0] - 1;
-  cells[5] = cell;
-  // LLL                                                                                             
-  fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
-  cell[1]  = cell[1] - 1;
-  cells[6] = cell;
-  // HLL                                                                                             
-  fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
-  cell[0]  = cell[0] + 1;
-  cells[7] = cell;
-                                                  
-#else
-  amrex::abort("Invalid AMREX_SPACEDIM")
-#endif
-
-    for (int i = 0; i < AMREX_SPACEDIM; i++) 
-    {
-      //BL_ASSERT( (idx[i] >= 0) && (idx[i] < uccarr.nComp()) );
-      val[i] = 0; 
-	for (int j = 0; j<M; j++)
-	{ 
-          val[j] += uccarr(i,j, comp)*fracs[j];
-	  //amrex::print(val[j]);
-        } 
-   
-    }
+  for (int comp=0; comp < ncomp; ++comp) {
+      val[comp] = 0.0;
+      for (int jj = 0; jj <= 1; ++jj) { 
+          for (int ii = 0; ii <= 1; ++ii) { 
+              val[comp] += sx[ii]*sy[jj]*uccarr(i+ii,j+jj,0,comp);
+          }
+      }
+  }
 }
 #endif
