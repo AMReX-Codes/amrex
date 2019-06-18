@@ -151,7 +151,9 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     BL_ASSERT(!Ucc.contains_nan());
 
     const Real          strttime = amrex::second();
-    const Geometry&     geom     = m_gdb->Geom(lev); 
+    const Geometry&     geom     = m_gdb->Geom(lev);
+    const auto          plo      = geom.ProbLoArray();
+    const auto          dxi      = geom.InvCellSizeArray();
     const GeometryData& geomdata = geom.data();   
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
