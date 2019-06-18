@@ -1807,8 +1807,8 @@ running on GPUs because of kernel launch overhead.
 
 .. _sec:basics:fortran:
 
-Fortran, C and C++ Kernels
-==========================
+Fortran and C++ Kernels
+=======================
 
 In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
@@ -1817,7 +1817,8 @@ the work region is specified by a :cpp:`Box`.  When tiling is used, the work
 region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
 :cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
-arrays.  Fortran is often used for writing these kernels because of its
+arrays.  We have shown examples of writing kernels in C++ in the
+previous section.  Fortran is also often used for writing these kernels because of its
 native multi-dimensional array support.  To C++, these kernel functions are 
 C functions, whose function signatures are typically declared in a header file
 named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
@@ -1840,11 +1841,7 @@ Examples of these function declarations are as follows.
       }
       #endif
 
-One can write the functions in C and should include the header containing the
-function declarations in the C source code to ensure type safety. However, we
-typically write these kernel functions in Fortran because of the native
-multi-dimensional array support by Fortran. As we have seen in the section on
-:ref:`sec:basics:mfiter`, these Fortran functions take C pointers and view them
+These Fortran functions take C pointers and view them
 as multi-dimensional arrays of the shape specified by the additional integer
 arguments.  Note that Fortran takes arguments by reference unless the
 :fortran:`value` keyword is used. So an integer argument on the Fortran side
@@ -1873,8 +1870,7 @@ it into :cpp:`Real *, int *, int *`, where :cpp:`Real *` is the data pointer
 that matches real array argument in Fortran, the first :cpp:`int *` (which
 matches an integer argument in Fortran) specifies the lower bounds, and the
 second :cpp:`int *` the upper bounds of the spatial dimensions of the array.
-Similar to what we have seen in the section on :ref:`sec:basics:mfiter`, a
-matching Fortran function is shown below,
+An example of the Fortran function is shown below,
 
 .. highlight:: fortran
 
@@ -1938,8 +1934,8 @@ Here for simplicity we have omitted passing the tile Box.
 
 Usually :cpp:`MultiFab`\ s  have multiple components. Thus we often also need to
 pass the number of component into Fortran functions. We can obtain the number
-by calling the :cpp:`MultiFab::nComp()` function, and pass it to Fortran as we
-have seen in the section on :ref:`sec:basics:mfiter`.  We can also use the
+by calling the :cpp:`MultiFab::nComp()` function, and pass it to
+Fortran.  We can also use the
 :cpp:`BL_TO_FORTRAN_FAB` macro that is similar to :cpp:`BL_TO_FORTRAN_ANYD`
 except that it provides an additional :cpp:`int *` for the number of
 components. The Fortran function matching :cpp:`BL_TO_FORTRAN_FAB(fab)` is then
@@ -2027,21 +2023,25 @@ report issues to us.
 
 .. _sec:basics:cppkernel:
 
-Writing kernels in C++ is also an option.  AMReX provides a
-multi-dimensional array type of syntax, similar to Fortran,
-that is readable and easy to implement. An example is given below: 
+Although Fortran has native multi-dimensional array, we recommend
+writing kernels in C++ because of performance portability for CPU and
+GPU.  AMReX provides a multi-dimensional array type of syntax, similar
+to Fortran, that is readable and easy to implement.  We have
+demonstrated how to use :cpp:`Array4` in previous sections.  Because
+of its importance, we will summarize its basic usage again with the
+example below.
 
 .. highlight:: c++
 
 ::
 
-    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2)
+    void f (Box const& bx, FArrayBox const& sfab, FArrayBox& dfab)
     {
         const Dim3 lo = amrex::lbound(bx);
-        const Dim3 hi = amrex::hbound(bx);
+        const Dim3 hi = amrex::ubound(bx);
 
-        Array4<Real> const& src = fab1.array();
-        Array4<Real> const& dst = fab2.array();
+        Array4<Real const> const& src = sfab.array();
+        Array4<Real      > const& dst = dfab2.array();
 
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
@@ -2084,11 +2084,11 @@ vectorize the loop.  This should be done whenever possible to achieve the
 best performance. Be aware: the macro generates a compiler dependent
 pragma, so their exact effect on the resulting code is also compiler
 dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
-macro on loops that are not safe for vectorization will lead to a variety
-of errors, so if unsure about the independence of the iterations of a
+macro on loops that are not safe for vectorization may lead to errors,
+so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
-These loops should always use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
 defining the loop bounds. If not, the highest index cells will be left out
 of the calculation. 
 
