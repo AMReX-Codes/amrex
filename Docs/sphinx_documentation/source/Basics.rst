@@ -2200,9 +2200,7 @@ The basic idea behind physical boundary conditions is as follows:
            Reflection from interior cells with sign
            changed, :math:`q(-i) = -q(i)`.
 
--  We have interfaces to a fortran routine that fills ghost cells at domain
-   boundaries based on the boundary condition type defined in the :cpp:`BCRec`
-   object.  It is the user’s responsibility to have a consisent definition of
+-  It is the user’s responsibility to have a consisent definition of
    what the ghost cells represent. A common option used in AMReX codes is to
    fill the domain ghost cells with the value that lies on the boundary (as
    opposed to another common option where the value in the ghost cell represents
@@ -2243,32 +2241,14 @@ example).
 
 :cpp:`FillDomainBoundary()` is a function in
 ``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
-boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
-for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
-use it as a template and insert their own function for
-:cpp:`BCType:ext_dir` like below
+boundary ghost cells except for external Dirichlet (i.e.,
+:cpp:`BCType:ext_dir`).  The user can use it as a template and insert
+their own function.
 
-.. highlight:: c++
-
-::
-
-    if (! grown_domain_box.contains(fab_box))
-    {
-        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                        BL_TO_FORTRAN_BOX(domain_box),
-                        dx, prob_lo,
-                        bc[0].data());
-        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                       BL_TO_FORTRAN_BOX(domain_box),
-                       dx, prob_lo,
-                       bc[0].data());
-    }
-
-    
 Memory Allocation
 =================
 
-AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
+AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in
 AMReX, is that memory allocation is often very slow in multi-threaded OpenMP
 parallel regions. AMReX :cpp:`amrex_mempool_module` provides a much faster

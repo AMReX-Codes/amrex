@@ -96,7 +96,7 @@ operator is ready for an MLMG object like below.
     MLMG mlmg(mlabeclaplacian);
 
 Optional parameters can be set (see section :ref:`sec:linearsolver:pars`),
- and then we can use the ``MLMG`` member function
+and then we can use the ``MLMG`` member function
 
 .. highlight:: C++
 
