@@ -18,7 +18,7 @@ Single-level load balancing algorithms are sequentially applied to each AMR leve
 and the resulting distributions are mapped onto the ranks taking into account the weights 
 already assigned to them (assign heaviest set of grids to the least loaded rank)
 
-Options supported by AMReX include:
+Options supported by AMReX include the following; the default is SFC:
 
 - Knapsack: the default weight of a grid in the knapsack algorithm is the number of grid cells, 
   but AMReX supports the option to pass an array of weights – one per grid – or alternatively 

@@ -822,7 +822,9 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {
                 bool old;
-#ifdef _OPENMP
+#if defined(_OPENMP) && _OPENMP < 201107
+#pragma omp critical (amrex_indexfromvalue)
+#elif defined(_OPENMP)
 #pragma omp atomic capture
 #endif
                 {
