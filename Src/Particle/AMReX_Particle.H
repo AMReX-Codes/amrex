@@ -78,13 +78,15 @@ struct Particle
 
     static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
 
-    static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
+    static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab,
+		      const int* idx, Real* val, int cnt);
 
-  //  static void amrex_interpolate_CIC_2 (const Particle<NReal, NInt>& prt, const GeometryData& geomdata,
-  //	       const FArrayBox * p_fab,const int* idx, Real* val,
-				       //				       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
-  //				       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& v,
-  //				       int comp); 
+  //static void amrex_interpolate_CIC_2 (const Particle<Nreal, NInt>& p,
+  //				       const amrex::GeometryData & geomdata,
+  //				       const amrex::Array4<const double> &  uccarr,
+  //				       int& idx,
+  //				       amrex::Real& val,
+  //				       int comp);
 
     static const std::string& Version ();
 
