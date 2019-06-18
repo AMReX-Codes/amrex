@@ -196,7 +196,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		  for (int d = 0; d < AMREX_SPACEDIM; d++) 
 		    {
-                        amrex::Print() << v[d] << " ";
 		        p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*v[d];
                     }
@@ -206,14 +205,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		    for (int d = 0; d < AMREX_SPACEDIM; d++)
 		    {
-                        amrex::Print() << v[d] << " ";
                         p.m_rdata.pos[d]  = p.m_rdata.arr[AMREX_SPACEDIM+d] + dt*v[d];
                         // Save the velocity for use in Timestamp().
 			p.m_rdata.arr[AMREX_SPACEDIM+d] = v[d];
                     }
                 }
-                amrex::Print() << "\n";
-            });
+                //            });
+            }
         }
     }
     if (m_verbose > 1)
