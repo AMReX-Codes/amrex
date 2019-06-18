@@ -14,7 +14,7 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_FabArrayUtility.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -23,7 +23,7 @@ namespace amrex {
 namespace
 {
     bool initialized = false;
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     int num_multifabs     = 0;
     int num_multifabs_hwm = 0;
 #endif
@@ -450,7 +450,7 @@ MultiFab::Initialize ()
 
     amrex::ExecOnFinalize(MultiFab::Finalize);
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::add("MultiFab", std::function<MemProfiler::NBuildsInfo()>
 		     ([] () -> MemProfiler::NBuildsInfo {
 			 return {num_multifabs, num_multifabs_hwm};
@@ -466,7 +466,7 @@ MultiFab::Finalize ()
 
 MultiFab::MultiFab () noexcept
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -491,7 +491,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
     if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -501,7 +501,7 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
     :
     FabArray<FArrayBox>(rhs, maketype, scomp, ncomp)
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -510,7 +510,7 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
 MultiFab::MultiFab (MultiFab&& rhs) noexcept
     : FabArray<FArrayBox>(std::move(rhs))
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
 #endif
@@ -518,7 +518,7 @@ MultiFab::MultiFab (MultiFab&& rhs) noexcept
 
 MultiFab::~MultiFab()
 {
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     --num_multifabs;
 #endif
 }
@@ -556,14 +556,13 @@ MultiFab::define (const BoxArray&            bxs,
 void
 MultiFab::initVal ()
 {
-    // Done in FArrayBox. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox* fab = this->fabPtr(mfi);
-	fab->initVal();
+        FArrayBox& fab = (*this)[mfi];
+	fab.initVal();
     }
 }
 
@@ -582,7 +581,6 @@ MultiFab::contains_nan (int scomp,
                         const IntVect& ngrow,
                         bool local) const
 {
-    // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
@@ -613,7 +611,6 @@ MultiFab::contains_inf (int scomp,
                         IntVect const& ngrow,
 			bool local) const
 {
-    // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
@@ -765,188 +762,118 @@ MultiFab::max (const Box& region,
     return mx;
 }
 
-IntVect
-MultiFab::minIndex (int comp,
-                    int nghost) const
+namespace {
+
+static IntVect
+indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mmloc)
 {
-    // TODO GPU -- CHECK
-
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
-
-    Real mn = std::numeric_limits<Real>::max();
     IntVect loc;
 
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
     {
-        Real priv_mn = std::numeric_limits<Real>::max();
-        IntVect priv_loc;
-
-        amrex::Gpu::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
-        Real* p = local_mn.dataPtr();
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = this->fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+        int tmp[1+AMREX_SPACEDIM] = {0};
+        amrex::Gpu::AsyncArray<int> aa(tmp, 1+AMREX_SPACEDIM);
+        int* p = aa.data();
+        // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
+        // The first is used as an atomic bool and the others for intvect.
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            const Box& bx = amrex::grow(mfi.validbox(), nghost);
+            const Array4<Real const> arr = mf.array(mfi);
+            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
             {
-                Real t = fab->min(tbx,comp);
-                amrex::Gpu::Atomic::Min(p, t);
+                int* flag = p;
+                if (*flag == 0) {
+                    const FArrayBox fab(arr);
+                    IntVect t_loc = fab.indexFromValue(value, tbx, comp);
+                    if (tbx.contains(t_loc)) {
+                        if (Gpu::Atomic::Exch(flag,1) == 0) {
+                            AMREX_D_TERM(p[1] = t_loc[0];,
+                                         p[2] = t_loc[1];,
+                                         p[3] = t_loc[2];);
+                        }
+                    }
+                }
             });
-	}
-        priv_mn = std::min(priv_mn, local_mn.dataValue());
-       
-
-        amrex::Gpu::DeviceScalar<IntVect> local_loc(IntVect::TheZeroVector());
-        IntVect* l = local_loc.dataPtr();
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = this->fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-            {
-                IntVect t_loc = fab->indexFromValue(priv_mn, tbx,comp);
-
-                if (tbx.contains(t_loc))
-                {
-                    *l = t_loc; // For total safety, this should be a Gpu::Atomic.
-                };
-	    });
-	}
-        priv_loc = local_loc.dataValue();
-
-#ifdef _OPENMP
-#pragma omp critical (multifab_minindex)
-#endif
-	{
-	    if (priv_mn < mn) {
-		mn = priv_mn;
-		loc = priv_loc;
-	    }
-	}
+        }
+        aa.copyToHost(tmp, 1+AMREX_SPACEDIM);
+        AMREX_D_TERM(loc[0] = tmp[1];,
+                     loc[1] = tmp[2];,
+                     loc[2] = tmp[3];);
     }
-
-    const int NProcs = ParallelContext::NProcsSub();
-    if (NProcs > 1)
+    else
+#endif
     {
-        Vector<Real> mns(NProcs);
-        Vector<int>  locs(NProcs * AMREX_SPACEDIM);
-
-        auto comm = ParallelContext::CommunicatorSub();
-        ParallelAllGather::AllGather(mn, mns.dataPtr(), comm);
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
-        ParallelAllGather::AllGather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), comm);
-
-        mn  = mns[0];
-        loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-        for (int i = 1; i < NProcs; i++)
+        bool f = false;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         {
-            if (mns[i] < mn)
+            IntVect priv_loc = IntVect::TheMinVector();
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
             {
-                mn = mns[i];
-                const int j = AMREX_SPACEDIM * i;
-                loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
+                const Box& bx = mfi.growntilebox(nghost);
+                const FArrayBox& fab = mf[mfi];
+                IntVect t_loc = fab.indexFromValue(value, bx, comp);
+                if (bx.contains(t_loc)) {
+                    priv_loc = t_loc;
+                };
+            }
+
+            if (priv_loc.allGT(IntVect::TheMinVector())) {
+                bool old;
+#if defined(_OPENMP) && _OPENMP < 201107
+#pragma omp critical (amrex_indexfromvalue)
+#elif defined(_OPENMP)
+#pragma omp atomic capture
+#endif
+                {
+                    old = f;
+                    f = true;
+                }
+
+                if (old == false) loc = priv_loc;
             }
         }
     }
+
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelContext::NProcsSub();
+    if (NProcs > 1)
+    {
+        struct {
+            Real mm;
+            int rank;
+        } in, out;
+        in.mm = value;
+        in.rank = ParallelContext::MyProcSub();
+        MPI_Datatype datatype = (sizeof(Real) == sizeof(double))
+            ? MPI_DOUBLE_INT : MPI_FLOAT_INT;
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+        MPI_Allreduce(&in,  &out, 1, datatype, mmloc, comm);
+        MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
+    }
+#endif
 
     return loc;
 }
 
+}
+
 IntVect
-MultiFab::maxIndex (int comp,
-                    int nghost) const
+MultiFab::minIndex (int comp, int nghost) const
 {
-    // TODO GPU -- CHECK
-
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    Real mn = this->min(comp, nghost, true);
+    return indexFromValue(*this, comp, nghost, mn, MPI_MINLOC);
+}
 
-    Real mx = std::numeric_limits<Real>::lowest();
-    IntVect loc;
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        Real priv_mx = std::numeric_limits<Real>::lowest();
-        IntVect priv_loc;
-
-        amrex::Gpu::DeviceScalar<Real> local_mx(std::numeric_limits<Real>::lowest());
-        Real* p = local_mx.dataPtr();
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = this->fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-            {
-                Real t = fab->max(tbx,comp);
-                amrex::Gpu::Atomic::Max(p, t);
-            });
-	}
-        priv_mx = std::max(priv_mx, local_mx.dataValue());
-       
-
-        amrex::Gpu::DeviceScalar<IntVect> local_loc(IntVect::TheZeroVector());
-        IntVect* l = local_loc.dataPtr();
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = this->fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-            {
-                IntVect t_loc = fab->indexFromValue(priv_mx, tbx,comp);
-
-                if (tbx.contains(t_loc))
-                {
-                    *l = t_loc; // For total safety, this should be a Gpu::Atomic.
-                };
-	    });
-	}
-        priv_loc = local_loc.dataValue();
-
-#ifdef _OPENMP
-#pragma omp critical (multifab_maxindex)
-#endif
-	{
-	    if (priv_mx > mx) {
-		mx = priv_mx;
-		loc = priv_loc;
-	    }
-	}
-    }
-
-    const int NProcs = ParallelContext::NProcsSub();
-    if (NProcs > 1)
-    {
-        Vector<Real> mxs(NProcs);
-        Vector<int>  locs(NProcs * AMREX_SPACEDIM);
-
-        auto comm = ParallelContext::CommunicatorSub();
-        ParallelAllGather::AllGather(mx, mxs.dataPtr(), comm);
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
-        ParallelAllGather::AllGather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), comm);
-
-        mx  = mxs[0];
-        loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-        for (int i = 1; i < NProcs; i++)
-        {
-            if (mxs[i] > mx)
-            {
-                mx = mxs[i];
-
-                const int j = AMREX_SPACEDIM * i;
-
-                loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
-            }
-        }
-    }
-
-    return loc;
+IntVect
+MultiFab::maxIndex (int comp, int nghost) const
+{
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    Real mx = this->max(comp, nghost, true);
+    return indexFromValue(*this, comp, nghost, mx, MPI_MAXLOC);
 }
 
 Real

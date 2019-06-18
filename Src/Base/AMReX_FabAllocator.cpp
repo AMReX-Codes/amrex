@@ -16,10 +16,12 @@ namespace {
 }
 
 FabPoolAllocator::FabPoolAllocator ()
-#ifdef AMREX_FAB_IS_PINNED
+#if defined(AMREX_FAB_IS_PINNED)
     : m_arena(The_Pinned_Arena())
-#else
+#elif defined(AMREX_FAB_IS_MANAGED)
     : m_arena(The_Managed_Arena())
+#else
+    : m_arena(The_Cpu_Arena())
 #endif    
 {
     void* p = m_arena->alloc(alloc_bulk_size);

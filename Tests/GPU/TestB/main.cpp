@@ -64,7 +64,7 @@ int main (int argc, char* argv[])
 
       cudaMemcpy(&n, n_d, sizeof(long), cudaMemcpyDeviceToHost);
       cudaFree(n_d);
-      amrex::Gpu::Device::synchronize();
+      amrex::Gpu::synchronize();
 
       std::cout << "n after = " << n << std::endl; 
     }

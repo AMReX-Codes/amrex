@@ -33,7 +33,7 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          phix_1d, phiy_1d, phix, phiy, slope
          
-    integer :: i, j, k
+    integer :: i, j
     double precision :: hdtdx(2)
 
     hdtdx = 0.5*(dt/dx)

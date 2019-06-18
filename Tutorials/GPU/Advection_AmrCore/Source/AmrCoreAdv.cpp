@@ -12,12 +12,11 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
 #include <AmrCoreAdv.H>
-#include <AmrCoreAdv_F.H>
 
 using namespace amrex;
 
@@ -143,7 +142,7 @@ AmrCoreAdv::Evolve ()
             static_cast<amrex::AmrMesh*>(this), {&phi_new}, {{"phi"}});
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
         {
             std::ostringstream ss;
             ss << "[STEP " << step+1 << "]";
@@ -309,51 +308,28 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 
     if (lev >= phierr.size()) return;
 
-    const int clearval = TagBox::CLEAR;
+//    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
-
-    const Real* dx      = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
 
     const MultiFab& state = phi_new[lev];
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
     {
-        Vector<int>  itags;
 	
-	for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const Box& tilebox  = mfi.tilebox();
-
-            TagBox&     tagfab  = tags[mfi];
+	    const Box& bx  = mfi.tilebox();
+            const auto statefab = state.array(mfi);
+            const auto tagfab  = tags.array(mfi);
+            Real phierror = phierr[lev];
 	    
-	    // We cannot pass tagfab to Fortran because it is BaseFab<char>.
-	    // So we are going to get a temporary integer array.
-            // set itags initially to 'untagged' everywhere
-            // we define itags over the tilebox region
-	    tagfab.get_itags(itags, tilebox);
-	    
-            // data pointer and index space
-	    int*        tptr    = itags.dataPtr();
-	    const int*  tlo     = tilebox.loVect();
-	    const int*  thi     = tilebox.hiVect();
-/*
-            state_error(tagfab, tilebox, state[mfi], &tagval, &clearval,
-                        geomdata, &time, &phierr[lev]);
-*/
-            // tag cells for refinement
-	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-			BL_TO_FORTRAN_3D(state[mfi]),
-			&tagval, &clearval, 
-			AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()), 
-			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
-	    //
-	    // Now update the tags in the TagBox in the tilebox region
-            // to be equal to itags
-	    //
-	    tagfab.tags_and_untags(itags, tilebox);
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                state_error(i, j, k, tagfab, statefab, phierror, tagval);
+            });
 	}
     }
 }
@@ -419,10 +395,20 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
-        BndryFuncArray bfunc(phifill);
-	PhysBCFunct<BndryFuncArray> physbc(geom[lev],bcs,bfunc);
-	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
-				     geom[lev], physbc, 0);
+        if(Gpu::inLaunchRegion())
+        {
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > physbc(geom[lev],bcs,gpu_bndry_func);
+            amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp, 
+                                        geom[lev], physbc, 0);
+        }
+        else
+        {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> physbc(geom[lev],bcs,bndry_func);
+            amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp, 
+                                        geom[lev], physbc, 0);
+        }
     }
     else
     {
@@ -431,16 +417,30 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        BndryFuncArray bfunc(phifill);
-        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
-        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
-
 	Interpolater* mapper = &cell_cons_interp;
 
-	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
-				   0, icomp, ncomp, geom[lev-1], geom[lev],
-				   cphysbc, 0, fphysbc, 0, refRatio(lev-1),
-				   mapper, bcs, 0);
+        if(Gpu::inLaunchRegion())
+        {
+            GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
+            PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
+
+            amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+                                      0, icomp, ncomp, geom[lev-1], geom[lev],
+                                      cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                      mapper, bcs, 0);
+        }
+        else
+        {
+            CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+            PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[lev-1],bcs,bndry_func);
+            PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[lev],bcs,bndry_func);
+
+            amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+                                      0, icomp, ncomp, geom[lev-1], geom[lev],
+                                      cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                      mapper, bcs, 0);
+        }
     }
 }
 
@@ -454,20 +454,32 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     Vector<MultiFab*> cmf;
     Vector<Real> ctime;
     GetData(lev-1, time, cmf, ctime);
+    Interpolater* mapper = &cell_cons_interp;
     
     if (cmf.size() != 1) {
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
 
-    BndryFuncArray bfunc(phifill);
-    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
-    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
+    if(Gpu::inLaunchRegion())
+    {
+        GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(amrcore_fill_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > cphysbc(geom[lev-1],bcs,gpu_bndry_func);
+        PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > fphysbc(geom[lev],bcs,gpu_bndry_func);
 
-    Interpolater* mapper = &cell_cons_interp;
+        amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
+                                     cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                     mapper, bcs, 0);
+    }
+    else
+    {
+        CpuBndryFuncFab bndry_func(nullptr);  // Without EXT_DIR, we can pass a nullptr.
+        PhysBCFunct<CpuBndryFuncFab> cphysbc(geom[lev-1],bcs,bndry_func);
+        PhysBCFunct<CpuBndryFuncFab> fphysbc(geom[lev],bcs,bndry_func);
 
-    amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
-				 cphysbc, 0, fphysbc, 0, refRatio(lev-1),
-				 mapper, bcs, 0);
+        amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
+                                     cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+                                     mapper, bcs, 0);
+    }
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
@@ -660,7 +672,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                                          std::max(ngbxx.bigEnd(1)+1, ngbxy.bigEnd(1)),
                                                          0)));
 
-            AsyncFab psifab(psibox, 1);
+            FArrayBox psifab(psibox, 1);
+            Elixir psieli = psifab.elixir();
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
             auto prob_lo = geom[lev].ProbLoArray();
@@ -693,8 +706,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          });
                         );
 
-            psifab.clear();
-
         // ======== FLUX CALC AND UPDATE =========
 
 	    const Box& bx = mfi.tilebox();
@@ -711,16 +722,19 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& dqbxy = amrex::grow(bx, IntVect{1, 2, 1});,
                          const Box& dqbxz = amrex::grow(bx, IntVect{1, 1, 2}););
 
-            AsyncFab slope2fab (amrex::grow(bx, 2), 1);
+            FArrayBox slope2fab (amrex::grow(bx, 2), 1);
+            Elixir slope2eli = slope2fab.elixir();
             Array4<Real> slope2 = slope2fab.array();
-            AsyncFab slope4fab (amrex::grow(bx, 1), 1);
+            FArrayBox slope4fab (amrex::grow(bx, 1), 1);
+            Elixir slope4eli = slope4fab.elixir();
             Array4<Real> slope4 = slope4fab.array();
 
             // compute longitudinal fluxes
             // ===========================
 
             // x -------------------------
-            AsyncFab phixfab (gbx, 1);
+            FArrayBox phixfab (gbx, 1);
+            Elixir phixeli = phixfab.elixir();
             Array4<Real> phix = phixfab.array();
 
             amrex::launch(dqbxx,
@@ -742,7 +756,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             // y -------------------------
-            AsyncFab phiyfab (gbx, 1);
+            FArrayBox phiyfab (gbx, 1);
+            Elixir phiyeli = phiyfab.elixir();
             Array4<Real> phiy = phiyfab.array();
 
             amrex::launch(dqbxy,
@@ -764,7 +779,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             // z -------------------------
-            AsyncFab phizfab (gbx, 1);
+            FArrayBox phizfab (gbx, 1);
+            Elixir phizeli = phizfab.elixir();
             Array4<Real> phiz = phizfab.array();
 
             amrex::launch(dqbxz,
@@ -785,9 +801,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                 flux_z(i, j, k, statein, vel[2], phiz, slope4, dtdx); 
             });
 
-            slope2fab.clear();
-            slope4fab.clear();
-
             // compute transverse fluxes
             // ===========================
 
@@ -796,8 +809,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& gbxz = amrex::grow(bx, 2, 1););
 
             // xy & xz --------------------
-            AsyncFab phix_yfab (gbx, 1);
-            AsyncFab phix_zfab (gbx, 1);
+            FArrayBox phix_yfab (gbx, 1);
+            FArrayBox phix_zfab (gbx, 1);
+            Elixir phix_yeli = phix_yfab.elixir();
+            Elixir phix_zeli = phix_zfab.elixir();
             Array4<Real> phix_y = phix_yfab.array();
             Array4<Real> phix_z = phix_zfab.array();
 
@@ -820,8 +835,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             }); 
 
             // yz & yz --------------------
-            AsyncFab phiy_xfab (gbx, 1);
-            AsyncFab phiy_zfab (gbx, 1);
+            FArrayBox phiy_xfab (gbx, 1);
+            FArrayBox phiy_zfab (gbx, 1);
+            Elixir phiy_xeli = phiy_xfab.elixir();
+            Elixir phiy_zeli = phiy_zfab.elixir();
             Array4<Real> phiy_x = phiy_xfab.array();
             Array4<Real> phiy_z = phiy_zfab.array();
 
@@ -844,8 +861,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             }); 
 
             // zx & zy --------------------
-            AsyncFab phiz_xfab (gbx, 1);
-            AsyncFab phiz_yfab (gbx, 1);
+            FArrayBox phiz_xfab (gbx, 1);
+            FArrayBox phiz_yfab (gbx, 1);
+            Elixir phiz_xeli = phiz_xfab.elixir();
+            Elixir phiz_yeli = phiz_yfab.elixir();
             Array4<Real> phiz_x = phiz_xfab.array();
             Array4<Real> phiz_y = phiz_yfab.array();
 
@@ -895,17 +914,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                phiz, phix_y, phiy_x,
                                flux[2], dtdx);
             });
-
-            // Flux has been updated. These temporaries are no longer needed.
-            phixfab.clear();
-            phiyfab.clear();
-            phizfab.clear();
-            phix_yfab.clear();
-            phix_zfab.clear();
-            phiy_xfab.clear();
-            phiy_zfab.clear();
-            phiz_xfab.clear();
-            phiz_yfab.clear();
 
             // compute new state (stateout) and scale fluxes based on face area.
             // ===========================
@@ -1072,7 +1080,8 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                                                          std::max(nbxx.bigEnd(1)+1,   nbxy.bigEnd(1)),
                                                          0)));
 
-            AsyncFab psifab(psibox, 1);
+            FArrayBox psifab(psibox, 1);
+            Elixir psieli = psifab.elixir();
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
             auto prob_lo = geom[lev].ProbLoArray();
@@ -1104,7 +1113,6 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                          });
                         );
 
-            psifab.clear();
 	}
     }
 

@@ -7,10 +7,6 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
 
-#if(AMREX_SPACEDIM == 3)
-#include <AMReX_algoim_integrals.H>
-#endif
-
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -34,7 +30,7 @@ MyTest::solve ()
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom[0].isPeriodic(idim)) {
             mlmg_lobc[idim] = LinOpBCType::Periodic;
             mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {

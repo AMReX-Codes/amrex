@@ -11,7 +11,7 @@
 
 namespace amrex {
 
-#ifdef BL_BACKTRACING
+#ifdef AMREX_BACKTRACING
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 #endif
 
@@ -57,7 +57,7 @@ BLBackTrace::handler(int s)
     
     amrex::ErrorStream() << "See " << errfilename << " file for details" << std::endl;
 
-#ifdef BL_BACKTRACING
+#ifdef AMREX_BACKTRACING
     if (!bt_stack.empty()) {
 	std::ofstream errfile;
 	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
@@ -117,7 +117,9 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
 	fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
-	fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n\n");
+	fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n");
+        fprintf(f, "    Or one can use amrex/Tools/Backtrace/parse_bt.py.\n\n");
+
 	fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
 	fprintf(f, "    One can use\n");
 	fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
@@ -150,7 +152,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 }
 #endif
 
-#ifdef BL_BACKTRACING
+#ifdef AMREX_BACKTRACING
 
 BLBTer::BLBTer(const std::string& s, const char* file, int line)
 {

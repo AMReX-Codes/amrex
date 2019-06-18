@@ -1,3 +1,26 @@
+
+# 19.06
+
+  -- Geometry/CoordSys: New constructor and define function are added.
+     We plan to remove static data from Geometry and its base CoordSys
+     in the next release.  This means most of the static functions in
+     Geometry class will become non-static.  These include
+     `isPeriodic`, `isAnyPeriodic`, `isAllPeriodic`, `ProbLo`,
+     `ProbHi`, `IsCartesian`, `IsRZ`, and `IsSPHERICAL`.  You can
+     prepare codes now for the upcoming changes.  In almost all cases,
+     all you have to do is replace `Geometry::function` with
+     `DefaultGeometry().function`.
+
+  -- Add tensor linear solvers for viscous flows with and without EB.
+
+  -- Algoim: A modified version of Algoim is added.  This removes the
+     dependence of 3d EB nodal MLMG solver on the official Algoim code
+     and Blitz.
+
+  -- EB: Fix the potential ownership issue is IndexSpace.
+
+  -- Add a new FillPatchTwoLevels for EB.
+
 # 19.05
 
   -- Interface of virtual function Interpolater::interp has changed.

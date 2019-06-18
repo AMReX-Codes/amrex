@@ -2869,7 +2869,7 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             if (msk(i,j,k) .ne. dirichlet .and. abs(sten(i,j,k,ist_000)) .gt. s0_norm0*1.d-6) then
+             if (msk(i,j,k) .ne. dirichlet .and. abs(sten(i,j,k,ist_000)) .gt. s0_norm0) then
                 x(i,j,k) = x(i,j,k) / sten(i,j,k,ist_000)
              end if
           end do

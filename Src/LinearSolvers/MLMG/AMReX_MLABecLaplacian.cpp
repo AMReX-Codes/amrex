@@ -139,7 +139,6 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& fine_b_coeffs = m_b_coeffs[flev  ].back();
     auto& crse_a_coeffs = m_a_coeffs[flev-1].front();
     auto& crse_b_coeffs = m_b_coeffs[flev-1].front();
-    auto& crse_geom     = m_geom    [flev-1][0];
 
     if (m_a_scalar != 0.0) {
         // We coarsen from the back of flev to the front of flev-1.

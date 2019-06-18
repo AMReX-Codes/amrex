@@ -1,41 +1,55 @@
-
 #include <AMReX_BCUtil.H>
-#include <AMReX_BLFort.H>
-#include <AMReX_filcc_f.H>
+#include <AMReX_PhysBCFunct.H>
 
 namespace amrex
 {
-    void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
-    {
-        if (Geometry::isAllPeriodic()) return;
-        if (phi.nGrow() == 0) return;
 
-        AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
+namespace {
 
-        const Box& domain_box = geom.Domain();
-        Box grown_domain_box = domain_box;
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (Geometry::isPeriodic(idim)) {
-                grown_domain_box.grow(idim,phi.nGrow());
-            }
-        }
-        // Inside grown_domain_box, we have good data.
-    
-        const Real* dx = geom.CellSize();
-        const Real* prob_lo = Geometry::ProbLo();
+void dummy_cpu_fill_extdir (Box const& bx, Array4<Real> const& dest,
+                            const int dcomp, const int numcomp,
+                            GeometryData const& geom, const Real time,
+                            const BCRec* bcr, const int bcomp,
+                            const int orig_comp)
+{
+    // do something for external Dirichlet (BCType::ext_dir) if there are
+}
 
-        for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+struct dummy_gpu_fill_extdir
+{
+    AMREX_GPU_DEVICE
+    void operator() (const IntVect& iv, Array4<Real> const& dest,
+                     const int dcomp, const int numcomp,
+                     GeometryData const& geom, const Real time,
+                     const BCRec* bcr, const int bcomp,
+                     const int orig_comp) const
         {
-            FArrayBox& fab = phi[mfi];
-            const Box& fab_box = fab.box(); // including ghost cells
-            
-            if (! grown_domain_box.contains(fab_box))
-            {
-                amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                                BL_TO_FORTRAN_BOX(domain_box),
-                                dx, prob_lo,
-                                bc[0].data());
-            }
+            // do something for external Dirichlet (BCType::ext_dir) if there are
         }
+};
+
+}
+
+void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
+{
+    if (geom.isAllPeriodic()) return;
+    if (phi.nGrow() == 0) return;
+
+    AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
+
+    if (Gpu::inLaunchRegion())
+    {
+        GpuBndryFuncFab<dummy_gpu_fill_extdir> gpu_bndry_func(dummy_gpu_fill_extdir{});
+        PhysBCFunct<GpuBndryFuncFab<dummy_gpu_fill_extdir> > physbcf
+            (geom, bc, gpu_bndry_func);
+        physbcf.FillBoundary(phi, 0, phi.nComp(), 0.0, 0);
     }
+    else
+    {
+        CpuBndryFuncFab cpu_bndry_func(dummy_cpu_fill_extdir);;
+        PhysBCFunct<CpuBndryFuncFab> physbcf(geom, bc, cpu_bndry_func);
+        physbcf.FillBoundary(phi, 0, phi.nComp(), 0.0, 0);
+    }
+}
+
 }

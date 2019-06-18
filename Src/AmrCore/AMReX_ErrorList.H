@@ -122,6 +122,7 @@ public:
         *
         * \param inFunc
         */
+        // No explicit because some codes rely on it.
         ErrorFunc (ErrorFuncDefault inFunc);
 
         /**
@@ -129,6 +130,7 @@ public:
         *
         * \param inFunc
         */
+        // No explicit because some codes rely on it.
         ErrorFunc (ErrorFunc3DDefault inFunc);
 
         /**
@@ -222,6 +224,7 @@ public:
         *
         * \param inFunc
         */
+        // No explicit because some codes rely on it.
         ErrorFunc2 (ErrorFunc2Default inFunc);
 
         /**

@@ -1,28 +1,24 @@
 #include "Poisson.H"
-#include "Poisson_F.H"
 
 using namespace amrex;
 
-void InitData (MultiFab& State) {
-
-    auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(State.Factory());
-    auto const& flags = fact.getMultiEBCellFlagFab();
-
-    int ng = State.nGrow();
-    
+void InitData (MultiFab& State)
+{
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.growntilebox(ng);
-
-        const auto& sfab = State[mfi];
-        const auto& flag = flags[mfi];
-
-        if (flag.getType(bx) != FabType::covered) {
-            init_data(BL_TO_FORTRAN_BOX(bx),
-                      BL_TO_FORTRAN_ANYD(State[mfi]));
-        }
+        const Box& bx = mfi.growntilebox();
+        const Array4<Real>& q = State.array(mfi);
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (i==70 and j==70 and k==0) {
+                q(i,j,k) = 1.0;
+            } else {
+                q(i,j,k) = 0.0;
+            }
+        });
     }
 }

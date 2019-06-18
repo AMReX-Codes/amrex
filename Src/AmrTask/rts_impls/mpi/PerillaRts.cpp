@@ -187,25 +187,8 @@ namespace perilla{
 #endif
     }
 
-
-#if 0
-    const double kMicro = 1.0e-6;
-    double RTS::Time()
-    {
-	struct timeval TV;
-
-	const int RC = gettimeofday(&TV, NULL);
-	if(RC == -1)
-	{
-	    printf("ERROR: Bad call to gettimeofday\n");
-	    return(-1);
-	}
-	return( ((double)TV.tv_sec) + kMicro * ((double)TV.tv_usec) );
-    } 
-#endif
-
     void RTS::Barrier(){
-	//nothing
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 
 }//end namespace

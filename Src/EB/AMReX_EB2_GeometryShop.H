@@ -28,11 +28,11 @@ public:
 
     using FunctionType = F;
 
-    GeometryShop (F const& f)
+    explicit GeometryShop (F const& f)
         : m_f(f)
         {}
 
-    GeometryShop (F && f)
+    explicit GeometryShop (F && f)
         : m_f(std::move(f))
         {}
 

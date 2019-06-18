@@ -1596,7 +1596,7 @@ contains
     integer :: i,j
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet .and. abs(sten(i,j,1)) .gt. s0_norm0*1.d-6) then
+          if (msk(i,j) .ne. dirichlet .and. abs(sten(i,j,1)) .gt. s0_norm0) then
              x(i,j) = x(i,j) / sten(i,j,1)
           end if
        end do

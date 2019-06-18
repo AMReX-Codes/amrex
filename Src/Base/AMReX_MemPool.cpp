@@ -14,7 +14,7 @@
 #include <AMReX_MemPool.H>
 #include <AMReX_Vector.H>
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -78,7 +78,7 @@ void amrex_mempool_init ()
 	    amrex_mempool_free(p);
 	}
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 	MemProfiler::add("MemPool", std::function<MemProfiler::MemInfo()>
 			 ([] () -> MemProfiler::MemInfo {
 			     int MB_min, MB_max, MB_tot;

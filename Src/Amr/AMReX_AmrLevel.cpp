@@ -215,10 +215,10 @@ AmrLevel::writePlotFile (const std::string& dir,
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
         for (i = 0; i < AMREX_SPACEDIM; i++)
-            os << Geometry::ProbLo(i) << ' ';
+            os << Geom().ProbLo(i) << ' ';
         os << '\n';
         for (i = 0; i < AMREX_SPACEDIM; i++)
-            os << Geometry::ProbHi(i) << ' ';
+            os << Geom().ProbHi(i) << ' ';
         os << '\n';
         for (i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
@@ -235,7 +235,7 @@ AmrLevel::writePlotFile (const std::string& dir,
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
-        os << (int) Geometry::Coord() << '\n';
+        os << (int) Geom().Coord() << '\n';
         os << "0\n"; // Write bndry data.
 
     }
@@ -1024,7 +1024,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 #endif
 		for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
 		{
-		    fph->fill(*m_fabs.fabPtr(mfi),DComp,mfi.index());
+		    fph->fill(m_fabs[mfi],DComp,mfi.index());
 		}
 		
 		delete fph;
@@ -1238,7 +1238,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         Box domain_box = amrex::convert(amrLevels[l]->Geom().Domain(), fab.box().ixType());
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (Geometry::isPeriodic(idim)) {
+            if (amrLevels[l]->Geom().isPeriodic(idim)) {
                 int n = domain_box.length(idim);
                 domain_box.grow(idim, n);
             }
@@ -1385,7 +1385,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           fineAmrLevel.geom,
                           bcr,
                           m_scomp,
-                          m_index);
+                          m_index,
+                          RunOn::Cpu);
             //
             // Copy intersect finefab into next level m_cboxes.
             //
@@ -1570,11 +1571,9 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    
             amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-            FArrayBox const* crsefab = crseMF.fabPtr(mfi);
-            FArrayBox* finefab = mf.fabPtr(mfi);
-	    mapper->interp(*crsefab,
+	    mapper->interp(crseMF[mfi],
 			   0,
-			   *finefab,
+			   mf[mfi],
 			   DComp,
 			   NComp,
 			   dbx,
@@ -1583,7 +1582,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 			   geom,
 			   bcr,
 			   SComp,
-			   idx);
+			   idx, RunOn::Gpu);
 	}
 
 	StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
@@ -1632,8 +1631,8 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        const int ncomp = rec->numDerive();
-        mf.reset(new MultiFab(dstBA, dmap, ncomp, ngrow, MFInfo(), *m_factory));
+        const int dncomp = rec->numDerive();
+        mf.reset(new MultiFab(dstBA, dmap, dncomp, ngrow, MFInfo(), *m_factory));
 
         if (rec->derFuncFab() != nullptr)
         {
@@ -1643,9 +1642,9 @@ AmrLevel::derive (const std::string& name, Real time, int ngrow)
             for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngrow);
-                FArrayBox* derfab = mf->fabPtr(mfi);
-                FArrayBox const* datafab = srcMF.fabPtr(mfi);
-                rec->derFuncFab()(bx, *derfab, 0, ncomp, *datafab, geom, time, rec->getBC(), level);
+                FArrayBox& derfab = (*mf)[mfi];
+                FArrayBox const& datafab = srcMF[mfi];
+                rec->derFuncFab()(bx, derfab, 0, dncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
         else
@@ -1792,9 +1791,9 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
             for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox();
-                FArrayBox* derfab = mf.fabPtr(mfi);
-                FArrayBox const* datafab = srcMF.fabPtr(mfi);
-                rec->derFuncFab()(bx, *derfab, dcomp, ncomp, *datafab, geom, time, rec->getBC(), level);
+                FArrayBox& derfab = mf[mfi];
+                FArrayBox const& datafab = srcMF[mfi];
+                rec->derFuncFab()(bx, derfab, dcomp, ncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
         else
@@ -2505,7 +2504,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                                            cgeom,
                                            fgeom,
                                            bcr,
-                                           idummy1, idummy2);
+                                           idummy1, idummy2, RunOn::Cpu);
                           }
                         else
                           {
@@ -2529,7 +2528,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                                                cgeom,
                                                fgeom,
                                                bcr,
-                                               idummy1, idummy2);
+                                               idummy1, idummy2, RunOn::Cpu);
 
                                 }
                             }
@@ -2553,7 +2552,7 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
                                                  cgeom,
                                                  fgeom,
                                                  bcr,
-                                                 idummy1, idummy2);
+                                                 idummy1, idummy2, RunOn::Cpu);
 
                                 }
                             }
@@ -3046,7 +3045,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                              }
                           }
 			  Box c_dom= amrex::coarsen(geom_fine->Domain(), m_amrlevel.crse_ratio);
-                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom);
+                          m_fpc = &FabArrayBase::TheFPinfo(*(smf_fine[0]), m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom, NULL);
                       }
 #ifdef USE_PERILLA_PTHREADS
 //                    perilla::syncAllThreads();

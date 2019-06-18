@@ -25,6 +25,7 @@
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_FabAllocator.H>
+#include <AMReX_Utility.H>
 
 #include <AMReX_Gpu.H>
 
@@ -96,9 +97,9 @@ struct NumComps {
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Array4<T>
-makeArray4 (T* p, Box const& bx) noexcept
+makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 {
-    return Array4<T>{p, amrex::begin(bx), amrex::end(bx)};
+    return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
 template <typename T>
@@ -111,7 +112,7 @@ struct BaseFabData
         : dptr(a_dptr), domain(a_domain), nvar(a_nvar),
           truesize(a_truesize), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
         {}
-    BaseFabData () = default;
+    BaseFabData () noexcept = default;
     T*      dptr;     //!< The data pointer.
     Box     domain;   //!< My index space.
     int     nvar;     //!< Number components.
@@ -194,7 +195,7 @@ public:
     typedef T         value_type;
     typedef Allocator allocator_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
-    BaseFab ();
+    BaseFab () noexcept;
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx,
@@ -215,8 +216,21 @@ public:
      */
     BaseFab (const Box& bx, int ncomp, T* p);
 
+    AMREX_GPU_HOST_DEVICE
+    explicit BaseFab (Array4<T> const& a) noexcept;
+
+    AMREX_GPU_HOST_DEVICE
+    explicit BaseFab (Array4<T> const& a, IndexType t) noexcept;
+
+    AMREX_GPU_HOST_DEVICE
+    explicit BaseFab (Array4<T const> const& a) noexcept;
+
+    AMREX_GPU_HOST_DEVICE
+    explicit BaseFab (Array4<T const> const& a, IndexType t) noexcept;
+
     //! The destructor deletes the array memory.
-    ~BaseFab ();
+    AMREX_GPU_HOST_DEVICE
+    ~BaseFab () noexcept;
 
     BaseFab (const BaseFab<T,Allocator>& rhs) = delete;
     BaseFab<T,Allocator>& operator= (const BaseFab<T,Allocator>& rhs) = delete;
@@ -376,21 +390,21 @@ public:
     AMREX_INLINE
     Array4<T const> array () const noexcept
     {
-        return makeArray4<T const>(this->dptr, this->domain);
+        return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
     Array4<T> array () noexcept
     {
-        return makeArray4<T>(this->dptr, this->domain);
+        return makeArray4<T>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
     Array4<T const> const_array () const noexcept
     {
-        return makeArray4<T const>(this->dptr, this->domain);
+        return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
@@ -1705,9 +1719,9 @@ BaseFab<T,Allocator>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_CUDA
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    AMREX_GPU_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                             cudaCpuDeviceId,
-                                             Cuda::Device::cudaStream()));
+    AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                              cudaCpuDeviceId,
+                                              Gpu::gpuStream()));
 #endif
 }
 
@@ -1717,9 +1731,9 @@ BaseFab<T,Allocator>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_CUDA
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-    AMREX_GPU_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                             Cuda::Device::deviceId(),
-                                             Cuda::Device::cudaStream()));
+    AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                              Gpu::Device::deviceId(),
+                                              Gpu::gpuStream()));
 #endif
 }
 
@@ -1938,7 +1952,7 @@ BaseFab<T,Allocator>::define ()
 }
 
 template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab ()
+BaseFab<T,Allocator>::BaseFab () noexcept
     : BaseFabData<T>{nullptr, Box(), 0, 0L, false, false}
 {}
 
@@ -1976,10 +1990,44 @@ BaseFab<T,Allocator>::BaseFab (const Box& bx, int ncomp, T* p)
 {
 }
 
+template<class T, class Allocator>
+BaseFab<T,Allocator>::BaseFab (Array4<T> const& a) noexcept
+    : BaseFabData<T>(a.p,
+                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+                     a.ncomp, a.ncomp*a.nstride, false, false)
+{}
+
+template<class T, class Allocator>
+BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t) noexcept
+    : BaseFabData<T>(a.p,
+                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+                     a.ncomp, a.ncomp*a.nstride, false, false)
+{}
+
+template<class T, class Allocator>
+BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a) noexcept
+    : BaseFabData<T>(const_cast<T*>(a.p),
+                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+                     a.ncomp, a.ncomp*a.nstride, false, false)
+{}
+
+template<class T, class Allocator>
+BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
+    : BaseFabData<T>(const_cast<T*>(a.p),
+                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+                     a.ncomp, a.ncomp*a.nstride, false, false)
+{}
+
 template <class T, class Allocator>
-BaseFab<T,Allocator>::~BaseFab ()
+BaseFab<T,Allocator>::~BaseFab () noexcept
 {
+#ifndef AMREX_DEVICE_COMPILE
     clear();
+#endif
 }
 
 template <class T, class Allocator>
@@ -3140,7 +3188,7 @@ BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
                 AMREX_PRAGMA_SIMD
 #endif
                 for (int i = 0; i < len.x; ++i) {
-#ifndef __CUDA_ARCH__
+#ifndef AMREX_DEVICE_COMPILE
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif

@@ -167,7 +167,7 @@ sortParticlesByNeighborDestGPU()
         Gpu::ManagedDeviceVector<int> neighbor_codes(np);
         int* pcodes = neighbor_codes.dataPtr();
 
-        BaseFab<int>* mask_ptr = m_neighbor_mask_ptr->fabPtr(mfi);
+        Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
         
         ParticleType* p_ptr = &(aos[0]);
         AMREX_FOR_1D ( np, i,
@@ -180,7 +180,7 @@ sortParticlesByNeighborDestGPU()
             
             iv += domain.smallEnd();
             
-	    int code = (*mask_ptr)(iv);
+	    int code = mask_arr(iv);
             
             pcodes[i] = code;
         });
@@ -526,7 +526,7 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
                 cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
 
-                Gpu::Device::streamSynchronize();
+                Gpu::streamSynchronize();
 
                 if (num_particles == 0) continue;
 

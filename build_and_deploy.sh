@@ -61,7 +61,7 @@ make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
 
 cd ../sphinx_tutorials
 make SPHINX_BUILD="python -msphinx" latexpdf &> make_tutorials_latex.out
-mv build/latex/amrex.pdf source/
+mv build/latex/amrex-tutorials.pdf source/
 make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 
