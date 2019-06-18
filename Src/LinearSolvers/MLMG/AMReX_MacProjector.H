@@ -27,6 +27,7 @@ public:
 
     void setVerbose   (int v) noexcept { m_verbose = v; }
     void setCGVerbose (int v) noexcept { m_cg_verbose = v; }
+    void setBottomVerbose (int v) noexcept { m_cg_verbose = v; }
 
     void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in) noexcept
      { bottom_solver_type = bottom_solver_type_in;}

@@ -305,9 +305,9 @@ void main_main()
             ofs << std::scientific;
         }
         for (int i = 0; i < posidx.size(); ++i) {
-            ofs << std::setw(25) << std::right << std::setprecision(12) << posidx[i].first;
+            ofs << std::setw(25) << std::right << std::setprecision(17) << posidx[i].first;
             for (int j = 0; j < var_names.size(); ++j) {
-                ofs << std::setw(25) << std::right << std::setprecision(12) << data[j][posidx[i].second];
+                ofs << std::setw(25) << std::right << std::setprecision(17) << data[j][posidx[i].second];
             }
             ofs << "\n";
         }

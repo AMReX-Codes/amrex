@@ -43,7 +43,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 value_type* block_sum = gsm.dataPtr();
                 value_type* sdata = block_sum + 1;
 
-                const FAB fab(arr);
+                const FAB fab(arr,bx.ixType());
 
                 value_type tsum = 0.0;
                 for (auto const tbx : Gpu::Range(bx)) {
@@ -114,8 +114,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 value_type* block_sum = gsm.dataPtr();
                 value_type* sdata = block_sum + 1;
 
-                const FAB1 fab1(arr1);
-                const FAB2 fab2(arr2);
+                const FAB1 fab1(arr1,bx.ixType());
+                const FAB2 fab2(arr2,bx.ixType());
 
                 value_type tsum = 0.0;
                 for (auto const tbx : Gpu::Range(bx)) {
@@ -187,9 +187,9 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 value_type* block_sum = gsm.dataPtr();
                 value_type* sdata = block_sum + 1;
 
-                const FAB1 fab1(arr1);
-                const FAB2 fab2(arr2);
-                const FAB3 fab3(arr3);
+                const FAB1 fab1(arr1,bx.ixType());
+                const FAB2 fab2(arr2,bx.ixType());
+                const FAB3 fab3(arr3,bx.ixType());
 
                 value_type tsum = 0.0;
                 for (auto const tbx : Gpu::Range(bx)) {
@@ -257,7 +257,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-                const FAB fab(arr);
+                const FAB fab(arr,bx.ixType());
 
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
@@ -333,8 +333,8 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-                const FAB1 fab1(arr1);
-                const FAB2 fab2(arr2);
+                const FAB1 fab1(arr1,bx.ixType());
+                const FAB2 fab2(arr2,bx.ixType());
 
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
@@ -409,7 +409,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-                const FAB fab(arr);
+                const FAB fab(arr,bx.ixType());
 
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
@@ -485,8 +485,8 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-                const FAB1 fab1(arr1);
-                const FAB2 fab2(arr2);
+                const FAB1 fab1(arr1,bx.ixType());
+                const FAB2 fab2(arr2,bx.ixType());
 
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
@@ -559,7 +559,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
-                const FAB fab(arr);
+                const FAB fab(arr,bx.ixType());
 
                 int tr = true;
                 for (auto const tbx : Gpu::Range(bx)) {
@@ -630,8 +630,8 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
-                const FAB1 fab1(arr1);
-                const FAB2 fab2(arr2);
+                const FAB1 fab1(arr1,bx.ixType());
+                const FAB2 fab2(arr2,bx.ixType());
 
                 int tr = true;
                 for (auto const tbx : Gpu::Range(bx)) {
@@ -699,7 +699,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
-                const FAB fab(arr);
+                const FAB fab(arr,bx.ixType());
 
                 int tr = false;
                 for (auto const tbx : Gpu::Range(bx)) {
@@ -770,8 +770,8 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 int* block_r = gsm.dataPtr();
                 int* sdata = block_r + 1;
 
-                const FAB1 fab1(arr1);
-                const FAB2 fab2(arr2);
+                const FAB1 fab1(arr1,bx.ixType());
+                const FAB2 fab2(arr2,bx.ixType());
 
                 int tr = false;
                 for (auto const tbx : Gpu::Range(bx)) {

@@ -76,6 +76,7 @@ target_sources( amrex
    AMReX_Box.cpp
    AMReX_BoxIterator.H 
    AMReX_BoxIterator.cpp
+   AMReX_Dim3.H
    AMReX_IntVect.H
    AMReX_IntVect.cpp
    AMReX_IndexType.H
@@ -103,6 +104,7 @@ target_sources( amrex
    AMReX_IArrayBox.cpp 
    AMReX_BaseFab.H
    AMReX_BaseFab.cpp
+   AMReX_Array4.H
    AMReX_MakeType.H
    AMReX_TypeTraits.H
    AMReX_FabFactory.H
