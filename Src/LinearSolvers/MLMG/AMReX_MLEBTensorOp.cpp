@@ -452,7 +452,6 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         for (OrientationIter face; face; ++face) {
             Orientation ori = face();
             const int iface = ori;
-            const int idir = ori.coordDir();
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
                 bcl[iface*AMREX_SPACEDIM+icomp] = bdlv[icomp][ori];
