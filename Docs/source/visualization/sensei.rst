@@ -250,13 +250,10 @@ First, log into cori and clone the git repo's.
    cd $SCRATCH
    mkdir warpx
    cd warpx/
-   git clone https://github.com/ECP-WarpX/WarpX.git WarpX-libsim
-   git clone https://github.com/AMReX-Codes/amrex
-   git clone https://bitbucket.org/berkeleylab/picsar.git
-   cd amrex/
-   git checkout development
-   cd ../WarpX-libsim
-   git checkout dev
+   git clone --branch dev https://github.com/ECP-WarpX/WarpX.git WarpX-libsim
+   git clone --branch development https://github.com/AMReX-Codes/amrex
+   git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+   cd WarpX-libsim
    vim GNUmakefile
 
 Next, edit the makefile to turn the SENSEI features on.
@@ -304,13 +301,10 @@ First, log into cori and clone the git repo's.
    cd $SCRATCH
    mkdir warpx
    cd warpx/
-   git clone https://github.com/ECP-WarpX/WarpX.git WarpX-catalyst
-   git clone https://github.com/AMReX-Codes/amrex
-   git clone https://bitbucket.org/berkeleylab/picsar.git
-   cd amrex/
-   git checkout development
-   cd ../WarpX-catalyst
-   git checkout dev
+   git clone --branch dev https://github.com/ECP-WarpX/WarpX.git WarpX-catalyst
+   git clone --branch development https://github.com/AMReX-Codes/amrex
+   git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+   cd WarpX-catalyst
    vim GNUmakefile
 
 Next, edit the makefile to turn the SENSEI features on.

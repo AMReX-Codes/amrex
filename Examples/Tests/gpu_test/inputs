@@ -24,10 +24,8 @@ warpx.do_pml = 0
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 3
-algo.charge_deposition = 0
-algo.field_gathering = 1
-algo.particle_pusher = 0
+algo.current_deposition = direct
+algo.field_gathering = standard
 
 interpolation.nox = 1
 interpolation.noy = 1
@@ -56,14 +54,15 @@ electrons.uz_th  = 0.01 # uth the std of the (unitless) momentum
 electrons.uz_m   = 10.  # Mean momentum along z (unitless)
 
 # Laser
-warpx.use_laser    = 1
-laser.profile      = Gaussian
-laser.position     = 0. 0. 0.e-6 # This point is on the laser plane
-laser.direction    = 0. 0. 1.     # The plane normal direction
-laser.polarization = 1. 0. 0.    # The main polarization vector
-laser.e_max        = 16.e12        # Maximum amplitude of the laser field (in V/m)
-laser.profile_waist = 3.e-6      # The waist of the laser (in meters)
-laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
-laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
-laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
-laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+lasers.nlasers      = 1
+lasers.names        = laser1
+laser1.profile      = Gaussian
+laser1.position     = 0. 0. 0.e-6 # This point is on the laser plane
+laser1.direction    = 0. 0. 1.     # The plane normal direction
+laser1.polarization = 1. 0. 0.    # The main polarization vector
+laser1.e_max        = 16.e12        # Maximum amplitude of the laser field (in V/m)
+laser1.profile_waist = 3.e-6      # The waist of the laser (in meters)
+laser1.profile_duration = 15.e-15  # The duration of the laser (in seconds)
+laser1.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
+laser1.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
+laser1.wavelength = 0.8e-6         # The wavelength of the laser (in meters)

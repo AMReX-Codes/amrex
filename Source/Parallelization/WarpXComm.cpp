@@ -1,5 +1,6 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <WarpXSumGuardCells.H>
 
 #include <AMReX_FillPatchUtil_F.H>
 
@@ -78,7 +79,7 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, 1, ng);
 
             const Real* dx = Geom(lev-1).CellSize();
-            const int ref_ratio = refRatio(lev-1)[0];
+            const int refinement_ratio = refRatio(lev-1)[0];
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -88,7 +89,7 @@ WarpX::UpdateAuxilaryData ()
                 {
                     Box ccbx = mfi.fabbox();
                     ccbx.enclosedCells();
-                    ccbx.coarsen(ref_ratio).refine(ref_ratio); // so that ccbx is coarsenable
+                    ccbx.coarsen(refinement_ratio).refine(refinement_ratio); // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = dBx[mfi];
                     const FArrayBox& cyfab = dBy[mfi];
@@ -105,18 +106,18 @@ WarpX::UpdateAuxilaryData ()
                                                  BL_TO_FORTRAN_ANYD(cxfab),
                                                  BL_TO_FORTRAN_ANYD(cyfab),
                                                  BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &ref_ratio,&use_limiter);
+                                                 dx, &refinement_ratio,&use_limiter);
 #else
                     amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
                                                  BL_TO_FORTRAN_ANYD(bfab[0]),
                                                  BL_TO_FORTRAN_ANYD(bfab[2]),
                                                  BL_TO_FORTRAN_ANYD(cxfab),
                                                  BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &ref_ratio,&use_limiter);
+                                                 dx, &refinement_ratio,&use_limiter);
                     amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
                                            BL_TO_FORTRAN_ANYD(bfab[1]),
                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                           &ref_ratio,&use_limiter);
+                                           &refinement_ratio,&use_limiter);
 #endif
 
                     for (int idim = 0; idim < 3; ++idim)
@@ -152,7 +153,7 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
 
-            const int ref_ratio = refRatio(lev-1)[0];
+            const int refinement_ratio = refRatio(lev-1)[0];
 #ifdef _OPEMP
 #pragma omp parallel
 #endif
@@ -162,7 +163,7 @@ WarpX::UpdateAuxilaryData ()
                 {
                     Box ccbx = mfi.fabbox();
                     ccbx.enclosedCells();
-                    ccbx.coarsen(ref_ratio).refine(ref_ratio); // so that ccbx is coarsenable
+                    ccbx.coarsen(refinement_ratio).refine(refinement_ratio); // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = dEx[mfi];
                     const FArrayBox& cyfab = dEy[mfi];
@@ -179,18 +180,18 @@ WarpX::UpdateAuxilaryData ()
                                         BL_TO_FORTRAN_ANYD(cxfab),
                                         BL_TO_FORTRAN_ANYD(cyfab),
                                         BL_TO_FORTRAN_ANYD(czfab),
-                                        &ref_ratio,&use_limiter);
+                                        &refinement_ratio,&use_limiter);
 #else
                     amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
                                         BL_TO_FORTRAN_ANYD(efab[0]),
                                         BL_TO_FORTRAN_ANYD(efab[2]),
                                         BL_TO_FORTRAN_ANYD(cxfab),
                                         BL_TO_FORTRAN_ANYD(czfab),
-                                        &ref_ratio,&use_limiter);
+                                        &refinement_ratio,&use_limiter);
                     amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
                                            BL_TO_FORTRAN_ANYD(efab[1]),
                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                           &ref_ratio);
+                                           &refinement_ratio);
 #endif
 
                     for (int idim = 0; idim < 3; ++idim)
@@ -245,7 +246,7 @@ void
 WarpX::FillBoundaryE (int lev, PatchType patch_type)
 {
     if (patch_type == PatchType::fine)
-    {
+    {        
         if (do_pml && pml[lev]->ok())
         {
     	    pml[lev]->ExchangeE(patch_type,
@@ -355,14 +356,15 @@ WarpX::SyncCurrent ()
 {
     BL_PROFILE("SyncCurrent()");
 
-    // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
+    // Restrict fine patch current onto the coarse patch, before
+    // summing the guard cells of the fine patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         current_cp[lev][0]->setVal(0.0);
         current_cp[lev][1]->setVal(0.0);
         current_cp[lev][2]->setVal(0.0);
 
-        const IntVect& ref_ratio = refRatio(lev-1);
+        const IntVect& refinement_ratio = refRatio(lev-1);
 
         std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
                                              current_fp[lev][1].get(),
@@ -370,7 +372,7 @@ WarpX::SyncCurrent ()
         std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                              current_cp[lev][1].get(),
                                              current_cp[lev][2].get() };
-        SyncCurrent(fine, crse, ref_ratio[0]);
+        SyncCurrent(fine, crse, refinement_ratio[0]);
     }
 
     Vector<Array<std::unique_ptr<MultiFab>,3> > j_fp(finest_level+1);
@@ -391,8 +393,9 @@ WarpX::SyncCurrent ()
                 bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
                 // Then swap j_fp and current_fp
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
-                // At this point, current_fp may have false values close to the 
-                // edges of each FAB. This will be solved with a SumBoundary later.
+                // At this point, current_fp may have false values close to the
+                // edges of each FAB. This will be solved with when summing
+                // the guard cells later.
                 // j_fp contains the exact MultiFab current_fp before this step.
             }
         }
@@ -427,11 +430,11 @@ WarpX::SyncCurrent ()
     {
         const auto& period = Geom(lev).periodicity();
         // When using a bilinear filter with many passes, current_fp has
-        // temporarily more ghost cells here, so that its value inside 
+        // temporarily more ghost cells here, so that its value inside
         // the domain is correct at the end of this stage.
-        current_fp[lev][0]->SumBoundary(period);
-        current_fp[lev][1]->SumBoundary(period);
-        current_fp[lev][2]->SumBoundary(period);
+        WarpXSumGuardCells(*(current_fp[lev][0]),period);
+        WarpXSumGuardCells(*(current_fp[lev][1]),period);
+        WarpXSumGuardCells(*(current_fp[lev][2]),period);
     }
 
     // Add fine level's coarse patch to coarse level's fine patch
@@ -461,9 +464,9 @@ WarpX::SyncCurrent ()
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        current_cp[lev][0]->SumBoundary(cperiod);
-        current_cp[lev][1]->SumBoundary(cperiod);
-        current_cp[lev][2]->SumBoundary(cperiod);
+        WarpXSumGuardCells(*(current_cp[lev][0]),cperiod);
+        WarpXSumGuardCells(*(current_cp[lev][1]),cperiod);
+        WarpXSumGuardCells(*(current_cp[lev][2]),cperiod);
     }
 
     if (WarpX::use_filter) {
@@ -476,7 +479,7 @@ WarpX::SyncCurrent ()
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
                 // Then copy the interior of j_fp to current_fp.
                 MultiFab::Copy(*current_fp[lev][idim], *j_fp[lev][idim], 0, 0, 1, 0);
-                // current_fp has right number of ghost cells and 
+                // current_fp has right number of ghost cells and
                 // correct filtered values here.
             }
         }
@@ -521,10 +524,10 @@ WarpX::SyncCurrent ()
 void
 WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     const std::array<      amrex::MultiFab*,3>& crse,
-                    int ref_ratio)
+                    int refinement_ratio)
 {
-    BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = (fine[0]->nGrowVect() + 1) /ref_ratio;
+    BL_ASSERT(refinement_ratio == 2);
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) /refinement_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -536,7 +539,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
             for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ng);
-                Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
+                Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
                 ffab.resize(fbx);
                 fbx &= (*fine[idim])[mfi].box();
                 ffab.setVal(0.0);
@@ -556,12 +559,13 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
 {
     if (!rhof[0]) return;
 
-    // Restrict fine patch onto the coarse patch, before fine patch SumBoundary
+    // Restrict fine patch onto the coarse patch,
+    // before summing the guard cells of the fine patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         rhoc[lev]->setVal(0.0);
-        const IntVect& ref_ratio = refRatio(lev-1);
-        SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
+        const IntVect& refinement_ratio = refRatio(lev-1);
+        SyncRho(*rhof[lev], *rhoc[lev], refinement_ratio[0]);
     }
 
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
@@ -607,7 +611,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        rhof[lev]->SumBoundary(period);
+        WarpXSumGuardCells( *(rhof[lev]), period, 0, rhof[lev]->nComp() );
     }
 
     // Add fine level's coarse patch to coarse level's fine patch
@@ -631,7 +635,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        rhoc[lev]->SumBoundary(cperiod);
+        WarpXSumGuardCells( *(rhoc[lev]), cperiod, 0, rhoc[lev]->nComp() );
     }
 
     if (WarpX::use_filter) {
@@ -669,10 +673,10 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
  *  averaging the values of the charge density of the fine patch (on the same level).
  */
 void
-WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
+WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
 {
-    BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = (fine.nGrowVect()+1)/ref_ratio;
+    BL_ASSERT(refinement_ratio == 2);
+    const IntVect& ng = (fine.nGrowVect()+1)/refinement_ratio;
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
@@ -683,7 +687,7 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
         for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(ng);
-            Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
+            Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
             ffab.resize(fbx, nc);
             fbx &= fine[mfi].box();
             ffab.setVal(0.0);
@@ -706,7 +710,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     current_cp[lev][1]->setVal(0.0);
     current_cp[lev][2]->setVal(0.0);
 
-    const IntVect& ref_ratio = refRatio(lev-1);
+    const IntVect& refinement_ratio = refRatio(lev-1);
 
     std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
                                          current_fp[lev][1].get(),
@@ -714,7 +718,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                          current_cp[lev][1].get(),
                                          current_cp[lev][2].get() };
-    SyncCurrent(fine, crse, ref_ratio[0]);
+    SyncCurrent(fine, crse, refinement_ratio[0]);
 }
 
 void
@@ -729,10 +733,9 @@ WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), 1, ng);
             bilinear_filter.ApplyStencil(jf, *j[idim]);
-            jf.SumBoundary(period);
-            MultiFab::Copy(*j[idim], jf, 0, 0, 1, 0);
+            WarpXSumGuardCells(*(j[idim]), jf, period);
         } else {
-            j[idim]->SumBoundary(period);
+            WarpXSumGuardCells(*(j[idim]), period);
         }
     }
 }
@@ -780,8 +783,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
             mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
 
-            jfc.SumBoundary(period);
-            MultiFab::Copy(*current_cp[lev+1][idim], jfc, 0, 0, 1, 0);
+            WarpXSumGuardCells(*current_cp[lev+1][idim], jfc, period);
         }
         else if (use_filter) // but no buffer
         {
@@ -792,8 +794,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
             bilinear_filter.ApplyStencil(jf, *current_cp[lev+1][idim]);
             mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
-            jf.SumBoundary(period);
-            MultiFab::Copy(*current_cp[lev+1][idim], jf, 0, 0, 1, 0);
+            WarpXSumGuardCells(*current_cp[lev+1][idim], jf, period);
         }
         else if (current_buf[lev+1][idim]) // but no filter
         {
@@ -803,14 +804,14 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, 1,
                            current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
-            current_cp[lev+1][idim]->SumBoundary(period);
+            WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
         }
         else // no filter, no buffer
         {
             mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
                            current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
-            current_cp[lev+1][idim]->SumBoundary(period);
+            WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
         }
         MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
     }
@@ -823,8 +824,8 @@ WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
 {
     if (rho_fp[lev]) {
         rho_cp[lev]->setVal(0.0);
-        const IntVect& ref_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+        const IntVect& refinement_ratio = refRatio(lev-1);
+        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 }
 
@@ -840,10 +841,9 @@ WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, i
         ng += bilinear_filter.stencil_length_each_dir-1;
         MultiFab rf(r->boxArray(), r->DistributionMap(), ncomp, ng);
         bilinear_filter.ApplyStencil(rf, *r, icomp, 0, ncomp);
-        rf.SumBoundary(period);
-        MultiFab::Copy(*r, rf, 0, icomp, ncomp, 0);
+        WarpXSumGuardCells(*r, rf, period, icomp, ncomp );
     } else {
-        r->SumBoundary(icomp, ncomp, period);
+        WarpXSumGuardCells(*r, period, icomp, ncomp);
     }
 }
 
@@ -885,9 +885,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
 
             MultiFab::Add(rhofb, rhofc, 0, 0, ncomp, ng);
             mf.ParallelAdd(rhofb, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
-
-            rhofc.SumBoundary(period);
-            MultiFab::Copy(*rho_cp[lev+1], rhofc, 0, 0, ncomp, 0);
+            WarpXSumGuardCells( *rho_cp[lev+1], rhofc, period, icomp, ncomp );
         }
         else if (use_filter) // but no buffer
         {
@@ -896,8 +894,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
             MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
             bilinear_filter.ApplyStencil(rf, *rho_cp[lev+1], icomp, 0, ncomp);
             mf.ParallelAdd(rf, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
-            rf.SumBoundary(0, ncomp, period);
-            MultiFab::Copy(*rho_cp[lev+1], rf, 0, icomp, ncomp, 0);
+            WarpXSumGuardCells( *rho_cp[lev+1], rf, period, icomp, ncomp );
         }
         else if (charge_buf[lev+1]) // but no filter
         {
@@ -908,14 +905,14 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
                            ncomp,
                            charge_buf[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
-            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
+            WarpXSumGuardCells(*(rho_cp[lev+1]), period, icomp, ncomp);
         }
         else // no filter, no buffer
         {
             mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
                            rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
-            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
+            WarpXSumGuardCells(*(rho_cp[lev+1]), period, icomp, ncomp);
         }
         ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
         MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);

@@ -10,6 +10,8 @@
 #include "AMReX_ParmParse.H"
 #include "AMReX_Utility.H"
 
+enum class predefined_profile_flag { Null, parabolic_channel };
+
 ///
 /// PlasmaDensityProfile describes how the charge density
 /// is set in particle initialization. Subclasses must define a
@@ -55,6 +57,24 @@ public:
                                    amrex::Real y,
                                    amrex::Real z) const override;
 private:
+    amrex::Vector<amrex::Real> params;
+};
+
+///
+/// This describes predefined density distributions.
+///
+class PredefinedDensityProfile : public PlasmaDensityProfile
+{
+public:
+    PredefinedDensityProfile(const std::string& species_name);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+    amrex::Real ParabolicChannel(amrex::Real x,
+                                 amrex::Real y,
+                                 amrex::Real z) const;
+private:
+    predefined_profile_flag which_profile = predefined_profile_flag::Null;
     amrex::Vector<amrex::Real> params;
 };
 
@@ -273,6 +293,7 @@ public:
     amrex::Real z_rms;
     amrex::Real q_tot;
     long npart;
+    int do_symmetrize = 0;
 
     bool radially_weighted = true;
 

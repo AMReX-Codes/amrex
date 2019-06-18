@@ -18,10 +18,6 @@ warpx.serialize_ics = 1
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 interpolation.nox = 3
 interpolation.noy = 3
 interpolation.noz = 3
@@ -69,14 +65,15 @@ ions.density_function(x,y,z) = "(z<zp)*nc*exp((z-zc)/lgrad)+(z>zp)*(z<zp2)*2.*nc
 #################################
 ############# LASER #############
 #################################
-warpx.use_laser      = 1
-laser.position     = 0. 0. 5.e-6 # This point is on the laser plane
-laser.direction    = 0. 0. 1.     # The plane normal direction
-laser.polarization = 1. 0. 0.     # The main polarization vector
-laser.e_max        = 4.e12        # Maximum amplitude of the laser field (in V/m)
-laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
-laser.profile      = Gaussian
-laser.profile_waist = 5.e-6      # The waist of the laser (in meters)
-laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
-laser.profile_t_peak = 25.e-15    # The time at which the laser reaches its peak (in seconds)
-laser.profile_focal_distance = 15.e-6  # Focal distance from the antenna (in meters)
+lasers.nlasers      = 1
+lasers.names        = laser1
+laser1.position     = 0. 0. 5.e-6 # This point is on the laser plane
+laser1.direction    = 0. 0. 1.     # The plane normal direction
+laser1.polarization = 1. 0. 0.     # The main polarization vector
+laser1.e_max        = 4.e12        # Maximum amplitude of the laser field (in V/m)
+laser1.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+laser1.profile      = Gaussian
+laser1.profile_waist = 5.e-6      # The waist of the laser (in meters)
+laser1.profile_duration = 15.e-15  # The duration of the laser (in seconds)
+laser1.profile_t_peak = 25.e-15    # The time at which the laser reaches its peak (in seconds)
+laser1.profile_focal_distance = 15.e-6  # Focal distance from the antenna (in meters)

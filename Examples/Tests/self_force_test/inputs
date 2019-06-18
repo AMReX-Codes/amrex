@@ -42,10 +42,9 @@ warpx.pml_ncell = 10
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 1
-algo.charge_deposition = 1
-algo.field_gathering = 1
-algo.particle_pusher = 0
+algo.current_deposition = esirkepov
+algo.charge_deposition = standard
+algo.field_gathering = standard
 
 # CFL
 warpx.cfl = 1.0
@@ -69,9 +68,3 @@ interpolation.noz = 1
 
 # Moving window
 warpx.do_moving_window = 0
-
-# Particle Injection
-warpx.do_plasma_injection = 0
-
-# Laser
-warpx.use_laser    = 0

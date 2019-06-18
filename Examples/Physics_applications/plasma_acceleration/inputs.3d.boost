@@ -16,10 +16,6 @@ geometry.prob_hi     = 0.00015 0.00015 1.e-06
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 algo.maxwell_fdtd_solver = ckc
 warpx.verbose = 1
 warpx.plot_raw_fields = 0
@@ -53,9 +49,6 @@ particles.nspecies = 5
 particles.species_names = driver plasma_e plasma_p beam driverback
 particles.use_fdtd_nci_corr = 1
 particles.rigid_injected_species = driver beam
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 2
-warpx.injected_plasma_species = 1 2
 
 driver.charge = -q_e
 driver.mass = 1.e10
@@ -98,10 +91,6 @@ driverback.uz_m = 200000.
 driverback.ux_th = 2.
 driverback.uy_th = 2.
 driverback.uz_th = 20000.
-driverback.zinject_plane = 0.
-driverback.rigid_advance = true
-driverback.projected = true
-driverback.focused = false
 driverback.do_backward_propagation = true
 
 plasma_e.charge = -q_e
@@ -122,6 +111,7 @@ plasma_e.momentum_distribution_type = "constant"
 plasma_e.ux = 0.0
 plasma_e.uy = 0.0
 plasma_e.uz = 0.0
+plasma_e.do_continuous_injection = 1
 
 plasma_p.charge = q_e
 plasma_p.mass = m_p
@@ -141,6 +131,7 @@ plasma_p.momentum_distribution_type = "constant"
 plasma_p.ux = 0.0
 plasma_p.uy = 0.0
 plasma_p.uz = 0.0
+plasma_p.do_continuous_injection = 1
 
 beam.charge = -q_e
 beam.mass = m_e

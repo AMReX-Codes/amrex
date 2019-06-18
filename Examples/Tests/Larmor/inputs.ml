@@ -41,10 +41,6 @@ warpx.B_external = 0.0  0.00078110417851950768  0.0
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # CFL
 warpx.cfl = 1.0
@@ -78,11 +74,5 @@ interpolation.noz = 3
 
 # Moving window
 warpx.do_moving_window = 0
-
-# Particle Injection
-warpx.do_plasma_injection = 0
-
-# Laser
-warpx.use_laser    = 0
 
 warpx.do_dive_cleaning = 1

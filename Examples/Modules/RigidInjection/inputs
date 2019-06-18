@@ -23,10 +23,6 @@ geometry.prob_hi     =  2.    2.    4.
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # interpolation
 interpolation.nox = 3
@@ -90,8 +86,3 @@ warpx.moving_window_v = 1.0 # in units of the speed of light
 # Boosted frame
 warpx.gamma_boost = 1.5
 warpx.boost_direction = z
-
-# Particle Injection
-warpx.do_plasma_injection = 0
-warpx.num_injected_species = 0
-warpx.injected_plasma_species = 0

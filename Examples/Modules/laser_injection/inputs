@@ -21,26 +21,23 @@ geometry.prob_hi     =  20.e-6    20.e-6    12.e-6
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # CFL
 warpx.cfl = 1.0
 
 # Laser
-warpx.use_laser    = 1
-laser.profile      = Gaussian
-laser.position     = 0. 0. 9.e-6 # This point is on the laser plane
-laser.direction    = 0. 0. 1.     # The plane normal direction
-laser.polarization = 0. 1. 0.     # The main polarization vector
-laser.e_max        = 4.e12        # Maximum amplitude of the laser field (in V/m)
-laser.profile_waist = 5.e-6      # The waist of the laser (in meters)
-laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
-laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
-laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
-laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+lasers.nlasers      = 1
+lasers.names        = laser1
+laser1.profile      = Gaussian
+laser1.position     = 0. 0. 9.e-6 # This point is on the laser plane
+laser1.direction    = 0. 0. 1.     # The plane normal direction
+laser1.polarization = 0. 1. 0.     # The main polarization vector
+laser1.e_max        = 4.e12        # Maximum amplitude of the laser field (in V/m)
+laser1.profile_waist = 5.e-6      # The waist of the laser (in meters)
+laser1.profile_duration = 15.e-15  # The duration of the laser (in seconds)
+laser1.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
+laser1.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
+laser1.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
 
 # I/O
 amr.plot_int = 20

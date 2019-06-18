@@ -5,21 +5,21 @@
 using namespace amrex;
 
 void
-WarpX::UpdatePlasmaInjectionPosition (Real dt)
+WarpX::UpdatePlasmaInjectionPosition (Real a_dt)
 {
     int dir = moving_window_dir;
     // Continuously inject plasma in new cells (by default only on level 0)
-    if (WarpX::do_plasma_injection and (WarpX::gamma_boost > 1)){
+    if (WarpX::warpx_do_continuous_injection and (WarpX::gamma_boost > 1)){
         // In boosted-frame simulations, the plasma has moved since the last
         // call to this function, and injection position needs to be updated
         current_injection_position -= WarpX::beta_boost *
 #if ( AMREX_SPACEDIM == 3 )
-            WarpX::boost_direction[dir] * PhysConst::c * dt;
+            WarpX::boost_direction[dir] * PhysConst::c * a_dt;
 #elif ( AMREX_SPACEDIM == 2 )
             // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
             // This needs to be converted in order to index `boost_direction`
             // which has 3 components, for both 2D and 3D simulations.
-            WarpX::boost_direction[2*dir] * PhysConst::c * dt;
+            WarpX::boost_direction[2*dir] * PhysConst::c * a_dt;
 #endif
     }
 }
@@ -33,7 +33,16 @@ WarpX::MoveWindow (bool move_j)
     // and of the plasma injection
     moving_window_x += moving_window_v * dt[0];
     int dir = moving_window_dir;
+
+    // Update warpx.current_injection_position
+    // PhysicalParticleContainer uses this injection position
     UpdatePlasmaInjectionPosition( dt[0] );
+    if (WarpX::warpx_do_continuous_injection){
+        // Update injection position for WarpXParticleContainer in mypc.
+        // Nothing to do for PhysicalParticleContainers
+        // For LaserParticleContainer, need to update the antenna position.
+        mypc->UpdateContinuousInjectionPosition( dt[0] );
+    }
 
     // compute the number of cells to shift on the base level
     Real new_lo[AMREX_SPACEDIM];
@@ -53,8 +62,28 @@ WarpX::MoveWindow (bool move_j)
     }
     new_lo[dir] = current_lo[dir] + num_shift_base * cdx[dir];
     new_hi[dir] = current_hi[dir] + num_shift_base * cdx[dir];
-    RealBox new_box(new_lo, new_hi);
-    Geometry::ProbDomain(new_box);
+
+    ResetProbDomain(RealBox(new_lo, new_hi));
+
+    // Moving slice coordinates - lo and hi - with moving window //
+    // slice box is modified only if slice diagnostics is initialized in input //
+    if ( slice_plot_int > 0 )
+    {
+       Real new_slice_lo[AMREX_SPACEDIM];
+       Real new_slice_hi[AMREX_SPACEDIM];
+       const Real* current_slice_lo = slice_realbox.lo();
+       const Real* current_slice_hi = slice_realbox.hi();
+       for ( int i = 0; i < AMREX_SPACEDIM; i++) {
+           new_slice_lo[i] = current_slice_lo[i];
+           new_slice_hi[i] = current_slice_hi[i];
+       }
+       int num_shift_base_slice = static_cast<int> ((moving_window_x - 
+                                  current_slice_lo[dir]) / cdx[dir]);
+       new_slice_lo[dir] = current_slice_lo[dir] + num_shift_base_slice*cdx[dir];
+       new_slice_hi[dir] = current_slice_hi[dir] + num_shift_base_slice*cdx[dir];
+       slice_realbox.setLo(new_slice_lo);
+       slice_realbox.setHi(new_slice_hi);
+    }
 
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
@@ -134,7 +163,7 @@ WarpX::MoveWindow (bool move_j)
     }
 
     // Continuously inject plasma in new cells (by default only on level 0)
-    if (WarpX::do_plasma_injection) {
+    if (WarpX::warpx_do_continuous_injection) {
 
         const int lev = 0;
 
@@ -162,15 +191,11 @@ WarpX::MoveWindow (bool move_j)
             particleBox.setLo( dir, new_injection_position );
             particleBox.setHi( dir, current_injection_position );
         }
-        // Perform the injection of new particles in particleBox
+
         if (particleBox.ok() and (current_injection_position != new_injection_position)){
-            for (int i = 0; i < num_injected_species; ++i) {
-                int ispecies = injected_plasma_species[i];
-                WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-                auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-                ppc.AddPlasma(lev, particleBox);
-            }
-            // Update the injection position
+            // Performs continuous injection of all WarpXParticleContainer
+            // in mypc.
+            mypc->ContinuousInjection(particleBox);
             current_injection_position = new_injection_position;
         }
     }
@@ -247,5 +272,16 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
         {
             dstfab(i,j,k,n) = srcfab(i+shift.x,j+shift.y,k+shift.z,n);
         });
+    }
+}
+
+void
+WarpX::ResetProbDomain (const RealBox& rb)
+{
+    Geometry::ResetDefaultProbDomain(rb);
+    for (int lev = 0; lev <= max_level; ++lev) {
+        Geometry g = Geom(lev);
+        g.ProbDomain(rb);
+        SetGeometry(lev, g);
     }
 }

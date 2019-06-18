@@ -38,10 +38,9 @@ warpx.pml_ncell = 10
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 1
-algo.charge_deposition = 1
-algo.field_gathering = 1
-algo.particle_pusher = 0
+algo.current_deposition = esirkepov
+algo.charge_deposition = standard
+algo.field_gathering = standard
 
 # CFL
 warpx.cfl = 1.0
@@ -57,22 +56,18 @@ warpx.do_moving_window = 0
 warpx.moving_window_dir = z
 warpx.moving_window_v = 1.0 # in units of the speed of light
 
-# Particle Injection
-warpx.do_plasma_injection = 0
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 0
-
 # Laser
-warpx.use_laser    = 1
-laser.prob_lo      = -12.e-6  -12.e-6  -5.e-6
-laser.prob_hi      =  12.e-6   12.e-6   5.e-6
-laser.profile      = Gaussian
-laser.position     = 0. 0. 0.e-6 # This point is on the laser plane
-laser.direction    = 0. 0. 1.     # The plane normal direction
-laser.polarization = 1. 0. 0.    # The main polarization vector
-laser.e_max        = 16.e12        # Maximum amplitude of the laser field (in V/m)
-laser.profile_waist = 3.e-6      # The waist of the laser (in meters)
-laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
-laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
-laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
-laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+lasers.nlasers      = 1
+lasers.names        = laser1
+laser1.prob_lo      = -12.e-6  -12.e-6  -5.e-6
+laser1.prob_hi      =  12.e-6   12.e-6   5.e-6
+laser1.profile      = Gaussian
+laser1.position     = 0. 0. 0.e-6 # This point is on the laser plane
+laser1.direction    = 0. 0. 1.     # The plane normal direction
+laser1.polarization = 1. 0. 0.    # The main polarization vector
+laser1.e_max        = 16.e12        # Maximum amplitude of the laser field (in V/m)
+laser1.profile_waist = 3.e-6      # The waist of the laser (in meters)
+laser1.profile_duration = 15.e-15  # The duration of the laser (in seconds)
+laser1.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
+laser1.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
+laser1.wavelength = 0.8e-6         # The wavelength of the laser (in meters)

@@ -5,8 +5,6 @@ from collections import namedtuple
 
 HeaderInfo = namedtuple('HeaderInfo', ['version', 'how', 'ncomp', 'nghost'])
 
-_component_names = ['Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz', 'jx', 'jy', 'jz', 'rho']
-
 def read_data(plt_file):
     '''
 
@@ -55,8 +53,6 @@ def read_lab_snapshot(snapshot, global_header):
 
     '''
     global_info = _read_global_Header(global_header)
-    ncellz_snapshots = global_info['nz_snapshot']
-    dzcell_snapshots = global_info['dz_snapshot']
 
     hdrs = glob(snapshot + "/Level_0/buffer*_H")
     hdrs.sort()
@@ -64,8 +60,14 @@ def read_lab_snapshot(snapshot, global_header):
     boxes, file_names, offsets, header = _read_header(hdrs[0])
     dom_lo, dom_hi = _combine_boxes(boxes)
     domain_size = dom_hi - dom_lo + 1
-
     space_dim = len(dom_lo)
+
+    local_info = _read_local_Header(snapshot + "/Header", space_dim)
+    ncellz_snapshots = local_info['nz']
+    dzcell_snapshots = (local_info['zmax']-local_info['zmin'])/local_info['nz']
+    _component_names = local_info['field_names']
+    field1 = _component_names[0]
+
     if space_dim == 2:
         direction = 1
     else:
@@ -74,9 +76,9 @@ def read_lab_snapshot(snapshot, global_header):
     buffer_fullsize = 0
     buffer_allsizes = [0]
     for i, hdr in enumerate(hdrs):
-        buffer_data = _read_buffer(snapshot, hdr)
-        buffer_fullsize += buffer_data['Bx'].shape[direction]
-        buffer_allsizes.append(buffer_data['Bx'].shape[direction])
+        buffer_data = _read_buffer(snapshot, hdr, _component_names)
+        buffer_fullsize += buffer_data[field1].shape[direction]
+        buffer_allsizes.append(buffer_data[field1].shape[direction])
     buffer_allstarts = np.cumsum(buffer_allsizes)
     
     data = {}
@@ -87,7 +89,7 @@ def read_lab_snapshot(snapshot, global_header):
             data[_component_names[i]] = np.zeros((domain_size[0], buffer_fullsize))
 
     for i, hdr in enumerate(hdrs):
-        buffer_data = _read_buffer(snapshot, hdr)
+        buffer_data = _read_buffer(snapshot, hdr, _component_names)
         if data is None:
             data = buffer_data
         else:
@@ -95,10 +97,12 @@ def read_lab_snapshot(snapshot, global_header):
                 data[k][..., buffer_allstarts[i]:buffer_allstarts[i+1]] = v[...]
             
 
-    local_info = _read_local_Header(snapshot + "/Header")
-    info = {'t_snapshot' : local_info['t_snapshot']}
-    z = np.linspace(local_info['zmin'], local_info['zmax'], data['Bx'].shape[-1])
-    info.update({ 'zmin' : local_info['zmin'], 'zmax' : local_info['zmax'], 'z' : z })
+    info = local_info
+    # Add some handy info 
+    x = np.linspace(local_info['xmin'], local_info['xmax'], local_info['nx'])
+    y = np.linspace(local_info['ymin'], local_info['ymax'], local_info['ny'])
+    z = np.linspace(local_info['zmin'], local_info['zmax'], local_info['nz'])
+    info.update({ 'x' : x, 'y' : y, 'z' : z })
     return data, info
 ## -----------------------------------------------------------
 ## USE THIS INSTEAD OF THE 5 PREVIOUS LINES IF Header contains
@@ -151,15 +155,34 @@ def _line_to_numpy_arrays(line):
     return lo_corner, hi_corner, node_type
 
 
-def _read_local_Header(header_file):
+def _read_local_Header(header_file, dim):
     with open(header_file, "r") as f:
         t_snapshot = float(f.readline())
-        zmin = float(f.readline())
-        zmax = float(f.readline())
+        if dim==2:
+            nx, nz = [int(x) for x in f.readline().split()]
+            ny = 1
+            xmin, zmin = [float(x) for x in f.readline().split()]
+            ymin = 0
+            xmax, zmax = [float(x) for x in f.readline().split()]
+            ymax = 0
+        if dim==3:
+            nx, ny, nz = [int(x) for x in f.readline().split()]
+            xmin, ymin, zmin = [float(x) for x in f.readline().split()]
+            xmax, ymax, zmax = [float(x) for x in f.readline().split()]
+        field_names = f.readline().split()
+
     local_info = {
-        't_snapshot' : t_snapshot,
+        't_snapshot'  : t_snapshot,
+        'field_names' : field_names,
+        'xmin' : xmin,
+        'ymin' : ymin,
         'zmin' : zmin,
-        'zmax' : zmax
+        'xmax' : xmax,
+        'ymax' : ymax,
+        'zmax' : zmax,
+        'nx'   : nx,
+        'ny'   : ny,
+        'nz'   : nz
         }
     return local_info
 ## ------------------------------------------------------------
@@ -186,16 +209,12 @@ def _read_global_Header(header_file):
         dt_between_snapshots = float(f.readline())
         gamma_boost = float(f.readline())
         beta_boost = float(f.readline())
-        dz_snapshot = float(f.readline())
-        nz_snapshot = int(f.readline())
 
     global_info = {
         'nshapshots' : nshapshots,
         'dt_between_snapshots' : dt_between_snapshots,
         'gamma_boost' : gamma_boost,
-        'beta_boost' : beta_boost,
-        'dz_snapshot' : dz_snapshot,
-        'nz_snapshot' : nz_snapshot
+        'beta_boost' : beta_boost
         }
 
     return global_info
@@ -259,7 +278,8 @@ def _read_field(raw_file, field_name):
         shape = hi - lo + 1
         with open(raw_file + fn, "rb") as f:
             f.seek(offset)
-#            f.readline()  # always skip the first line
+            if (header.version == 1):
+                f.readline()  # skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
             data[[slice(l,h+1) for l, h in zip(lo, hi)]] = arr
@@ -268,7 +288,7 @@ def _read_field(raw_file, field_name):
 
 
 
-def _read_buffer(snapshot, header_fn):
+def _read_buffer(snapshot, header_fn, _component_names):
 
     boxes, file_names, offsets, header = _read_header(header_fn)
 
@@ -286,7 +306,8 @@ def _read_buffer(snapshot, header_fn):
         size = np.product(shape)
         with open(snapshot + "/Level_0/" + fn, "rb") as f:
             f.seek(offset)
-#            f.readline()  # always skip the first line
+            if (header.version == 1):
+                f.readline()  # skip the first line
             arr = np.fromfile(f, 'float64', header.ncomp*size)
             for i in range(header.ncomp):
                 comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')

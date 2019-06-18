@@ -22,9 +22,8 @@ mkdir warpx
 cp -r ../* warpx
 
 # Clone PICSAR and AMReX
-git clone https://github.com/AMReX-Codes/amrex.git
-cd amrex ; git checkout development ; cd ..
-git clone https://bitbucket.org/berkeleylab/picsar.git
+git clone --branch development https://github.com/AMReX-Codes/amrex.git
+git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
 
 # Clone the AMReX regression test utility
 git clone https://github.com/RemiLehe/regression_testing.git

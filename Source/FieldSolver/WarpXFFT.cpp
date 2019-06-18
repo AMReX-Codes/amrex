@@ -56,6 +56,7 @@ BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
         for (const auto& b : bl) {
             fab.setVal(nonowner, b, 0, 1);
         }
+
     }
 
     return mask;
@@ -89,7 +90,7 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
 
         const FArrayBox& srcfab = mf_fft[mfi];
         const Box& srcbox = srcfab.box();
-
+ 
         if (srcbox.contains(bx))
         {
             // Copy the interior region (without guard cells)
@@ -107,6 +108,8 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
     // the cell that has non-zero mask is the one which is retained.
     mf.setVal(0.0, 0);
     mf.ParallelAdd(mftmp);
+
+  
 }
 
 }
@@ -130,7 +133,11 @@ WarpX::AllocLevelDataFFT (int lev)
         // Allocate and initialize objects for the spectral solver
         // (all use the same distribution mapping)
         std::array<Real,3> dx = CellSize(lev);
-        RealVect dx_vect = RealVect( AMREX_D_DECL(dx[0], dx[1], dx[2]) );
+#if (AMREX_SPACEDIM == 3)
+        RealVect dx_vect(dx[0], dx[1], dx[2]);
+#elif (AMREX_SPACEDIM == 2)
+        RealVect dx_vect(dx[0], dx[2]);
+#endif
         spectral_solver_fp[lev].reset( new SpectralSolver( ba_fp_fft, dm_fp_fft,
                  nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
     }
@@ -403,6 +410,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
 
     BL_PROFILE_VAR_START(blp_push_eb);
     if (fft_hybrid_mpi_decomposition){
+#ifndef AMREX_USE_CUDA // When running on CPU: use PICSAR code
         if (Efield_fp_fft[lev][0]->local_size() == 1)
            //Only one FFT patch on this MPI
         {
@@ -443,6 +451,9 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         {
     	amrex::Abort("WarpX::PushPSATD: TODO");
         }
+#else // AMREX_USE_CUDA is defined ; running on GPU
+        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
     } else {
         // Not using the hybrid decomposition
         auto& solver = *spectral_solver_fp[lev];
@@ -470,6 +481,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
         solver.BackwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
         solver.BackwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
         solver.BackwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
+
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
@@ -486,4 +498,7 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
+
 }
+
+
