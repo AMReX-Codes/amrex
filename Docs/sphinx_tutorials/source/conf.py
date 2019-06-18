@@ -60,7 +60,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'amrex'
+project = u'amrex Tutorials'
 copyright = u'2017-2018, AMReX Team'
 author = u'AMReX Team'
 
@@ -164,7 +164,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'amrex.tex', u'amrex Documentation',
+    (master_doc, 'amrex_tutorials.tex', u'amrex Tutorials',
      u'AMReX Team', 'manual'),
 ]
 
@@ -174,7 +174,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'amrex', u'amrex Documentation',
+    (master_doc, 'amrex_tutorials', u'amrex Tutorials',
      [author], 1)
 ]
 
@@ -185,8 +185,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'amrex', u'amrex Documentation',
-     author, 'amrex', 'One line description of project.',
+    (master_doc, 'amrex_tutorials', u'amrex Tutorials',
+     author, 'amrex_tutorials', 'amrex Tutorials',
      'Miscellaneous'),
 ]
 
