@@ -90,12 +90,17 @@ int main (int argc, char* argv[])
     
         // How Boxes are distrubuted among MPI processes
         DistributionMapping dm(ba);
+
+        Real b_per_mpi = Real(ba.size()) / Real(ParallelDescriptor::NProcs());
+        Real b_per_stream = b_per_mpi / Gpu::Device::numGpuStreams();
      
         amrex::Print() << "========================================================" << std::endl; 
         amrex::Print() << " Fill Boundary CUDA Graph Test " << std::endl;
         amrex::Print() << " Domain size: " << n_cell << "^3." << std::endl;
         amrex::Print() << " Max grid size: " << max_grid_size << " cells." << std::endl;
-        amrex::Print() << " Boxes: " << ba.size() << std::endl << std::endl;
+        amrex::Print() << " Boxes: " << ba.size() << std::endl;
+        amrex::Print() << " Boxes per MPI: " << b_per_mpi << std::endl;
+        amrex::Print() << " Boxes per stream: " << b_per_stream << std::endl;
         amrex::Print() << "========================================================" << std::endl; 
     
         MultiFab mf_graph(ba, dm, Ncomp, Nghost);
@@ -119,17 +124,20 @@ int main (int argc, char* argv[])
             // Run the remainder of the FillBoundary's (nsteps-1)
             // -------------------------------------
             ParallelDescriptor::Barrier();
-            BL_PROFILE_VAR("CPU: FillBoundary", CPUFB);
-            start_time = amrex::second();
-    
-            for (int i=0; i<nsteps; ++i)
             {
-                mf_cpu.FillBoundary(geom.periodicity());
-            }
+                BL_PROFILE_REGION("CPU");
+                BL_PROFILE_VAR("CPU: FillBoundary", CPUFB);
+                start_time = amrex::second();
     
-            ParallelDescriptor::Barrier();
-            end_time = amrex::second();
-            BL_PROFILE_VAR_STOP(CPUFB);
+                for (int i=0; i<nsteps; ++i)
+                {
+                    mf_cpu.FillBoundary(geom.periodicity());
+                }
+    
+                ParallelDescriptor::Barrier();
+                end_time = amrex::second();
+                BL_PROFILE_VAR_STOP(CPUFB);
+            }
     
             cpu_avg = (end_time - start_time)/nsteps;
             amrex::Print() << "Average time per CPU FillBoundary = " << cpu_avg << std::endl;
@@ -147,32 +155,37 @@ int main (int argc, char* argv[])
             // Timed separately.
             // -------------------------------------
             ParallelDescriptor::Barrier();
-            BL_PROFILE_VAR("GRAPH: Create Graph and Run", makeandrungraph);
-            start_time = amrex::second();
+            {
+                BL_PROFILE_REGION("GRAPH #1");
+                BL_PROFILE_VAR("GRAPH: Create Graph and Run", makeandrungraph);
+                start_time = amrex::second();
     
-            mf_graph.FillBoundary(geom.periodicity());
+                mf_graph.FillBoundary(geom.periodicity());
     
-            ParallelDescriptor::Barrier();
-            end_time = amrex::second();
-            BL_PROFILE_VAR_STOP(makeandrungraph);
-    
+                ParallelDescriptor::Barrier();
+                end_time = amrex::second();
+                BL_PROFILE_VAR_STOP(makeandrungraph);
+            }
             graph_init = end_time - start_time;
             amrex::Print() << "Time for 1st graphed FillBoundary (Recorded, Instantiated Ran) = " << graph_init << std::endl;
             // -------------------------------------
     
             // Run the remainder of the FillBoundarys (nsteps-1)
             ParallelDescriptor::Barrier();
-            BL_PROFILE_VAR("GRAPH: Run Graph", rungraph);
-            start_time = amrex::second();
-    
-            for (int i=1; i<nsteps; ++i)
             {
-                mf_graph.FillBoundary(geom.periodicity());
-            }
+                BL_PROFILE_REGION("GRAPH");
+                BL_PROFILE_VAR("GRAPH: Run Graph", rungraph);
+                start_time = amrex::second();
     
-            ParallelDescriptor::Barrier();
-            end_time = amrex::second();
-            BL_PROFILE_VAR_STOP(rungraph);
+                for (int i=1; i<nsteps; ++i)
+                {
+                    mf_graph.FillBoundary(geom.periodicity());
+                }
+    
+                ParallelDescriptor::Barrier();
+                end_time = amrex::second();
+                BL_PROFILE_VAR_STOP(rungraph);
+            }
     
             graph_avg = (end_time - start_time)/(nsteps-1);
             amrex::Print() << "Average time per graph-only FillBoundary = " << graph_avg << std::endl;
@@ -190,17 +203,20 @@ int main (int argc, char* argv[])
             // -------------------------------------
     
             ParallelDescriptor::Barrier();
-            BL_PROFILE_VAR("GPU: FillBoundary", GPUFB);
-            start_time = amrex::second();
-    
-            for (int i=0; i<nsteps; ++i)
             {
-                mf_gpu.FillBoundary(geom.periodicity());
+                BL_PROFILE_REGION("GPU");
+                BL_PROFILE_VAR("GPU: FillBoundary", GPUFB);
+                start_time = amrex::second();
+    
+                for (int i=0; i<nsteps; ++i)
+                {
+                    mf_gpu.FillBoundary(geom.periodicity());
+                }
+      
+                ParallelDescriptor::Barrier();
+                end_time = amrex::second();
+                BL_PROFILE_VAR_STOP(GPUFB);
             }
-   
-            ParallelDescriptor::Barrier();
-            end_time = amrex::second();
-            BL_PROFILE_VAR_STOP(GPUFB);
     
             gpu_avg = (end_time - start_time)/nsteps;
             gpu_even = (graph_init - graph_avg)/(gpu_avg - graph_avg);
