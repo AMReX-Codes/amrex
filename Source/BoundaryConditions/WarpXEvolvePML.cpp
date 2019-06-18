@@ -55,7 +55,6 @@ WarpX::DampPML (int lev, PatchType patch_type)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
             WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
 			    tey.loVect(), tey.hiVect(),
 			    tez.loVect(), tez.hiVect(),
@@ -105,7 +104,6 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 
     if (pml[lev]->ok())
     {
-        // amrex::Print() << "===== ENTERING WarpX::DampJPML =====" << std::endl;
         const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
                                                               : pml[lev]->GetMultiSigmaBox_cp();
@@ -115,7 +113,6 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 #endif
         for ( MFIter mfi(*pml_j[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
-            // amrex::Print() << "+++++ ENTERING LOOP +++++"<< std::endl;
             const Box& tjx  = mfi.tilebox(jx_nodal_flag);
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
@@ -127,8 +124,6 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 			    BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
 			    WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi]));
         }
-        // amrex::Print() << "+++++ EXITING LOOP +++++"<< std::endl;
 
     }
-  // amrex::Print() << "===== LEAVING WarpX::DampJPML ====="<< std::endl;
 }

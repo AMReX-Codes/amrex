@@ -22,21 +22,23 @@ namespace
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
+        int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
         Real cumsum = 0.;
+        Real x = 10.0;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(glo-i);
             sigma[i-slo] = fac*(offset*offset);
-
         }
-        for (int j = olo; j <= ohi+1; ++j)
+
+        for (int j = olo; j <= ohi; ++j)
         {
-            int i = -j + (ohi+olo+1);
-            cumsum = cumsum + sigma[i-slo]/PhysConst::c;
+            int i = -j + (ohi+olo);
+            cumsum = cumsum + sigma[i+1-slo]/(PhysConst::c*x/std::sqrt(1+x*x));
             sigma_cum[i-slo] = cumsum;
-
         }
+
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(glo-i) - 0.5;
@@ -51,14 +53,19 @@ namespace
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
+        int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
         Real cumsum = 0.;
+        Real x = 10.0;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            cumsum = cumsum+sigma[i-slo]/PhysConst::c;
-            sigma_cum[i-slo] = cumsum;
+            cumsum = cumsum+sigma[i-slo]/(PhysConst::c*x/std::sqrt(1+x*x));
+            if (i<=ohi){
+              sigma_cum[i-slo] = cumsum;
+            }
+
         }
         for (int i = olo; i <= ohi; ++i)
         {
@@ -74,7 +81,7 @@ namespace
         int slo = sigma.m_lo;
         int sslo = sigma_star.m_lo;
         std::fill(sigma.begin()+(olo-slo), sigma.begin()+(ohi+2-slo), 0.0);
-        std::fill(sigma_cum.begin()+(olo-slo), sigma_cum.begin()+(ohi+2-slo), 0.0);
+        std::fill(sigma_cum.begin()+(olo-slo), sigma_cum.begin()+(ohi+1-slo), 0.0);
         std::fill(sigma_star.begin()+(olo-sslo), sigma_star.begin()+(ohi+1-sslo), 0.0);
     }
 }
@@ -90,22 +97,22 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         sigma         [idim].resize(sz[idim]+1);
-        sigma_cum     [idim].resize(sz[idim]+1);
+        sigma_cum     [idim].resize(sz[idim]);
         sigma_star    [idim].resize(sz[idim]  );
         sigma_fac     [idim].resize(sz[idim]+1);
-        sigma_cum_fac [idim].resize(sz[idim]+1);
+        sigma_cum_fac [idim].resize(sz[idim]);
         sigma_star_fac[idim].resize(sz[idim]  );
 
         sigma         [idim].m_lo = lo[idim];
         sigma         [idim].m_hi = hi[idim]+1;
         sigma_cum     [idim].m_lo = lo[idim];
-        sigma_cum     [idim].m_hi = hi[idim]+1;
+        sigma_cum     [idim].m_hi = hi[idim];
         sigma_star    [idim].m_lo = lo[idim];
         sigma_star    [idim].m_hi = hi[idim];
         sigma_fac     [idim].m_lo = lo[idim];
         sigma_fac     [idim].m_hi = hi[idim]+1;
         sigma_cum_fac [idim].m_lo = lo[idim];
-        sigma_cum_fac [idim].m_hi = hi[idim]+1;
+        sigma_cum_fac [idim].m_hi = hi[idim];
         sigma_star_fac[idim].m_lo = lo[idim];
         sigma_star_fac[idim].m_hi = hi[idim];
     }
@@ -292,7 +299,6 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 void
 SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 {
-    // amrex::Print()<< "===== computing PML-E factors ====="<< std::endl;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         for (int i = 0, N = sigma[idim].size(); i < N; ++i)
@@ -300,17 +306,16 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
             if (sigma[idim][i] == 0.0)
             {
                 sigma_fac[idim][i] = 1.0;
-                sigma_cum_fac[idim][i] = 1.0;
+                if (i<N-1){
+                  sigma_cum_fac[idim][i] = 1.0;
+                }
             }
             else
             {
                 sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
-                sigma_cum_fac[idim][i] = std::exp(-sigma_cum[idim][i]*dx[idim]);
-                // amrex::Print()<< "sigma["<<idim<<"]["<<i<<"] = "<<sigma[idim][i]<< std::endl;
-                // amrex::Print()<< "sigma_cum["<<idim<<"]["<<i<<"] = "<<sigma_cum[idim][i]<< std::endl;
-                // amrex::Print()<< "sigma_cum*dx = "<<sigma_cum[idim][i]*dx[idim]<< std::endl;
-                // amrex::Print()<< "sigma_cum_fac["<<idim<<"]["<<i<<"] = "<<sigma_cum_fac[idim][i]<< std::endl;
-
+                if (i<N-1){
+                  sigma_cum_fac[idim][i] = std::exp(-sigma_cum[idim][i]*dx[idim]);
+                }
             }
         }
     }
