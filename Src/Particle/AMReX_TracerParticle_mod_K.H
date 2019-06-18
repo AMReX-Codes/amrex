@@ -119,7 +119,7 @@ void amrex_interpolate_CIC_2(auto p, auto geomdata, auto uccarr, auto idx, auto 
       val[i] = 0; 
 	for (int j = 0; j<M; j++)
 	{ 
-          val[j] += uccarr(cells[j][0],cells[j][1],cells[j][2], comp)*fracs[j];
+          val[j] += uccarr(i,j, comp)*fracs[j];
         } 
    
     }
