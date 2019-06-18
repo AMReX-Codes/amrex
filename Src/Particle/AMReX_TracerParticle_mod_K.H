@@ -22,7 +22,7 @@ template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void amrex_interpolate_CIC_2 (const P& p, 
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 			      const amrex::Array4<const double> &  uccarr,
 			      amrex::Real val[AMREX_SPACEDIM],
 			      const int comp)  
