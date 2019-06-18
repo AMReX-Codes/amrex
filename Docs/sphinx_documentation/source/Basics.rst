@@ -1423,50 +1423,35 @@ together. In this section, we will show how you can operate on the
           // A reference to the current FArrayBox in this loop iteration.
           FArrayBox& fab = mf[mfi];
 
-          // Pointer to the floating point data of this FArrayBox.
-          Real* a = fab.dataPtr();
+          // Obtain Array4 from FArrayBox.  We can also do
+          //     Array4<Real> const& a = mf.array(mfi);
+          Array4<Real> const& a = fab.array();
 
-          // This is the Box on which the FArrayBox is defined.
-          // Note that "abox" includes ghost cells (if there are any),
-          // and is thus larger than or equal to "box".
-          const Box& abox = fab.box();
-
-          // We can now pass the information to a function that does
-          // work on the region (specified by box) of the data pointed to
-          // by Real* a.  The data should be viewed as multidimensional
-          // with bounds specified by abox.
-          // Function f1 has the signature of
-          // void f1(const int*, const int*, Real*, const int*, const int*);
-          f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
+          // Call function f1 to work on the region specified by box.
+          // Note that the whole region of the Fab includes ghost
+          // cells (if there are any), and is thus larger than or
+          // equal to "box". 
+          f1(box, a);
       }
 
-Here function :cpp:`f1` is usually a Fortran subroutine with ISO C binding
-interface like below,
+Here function :cpp:`f1` might be something like below,
 
-.. highlight:: fortran
+.. highlight:: c++
 
 ::
 
-      subroutine f1(lo, hi, a, alo, ahi) bind(c)
-        use amrex_fort_module, only : amrex_real
-        integer, intent(in) :: lo(3), hi(3), alo(3), ahi(3)
-        real(amrex_real),intent(inout)::a(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
-        integer :: i,j,k
-        do     k = lo(3), hi(3)
-          do   j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-              a(i,j,k) = ...
-            end do
-          end do
-        end do
-      end subroutine f1
-
-Here :fortran:`amrex_fort_module` is a Fortran module in AMReX and
-:fortran:`amrex_real` is a Fortran kind parameter that matches
-:cpp:`amrex::Real` in C++. In this example, we assumed the spatial dimension is
-3. In 2D, the function interface is different. In the section on
-:ref:`sec:basics:fortran`, we will present a dimension-agnostic approach
-using macros provided by AMReX.
+    void f1 (Box const& bx, Array4<Real> const& a)
+    {
+       const auto lo = lbound(bx);
+       const auto hi = ubound(bx);
+       for     (int k = lo.z; k <= hi.z; ++k) {
+         for   (int j = lo.y; j <= hi.y; ++j) {
+           for (int i = lo.x; i <= hi.x; ++i) {
+             a(i,j,k) = ...
+           }
+         }
+       }
+    }
 
 :cpp:`MFIter` only loops over grids owned by this process. For example, suppose
 there are 5 Boxes in total and processes 0 and 1 own 2 and 3 Boxes,
@@ -1474,9 +1459,9 @@ respectively. That is the MultiFab on process 0 has 2 FArrayBoxes, whereas
 there are 3 FArrayBoxes on process 1. Thus the numbers of iterations of MFIter
 are 2 and 3 on processes 0 and 1, respectively.
 
-In the example above, :cpp:`MultiFab` is assumed to have a single component. If
-it has multiple components, we can call :cpp:`int nc = mf.nComp()` to get the
-number of components and pass :cpp:`nc` to the kernel function.
+In the example above, :cpp:`MultiFab` is assumed to have a single
+component. If it has multiple components, we can call ``int nc =
+mf.nComp()`` or ``int nc = a.nComp()`` to get the number of components.
 
 There is only one :cpp:`MultiFab` in the example above. Below is an example of
 working with multiple MultiFabs. Note that these two MultiFabs are not
@@ -1489,55 +1474,38 @@ they are different due to index types).
 ::
 
       // U and F are MultiFabs
-      int ncU = U.nComp();   // number of components
-      int ncF = F.nComp();
       for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
       {
           const Box& box = mfi.validbox();
 
-          const FArrayBox& ufab = U[mfi];
-          FArrayBox&       ffab = F[mfi];
+          Array4<Real const> const& u = U.array(mfi);
+          Array4<Real      > const& f = F.array(mfi);
 
-          Real* up = ufab.dataPtr();
-          Real* fp = ufab.dataPtr();
-
-          const Box& ubox = ufab.box();
-          const Box& fbox = ffab.box();
-
-          // Function f2 has the signature of 
-          // void f2(const int*, const int*,
-          //         const Real*, const int*, const int*, const int*
-          //               Real*, const int*, const int*, const int*);
-          // This will compute f using u as inputs.
-          f2(box.loVect(), box.hiVect(),
-             up, ubox.loVect(), ubox.hiVect(), &ncU,
-             fp, fbox.loVect(), fbox.hiVect(), &ncF);
+          f2(box, u, f);
       }
 
-Here again function :cpp:`f2` is usually a Fortran subroutine with ISO C
-binding interface like below,
+Here function :cpp:`f2` might be something like below,
 
 .. highlight:: fortran
 
 ::
 
-    subroutine f2(lo, hi, u, ulo, uhi, nu, f, flo, fhi, nf) bind(c)
-      use amrex_fort_module, only : amrex_real
-      integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu,flo(3),fhi(3),nf
-      real(amrex_real),intent(in   )::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
-      real(amrex_real),intent(inout)::f(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),nf)
-      integer :: i,j,k
-      do n = 1, nf
-        do     k = lo(3), hi(3)
-          do   j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-              f(i,j,k,n) = ... u(...) ...
-            end do
-          end do
-        end do
-      end do
-    end subroutine f2
-
+    void f1 (Box const& bx, Array4<Real const> const& u,
+             Array4<Real> const& f)
+    {
+       const auto lo = lbound(bx);
+       const auto hi = ubound(bx);
+       const int nf = f.nComp();
+       for (int n = 0; n < nf; ++n) {
+         for     (int k = lo.z; k <= hi.z; ++k) {
+           for   (int j = lo.y; j <= hi.y; ++j) {
+             for (int i = lo.x; i <= hi.x; ++i) {
+               f(i,j,k,n) = ... u(i,j,k,n) ...
+             }
+           }
+         }
+       }
+    }
 
 .. _sec:basics:mfiter:tiling:
 
@@ -1545,10 +1513,10 @@ MFIter with Tiling
 ------------------
 
 Tiling, also known as cache blocking, is a well known loop transformation
-technique for improving data locality. This is often done by transforming the
+technique for improving data locality.  This is often done by transforming the
 loops into tiling loops that iterate over tiles and element loops that iterate
 over the data elements within a tile. For example, the original loops might
-look like
+look like this in Fortran
 
 .. highlight:: fortran
 
@@ -1606,10 +1574,8 @@ version. The first example in (see the previous section on
           const Box& box = mfi.tilebox();
 
           FArrayBox& fab = mf[mfi];
-          Real* a = fab.dataPtr();
-          const Box& abox = fab.box();
-
-          f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
+          Array4<Real> const& a = fab.array();
+          f1(box, a);
       }
 
 The second example in the previous section on :ref:`sec:basics:mfiter:notiling`
@@ -1625,18 +1591,9 @@ also requires only two minor changes.
           //                   tilebox() instead of validbox()
           const Box& box = mfi.tilebox();
 
-          const FArrayBox& ufab = U[mfi];
-          FArrayBox&       ffab = F[mfi];
-
-          Real* up = ufab.dataPtr();
-          Real* fp = ufab.dataPtr();
-
-          const Box& ubox = ufab.box();
-          const Box& fbox = ffab.box();
-
-          f2(box.loVect(), box.hiVect(),
-             up, ubox.loVect(), ubox.hiVect(), &ncU,
-             fp, fbox.loVect(), fbox.hiVect(), &ncF);
+          Array4<Real const> const& u = U.array(mfi);
+          Array4<Real      > const& f = F.array(mfi);
+          f2(box, u, f);
       }
 
 The kernels functions like :cpp:`f1` and :cpp:`f2` in the two examples here
@@ -1845,6 +1802,8 @@ value. There are three ways of using these functions.
 
 But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
+Finally it should be emphasized that tiling should not be used when
+running on GPUs because of kernel launch overhead.
 
 .. _sec:basics:fortran:
 
