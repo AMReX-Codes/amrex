@@ -309,11 +309,8 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 
     if (lev >= phierr.size()) return;
 
-    const int clearval = TagBox::CLEAR;
+//    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
-
-    const Real* dx      = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
 
     const MultiFab& state = phi_new[lev];
 
@@ -321,39 +318,19 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 #pragma omp parallel
 #endif
     {
-        Vector<int>  itags;
 	
-	for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const Box& tilebox  = mfi.tilebox();
-
-            TagBox&     tagfab  = tags[mfi];
+	    const Box& bx  = mfi.tilebox();
+            const auto statefab = state.array(mfi);
+            const auto tagfab  = tags.array(mfi);
+            Real phierror = phierr[lev];
 	    
-	    // We cannot pass tagfab to Fortran because it is BaseFab<char>.
-	    // So we are going to get a temporary integer array.
-            // set itags initially to 'untagged' everywhere
-            // we define itags over the tilebox region
-	    tagfab.get_itags(itags, tilebox);
-	    
-            // data pointer and index space
-	    int*        tptr    = itags.dataPtr();
-	    const int*  tlo     = tilebox.loVect();
-	    const int*  thi     = tilebox.hiVect();
-/*
-            state_error(tagfab, tilebox, state[mfi], &tagval, &clearval,
-                        geomdata, &time, &phierr[lev]);
-*/
-            // tag cells for refinement
-	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-			BL_TO_FORTRAN_3D(state[mfi]),
-			&tagval, &clearval, 
-			AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()), 
-			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
-	    //
-	    // Now update the tags in the TagBox in the tilebox region
-            // to be equal to itags
-	    //
-	    tagfab.tags_and_untags(itags, tilebox);
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                state_error(i, j, k, tagfab, statefab, phierror, tagval);
+            });
 	}
     }
 }
