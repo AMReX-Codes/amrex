@@ -637,6 +637,50 @@ following examples.
 
       b0 &= b3;             // Runtime error because of type mismatch!
 
+.. _sec:basics:dim3:
+
+Dim3 and XDim3
+==============
+
+:cpp:`Dim3` and :cpp:`XDim3` are plain structs with three fields,
+
+.. highlight:: c++
+
+::
+
+    struct Dim3 { int x; int y; int z; };
+    struct XDim3 { Real x; Real y; Real z; };
+
+One can covert an :cpp:`IntVect` to :cpp:`Dim3`,
+
+.. highlight:: c++
+
+::
+
+    IntVect iv(...);
+    Dim3 d3 = iv.dim3();
+
+:cpp:`Dim3` always has three fields even when AMReX is built for 1D or
+2D.  For the example above, the extra fields are set to zero.  Given a
+:cpp:`Box`, one can get its lower and upper bounds and use them to
+write dimension agnostic loops.
+
+.. highlight:: c++
+
+::
+
+    Box bx(...);
+    Dim3 lo = lbound(bx);
+    Dim3 hi = ubound(bx);
+    for     (int k = lo.z; k <= hi.z; ++k) {
+      for   (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+        }
+      }
+    }
+
+One can also call function ``Dim3 length(Box const&)`` to return the length of a Box.
+
 .. _sec:basics:geom:
 
 RealBox and Geometry
@@ -656,23 +700,26 @@ be constructed with
     explicit Geometry (const Box&     dom,
                        const RealBox* rb     = nullptr,
                        int            coord  = -1,
-                       int*           is_per = nullptr);
+                       int*           is_per = nullptr) noexcept;
 
-Here the constructor takes a cell-centered :cpp:`Box` specifying the indexing
-space domain, an optional argument of :cpp:`RealBox` pointer specifying the
-physical domain, an optional :cpp:`int` specifying coordinate system type, and
-an optional :cpp:`int *` specifying periodicity. If a :cpp:`RealBox` is not
-given, AMReX will construct one based on :cpp:`ParmParse` parameters,
+    Geometry (const Box& dom, const RealBox& rb, int coord,
+              Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
+
+Here the constructors take a cell-centered :cpp:`Box` specifying the indexing
+space domain, a :cpp:`RealBox` specifying the
+physical domain, an :cpp:`int` specifying coordinate system type, and
+an :cpp:`int` pointer or array specifying periodicity. If a :cpp:`RealBox` is not
+given in the first constructor, AMReX will construct one based on :cpp:`ParmParse` parameters,
 ``geometry.prob_lo`` and ``geometry.prob_hi``, where each of the parameter is
 an array of ``AMREX_SPACEDIM`` real numbers. It’s a runtime error if this
-fails. The optional argument for coordinate system is an integer type with
+fails. The argument for coordinate system is an integer type with
 valid values being 0 (Cartesian), or 1 (cylindrical), or 2 (spherical). If it
-is invalid as in the case of the default argument value, AMReX will query the
+is invalid as in the case of the default argument value of the first constructor, AMReX will query the
 :cpp:`ParmParse` database for ``geometry.coord_sys`` and use it if one is
 found. If it cannot find the parameter, the coordinate system is set to 0
 (i.e., Cartesian coordinates). The :cpp:`Geometry` class has the concept of
-periodicity.  An optional argument can be passed specifying periodicity in each
-dimension. If it is not given, the domain is assumed to be non-periodic unless
+periodicity.  An argument can be passed specifying periodicity in each
+dimension. If it is not given in the first constructor, the domain is assumed to be non-periodic unless
 there is the :cpp:`ParmParse` integer array parameter ``geometry.is_periodic``
 with 0 denoting non-periodic and 1 denoting periodic. Below is an example of
 defining a :cpp:`Geometry` for a periodic rectangular domain of
@@ -700,7 +747,7 @@ cells in each direction.
       Array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
       
       // This defines a Geometry object
-      Geometry geom(domain, &real_box, coord, is_periodic.data());
+      Geometry geom(domain, real_box, coord, is_periodic);
 
 A :cpp:`Geometry` object can return various information of the physical domain
 and the indexing space domain. For example,
@@ -882,8 +929,8 @@ mapping of grids to processes.
 
 .. _sec:basics:fab:
 
-BaseFab, FArrayBox and IArrayBox
-================================
+BaseFab, FArrayBox, IArrayBox, and Array4
+=========================================
 
 AMReX is a block-structured AMR framework. Although AMR introduces irregularity
 to the data and algorithms, there is regularity at the block/Box level because
@@ -1004,26 +1051,49 @@ FArrayBox.
       Real a = 3.0;
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
-For more complicated expressions that are not supported, one can write Fortran or C
-functions for those (see the section on :ref:`sec:basics:fortran`).  Note that
-BaseFab does provide operators for accessing the data directly in C++. For
-example, the :cpp:`saxpy` example above can be done with
+For more complicated expressions that are not supported, one can write
+Fortran or C/C++ functions for those (see the section
+on :ref:`sec:basics:fortran`).  In C++, one can use :cpp:`Array4`,
+which is a class template for accessing :cpp:`BaseFab` data in a more
+array like manner using :cpp:`operator()`.  Below is an example of
+using :cpp:`Array4`.
 
 .. highlight:: c++
 
 ::
 
-      // Iterate over all components
-      for (int icomp=0; icomp < fab1.nComp(); ++icomp) {
-          // Iterate over all cells in Box
-          for (BoxIterator bit(fab1.box()); bit.ok(); ++bit) {
-              // bit() returns IntVect
-              fab2(bit(),icomp) = a * fab1(bit(),icomp) + fab2(bit(),icomp);
+    FArrayBox afab(...), bfab(...);
+    IArrayBox ifab(...);
+    Array4<Real> const& a = afab.array();
+    Array4<Real const> const b = bfab.array();
+    Array4<int const> m = ifab.array();
+    Dim3 lo = lbound(a);
+    Dim3 hi = ubound(a);
+    int nc = a.nComp();
+    for (int n = 0; n < nc; ++n) {
+      for     (int k = lo.z; k <= hi.z; ++k) {
+        for   (int j = lo.y; j <= hi.y; ++j) {
+          for (int i = lo.x; i <= hi.x; ++i) {
+            if (m(i,j,k) > 0) {
+              a(i,j,k,n) *= 2.0;
+            } else {
+              a(i,j,k,n) = 2.0*a(i,j,k,n) + 0.5*(b(i-1,j,k,n)+b(i+1,j,k,n));
+            }
           }
+        }
       }
+    }
 
-But this approach is generally not recommended for performance reasons.
-However, it can be handy for debugging.
+Note that :cpp:`operator()` of :cpp:`Array4` takes either three or
+four arguments.  The optional fourth argument has a default value of
+zero.  The two :cpp:`const`\ s in :cpp:`Array4<Real const> const&`
+have different meaning.  The first :cpp:`const` inside :cpp:`<>` means
+the data accessed via :cpp:`Array4` is read-only, whereas the second
+:cpp:`const` means the :cpp:`Array4` object itself cannot be modified
+to point to other data.  In the example above, neither ``m(i,j,k) =
+0`` nor ``b(i,j,k) = 0.0`` is allowed.  However one is allowed to do
+``m = ifab2.array()`` to assign :cpp:`m` again, but not to :cpp:`b`.
+The behavior is in some sense similar to ``double const * const p``.
 
 :cpp:`BaseFab` and its derived classes are containers for data on :cpp:`Box`.
 Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
@@ -1064,8 +1134,15 @@ However, it is not possible to slice in the real space (i.e., the first
 ``AMREX_SPACEDIM`` dimensions).  Note that no new memory is allocated in
 constructing the alias and the alias contains a non-owning pointer. It should
 be emphasized that the alias will contain a dangling pointer after the original
-:cpp:`FArrayBox` reaches its end of life.
+:cpp:`FArrayBox` reaches its end of life.  One can also construct an
+alias :cpp:`BaseFab` given an :cpp:`Array4`,
 
+.. highlight:: c++
+
+::
+
+    Array4<Real> const a = orig_fab.array();
+    FArrayBox alias_fab(a);
 
 .. _sec:basics:multifab:
 
