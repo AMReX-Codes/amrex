@@ -1,6 +1,5 @@
 #ifndef AMREX_TRACERPARTICLE_MOD_K_H
 #define AMREX_TRACERPARTICLE_MOD_K_H
-//#include <iostream>
 #include <AMReX_TracerParticles.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
@@ -31,7 +30,7 @@ void amrex_interpolate_CIC_2 (const P& p,
 
 
   //BL_Profile("Particle<Nreal, Nint>::Interp()");
-  BL_ASSERT(idx != 0);
+  //BL_ASSERT(idx != 0);
   BL_ASSERT(val != 0);
   
   const int   M   = AMREX_D_TERM(2,+2,+4);
@@ -40,10 +39,10 @@ void amrex_interpolate_CIC_2 (const P& p,
   amrex::Real    fracs[M];
   amrex::IntVect cells[M];
   
-  const amrex::Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(p.m_rdata.pos[0] - plo[0]/dx[0] + 
+  const amrex::Real len[AMREX_SPACEDIM] = { AMREX_D_DECL(p.m_rdata.pos[0] - plo[0]*idx[0] + 
 							 amrex::Real(0.5), 
-							 p.m_rdata.pos[1] - plo[1]/dx[1] + amrex::Real(0.5), 
-							 p.m_rdata.pos[2] - plo[2]/dx[2] + amrex::Real(0.5))};
+							 p.m_rdata.pos[1] - plo[1]*idx[1] + amrex::Real(0.5), 
+							 p.m_rdata.pos[2] - plo[2]*idx[2] + amrex::Real(0.5))};
 
   amrex::IntVect cell(AMREX_D_DECL(std::floor(len[0]), std::floor(len[1]), std::floor(len[2])));
 
@@ -118,7 +117,7 @@ void amrex_interpolate_CIC_2 (const P& p,
 
     for (int i = 0; i < AMREX_SPACEDIM; i++) 
     {
-      BL_ASSERT( (idx[i] >= 0) && (idx[i] < uccarr.nComp()) );
+      //BL_ASSERT( (idx[i] >= 0) && (idx[i] < uccarr.nComp()) );
       val[i] = 0; 
 	for (int j = 0; j<M; j++)
 	{ 
