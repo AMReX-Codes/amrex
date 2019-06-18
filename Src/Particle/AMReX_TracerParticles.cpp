@@ -106,6 +106,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         //
                         // Save old position and the vel & predict location at dt/2.
                         //
+	   
                         p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*vel;
                     }
@@ -174,12 +175,12 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	  amrex::ParallelFor(n,
+	 amrex::ParallelFor(n,
 			     [=] AMREX_GPU_DEVICE (int i)
 	  //for (int i = 0; i < n; i++)             // Loop through particles on a box
             {
 	       
-	      ParticleType p  = p_pbox[i];
+	      ParticleType& p  = p_pbox[i];
 	      
                 //if (p.m_idata.id <= 0) continue;
 		BL_ASSERT(p.m_idata.id <= 0);
@@ -195,7 +196,8 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		  for (int d = 0; d < AMREX_SPACEDIM; d++) 
 		    {
-			p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
+		   
+		        p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*v[d];
                     }
 		} else {

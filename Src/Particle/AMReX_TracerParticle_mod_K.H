@@ -24,7 +24,7 @@ void amrex_interpolate_CIC_2 (const P& p,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 			      const amrex::Array4<const double> &  uccarr,
-			      amrex::Real val[AMREX_SPACEDIM],
+			      amrex::Real * val,
 			      const int comp)  
 {
 
