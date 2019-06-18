@@ -6,5 +6,7 @@
 #include <Adv_3d.H>
 #include <compute_flux_3d.H>
 #include <slope_3d.H>
+#include <Tagging.H>
+#include <bc_fill.H>
 
 #endif

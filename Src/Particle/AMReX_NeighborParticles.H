@@ -26,7 +26,8 @@ template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
-
+    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
+    
     struct MaskComps
     {
         enum {
@@ -60,7 +61,7 @@ class NeighborParticleContainer
                << nim.src_level << " " << nim.src_grid << " " << nim.src_tile << " " << nim.src_index
                << nim.thread_num;
             if (!os.good())
-                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+                amrex::Error("operator<<(ostream&, const NeighborIndexMap& nim) failed");
             return os;
         }
 
@@ -74,14 +75,14 @@ class NeighborParticleContainer
         int dst_index;
         IntVect periodic_shift;
 
-        NeighborCopyTag() {}
+        NeighborCopyTag () {}
 
-        NeighborCopyTag(int a_level, int a_grid, int a_tile) :
+        NeighborCopyTag (int a_level, int a_grid, int a_tile) :
             level(a_level), grid(a_grid), tile(a_tile), src_index(0), dst_index(0),
             periodic_shift(IntVect(AMREX_D_DECL(0, 0, 0)))
             {}
 
-        bool operator<(const NeighborCopyTag& other) const {
+        bool operator< (const NeighborCopyTag& other) const {
             if (level != other.level) return level < other.level;
             if (grid != other.grid) return grid < other.grid;
             if (tile != other.tile) return tile < other.tile;
@@ -96,7 +97,7 @@ class NeighborParticleContainer
             return false;
         }
 
-        bool operator==(const NeighborCopyTag& other) const {
+        bool operator== (const NeighborCopyTag& other) const {
             return (level == other.level) and (grid == other.grid) and (tile == other.tile)
                 AMREX_D_TERM(
                     and (periodic_shift[0] == other.periodic_shift[0]),
@@ -105,7 +106,7 @@ class NeighborParticleContainer
                     );
         }
 
-        bool operator!=(const NeighborCopyTag& other) const
+        bool operator!= (const NeighborCopyTag& other) const
         {
             return !operator==(other);
         }
@@ -114,23 +115,39 @@ class NeighborParticleContainer
         {
             os << tag.level << " " << tag.grid << " " << tag.tile << " " << tag.periodic_shift;
             if (!os.good())
-                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+                amrex::Error("operator<<(ostream&, const NeighborCopyTag&) failed");
             return os;
         }
     };
 
+    struct InverseCopyTag
+    {
+        int src_grid;
+        int src_tile;
+        int src_index;
+        int src_level;
+    };
+
+    friend std::ostream& operator<< (std::ostream& os, const InverseCopyTag& tag)
+    {
+        os << tag.src_level << " " << tag.src_grid << " " << tag.src_tile << " " << tag.src_index;
+        if (!os.good())
+            amrex::Error("operator<<(ostream&, const InverseCopyTag&) failed");
+        return os;
+    }
+    
     struct NeighborCommTag {
 
-        NeighborCommTag(int pid, int lid, int gid, int tid)
+        NeighborCommTag (int pid, int lid, int gid, int tid)
             : proc_id(pid), level_id(lid), grid_id(gid), tile_id(tid)
             {}
-
+        
         int proc_id;
         int level_id;
         int grid_id;
         int tile_id;
 
-        bool operator<(const NeighborCommTag& other) const {
+        bool operator< (const NeighborCommTag& other) const {
             return (proc_id < other.proc_id ||
                     (proc_id == other.proc_id &&
                      grid_id < other.grid_id) ||
@@ -143,7 +160,7 @@ class NeighborParticleContainer
                      level_id < other.level_id));
         }
 
-        bool operator==(const NeighborCommTag& other) const {
+        bool operator== (const NeighborCommTag& other) const {
             return ( (proc_id == other.proc_id) and
                      (grid_id == other.grid_id) and
                      (tile_id == other.tile_id) and
@@ -154,7 +171,7 @@ class NeighborParticleContainer
         {
             os << tag.proc_id << " " << tag.level_id << " " << tag.grid_id << " " << tag.tile_id;
             if (!os.good())
-                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+                amrex::Error("operator<<(ostream&, const NeighborCommTag&) failed");
             return os;
         }
     };
@@ -171,73 +188,80 @@ public:
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::IntVector;
     using SendBuffer = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::SendBuffer;
 
-    NeighborParticleContainer(ParGDBBase* gdb, int ncells);
+    NeighborParticleContainer (ParGDBBase* gdb, int ncells);
 
-    NeighborParticleContainer(const Geometry            & geom,
-                              const DistributionMapping & dmap,
-                              const BoxArray            & ba,
-                              int                         nneighbor);
+    NeighborParticleContainer (const Geometry            & geom,
+                               const DistributionMapping & dmap,
+                               const BoxArray            & ba,
+                               int                         nneighbor);
 
-    NeighborParticleContainer(const Vector<Geometry>            & geom,
-                              const Vector<DistributionMapping> & dmap,
-                              const Vector<BoxArray>            & ba,
-                              const Vector<int>                 & rr,
-                              int                               nneighbor);
+    NeighborParticleContainer (const Vector<Geometry>            & geom,
+                               const Vector<DistributionMapping> & dmap,
+                               const Vector<BoxArray>            & ba,
+                               const Vector<int>                 & rr,
+                               int                               nneighbor);
 
     ///
     /// Regrid functions
     ///
-    void Regrid(const DistributionMapping& dmap, const BoxArray& ba);
-    void Regrid(const DistributionMapping& dmap, const BoxArray& ba, const int lev);
-    void Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba);
+    void Regrid (const DistributionMapping& dmap, const BoxArray& ba);
+    void Regrid (const DistributionMapping& dmap, const BoxArray& ba, const int lev);
+    void Regrid (const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba);
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
     ///
-    void fillNeighbors();
+    void fillNeighbors ();
 
+    ///
+    /// This does an "inverse" fillNeighbors operation, meaning that it adds
+    /// data from the ghost particles to the corresponding real ones.
+    ///
+    void sumNeighbors (int real_start_comp, int real_num_comp,
+                       int int_start_comp, int int_num_comp);
+    
     ///
     /// This updates the neighbors with their current particle data.
     ///
-    void updateNeighbors();
+    void updateNeighbors ();
 
     ///
     /// Each tile clears its neighbors, freeing the memory
     ///
-    void clearNeighbors();
+    void clearNeighbors ();
 
     ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList(CheckPair check_pair, bool sort=false);
+    void buildNeighborList (CheckPair check_pair, bool sort=false);
 
-    void printNeighborList();
+    void printNeighborList ();
 
-    void setRealCommComp(int i, bool value);
+    void setRealCommComp (int i, bool value);
     void setIntCommComp (int i, bool value);
 
-    ParticleVector& GetNeighbors(int lev, int grid, int tile)
+    ParticleVector& GetNeighbors (int lev, int grid, int tile)
     {
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    const ParticleVector& GetNeighbors(int lev, int grid, int tile) const
+    const ParticleVector& GetNeighbors (int lev, int grid, int tile) const
     {
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    IntVector& GetNeighborList(int lev, int grid, int tile)
+    IntVector& GetNeighborList (int lev, int grid, int tile)
     {
         return neighbor_list[lev][std::make_pair(grid,tile)];
     }
 
-    const IntVector& GetNeighborList(int lev, int grid, int tile) const
+    const IntVector& GetNeighborList (int lev, int grid, int tile) const
     {
         return neighbor_list[lev][std::make_pair(grid,tile)];
     }
 
-    void RedistributeLocal()
+    void RedistributeLocal ()
     {
         const int lev_min = 0;
         const int lev_max = 0;
@@ -267,57 +291,69 @@ public:
     template <class CheckPair>
     void buildNeighborListCPU (CheckPair check_pair, bool sort);
     
-    void printNeighborListCPU(const std::string& prefix);
+    void printNeighborListCPU (const std::string& prefix);
     
     void fillNeighborsCPU ();
+
+    void sumNeighborsCPU (int real_start_comp, int real_num_comp,
+                          int int_start_comp, int int_num_comp);
     
     void updateNeighborsCPU (bool reuse_rcv_counts=true);
     
-    void clearNeighborsCPU ();
+    void clearNeighborsCPU ();    
 
 #endif
 
+    void setEnableInverse (bool flag) { enable_inverse = flag; }
+
+    bool enableInverse () { return enable_inverse; }
+    
 protected:
 
-    void cacheNeighborInfo();
+    void cacheNeighborInfo ();
 
     ///
     /// This builds the internal mask data structure used for looking up neighbors
     ///
-    void BuildMasks();
+    void BuildMasks ();
 
-    void GetNeighborCommTags();
+    void GetNeighborCommTags ();
 
-    void GetCommTagsBox(Vector<NeighborCommTag>& tags, const int lev, const Box& in_box);
+    void GetCommTagsBox (Vector<NeighborCommTag>& tags, const int lev, const Box& in_box);
 
-    void resizeContainers(const int lev);
+    void resizeContainers (const int lev);
 
-    void initializeCommComps();
+    void initializeCommComps ();
 
-    void calcCommSize();
+    void calcCommSize ();
 
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
-    void fillNeighborsMPI(bool reuse_rcv_counts);
+    void fillNeighborsMPI (bool reuse_rcv_counts);
 
+    void sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
+                          int real_start_comp, int real_num_comp,
+                          int int_start_comp, int int_num_comp);
+    
     ///
     /// Perform handshake to figure out how many bytes each proc should receive
     ///
-    void getRcvCountsMPI();
+    void getRcvCountsMPI ();
 
-    void GetNeighborCommTags(Vector<NeighborCommTag>& tags, const int lev, Box box);
+    void GetNeighborCommTags (Vector<NeighborCommTag>& tags, const int lev, Box box);
 
-    void getNeighborTags(Vector<NeighborCopyTag>& tags,
+    void getNeighborTags (Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
                          const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
-    void getNeighborTags(Vector<NeighborCopyTag>& tags,
+    void getNeighborTags (Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
-    IntVect computeRefFac(const int src_lev, const int lev);
+    IntVect computeRefFac (const int src_lev, const int lev);
 
+    amrex::Vector<std::map<PairIndex, amrex::Vector<InverseCopyTag> > > inverse_tags;
     amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
     amrex::Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
@@ -343,8 +379,10 @@ protected:
 
     static bool use_mask;
 
+    static bool enable_inverse;
+
 #ifdef AMREX_USE_CUDA
-    void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
+    void fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours);
     
     void buildNeighborMask ();
 

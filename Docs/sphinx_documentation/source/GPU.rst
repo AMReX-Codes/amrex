@@ -545,16 +545,20 @@ implementation is reproduced here:
 .. highlight:: c++
 
 ::
+   
+    Real MultiFab::Dot (const MultiFab& x, int xcomp,
+	       const MultiFab& y, int ycomp,
+	       int numcomp, int nghost, bool local) {
+        Real sm = amrex::ReduceSum(x, y, nghost,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
+        {
+            return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp);
+        });
 
-    Real sm = amrex::ReduceSum(x, y, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
-    {
-        return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp);
-    });
+        if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
-    if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
-
-    return sm;
+        return sm;
+   }
 
 :cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
 returns the sum of the value returned from the given lambda function.
@@ -1539,7 +1543,58 @@ AMReX for GPUs:
 
 .. ===================================================================
 
+Inputs Parameters
+=================
 
+.. _sec:gpu:parameters:
+
+The following inputs parameters control the behaviour of amrex when running on GPUs. They should be prefaced
+by "amrex" in your :cpp:`inputs` file.
+
++----------------------------+-----------------------------------------------------------------------+-------------+-------------+
+|                            | Description                                                           |   Type      | Default     |
++============================+=======================================================================+=============+=============+
+| use_gpu_aware_mpi          | Whether to use GPU memory for communication buffers during MPI calls. | Bool        | False       |
+|                            | If true, the buffers will use device memory. If false, they will use  |             |             |
+|                            | pinned memory. In practice, we find it is usually not worth it to use |             |             |
+|                            | GPU aware MPI.                                                        |             |             |
++----------------------------+-----------------------------------------------------------------------+-------------+-------------+
+| abort_on_out_of_gpu_memory | If the size of free memory on the GPU is greater than the size of a   | Bool        | False       |
+|                            | requested allocation, AMReX will call AMReX::Abort() with an error    |             |             |
+|                            | describing how much free memory there is and what was requested.      |             |             |
++----------------------------+-----------------------------------------------------------------------+-------------+-------------+
+
+Basic Gpu Debugging
+===================
+
+- Turn off GPU offloading for some part of the code with
+.. code-block:: c++
+
+		  Gpu::setLaunchRegion(0);
+		  ... ;
+		  Gpu::setLaunchRegion(1);
+
+Cuda-specific tests
+-------------------
+
+- To test if your kernels have launched run
+.. code-block:: sh
+
+		nvprof ./main3d.xxx
+
+
+- Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
+  a small problem and examine CPU page faults using nvvp
+		  
+- Run under ``cuda-memcheck``
+
+- Run under ``cuda-gdb``
+
+- Run with ``CUDA_LAUNCH_BLOCKING=1``.  This means that only one
+  kernel will run at a time.  This can help identify if there are race
+  conditions.
+	
+   
 Limitations
 ===========
 
@@ -1548,14 +1603,8 @@ Limitations
 GPU support in AMReX is still under development.  There are some known
 limitations:
 
-- By default, AMReX assumes the MPI library used is GPU aware.  The
-  communication buffers given to MPI functions are allocated in device
-  memory.
-
 - OpenMP is currently not compatible with building AMReX with CUDA. 
   ``USE_CUDA=TRUE`` and ``USE_OMP=TRUE`` will fail to compile.
-
-- CMake is not yet supported for building AMReX GPU support.
 
 - Many multi-level functions in AMReX have not been ported to GPUs.
 

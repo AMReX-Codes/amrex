@@ -1104,7 +1104,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int* lo_ptr     = thrust::raw_pointer_cast(m_lo.data());
         int* hi_ptr     = thrust::raw_pointer_cast(m_hi.data());
         int* output_ptr = thrust::raw_pointer_cast(m_output.data());
-        BaseFab<int>* mask_ptr = redistribute_mask_ptr->fabPtr(mfi);
+        auto mask_arr   = redistribute_mask_ptr->array(mfi);
         ParticleType* p_ptr = &(aos[0]);
 
         //
@@ -1124,7 +1124,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             iv += domain.smallEnd();
 
-	    int grid_id = (*mask_ptr)(iv);
+	    int grid_id = mask_arr(iv);
 
             grids_ptr[i] = grid_id;
 
@@ -1144,11 +1144,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
             thrust::tuple<int, int>(0, 0), functors::tupleAdd());
 
-        if (m_grids_tmp[old_np-1] == gid) {
-            new_np = m_lo[old_np-1] + 1;
-        } else {
-            new_np = m_lo[old_np-1];
-        }
+        int last_gid_host, last_lo_host;
+        Gpu::dtoh_memcpy(&last_gid_host, thrust::raw_pointer_cast(m_grids_tmp.data()) + old_np - 1, sizeof(int));
+        Gpu::dtoh_memcpy(&last_lo_host, thrust::raw_pointer_cast(m_lo.data()) + old_np - 1, sizeof(int));
+        new_np = (last_gid_host == gid) ? last_lo_host + 1 : last_lo_host;
             
         num_moved = old_np - new_np;
 
@@ -1181,7 +1180,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
                               functors::assignParticleGrid(geom.data(),
                                                            (*redistribute_mask_ptr)[mfi].box(),
-                                                           redistribute_mask_ptr->fabPtr(mfi)));
+                                                           redistribute_mask_ptr->array(mfi)));
 
             //
             // Partition the particle data so that particles that stay come first,
@@ -1719,9 +1718,8 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local)
 {
-
   BL_PROFILE("ParticleContainer::RedistributeCPU()");
-
+    
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = amrex::second();
   
@@ -2132,13 +2130,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
     long NumSnds = 0;
-    if (local > 0) {
+    if (local > 0)
+    {
         AMREX_ALWAYS_ASSERT(lev_min == 0);
         AMREX_ALWAYS_ASSERT(lev_max == 0);
         BuildRedistributeMask(0, local);
         NumSnds = doHandShakeLocal(not_ours, neighbor_procs, Snds, Rcvs);
     }
-    else {
+    else
+    {
         NumSnds = doHandShake(not_ours, Snds, Rcvs);
     }
 
@@ -2147,7 +2147,8 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     if ((not local) and NumSnds == 0)
         return;  // There's no parallel work to do.
 
-    if (local) {
+    if (local)
+    {
         long tot_snds_this_proc = 0;
         long tot_rcvs_this_proc = 0;
         for (int i = 0; i < NNeighborProcs; ++i) {
@@ -2242,7 +2243,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 #ifndef AMREX_USE_CUDA
         for (int j = 0; j < npart; ++j)
-	  {
+        {
             auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
             
             char* pbuf = recvdata.data() + j*superparticle_size;
@@ -2421,7 +2422,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
 			  aos().begin(), aos().begin() + np, grid_indices.begin(),
                           functors::assignParticleGrid(geom.data(),
                                          (*redistribute_mask_ptr)[mfi].box(),
-                                         redistribute_mask_ptr->fabPtr(mfi)));
+                                         redistribute_mask_ptr->array(mfi)));
 
         int count = thrust::count_if(grid_indices.begin(),
                                      grid_indices.end(),

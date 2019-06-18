@@ -11,6 +11,7 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Array4.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -88,7 +89,7 @@ public:
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE
-    Box (Array4<T> const& a)
+    Box (Array4<T> const& a) noexcept
         : smallend(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
           bigend  (AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))
         {}
