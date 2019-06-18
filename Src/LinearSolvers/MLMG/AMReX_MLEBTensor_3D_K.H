@@ -169,6 +169,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     int ilom = i - flag(i,j,k-1).isConnected(-1,0,0);
                     Real whi = mlebtensor_weight(ihip-ihim);
                     Real wlo = mlebtensor_weight(ilop-ilom);
+
                     Real dudx = (0.5*dxi) * ((vel(ihip,j,k  ,0)-vel(ihim,j,k  ,0))*whi
                                             +(vel(ilop,j,k-1,0)-vel(ilom,j,k-1,0))*wlo);
                     Real dwdx = (0.5*dxi) * ((vel(ihip,j,k  ,2)-vel(ihim,j,k  ,2))*whi
@@ -189,6 +190,7 @@ void mlebtensor_cross_terms_fz (Box const& box, Array4<Real> const& fz,
                     Real xif = kapz(i,j,k);
                     Real mun = 0.75*(etaz(i,j,k,2)-xif);  // restore the original eta
                     Real mut =       etaz(i,j,k,0);
+
                     fz(i,j,k,0) = -mut*dwdx;
                     fz(i,j,k,1) = -mut*dwdy;
                     fz(i,j,k,2) = -mun*(-twoThirds*divu) - xif*divu;
@@ -358,7 +360,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real fzp_0 = fz(i,j,k+1,0);
                     Real fzp_1 = fz(i,j,k+1,1);
                     Real fzp_2 = fz(i,j,k+1,2);
-                    if (apz(i,j,k) > 0.0 and apz(i,j,k) < 1.0) {
+                    if (apz(i,j,k+1) > 0.0 and apz(i,j,k+1) < 1.0) {
                         int ii = i + (fcz(i,j,k+1,0) >= 0.0 ? 1 : -1);
                         int jj = j + (fcz(i,j,k+1,1) >= 0.0 ? 1 : -1);
                         Real fracx = (ccm(ii,j,k) or ccm(ii,j,k)) ? std::abs(fcz(i,j,k+1,0)) : 0.0;
@@ -381,7 +383,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real feb_0 = 0.0;
                     Real feb_1 = 0.0;
                     Real feb_2 = 0.0;
-                    // if (is_dirichlet) {
+                    // if (is_dirichlet) 
                     {
                         Real dapx = apx(i+1,j,k)-apx(i,j,k);
                         Real dapy = apy(i,j+1,k)-apy(i,j,k);
