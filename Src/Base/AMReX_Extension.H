@@ -102,7 +102,11 @@
 
 // __attribute__((weak))
 
+#ifdef AMREX_TYPECHECK
+#define AMREX_ATTRIBUTE_WEAK 
+#else
 #define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
+#endif
 
 #endif /* !BL_LANG_FORT */
 
