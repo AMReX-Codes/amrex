@@ -13,6 +13,7 @@
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Dim3.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
@@ -646,6 +647,16 @@ min (const IntVect& p1, const IntVect& p2) noexcept
     return p;
 }
 
+AMREX_GPU_HOST_DEVICE
+AMREX_INLINE
+IntVect
+elemwiseMin (const IntVect& p1, const IntVect& p2) noexcept
+{
+    IntVect p(p1);
+    p.min(p2);
+    return p;
+}
+
 /**
  * \brief Returns the IntVect that is the component-wise maximum of two
  * argument IntVects.
@@ -654,6 +665,16 @@ AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 max (const IntVect& p1, const IntVect& p2) noexcept
+{
+    IntVect p(p1);
+    p.max(p2);
+    return p;
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_INLINE
+IntVect
+elemwiseMax (const IntVect& p1, const IntVect& p2) noexcept
 {
     IntVect p(p1);
     p.max(p2);

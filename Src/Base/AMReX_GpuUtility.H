@@ -7,6 +7,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
+#include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
 #ifdef AMREX_USE_CUDA

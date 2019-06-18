@@ -518,13 +518,11 @@ Particle<NReal, NInt>::NextID ()
 {
     int next;
 
-#ifdef _OPENMP
-#if (__GNUC__ < 5)
+#if defined(_OPENMP) && _OPENMP < 201107
 #pragma omp critical (amrex_particle_nextid)
-#else
+#elif defined(_OPENMP)
 #pragma omp atomic capture
-#endif
-#endif
+#endif    
     next = the_next_id++;
 
     if (next > LastParticleID)

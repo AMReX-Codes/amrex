@@ -207,22 +207,22 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
             auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
             if (fabtyp == FabType::covered) {
-                AMREX_D_TERM(FArrayBox* fxfab = fluxmf[0].fabPtr(mfi);,
-                             FArrayBox* fyfab = fluxmf[1].fabPtr(mfi);,
-                             FArrayBox* fzfab = fluxmf[2].fabPtr(mfi););
+                AMREX_D_TERM(Array4<Real> const& fxfab = fluxmf[0].array(mfi);,
+                             Array4<Real> const& fyfab = fluxmf[1].array(mfi);,
+                             Array4<Real> const& fzfab = fluxmf[2].array(mfi););
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA
                 ( xbx, txbx,
                   {
-                      fxfab->setVal(0.0, txbx, 0, AMREX_SPACEDIM);
+                      FArrayBox(fxfab,txbx.ixType()).setVal(0.0, txbx, 0, AMREX_SPACEDIM);
                   }
                 , ybx, tybx,
                   {
-                      fyfab->setVal(0.0, tybx, 0, AMREX_SPACEDIM);
+                      FArrayBox(fyfab,tybx.ixType()).setVal(0.0, tybx, 0, AMREX_SPACEDIM);
                   }
 #if (AMREX_SPACEDIM == 3)
                 , zbx, tzbx,
                   {
-                      fzfab->setVal(0.0, tzbx, 0, AMREX_SPACEDIM);
+                      FArrayBox(fzfab,tzbx.ixType()).setVal(0.0, tzbx, 0, AMREX_SPACEDIM);
                   }
 #endif
                 );
@@ -297,16 +297,16 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
             AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
                          Box const ybx = mfi.nodaltilebox(1);,
                          Box const zbx = mfi.nodaltilebox(2););
-            AMREX_D_TERM(FArrayBox* fxfab = fluxmf[0].fabPtr(mfi);,
-                         FArrayBox* fyfab = fluxmf[1].fabPtr(mfi);,
-                         FArrayBox* fzfab = fluxmf[2].fabPtr(mfi););
+            AMREX_D_TERM(FArrayBox& fxfab = fluxmf[0][mfi];,
+                         FArrayBox& fyfab = fluxmf[1][mfi];,
+                         FArrayBox& fzfab = fluxmf[2][mfi];);
 
             auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
             if (fabtyp == FabType::covered) {
-                AMREX_D_TERM(fxfab->setVal(0.0, xbx, 0, AMREX_SPACEDIM);,
-                             fyfab->setVal(0.0, ybx, 0, AMREX_SPACEDIM);,
-                             fzfab->setVal(0.0, zbx, 0, AMREX_SPACEDIM););
+                AMREX_D_TERM(fxfab.setVal(0.0, xbx, 0, AMREX_SPACEDIM);,
+                             fyfab.setVal(0.0, ybx, 0, AMREX_SPACEDIM);,
+                             fzfab.setVal(0.0, zbx, 0, AMREX_SPACEDIM););
             } else {
                 Array4<Real const> const vfab = in.array(mfi);
                 AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
@@ -344,9 +344,9 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 #endif
                 }
 
-                AMREX_D_TERM(fxfab->copy(fluxfab_tmp[0], xbx, 0, xbx, 0, AMREX_SPACEDIM);,
-                             fyfab->copy(fluxfab_tmp[1], ybx, 0, ybx, 0, AMREX_SPACEDIM);,
-                             fzfab->copy(fluxfab_tmp[2], zbx, 0, zbx, 0, AMREX_SPACEDIM););
+                AMREX_D_TERM(fxfab.copy(fluxfab_tmp[0], xbx, 0, xbx, 0, AMREX_SPACEDIM);,
+                             fyfab.copy(fluxfab_tmp[1], ybx, 0, ybx, 0, AMREX_SPACEDIM);,
+                             fzfab.copy(fluxfab_tmp[2], zbx, 0, zbx, 0, AMREX_SPACEDIM););
             }
         }
     }
@@ -452,7 +452,6 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         for (OrientationIter face; face; ++face) {
             Orientation ori = face();
             const int iface = ori;
-            const int idir = ori.coordDir();
             for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
                 bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
                 bcl[iface*AMREX_SPACEDIM+icomp] = bdlv[icomp][ori];

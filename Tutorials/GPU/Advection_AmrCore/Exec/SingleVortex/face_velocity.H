@@ -1,5 +1,5 @@
-#ifndef _FACE_VELOCITY_H_
-#define _FACE_VELOCITY_H_
+#ifndef FACE_VELOCITY_H_
+#define FACE_VELOCITY_H_
 
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>

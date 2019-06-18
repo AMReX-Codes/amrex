@@ -20,6 +20,8 @@ namespace Extrapolater
 {
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
     {
+        // TODO gpu
+
 	BL_ASSERT(mf.nGrow() == 1);
 	BL_ASSERT(scomp >= 0);
 	BL_ASSERT(ncomp <= mf.nComp());
