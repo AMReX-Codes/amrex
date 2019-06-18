@@ -44,9 +44,6 @@ detailed throughout the rest of this chapter:
   to parallelize over a valid box at a time.  This is done by using a lot
   of CUDA threads that only work on a few cells each. This work
   distribution is illustrated in :numref:`fig:gpu:threads`.
-  (Note: OpenMP is currently incompatible with AMReX builds using CUDA.
-  This feature is under development, although most applications will 
-  have no need for this feature when initially converting to GPUs.)
 
 .. |a| image:: ./GPU/gpu_2.png
        :width: 100%
