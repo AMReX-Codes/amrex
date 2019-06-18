@@ -58,8 +58,8 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
         
         auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
 
-        Real lenx = Geometry::ProbLength(0);
-        Real leny = Geometry::ProbLength(1);
+        Real lenx = geom.ProbLength(0);
+        Real leny = geom.ProbLength(1);
         auto pr = EB2::translate(EB2::lathe(polys), {lenx*0.5, leny*0.5, 0.});
         
         auto gshop = EB2::makeShop(pr);
@@ -70,5 +70,3 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
         EB2::Build(geom, max_coarsening_level, max_coarsening_level, 4);
     }
 }
-
-

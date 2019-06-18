@@ -31,7 +31,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_VectorIO.H>
-#include <AMReX_Particles_F.H>
+#include <AMReX_Particle_mod_K.H>
 #include <AMReX_ParticleMPIUtil.H>
 #include <AMReX_StructOfArrays.H>
 #include <AMReX_ArrayOfStructs.H>
@@ -306,8 +306,10 @@ public:
 
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
-    void reserveData();
-    void resizeData();
+          ParGDBBase* GetParGDB ()       { return m_gdb; }
+    
+    void reserveData ();
+    void resizeData ();
 
     void RedefineDummyMF (int lev);
 
@@ -748,7 +750,9 @@ public:
     void EnforcePeriodicGPU ();
 #endif
 
-    void AddRealComp (bool communicate=true)
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddRealComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_real++;
@@ -756,7 +760,9 @@ public:
         SetParticleSize();
     }
 
-    void AddIntComp (bool communicate=true)
+    template <typename T,
+              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+    void AddIntComp (T communicate=true)
     {
         m_runtime_comps_defined = true;
         m_num_runtime_int++;

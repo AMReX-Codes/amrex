@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------
 // AmrData.H
 // ---------------------------------------------------------------
-#ifndef _AMRDATA_H_
-#define _AMRDATA_H_
+#ifndef AMREX_AMRDATA_H_
+#define AMREX_AMRDATA_H_
 
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_Array.H>

@@ -12,7 +12,9 @@ endif
 
 ########################################################################
 
-ifeq ($(USE_CUDA),TRUE)
+ifeq ($(USE_HIP),TRUE)
+  GCC_VERSION_COMP = g++
+else ifeq ($(USE_CUDA),TRUE)
   GCC_VERSION_COMP = g++
 else
   GCC_VERSION_COMP = $(CXX)

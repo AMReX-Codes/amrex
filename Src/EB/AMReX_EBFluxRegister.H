@@ -70,7 +70,8 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  RunOn gpu_or_cpu);
 
     using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
@@ -78,7 +79,8 @@ public:
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
-                  const FArrayBox& dm);
+                  const FArrayBox& dm,
+                  RunOn gpu_or_cpu);
 
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);

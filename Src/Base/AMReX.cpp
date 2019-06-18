@@ -8,6 +8,7 @@
 #include <stack>
 #include <limits>
 #include <vector>
+#include <algorithm>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
@@ -38,7 +39,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
@@ -49,7 +50,12 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
 
+#include <AMReX_Geometry.H>
+
 namespace amrex {
+
+std::vector<std::unique_ptr<AMReX> > AMReX::m_instance;
+
 namespace system
 {
     std::string exename;
@@ -143,7 +149,7 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 #endif
@@ -169,7 +175,7 @@ amrex::Error (const std::string& msg)
 void
 amrex::Abort (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
     assert(0);
@@ -199,7 +205,7 @@ amrex::Abort (const std::string& msg)
 void
 amrex::Warning (const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
 #endif
@@ -223,7 +229,7 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
-#if defined(__CUDA_ARCH__)
+#ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -286,17 +292,17 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
     The_Initialize_Function_Stack.push(fp);
 }
 
-void
+amrex::AMReX*
 amrex::Initialize (MPI_Comm mpi_comm,
                    std::ostream& a_osout, std::ostream& a_oserr,
                    ErrorHandler a_errhandler)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
+    return Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
 }
 
-void
+amrex::AMReX*
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,
@@ -508,11 +514,22 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 
     BL_TINY_PROFILE_INITIALIZE();
+
+    AMReX::push(new AMReX());
+    return AMReX::top();
 }
 
 void
-amrex::Finalize (bool finalize_parallel)
+amrex::Finalize ()
 {
+    amrex::Finalize(AMReX::top());
+}
+
+void
+amrex::Finalize (amrex::AMReX* pamrex)
+{
+    AMReX::erase(pamrex);
+
     BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
@@ -566,7 +583,7 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-#ifdef BL_MEM_PROFILING
+#ifdef AMREX_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif
@@ -608,12 +625,10 @@ amrex::Finalize (bool finalize_parallel)
 
     bool is_ioproc = ParallelDescriptor::IOProcessor();
 
-    if (finalize_parallel) {
     /* Don't shut down MPI if GASNet is still using MPI */
 #ifndef GASNET_CONDUIT_MPI
-        ParallelDescriptor::EndParallel();
+    ParallelDescriptor::EndParallel();
 #endif
-    }
 
     if (amrex::system::verbose > 0 && is_ioproc) {
         amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << std::endl;
@@ -652,4 +667,43 @@ amrex::get_command_argument (int number)
     } else {
         return std::string();
     }
+}
+
+namespace amrex
+{
+
+AMReX::AMReX ()
+    : m_geom(new Geometry())
+{
+}
+
+AMReX::~AMReX ()
+{
+    delete m_geom;
+}
+
+void
+AMReX::push (AMReX* pamrex)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<AMReX>& x) -> bool
+                          { return x.get() == pamrex; });
+    if (r == m_instance.end()) {
+        m_instance.emplace_back(pamrex);
+    } else if (r+1 != m_instance.end()) {
+        std::rotate(r, r+1, m_instance.end());
+    }
+}
+
+void
+AMReX::erase (AMReX* pamrex)
+{
+    auto r = std::find_if(m_instance.begin(), m_instance.end(),
+                          [=] (const std::unique_ptr<AMReX>& x) -> bool
+                          { return x.get() == pamrex; });
+    if (r != m_instance.end()) {
+        m_instance.erase(r);
+    }
+}
+
 }

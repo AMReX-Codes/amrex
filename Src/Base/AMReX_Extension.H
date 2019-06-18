@@ -27,6 +27,9 @@
 #elif defined(__CUDA_ARCH__)
 #define AMREX_PRAGMA_SIMD 
 
+#elif defined(__HIP_DEVICE_COMPILE__)
+#define AMREX_PRAGMA_SIMD 
+
 //#elif defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
 //#define AMREX_PRAGMA_SIMD _Pragma("omp simd")
 
@@ -58,6 +61,9 @@
 
 // force inline
 #if defined(__CUDA_ARCH__)
+#define AMREX_FORCE_INLINE __forceinline__
+
+#elif defined(__HIP_DEVICE_COMPILE__)
 #define AMREX_FORCE_INLINE __forceinline__
 
 #elif defined(__INTEL_COMPILER)
@@ -93,6 +99,14 @@
 #define AMREX_INLINE inline
 #endif
 
+
+// __attribute__((weak))
+
+#ifdef AMREX_TYPECHECK
+#define AMREX_ATTRIBUTE_WEAK 
+#else
+#define AMREX_ATTRIBUTE_WEAK __attribute__((weak))
+#endif
 
 #endif /* !BL_LANG_FORT */
 

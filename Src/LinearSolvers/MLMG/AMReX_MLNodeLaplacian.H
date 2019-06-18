@@ -56,6 +56,8 @@ public :
 
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
+    void setNormalizationThreshold (Real t) noexcept { m_normalization_threshold = t; }
+
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
     void compDivergence (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel);
@@ -145,6 +147,8 @@ private:
     Vector<Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
     Vector<Vector<Real> > m_s0_norm0;
+
+    Real m_normalization_threshold = 1.e-10;
 
 #ifdef AMREX_USE_EB
     // they could be MultiCutFab

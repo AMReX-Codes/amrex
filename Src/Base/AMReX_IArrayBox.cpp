@@ -52,10 +52,12 @@ IArrayBox::IArrayBox (const Box& b,
     :
     BaseFab<int>(b,n,alloc,shared)
 {
+#ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( alloc && do_initval ) {
 	setVal(std::numeric_limits<int>::max());
     }
+#endif
 }
 
 IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
@@ -76,10 +78,12 @@ IArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<int>::resize(b,N);
+#ifndef AMREX_USE_GPU
     // For debugging purposes
     if ( do_initval ) {
         setVal(std::numeric_limits<int>::max());
     }
+#endif
 }
 
 }

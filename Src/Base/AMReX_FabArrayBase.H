@@ -12,6 +12,7 @@
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
+#include <AMReX_Gpu.H>
 
 namespace amrex {
 
@@ -130,7 +131,7 @@ public:
 	long        bytes;
 	long        bytes_hwm;
 	std::string name;     //!< name of the cache
-	CacheStats (const std::string& name_)
+	explicit CacheStats (const std::string& name_)
 	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
 	      bytes(0L),bytes_hwm(0L),name(name_) {;}
 	void recordBuild () noexcept {
@@ -452,6 +453,12 @@ protected:
 	//
 	int                 m_nuse;
 	//
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+        CudaGraph<CopyMemory> m_localCopy;
+        CudaGraph<CopyMemory> m_copyToBuffer;
+        CudaGraph<CopyMemory> m_copyFromBuffer;
+#endif
+        //
 	long bytes () const;
     private:
 	void define_fb (const FabArrayBase& fa);
@@ -472,7 +479,7 @@ protected:
 
     //
     //! parallel copy or add
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 public:
 #endif
     struct CPC
@@ -516,7 +523,7 @@ public:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 protected:
 #endif
     //

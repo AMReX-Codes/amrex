@@ -103,10 +103,10 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
         for (int i = 0; i < BL_SPACEDIM; i++)
-            os << Geometry::ProbLo(i) << ' ';
+            os << Geom().ProbLo(i) << ' ';
         os << '\n';
         for (int i = 0; i < BL_SPACEDIM; i++)
-            os << Geometry::ProbHi(i) << ' ';
+            os << Geom().ProbHi(i) << ' ';
         os << '\n';
         for (int i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
@@ -123,7 +123,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
-        os << (int) Geometry::Coord() << '\n';
+        os << (int) Geom().Coord() << '\n';
         os << "0\n"; // Write bndry data.
 
     }
@@ -200,7 +200,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	int comp = plot_var_map[i].second;
 	this_dat = &state[typ].newData();
 	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
-#ifdef BL_TESTING
+#ifdef AMREX_TESTING
         // to avoid fcompare failure
         if (typ == Cost_Type) {
             plotMF.setVal(0.0, cnt, 1, nGrow);

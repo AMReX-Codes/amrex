@@ -1236,8 +1236,6 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    // TODO gpu
-
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
@@ -1563,7 +1561,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
 {
     Box domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
+        if (geom.isPeriodic(idim)) {
             int n = domain_box.length(idim);
             domain_box.grow(idim, n);
         }
@@ -1891,8 +1889,6 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
-    // TODO gpu
-
     clearThisBD();  // The new boxarry will have a different ID.
     for(int id(0); id < AMREX_SPACEDIM; ++id)
     {

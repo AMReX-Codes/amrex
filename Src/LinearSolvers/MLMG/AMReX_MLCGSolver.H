@@ -44,6 +44,9 @@ public:
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     int getMaxIter () const { return maxiter; }
 
+    void setNGhost(int _nghost) {nghost = _nghost;}
+    int getNGhost() {return nghost;}
+    
     Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
     Real norm_inf (const MultiFab& res, bool local = false);
     int solve_bicgstab (MultiFab&       solnL,
@@ -64,6 +67,7 @@ private:
     const int mglev;
     int    verbose   = 0;
     int    maxiter   = 100;
+    int nghost = 0;
 };
 
 }
