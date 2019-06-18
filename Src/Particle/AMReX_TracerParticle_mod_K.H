@@ -19,13 +19,12 @@
 //			     int val, 
 //			     int comp){
 
-//template <typename P>
+template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void amrex_interpolate_CIC_2 (amrex::Particle<2, 0> p, 
-			      const amrex::GeometryData & geomdata, 
+void amrex_interpolate_CIC_2 (const P& p, 
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                              amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
 			      const amrex::Array4<const double> &  uccarr,
-			      //amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& idx,
-			      const int idx,
 			      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> &  val,
 			      const int comp)  
 {
@@ -36,8 +35,6 @@ void amrex_interpolate_CIC_2 (amrex::Particle<2, 0> p,
   BL_ASSERT(val != 0);
   
   const int   M   = AMREX_D_TERM(2,+2,+4);
-  const amrex::Real* plo = geomdata.ProbLo();
-  const amrex::Real* dx  = geomdata.CellSize();
   //const amrex::FArrayBox fab = *p_fab;
 
   amrex::Real    fracs[M];
