@@ -7,6 +7,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
+#include <AMReX_Array4.H>
 #include <iostream>
 #include <cmath>
 #ifdef AMREX_USE_CUDA
@@ -311,6 +312,17 @@ namespace Gpu {
             return atomicDec(m, value);
 #else
             return (*m)--;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        int Exch (int* address, int val) noexcept {
+#ifdef AMREX_DEVICE_COMPILE
+            return atomicExch(address, val);
+#else
+            int old = *address;
+            *address = val;
+            return old;
 #endif
         }
 

@@ -194,12 +194,10 @@ namespace amrex
                         amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
-                        
-                        FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
-                        FArrayBox* dfabp = mf.fabPtr(gi);
-                        mapper->interp(*sfabp,
+
+                        mapper->interp(sfab,
                                        0,
-                                       *dfabp,
+                                       dfab,
                                        dcomp,
                                        ncomp,
                                        dbx,
@@ -335,11 +333,9 @@ namespace amrex
 
                 pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
-                FArrayBox* dfabp = mf.fabPtr(mfi);
-                mapper->interp(*sfabp,
+                mapper->interp(sfab,
                                0,
-                               *dfabp,
+                               dfab,
                                dcomp,
                                ncomp,
                                dbx,
@@ -375,6 +371,8 @@ namespace amrex
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio)
     {
+        // TODO gpu
+
         BL_ASSERT(ref_ratio == 2);
 
         const IntVect& ngrow = fine[0]->nGrowVect();

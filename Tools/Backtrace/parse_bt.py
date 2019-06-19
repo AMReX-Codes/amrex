@@ -35,6 +35,6 @@ for l in lines:
       addr = m.group(2)
 
   if matched:
-    cmd = "addr2line -Cfie %s %s" % (exe_file, addr)
+    cmd = "addr2line -Cpfie %s %s" % (exe_file, addr)
     info = subprocess.check_output(shlex.split(cmd)).decode("utf-8")
     print("%s: %s" % (frame, info))
