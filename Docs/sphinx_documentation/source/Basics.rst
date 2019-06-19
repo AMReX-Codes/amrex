@@ -1051,6 +1051,8 @@ FArrayBox.
       Real a = 3.0;
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
+.. _sec:basics:array4:
+
 For more complicated expressions that are not supported, one can write
 Fortran or C/C++ functions for those (see the section
 on :ref:`sec:basics:fortran`).  In C++, one can use :cpp:`Array4`,
