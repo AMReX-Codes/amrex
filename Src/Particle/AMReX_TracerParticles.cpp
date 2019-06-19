@@ -46,7 +46,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                                                            IntVect::TheDimensionVector(i)),
 					    m_gdb->ParticleDistributionMap(lev),
 					    umac[i].nComp(), ng));
-					    
+
 	    umac_pointer[i] = raii_umac[i].get();
 	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
@@ -106,7 +106,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         //
                         // Save old position and the vel & predict location at dt/2.
                         //
-	   
+
                         p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*vel;
                     }
@@ -155,15 +155,15 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     const Geometry&     geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
-    //const GeometryData& geomdata = geom.data();   
+    //const GeometryData& geomdata = geom.data();
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
 
-    for (int ipass = 0; ipass < 2; ipass++)               
+    for (int ipass = 0; ipass < 2; ipass++)
     {
         auto& pmap = GetParticles(lev);
-	for (auto& kv : pmap) {                           
-	  int grid = kv.first.first;                    
+	for (auto& kv : pmap) {
+	  int grid = kv.first.first;
 	  auto& aos           = kv.second.GetArrayOfStructs();
 	  const int n          = aos.size();
 	  const FArrayBox& fab = Ucc[grid];
@@ -177,9 +177,9 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
           //			     [=] AMREX_GPU_DEVICE (int i)
 	  for (int i = 0; i < n; i++)             // Loop through particles on a box
             {
-	       
+
 	      ParticleType& p  = p_pbox[i];
-	      
+
                 //if (p.m_idata.id <= 0) continue;
 		BL_ASSERT(p.m_idata.id <= 0);
 
@@ -192,7 +192,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		    // Save old position and the vel & predict location at dt/2.
 		    //
-		  for (int d = 0; d < AMREX_SPACEDIM; d++) 
+		  for (int d = 0; d < AMREX_SPACEDIM; d++)
 		    {
 		        p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
                         p.m_rdata.pos[d] += 0.5*dt*v[d];
@@ -271,11 +271,11 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             // Do we have any particles at this level that need writing?
             //
             bool gotwork = false;
-	    
+
             const auto& pmap = GetParticles(lev);
 	    for (auto& kv : pmap) {
               const auto& pbox = kv.second.GetArrayOfStructs();
-	      for (int k = 0; k < pbox.size(); ++k) 
+	      for (int k = 0; k < pbox.size(); ++k)
 	      {
 		const ParticleType& p = pbox[k];
 		if (p.m_idata.id > 0) {
@@ -291,9 +291,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-                
+
                 std::ofstream TimeStampFile;
-		
+
                 TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
                 TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);
@@ -323,17 +323,17 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      const ParticleType& p = pbox[k];
 
 		      if (p.m_idata.id <= 0) continue;
-		      
+
 		      const IntVect& iv = Index(p,lev);
-		      
+
 		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
-		      
+
 		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
-		      
+
 		      AMREX_D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
-		      
+
 		      TimeStampFile << time;
 		      //
 		      // AdvectWithUmac stores the velocity in rdata ...
@@ -341,21 +341,21 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      AMREX_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+0];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+1];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[AMREX_SPACEDIM+2];);
-		      
+
 		      if (M > 0)
                         {
 			  ParticleType::Interp(p,m_gdb->Geom(lev),fab,&indices[0],&vals[0],M);
-			  
+
 			  for (int i = 0; i < M; i++)
                             {
 			      TimeStampFile << ' ' << vals[i];
                             }
                         }
-		      
+
 		      TimeStampFile << '\n';
                     }
                 }
-		
+
                 TimeStampFile.flush();
                 TimeStampFile.close();
             }
