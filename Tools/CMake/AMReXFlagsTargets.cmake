@@ -87,8 +87,8 @@ target_compile_options( Flags_Fortran_REQUIRED
    INTERFACE
    $<${_fortran_gnu}:-ffixed-line-length-none -ffree-line-length-none>
    $<${_fortran_intel}:-extend_source>
-   $<${_fortran_pgi}:-N 255 -h list=a>
-   $<${_fortran_cray}:-Mextend>
+   $<${_fortran_pgi}:-Mextend>
+   $<${_fortran_cray}:-N 255 -h list=a>
    )
 
 

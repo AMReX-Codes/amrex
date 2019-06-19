@@ -3,7 +3,6 @@
 #define AMREX_BOX_H_
 
 #include <iosfwd>
-#include <array>
 
 #include <AMReX_ArrayLim.H>
 #include <AMReX_ccse-mpi.H>
@@ -11,6 +10,8 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_Array.H>
+#include <AMReX_Array4.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -84,6 +85,13 @@ public:
         : smallend(small),
           bigend(big),
           btype(t)
+        {}
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE
+    Box (Array4<T> const& a) noexcept
+        : smallend(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+          bigend  (AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))
         {}
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.

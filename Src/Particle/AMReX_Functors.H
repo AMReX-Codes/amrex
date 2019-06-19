@@ -58,13 +58,13 @@ namespace functors
     {        
         GeometryData domain;
         Box box;
-        BaseFab<int>* mask_ptr;
+        Array4<const int> mask_arr;
         
         AMREX_GPU_HOST_DEVICE
-        assignParticleGrid(const GeometryData& a_domain,
-                           const Box&          a_box,
-                           BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
+        assignParticleGrid(const GeometryData&      a_domain,
+                           const Box&               a_box,
+                           const Array4<const int>& a_mask_arr) 
+            : domain(a_domain), box(a_box), mask_arr(a_mask_arr) {}
         
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
@@ -77,7 +77,7 @@ namespace functors
 
 	    iv += domain.Domain().smallEnd();
 
-	    return (*mask_ptr)(iv); 
+	    return mask_arr(iv); 
         }
     };
 
@@ -85,13 +85,13 @@ namespace functors
     {        
         GeometryData domain;
         Box box;
-        BaseFab<int>* mask_ptr;
+        Array4<const int> mask_arr;
         
         AMREX_GPU_HOST_DEVICE
-        assignParticleTile(const GeometryData& a_domain,
-			   const Box&          a_box,
-			   BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
+        assignParticleTile(const GeometryData&      a_domain,
+			   const Box&               a_box,
+			   const Array4<const int>& a_mask_arr) 
+            : domain(a_domain), box(a_box), mask_arr(a_mask_arr) {}
         
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
@@ -104,7 +104,7 @@ namespace functors
 
 	    iv += domain.Domain().smallEnd();
 
-	    return (*mask_ptr)(iv, 1);
+	    return mask_arr(iv, 1);
         }
     };
 
@@ -167,13 +167,13 @@ namespace functors
     {        
         GeometryData domain;
         Box box;
-        BaseFab<int>* mask_ptr;
+        Array4<const int> mask_arr;
         
         AMREX_GPU_HOST_DEVICE
-        assignParticleGridAndTile(const GeometryData& a_domain,
-				  const Box&          a_box,
-				  BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
+        assignParticleGridAndTile(const GeometryData&      a_domain,
+				  const Box&               a_box,
+				  const Array4<const int>& a_mask_arr) 
+            : domain(a_domain), box(a_box), mask_arr(a_mask_arr) {}
         
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
@@ -186,7 +186,7 @@ namespace functors
 
 	    iv += domain.Domain().smallEnd();
 
-	    return thrust::make_tuple((*mask_ptr)(iv, 0), (*mask_ptr)(iv, 1));
+	    return thrust::make_tuple(mask_arr(iv, 0), mask_arr(iv, 1));
         }
     };
 

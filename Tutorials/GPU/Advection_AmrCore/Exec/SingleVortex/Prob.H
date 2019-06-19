@@ -1,5 +1,5 @@
-#ifndef _PROB_H_
-#define _PROB_H_
+#ifndef PROB_H_
+#define PROB_H_
 
 #include <AmrCoreAdv_F.H>
 

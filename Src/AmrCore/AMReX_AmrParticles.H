@@ -104,19 +104,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         this->AssignCellDensitySingleLevel(rho_index, *mf[lev], lev, 1, 0);
         
         if (lev < finest_level) {
-            PhysBCFunct<BndryFuncArray> cphysbc(this->m_gdb->Geom(lev), bcs,
-                                                BndryFuncArray([](Real* data,
-                                                                  AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
-                                                                  const int* dom_lo, const int* dom_hi,
-                                                                  const Real* dx, const Real* grd_lo,
-                                                                  const Real* time, const int* bc){}));
-            PhysBCFunct<BndryFuncArray> fphysbc(this->m_gdb->Geom(lev+1), bcs,
-                                                BndryFuncArray([](Real* data,
-                                                                  AMREX_ARLIM_P(lo), AMREX_ARLIM_P(hi),
-                                                                  const int* dom_lo, const int* dom_hi,
-                                                                  const Real* dx, const Real* grd_lo,
-                                                                  const Real* time, const int* bc){}));
-
+            PhysBCFunctNoOp cphysbc, fphysbc;
             amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf[lev],
                                          rho_index, rho_index, ncomp,
                                          this->m_gdb->Geom(lev),

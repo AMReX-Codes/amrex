@@ -3,8 +3,11 @@ template <int NStructReal, int NStructInt>
 bool NeighborParticleContainer<NStructReal, NStructInt>::use_mask = false;
 
 template <int NStructReal, int NStructInt>
+bool NeighborParticleContainer<NStructReal, NStructInt>::enable_inverse = true;
+
+template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
-::NeighborParticleContainer(ParGDBBase* gdb, int ncells)
+::NeighborParticleContainer (ParGDBBase* gdb, int ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
     m_num_neighbor_cells(ncells)
 {
@@ -13,10 +16,10 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
 template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
-::NeighborParticleContainer(const Geometry            & geom,
-                            const DistributionMapping & dmap,
-                            const BoxArray            & ba,
-                            int                         ncells)
+::NeighborParticleContainer (const Geometry            & geom,
+                             const DistributionMapping & dmap,
+                             const BoxArray            & ba,
+                             int                         ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
     m_num_neighbor_cells(ncells)
 {
@@ -25,11 +28,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
 template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
-::NeighborParticleContainer(const Vector<Geometry>            & geom,
-                            const Vector<DistributionMapping> & dmap,
-                            const Vector<BoxArray>            & ba,
-                            const Vector<int>                 & rr,
-                            int                               ncells)
+::NeighborParticleContainer (const Vector<Geometry>            & geom,
+                             const Vector<DistributionMapping> & dmap,
+                             const Vector<BoxArray>            & ba,
+                             const Vector<int>                 & rr,
+                             int                               ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba, rr),
     m_num_neighbor_cells(ncells)
 {
@@ -39,7 +42,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::initializeCommComps() {
+::initializeCommComps () {
     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii)
         rc[ii] = true;
     for (int ii = 0; ii < 2 + NStructInt; ++ii)
@@ -50,7 +53,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::setRealCommComp(int i, bool value) {
+::setRealCommComp (int i, bool value) {
     rc[i] = value;
     calcCommSize();
 }
@@ -58,7 +61,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::setIntCommComp(int i, bool value) {
+::setIntCommComp (int i, bool value) {
     ic[i] = value;
     calcCommSize();
 }
@@ -66,7 +69,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::calcCommSize() {
+::calcCommSize () {
     size_t comm_size = 0;
     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
         if (rc[ii]) {
@@ -78,13 +81,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
             comm_size += sizeof(int);
         }
     }
+    if ( enableInverse() ) comm_size += 4*sizeof(int);
     cdata_size = comm_size;
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
+::Regrid (const DistributionMapping &dmap, const BoxArray &ba ) {
     const int lev = 0;
     AMREX_ASSERT(this->finestLevel() == 0);
     this->SetParticleBoxArray(lev, ba);
@@ -95,7 +99,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::Regrid(const DistributionMapping &dmap, const BoxArray &ba, const int lev) {
+::Regrid (const DistributionMapping &dmap, const BoxArray &ba, const int lev) {
     AMREX_ASSERT(lev <= this->finestLevel());
     this->SetParticleBoxArray(lev, ba);
     this->SetParticleDistributionMap(lev, dmap);
@@ -105,7 +109,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba) {
+::Regrid (const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba) {
     AMREX_ASSERT(ba.size() == this->finestLevel()+1);
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
@@ -118,7 +122,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::BuildMasks() {
+::BuildMasks () {
 
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
@@ -162,7 +166,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::GetNeighborCommTags()
+::GetNeighborCommTags ()
 {
     BL_PROFILE("NeighborParticleContainer::GetNeighborCommTags");
 
@@ -215,7 +219,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 IntVect
 NeighborParticleContainer<NStructReal, NStructInt>
-::computeRefFac(const int src_lev, const int lev)
+::computeRefFac (const int src_lev, const int lev)
 {
     IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
     if (src_lev < lev) {
@@ -234,7 +238,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::GetCommTagsBox(Vector<NeighborCommTag>& tags, const int src_lev, const Box& in_box)
+::GetCommTagsBox (Vector<NeighborCommTag>& tags, const int src_lev, const Box& in_box)
 {
     std::vector< std::pair<int, Box> > isects;
     Box tbx;
@@ -280,7 +284,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::cacheNeighborInfo() {
+::cacheNeighborInfo () {
 
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
 
@@ -491,13 +495,24 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tags[nim.src_index].dst_index = buffer_offset + i*cdata_size;
         }
     }
+
+    if ( enableInverse() )
+    {
+        for (int lev = 0; lev < this->numLevels(); ++lev)
+        {
+            for (const auto& kv : neighbors[lev])
+            {
+                inverse_tags[lev][kv.first].resize(kv.second.size());
+            }
+        }
+    }
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
-                const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
+getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
+                 const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
 {
     getNeighborTags(tags, p, IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)), src_tag, pti);
 }
@@ -505,8 +520,8 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
-                const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
+getNeighborTags (Vector<NeighborCopyTag>& tags, const ParticleType& p,
+                 const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
 {
     Box shrink_box = pti.tilebox();
     shrink_box.grow(-nGrow);
@@ -597,7 +612,7 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::fillNeighbors() {
+::fillNeighbors () {
 #ifdef AMREX_USE_CUDA
     fillNeighborsGPU();
 #else
@@ -608,7 +623,19 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::updateNeighbors()
+::sumNeighbors (int real_start_comp, int real_num_comp,
+                int int_start_comp,  int int_num_comp) {
+#ifdef AMREX_USE_CUDA
+    amrex::Abort("Not implemented.");
+#else
+    sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);
+#endif
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>
+::updateNeighbors ()
 {
 #ifdef AMREX_USE_CUDA
     updateNeighborsGPU();
@@ -620,7 +647,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::clearNeighbors()
+::clearNeighbors ()
 {
 #ifdef AMREX_USE_CUDA
     clearNeighborsGPU();
@@ -633,7 +660,7 @@ template <int NStructReal, int NStructInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborList(CheckPair check_pair, bool sort) 
+buildNeighborList (CheckPair check_pair, bool sort) 
 {
 #ifdef AMREX_USE_CUDA
     buildNeighborListGPU(check_pair);
@@ -645,7 +672,7 @@ buildNeighborList(CheckPair check_pair, bool sort)
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-printNeighborList()
+printNeighborList ()
 {
 #ifdef AMREX_USE_CUDA
     printNeighborListGPU();
@@ -657,7 +684,7 @@ printNeighborList()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-resizeContainers(const int num_levels)
+resizeContainers (const int num_levels)
 {
     if ( static_cast<int>(neighbors.size()) <= num_levels )
     {
@@ -666,6 +693,7 @@ resizeContainers(const int num_levels)
         mask_ptr.resize(num_levels);
         buffer_tag_cache.resize(num_levels);
         local_neighbor_sizes.resize(num_levels);
+        if ( enableInverse() ) inverse_tags.resize(num_levels);
     }
 
     AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and

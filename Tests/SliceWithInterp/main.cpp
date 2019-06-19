@@ -334,38 +334,38 @@ void CreateSlice(Vector<MultiFab*> mf, Vector<Geometry> geom, RealBox slice_real
            MFIter mfi_dst(mfDst);
            for (MFIter mfi(mfSrc); mfi.isValid(); ++mfi)
            {
-               FArrayBox& Src_fabox = mfSrc[mfi];
+               Array4<Real const> const& Src_arr = mfSrc.array(mfi);
 
                const Box& Dst_bx = mfi_dst.validbox();
-               FArrayBox& Dst_fabox = mfDst[mfi_dst];
+               Array4<Real> const& Dst_arr = mfDst.array(mfi_dst);
 
                int scomp = 0;
                int dcomp = 0;
 
                if( SliceType==cctype ) {
-                  amrex::amrex_avgdown(Dst_bx, Dst_fabox, Src_fabox, dcomp, scomp,                                                 ncomp, cr_ratio);
+                  amrex::amrex_avgdown(Dst_bx, Dst_arr, Src_arr, dcomp, scomp,                                                 ncomp, cr_ratio);
                }
                if( SliceType == ndtype ) {
-                  amrex::amrex_avgdown_nodes(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio);
+                  amrex::amrex_avgdown_nodes(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio);
                }
                if( SliceType == xetype ) {
-                  amrex::amrex_avgdown_edges(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio, 0);
+                  amrex::amrex_avgdown_edges(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio, 0);
                }
                if( SliceType == yetype) {
-                  amrex::amrex_avgdown_edges(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio, 1);
+                  amrex::amrex_avgdown_edges(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio, 1);
                }
                if( SliceType == zetype ) {
-                  amrex::amrex_avgdown_edges(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio, 2);
+                  amrex::amrex_avgdown_edges(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio, 2);
                }
                if (AMREX_SPACEDIM==3) {
                   if( SliceType == xftype) {
-                     amrex::amrex_avgdown_faces(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio, 0);
+                     amrex::amrex_avgdown_faces(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio, 0);
                   }
                   if( SliceType == yftype ) {
-                     amrex::amrex_avgdown_faces(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio, 1);
+                     amrex::amrex_avgdown_faces(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio, 1);
                   }
                   if( SliceType == zftype ) {
-                     amrex::amrex_avgdown_faces(Dst_bx, Dst_fabox, Src_fabox, dcomp,                                                        scomp, ncomp, cr_ratio, 2);
+                     amrex::amrex_avgdown_faces(Dst_bx, Dst_arr, Src_arr, dcomp,                                                        scomp, ncomp, cr_ratio, 2);
                   }
                }
 

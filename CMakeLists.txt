@@ -70,10 +70,21 @@ add_subdirectory(Src)
 #
 # Tutorials and "test_install" target
 #
-option(ENABLE_TUTORIALS "Enable Tutorials" ON)
+option(ENABLE_TUTORIALS "Enable Tutorials" NO)
 
 if (ENABLE_TUTORIALS)
    add_subdirectory(Tutorials)
+endif ()
+
+#
+# Plotfile tools
+#
+option(ENABLE_PLOTFILE_TOOLS "Enable Plotfile tools" NO)
+
+if (ENABLE_PLOTFILE_TOOLS)
+   # If this get executed, it cannot be EXCLUDED_FROM_ALL
+   # because it needs to get installed
+   add_subdirectory(Tools/Plotfile)
 endif ()
 
 
