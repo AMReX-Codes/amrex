@@ -1366,22 +1366,12 @@ example:
 
 ::
 
-    BL_PROFILE_VAR("MFIter: Init", mfinit);     // Profiling start
-    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    BL_PROFILE_VAR("A_NAME", blp);     // Profiling start
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        const Box& vbx = mfi.validbox();
-        const GeometryData& geomdata = geom.data();
-        FArrayBox* phiNew = phi_new.fabPtr(mfi);
-
-        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
-        {
-            init_phi(BL_TO_FORTRAN_BOX(tbx),
-                     BL_TO_FORTRAN_ANYD(*phiNew),
-                     geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
-        });
-
+        // gpu works
     }
-    BL_PROFILE_STOP(mfinit);                    // Profiling stop
+    BL_PROFILE_STOP(blp);              // Profiling stop
 
 For now, this is the best way to profile GPU codes using ``TinyProfiler``. 
 If you require further profiling detail, use ``nvprof``.
@@ -1395,21 +1385,14 @@ Performance Tips
 Here are some helpful performance tips to keep in mind when working with
 AMReX for GPUs:
 
-* It is important to use :cpp:`fabPtr` and :cpp:`operator[]` in the 
-  appropriate places to minimize unnecessary data movement.
-  If a :cpp:`FArrayBox` functions are called from a :cpp:`FArrayBox*`
-  created by on the device, the associated meta-data will be transferred
-  back to the CPU, causing substantial slow-downs. 
-
 * To obtain the best performance when using CUDA kernel launches, all
   device functions called within the launch region should be inlined.
   Inlined functions use substantially fewer registers, freeing up GPU
-  resources to perform other tasks. This increases parallel performance
-  and greatly reduces runtime.
-
-  Functions are written inline by including their declarations in the
-  ``.H`` file and using the ``AMREX_INLINE`` AMReX macro.  Examples can
-  be found in ``Tutorials\GPU\Launch``. For example: 
+  resources to perform other tasks. This increases parallel
+  performance and greatly reduces runtime.  Functions are written
+  inline by putting their definitions in the ``.H`` file and using
+  the ``AMREX_INLINE`` AMReX macro.  Examples can be found in
+  ``Tutorials/GPU/Launch``. For example:
 
 .. highlight:: cpp
 
