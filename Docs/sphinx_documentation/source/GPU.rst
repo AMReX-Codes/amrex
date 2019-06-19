@@ -1402,19 +1402,7 @@ AMReX for GPUs:
     AMREX_INLINE
     void plusone_cudacpp (amrex::Box const& bx, amrex::FArrayBox& fab)
     {
-        const auto len = amrex::length(bx);  // length of box
-        const auto lo  = amrex::lbound(bx);  // lower bound of box
-        const auto data = fab.view(lo);  // a view starting from lo
-
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                // We know this is safe for simd on cpu.  So let's give compiler some help.
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    data(i,j,k) += 1.0;
-                }
-            }
-        }
+        ...
     }
 
 .. ===================================================================
@@ -1445,7 +1433,7 @@ Basic Gpu Debugging
 
 - Turn off GPU offloading for some part of the code with
 
-.. code-block:: c++
+.. highlight:: cpp
 
 ::
 
@@ -1453,19 +1441,21 @@ Basic Gpu Debugging
 		  ... ;
 		  Gpu::setLaunchRegion(1);
 
+Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
+not respect the launch region flag.  Only the macros (e.g.,
+``AMREX_LAUNCH_HOST_DEVICE_LAMBDA`` and ``AMREX_HOST_DEVICE_FOR_*D``) do.
+
 Cuda-specific tests
 -------------------
 
-- To test if your kernels have launched run
-
-.. code-block:: sh
+- To test if your kernels have launched, run
 
 ::
 
 		nvprof ./main3d.xxx
 
 - Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
-  a small problem and examine CPU page faults using nvvp
+  a small problem and examine page faults using nvvp
 		  
 - Run under ``cuda-memcheck``
 
@@ -1487,9 +1477,7 @@ limitations:
 - OpenMP is currently not compatible with building AMReX with CUDA. 
   ``USE_CUDA=TRUE`` and ``USE_OMP=TRUE`` will fail to compile.
 
-- Many multi-level functions in AMReX have not been ported to GPUs.
-
-- Linear solvers have not been ported to GPUs.
+- Non-cell-centered Linear solvers have not been fully ported to GPUs.
 
 - Embedded boundary capability has not been ported to GPUs.
 
