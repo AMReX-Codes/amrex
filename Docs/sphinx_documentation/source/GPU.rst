@@ -357,91 +357,63 @@ and :cpp:`Box::length3d()` all return :cpp:`GpuArray`\s.
 AsyncArray
 ----------
 
-Where the :cpp:`GpuArray` is a statically-sized array designed to be passed
-by value onto the device, :cpp:`AsyncArray` is a dynamically-sized array
-container designed to work between the CPU and GPU. :cpp:`AsyncArray`
-stores a CPU pointer and a GPU pointer and coordinates the movement of an
-array of objects between the two.  It is a one-time container, designed to
-take an initial value for the objects, move it to the GPU, work in a manner that
-allows full asynchronously between the CPU and GPU, and return a final value
-back to the device.  If the data needs to be returned to the GPU again, it will
-be necessary to build a new :cpp:`AsyncArray`.
+Where the :cpp:`GpuArray` is a statically-sized array designed to be
+passed by value onto the device, :cpp:`AsyncArray` is a
+dynamically-sized array container designed to work between the CPU and
+GPU. :cpp:`AsyncArray` stores a CPU pointer and a GPU pointer and
+coordinates the movement of an array of objects between the two.  It
+can take initial values from the host and move them to the device.  It
+can copy the data from device back to host.  It can also be used as
+scratch space on device.
 
-The call to the destructor of :cpp:`AsyncArray` is added to the GPU stream as
-a callback function. This guarantees the :cpp:`AsyncArray` built in each loop
-iteration continues to exist until after all GPU kernels are completed without
-forcing the code to become serialized. The resulting :cpp:`AsyncArray` class
-is "Async-safe", meaning it can be safely used in asynchronous code regions
-that contain both CPU work and GPU launches, including :cpp:`MFIter` loops.
+The call to delete the memory is added to the GPU stream as a callback
+function in the destructor of :cpp:`AsyncArray`. This guarantees the
+memory allocated in :cpp:`AsyncArray` continues to exist after the
+:cpp:`AsyncArray` object is deleted when going out of scope until
+after all GPU kernels in the stream are completed without forcing the
+code to synchronize. The resulting :cpp:`AsyncArray` class is
+"async-safe", meaning it can be safely used in asynchronous code
+regions that contain both CPU work and GPU launches, including
+:cpp:`MFIter` loops.
 
 :cpp:`AsyncArray` is also portable. When built without ``USE_CUDA``, the
 object only stores and handles the CPU version of the data.
 
-A :cpp:`AsyncArray` is used by constructing it from a reference to a host
-object containing an initial value, retrieving the associated device pointer,
-passing the pointer into an device function and copying the final value back
-to the CPU. An example using :cpp:`AsyncArray` is given below, which finds 
-the avarage value of all the boundary cells of a :cpp:`MultiFab`: 
+An example using :cpp:`AsyncArray` is given below,
 
 .. highlight:: c++
 
 ::
 
-    // Previously defined MultiFab "multiFab".
-    // Find the average value of boundary cells.
+    Real h_s = 0.0;
+    AsyncArray<Real> aa_s(&h_s, 1);  // Build AsyncArray of size 1
+    Real* d_s = aa_s.data();         // Get associated device pointer
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Real avg_val = 0;
-        AsyncArray<Real> a_avg(&avg_val, 1);     // Build AsyncArray
-        Real* d_avg = a_avg.data(); 		      // Get associated device ptr.
+        Vector<Real> h_v = a_cpu_function();
+        AsyncArray<Real> aa_v1(h_v.data(), h_v.size());
+        Real* d_v1 = aa_v1.data();  // A device copy of the data
 
-        long total_cells = 0;
+        std::size_t n = ...;
+        AsyncArray<Real> aa_v2(n);  // Allocate temporary space on device
+        Real* d_v2 = aa_v2.data();  // A device pointer to uninitialized data
 
-        for (MFIter mfi(multiFab); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.fabbox();
-            const Box& vbx = mfi.validbox();
-            BoxList blst = amrex::boxDiff(gbx,vbx);
-            const int nboxes = blst.size();
-            if (nboxes > 0)
-            {
-                // Create AsyncArray for boxes describing boundary and
-                //    obtain associated device pointer.
-                AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
-                Box const* pboxes = async_boxes.data();
+        ... // gpu kernels using the data pointed by d_v1 and atomically
+            // updating the data pointed by d_s.
+            // d_v2 can be used as scratch space and for pass data
+            // between kernels.
 
-                long ncells = 0;
-                for (const auto& b : blst) {
-                    ncells += b.numPts();
-                }
-                total_cells += ncells;
+        // If needed, we can copy the data back to host using
+        // AsyncArray::copyToHost(host_pointer, number_of_elements);
 
-                Array4<Real const> const& arr = multiFab.array(mfi);
-                amrex::ParallelFor ( ncells,
-                [=] AMREX_GPU_DEVICE(long icell)
-                {
-                    // Use async_boxes to calc cell for this thread.
-                    const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
-                    for (int n = strt_comp; n < strt_comp+ncomp; ++n)
-                    {
-                        *d_avg += arr(cell.x,cell.y,cell.z,n);   // Add cell value to total.
-                    }
-                });
-
-            }
-        }
-        a_avg.copyToHost(&avg_val, 1);         // Return d_avg value to host in avg_val.
-
-        avg_val = avg_val / total_cells; 
+        // At the end of each loop the compiler inserts a call to the
+        // destructor of aa_v* on cpu.  Objects aa_v* are deleted, but
+        // their associated memory pointed by d_v* is not deleted
+        // immediately until the gpu kernels in this loop finish. 
     }
 
-Note that there are two :cpp:`AsyncArray`\s: one which is constructed outside
-the :cpp:`MFIter` loop and stores the sum of the cell values and one that is
-constructed inside that stores the data from the :cpp:`BoxArray` that
-defines the boundary. :cpp:`avg_val` needs to be returned after the sum of
-cell values is completed, so an explicit call to :cpp:`copyToHost` is made
-after the loop, but the :cpp:`async_boxes` is only used on the device, so no
-return call is needed.
-
+    aa_s.copyToHost(&h_s, 1); // Copy the value back to host
 
 ManagedVector
 -------------
@@ -594,8 +566,8 @@ passed by value to GPU kernels. This class is called
 
 .. _sec:gpu:classes:basefab:
 
-BaseFab, FArrayBox, IArrayBox and AsyncFab
-------------------------------------------
+BaseFab, FArrayBox, IArrayBox
+-----------------------------
 
 :cpp:`BaseFab<T>`, :cpp:`IArrayBox` and :cpp:`FArrayBox` have some GPU
 support.  They cannot be constructed in device code unless they are
@@ -610,7 +582,7 @@ CPU memory, including :cpp:`IArrayBox` and :cpp:`FArrayBox`, which are
 derived from :cpp:`BaseFab`, although the array data contained are
 allocated in managed memory.  We cannot pass a :cpp:`BaseFab` object by
 value because they do not have copy constructor.  However, we can make
-an :cpp:`Array4` using member function `BaseFab::array()`, and pass it
+an :cpp:`Array4` using member function :cpp:`BaseFab::array()`, and pass it
 by value to GPU kernels. In GPU device code, we can use :cpp:`Array4`
 or, if necessary, we can make an alias :cpp:`BaseFab` from an
 :cpp:`Array4`.  For example,
@@ -637,37 +609,35 @@ or, if necessary, we can make an alias :cpp:`BaseFab` from an
       g(fab);
     }
 
-MultiFabs and Accessing FArrayBoxes 
------------------------------------
+Elixir
+------
 
-:cpp:`MultiFabs` CANNOT be constructed or moved onto the GPU.  However,
-the underlying :cpp:`FArrayBox`\es are automatically managed during the
-:cpp:`MultiFab`\'s construction.  The associated metadata has two copies,
-one on the CPU and one managed copy designed to live on the GPU, each 
-accessed with a different :cpp:`MultiFab` member function. Users should
-always use the appropriate accessor to minimize data movement and
-optimize performance.
+We often have temporary :cpp:`FArrayBox`\ es in :cpp:`MFIter` loops.
+These objects go out of scope at the end of each iteration.  Because
+of the asynchronous nature of GPU kernel execution, their destructors
+might get called before their data are used on GPU.  :cpp:`Elixir` can
+be used to extend the life of the data.  For example,
 
-To access the CPU :cpp:`FArrayBox` reference, use :cpp:`operator[]`.
-
-To access the GPU :cpp:`FArrayBox` managed pointer, use :cpp:`fabPtr()`. 
-
-.. highlight:: c++
+.. hightlight:: c++
 
 ::
 
-    // Multifab mf( .... );
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+      const Box& bx = mfi.tilebox();
+      FArrayBox tmp_fab(bx, numcomps);
+      Elixir tmp_eli = tmp_fab.elixir();
+      Array4<Real> const& tmp_arr = tmp_fab.array();
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        FArrayBox& fab = mf[mfi];                // CPU version.
-        FArrayBox* d_fab_ptr = mf.fabPtr(mfi);   // GPU version.
+      // gpu kerenls using the temporary
     }
 
-.. ===================================================================
+Without :cpp:`Elixir`, the code above will likely cause memory errors
+because the temporary :cpp:`FArrayBox` is deleted on cpu before the
+gpu kernels use its memory.  With :cpp:`Elixir`, the ownership of the
+memory is transferred to :cpp:`Elixir` that is guaranteed to be
+"async-safe".
 
 .. _sec:gpu:launch:
-
 
 Kernel Launch
 =============
