@@ -270,9 +270,12 @@ updateNeighborsGPU ()
     
     if (ba.size() == 1 and (not this->Geom(lev).isAnyPeriodic()) ) return;
 
-    std::map<int, SendBuffer> not_ours;
+    std::map<int, Gpu::DeviceVector<char> > not_ours;
+    std::map<int, SendBuffer> send_buffer;
     std::map<int, size_t> grid_counts;
-    
+    std::map<int, size_t> num_to_add_local;
+    std::map<int, size_t> num_to_add_remote;
+
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int src_grid = mfi.index();
@@ -287,32 +290,56 @@ updateNeighborsGPU ()
                 if ( (dest_proc != ParallelDescriptor::MyProc() ) and (num_to_add > 0) )
                 {
                     grid_counts[dest_proc] += 1;
+                    num_to_add_remote[dest_proc] += num_to_add*sizeof(ParticleType) + 
+                        sizeof(size_t) + 2*sizeof(int);
+                }
+                else
+                {
+                    num_to_add_local[dst_grid] += num_to_add;
                 }
             }
         }
     }
 
+    for (auto& kv : num_to_add_local)
+    {
+        const int dst_grid = kv.first;
+        const int new_num_neighbors = kv.second;
+        const int dst_tile = 0;
+        auto dst_index = std::make_pair(dst_grid, dst_tile);
+        auto& dst_ptile = plev[dst_index];
+        dst_ptile.setNumNeighbors(new_num_neighbors);
+    }
+
+    for (auto& kv : num_to_add_remote)
+    {
+        not_ours[kv.first].resize(kv.second + sizeof(size_t));
+    }
+    
+    std::map<int, size_t> offset;
+    std::map<int, size_t> remote_offset;
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int src_grid = mfi.index();
         int src_tile = mfi.LocalTileIndex();
         AMREX_ASSERT(src_tile == 0);
         auto index = std::make_pair(src_grid, src_tile);
-
+        
         const Box& bx = mfi.tilebox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
-
+        
         auto& src_ptile = plev[index];
-
+        
         int num_codes = m_grid_map[src_grid].size();
         for (int i = 1; i < num_codes + 1; ++i)
         {
             const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
             if (num_to_add == 0) continue;
-            for (auto dst_code : m_grid_map[src_grid][i-1]) {
+            for (auto dst_code : m_grid_map[src_grid][i-1])
+            {
                 int dst_grid = dst_code.grid_id;
-                const int dst_tile = 0;                
+                const int dst_tile = 0;
                 auto pair_index = std::make_pair(dst_grid, dst_tile);
                 const int dest_proc = dmap[dst_grid];
                 if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
@@ -320,8 +347,6 @@ updateNeighborsGPU ()
                     auto& dst_ptile = plev[pair_index];
                     const int nRParticles = dst_ptile.numRealParticles();
                     const int nNParticles = dst_ptile.getNumNeighbors();
-                    const int new_num_neighbors = nNParticles + num_to_add;
-                    dst_ptile.setNumNeighbors(new_num_neighbors);
                     
                     // copy structs
                     {
@@ -329,36 +354,39 @@ updateNeighborsGPU ()
                         auto& dst = dst_ptile.GetArrayOfStructs();
                         thrust::copy(thrust::device,
                                      src.begin() + m_start[src_grid][i], src.begin() + m_stop[src_grid][i], 
-                                     dst().begin() + nRParticles + nNParticles);
+                                     dst().begin() + nRParticles + offset[dst_grid]);
 
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
                         if (this->Geom(lev).isAnyPeriodic()) {
                             thrust::transform(thrust::device, 
-                                              dst().begin() + nRParticles + nNParticles,
-                                              dst().begin() + nRParticles + nNParticles + num_to_add,
-                                              dst().begin() + nRParticles + nNParticles,
+                                              dst().begin() + nRParticles + offset[dst_grid],
+                                              dst().begin() + nRParticles + offset[dst_grid] + num_to_add,
+                                              dst().begin() + nRParticles + offset[dst_grid],
                                               functors::periodicTransformation(this->Geom(lev).data(),
                                                                                dst_code.periodic_shift));
                         }
                     }
+                    offset[dst_grid] += num_to_add;
                 }
                 else { // this is the non-local case
                     char* dst;
-                    const size_t old_size = not_ours[dest_proc].size();
+                    const size_t old_size = remote_offset[dest_proc];
                     const size_t new_size
                         = old_size + num_to_add*sizeof(ParticleType) + sizeof(size_t) + 2*sizeof(int);
                 
+                    AMREX_ASSERT(new_size <= not_ours[dest_proc].size());
+
                     if (old_size == 0)
                     {
-                        not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                        remote_offset[dest_proc] = new_size + sizeof(size_t);
                         cudaMemcpyAsync(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
                                         &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToHost);
                         dst = thrust::raw_pointer_cast(
                             not_ours[dest_proc].data() + old_size + sizeof(size_t));
                     } else
                     {
-                        not_ours[dest_proc].resize(new_size);
+                        remote_offset[dest_proc] = new_size;
                         dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
                     }
                     
@@ -398,11 +426,17 @@ updateNeighborsGPU ()
         }
     }
     
+    for (auto& kv : not_ours)
+    {
+        send_buffer[kv.first].resize(kv.second.size());
+        thrust::copy(kv.second.begin(), kv.second.end(), send_buffer[kv.first].begin());
+    }
+
     if (ParallelDescriptor::NProcs() == 1) {
-        BL_ASSERT(not_ours.empty());
+        BL_ASSERT(send_buffer.empty());
     }
     else {
-        fillNeighborsMPIGPU(not_ours);
+        fillNeighborsMPIGPU(send_buffer);
     }
 }
 
