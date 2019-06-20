@@ -44,9 +44,6 @@ detailed throughout the rest of this chapter:
   to parallelize over a valid box at a time.  This is done by using a lot
   of CUDA threads that only work on a few cells each. This work
   distribution is illustrated in :numref:`fig:gpu:threads`.
-  (Note: OpenMP is currently incompatible with AMReX builds using CUDA.
-  This feature is under development, although most applications will 
-  have no need for this feature when initially converting to GPUs.)
 
 .. |a| image:: ./GPU/gpu_2.png
        :width: 100%
@@ -73,7 +70,7 @@ detailed throughout the rest of this chapter:
 
 - AMReX utilizes CUDA managed memory to automatically handle memory 
   movement for mesh and particle data.  Simple data structures, such
-  as :cpp:`IntVect`\s can be passed by value and temporaries, such as
+  as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
   data movement for the user.  Tests have shown CUDA managed memory
   to be efficient and reliable, especially when applications remove
@@ -171,15 +168,17 @@ can run it and that will generate results like:
 ::
 
    $ ./main3d.gnu.DEBUG.CUDA.ex 
+   Initializing CUDA...
    CUDA initialized with 1 GPU
-   AMReX (18.12-95-gf265b537f479-dirty) initialized
-   Hello world from AMReX version 18.12-95-gf265b537f479-dirty
-   [The         Arena] space (kilobyte): 8192
-   [The  Device Arena] space (kilobyte): 8192
-   [The Managed Arena] space (kilobyte): 8192
-   [The  Pinned Arena] space (kilobyte): 8192
-   AMReX (18.12-95-gf265b537f479-dirty) finalized
-
+   AMReX (19.06-404-g0455b168b69c-dirty) initialized
+   Hello world from AMReX version 19.06-404-g0455b168b69c-dirty
+   Total GPU global memory (MB): 6069
+   Free  GPU global memory (MB): 5896
+   [The         Arena] space (MB): 4552
+   [The  Device Arena] space (MB): 8
+   [The Managed Arena] space (MB): 8
+   [The  Pinned Arena] space (MB): 8
+   AMReX (19.06-404-g0455b168b69c-dirty) finalized
 
 Building with CMake
 -------------------
@@ -215,10 +214,7 @@ Gpu Namespace and Macros
 
 Most GPU related classes and functions are in ``namespace Gpu``,
 which is inside ``namespace amrex``. For example, the GPU configuration
-class ``Device`` can be referenced to at ``amrex::Gpu::Device``. Other
-important objects in the Gpu namespace include objects designed to work
-with GPU memory spaces, such as ``AsyncFab`` a temporary
-:cpp:`FArrayBox` designed to work with CUDA streams. 
+class ``Device`` can be referenced to at ``amrex::Gpu::Device``.
 
 For portability, AMReX defines some macros for CUDA function qualifiers
 and they should be preferred to allow execution with ``USE_CUDA=FALSE``.
@@ -244,7 +240,9 @@ conditional programming.  For PGI and IBM compilers,
 ``-DAMREX_CUDA_FORT_DEVICE='attributes(device)'``, and
 ``-DAMREX_CUDA_FORT_HOST='attributes(host)'`` so that CUDA Fortran
 functions can be properly labelled.  When AMReX is compiled with
-``USE_ACC=TRUE``, ``AMREX_USE_ACC`` is defined.
+``USE_ACC=TRUE``, ``AMREX_USE_ACC`` is defined.  When AMReX is
+compiled with ``USE_OMP_OFFLOAD=TRUE``, ``AMREX_USE_OMP_OFFLOAD`` is
+defined.
 
 In addition to AMReX's preprocessor macros, CUDA provides the 
 ``__CUDA_ARCH__`` macro which is only defined when in device code.
@@ -359,91 +357,63 @@ and :cpp:`Box::length3d()` all return :cpp:`GpuArray`\s.
 AsyncArray
 ----------
 
-Where the :cpp:`GpuArray` is a statically-sized array designed to be passed
-by value onto the device, :cpp:`AsyncArray` is a dynamically-sized array
-container designed to work between the CPU and GPU. :cpp:`AsyncArray`
-stores a CPU pointer and a GPU pointer and coordinates the movement of an
-array of objects between the two.  It is a one-time container, designed to
-take an initial value for the objects, move it to the GPU, work in a manner that
-allows full asynchronously between the CPU and GPU, and return a final value
-back to the device.  If the data needs to be returned to the GPU again, it will
-be necessary to build a new :cpp:`AsyncArray`.
+Where the :cpp:`GpuArray` is a statically-sized array designed to be
+passed by value onto the device, :cpp:`AsyncArray` is a
+dynamically-sized array container designed to work between the CPU and
+GPU. :cpp:`AsyncArray` stores a CPU pointer and a GPU pointer and
+coordinates the movement of an array of objects between the two.  It
+can take initial values from the host and move them to the device.  It
+can copy the data from device back to host.  It can also be used as
+scratch space on device.
 
-The call to the destructor of :cpp:`AsyncArray` is added to the GPU stream as
-a callback function. This guarantees the :cpp:`AsyncArray` built in each loop
-iteration continues to exist until after all GPU kernels are completed without
-forcing the code to become serialized. The resulting :cpp:`AsyncArray` class
-is "Async-safe", meaning it can be safely used in asynchronous code regions
-that contain both CPU work and GPU launches, including :cpp:`MFIter` loops.
+The call to delete the memory is added to the GPU stream as a callback
+function in the destructor of :cpp:`AsyncArray`. This guarantees the
+memory allocated in :cpp:`AsyncArray` continues to exist after the
+:cpp:`AsyncArray` object is deleted when going out of scope until
+after all GPU kernels in the stream are completed without forcing the
+code to synchronize. The resulting :cpp:`AsyncArray` class is
+"async-safe", meaning it can be safely used in asynchronous code
+regions that contain both CPU work and GPU launches, including
+:cpp:`MFIter` loops.
 
 :cpp:`AsyncArray` is also portable. When built without ``USE_CUDA``, the
 object only stores and handles the CPU version of the data.
 
-A :cpp:`AsyncArray` is used by constructing it from a reference to a host
-object containing an initial value, retrieving the associated device pointer,
-passing the pointer into an device function and copying the final value back
-to the CPU. An example using :cpp:`AsyncArray` is given below, which finds 
-the avarage value of all the boundary cells of a :cpp:`MultiFab`: 
+An example using :cpp:`AsyncArray` is given below,
 
 .. highlight:: c++
 
 ::
 
-    // Previously defined MultiFab "multiFab".
-    // Find the average value of boundary cells.
+    Real h_s = 0.0;
+    AsyncArray<Real> aa_s(&h_s, 1);  // Build AsyncArray of size 1
+    Real* d_s = aa_s.data();         // Get associated device pointer
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Real avg_val = 0;
-        AsyncArray<Real> a_avg(&avg_val, 1);     // Build AsyncArray
-        Real* d_avg = a_avg.data(); 		      // Get associated device ptr.
+        Vector<Real> h_v = a_cpu_function();
+        AsyncArray<Real> aa_v1(h_v.data(), h_v.size());
+        Real* d_v1 = aa_v1.data();  // A device copy of the data
 
-        long total_cells = 0;
+        std::size_t n = ...;
+        AsyncArray<Real> aa_v2(n);  // Allocate temporary space on device
+        Real* d_v2 = aa_v2.data();  // A device pointer to uninitialized data
 
-        for (MFIter mfi(multiFab); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.fabbox();
-            const Box& vbx = mfi.validbox();
-            BoxList blst = amrex::boxDiff(gbx,vbx);
-            const int nboxes = blst.size();
-            if (nboxes > 0)
-            {
-                // Create AsyncArray for boxes describing boundary and
-                //    obtain associated device pointer.
-                AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
-                Box const* pboxes = async_boxes.data();
+        ... // gpu kernels using the data pointed by d_v1 and atomically
+            // updating the data pointed by d_s.
+            // d_v2 can be used as scratch space and for pass data
+            // between kernels.
 
-                long ncells = 0;
-                for (const auto& b : blst) {
-                    ncells += b.numPts();
-                }
-                total_cells += ncells;
+        // If needed, we can copy the data back to host using
+        // AsyncArray::copyToHost(host_pointer, number_of_elements);
 
-                const FArrayBox* fab = multiFab.fabPtr(mfi);
-                amrex::ParallelFor ( ncells,
-                [=] AMREX_GPU_DEVICE(long icell)
-                {
-                    // Use async_boxes to calc cell for this thread.
-                    const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
-                    for (int n = strt_comp; n < strt_comp+ncomp; ++n)
-                    {
-                        *d_avg += fab(cell.x,cell.y,cell.z,n);   // Add cell value to total.
-                    }
-                });
-
-            }
-        }
-        a_avg.copyToHost(&avg_val, 1);         // Return d_avg value to host in avg_val.
-
-        avg_val = avg_val / total_cells; 
+        // At the end of each loop the compiler inserts a call to the
+        // destructor of aa_v* on cpu.  Objects aa_v* are deleted, but
+        // their associated memory pointed by d_v* is not deleted
+        // immediately until the gpu kernels in this loop finish. 
     }
 
-Note that there are two :cpp:`AsyncArray`\s: one which is constructed outside
-the :cpp:`MFIter` loop and stores the sum of the cell values and one that is
-constructed inside that stores the data from the :cpp:`BoxArray` that
-defines the boundary. :cpp:`avg_val` needs to be returned after the sum of
-cell values is completed, so an explicit call to :cpp:`copyToHost` is made
-after the loop, but the :cpp:`async_boxes` is only used on the device, so no
-return call is needed.
-
+    aa_s.copyToHost(&h_s, 1); // Copy the value back to host
 
 ManagedVector
 -------------
@@ -463,7 +433,7 @@ Be aware: resizing of dynamically allocated memory on the GPU is unsupported.
 All resizing of the vector should be done on the CPU, in a manner that avoids
 race conditions with concurrent GPU kernels.
 
-Also note: :cpp:`Gpu::ManagedVector` is not Async-safe.  It cannot be safely
+Also note: :cpp:`Gpu::ManagedVector` is not async-safe.  It cannot be safely
 constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
@@ -493,7 +463,7 @@ that uses CUDA managed memory. This is provided by :cpp:`Gpu::ManagedDeviceVecto
 implemented portably using :cpp:`Gpu::thrust_copy`. 
 
 :cpp:`Gpu::DeviceVector` and :cpp:`Gpu::ManagedDeviceVector` are configured to 
-use the memory Arenas provided by AMReX (see :ref:`sec:gpu:memory:`). This
+use the memory Arenas provided by AMReX (see :ref:`sec:gpu:memory`). This
 means that you can create temporary versions of these containers on-the-fly
 without needing to performance expensive device memory allocate and free
 operations. 
@@ -575,127 +545,101 @@ Geometry
 
 AMReX's :cpp:`Geometry` class is not a GPU safe class.  However, we often need
 to use geometric information such as cell size and physical coordinates
-in GPU kernels.  To utilize :cpp:`Geometry` on the GPUs, the data is copied
-into a GPU safe class that can be passed by value to GPU kernels. This class 
-is called :cpp:`GeometryData`, which is created by calling :cpp:`Geometry::data()`.
-The accessor functions of :cpp:`GeometryData` are identical to :cpp:`Geometry`.
+in GPU kernels.  We can use the following member functions and pass
+the returned values to GPU kernels:
 
-.. One limitation of this strategy is that :cpp:`Geometry` cannot be changed
-   on the device. :cpp:`GeometryData` holds a disposable copy of the data that 
-   does not synchronize with :cpp:`Geometry` after use. Therefore, only change 
-   :cpp:`Geometry` on the CPU and outside of MFIter loops with GPU kernels to
-   avoid race conditions.
+.. highlight:: c++
+
+::
+
+    GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () const noexcept;
+    GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () const noexcept;
+    GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept;
+    GpuArray<Real,AMREX_SPACEDIM> CellSizeArray () const noexcept;
+    GpuArray<Real,AMREX_SPACEDIM> InvCellSizeArray () const noexcept;
+
+Alternatively, we can copy the data into a GPU safe class that can be
+passed by value to GPU kernels. This class is called
+:cpp:`GeometryData`, which is created by calling
+:cpp:`Geometry::data()`.  The accessor functions of
+:cpp:`GeometryData` are identical to :cpp:`Geometry`.
 
 .. _sec:gpu:classes:basefab:
 
+BaseFab, FArrayBox, IArrayBox
+-----------------------------
 
-BaseFab, FArrayBox, IArrayBox and AsyncFab
-------------------------------------------
-
-:cpp:`BaseFab<T>`, :cpp:`IArrayBox` and :cpp:`FArrayBox`
-have some GPU support.  They cannot be constructed in device code, but
-a pointer to them can be passed to GPU kernels from CPU code.  Many
-of their member functions can be used in device code as long as they
-have been allocated in device memory. Some of the device member
-functions include :cpp:`view`, :cpp:`dataPtr`, :cpp:`box`, 
-:cpp:`nComp`, and :cpp:`setVal`.
+:cpp:`BaseFab<T>`, :cpp:`IArrayBox` and :cpp:`FArrayBox` have some GPU
+support.  They cannot be constructed in device code unless they are
+constructed as an alias to :cpp:`Array4`.  Many of their member
+functions can be used in device code as long as they have been
+constructed in device memory. Some of the device member functions
+include :cpp:`array`, :cpp:`dataPtr`, :cpp:`box`, :cpp:`nComp`, and
+:cpp:`setVal`.
 
 All :cpp:`BaseFab<T>` objects in :cpp:`FabArray<FAB>` are allocated in
-unified memory, including :cpp:`IArrayBox` and :cpp:`FArrayBox`, which are
-derived from :cpp:`BaseFab`. A :cpp:`BaseFab<T>` object created 
-on the stack in CPU code cannot be used in GPU device code, because
-the object is in CPU memory.  However, a :cpp:`BaseFab` created with
-:cpp:`new` on the heap is GPU safe, because :cpp:`BaseFab` has its own
-overloaded :cpp:`operator new` that allocates memory from
-:cpp:`The_Arena()`, a managed memory arena.  For example,
+CPU memory, including :cpp:`IArrayBox` and :cpp:`FArrayBox`, which are
+derived from :cpp:`BaseFab`, although the array data contained are
+allocated in managed memory.  We cannot pass a :cpp:`BaseFab` object by
+value because they do not have copy constructor.  However, we can make
+an :cpp:`Array4` using member function :cpp:`BaseFab::array()`, and pass it
+by value to GPU kernels. In GPU device code, we can use :cpp:`Array4`
+or, if necessary, we can make an alias :cpp:`BaseFab` from an
+:cpp:`Array4`.  For example,
 
 .. highlight:: c++
 
 ::
 
-    // We are in CPU code
+    AMREX_GPU_HOST_DEVICE void g (FArrayBox& fab) { ... }
 
-    FArrayBox cpu_fab(box,ncomp);
-    // FArrayBox* p_cpu_fab = &(cpu_fab) cannot be used in GPU device code!
-
-    FArrayBox* p_gpu_fab = new FArrayBox(box,ncomp);
-    // FArrayBox* p_gpu_fab can be used in GPU device code.
-
-Temporary :cpp:`FArrayBox`\es are also available for GPU work through the 
-:cpp:`AsyncFab` class.  :cpp:`AsyncFab`\s are async-safe and should be used
-whenever a temporary :cpp:`FArrayBox` is needed for intermediate calculations
-on the GPU.
-
-It behaves similarly to the :ref:`sec:gpu:classes:asyncarray`.  It contains
-pointers for the CPU and GPU :cpp:`FArrayBox` and storage for the associated
-metadata to minimize data movement.  The :cpp:`AsyncFab` is async-safe and can
-be used inside of an :cpp:`MFIter` loop without reducing CPU-GPU asynchronicity.
-It is portable, reducing to a simple :cpp:`FArrayBox` pointer when ran without
-CUDA.  An example of using :cpp:`AsyncFab` is given below:
-
-.. highlight:: c++
-
-::
-
-   for (MFIter mfi(some_multifab); mfi.isValid(); ++mfi)
-   {
-      const Box& bx = mfi.validbox();
-
-      // Create temporary FAB with given box & number of components.
-      AsyncFab q_box(bx, 1);
-      FArrayBox* q_fab = q_box.fabPtr();  // Get device pointer to fab.
-
-      amrex::launch(bx,
-      {
-          Calcs q_fab 
-      });
-
-      amrex::launch(bx,
-      {
-          Uses q_fab
-      });
-
-      q_box.clear();  // Added to the stream's kernel launch stack.
-                      // So, q_box remains until completed.
-
-      amrex::launch(bx,
-      {
-          More work w/o q_fab.
-      }
-   }
-
-
-MultiFabs and Accessing FArrayBoxes 
------------------------------------
-
-:cpp:`MultiFabs` CANNOT be constructed or moved onto the GPU.  However,
-the underlying :cpp:`FArrayBox`\es are automatically managed during the
-:cpp:`MultiFab`\'s construction.  The associated metadata has two copies,
-one on the CPU and one managed copy designed to live on the GPU, each 
-accessed with a different :cpp:`MultiFab` member function. Users should
-always use the appropriate accessor to minimize data movement and
-optimize performance.
-
-To access the CPU :cpp:`FArrayBox` reference, use :cpp:`operator[]`.
-
-To access the GPU :cpp:`FArrayBox` managed pointer, use :cpp:`fabPtr()`. 
-
-.. highlight:: c++
-
-::
-
-    // Multifab mf( .... );
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    AMREX_GPU_HOST_DEVICE void f (Box const& bx, Array4<Real> const& a)
     {
-        FArrayBox& fab = mf[mfi];                // CPU version.
-        FArrayBox* d_fab_ptr = mf.fabPtr(mfi);   // GPU version.
+      const Dim3 lo = lbound(bx);
+      const Dim3 hi = ubound(bx);
+      for     (int k = lo.z; k <= hi.z; ++k) {
+        for   (int j = lo.y; j <= hi.y; ++j) {
+          for (int i = lo.x; i <= hi.x; ++i) {
+            a(i,j,k) = 3.;
+          }
+        }
+      }
+
+      FArrayBox fab(a,bx.ixType());
+      g(fab);
     }
 
-.. ===================================================================
+.. _sec:gpu:classes:elixir:
+
+Elixir
+------
+
+We often have temporary :cpp:`FArrayBox`\ es in :cpp:`MFIter` loops.
+These objects go out of scope at the end of each iteration.  Because
+of the asynchronous nature of GPU kernel execution, their destructors
+might get called before their data are used on GPU.  :cpp:`Elixir` can
+be used to extend the life of the data.  For example,
+
+.. hightlight:: c++
+
+::
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+      const Box& bx = mfi.tilebox();
+      FArrayBox tmp_fab(bx, numcomps);
+      Elixir tmp_eli = tmp_fab.elixir();
+      Array4<Real> const& tmp_arr = tmp_fab.array();
+
+      // gpu kerenls using the temporary
+    }
+
+Without :cpp:`Elixir`, the code above will likely cause memory errors
+because the temporary :cpp:`FArrayBox` is deleted on cpu before the
+gpu kernels use its memory.  With :cpp:`Elixir`, the ownership of the
+memory is transferred to :cpp:`Elixir` that is guaranteed to be
+async-safe.
 
 .. _sec:gpu:launch:
-
 
 Kernel Launch
 =============
@@ -717,16 +661,18 @@ earlier, to ensure the required data is available on the GPU when the offloaded
 function is executed.
 
 The available launch schema are presented here in three categories: launching
-nested loops over `Box`/es or 1D arrays, launching generic work and launching using
+nested loops over Boxes or 1D arrays, launching generic work and launching using
 OpenACC or  OpenMP pragmas. The latest versions of the examples used in this section
 of the documentation can be found in the AMReX source code at ``amrex/Tutorials/GPU/Launch``.
 Users should also refer to Chapter :ref:`Chap:Basics` as needed for information about basic
 AMReX classes.
 
-AMReX also recommends writing primary floating point operation kernels in C++
-using AMReX's :cpp:`Array4` object syntax.  It converts the 1D floating point data 
-array into a simple to understand 3D loop structure, similar in appearance to Fortran,
-while maintaining performance.  The details can be found in :ref:`C++ Kernel <sec:basics:cppkernel>`.
+AMReX also recommends writing primary floating point operation kernels
+in C++ using AMReX's :cpp:`Array4` object syntax.  It provides a
+multi-dimensional array syntax, similar in appearance to Fortran,
+while maintaining performance.  The details can be found in
+:ref:`Array4 <sec:basics:array4>` and :ref:`C++ Kernel
+<sec:basics:cppkernel>`.
 
 .. Overview table???
 
@@ -741,21 +687,19 @@ launch for work over a box and a 1D launch for work over a number of arbitrary e
 Each of these launches provides a performance portable set of nested loops for
 both CPU and GPU applications.
 
-These loop launches should only be used when each iteration of the nested loop is
-independent of other iterations.  When running on GPUs, loops with a dependent
-ordering would run substanitally slower, due to the need for appropriate atomic
-operations across the GPU threads.  Therefore, these launches have been marked
-with ``AMREX_PRAGMA_SIMD`` when using the CPU and they should only be used for
-``simd``-capable nested loops.  Calculations that cannot vectorize should be rewritten
-whereever possible to allow efficient utilization of GPU hardware.
+These loop launches should only be used when each iteration of the
+nested loop is independent of other iterations.  Therefore, these
+launches have been marked with ``AMREX_PRAGMA_SIMD`` when using the
+CPU and they should only be used for ``simd``-capable nested loops.
+Calculations that cannot vectorize should be rewritten wherever
+possible to allow efficient utilization of GPU hardware.
 
 However, it is important for applications to use these launches whenever appropriate
-because they contain numerous optimizations for both CPU and GPU variations of nested
+because they contain optimizations for both CPU and GPU variations of nested
 loops.  For example, on the GPU the spatial coordinate loops are reduced to a single
 loop and the component loop is moved to these inner most loop.  AMReX's launch functions
 apply the appropriate optimizations for ``USE_CUDA=TRUE`` and ``USE_CUDA=FALSE`` in a
-compact and readable format.  Failing to use the nested loop launches where appropriate
-eliminate these optimizations and reduce performance on CPU, GPU or both systems. 
+compact and readable format.
 
 AMReX also provides a variation of the launch function that is implemented as a
 C++ macro.  It behaves identically to the function, but hides the lambda function 
@@ -765,17 +709,17 @@ to use.  For simplicity, the function variation will be discussed throughout the
 this documenation, however all code snippets will also include the macro variation
 for reference.
 
-A 4D example of the launch function, ;cpp:`amrex::ParallelFor`, is given here: 
+A 4D example of the launch function, :cpp:`amrex::ParallelFor`, is given here: 
 
 .. highlight:: c++
 
 ::
 
+    int ncomp = mf.nComp();
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         Array4<Real> const& fab = mf.array(mfi);
-        int ncomp = mf.nComp();
 
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
@@ -828,14 +772,15 @@ that is implemented when ``USE_CUDA=FALSE``. A simplified version is reproduced 
 of the quadruply-nested :cpp:`for` loop, and a lambda function to run on each iteration of the
 nested loop.  The lambda function takes the loop iterators as parameters, allowing the current 
 cell to be indexed in the lambda.  In addition to the loop indices, the lambda function captures
-any necessary objects defined in the local scope.  CUDA lambda functions can only capture
-by value, as the information must be able to be copied onto the device.  Therefore, any local
-objects used in the lambda function must be non-reference objects, such as pointers.
+any necessary objects defined in the local scope.
 
-In this example, the lambda function captures a :cpp:`Array4` object, ``fab``, that defines how
-to access the :cpp:`FArrayBox`.  The macro uses ``fab`` to increment the value of each cell
-within the :cpp:`Box bx`.  If ``USE_CUDA=TRUE``, this incrementation is performed on the GPU,
-with GPU optimized loops.
+CUDA lambda functions can only capture by value, as the information
+must be able to be copied onto the device.  In this example, the
+lambda function captures a :cpp:`Array4` object, ``fab``, that defines
+how to access the :cpp:`FArrayBox`.  The macro uses ``fab`` to
+increment the value of each cell within the :cpp:`Box bx`.  If
+``USE_CUDA=TRUE``, this incrementation is performed on the GPU, with
+GPU optimized loops.
 
 This 4D launch can also be used to work over any sequential set of components, by passing the
 number of consecutive components and adding the iterator to the starting component: 
@@ -867,9 +812,6 @@ shown here:
         */
     }
 
-The 3D loop launch can be used on a single component by calling the ``fab`` with a fixed 
-component index: :cpp:`fab(i,j,k,0)`.
-
 Finally, a 1D version is available for looping over a number of elements, such as particles.
 An example of a 1D function launch is given here:
 
@@ -881,7 +823,7 @@ An example of a 1D function launch is given here:
     {
         FArrayBox& fab = mf[mfi];
         Real* AMREX_RESTRICT p = fab.dataPtr();
-        const long nitems = fab.box().numPts() * mf.nComp();
+        const long nitems = fab.box().numPts() * fab.nComp();
 
         amrex::ParallelFor(nitems,
         [=] AMREX_GPU_DEVICE (long idx)
@@ -911,15 +853,14 @@ Launching general kernels
 -------------------------
 
 To launch more general work on the GPU, AMReX provides a standard launch function: 
-:cpp:`amrex::launch`.  Instead of creating an optimized nested loops, this function
+:cpp:`amrex::launch`.  Instead of creating nested loops, this function
 prepares the device launch based on a :cpp:`Box`, launches with an appropriate sized
 GPU kernel and constructs a thread :cpp:`Box` that defines the work for each thread.
 On the CPU, the thread :cpp:`Box` is set equal to the total launch :cpp:`Box`, so
-tiling works as expected.  On the GPU, the thread :cpp:`Box` is a very small number
-of cells (~1 to 5) to allow all GPU threads to be utilized effectively. 
+tiling works as expected.  On the GPU, the thread :cpp:`Box` usually
+contains a single cell to allow all GPU threads to be utilized effectively. 
 
-An example of a generic function launch, including both a C++ and Fortran function
-launch, is shown here: 
+An example of a generic function launch is shown here: 
 
 .. highlight:: c++
 
@@ -928,53 +869,33 @@ launch, is shown here:
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox* fab = mf.fabPtr(mfi);
+        Array4<Real> const& arr = mf.array(mfi);
 
         amrex::launch(bx,
         [=] AMREX_GPU_DEVICE (Box const& tbx)
         {
-            plusone_cudacpp(tbx, *fab);
-            plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
-                             BL_TO_FORTRAN_ANYD(*fab));
+            pluseone_array4(tbx, arr);
+            FArrayBox fab(arr, tbx.ixType());
+            plusone_fab(tbx, fab); // this version takes FArrayBox
         });
 
         /* MACRO VARIATION
         /
         /   AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
         /   {
-        /       plusone_cudacpp(tbx, *fab);
-        /       plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
-        /                        BL_TO_FORTRAN_ANYD(*fab));
+        /       plusone_array4(tbx, arr);
+        /       plusone_fab(tbx, FArrayBox(arr,tbx.ixType()));
         /   });
+        */
     }
 
-:cpp:`TilingIfNotGPU()` returns ``false`` in the GPU case to turn off
-tiling and maximize the amount of work given to the GPU in each launch,
-which substantially improves performance.  When tiling is off,
-:cpp:`tilebox()` returns the :cpp:`validbox()` of the :cpp:`FArrayBox`
-for that iteration.  The :cpp:`MultiFab::fabPtr` returns a CUDA managed
-pointer to the current :cpp:`FArrayBox`, which is captured by the lambda
-function.
-
-:cpp:`amrex::launch` takes two arguments: a :cpp:`Box` denoting the
-region to work over and the lambda function defining the work for each 
-thread.  The lambda function is passed the thread :cpp:`Box`, which is 
-calculated in the launch function and passed into the lambda. The user can
-select the name of the thread :cpp:`Box`.  In this example, ``tbx`` was used.
-Finally, the lambda also captures any local parameters needed to perform the
-designated work.   CUDA lambda functions can only capture by value, as the
-information must be able to be copied onto the device.  Therefore, any local
-objects used in the lambda function must be non-reference objects, such as pointers.
-
-In this example, both a C++ and a Fortran function are called.  These functions are
-labeled device functions using ``AMREX_GPU_DEVICE`` and ``AMREX_CUDA_FORT_DEVICE``,
-respectively, but are otherwise identical to what would be ran on CPUs.  In this
-example, each cell is incremented by two, first from a C++ function and then from a
-Fortran function.  There is no guarantee the C++ function completes on all cells of
-a given :cpp:`FArrayBox` before the Fortran function is implemented, but because all
-of the threads work on independent cells, there are no race conditions and the
-calculation works as expected.
-
+It also shows how to make a :cpp:`FArrayBox` from :cpp:`Array4` when
+needed.  Note that :cpp:`FarrayBox`\ es cannot be passed to GPU
+kernels directly.  :cpp:`TilingIfNotGPU()` returns ``false`` in the
+GPU case to turn off tiling and maximize the amount of work given to
+the GPU in each launch, which substantially improves performance.
+When tiling is off, :cpp:`tilebox()` returns the :cpp:`validbox()` of
+the :cpp:`FArrayBox` for that iteration.
 
 Offloading work using OpenACC or OpenMP pragmas
 -----------------------------------------------
@@ -996,13 +917,8 @@ a Fortran function is given here:
                     BL_TO_FORTRAN_ANYD(fab));
     }
 
-The :cpp:`MultiFab::operator[]` is used to get a reference to
-:cpp:`FArrayBox` rather than using :cpp:`MultiFab::fabPtr` to get
-a pointer, as suggested for CUDA kernels.  Using the reference
-is optimal when passing pointers to kernels is not required,
-which includes CPU code sections and pragma based GPU implementations.
-
-The function ``plusone_acc`` is a CPU host function.  The reference
+The function ``plusone_acc`` is a CPU host function.  The
+:cpp:`FArrayBox` reference
 from :cpp:`operator[]` is a reference to a :cpp:`FArrayBox` in host
 memory with data that has been placed in managed CUDA memory. 
 ``BL_TO_FORTRAN_BOX`` and ``BL_TO_FORTRAN_ANYD`` behave identically
@@ -1037,7 +953,10 @@ The OpenMP implementation of this loop is similar, only requiring
 changing the pragmas utilized to obtain the proper offloading. The
 OpenMP labelled version of this loop is:
 
+.. highlight:: fortran
+
 ::
+
     !dat = pointer to fab's managed data
 
     !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(dat)
@@ -1068,18 +987,14 @@ the loop is executed. Any CUDA kernel launches made outside of an
 :cpp:`MFIter` loop must ensure appropriate device synchronization
 occurs. This can be done by calling :cpp:`Gpu::synchronize()`.
 
-CUDA supports multiple streams and kernels. Kernels launched in the 
+CUDA supports multiple streams and kernels. Kernels launched in the
 same stream are executed sequentially, but different streams of kernel
-launches may be run in parallel.  For each iteration of :cpp:`MFIter`, 
-AMReX uses a different CUDA stream (up to 16 streams in total).  
-This allows each iteration of an :cpp:`MFIter` loop to run indepenently,
+launches may be run in parallel.  For each iteration of :cpp:`MFIter`,
+AMReX uses a different CUDA stream (up to 16 streams in total).  This
+allows each iteration of an :cpp:`MFIter` loop to run indepenently,
 but in the expected sequence, and maximize the use of GPU parallelism.
-
-However, AMReX uses the default CUDA stream outside of :cpp:`MFIter` loops. The
-default stream implements implicit synchronization: it behaves as though a device
-synchronization was called before and after each launch.  So, any launches
-placed outside of an :cpp:`MFIter` loop will be fully synchronous across
-both the CPU and the GPU.
+However, AMReX uses the default CUDA stream outside of :cpp:`MFIter`
+loops.
 
 Launching kernels with AMReX's launch macros or functions implement
 a C++ lambda function. Lambdas functions used with CUDA have some 
@@ -1112,7 +1027,7 @@ not work as intended.  For example,
     };
 
 The function ``f`` in the code above will not work unless the :cpp:`MyClass`
-object is in unified memory.  If it is undesirable to put the class into
+object is in unified memory.  If it is undesirable to put the object into
 unified memory, a local copy of the information can be created for the
 lambda to capture. For example:
 
@@ -1145,8 +1060,10 @@ as:
     AMREX_PARALLEL_FOR_3D (bx, tbx,
     {
         Real a, b;   <---- Error. Macro reads "{ Real a" as a parameter
-                                                 and "b; }" as another.
-        Real (a, b);    <----  Correct. Comma not interpreted by macro.
+                                                 and "b; }" as
+                                                 another.
+        Real a;      <---- OK
+        Real b;      
     });
 
 Users that choose to implement the macro launches should be aware of the limitations
@@ -1189,11 +1106,15 @@ of common AMReX patterns, such as the one below:
 ::
 
    // Given MultiFab uin and uout
-   FArrayBox q;
-   for (MFIter mfi(uin); mfi.isValid(); ++mfi)
+   #ifdef _OPENMP
+   #pragma omp parallel
+   #endif
    {
-       const Box& vbx = mfi.validbox();
-       const Box& gbx = amrex::grow(vbx,1);
+     FArrayBox q;
+     for (MFIter mfi(uin,true); mfi.isValid(); ++mfi)
+     {
+       const Box& tbx = mfi.tilebox();
+       const Box& gbx = amrex::grow(tbx,1);
        q.resize(gbx);
 
        // Do some work with uin[mfi] as input and q as output.
@@ -1201,76 +1122,66 @@ of common AMReX patterns, such as the one below:
        f1(gbx, q, uin[mfi]);
 
        // Then do more work with q as input and uout[mfi] as output.
-       // The output region is vbx.
-       f2(vbx, uout[mfi], q);
+       // The output region is tbx.
+       f2(tbx, uout[mfi], q);
+     }
    }
 
 There are several issues in migrating this code to GPUs that need to
 be addressed.  First, functions ``f1`` and ``f2`` have different
-work regions (``vbx`` and ``gbx``, respectively) and there are data
+work regions (``tbx`` and ``gbx``, respectively) and there are data
 dependencies between the two (``q``). This makes it difficult to put
 them into a single GPU kernel, so two separate kernels will be
 launched, one for each function.
 
-As we have discussed in Section :ref:`sec:gpu:classes:basefab`, 
-:cpp:`FArrayBox`\ es in the two :cpp:`MultiFab`\ s, :cpp:`uin`
-and :cpp:`uout`, are available on GPUs through unified memory.
-But :cpp:`FArrayBox q` is built locally, so it is only available in host memory.
-Creating ``q`` as a managed object using the overloaded :cpp:`new` operator:
+As we have discussed, AMReX uses multiple CUDA streams for launching
+kernels.  Because ``q`` is used inside :cpp:`MFIter` loops, multiple
+GPU kernels on different streams are accessing its data.  This creates
+a race condition.  One way to fix this is to move ``FArrayBox q``
+inside the loop to make it local to each loop and use :cpp:`Elixir` to
+make it async-safe (see Section :ref:`sec:gpu:classes:elixir`).  This
+strategy works well for GPU.  However it is not optimal for OpenMP CPU
+threads when CUDA is not used, because of the memory allocation inside
+OpenMP parallel region.  It turns out it is actually unnecessary to
+make ``FArrayBox q`` local to each iteration when :cpp:`Elixir` is
+used to extend the life of its floating point data.  The code below
+shows an example of how to rewrite the example in a performance
+portable way.
 
 .. highlight:: c++
 
 ::
 
-    FArrayBox* q = new FArrayBox;
-
-does not solve the problem completely because GPU kernel calls are
-asynchronous from the CPU's point of view.  This creates a race
-condition: GPU kernels in different iterations of :cpp:`MFIter`
-will compete for access to ``q``.  One possible failure is a 
-segfault when :cpp:`resize` changes the size of the ``q`` object
-when the previous iteration of the loop is still using an old size.
-
-Moving the line into the body of :cpp:`MFIter` loop will make ``q`` 
-a local variable to each iteration, but it has a new issue.  When 
-is ``q`` deleted?  To the CPU, the resource of ``q`` 
-should be freed at the end of the scope, otherwise there will be 
-a memory leak.  But at the end of the CPU scope, which is the end
-of each iteration of the :cpp:`MFIter` loop, GPU kernels will still
-be performing work that needs it.
-
-One way to fix this is put the temporary :cpp:`FArrayBox` objects in a
-:cpp:`MultiFab` defined outside the loop.  This creates a separate
-:cpp:`FArrayBox` for each loop iteration, eliminating the race
-condition.  Another way is to use :cpp:`AsyncFab` designed for 
-this kind of situation.  The code below shows how :cpp:`AsyncFab`
-is used and how this MFIter loop can be rewritten for GPUs. 
-
-.. highlight:: c++
-
-::
-
-   for (MFIter mfi(uin); mfi.isValid(); ++mfi)
+   // Given MultiFab uin and uout
+   #ifdef _OPENMP
+   #pragma omp parallel if (Gpu::notInLaunchRegion())
+   #endif
    {
-       const Box& vbx = mfi.validbox();              // f2 work domain
-       const Box& gbx = amrex::grow(vbx,1);          // f1 work domain
-       AsyncFab q(gbx);                              // Local, GPU managed FArrayBox
-       FArrayBox const* uinfab  = uin.fabPtr();      // Managed GPU capturable
-       FArrayBox      * uoutfab = uout.fabPtr();     //   pointers to MultiFab's FABs.
+     FArrayBox q;
+     for (MFIter mfi(uin,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+     {
+       const Box& tbx = mfi.tilebox();
+       const Box& gbx = amrex::grow(tbx,1);
+       q.resize(gbx);
+       Elixir eli = q.elixir();
+       Array4<Real> const& qarr = q.array();
 
-       amrex::launch(gbx,                            // f1 GPU launch
-       [=] AMREX_GPU_DEVICE (Box const& tbx) 
-       {
-           f1(tbx, q.fab(), *uinfab);
-       };
+       Array4<Real const> const& uinarr = uin.array(mfi);
+       Array4<Real> const& uoutarr = uout.array(mfi);
 
-       amrex::launch(vbx,                            // f2 GPU launch
-       [=] AMREX_GPU_DEVICE (Box const& tbx)
+       amrex::launch(gbx,
+       [=] AMREX_GPU_DEVICE (Box const& b)
        {
-           f2(tbx, *uoutfab, q.fab());
+         f1(b, qarr, uinarr);
        });
-   }                                                 // Implicit GPU barrier after
-                                                     //   all iters are launched.
+
+       amrex::launch(tbx,
+       [=] AMREX_GPU_DEVICE (Box const& b)
+       {
+         f2(b, uoutarr, qarr);
+       });
+     }
+   }
 
 .. ===================================================================
 
@@ -1455,22 +1366,12 @@ example:
 
 ::
 
-    BL_PROFILE_VAR("MFIter: Init", mfinit);     // Profiling start
-    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    BL_PROFILE_VAR("A_NAME", blp);     // Profiling start
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        const Box& vbx = mfi.validbox();
-        const GeometryData& geomdata = geom.data();
-        FArrayBox* phiNew = phi_new.fabPtr(mfi);
-
-        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
-        {
-            init_phi(BL_TO_FORTRAN_BOX(tbx),
-                     BL_TO_FORTRAN_ANYD(*phiNew),
-                     geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
-        });
-
+        // gpu works
     }
-    BL_PROFILE_STOP(mfinit);                    // Profiling stop
+    BL_PROFILE_STOP(blp);              // Profiling stop
 
 For now, this is the best way to profile GPU codes using ``TinyProfiler``. 
 If you require further profiling detail, use ``nvprof``.
@@ -1484,21 +1385,14 @@ Performance Tips
 Here are some helpful performance tips to keep in mind when working with
 AMReX for GPUs:
 
-* It is important to use :cpp:`fabPtr` and :cpp:`operator[]` in the 
-  appropriate places to minimize unnecessary data movement.
-  If a :cpp:`FArrayBox` functions are called from a :cpp:`FArrayBox*`
-  created by on the device, the associated meta-data will be transferred
-  back to the CPU, causing substantial slow-downs. 
-
 * To obtain the best performance when using CUDA kernel launches, all
   device functions called within the launch region should be inlined.
   Inlined functions use substantially fewer registers, freeing up GPU
-  resources to perform other tasks. This increases parallel performance
-  and greatly reduces runtime.
-
-  Functions are written inline by including their declarations in the
-  ``.H`` file and using the ``AMREX_INLINE`` AMReX macro.  Examples can
-  be found in ``Tutorials\GPU\Launch``. For example: 
+  resources to perform other tasks. This increases parallel
+  performance and greatly reduces runtime.  Functions are written
+  inline by putting their definitions in the ``.H`` file and using
+  the ``AMREX_INLINE`` AMReX macro.  Examples can be found in
+  ``Tutorials/GPU/Launch``. For example:
 
 .. highlight:: cpp
 
@@ -1508,19 +1402,7 @@ AMReX for GPUs:
     AMREX_INLINE
     void plusone_cudacpp (amrex::Box const& bx, amrex::FArrayBox& fab)
     {
-        const auto len = amrex::length(bx);  // length of box
-        const auto lo  = amrex::lbound(bx);  // lower bound of box
-        const auto data = fab.view(lo);  // a view starting from lo
-
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                // We know this is safe for simd on cpu.  So let's give compiler some help.
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    data(i,j,k) += 1.0;
-                }
-            }
-        }
+        ...
     }
 
 .. ===================================================================
@@ -1550,23 +1432,30 @@ Basic Gpu Debugging
 ===================
 
 - Turn off GPU offloading for some part of the code with
-.. code-block:: c++
+
+.. highlight:: cpp
+
+::
 
 		  Gpu::setLaunchRegion(0);
 		  ... ;
 		  Gpu::setLaunchRegion(1);
 
+Note that functions, ``amrex::launch`` and ``amrex::ParallelFor``, do
+not respect the launch region flag.  Only the macros (e.g.,
+``AMREX_LAUNCH_HOST_DEVICE_LAMBDA`` and ``AMREX_HOST_DEVICE_FOR_*D``) do.
+
 Cuda-specific tests
 -------------------
 
-- To test if your kernels have launched run
-.. code-block:: sh
+- To test if your kernels have launched, run
+
+::
 
 		nvprof ./main3d.xxx
 
-
 - Run under ``nvprof -o profile%p.nvvp ./main3d.xxxx`` for
-  a small problem and examine CPU page faults using nvvp
+  a small problem and examine page faults using nvvp
 		  
 - Run under ``cuda-memcheck``
 
@@ -1588,9 +1477,7 @@ limitations:
 - OpenMP is currently not compatible with building AMReX with CUDA. 
   ``USE_CUDA=TRUE`` and ``USE_OMP=TRUE`` will fail to compile.
 
-- Many multi-level functions in AMReX have not been ported to GPUs.
-
-- Linear solvers have not been ported to GPUs.
+- Non-cell-centered Linear solvers have not been fully ported to GPUs.
 
 - Embedded boundary capability has not been ported to GPUs.
 
