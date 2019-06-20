@@ -41,10 +41,6 @@ warpx.B_external = 0.0  0.00078110417851950768  0.0
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # CFL
 warpx.cfl = 1.0

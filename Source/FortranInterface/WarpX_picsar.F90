@@ -117,7 +117,7 @@ contains
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
     pxr_l_nodal = l_nodal .eq. 1
-    
+
     exg_nguards = ixyzmin - exg_lo
     eyg_nguards = ixyzmin - eyg_lo
     ezg_nguards = ixyzmin - ezg_lo
@@ -218,6 +218,11 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
       CALL depose_rho_vecHVv2_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
                nxguard,nyguard,nzguard,lvect)
+
+    ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
+      CALL depose_rho_vecHVv2_2_2_2(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                 nxguard,nyguard,nzguard,lvect)
+
     ELSE
       CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
                   nxguard,nyguard,nzguard,nox,noy,noz, &
@@ -268,7 +273,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 #ifdef WARPX_RZ
     integer(c_long) :: type_rz_depose = 1
 #endif
-    
+
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: rho_nvalid(AMREX_SPACEDIM), rho_nguards(AMREX_SPACEDIM)
     rho_nvalid = rho_ntot - 2*rho_ng
@@ -310,14 +315,14 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   subroutine warpx_current_deposition( &
     jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot, &
     np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin,dt,dx,dy,dz,nox,noy,noz,&
-    lvect,current_depo_algo) &
+    l_nodal,lvect,current_depo_algo) &
     bind(C, name="warpx_current_deposition")
 
     integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
     integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
     integer(c_long), intent(IN)                                  :: np
     integer(c_long), intent(IN)                                  :: nox,noy,noz
-
+    integer(c_int), intent(in)                                   :: l_nodal
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
     real(amrex_real), intent(IN)                                     :: q
     real(amrex_real), intent(IN)                                     :: dx,dy,dz
@@ -328,6 +333,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN),  dimension(np)                     :: gaminv
     integer(c_long), intent(IN)                                   :: lvect
     integer(c_long), intent(IN)                                   :: current_depo_algo
+    logical(pxr_logical)                                          :: pxr_l_nodal
 
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
@@ -338,6 +344,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     jx_nguards = jx_ng
     jy_nguards = jy_ng
     jz_nguards = jz_ng
+    pxr_l_nodal = l_nodal .eq. 1
 
 ! Dimension 3
 #if (AMREX_SPACEDIM==3)
@@ -347,7 +354,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         jz,jz_nguards,jz_nvalid,            &
         np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
         xmin,ymin,zmin,dt,dx,dy,dz,         &
-        nox,noy,noz,current_depo_algo)
+        nox,noy,noz,pxr_l_nodal,current_depo_algo)
 ! Dimension 2
 #elif (AMREX_SPACEDIM==2)
         CALL WRPX_PXR_CURRENT_DEPOSITION(   &
@@ -355,8 +362,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         jy,jy_nguards,jy_nvalid,            &
         jz,jz_nguards,jz_nvalid,            &
         np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
-        xmin,zmin,dt,dx,dz,nox,noz,lvect,   &
-        current_depo_algo)
+        xmin,zmin,dt,dx,dz,nox,noz,pxr_l_nodal, &
+        lvect,current_depo_algo)
 #endif
 
   end subroutine warpx_current_deposition
@@ -387,7 +394,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
-#ifdef WARPX_RZ    
+#ifdef WARPX_RZ
     integer(c_long) :: type_rz_depose = 1
 #endif
     ! Compute the number of valid cells and guard cells

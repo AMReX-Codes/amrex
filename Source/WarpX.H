@@ -23,6 +23,7 @@
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
 #include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>
@@ -146,7 +147,9 @@ public:
 
     static amrex::IntVect filter_npass_each_dir;
     BilinearFilter bilinear_filter;
-
+    amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
+    amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
+    
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;

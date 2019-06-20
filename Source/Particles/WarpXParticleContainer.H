@@ -225,9 +225,9 @@ public:
                          amrex::Real x, amrex::Real y, amrex::Real z,
                          std::array<amrex::Real,PIdx::nattribs>& attribs);
 
-    void ReadHeader (std::istream& is);
+    virtual void ReadHeader (std::istream& is);
 
-    void WriteHeader (std::ostream& os) const;
+    virtual void WriteHeader (std::ostream& os) const;
 
     virtual void ConvertUnits (ConvertDirection convert_dir){};
 
@@ -255,6 +255,8 @@ public:
         AddIntComp(comm);
     }
 
+    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }
+    
 protected:
 
     std::map<std::string, int> particle_comps;

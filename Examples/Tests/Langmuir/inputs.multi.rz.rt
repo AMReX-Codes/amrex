@@ -25,10 +25,7 @@ warpx.serialize_ics = 1
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 1
-algo.particle_pusher = 0
+algo.field_gathering = standard
 
 # Interpolation
 interpolation.nox = 1

@@ -5,6 +5,53 @@
 using namespace amrex;
 
 void
+RigidInjectedParticleContainer::ReadHeader (std::istream& is)
+{
+    is >> charge >> mass;
+    WarpX::GotoNextLine(is);
+
+    int nlevs;
+    is >> nlevs;
+    WarpX::GotoNextLine(is);
+
+    AMREX_ASSERT(zinject_plane_levels.size() == 0);
+    AMREX_ASSERT(done_injecting.size() == 0);
+
+    for (int i = 0; i < nlevs; ++i)
+    {
+        int zinject_plane_tmp;
+        is >> zinject_plane_tmp;
+        zinject_plane_levels.push_back(zinject_plane_tmp);
+        WarpX::GotoNextLine(is);        
+    } 
+
+    for (int i = 0; i < nlevs; ++i)
+    {
+        int done_injecting_tmp;
+        is >> done_injecting_tmp;
+        done_injecting.push_back(done_injecting_tmp);
+        WarpX::GotoNextLine(is);
+    }     
+}
+
+void
+RigidInjectedParticleContainer::WriteHeader (std::ostream& os) const
+{
+    // no need to write species_id
+    os << charge << " " << mass << "\n";
+    int nlevs = zinject_plane_levels.size();
+    os << nlevs << "\n";
+    for (int i = 0; i < nlevs; ++i)
+    {
+        os << zinject_plane_levels[i] << "\n";
+    }
+    for (int i = 0; i < nlevs; ++i)
+    {
+        os << done_injecting[i] << "\n";
+    }
+}
+
+void
 WarpXParticleContainer::ReadHeader (std::istream& is)
 {
     is >> charge >> mass;
@@ -27,15 +74,45 @@ MultiParticleContainer::Checkpoint (const std::string& dir) const
 }
 
 void
-MultiParticleContainer::WritePlotFile (const std::string& dir,
-                                       const Vector<std::string>& real_names) const
+MultiParticleContainer::WritePlotFile (const std::string& dir) const
 {
     Vector<std::string> int_names;    
     Vector<int> int_flags;
-    
+
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-        auto& pc = allcontainers[i];
+        auto& pc = allcontainers[i];                
         if (pc->plot_species) {
+
+            Vector<std::string> real_names;
+            real_names.push_back("weight");
+
+            real_names.push_back("momentum_x");
+            real_names.push_back("momentum_y");
+            real_names.push_back("momentum_z");
+            
+            real_names.push_back("Ex");
+            real_names.push_back("Ey");
+            real_names.push_back("Ez");
+            
+            real_names.push_back("Bx");
+            real_names.push_back("By");
+            real_names.push_back("Bz");
+            
+#ifdef WARPX_RZ
+            real_names.push_back("theta");
+#endif
+            
+            if (WarpX::do_boosted_frame_diagnostic && pc->DoBoostedFrameDiags())
+            {
+                real_names.push_back("xold");
+                real_names.push_back("yold");
+                real_names.push_back("zold");
+                
+                real_names.push_back("uxold");
+                real_names.push_back("uyold");
+                real_names.push_back("uzold");
+            }
+                        
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
             // real_names contains a list of all particle attributes.
