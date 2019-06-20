@@ -235,7 +235,7 @@ void main_main ()
     }
 #endif
 
-#ifdef AMREX_OMP_OFFLOAD
+#ifdef AMREX_USE_OMP_OFFLOAD
     // (11) launch OpenOMP kernel to add 1 if supported
     {
         BL_PROFILE("11-omp");

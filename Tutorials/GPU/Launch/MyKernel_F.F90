@@ -26,7 +26,7 @@ contains
  end subroutine plusone_acc
 #endif
  
-#ifdef AMREX_OMP_OFFLOAD
+#ifdef AMREX_USE_OMP_OFFLOAD
   subroutine plusone_omp (lo, hi, dat, dlo, dhi) &
        bind(c,name='plusone_omp')
     integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)

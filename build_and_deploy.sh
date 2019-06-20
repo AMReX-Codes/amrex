@@ -33,7 +33,7 @@ rm -rf out/docs_html/**/* || exit 0
 rm -rf out/tutorials_html/**/* || exit 0
 rm -rf out/docs_xml/**/* || exit 0
 
-# build the Doxygen documentation
+echo "Build the Doxygen documentation"
 cd Docs/Doxygen
 doxygen doxygen.conf &> doxygen.out
 cd ../..
@@ -54,14 +54,15 @@ cd Docs/sphinx_documentation
 #breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
 #python make_api.py
 
-# now do sphinx
+echo "Build the Sphinx documentation for Amrex."
 make SPHINX_BUILD="python -msphinx" latexpdf
 mv build/latex/amrex.pdf source/ 
 make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
 
 cd ../sphinx_tutorials
+echo "Build the Sphinx documentation for the Amrex tutorials."
 make SPHINX_BUILD="python -msphinx" latexpdf &> make_tutorials_latex.out
-mv build/latex/amrex-tutorials.pdf source/
+mv build/latex/amrex.pdf source/
 make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 
