@@ -311,7 +311,7 @@ main (int   argc,
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 
-                std::cout << derives[iComp] << " : " << norms[iComp] << " ";
+                std::cout << derives[iComp] << " : " << norms[iComp] << " \n";
             }
             std::cout << std::endl;
         }
