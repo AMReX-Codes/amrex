@@ -381,7 +381,7 @@ updateNeighborsGPU ()
                     {
                         remote_offset[dest_proc] = new_size + sizeof(size_t);
                         cudaMemcpyAsync(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
-                                        &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToHost);
+                                        &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
                         dst = thrust::raw_pointer_cast(
                             not_ours[dest_proc].data() + old_size + sizeof(size_t));
                     } else
@@ -391,15 +391,15 @@ updateNeighborsGPU ()
                     }
                     
                     cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                    &num_to_add, sizeof(size_t), cudaMemcpyHostToHost);
+                                    &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
                     dst += sizeof(size_t);
                     
                     cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &dst_grid, sizeof(int), 
-                                    cudaMemcpyHostToHost);
+                                    cudaMemcpyHostToDevice);
                     dst += sizeof(int);
                     
                     cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                    &dest_proc, sizeof(int), cudaMemcpyHostToHost);
+                                    &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
                     dst += sizeof(int);
                     
                     // pack structs
@@ -407,7 +407,7 @@ updateNeighborsGPU ()
                         auto& aos = src_ptile.GetArrayOfStructs();
                         cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
                                         thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
-                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
+                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
 
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
