@@ -256,10 +256,6 @@ print_option( ENABLE_CUDA )
 option( ENABLE_ACC  "Enable GPU support via OpenACC" OFF )
 print_option( ENABLE_ACC )
 
-# This is relevant for CUDA only -- related define is ignored if
-# used to build with ENABLE_CUDA=off  
-option(FAB_IS_PINNED "Allocate BaseFab in pinned memory" OFF)
-
 # GNU shared options
 if (ENABLE_CUDA OR ENABLE_ACC)
    set(GPUS_PER_SOCKET "IGNORE" CACHE STRING

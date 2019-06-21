@@ -1355,7 +1355,7 @@ VisMF::readFAB (int                  idx,
         fab_box.grow(hdr.m_ngrow);
     }
 
-    FArrayBox *fab = ::new FArrayBox(fab_box, whichComp == -1 ? hdr.m_ncomp : 1);
+    FArrayBox *fab = new FArrayBox(fab_box, whichComp == -1 ? hdr.m_ncomp : 1);
 
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;

@@ -40,7 +40,7 @@ MultiCutFab::remove ()
         {
             CutFab* p = &(m_data[mfi]);
             delete p;
-            m_data.setFab(mfi, ::new CutFab(), false);
+            m_data.setFab(mfi, new CutFab(), false);
         }
     }
 }
@@ -57,20 +57,6 @@ MultiCutFab::operator[] (const MFIter& mfi) noexcept
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
-}
-
-CutFab const*
-MultiCutFab::fabPtr (const MFIter& mfi) const noexcept
-{
-    AMREX_ASSERT(ok(mfi));
-    return m_data.fabPtr(mfi);
-}
-
-CutFab*
-MultiCutFab::fabPtr (const MFIter& mfi) noexcept
-{
-    AMREX_ASSERT(ok(mfi));
-    return m_data.fabPtr(mfi);
 }
 
 Array4<Real const>

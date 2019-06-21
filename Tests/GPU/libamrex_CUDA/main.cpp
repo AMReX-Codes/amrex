@@ -26,26 +26,6 @@ int main(int argc, char* argv[])
                 a(i,j,k) = 1.*i + 10.*j + 100.*k;
             });
         }
-
-        for (amrex::MFIter mfi(mf); mfi.isValid(); ++mfi) {
-            const amrex::Box& box = mfi.validbox();
-            amrex::FArrayBox* fab = mf.fabPtr(mfi);
-            amrex::launch(box,
-            [=] AMREX_GPU_DEVICE (amrex::Box const& tbx)
-            {
-                fab->setVal(2.0);
-                const auto a = fab->array();
-                const auto lo = amrex::lbound(tbx);
-                const auto hi = amrex::ubound(tbx);
-                for         (int k = lo.z; k <= hi.z; ++k) {
-                    for     (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            a(i,j,k) *= 3.5;
-                        }
-                    }
-                }
-            });
-        }
     }
 
     amrex::Finalize();
