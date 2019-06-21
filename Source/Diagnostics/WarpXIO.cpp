@@ -792,7 +792,7 @@ WarpX::InitializeSliceMultiFabs ()
     current_slice.resize(nlevels);
     Efield_slice.resize(nlevels);
     Bfield_slice.resize(nlevels);
-
+ 
 }
 
 

@@ -24,7 +24,9 @@ single directory (e.g. ``warpx_directory``):
 Basic compilation
 -----------------
 
-``cd`` into the directory ``WarpX`` and type
+WarpX requires a C/C++ and Fortran compiler (e.g., GCC or Intel) and an
+MPI implementation (e.g., OpenMPI or MPICH). Then ``cd`` into the directory
+``WarpX`` and type
 
 ::
 
