@@ -65,8 +65,6 @@ Arena::allocate_system (std::size_t nbytes)
         {
 #if defined(__CUDACC__)
             AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));
-#elif defined(AMREX_FAB_IS_MANAGED)
-            static_assert(false, "HIP does not support managed memory yet");
 #else
             AMREX_HIP_SAFE_CALL(hipMalloc(&p, nbytes));
 #endif

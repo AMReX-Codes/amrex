@@ -24,7 +24,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_FabAllocator.H>
 #include <AMReX_Utility.H>
 
 #include <AMReX_Gpu.H>
@@ -104,7 +103,6 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 
 template <typename T>
 struct BaseFabData
-    : public FabAllocator
 {
     AMREX_GPU_HOST_DEVICE
     BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
