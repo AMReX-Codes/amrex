@@ -67,7 +67,7 @@ public:
     * \param ratio
     * \param owner
     */
-    void coarsen (const IntVect& ratio, bool owner) noexcept;
+    void coarsen (const IntVect& ratio) noexcept;
 
     /**
     * \brief Mark neighbors of every tagged cell a distance nbuff away
