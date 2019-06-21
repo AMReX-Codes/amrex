@@ -746,14 +746,14 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 
 /* \brief
- *  The raw slice data is written out in the plotfile format and can be visualized using yt. *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
+ *  The raw slice data is written out in the plotfile format and can be visualized using yt.
+ *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
  */
 void
 WarpX::WriteSlicePlotFile () const
 {
     // writing plotfile //
     const std::string& slice_plotfilename = amrex::Concatenate(slice_plot_file,istep[0]);
-    amrex::Print() << " Writing slice plotfile " << slice_plotfilename << "\n";
 
     const int ngrow = 0;
 
