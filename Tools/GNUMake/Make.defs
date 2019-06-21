@@ -238,19 +238,6 @@ else
   GPU_ERROR_CHECK := TRUE
 endif 
 
-ifdef FAB_IS_PINNED
-  FAB_IS_PINNED := $(strip $(FAB_IS_PINNED))
-else
-  FAB_IS_PINNED := FALSE
-endif
-
-ifdef FAB_IS_MANAGED
-  FAB_IS_MANAGED := $(strip $(FAB_IS_MANAGED))
-else
-  FAB_IS_MANAGED := TRUE
-endif
-# By default, FAB_IS_MANAGED is TURE and FAB_IS_PINNED is FALSE
-
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
 else
@@ -513,21 +500,8 @@ ifeq ($(USE_HIP),TRUE)
 
     DEFINES += -DAMREX_USE_HIP
 
-    ifeq ($(FAB_IS_PINNED),TRUE)
-        DEFINES += -DAMREX_FAB_IS_PINNED
-        ifeq ($(FAB_IS_MANAGED),TRUE)
-            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-        endif
-    endif
-
     ifeq ($(HIP_PLATFORM),nvcc)
         DEFINES += -DAMREX_USE_CUDA
-        ifeq ($(FAB_IS_MANAGED),TRUE)
-            DEFINES += -DAMREX_FAB_IS_MANAGED
-            ifeq ($(FAB_IS_PINNED),TRUE)
-                $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-            endif
-        endif
     endif
 
     GPUSuffix := .HIP
@@ -575,20 +549,6 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifeq ($(USE_GPU_PRAGMA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
-    endif
-
-    ifeq ($(FAB_IS_PINNED),TRUE)
-        DEFINES += -DAMREX_FAB_IS_PINNED
-        ifeq ($(FAB_IS_MANAGED),TRUE)
-            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-        endif
-    endif
-
-    ifeq ($(FAB_IS_MANAGED),TRUE)
-        DEFINES += -DAMREX_FAB_IS_MANAGED
-        ifeq ($(FAB_IS_PINNED),TRUE)
-            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-        endif
     endif
 
     GPUSuffix := .CUDA

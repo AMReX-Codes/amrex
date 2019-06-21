@@ -93,9 +93,6 @@ public:
     const CutFab& operator[] (const MFIter& mfi) const noexcept;
     CutFab& operator[] (const MFIter& mfi) noexcept;
 
-    CutFab      * fabPtr (const MFIter& mfi) noexcept;
-    CutFab const* fabPtr (const MFIter& mfi) const noexcept;
-
     Array4<Real      > array (const MFIter& mfi) noexcept;
     Array4<Real const> array (const MFIter& mfi) const noexcept;
 
