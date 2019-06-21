@@ -11,40 +11,17 @@
 #include <omp.h>
 #endif
 
-namespace amrex {
-namespace Gpu {
-
-#ifdef AMREX_FAB_IS_PINNED
-
-void AsyncFabImpl::Initialize () {}
-void AsyncFabImpl::Finalize () {}
-
-AsyncFabImpl::AsyncFabImpl () : m_gpu_fab(new FArrayBox()) {}
-
-AsyncFabImpl::AsyncFabImpl (Box const& bx, int ncomp) : m_gpu_fab(new FArrayBox(bx,ncomp)) {}
-
-AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab)
-    : m_gpu_fab(a_fab.isAllocated()
-                ? new FArrayBox(a_fab.box(), a_fab.nComp())
-                : new FArrayBox())
-{}
-
-AsyncFabImpl::AsyncFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
-    : AsyncFabImpl(bx,ncomp)
-{}
-
-AsyncFabImpl::~AsyncFabImpl () {}
-
-FArrayBox*
-AsyncFabImpl::fabPtr () noexcept
-{
-    AMREX_ASSERT(m_gpu_fab != nullptr);
-    return m_gpu_fab.get();
+namespace {
+    void destroy (amrex::FArrayBox* p) {
+        if (p) {
+            p->~FArrayBox();
+            amrex::The_Managed_Arena()->free(p);
+        }
+    }
 }
 
-FArrayBox& AsyncFabImpl::hostFab () noexcept { return *m_gpu_fab; }
-
-#else
+namespace amrex {
+namespace Gpu {
 
 //
 // Fab is Managed
@@ -55,9 +32,9 @@ namespace {
 
     std::mutex asyncfab_mutex;
 
-    Vector<Vector<std::unique_ptr<FArrayBox> > > fab_stacks;
+    Vector<Vector<std::unique_ptr<FArrayBox, void(*)(FArrayBox*)> > > fab_stacks;
 
-    inline Vector<std::unique_ptr<FArrayBox> >& get_stack ()
+    inline Vector<std::unique_ptr<FArrayBox, void(*)(FArrayBox*)> >& get_stack ()
     {
 #ifdef _OPENMP
         int tid = omp_get_thread_num();
@@ -90,6 +67,7 @@ AsyncFabImpl::Finalize ()
 
 
 AsyncFabImpl::AsyncFabImpl ()
+    : m_gpu_fab(nullptr, destroy)
 {
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(BaseFabData<Real>),
                   "BaseFabData must be trivially copyable");
@@ -98,7 +76,9 @@ AsyncFabImpl::AsyncFabImpl ()
     {
         std::lock_guard<std::mutex> guard(asyncfab_mutex);
         if (fabstack.empty()) {
-            m_gpu_fab.reset(new FArrayBox());
+            FArrayBox* p = static_cast<FArrayBox*>(The_Managed_Arena()->alloc(sizeof(FArrayBox)));
+            new (p) FArrayBox;
+            m_gpu_fab.reset(p);
         } else {
             m_gpu_fab = std::move(fabstack.back());
             fabstack.pop_back();
@@ -109,13 +89,16 @@ AsyncFabImpl::AsyncFabImpl ()
 }
 
 AsyncFabImpl::AsyncFabImpl (Box const& bx, int ncomp)
-    : m_cpu_fab(bx,ncomp)
+    : m_cpu_fab(bx,ncomp),
+      m_gpu_fab(nullptr, destroy)
 {
     auto& fabstack = get_stack();
     {
         std::lock_guard<std::mutex> guard(asyncfab_mutex);
         if (fabstack.empty()) {
-            m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
+            FArrayBox* p = static_cast<FArrayBox*>(The_Managed_Arena()->alloc(sizeof(FArrayBox)));
+            new (p) FArrayBox;
+            m_gpu_fab.reset(p);  // yes, we build an empty fab here, later it will be overwritten by copy_htod
         } else {
             m_gpu_fab = std::move(fabstack.back());
             fabstack.pop_back();
@@ -125,6 +108,7 @@ AsyncFabImpl::AsyncFabImpl (Box const& bx, int ncomp)
 }
 
 AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab)
+    : m_gpu_fab(nullptr, destroy)
 {
     if (a_fab.isAllocated()) {
         m_cpu_fab.resize(a_fab.box(), a_fab.nComp());
@@ -133,7 +117,9 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab)
     {
         std::lock_guard<std::mutex> guard(asyncfab_mutex);
         if (fabstack.empty()) {
-            m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
+            FArrayBox* p = static_cast<FArrayBox*>(The_Managed_Arena()->alloc(sizeof(FArrayBox)));
+            new (p) FArrayBox;
+            m_gpu_fab.reset(p);  // yes, we build an empty fab here, later it will be overwritten by copy_htod
         } else {
             m_gpu_fab = std::move(fabstack.back());
             fabstack.pop_back();
@@ -183,8 +169,6 @@ AsyncFabImpl::copy_htod ()
         dest->setOwner(false);
     }
 }
-
-#endif
 
 }
 }

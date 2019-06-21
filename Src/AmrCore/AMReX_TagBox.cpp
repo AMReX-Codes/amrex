@@ -30,7 +30,7 @@ TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
 }
 
 void
-TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
+TagBox::coarsen (const IntVect& ratio) noexcept
 {
     BL_ASSERT(nComp() == 1);
 
@@ -46,10 +46,6 @@ TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
 
     this->nvar = 1;
     this->domain = cbox;
-
-    if (!owner) {
-        return;
-    }
 
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
@@ -660,10 +656,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        this->fabHostPtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
-#ifdef AMREX_USE_GPU
-        this->fabDevicePtr(mfi)->coarsen(ratio,false);
-#endif
+        this->fabPtr(mfi)->coarsen(ratio);
     }
 
     boxarray.growcoarsen(n_grow,ratio);
