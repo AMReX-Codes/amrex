@@ -101,25 +101,6 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
-template <typename T>
-struct BaseFabData
-{
-    AMREX_GPU_HOST_DEVICE
-    BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
-                 long a_truesize, bool a_ptr_owner, bool a_shared_memory) noexcept
-        : dptr(a_dptr), domain(a_domain), nvar(a_nvar),
-          truesize(a_truesize), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
-        {}
-    BaseFabData () noexcept = default;
-    T*      dptr;     //!< The data pointer.
-    Box     domain;   //!< My index space.
-    int     nvar;     //!< Number components.
-    long    truesize; //!< nvar*numpts that was allocated on heap.
-    bool    ptr_owner;//!< Owner of T*?
-    bool    shared_memory;  //!< Is the memory allocated in shared memory?
-    void setOwner (bool b) noexcept { ptr_owner = b; }
-};
-
 /**
 *  \brief A Fortran Array-like Object
 *  BaseFab emulates the Fortran array concept.
@@ -184,7 +165,7 @@ template <class T> using CpuDataAllocator = DataAllocator<T>;
 #endif
 
 template <class T, class Allocator = DataAllocator<T> >
-class BaseFab : public BaseFabData<T>
+class BaseFab
 {
 public:
 
@@ -1484,6 +1465,13 @@ protected:
     //! Allocates memory for the BaseFab<T,Allocator>.
     void define ();
 
+    T*   dptr = nullptr;        //!< The data pointer.
+    Box  domain;                //!< My index space.
+    int  nvar = 0;              //!< Number components.
+    long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
+    bool ptr_owner = false;     //!< Owner of T*?
+    bool shared_memory = false; //!< Is the memory allocated in shared memory?
+
 #ifdef USE_PERILLA
 public:
     LocalConnection l_con;
@@ -1951,23 +1939,19 @@ BaseFab<T,Allocator>::define ()
 
 template <class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab () noexcept
-    : BaseFabData<T>{nullptr, Box(), 0, 0L, false, false}
 {}
 
 template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (const Box& bx,
-                               int        n,
-                               bool       alloc,
-                               bool       shared)
-    : BaseFabData<T>{nullptr, bx, n, 0L, false, shared}
+BaseFab<T,Allocator>::BaseFab (const Box& bx, int n, bool alloc, bool shared)
+    : domain(bx), nvar(n), shared_memory(shared)
 {
     if (!this->shared_memory && alloc) define();
 }
 
 template <class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_type, int scomp, int ncomp)
-    : BaseFabData<T>{const_cast<T*>(rhs.dataPtr(scomp)), rhs.domain, ncomp,
-                     ncomp*rhs.domain.numPts(), false, false}
+    : dptr(const_cast<T*>(rhs.dataPtr(scomp))), domain(rhs.domain), nvar(ncomp),
+      truesize(ncomp*rhs.domain.numPts())
 {
     AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
     if (make_type == amrex::make_deep_copy)
@@ -1984,40 +1968,40 @@ BaseFab<T,Allocator>::BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_ty
 
 template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (const Box& bx, int ncomp, T* p)
-    : BaseFabData<T>{p, bx, ncomp, bx.numPts()*ncomp, false, false}
+    : dptr(p), domain(bx), nvar(ncomp), truesize(bx.numPts()*ncomp)
 {
 }
 
 template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (Array4<T> const& a) noexcept
-    : BaseFabData<T>(a.p,
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+    : dptr(a.p),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
 template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t) noexcept
-    : BaseFabData<T>(a.p,
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+    : dptr(a.p),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
 template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a) noexcept
-    : BaseFabData<T>(const_cast<T*>(a.p),
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+    : dptr(const_cast<T*>(a.p)),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
 template<class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
-    : BaseFabData<T>(const_cast<T*>(a.p),
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+    : dptr(const_cast<T*>(a.p)),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
 template <class T, class Allocator>
@@ -2030,8 +2014,8 @@ BaseFab<T,Allocator>::~BaseFab () noexcept
 
 template <class T, class Allocator>
 BaseFab<T,Allocator>::BaseFab (BaseFab<T,Allocator>&& rhs) noexcept
-    : BaseFabData<T>{rhs.dptr, rhs.domain, rhs.nvar,rhs.truesize,
-                     rhs.ptr_owner, rhs.shared_memory}
+    : dptr(rhs.dptr), domain(rhs.domain), nvar(rhs.nvar), truesize(rhs.truesize),
+      ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
