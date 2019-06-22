@@ -521,6 +521,7 @@ private:
 
     std::string check_file {"checkpoints/chk"};
     std::string plot_file {"diags/plotfiles/plt"};
+    std::string slice_plot_file {"diags/slice_plotfiles/plt"};
     int check_int = -1;
     int plot_int = -1;
 
@@ -551,6 +552,8 @@ private:
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
 //    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;
     amrex::VisMF::Header::Version plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
+    amrex::VisMF::Header::Version slice_plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
+
     bool use_single_read = true;
     bool use_single_write = true;
     int mffile_nstreams = 4;

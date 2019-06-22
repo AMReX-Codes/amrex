@@ -746,29 +746,72 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 
 /* \brief
- *  The slice is ouput using visMF and can be visualized used amrvis. 
+ *  The raw slice data is written out in the plotfile format and can be visualized using yt.
+ *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
  */
 void
 WarpX::WriteSlicePlotFile () const
 {
-    if (F_fp[0] ) {
-       VisMF::Write( (*F_slice[0]), "vismf_F_slice");
-    }
+    // writing plotfile //
+    const std::string& slice_plotfilename = amrex::Concatenate(slice_plot_file,istep[0]);
+    amrex::Print() << " Writing slice plotfile " << slice_plotfilename << "\n";
+    const int ngrow = 0;
 
-    if (rho_fp[0]) {
-       VisMF::Write( (*rho_slice[0]), "vismf_rho_slice");
-    }
+    Vector<std::string> rfs;
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(slice_plotfile_headerversion);
+    rfs.emplace_back("raw_fields");
+    
+    const int nlevels = finestLevel() + 1;
+     
+    // creating a temporary cell-centered dummy multifab //
+    // to get around the issue of yt complaining about no field data //
+    Vector< std::unique_ptr<MultiFab> > dummy_mf(nlevels);
+    const DistributionMapping &dm2 = Efield_slice[0][0]->DistributionMap();
+    Vector<std::string> varnames;
+    IntVect cc(AMREX_D_DECL(0,0,0));
+    for (int lev = 0; lev < nlevels; ++lev) 
+    {
+       dummy_mf[lev].reset(new MultiFab( 
+                     amrex::convert(Efield_slice[lev][0]->boxArray(),cc), 
+                     dm2, 1, 0 ));
+       dummy_mf[lev]->setVal(0.0);
+    } 
+    amrex::WriteMultiLevelPlotfile(slice_plotfilename, nlevels,
+                                   GetVecOfConstPtrs(dummy_mf), 
+                                   varnames, Geom(), t_new[0],
+                                   istep, refRatio(),
+                                   "HyperCLaw-V1.1", 
+                                   "Level_", "Cell", rfs);
 
-    VisMF::Write( (*Efield_slice[0][0]), amrex::Concatenate("vismf_Ex_slice_",istep[0]));
-    VisMF::Write( (*Efield_slice[0][1]), amrex::Concatenate("vismf_Ey_slice_",istep[0]));
-    VisMF::Write( (*Efield_slice[0][2]), amrex::Concatenate("vismf_Ez_slice_",istep[0]));
-    VisMF::Write( (*Bfield_slice[0][0]), amrex::Concatenate("vismf_Bx_slice_",istep[0]));
-    VisMF::Write( (*Bfield_slice[0][1]), amrex::Concatenate("vismf_By_slice_",istep[0]));
-    VisMF::Write( (*Bfield_slice[0][2]), amrex::Concatenate("vismf_Bz_slice_",istep[0]));
-    VisMF::Write( (*current_slice[0][0]), amrex::Concatenate("vismf_jx_slice_",istep[0]));
-    VisMF::Write( (*current_slice[0][1]), amrex::Concatenate("vismf_jy_slice_",istep[0]));
-    VisMF::Write( (*current_slice[0][2]), amrex::Concatenate("vismf_jz_slice_",istep[0]));
+    for (int lev = 0; lev < nlevels; ++lev) 
+    {
+        const std::unique_ptr<MultiFab> empty_ptr;
+        const std::string raw_spltname = slice_plotfilename + "/raw_fields";
+        amrex::Print() << " raw spltname " << raw_spltname << "\n";
+        const DistributionMapping &dm = Efield_slice[lev][0]->DistributionMap();
+ 
+        WriteRawField( *Efield_slice[lev][0], dm, raw_spltname, level_prefix, "Ex_slice", lev, 0);
+        WriteRawField( *Efield_slice[lev][1], dm, raw_spltname, level_prefix, "Ey_slice", lev, 0);
+        WriteRawField( *Efield_slice[lev][2], dm, raw_spltname, level_prefix, "Ez_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][0], dm, raw_spltname, level_prefix, "Bx_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][1], dm, raw_spltname, level_prefix, "By_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][2], dm, raw_spltname, level_prefix, "Bz_slice", lev, 0);
+        WriteRawField( *current_slice[lev][0], dm, raw_spltname, level_prefix, "jx_slice", lev,0);
+        WriteRawField( *current_slice[lev][1], dm, raw_spltname, level_prefix, "jy_slice", lev,0);
+        WriteRawField( *current_slice[lev][2], dm, raw_spltname, level_prefix, "jz_slice", lev,0);
+        if ( F_fp[lev] ) WriteRawField( *F_slice[lev], dm, raw_spltname, level_prefix, "F_slice", lev, 0);
+        if (plot_rho) {
+            MultiFab rho_new(*rho_slice[lev], amrex::make_alias, 1, 1);
+            WriteRawField( rho_new, dm, raw_spltname, level_prefix, "rho_slice", lev, 0);
+        }
+    } 
+ 
+    WriteJobInfo(slice_plotfilename);
 
+    WriteWarpXHeader(slice_plotfilename);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 
