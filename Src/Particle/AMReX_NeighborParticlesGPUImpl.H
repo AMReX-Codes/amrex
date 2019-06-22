@@ -352,10 +352,11 @@ updateNeighborsGPU ()
                     {
                         auto& src = src_ptile.GetArrayOfStructs();
                         auto& dst = dst_ptile.GetArrayOfStructs();
-                        thrust::copy(thrust::device,
-                                     src.begin() + m_start[src_grid][i], src.begin() + m_stop[src_grid][i], 
-                                     dst().begin() + nRParticles + offset[dst_grid]);
-
+                        cudaMemcpyAsync(
+                        thrust::raw_pointer_cast(dst().data() + nRParticles + offset[dst_grid]),
+                        thrust::raw_pointer_cast(src().data() + m_start[src_grid][i]),
+                        sizeof(ParticleType)*num_to_add, cudaMemcpyDeviceToDevice);
+                                        
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
                         if (this->Geom(lev).isAnyPeriodic()) {
