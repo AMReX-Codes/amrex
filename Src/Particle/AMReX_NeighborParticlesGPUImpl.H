@@ -316,6 +316,10 @@ updateNeighborsGPU ()
         not_ours[kv.first].resize(kv.second + sizeof(size_t));
     }
     
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto phi = this->Geom(lev).ProbHiArray();
+    const auto is_per = this->Geom(lev).isPeriodicArray();
+
     std::map<int, size_t> offset;
     std::map<int, size_t> remote_offset;
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -359,14 +363,22 @@ updateNeighborsGPU ()
                                         
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
-                        if (this->Geom(lev).isAnyPeriodic()) {
-                            thrust::transform(thrust::device, 
-                                              dst().begin() + nRParticles + offset[dst_grid],
-                                              dst().begin() + nRParticles + offset[dst_grid] + num_to_add,
-                                              dst().begin() + nRParticles + offset[dst_grid],
-                                              functors::periodicTransformation(this->Geom(lev).data(),
-                                                                               dst_code.periodic_shift));
-                        }
+                        if (this->Geom(lev).isAnyPeriodic())
+                        {
+                            auto pstruct = dst().data() + nRParticles + offset[dst_grid];
+                            auto pshift = dst_code.periodic_shift;
+                            AMREX_FOR_1D ( num_to_add, ip,
+                            {
+                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                                {
+                                    if (not is_per[idim]) continue;
+                                    if (pshift[idim] > 0) 
+                                        pstruct[ip].pos(idim) += phi[idim] - plo[idim]; 
+                                    else if (pshift[idim] < 0)
+                                        pstruct[ip].pos(idim) -= phi[idim] - plo[idim];
+                                }
+                            });
+                        }                        
                     }
                     offset[dst_grid] += num_to_add;
                 }
