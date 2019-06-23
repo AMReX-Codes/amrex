@@ -107,8 +107,27 @@ namespace amrex {
 struct MFInfo {
     bool    alloc = true;
     Arena*  arena = nullptr;
+    Vector<std::string> tags;
+
     MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+
     MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
+
+    MFInfo& SetTag (const char* t) noexcept {
+        tags.emplace_back(t);
+        return *this;
+    }
+
+    MFInfo& SetTag (std::string t) noexcept {
+        tags.emplace_back(std::move(t));
+        return *this;
+    }
+
+    template <typename T, typename... Ts>
+    MFInfo& SetTag (T&& t, Ts&&... ts) noexcept {
+        tags.emplace_back(std::forward<T>(t));
+        return SetTag(std::forward<Ts>(ts)...);
+    }
 };
 
     template <class T>
@@ -635,6 +654,8 @@ protected:
     //! The data.
     std::vector<FAB*> m_fabs_v;
 
+    Vector<std::string> m_tags;
+
     //! for shared memory
     struct ShMem {
 	ShMem () noexcept : alloc(false), n_values(0), n_points(0)
@@ -692,7 +713,8 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs (const FabFactory<FAB>& factory, Arena* ar);
+    void AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
+                    const Vector<std::string>& tags);
 
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
@@ -875,12 +897,21 @@ FabArray<FAB>::clear ()
         clearThisBD();  //!< addThisBD is called in define
     }
 
+    long nbytes = 0L;
     for (auto it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
+        nbytes += (*it)->nBytesOwned();
         m_factory->destroy(*it);
     }
     m_fabs_v.clear();
     m_factory.reset();
     // no need to clear the non-blocking fillboundary stuff
+
+    if (nbytes > 0) {
+        for (auto const& t : m_tags) {
+            updateMemUsage(t, -nbytes, nullptr);
+        }
+    }
+    m_tags.clear();
 
     FabArrayBase::clear();
 }
@@ -981,6 +1012,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_factory    (std::move(rhs.m_factory))
     , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
+    , m_tags       (std::move(rhs.m_tags))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
 {
@@ -1001,11 +1033,13 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
         FabArrayBase::operator=(std::move(rhs));
         m_factory = std::move(rhs.m_factory);
         define_function_called = rhs.define_function_called;
-        std::swap(m_fabs_v,rhs.m_fabs_v);
+        std::swap(m_fabs_v, rhs.m_fabs_v);
+        std::swap(m_tags, rhs.m_tags);
         shmem = std::move(rhs.shmem);
 
         rhs.define_function_called = false;
         rhs.m_fabs_v.clear();
+        rhs.m_tags.clear();
         rhs.clear();
     }
     return *this;
@@ -1080,7 +1114,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(*m_factory, info.arena);
+        AllocFabs(*m_factory, info.arena, info.tags);
     }
 
 #ifdef BL_USE_TEAM
@@ -1090,7 +1124,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar)
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
+                          const Vector<std::string>& tags)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
@@ -1103,11 +1138,25 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar)
 
     m_fabs_v.reserve(n);
 
+    long nbytes = 0L;
     for (int i = 0; i < n; ++i)
     {
 	int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
         m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
+        nbytes += m_fabs_v.back()->nBytesOwned();
+    }
+
+    m_tags.clear();
+    m_tags.emplace_back("All");
+    for (auto const& t : m_region_tag) {
+        m_tags.push_back(t);
+    }
+    for (auto const& t : tags) {
+        m_tags.push_back(t);
+    }
+    for (auto const& t: m_tags) {
+        updateMemUsage(t, nbytes, ar);
     }
 
 #ifdef BL_USE_TEAM
@@ -1203,10 +1252,6 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
-#ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Gpu::isGpuPtr(elem), "setFab takes host fab only");
-#endif
-
     if (m_fabs_v.size() == 0) {
       m_fabs_v.resize(indexArray.size(),nullptr);
     }
@@ -1234,10 +1279,6 @@ FabArray<FAB>::setFab (const MFIter& mfi,
         BL_ASSERT(!this->defined(mfi));
         BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
     }
-
-#ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Gpu::isGpuPtr(elem), "setFab takes host fab only");
-#endif
 
     if (m_fabs_v.size() == 0) {
       m_fabs_v.resize(indexArray.size(),nullptr);

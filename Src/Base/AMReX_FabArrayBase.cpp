@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
@@ -69,6 +70,9 @@ FabArrayBase::CacheStats           FabArrayBase::m_CFinfo_stats("CrseFineCache")
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
 FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
+
+std::map<std::string,FabArrayBase::meminfo> FabArrayBase::m_mem_usage;
+std::vector<std::string>                    FabArrayBase::m_region_tag;
 
 namespace
 {
@@ -1388,6 +1392,11 @@ FabArrayBase::Finalize ()
 	m_CFinfo_stats.print();
     }
 
+    if (amrex::system::verbose > 10) { // xxxxx will lower this to 1 after it's done
+        printMemUsage();
+    }
+    m_region_tag.clear();
+
     m_TAC_stats = CacheStats("TileArrayCache");
     m_FBC_stats = CacheStats("FBCache");
     m_CPC_stats = CacheStats("CopyCache");
@@ -1687,6 +1696,44 @@ operator<< (std::ostream& os, const FabArrayBase::BDKey& id)
 {
     os << "(" << id.m_ba_id << ", " << id.m_dm_id << ")";
     return os;
+}
+
+void
+FabArrayBase::updateMemUsage (std::string const& tag, long nbytes, Arena const* /*ar*/)
+{
+    auto& mi = m_mem_usage[tag];
+    mi.nbytes += nbytes;
+    mi.nbytes_hwm = std::max(mi.nbytes, mi.nbytes_hwm);
+}
+
+void
+FabArrayBase::printMemUsage ()
+{
+    if (ParallelContext::IOProcessorSub())
+    {
+        std::cout << "MultiFab Tag, current usage and hwm in bytes\n";
+        for (auto const& kv : m_mem_usage) {
+            std::cout << kv.first << ": " << kv.second.nbytes << ", " << kv.second.nbytes_hwm << "\n";
+        }
+    }
+}
+
+void
+FabArrayBase::pushRegionTag (const char* t)
+{
+    m_region_tag.emplace_back(t);
+}
+
+void
+FabArrayBase::pushRegionTag (std::string t)
+{
+    m_region_tag.emplace_back(std::move(t));
+}
+
+void
+FabArrayBase::popRegionTag ()
+{
+    m_region_tag.pop_back();
 }
 
 }
