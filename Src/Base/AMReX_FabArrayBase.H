@@ -394,8 +394,12 @@ public:
         long nbytes_hwm = 0L;
     };
     static std::map<std::string, meminfo> m_mem_usage;
+
     static void updateMemUsage (std::string const& tag, long nbytes, Arena const* ar);
     static void printMemUsage ();
+    static long queryMemUsage (const std::string& tag = std::string("All"));
+    static long queryMemUsageHWM (const std::string& tag = std::string("All"));
+
     static void pushRegionTag (const char* t);
     static void pushRegionTag (std::string t);
     static void popRegionTag ();
