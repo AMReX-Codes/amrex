@@ -1492,7 +1492,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         RedistributeMPIGPU(m_not_ours);
     }
     
-    EnforcePeriodicGPU();
+    if (geom.isAnyPeriodic()) EnforcePeriodicGPU();
     
     AMREX_ASSERT(OK());
 

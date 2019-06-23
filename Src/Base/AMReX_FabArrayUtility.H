@@ -1025,10 +1025,10 @@ Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
 
 template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-prefetchToHost (FabArray<FAB> const& fa)
+prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_CUDA
-    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
         fa.prefetchToHost(mfi);
     }
 #endif
@@ -1036,10 +1036,10 @@ prefetchToHost (FabArray<FAB> const& fa)
 
 template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-prefetchToDevice (FabArray<FAB> const& fa)
+prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_CUDA
-    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
         fa.prefetchToDevice(mfi);
     }
 #endif
