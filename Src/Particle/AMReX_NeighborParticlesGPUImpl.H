@@ -416,7 +416,7 @@ updateNeighborsGPU ()
                         auto& aos = src_ptile.GetArrayOfStructs();
                         cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
                                         thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
-                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
 
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
@@ -424,7 +424,8 @@ updateNeighborsGPU ()
                         {
                             auto pstruct = thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst));
                             auto pshift = dst_code.periodic_shift;
-                            AMREX_FOR_1D ( num_to_add, ip,
+                            //                            AMREX_FOR_1D ( num_to_add, ip,
+                            for (int ip = 0; ip < num_to_add; ++ip)
                             {
                                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                                 {
@@ -434,7 +435,8 @@ updateNeighborsGPU ()
                                     else if (pshift[idim] < 0)
                                         pstruct[ip].pos(idim) -= phi[idim] - plo[idim];
                                 }
-                            });
+                            }
+                            //                            });
                         }                        
                         dst += num_to_add*sizeof(ParticleType);
                     }
