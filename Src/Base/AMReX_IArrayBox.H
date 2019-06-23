@@ -37,6 +37,11 @@ class IArrayBox
 public:
     //! Construct an invalid FAB with no memory.
     IArrayBox () noexcept;
+
+    explicit IArrayBox (Arena* ar) noexcept;
+
+    IArrayBox (const Box& b, int ncomp, Arena* ar);
+
     /**
     * \brief Construct an initial FAB with the data space allocated but
     * not inititialized. ncomp is the number of components
@@ -45,7 +50,8 @@ public:
     explicit IArrayBox (const Box& b,
                         int        ncomp=1,
 			bool       alloc=true,
-			bool       shared=false);
+			bool       shared=false,
+                        Arena*     ar = nullptr);
 
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 

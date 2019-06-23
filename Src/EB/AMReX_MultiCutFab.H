@@ -12,8 +12,15 @@ class CutFab
 public:
 
     CutFab () {}
-    CutFab (const Box& b, int ncomps, bool alloc=true, bool shared=false)
-        : FArrayBox(b, ncomps, alloc, shared) {}
+
+    explicit CutFab (Arena* ar) : FArrayBox(ar) {}
+
+    CutFab (const Box& b, int n, Arena* ar)
+        : FArrayBox(b, n, ar) {}
+
+    CutFab (const Box& b, int ncomps, bool alloc=true,
+            bool shared=false, Arena* ar = nullptr)
+        : FArrayBox(b, ncomps, alloc, shared, ar) {}
 
 #ifdef AMREX_USE_GPU
     CutFab (CutFab const& rhs, MakeType make_type, int scomp, int ncomp)

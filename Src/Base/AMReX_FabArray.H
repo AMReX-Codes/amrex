@@ -106,7 +106,9 @@ namespace amrex {
 //
 struct MFInfo {
     bool    alloc = true;
+    Arena*  arena = nullptr;
     MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+    MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
 };
 
     template <class T>
