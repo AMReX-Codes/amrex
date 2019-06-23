@@ -148,6 +148,8 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 
 struct DataAllocator {
     Arena* m_arena = nullptr;
+    DataAllocator ()  noexcept = default;
+    DataAllocator (Arena* ar) noexcept : m_arena(ar) {}
     void* alloc (std::size_t sz) const noexcept {
         return arena()->alloc(sz);
     }
