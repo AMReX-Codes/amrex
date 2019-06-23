@@ -327,178 +327,117 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     return sm;
 }
 
-IntVect
-iMultiFab::minIndex (int comp,
-                    int nghost) const
+namespace {
+
+static IntVect
+indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mmloc)
 {
-    // TODO GPU
-
-    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
-
     IntVect loc;
 
-    int mn = std::numeric_limits<int>::max();
-
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        int tmp[1+AMREX_SPACEDIM] = {0};
+        amrex::Gpu::AsyncArray<int> aa(tmp, 1+AMREX_SPACEDIM);
+        int* p = aa.data();
+        // This is a device ptr to 1+AMREX_SPACEDIM int zeros.
+        // The first is used as an atomic bool and the others for intvect.
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            const Box& bx = amrex::grow(mfi.validbox(), nghost);
+            const Array4<int const> arr = mf.array(mfi);
+            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+            {
+                int* flag = p;
+                if (*flag == 0) {
+                    const IArrayBox fab(arr);
+                    IntVect t_loc = fab.indexFromValue(value, tbx, comp);
+                    if (tbx.contains(t_loc)) {
+                        if (Gpu::Atomic::Exch(flag,1) == 0) {
+                            AMREX_D_TERM(p[1] = t_loc[0];,
+                                         p[2] = t_loc[1];,
+                                         p[3] = t_loc[2];);
+                        }
+                    }
+                }
+            });
+        }
+        aa.copyToHost(tmp, 1+AMREX_SPACEDIM);
+        AMREX_D_TERM(loc[0] = tmp[1];,
+                     loc[1] = tmp[2];,
+                     loc[2] = tmp[3];);
+    }
+    else
+#endif
+    {
+        bool f = false;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    {
-	IntVect priv_loc;
-	int priv_mn = std::numeric_limits<int>::max();
-	
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-	    const int  lmn = get(mfi).min(bx,comp);
-	    
-	    if (lmn < priv_mn)
-	    {
-		priv_mn  = lmn;
-		priv_loc = get(mfi).minIndex(bx,comp);
-	    }
-	}
-
-#ifdef _OPENMP
-#pragma omp critical (imultifab_minindex)
-#endif
-	{
-	    if (priv_mn < mn) {
-		mn = priv_mn;
-		loc = priv_loc;
-	    }
-	}
-    }
-
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs > 1)
-    {
-        Vector<int> mns(1);
-        Vector<int>  locs(1);
-
-        if (ParallelDescriptor::IOProcessor())
         {
-            mns.resize(NProcs);
-            locs.resize(NProcs*AMREX_SPACEDIM);
-        }
-
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::Gather(&mn, 1, mns.dataPtr(), 1, IOProc);
-
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
-
-        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            mn  = mns[0];
-            loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-
-            for (int i = 1; i < NProcs; i++)
+            IntVect priv_loc = IntVect::TheMinVector();
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
             {
-                if (mns[i] < mn)
+                const Box& bx = mfi.growntilebox(nghost);
+                const IArrayBox& fab = mf[mfi];
+                IntVect t_loc = fab.indexFromValue(value, bx, comp);
+                if (bx.contains(t_loc)) {
+                    priv_loc = t_loc;
+                };
+            }
+
+            if (priv_loc.allGT(IntVect::TheMinVector())) {
+                bool old;
+#if defined(_OPENMP) && _OPENMP < 201107
+#pragma omp critical (amrex_indexfromvalue)
+#elif defined(_OPENMP)
+#pragma omp atomic capture
+#endif
                 {
-                    mn = mns[i];
-
-                    const int j = AMREX_SPACEDIM * i;
-
-                    loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
+                    old = f;
+                    f = true;
                 }
+
+                if (old == false) loc = priv_loc;
             }
         }
-
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
+
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelContext::NProcsSub();
+    if (NProcs > 1)
+    {
+        struct {
+            int mm;
+            int rank;
+        } in, out;
+        in.mm = value;
+        in.rank = ParallelContext::MyProcSub();
+        MPI_Datatype datatype = MPI_2INT;
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+        MPI_Allreduce(&in,  &out, 1, datatype, mmloc, comm);
+        MPI_Bcast(&(loc[0]), AMREX_SPACEDIM, MPI_INT, out.rank, comm);
+    }
+#endif
 
     return loc;
 }
 
+}
+
 IntVect
-iMultiFab::maxIndex (int comp,
-                    int nghost) const
+iMultiFab::minIndex (int comp, int nghost) const
 {
-    // TODO
-
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    int mn = this->min(comp, nghost, true);
+    return indexFromValue(*this, comp, nghost, mn, MPI_MINLOC);
+}
 
-    IntVect loc;
-
-    int mx = -std::numeric_limits<int>::max();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-	IntVect priv_loc;
-	int priv_mx = -std::numeric_limits<int>::max();
-
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-	    const int  lmx = get(mfi).max(bx,comp);
-	    
-	    if (lmx > priv_mx)
-	    {
-		priv_mx  = lmx;
-		priv_loc = get(mfi).maxIndex(bx,comp);
-	    }
-	}
-
-#ifdef _OPENMP
-#pragma omp critical (imultifab_maxindex)
-#endif
-	{
-	    if (priv_mx > mx) {
-		mx = priv_mx;
-		loc = priv_loc;
-	    }
-	}
-    }
-
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs > 1)
-    {
-        Vector<int> mxs(1);
-        Vector<int>  locs(1);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            mxs.resize(NProcs);
-            locs.resize(NProcs*AMREX_SPACEDIM);
-        }
-
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::Gather(&mx, 1, mxs.dataPtr(), 1, IOProc);
-
-        BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
-
-        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            mx  = mxs[0];
-            loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-
-            for (int i = 1; i < NProcs; i++)
-            {
-                if (mxs[i] > mx)
-                {
-                    mx = mxs[i];
-
-                    const int j = AMREX_SPACEDIM * i;
-
-                    loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
-                }
-            }
-        }
-
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
-    }
-
-    return loc;
+IntVect
+iMultiFab::maxIndex (int comp, int nghost) const
+{
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+    int mx = this->max(comp, nghost, true);
+    return indexFromValue(*this, comp, nghost, mx, MPI_MAXLOC);
 }
 
 void
