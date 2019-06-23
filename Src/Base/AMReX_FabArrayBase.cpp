@@ -1718,6 +1718,28 @@ FabArrayBase::printMemUsage ()
     }
 }
 
+long
+FabArrayBase::queryMemUsage (const std::string& t)
+{
+    auto r = m_mem_usage.find(t);
+    if (r != m_mem_usage.end()) {
+        return r->second.nbytes;
+    } else {
+        return 0;
+    }
+}
+
+long
+FabArrayBase::queryMemUsageHWM (const std::string& t)
+{
+    auto r = m_mem_usage.find(t);
+    if (r != m_mem_usage.end()) {
+        return r->second.nbytes_hwm;
+    } else {
+        return 0;
+    }
+}
+
 void
 FabArrayBase::pushRegionTag (const char* t)
 {
