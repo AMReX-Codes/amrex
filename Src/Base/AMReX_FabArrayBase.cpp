@@ -360,7 +360,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	auto& recv_tags = *m_RcvTags;
 
-	BaseFab<int,CpuDataAllocator<int> > localtouch, remotetouch;
+	BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
 	bool check_local = false, check_remote = false;
 #if defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
@@ -673,7 +673,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 
     auto& recv_tags = *m_RcvTags;
 
-    BaseFab<int,CpuDataAllocator<int> > localtouch, remotetouch;
+    BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
 #if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
@@ -880,7 +880,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     auto& recv_tags = *m_RcvTags;
 
-    BaseFab<int,CpuDataAllocator<int> > localtouch, remotetouch;
+    BaseFab<int> localtouch(The_Cpu_Arena()), remotetouch(The_Cpu_Arena());
     bool check_local = false, check_remote = false;
 #if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {

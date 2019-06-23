@@ -106,7 +106,9 @@ namespace amrex {
 //
 struct MFInfo {
     bool    alloc = true;
+    Arena*  arena = nullptr;
     MFInfo& SetAlloc (bool a) noexcept { alloc = a; return *this; }
+    MFInfo& SetArena (Arena* ar) noexcept { arena = ar; return *this; }
 };
 
     template <class T>
@@ -690,7 +692,7 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs (const FabFactory<FAB>& factory);
+    void AllocFabs (const FabFactory<FAB>& factory, Arena* ar);
 
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
@@ -1078,7 +1080,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(*m_factory);
+        AllocFabs(*m_factory, info.arena);
     }
 
 #ifdef BL_USE_TEAM
@@ -1088,7 +1090,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
@@ -1097,7 +1099,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
     bool alloc = !shmem.alloc;
 
     FabInfo fab_info;
-    fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
+    fab_info.SetAlloc(alloc).SetShared(shmem.alloc).SetArena(ar);
 
     m_fabs_v.reserve(n);
 

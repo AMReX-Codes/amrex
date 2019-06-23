@@ -101,25 +101,6 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
-template <typename T>
-struct BaseFabData
-{
-    AMREX_GPU_HOST_DEVICE
-    BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
-                 long a_truesize, bool a_ptr_owner, bool a_shared_memory) noexcept
-        : dptr(a_dptr), domain(a_domain), nvar(a_nvar),
-          truesize(a_truesize), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
-        {}
-    BaseFabData () noexcept = default;
-    T*      dptr;     //!< The data pointer.
-    Box     domain;   //!< My index space.
-    int     nvar;     //!< Number components.
-    long    truesize; //!< nvar*numpts that was allocated on heap.
-    bool    ptr_owner;//!< Owner of T*?
-    bool    shared_memory;  //!< Is the memory allocated in shared memory?
-    void setOwner (bool b) noexcept { ptr_owner = b; }
-};
-
 /**
 *  \brief A Fortran Array-like Object
 *  BaseFab emulates the Fortran array concept.
@@ -165,47 +146,44 @@ struct BaseFabData
 *  T MUST have a default constructor and an assignment operator.
 */
 
-template <class T>
 struct DataAllocator {
-    void* alloc (std::size_t sz) const noexcept { return The_Arena()->alloc(sz); }
-    void free (void* pt) const noexcept { The_Arena()->free(pt); }
-    Arena* arena () const noexcept { return The_Arena(); }
+    Arena* m_arena = nullptr;
+    void* alloc (std::size_t sz) const noexcept {
+        return arena()->alloc(sz);
+    }
+    void free (void* pt) const noexcept {
+        arena()->free(pt);
+    }
+    Arena* arena () const noexcept {
+        return (m_arena) ? m_arena : The_Arena();
+    }
 };
 
-#ifdef AMREX_USE_GPU
 template <class T>
-struct CpuDataAllocator {
-    void* alloc (std::size_t sz) const noexcept { return The_Cpu_Arena()->alloc(sz); }
-    void free (void* pt) const noexcept { The_Cpu_Arena()->free(pt); }
-    Arena* arena () const noexcept { return The_Cpu_Arena(); }
-};
-#else
-template <class T> using CpuDataAllocator = DataAllocator<T>;
-#endif
-
-template <class T, class Allocator = DataAllocator<T> >
-class BaseFab : public BaseFabData<T>
+class BaseFab
+    : public DataAllocator
 {
 public:
 
-    template <class U, class A> friend class BaseFab;
+    template <class U> friend class BaseFab;
 
     typedef T         value_type;
-    typedef Allocator allocator_type;
+
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab () noexcept;
+
+    explicit BaseFab (Arena* ar) noexcept;
+
+    BaseFab (const Box& bx, int n, Arena* ar);
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
-		      bool       shared = false);
+		      bool       shared = false,
+                      Arena*     ar = nullptr);
 
-    BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_type, int scomp, int ncomp);
-
-#ifdef AMREX_USE_GPU
-    BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_type);
-#endif
+    BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
     /**
      * \brief Create an NON-OWNING BaseFab.  Thus BaseFab is not
@@ -230,11 +208,11 @@ public:
     AMREX_GPU_HOST_DEVICE
     ~BaseFab () noexcept;
 
-    BaseFab (const BaseFab<T,Allocator>& rhs) = delete;
-    BaseFab<T,Allocator>& operator= (const BaseFab<T,Allocator>& rhs) = delete;
-    BaseFab<T,Allocator>& operator= (BaseFab<T,Allocator>&& rhs) = delete;
+    BaseFab (const BaseFab<T>& rhs) = delete;
+    BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
+    BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
 
-    BaseFab (BaseFab<T,Allocator>&& rhs) noexcept;
+    BaseFab (BaseFab<T>&& rhs) noexcept;
 
     AMREX_GPU_HOST_DEVICE
     BaseFab& operator= (T) noexcept;
@@ -345,7 +323,7 @@ public:
     * the domain of this BaseFab.
     */
     AMREX_GPU_HOST_DEVICE
-    bool contains (const BaseFab<T,Allocator>& fab) const noexcept
+    bool contains (const BaseFab<T>& fab) const noexcept
     {
         return box().contains(fab.box()) && this->nvar <= fab.nvar;
     }
@@ -656,12 +634,12 @@ public:
     * same and the srcbox and destbox overlap.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& copy (const BaseFab<T,Allocator>& src,
-                                const Box&        srcbox,
-                                int               srccomp,
-                                const Box&        destbox,
-                                int               destcomp,
-                                int               numcomp) noexcept;
+    BaseFab<T>& copy (const BaseFab<T>& src,
+                      const Box&        srcbox,
+                      int               srccomp,
+                      const Box&        destbox,
+                      int               destcomp,
+                      int               numcomp) noexcept;
 
     /**
     * \brief As above, except the destination Box and the source Box
@@ -670,10 +648,10 @@ public:
     * class.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& copy (const BaseFab<T,Allocator>& src,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp = 1) noexcept;
+    BaseFab<T>& copy (const BaseFab<T>& src,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp = 1) noexcept;
     /**
     * \brief As above, except that the destination Box is specified,
     * but the source Box is taken to the equal to the source
@@ -681,8 +659,8 @@ public:
     * copied.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& copy (const BaseFab<T,Allocator>& src,
-                                const Box&        destbox) noexcept;
+    BaseFab<T>& copy (const BaseFab<T>& src,
+                      const Box&        destbox) noexcept;
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
     AMREX_GPU_HOST_DEVICE
@@ -711,28 +689,28 @@ public:
     * There is no effect upon the array memory.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& shift (const IntVect& v) noexcept;
+    BaseFab<T>& shift (const IntVect& v) noexcept;
     /**
     * \brief Perform shifts upon the domain of the BaseFab.  They are
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& shift (int idir, int n_cell) noexcept;
+    BaseFab<T>& shift (int idir, int n_cell) noexcept;
     /**
     * \brief Perform shifts upon the domain of the BaseFab.  They are
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& shiftHalf (int dir, int num_halfs) noexcept;
+    BaseFab<T>& shiftHalf (int dir, int num_halfs) noexcept;
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& shiftHalf (const IntVect& num_halfs) noexcept;
+    BaseFab<T>& shiftHalf (const IntVect& num_halfs) noexcept;
 
     AMREX_GPU_HOST_DEVICE
     Real norminfmask (const Box& subbox, const BaseFab<int>& mask, int scomp=0, int ncomp=1) const noexcept;
@@ -898,38 +876,38 @@ public:
            int        numcomp = 1) const noexcept;
     //! Most general version, specify subbox and which components.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& invert (T          v,
-                                  const Box& subbox,
-                                  int        comp=0,
-                                  int        numcomp=1) noexcept;
+    BaseFab<T>& invert (T          v,
+                        const Box& subbox,
+                        int        comp=0,
+                        int        numcomp=1) noexcept;
     //! As above except on entire domain.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& invert (T   v,
-                                  int comp,
-                                  int numcomp=1) noexcept;
+    BaseFab<T>& invert (T   v,
+                        int comp,
+                        int numcomp=1) noexcept;
 
     //! Negate BaseFab, most general.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& negate (const Box& subbox,
-                                  int        comp=0,
-                                  int        numcomp=1) noexcept;
+    BaseFab<T>& negate (const Box& subbox,
+                        int        comp=0,
+                        int        numcomp=1) noexcept;
     //! As above, except on entire domain.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& negate (int comp,
-                                  int numcomp=1) noexcept;
+    BaseFab<T>& negate (int comp,
+                        int numcomp=1) noexcept;
 
     //! Scalar addition (a[i] <- a[i] + r), most general.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (T          r,
-                                const Box& b,
-                                int        comp=0,
-                                int        numcomp=1) noexcept;
+    BaseFab<T>& plus (T          r,
+                      const Box& b,
+                      int        comp=0,
+                      int        numcomp=1) noexcept;
 
     //! As above, except on entire domain.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (T   r,
-                                int comp,
-                                int numcomp=1) noexcept;
+    BaseFab<T>& plus (T   r,
+                      int comp,
+                      int numcomp=1) noexcept;
 
     /**
     * \brief Add src components (srccomp:srccomp+numcomp-1) to
@@ -937,36 +915,36 @@ public:
     * where the two FABs intersect.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (const BaseFab<T,Allocator>& src,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& plus (const BaseFab<T>& src,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
     /**
     * \brief Same as above except addition is restricted to intersection
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (const BaseFab<T,Allocator>& src,
-                                const Box&        subbox,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& plus (const BaseFab<T>& src,
+                      const Box&        subbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
     /**
     * \brief Add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (const BaseFab<T,Allocator>& src,
-                                const Box&        srcbox,
-                                const Box&        destbox,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& plus (const BaseFab<T>& src,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
 
     //! Atomic FAB addition (a[i] <- a[i] + b[i]).
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& atomicAdd (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src) noexcept;
 
     /**
     * \brief Atomically add src components (srccomp:srccomp+numcomp-1) to
@@ -974,63 +952,63 @@ public:
     * where the two FABs intersect.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& atomicAdd (const BaseFab<T,Allocator>& src,
-                                     int               srccomp,
-                                     int               destcomp,
-                                     int               numcomp=1) noexcept;
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1) noexcept;
     /**
     * \brief Same as above except addition is restricted to intersection
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& atomicAdd (const BaseFab<T,Allocator>& src,
-                                     const Box&        subbox,
-                                     int               srccomp,
-                                     int               destcomp,
-                                     int               numcomp=1) noexcept;
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           const Box&        subbox,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1) noexcept;
     /**
     * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& atomicAdd (const BaseFab<T,Allocator>& src,
-                                     const Box&        srcbox,
-                                     const Box&        destbox,
-                                     int               srccomp,
-                                     int               destcomp,
-                                     int               numcomp=1) noexcept;
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           const Box&        srcbox,
+                           const Box&        destbox,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1) noexcept;
 
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& saxpy (T a, const BaseFab<T,Allocator>& x,
-                                 const Box&        srcbox,
-                                 const Box&        destbox,
-                                 int               srccomp,
-                                 int               destcomp,
-                                 int               numcomp=1) noexcept;
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1) noexcept;
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& saxpy (T a, const BaseFab<T,Allocator>& x) noexcept;
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x) noexcept;
 
     //! FAB XPAY (y[i] <- x[i] + a * y[i])
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& xpay (T a, const BaseFab<T,Allocator>& x,
-                                const Box&        srcbox,
-                                const Box&        destbox,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& xpay (T a, const BaseFab<T>& x,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
 
     //! y[i] <- y[i] + x1[i] * x2[i])
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& addproduct (const Box&        destbox,
-                                      int               destcomp,
-                                      int               numcomp,
-                                      const BaseFab<T,Allocator>& src1,
-                                      int               comp1,
-                                      const BaseFab<T,Allocator>& src2,
-                                      int               comp2) noexcept;
+    BaseFab<T>& addproduct (const Box&        destbox,
+                            int               destcomp,
+                            int               numcomp,
+                            const BaseFab<T>& src1,
+                            int               comp1,
+                            const BaseFab<T>& src2,
+                            int               comp2) noexcept;
 
     /**
     * \brief Subtract src components (srccomp:srccomp+numcomp-1) to
@@ -1038,46 +1016,46 @@ public:
     * the two FABs intersect.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (const BaseFab<T,Allocator>& src,
-                                 int               srccomp,
-                                 int               destcomp,
-                                 int               numcomp=1) noexcept;
+    BaseFab<T>& minus (const BaseFab<T>& src,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1) noexcept;
     /**
     * \brief Same as above except subtraction is restricted to intersection
     * of subbox and src FAB.  NOTE: subbox must be contained in
     * this FAB.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (const BaseFab<T,Allocator>& src,
-                                 const Box&        subbox,
-                                 int               srccomp,
-                                 int               destcomp,
-                                 int               numcomp=1) noexcept;
+    BaseFab<T>& minus (const BaseFab<T>& src,
+                       const Box&        subbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1) noexcept;
     /**
     * \brief Subtract srcbox region of src FAB from destbox region
     * of this FAB. srcbox and destbox must be same size.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (const BaseFab<T,Allocator>& src,
-                                 const Box&        srcbox,
-                                 const Box&        destbox,
-                                 int               srccomp,
-                                 int               destcomp,
-                                 int               numcomp=1) noexcept;
+    BaseFab<T>& minus (const BaseFab<T>& src,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1) noexcept;
 
     //! Scalar multiplication, except control which components are multiplied.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (T   r,
-                                int comp,
-                                int numcomp=1) noexcept;
+    BaseFab<T>& mult (T   r,
+                      int comp,
+                      int numcomp=1) noexcept;
     /**
     * \brief As above, except specify sub-box.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (T          r,
-                                const Box& b,
-                                int        comp=0,
-                                int        numcomp=1) noexcept;
+    BaseFab<T>& mult (T          r,
+                      const Box& b,
+                      int        comp=0,
+                      int        numcomp=1) noexcept;
 
     /**
     * \brief Multiply src components (srccomp:srccomp+numcomp-1) with
@@ -1085,10 +1063,10 @@ public:
     * the two FABs intersect.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (const BaseFab<T,Allocator>& src,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& mult (const BaseFab<T>& src,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
 
     /**
     * \brief Same as above except multiplication is restricted to
@@ -1096,36 +1074,36 @@ public:
     * contained in this FAB.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (const BaseFab<T,Allocator>& src,
-                                const Box&        subbox,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& mult (const BaseFab<T>& src,
+                      const Box&        subbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
 
     /**
     * \brief Multiply srcbox region of src FAB with destbox region
     * of this FAB. The srcbox and destbox must be same size.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (const BaseFab<T,Allocator>& src,
-                                const Box&        srcbox,
-                                const Box&        destbox,
-                                int               srccomp,
-                                int               destcomp,
-                                int               numcomp=1) noexcept;
+    BaseFab<T>& mult (const BaseFab<T>& src,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp=1) noexcept;
 
     //! As above except specify which components.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (T   r,
-                                  int comp,
-                                  int numcomp=1) noexcept;
+    BaseFab<T>& divide (T   r,
+                        int comp,
+                        int numcomp=1) noexcept;
 
     //! As above except specify sub-box.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (T          r,
-                                  const Box& b,
-                                  int        comp=0,
-                                  int        numcomp=1) noexcept;
+    BaseFab<T>& divide (T          r,
+                        const Box& b,
+                        int        comp=0,
+                        int        numcomp=1) noexcept;
 
     /**
     * \brief This FAB is numerator, src FAB is denominator
@@ -1134,37 +1112,37 @@ public:
     * where the two FABs intersect.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (const BaseFab<T,Allocator>& src,
-                                  int               srccomp,
-                                  int               destcomp,
-                                  int               numcomp=1) noexcept;
+    BaseFab<T>& divide (const BaseFab<T>& src,
+                        int               srccomp,
+                        int               destcomp,
+                        int               numcomp=1) noexcept;
     /**
     * \brief Same as above except division is restricted to
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (const BaseFab<T,Allocator>& src,
-                                  const Box&        subbox,
-                                  int               srccomp,
-                                  int               destcomp,
-                                  int               numcomp=1) noexcept;
+    BaseFab<T>& divide (const BaseFab<T>& src,
+                        const Box&        subbox,
+                        int               srccomp,
+                        int               destcomp,
+                        int               numcomp=1) noexcept;
     /**
     * \brief destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (const BaseFab<T,Allocator>& src,
-                                  const Box&        srcbox,
-                                  const Box&        destbox,
-                                  int               srccomp,
-                                  int               destcomp,
-                                  int               numcomp=1) noexcept;
+    BaseFab<T>& divide (const BaseFab<T>& src,
+                        const Box&        srcbox,
+                        const Box&        destbox,
+                        int               srccomp,
+                        int               destcomp,
+                        int               numcomp=1) noexcept;
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& protected_divide (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& protected_divide (const BaseFab<T>& src) noexcept;
 
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
@@ -1174,7 +1152,7 @@ public:
     * where the two FABs intersect.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& protected_divide (const BaseFab<T,Allocator>& src,
+    BaseFab<T>& protected_divide (const BaseFab<T>& src,
                                             int               srccomp,
                                             int               destcomp,
                                             int               numcomp=1) noexcept;
@@ -1186,11 +1164,11 @@ public:
     * contained in this FAB.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& protected_divide (const BaseFab<T,Allocator>& src,
-                                            const Box&        subbox,
-                                            int               srccomp,
-                                            int               destcomp,
-                                            int               numcomp=1) noexcept;
+    BaseFab<T>& protected_divide (const BaseFab<T>& src,
+                                  const Box&        subbox,
+                                  int               srccomp,
+                                  int               destcomp,
+                                  int               numcomp=1) noexcept;
 
     /**
     * Divide wherever "src" is "true" or "non-zero".
@@ -1198,12 +1176,12 @@ public:
     * src FAB is denominator. srcbox and destbox must be same size.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& protected_divide (const BaseFab<T,Allocator>& src,
-                                            const Box&        srcbox,
-                                            const Box&        destbox,
-                                            int               srccomp,
-                                            int               destcomp,
-                                            int               numcomp=1) noexcept;
+    BaseFab<T>& protected_divide (const BaseFab<T>& src,
+                                  const Box&        srcbox,
+                                  const Box&        destbox,
+                                  int               srccomp,
+                                  int               destcomp,
+                                  int               numcomp=1) noexcept;
 
     /**
     * \brief Linear interpolation / extrapolation.
@@ -1216,31 +1194,31 @@ public:
     * This FAB is returned as a reference for chaining.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& linInterp (const BaseFab<T,Allocator>& f1,
-                                     const Box&        b1,
-                                     int               comp1,
-                                     const BaseFab<T,Allocator>& f2,
-                                     const Box&        b2,
-                                     int               comp2,
-                                     Real              t1,
-                                     Real              t2,
-                                     Real              t,
-                                     const Box&        b,
-                                     int               comp,
-                                     int               numcomp = 1) noexcept;
+    BaseFab<T>& linInterp (const BaseFab<T>& f1,
+                           const Box&        b1,
+                           int               comp1,
+                           const BaseFab<T>& f2,
+                           const Box&        b2,
+                           int               comp2,
+                           Real              t1,
+                           Real              t2,
+                           Real              t,
+                           const Box&        b,
+                           int               comp,
+                           int               numcomp = 1) noexcept;
 
     AMREX_GPU_HOST_DEVICE
     //! Version of linInterp() in which b, b1, & b2 are the same.
-    BaseFab<T,Allocator>& linInterp (const BaseFab<T,Allocator>& f1,
-                                     int               comp1,
-                                     const BaseFab<T,Allocator>& f2,
-                                     int               comp2,
-                                     Real              t1,
-                                     Real              t2,
-                                     Real              t,
-                                     const Box&        b,
-                                     int               comp,
-                                     int               numcomp = 1) noexcept;
+    BaseFab<T>& linInterp (const BaseFab<T>& f1,
+                           int               comp1,
+                           const BaseFab<T>& f2,
+                           int               comp2,
+                           Real              t1,
+                           Real              t2,
+                           Real              t,
+                           const Box&        b,
+                           int               comp,
+                           int               numcomp = 1) noexcept;
 
     /**
     * \brief Linear combination.  Result is alpha*f1 + beta*f2.
@@ -1252,27 +1230,27 @@ public:
     * This FAB is returned as a reference for chaining.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& linComb (const BaseFab<T,Allocator>& f1,
-                                   const Box&        b1,
-                                   int               comp1,
-                                   const BaseFab<T,Allocator>& f2,
-                                   const Box&        b2,
-                                   int               comp2,
-                                   Real              alpha,
-                                   Real              beta,
-                                   const Box&        b,
-                                   int               comp,
-                                   int               numcomp = 1) noexcept;
+    BaseFab<T>& linComb (const BaseFab<T>& f1,
+                         const Box&        b1,
+                         int               comp1,
+                         const BaseFab<T>& f2,
+                         const Box&        b2,
+                         int               comp2,
+                         Real              alpha,
+                         Real              beta,
+                         const Box&        b,
+                         int               comp,
+                         int               numcomp = 1) noexcept;
 
     //! Dot product of x (i.e.,this) and y
     AMREX_GPU_HOST_DEVICE
     T dot (const Box& xbx, int xcomp,
-	   const BaseFab<T,Allocator>& y, const Box& ybx, int ycomp,
+	   const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const noexcept;
 
     AMREX_GPU_HOST_DEVICE
     T dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
-               const BaseFab<T,Allocator>& y, const Box& ybx, int ycomp,
+               const BaseFab<T>& y, const Box& ybx, int ycomp,
                int numcomp) const noexcept;
 
     //! Change the Box type without change the length
@@ -1297,11 +1275,11 @@ public:
     }
     template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
-                  const BaseFab<T,Allocator>& src, int srccomp, F f) noexcept;
+                  const BaseFab<T>& src, int srccomp, F f) noexcept;
 
     template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
-                  const BaseFab<T,Allocator>& src, const Box& srcbox, int srccomp, F f) noexcept;
+                  const BaseFab<T>& src, const Box& srcbox, int srccomp, F f) noexcept;
 
     template <typename P, class F> //!< AMREX_GPU_HOST_DEVICE
     P Accumulate (const Box& b, int c, int nc, P init, F f) const noexcept;
@@ -1347,125 +1325,125 @@ public:
     * components (more is OK).
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& copy (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& copy (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& copy (const BaseFab<T,Allocator>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar addition on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (T val) noexcept;
+    BaseFab<T>& plus (T val) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator+= (T val) noexcept;
+    BaseFab<T>& operator+= (T val) noexcept;
     //
     //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& plus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab addition is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& plus (const BaseFab<T>& src) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator+= (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& operator+= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& plus (const BaseFab<T,Allocator>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& plus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar subtraction on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (T val) noexcept;
+    BaseFab<T>& minus (T val) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator-= (T val) noexcept;
+    BaseFab<T>& operator-= (T val) noexcept;
     //
     //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& minus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab subtraction is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& minus (const BaseFab<T>& src) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator-= (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& operator-= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& minus (const BaseFab<T,Allocator>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& minus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar multiplication on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (T val) noexcept;
+    BaseFab<T>& mult (T val) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator*= (T val) noexcept;
+    BaseFab<T>& operator*= (T val) noexcept;
     //
     //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& mult (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab multiplication is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& mult (const BaseFab<T>& src) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator*= (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& operator*= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& mult (const BaseFab<T,Allocator>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& mult (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar division on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (T val) noexcept;
+    BaseFab<T>& divide (T val) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator/= (T val) noexcept;
+    BaseFab<T>& operator/= (T val) noexcept;
     //
     //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& divide (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab division is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& divide (const BaseFab<T>& src) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& operator/= (const BaseFab<T,Allocator>& src) noexcept;
+    BaseFab<T>& operator/= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& divide (const BaseFab<T,Allocator>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& divide (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& negate () noexcept;
+    BaseFab<T>& negate () noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Fab <- Fab/r on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& invert (T r) noexcept;
+    BaseFab<T>& invert (T r) noexcept;
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T,Allocator>& invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
+    BaseFab<T>& invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Sum
     AMREX_GPU_HOST_DEVICE
@@ -1473,16 +1451,23 @@ public:
 
     //! Dot product of two Fabs
     AMREX_GPU_HOST_DEVICE
-    T dot (const BaseFab<T,Allocator>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
+    T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Dot product of two Fabs with mask
     AMREX_GPU_HOST_DEVICE
-    T dotmask (const BaseFab<T,Allocator>& src, const Box& bx, const BaseFab<int>& mask,
+    T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
                SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
 protected:
-    //! Allocates memory for the BaseFab<T,Allocator>.
+    //! Allocates memory for the BaseFab<T>.
     void define ();
+
+    T*   dptr = nullptr;        //!< The data pointer.
+    Box  domain;                //!< My index space.
+    int  nvar = 0;              //!< Number components.
+    long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
+    bool ptr_owner = false;     //!< Owner of T*?
+    bool shared_memory = false; //!< Is the memory allocated in shared memory?
 
 #ifdef USE_PERILLA
 public:
@@ -1549,11 +1534,11 @@ ForEachIVImpl (B& fab, const Box& b, int c, int nc, F f) noexcept
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 template <class F>
 void
-BaseFab<T,Allocator>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
-                               const BaseFab<T,Allocator>& src, const Box& srcbox, int srccomp, F f) noexcept
+BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                     const BaseFab<T>& src, const Box& srcbox, int srccomp, F f) noexcept
 {
     AMREX_ASSERT(contains(dstbox));
     AMREX_ASSERT(src.contains(srcbox));
@@ -1583,11 +1568,11 @@ BaseFab<T,Allocator>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 template <class F>
 void
-BaseFab<T,Allocator>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
-                               const BaseFab<T,Allocator>& src, int srccomp, F f) noexcept
+BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                     const BaseFab<T>& src, int srccomp, F f) noexcept
 {
     AMREX_ASSERT(contains(dstbox));
     AMREX_ASSERT(src.contains(dstbox));
@@ -1612,10 +1597,10 @@ BaseFab<T,Allocator>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 template <typename P, class F>
 P
-BaseFab<T,Allocator>::Accumulate (const Box& b, int c, int nc, P init, F f) const noexcept
+BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const noexcept
 {
     const auto len3 = b.length3d();
     const int* blo = b.loVect();
@@ -1635,10 +1620,10 @@ BaseFab<T,Allocator>::Accumulate (const Box& b, int c, int nc, P init, F f) cons
     return init;
 }
 
-template <class T, class Allocator>
+template <class T>
 template <class F>
 void
-BaseFab<T,Allocator>::Transform (T* dst, const Box& b, int c, int nc, F f) const noexcept
+BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const noexcept
 {
     AMREX_ASSERT(contains(b));
     AMREX_ASSERT(c >= 0 && c + nc <= nComp());
@@ -1660,10 +1645,10 @@ BaseFab<T,Allocator>::Transform (T* dst, const Box& b, int c, int nc, F f) const
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 template <class F>
 void
-BaseFab<T,Allocator>::Transform (const Box& b, int c, int nc, T const* src, F f) noexcept
+BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f) noexcept
 {
     AMREX_ASSERT(contains(b));
     AMREX_ASSERT(c >= 0 && c + nc <= nComp());
@@ -1685,10 +1670,10 @@ BaseFab<T,Allocator>::Transform (const Box& b, int c, int nc, T const* src, F f)
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 inline
 T*
-BaseFab<T,Allocator>::dataPtr (const IntVect& p, int n) noexcept
+BaseFab<T>::dataPtr (const IntVect& p, int n) noexcept
 {
     AMREX_ASSERT(n >= 0);
     AMREX_ASSERT(n < this->nvar);
@@ -1698,10 +1683,10 @@ BaseFab<T,Allocator>::dataPtr (const IntVect& p, int n) noexcept
     return this->dptr + (this->domain.index(p)+n*this->domain.numPts());
 }
 
-template <class T, class Allocator>
+template <class T>
 inline
 const T*
-BaseFab<T,Allocator>::dataPtr (const IntVect& p, int n) const noexcept
+BaseFab<T>::dataPtr (const IntVect& p, int n) const noexcept
 {
     AMREX_ASSERT(n >= 0);
     AMREX_ASSERT(n < this->nvar);
@@ -1711,9 +1696,9 @@ BaseFab<T,Allocator>::dataPtr (const IntVect& p, int n) const noexcept
     return this->dptr + (this->domain.index(p)+n*this->domain.numPts());
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::prefetchToHost () const noexcept
+BaseFab<T>::prefetchToHost () const noexcept
 {
 #ifdef AMREX_USE_CUDA
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1723,9 +1708,9 @@ BaseFab<T,Allocator>::prefetchToHost () const noexcept
 #endif
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::prefetchToDevice () const noexcept
+BaseFab<T>::prefetchToDevice () const noexcept
 {
 #ifdef AMREX_USE_CUDA
     std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
@@ -1735,10 +1720,10 @@ BaseFab<T,Allocator>::prefetchToDevice () const noexcept
 #endif
 }
 
-template <class T, class Allocator>
+template <class T>
 inline
 T&
-BaseFab<T,Allocator>::operator() (const IntVect& p, int n) noexcept
+BaseFab<T>::operator() (const IntVect& p, int n) noexcept
 {
     AMREX_ASSERT(n >= 0);
     AMREX_ASSERT(n < this->nvar);
@@ -1748,10 +1733,10 @@ BaseFab<T,Allocator>::operator() (const IntVect& p, int n) noexcept
     return this->dptr[this->domain.index(p)+n*this->domain.numPts()];
 }
 
-template <class T, class Allocator>
+template <class T>
 inline
 T&
-BaseFab<T,Allocator>::operator() (const IntVect& p) noexcept
+BaseFab<T>::operator() (const IntVect& p) noexcept
 {
     AMREX_ASSERT(!(this->dptr == 0));
     AMREX_ASSERT(this->domain.contains(p));
@@ -1759,10 +1744,10 @@ BaseFab<T,Allocator>::operator() (const IntVect& p) noexcept
     return this->dptr[this->domain.index(p)];
 }
 
-template <class T, class Allocator>
+template <class T>
 inline
 const T&
-BaseFab<T,Allocator>::operator() (const IntVect& p, int n) const noexcept
+BaseFab<T>::operator() (const IntVect& p, int n) const noexcept
 {
     AMREX_ASSERT(n >= 0);
     AMREX_ASSERT(n < this->nvar);
@@ -1772,10 +1757,10 @@ BaseFab<T,Allocator>::operator() (const IntVect& p, int n) const noexcept
     return this->dptr[this->domain.index(p)+n*this->domain.numPts()];
 }
 
-template <class T, class Allocator>
+template <class T>
 inline
 const T&
-BaseFab<T,Allocator>::operator() (const IntVect& p) const noexcept
+BaseFab<T>::operator() (const IntVect& p) const noexcept
 {
     AMREX_ASSERT(!(this->dptr == 0));
     AMREX_ASSERT(this->domain.contains(p));
@@ -1783,12 +1768,12 @@ BaseFab<T,Allocator>::operator() (const IntVect& p) const noexcept
     return this->dptr[this->domain.index(p)];
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::getVal  (T*             data,
-                               const IntVect& pos,
-                               int            n,
-                               int            numcomp) const noexcept
+BaseFab<T>::getVal  (T*             data,
+                     const IntVect& pos,
+                     int            n,
+                     int            numcomp) const noexcept
 {
     const int loc      = this->domain.index(pos);
     const long sz    = this->domain.numPts();
@@ -1800,82 +1785,82 @@ BaseFab<T,Allocator>::getVal  (T*             data,
         data[k] = this->dptr[loc+(n+k)*sz];
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::getVal (T*             data,
-                              const IntVect& pos) const noexcept
+BaseFab<T>::getVal (T*             data,
+                    const IntVect& pos) const noexcept
 {
     getVal(data,pos,0,this->nvar);
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::shift (const IntVect& v) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::shift (const IntVect& v) noexcept
 {
     this->domain += v;
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::shift (int idir, int n_cell) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::shift (int idir, int n_cell) noexcept
 {
     this->domain.shift(idir,n_cell);
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator> &
-BaseFab<T,Allocator>::shiftHalf (const IntVect& v) noexcept
+template <class T>
+BaseFab<T> &
+BaseFab<T>::shiftHalf (const IntVect& v) noexcept
 {
     this->domain.shiftHalf(v);
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator> &
-BaseFab<T,Allocator>::shiftHalf (int idir, int n_cell) noexcept
+template <class T>
+BaseFab<T> &
+BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 {
     this->domain.shiftHalf(idir,n_cell);
     return *this;
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setVal (T x, const Box& bx, int n) noexcept
+BaseFab<T>::setVal (T x, const Box& bx, int n) noexcept
 {
     this->setVal(x, bx, DestComp{n}, NumComps{1});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setVal (T x, int n) noexcept
+BaseFab<T>::setVal (T x, int n) noexcept
 {
     this->setVal(x, this->domain, DestComp{n}, NumComps{1});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setVal (T x, const Box& bx, int dcomp, int ncomp) noexcept
+BaseFab<T>::setVal (T x, const Box& bx, int dcomp, int ncomp) noexcept
 {
     this->setVal(x, bx, DestComp{dcomp}, NumComps{ncomp});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num) noexcept
+BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num) noexcept
 {
     this->setValIfNot(val, bx, mask, DestComp{ns}, NumComps{num});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src,
-                            const Box&        srcbox,
-                            int               srccomp,
-                            const Box&        destbox,
-                            int               destcomp,
-                            int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src,
+                  const Box&        srcbox,
+                  int               srccomp,
+                  const Box&        destbox,
+                  int               destcomp,
+                  int               numcomp) noexcept
 {
     AMREX_ASSERT(destbox.ok());
     AMREX_ASSERT(srcbox.sameSize(destbox));
@@ -1904,23 +1889,23 @@ BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src, const Box& destbox) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox) noexcept
 {
     return this->copy(src, destbox, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     return copy(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::define ()
+BaseFab<T>::define ()
 {
     AMREX_ASSERT(this->nvar > 0);
     AMREX_ASSERT(this->dptr == 0);
@@ -1933,7 +1918,7 @@ BaseFab<T,Allocator>::define ()
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
-    this->dptr = static_cast<T*>(Allocator{}.alloc(this->truesize*sizeof(T)));
+    this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1949,25 +1934,35 @@ BaseFab<T,Allocator>::define ()
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab () noexcept
-    : BaseFabData<T>{nullptr, Box(), 0, 0L, false, false}
+template <class T>
+BaseFab<T>::BaseFab () noexcept
 {}
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (const Box& bx,
-                               int        n,
-                               bool       alloc,
-                               bool       shared)
-    : BaseFabData<T>{nullptr, bx, n, 0L, false, shared}
+template <class T>
+BaseFab<T>::BaseFab (Arena* ar) noexcept
+    : DataAllocator{ar}
+{}
+
+template <class T>
+BaseFab<T>::BaseFab (const Box& bx, int n, Arena* ar)
+    : DataAllocator{ar}, domain(bx), nvar(n)
+{
+    define();
+}
+
+template <class T>
+BaseFab<T>::BaseFab (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
+    : DataAllocator{ar}, domain(bx), nvar(n), shared_memory(shared)
 {
     if (!this->shared_memory && alloc) define();
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_type, int scomp, int ncomp)
-    : BaseFabData<T>{const_cast<T*>(rhs.dataPtr(scomp)), rhs.domain, ncomp,
-                     ncomp*rhs.domain.numPts(), false, false}
+template <class T>
+BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
+    : DataAllocator{rhs.arena()}, 
+      dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+      domain(rhs.domain), nvar(ncomp),
+      truesize(ncomp*rhs.domain.numPts())
 {
     AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
     if (make_type == amrex::make_deep_copy)
@@ -1982,72 +1977,74 @@ BaseFab<T,Allocator>::BaseFab (const BaseFab<T,Allocator>& rhs, MakeType make_ty
     }
 }
 
-template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (const Box& bx, int ncomp, T* p)
-    : BaseFabData<T>{p, bx, ncomp, bx.numPts()*ncomp, false, false}
+template<class T>
+BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
+    : dptr(p), domain(bx), nvar(ncomp), truesize(bx.numPts()*ncomp)
 {
 }
 
-template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T> const& a) noexcept
-    : BaseFabData<T>(a.p,
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+template<class T>
+BaseFab<T>::BaseFab (Array4<T> const& a) noexcept
+    : dptr(a.p),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
-template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T> const& a, IndexType t) noexcept
-    : BaseFabData<T>(a.p,
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+template<class T>
+BaseFab<T>::BaseFab (Array4<T> const& a, IndexType t) noexcept
+    : dptr(a.p),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
-template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a) noexcept
-    : BaseFabData<T>(const_cast<T*>(a.p),
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+template<class T>
+BaseFab<T>::BaseFab (Array4<T const> const& a) noexcept
+    : dptr(const_cast<T*>(a.p)),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
-template<class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
-    : BaseFabData<T>(const_cast<T*>(a.p),
-                     Box(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-                         IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-                     a.ncomp, a.ncomp*a.nstride, false, false)
+template<class T>
+BaseFab<T>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
+    : dptr(const_cast<T*>(a.p)),
+      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
+             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
+      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
 {}
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>::~BaseFab () noexcept
+template <class T>
+BaseFab<T>::~BaseFab () noexcept
 {
 #ifndef AMREX_DEVICE_COMPILE
     clear();
 #endif
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>::BaseFab (BaseFab<T,Allocator>&& rhs) noexcept
-    : BaseFabData<T>{rhs.dptr, rhs.domain, rhs.nvar,rhs.truesize,
-                     rhs.ptr_owner, rhs.shared_memory}
+template <class T>
+BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
+    : DataAllocator{rhs.arena()},
+      dptr(rhs.dptr), domain(rhs.domain),
+      nvar(rhs.nvar), truesize(rhs.truesize),
+      ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator= (T t) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator= (T t) noexcept
 {
     setVal(t);
     return *this;
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::resize (const Box& b, int n)
+BaseFab<T>::resize (const Box& b, int n)
 {
     this->nvar   = n;
     this->domain = b;
@@ -2071,10 +2068,10 @@ BaseFab<T,Allocator>::resize (const Box& b, int n)
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 template <class,class>
 Elixir
-BaseFab<T,Allocator>::elixir () noexcept
+BaseFab<T>::elixir () noexcept
 {
     bool o;
     if (Gpu::inLaunchRegion()) {
@@ -2090,12 +2087,12 @@ BaseFab<T,Allocator>::elixir () noexcept
     } else {
         o = false;
     }
-    return Elixir((o ? this->dptr : nullptr), Allocator{}.arena());
+    return Elixir((o ? this->dptr : nullptr), this->arena());
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::clear () noexcept
+BaseFab<T>::clear () noexcept
 {
     if (this->dptr)
     {
@@ -2116,7 +2113,7 @@ BaseFab<T,Allocator>::clear () noexcept
 		ptr->~T();
 	    }
 
-	    Allocator{}.free(this->dptr);
+	    this->free(this->dptr);
 
 	    if (this->nvar > 1) {
 		amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
@@ -2130,12 +2127,12 @@ BaseFab<T,Allocator>::clear () noexcept
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 std::size_t
-BaseFab<T,Allocator>::copyToMem (const Box& srcbox,
-                                 int        srccomp,
-                                 int        numcomp,
-                                 void*      dst) const noexcept
+BaseFab<T>::copyToMem (const Box& srcbox,
+                       int        srccomp,
+                       int        numcomp,
+                       void*      dst) const noexcept
 {
     BL_ASSERT(box().contains(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
@@ -2168,12 +2165,12 @@ BaseFab<T,Allocator>::copyToMem (const Box& srcbox,
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 std::size_t
-BaseFab<T,Allocator>::copyFromMem (const Box&  dstbox,
-                                   int         dstcomp,
-                                   int         numcomp,
-                                   const void* src) noexcept
+BaseFab<T>::copyFromMem (const Box&  dstbox,
+                         int         dstcomp,
+                         int         numcomp,
+                         const void* src) noexcept
 {
     BL_ASSERT(box().contains(dstbox));
     BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
@@ -2206,12 +2203,12 @@ BaseFab<T,Allocator>::copyFromMem (const Box&  dstbox,
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 std::size_t
-BaseFab<T,Allocator>::addFromMem (const Box&  dstbox,
-                                  int         dstcomp,
-                                  int         numcomp,
-                                  const void* src) noexcept
+BaseFab<T>::addFromMem (const Box&  dstbox,
+                        int         dstcomp,
+                        int         numcomp,
+                        const void* src) noexcept
 {
     BL_ASSERT(box().contains(dstbox));
     BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
@@ -2244,32 +2241,32 @@ BaseFab<T,Allocator>::addFromMem (const Box&  dstbox,
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setComplement (T x, const Box& b, int ns, int num) noexcept
+BaseFab<T>::setComplement (T x, const Box& b, int ns, int num) noexcept
 {
     setComplement(x, b, DestComp{ns}, NumComps{num});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::abs () noexcept
+BaseFab<T>::abs () noexcept
 {
     this->abs(this->domain,0,this->nvar);
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::abs (int comp, int numcomp) noexcept
+BaseFab<T>::abs (int comp, int numcomp) noexcept
 {
     this->abs(this->domain,comp,numcomp);
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::abs (const Box& subbox,
-                           int        comp,
-                           int        numcomp) noexcept
+BaseFab<T>::abs (const Box& subbox,
+                 int        comp,
+                 int        numcomp) noexcept
 {
     const auto len = amrex::length(subbox);
     const auto lo  = amrex::lbound(subbox);
@@ -2287,10 +2284,10 @@ BaseFab<T,Allocator>::abs (const Box& subbox,
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 Real
-BaseFab<T,Allocator>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
-                                   int scomp, int ncomp) const noexcept
+BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
+                         int scomp, int ncomp) const noexcept
 {
     BL_ASSERT(this->domain.contains(subbox));
     BL_ASSERT(scomp >= 0 && scomp + ncomp <= this->nvar);
@@ -2318,21 +2315,21 @@ BaseFab<T,Allocator>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 Real
-BaseFab<T,Allocator>::norm (int p,
-                            int comp,
-                            int numcomp) const noexcept
+BaseFab<T>::norm (int p,
+                  int comp,
+                  int numcomp) const noexcept
 {
     return norm(this->domain,p,comp,numcomp);
 }
 
-template <class T, class Allocator>
+template <class T>
 Real
-BaseFab<T,Allocator>::norm (const Box& subbox,
-                            int        p,
-                            int        comp,
-                            int        numcomp) const noexcept
+BaseFab<T>::norm (const Box& subbox,
+                  int        p,
+                  int        comp,
+                  int        numcomp) const noexcept
 {
     BL_ASSERT(this->domain.contains(subbox));
     BL_ASSERT(comp >= 0 && comp + numcomp <= this->nvar);
@@ -2383,22 +2380,22 @@ BaseFab<T,Allocator>::norm (const Box& subbox,
     }
     else
     {
-        amrex::Error("BaseFab<T,Allocator>::norm: wrong p");
+        amrex::Error("BaseFab<T>::norm: wrong p");
     }
 
     return nrm;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::min (int comp) const noexcept
+BaseFab<T>::min (int comp) const noexcept
 {
     return this->min(this->domain,comp);
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::min (const Box& subbox, int comp) const noexcept
+BaseFab<T>::min (const Box& subbox, int comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2421,16 +2418,16 @@ BaseFab<T,Allocator>::min (const Box& subbox, int comp) const noexcept
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::max (int comp) const noexcept
+BaseFab<T>::max (int comp) const noexcept
 {
     return this->max(this->domain,comp);
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::max (const Box& subbox, int comp) const noexcept
+BaseFab<T>::max (const Box& subbox, int comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2454,16 +2451,16 @@ BaseFab<T,Allocator>::max (const Box& subbox, int comp) const noexcept
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::maxabs (int comp) const noexcept
+BaseFab<T>::maxabs (int comp) const noexcept
 {
     return this->maxabs(this->domain,comp);
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::maxabs (const Box& subbox, int comp) const noexcept
+BaseFab<T>::maxabs (const Box& subbox, int comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2488,16 +2485,16 @@ BaseFab<T,Allocator>::maxabs (const Box& subbox, int comp) const noexcept
 }
 
 
-template <class T, class Allocator>
+template <class T>
 IntVect
-BaseFab<T,Allocator>::minIndex (int comp) const noexcept
+BaseFab<T>::minIndex (int comp) const noexcept
 {
     return this->minIndex(this->domain,comp);
 }
 
-template <class T, class Allocator>
+template <class T>
 IntVect
-BaseFab<T,Allocator>::minIndex (const Box& subbox, int comp) const noexcept
+BaseFab<T>::minIndex (const Box& subbox, int comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2525,9 +2522,9 @@ BaseFab<T,Allocator>::minIndex (const Box& subbox, int comp) const noexcept
     return IntVect(AMREX_D_DECL(imin+lo.x,jmin+lo.y,kmin+lo.z));
 }
 
-template <class T, class Allocator>
+template <class T>
 IntVect
-BaseFab<T,Allocator>::indexFromValue (Real value, const Box& subbox, int comp) const noexcept
+BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const noexcept
 {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     AMREX_D_DECL(int imin = std::numeric_limits<int>::lowest(),
@@ -2554,9 +2551,9 @@ BaseFab<T,Allocator>::indexFromValue (Real value, const Box& subbox, int comp) c
     return IntVect(AMREX_D_DECL(imin+lo.x,jmin+lo.y,kmin+lo.z));
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp) const noexcept
+BaseFab<T>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2575,17 +2572,17 @@ BaseFab<T,Allocator>::minIndex (const Box& subbox, Real& min_val, IntVect& min_i
     AMREX_D_TERM(min_idx[0] += lo.x;, min_idx[1] += lo.y;, min_idx[2] += lo.z);
 }
 
-template <class T, class Allocator>
+template <class T>
 IntVect
-BaseFab<T,Allocator>::maxIndex (int comp) const noexcept
+BaseFab<T>::maxIndex (int comp) const noexcept
 {
     return this->maxIndex(this->domain,comp);
 }
 
-template <class T, class Allocator>
+template <class T>
 IntVect
-BaseFab<T,Allocator>::maxIndex (const Box& subbox,
-                                int        comp) const noexcept
+BaseFab<T>::maxIndex (const Box& subbox,
+                      int        comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2613,9 +2610,9 @@ BaseFab<T,Allocator>::maxIndex (const Box& subbox,
     return IntVect(AMREX_D_DECL(imax+lo.x,jmax+lo.y,kmax+lo.z));
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int comp) const noexcept
+BaseFab<T>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int comp) const noexcept
 {
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2634,11 +2631,11 @@ BaseFab<T,Allocator>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_i
     AMREX_D_TERM(max_idx[0] += lo.x;, max_idx[1] += lo.y;, max_idx[2] += lo.z);
 }
 
-template <class T, class Allocator>
+template <class T>
 int
-BaseFab<T,Allocator>::maskLT (BaseFab<int>& mask,
-                              T             val,
-                              int           comp) const noexcept
+BaseFab<T>::maskLT (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const noexcept
 {
     mask.resize(this->domain,1);
     mask.setVal(0);
@@ -2664,11 +2661,11 @@ BaseFab<T,Allocator>::maskLT (BaseFab<int>& mask,
     return cnt;
 }
 
-template <class T, class Allocator>
+template <class T>
 int
-BaseFab<T,Allocator>::maskLE (BaseFab<int>& mask,
-                              T             val,
-                              int           comp) const noexcept
+BaseFab<T>::maskLE (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const noexcept
 {
     mask.resize(this->domain,1);
     mask.setVal(0);
@@ -2694,11 +2691,11 @@ BaseFab<T,Allocator>::maskLE (BaseFab<int>& mask,
     return cnt;
 }
 
-template <class T, class Allocator>
+template <class T>
 int
-BaseFab<T,Allocator>::maskEQ (BaseFab<int>& mask,
-                              T             val,
-                              int           comp) const noexcept
+BaseFab<T>::maskEQ (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const noexcept
 {
     mask.resize(this->domain,1);
     mask.setVal(0);
@@ -2724,11 +2721,11 @@ BaseFab<T,Allocator>::maskEQ (BaseFab<int>& mask,
     return cnt;
 }
 
-template <class T, class Allocator>
+template <class T>
 int
-BaseFab<T,Allocator>::maskGT (BaseFab<int>& mask,
-                              T             val,
-                              int           comp) const noexcept
+BaseFab<T>::maskGT (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const noexcept
 {
     mask.resize(this->domain,1);
     mask.setVal(0);
@@ -2754,11 +2751,11 @@ BaseFab<T,Allocator>::maskGT (BaseFab<int>& mask,
     return cnt;
 }
 
-template <class T, class Allocator>
+template <class T>
 int
-BaseFab<T,Allocator>::maskGE (BaseFab<int>& mask,
-                              T             val,
-                              int           comp) const noexcept
+BaseFab<T>::maskGE (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const noexcept
 {
     mask.resize(this->domain,1);
     mask.setVal(0);
@@ -2784,20 +2781,20 @@ BaseFab<T,Allocator>::maskGE (BaseFab<int>& mask,
     return cnt;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& x) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& x) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= x.domain;
     return ovlp.ok() ? this->atomicAdd(x,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::saxpy (T a, const BaseFab<T,Allocator>& x,
-                             const Box& srcbox, const Box& destbox,
-                             int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
+                   const Box& srcbox, const Box& destbox,
+                   int srccomp, int destcomp, int numcomp) noexcept
 {
     BL_ASSERT(srcbox.ok());
     BL_ASSERT(x.box().contains(srcbox));
@@ -2827,20 +2824,20 @@ BaseFab<T,Allocator>::saxpy (T a, const BaseFab<T,Allocator>& x,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::saxpy (T a, const BaseFab<T,Allocator>& x) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= x.domain;
     return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::xpay (T a, const BaseFab<T,Allocator>& x,
-                            const Box& srcbox, const Box& destbox,
-                            int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::xpay (T a, const BaseFab<T>& x,
+                  const Box& srcbox, const Box& destbox,
+                  int srccomp, int destcomp, int numcomp) noexcept
 {
     BL_ASSERT(srcbox.ok());
     BL_ASSERT(x.box().contains(srcbox));
@@ -2870,11 +2867,11 @@ BaseFab<T,Allocator>::xpay (T a, const BaseFab<T,Allocator>& x,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::addproduct (const Box& destbox, int destcomp, int numcomp,
-                                  const BaseFab<T,Allocator>& src1, int comp1,
-                                  const BaseFab<T,Allocator>& src2, int comp2) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
+                        const BaseFab<T>& src1, int comp1,
+                        const BaseFab<T>& src2, int comp2) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(box().contains(destbox));
@@ -2902,12 +2899,12 @@ BaseFab<T,Allocator>::addproduct (const Box& destbox, int destcomp, int numcomp,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::linComb (const BaseFab<T,Allocator>& f1, const Box& b1, int comp1,
-                               const BaseFab<T,Allocator>& f2, const Box& b2, int comp2,
-                               Real alpha, Real beta, const Box& b,
-                               int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
+                     const BaseFab<T>& f2, const Box& b2, int comp2,
+                     Real alpha, Real beta, const Box& b,
+                     int comp, int numcomp) noexcept
 {
     BL_ASSERT(b1.ok());
     BL_ASSERT(f1.box().contains(b1));
@@ -2943,11 +2940,11 @@ BaseFab<T,Allocator>::linComb (const BaseFab<T,Allocator>& f1, const Box& b1, in
     return *this;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::dot (const Box& xbx, int xcomp,
-                           const BaseFab<T,Allocator>& y, const Box& ybx, int ycomp,
-                           int numcomp) const noexcept
+BaseFab<T>::dot (const Box& xbx, int xcomp,
+                 const BaseFab<T>& y, const Box& ybx, int ycomp,
+                 int numcomp) const noexcept
 {
     BL_ASSERT(xbx.ok());
     BL_ASSERT(box().contains(xbx));
@@ -2980,11 +2977,11 @@ BaseFab<T,Allocator>::dot (const Box& xbx, int xcomp,
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
-                               const BaseFab<T,Allocator>& y, const Box& ybx, int ycomp,
-                               int numcomp) const noexcept
+BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
+                     const BaseFab<T>& y, const Box& ybx, int ycomp,
+                     int numcomp) const noexcept
 {
     BL_ASSERT(xbx.ok());
     BL_ASSERT(box().contains(xbx));
@@ -3016,72 +3013,72 @@ BaseFab<T,Allocator>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xco
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::sum (int comp, int numcomp) const noexcept
+BaseFab<T>::sum (int comp, int numcomp) const noexcept
 {
     return this->sum(this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::sum (const Box& subbox, int comp, int numcomp) const noexcept
+BaseFab<T>::sum (const Box& subbox, int comp, int numcomp) const noexcept
 {
     return this->sum(subbox, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::negate (int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate (int comp, int numcomp) noexcept
 {
     return this->negate(this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::negate (const Box& b, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate (const Box& b, int comp, int numcomp) noexcept
 {
     return this->negate(b, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::invert (T r, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T r, int comp, int numcomp) noexcept
 {
     return this->invert(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::invert (T r, const Box& b, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T r, const Box& b, int comp, int numcomp) noexcept
 {
     return this->invert(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (T r, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (T r, int comp, int numcomp) noexcept
 {
     return this->plus(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (T r, const Box& b, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (T r, const Box& b, int comp, int numcomp) noexcept
 {
     return this->plus(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->plus(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
                                  int               srccomp,
                                  int               destcomp,
                                  int               numcomp) noexcept
@@ -3091,24 +3088,24 @@ BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
     return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src,
-                            const Box&        subbox,
-                            int               srccomp,
-                            int               destcomp,
-                            int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src,
+                  const Box&        subbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp) noexcept
 {
     return this->plus(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
-                                 const Box&        subbox,
-                                 int               srccomp,
-                                 int               destcomp,
-                                 int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       const Box&        subbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
@@ -3116,14 +3113,14 @@ BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
     return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src,
-                            const Box&        srcbox,
-                            const Box&        destbox,
-                            int               srccomp,
-                            int               destcomp,
-                            int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src,
+                  const Box&        srcbox,
+                  const Box&        destbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -3152,14 +3149,14 @@ BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
-                                 const Box&        srcbox,
-                                 const Box&        destbox,
-                                 int               srccomp,
-                                 int               destcomp,
-                                 int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -3202,28 +3199,28 @@ BaseFab<T,Allocator>::atomicAdd (const BaseFab<T,Allocator>& src,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->minus(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->minus(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src,
-                             const Box&        srcbox,
-                             const Box&        destbox,
-                             int               srccomp,
-                             int               destcomp,
-                             int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src,
+                   const Box&        srcbox,
+                   const Box&        destbox,
+                   int               srccomp,
+                   int               destcomp,
+                   int               numcomp) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -3252,42 +3249,42 @@ BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (T r, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (T r, int comp, int numcomp) noexcept
 {
     return this->mult(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (T r, const Box& b, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (T r, const Box& b, int comp, int numcomp) noexcept
 {
     return this->mult(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->mult(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->mult(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src,
-                            const Box&        srcbox,
-                            const Box&        destbox,
-                            int               srccomp,
-                            int               destcomp,
-                            int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src,
+                  const Box&        srcbox,
+                  const Box&        destbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -3316,42 +3313,42 @@ BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (T r, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (T r, int comp, int numcomp) noexcept
 {
     return this->divide(r, this->domain, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (T r, const Box& b, int comp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (T r, const Box& b, int comp, int numcomp) noexcept
 {
     return this->divide(r, b, DestComp{comp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->divide(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp) noexcept
 {
     return this->divide(src, subbox, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src,
-                              const Box&        srcbox,
-                              const Box&        destbox,
-                              int               srccomp,
-                              int               destcomp,
-                              int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src,
+                    const Box&        srcbox,
+                    const Box&        destbox,
+                    int               srccomp,
+                    int               destcomp,
+                    int               numcomp) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -3380,34 +3377,34 @@ BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::protected_divide (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::protected_divide (const BaseFab<T,Allocator>& src,
-                                        int               srccomp,
-                                        int               destcomp,
-                                        int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src,
+                              int               srccomp,
+                              int               destcomp,
+                              int               numcomp) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::protected_divide (const BaseFab<T,Allocator>& src,
-                                        const Box&        subbox,
-                                        int               srccomp,
-                                        int               destcomp,
-                                        int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src,
+                              const Box&        subbox,
+                              int               srccomp,
+                              int               destcomp,
+                              int               numcomp) noexcept
 {
     Box ovlp(this->domain);
     ovlp &= src.domain;
@@ -3415,14 +3412,14 @@ BaseFab<T,Allocator>::protected_divide (const BaseFab<T,Allocator>& src,
     return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::protected_divide (const BaseFab<T,Allocator>& src,
-                                        const Box&        srcbox,
-                                        const Box&        destbox,
-                                        int               srccomp,
-                                        int               destcomp,
-                                        int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src,
+                              const Box&        srcbox,
+                              const Box&        destbox,
+                              int               srccomp,
+                              int               destcomp,
+                              int               numcomp) noexcept
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -3464,38 +3461,38 @@ BaseFab<T,Allocator>::protected_divide (const BaseFab<T,Allocator>& src,
 * This fab is returned as a reference for chaining.
 */
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::linInterp (const BaseFab<T,Allocator>& f1,
-                                 const Box&        b1,
-                                 int               comp1,
-                                 const BaseFab<T,Allocator>& f2,
-                                 const Box&        b2,
-                                 int               comp2,
-                                 Real              t1,
-                                 Real              t2,
-                                 Real              t,
-                                 const Box&        b,
-                                 int               comp,
-                                 int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linInterp (const BaseFab<T>& f1,
+                       const Box&        b1,
+                       int               comp1,
+                       const BaseFab<T>& f2,
+                       const Box&        b2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp) noexcept
 {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
     return linComb(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::linInterp (const BaseFab<T,Allocator>& f1,
-                                 int               comp1,
-                                 const BaseFab<T,Allocator>& f2,
-                                 int               comp2,
-                                 Real              t1,
-                                 Real              t2,
-                                 Real              t,
-                                 const Box&        b,
-                                 int               comp,
-                                 int               numcomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linInterp (const BaseFab<T>& f1,
+                       int               comp1,
+                       const BaseFab<T>& f2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp) noexcept
 {
   Real tol = 1.0e-16;
   if(std::abs(t2-t1) > tol)
@@ -3516,16 +3513,16 @@ BaseFab<T,Allocator>::linInterp (const BaseFab<T,Allocator>& f1,
 // New interfaces
 //
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setVal (T val) noexcept
+BaseFab<T>::setVal (T val) noexcept
 {
     this->setVal(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setVal (T x, Box bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::setVal (T x, Box bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3545,16 +3542,16 @@ BaseFab<T,Allocator>::setVal (T x, Box bx, DestComp dcomp, NumComps ncomp) noexc
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setValIf (T val, const BaseFab<int>& mask) noexcept
+BaseFab<T>::setValIf (T val, const BaseFab<int>& mask) noexcept
 {
     this->setValIf(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setValIf (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::setValIf (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3575,16 +3572,16 @@ BaseFab<T,Allocator>::setValIf (T val, Box bx, const BaseFab<int>& mask, DestCom
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setValIfNot (T val, const BaseFab<int>& mask) noexcept
+BaseFab<T>::setValIfNot (T val, const BaseFab<int>& mask) noexcept
 {
     this->setValIfNot(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setValIfNot (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::setValIfNot (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3605,9 +3602,9 @@ BaseFab<T,Allocator>::setValIfNot (T val, Box bx, const BaseFab<int>& mask, Dest
     }
 }
 
-template <class T, class Allocator>
+template <class T>
 void
-BaseFab<T,Allocator>::setComplement (T x, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
+BaseFab<T>::setComplement (T x, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     const BoxList b_lst = amrex::boxDiff(this->domain,bx);
     for (auto const& b : b_lst) {
@@ -3615,18 +3612,18 @@ BaseFab<T,Allocator>::setComplement (T x, const Box& bx, DestComp dcomp, NumComp
     }
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src) noexcept
 {
     this->copy(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src, Box bx,
-                            SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
+                  SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
@@ -3653,23 +3650,23 @@ BaseFab<T,Allocator>::copy (const BaseFab<T,Allocator>& src, Box bx,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (T val) noexcept
 {
     return this->plus(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator+= (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator+= (T val) noexcept
 {
     return this->plus(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3691,24 +3688,24 @@ BaseFab<T,Allocator>::plus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexc
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src) noexcept
 {
     return this->plus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator+= (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator+= (const BaseFab<T>& src) noexcept
 {
     return this->plus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src, Box bx,
-                            SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
+                  SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
@@ -3735,23 +3732,23 @@ BaseFab<T,Allocator>::plus (const BaseFab<T,Allocator>& src, Box bx,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (T val) noexcept
 {
     return this->minus(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator-= (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator-= (T val) noexcept
 {
     return this->minus(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3773,24 +3770,24 @@ BaseFab<T,Allocator>::minus (T val, Box bx, DestComp dcomp, NumComps ncomp) noex
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src) noexcept
 {
     return this->minus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator-= (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator-= (const BaseFab<T>& src) noexcept
 {
     return this->minus(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src, Box bx,
-                             SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
+                   SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
@@ -3817,23 +3814,23 @@ BaseFab<T,Allocator>::minus (const BaseFab<T,Allocator>& src, Box bx,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (T val) noexcept
 {
     return this->mult(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator*= (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator*= (T val) noexcept
 {
     return this->mult(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3855,24 +3852,24 @@ BaseFab<T,Allocator>::mult (T val, Box bx, DestComp dcomp, NumComps ncomp) noexc
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src) noexcept
 {
     return this->mult(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator*= (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator*= (const BaseFab<T>& src) noexcept
 {
     return this->mult(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src, Box bx,
-                            SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
+                  SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
@@ -3899,23 +3896,23 @@ BaseFab<T,Allocator>::mult (const BaseFab<T,Allocator>& src, Box bx,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (T val) noexcept
 {
     return this->divide(val, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator/= (T val) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator/= (T val) noexcept
 {
     return this->divide(val, this->domain,  DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (T val, Box bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -3937,24 +3934,24 @@ BaseFab<T,Allocator>::divide (T val, Box bx, DestComp dcomp, NumComps ncomp) noe
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src) noexcept
 {
     return this->divide(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::operator/= (const BaseFab<T,Allocator>& src) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator/= (const BaseFab<T>& src) noexcept
 {
     return this->divide(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src, Box bx,
-                              SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
+                    SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
@@ -3981,16 +3978,16 @@ BaseFab<T,Allocator>::divide (const BaseFab<T,Allocator>& src, Box bx,
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::negate () noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate () noexcept
 {
     return this->negate(this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -4012,16 +4009,16 @@ BaseFab<T,Allocator>::negate (const Box& bx, DestComp dcomp, NumComps ncomp) noe
     return *this;
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::invert (T r) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T r) noexcept
 {
     return this->invert(r, this->domain, DestComp{0}, NumComps{this->nvar});
 }
 
-template <class T, class Allocator>
-BaseFab<T,Allocator>&
-BaseFab<T,Allocator>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept
 {
     BL_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
 
@@ -4043,9 +4040,9 @@ BaseFab<T,Allocator>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp
     return *this;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
+BaseFab<T>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
 {
     AMREX_ASSERT(dcomp.i >= 0 && dcomp.i+ncomp.n <= this->nvar);
 
@@ -4069,9 +4066,9 @@ BaseFab<T,Allocator>::sum (const Box& bx, DestComp dcomp, NumComps ncomp) const 
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::dot (const BaseFab<T,Allocator>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept
+BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
@@ -4099,10 +4096,10 @@ BaseFab<T,Allocator>::dot (const BaseFab<T,Allocator>& src, const Box& bx, SrcCo
     return r;
 }
 
-template <class T, class Allocator>
+template <class T>
 T
-BaseFab<T,Allocator>::dotmask (const BaseFab<T,Allocator>& src, const Box& bx, const BaseFab<int>& mask,
-                               SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept
+BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
+                     SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept
 {
     AMREX_ASSERT(this->domain.sameType(src.domain));
     AMREX_ASSERT(this->domain.sameType(mask.domain));

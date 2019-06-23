@@ -6,19 +6,18 @@
 # ############################################################################ #
 @PACKAGE_INIT@
 
-
 # Provides find_dependency 
 include(CMakeFindDependencyMacro)
 
 #
 # Build type
 #
-set(AMREX_BUILD_TYPE  @CMAKE_BUILD_TYPE@)
+set(AMReX_BUILD_TYPE  @CMAKE_BUILD_TYPE@)
 
 #
 # Versioning
 # 
-set(AMREX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
+set(AMReX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
 
 #
 # Add AMReX modules to app code CMake
@@ -28,154 +27,102 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@CMAKE_INSTALL_PREFIX@/Tools/CMake/"
 # 
 # AMReX CMake modules PATH
 #
-set(AMREX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
+set(AMReX_MODULES_PATH @CMAKE_INSTALL_PREFIX@/Tools/CMake)
 
 #
 # Path to amrex typechecker command
 # 
-set(AMREX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
+set(AMReX_TYPECHECKER "@CMAKE_INSTALL_PREFIX@/Tools/typechecker/typechecker.py")
 
 # 
 # Configuration options
+# Each option is treated like a "component" so that find_package can be easily
+# used to check weather the option is enabled
 #
 
 # General options
-set(AMREX_DIM                       @DIM@)
-set(AMREX_ENABLE_PIC                @ENABLE_PIC@)
-set(AMREX_ENABLE_MPI                @ENABLE_MPI@)
-set(AMREX_ENABLE_OMP                @ENABLE_OMP@)
-set(AMREX_ENABLE_CUDA               @ENABLE_CUDA@)
-set(AMREX_ENABLE_DP                 @ENABLE_DP@)
+set(AMReX_@DIM@D_FOUND                  ON)
+set(AMReX_MPI_FOUND                 @ENABLE_MPI@)
+set(AMReX_OMP_FOUND                 @ENABLE_OMP@)
+set(AMReX_CUDA_FOUND                @ENABLE_CUDA@)
+set(AMReX_DP_FOUND                  @ENABLE_DP@)
 
-# Components selection
-set(AMREX_ENABLE_EB                 @ENABLE_EB@)
-set(AMREX_ENABLE_FORTRAN_INTERFACES @ENABLE_FORTRAN_INTERFACES@)
-set(AMREX_ENABLE_LINEAR_SOLVERS     @ENABLE_LINEAR_SOLVERS@)
-set(AMREX_ENABLE_AMRDATA            @ENABLE_AMRDATA@)
-set(AMREX_ENABLE_PARTICLES          @ENABLE_PARTICLES@)
-set(AMREX_ENABLE_DP_PARTICLES       @ENABLE_DP_PARTICLES@)
-set(AMREX_ENABLE_SENSEI_INSITU      @ENABLE_SENSEI_INSITU@)
-set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
-set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
+# Actual components selection 
+set(AMReX_EB_FOUND                  @ENABLE_EB@)
+set(AMReX_FINTERFACES_FOUND         @ENABLE_FORTRAN_INTERFACES@)
+set(AMReX_LSOLVERS_FOUND            @ENABLE_LINEAR_SOLVERS@)
+set(AMReX_AMRDATA_FOUND             @ENABLE_AMRDATA@)
+set(AMReX_PARTICLES_FOUND           @ENABLE_PARTICLES@)
+set(AMReX_DPARTICLES_FOUND          @ENABLE_DP_PARTICLES@)
+set(AMReX_SENSEI_FOUND              @ENABLE_SENSEI_INSITU@)
+set(AMReX_CONDUIT_FOUND             @ENABLE_CONDUIT@)
+set(AMReX_SUNDIALS_FOUND            @ENABLE_SUNDIALS@)
+set(AMReX_ASCENT_FOUND              @ENABLE_ASCENT@)
+set(AMReX_HYPRE_FOUND               @ENABLE_HYPRE@)
 
 # Compilation options 
-set(AMREX_ENABLE_FPE                @ENABLE_FPE@)
-set(AMREX_ENABLE_ASSERTIONS         @ENABLE_ASSERTIONS@)
+set(AMReX_FPE_FOUND                 @ENABLE_FPE@)
+set(AMReX_PIC_FOUND                 @ENABLE_PIC@)
+set(AMReX_ASSERTIONS_FOUND          @ENABLE_ASSERTIONS@)
 
 # Profiling options
-set(AMREX_ENABLE_BASE_PROFILE       @ENABLE_BASE_PROFILE@)
-set(AMREX_ENABLE_TINY_PROFILE       @ENABLE_TINY_PROFILE@)
-set(AMREX_ENABLE_TRACE_PROFILE      @ENABLE_TRACE_PROFILE@)
-set(AMREX_ENABLE_MEM_PROFILE        @ENABLE_MEM_PROFILE@)
-set(AMREX_ENABLE_COMM_PROFILE       @ENABLE_COMM_PROFILE@)
-set(AMREX_ENABLE_BACKTRACE          @ENABLE_BACKTRACE@)
-set(AMREX_ENABLE_PROFPARSER         @ENABLE_PROFPARSER@)
-
-# SUNDIALS support
-set(AMREX_ENABLE_SUNDIALS           @ENABLE_SUNDIALS@)
-
-# Conduit and Ascent
-set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
-set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
-
-# HYPRE
-set(AMREX_ENABLE_HYPRE              @ENABLE_HYPRE@)
+set(AMReX_BASEP_FOUND               @ENABLE_BASE_PROFILE@)
+set(AMReX_TINYP_FOUND               @ENABLE_TINY_PROFILE@)
+set(AMReX_TRACEP_FOUND              @ENABLE_TRACE_PROFILE@)
+set(AMReX_MEMP_FOUND                @ENABLE_MEM_PROFILE@)
+set(AMReX_COMMP_FOUND               @ENABLE_COMM_PROFILE@)
+set(AMReX_BACKTRACE_FOUND           @ENABLE_BACKTRACE@)
+set(AMReX_PROFPARSER_FOUND          @ENABLE_PROFPARSER@)
 
 # 
 # Find dependencies if needed
 #
-if (AMREX_ENABLE_MPI)
+if (@ENABLE_MPI@)
    set( _mpi_components "C" )
-   if (AMREX_ENABLE_FORTRAN_INTERFACES)
+   if (@ENABLE_FORTRAN_INTERFACES@)
          set( _mpi_components "${_mpi_components} Fortran" )
    endif ()
    find_dependency(MPI REQUIRED ${_mpi_components})
    unset(_mpi_components)
 endif()
 
-if (AMREX_ENABLE_OMP)
+if (@ENABLE_OMP@)
    find_dependency(OpenMP REQUIRED)
 endif ()
 
 
-if (AMREX_ENABLE_SUNDIALS)
+if (@ENABLE_SUNDIALS@)
    find_dependency(SUNDIALS 4 COMPONENTS nvecserial cvode arkode REQUIRED )
 endif ()
 
-if (AMREX_ENABLE_SENSEI_INSITU)
+if (@ENABLE_SENSEI_INSITU@)
    find_dependency(SENSEI REQUIRED)
 endif ()
 
-if (AMREX_ENABLE_CONDUIT)
+if (@ENABLE_CONDUIT@)
    find_dependency(Conduit REQUIRED)
-   if (ENABLE_AMREX_ASCENT)
+   if (@ENABLE_ASCENT@)
       find_dependency(Ascent REQUIRED)     
    endif ()
 endif ()
 
-if (AMREX_ENABLE_HYPRE)
+if (@ENABLE_HYPRE@)
    find_dependency(HYPRE 2.15 REQUIRED)
 endif ()
 
 #
 # CUDA
 # 
-if (AMREX_ENABLE_CUDA)
-   # Ensure app code uses the same host compiler and flags used to
-   # build amrex.
-   macro (setup_cuda)
-      message(STATUS "Setting CUDA host compiler to @CMAKE_CUDA_HOST_COMPILER@")
-      set(CMAKE_CUDA_HOST_COMPILER @CMAKE_CUDA_HOST_COMPILER@)
-      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} @CMAKE_CUDA_FLAGS@")
-      enable_language(CUDA)
-   endmacro ()
+if (@ENABLE_CUDA@)
+   include(AMReX_SetupCUDA)
 endif ()
 
-# This two lines are suggested on the internet
-# include("${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake")
-# check_required_components("@PROJECT_NAME@")
+
+#include("${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake")
 include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
 
 #
-# Add utility to print imported options if user wants to
-# 
-function ( echo_amrex_option var )
-   message ( STATUS "    ${var} = ${${var}}")
-endfunction ()
-
-function ( echo_amrex_config_options )
-
-   message (STATUS "AMReX configuration options: ")
-   
-   # General options
-   echo_amrex_option( AMREX_DIM   )
-   echo_amrex_option( AMREX_ENABLE_PIC  )
-   echo_amrex_option( AMREX_ENABLE_MPI  )
-   echo_amrex_option( AMREX_ENABLE_OMP  )
-   echo_amrex_option( AMREX_ENABLE_DP   )
-
-   # Components selection
-   echo_amrex_option( AMREX_ENABLE_EB )
-   echo_amrex_option( AMREX_ENABLE_FORTRAN_INTERFACES )
-   echo_amrex_option( AMREX_ENABLE_LINEAR_SOLVERS     )
-   echo_amrex_option( AMREX_ENABLE_AMRDATA            )
-   echo_amrex_option( AMREX_ENABLE_PARTICLES          )
-   
-   if (AMREX_ENABLE_PARTICLES)
-      echo_amrex_option( AMREX_ENABLE_DP_PARTICLES    )
-   endif ()
-   
-   # Compilation options 
-   echo_amrex_option( AMREX_ENABLE_FPE        )
-   echo_amrex_option( AMREX_ENABLE_ASSERTIONS )
-
-   # Profiling options
-   echo_amrex_option( AMREX_ENABLE_BASE_PROFILE   )
-   echo_amrex_option( AMREX_ENABLE_TINY_PROFILE   )
-   echo_amrex_option( AMREX_ENABLE_TRACE_PROFILE  )
-   echo_amrex_option( AMREX_ENABLE_MEM_PROFILE    )
-   echo_amrex_option( AMREX_ENABLE_COMM_PROFILE   )
-   echo_amrex_option( AMREX_ENABLE_BACKTRACE      )
-   echo_amrex_option( AMREX_ENABLE_PROFPARSER     )
-   
-endfunction ()
+# Check components 
+#
+check_required_components("@PROJECT_NAME@")
+#check_required_components(AMReX)

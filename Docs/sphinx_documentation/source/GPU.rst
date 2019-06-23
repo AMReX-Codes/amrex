@@ -182,10 +182,10 @@ can run it and that will generate results like:
 
 Building with CMake
 -------------------
-To build AMReX with GPU support in CMake, add ``ENABLE_CUDA=YES`` to the
+To build AMReX with GPU support in CMake, add ``-DENABLE_CUDA=YES`` to the
 ``cmake`` invocation. By default, CMake will try to determine which GPU
 architecture is supported by the system. If more than one is found, CMake
-will build for all of them. This will generally results in a larger library.
+will build for all of them. This will generally results in a larger library and longer build times.
 If autodetection fails, a set of "common" architectures is assumed.
 You can specify the target architecture to build for via the configuration option
 ``-DCUDA_ARCH=<target-achitecture>``, where ``<target-architecture>`` can be either
@@ -193,15 +193,33 @@ the name of the NVIDIA GPU, i.e. ``Turing``, ``Volta``, ``Pascal``, ``...`` , or
 version number, i.e. ``10.0``, ``9.0``, ``8.0``, ``...`` .
 For example, on Cori GPUs you can specify the architecture as follows:
 
-.. highlight:: console
+.. highlight:: cmake
                
 ::
 
    cmake [options] -DENABLE_CUDA=yes -DCUDA_ARCH=Volta /path/to/amrex/source
    
 
-Note that AMReX only supports GPU architectures with version number ``6.0`` or higher. 
+Note that AMReX only supports GPU architectures with version number ``6.0`` or higher.
 
+
+In order to import CUDA-enabled AMReX into your CMake project, you need to include
+the following code into the appropriate CMakeLists.txt file:
+
+.. highlight:: console
+               
+::
+
+   # Find CUDA-enabled AMReX installation
+   find_package(AMReX REQUIRED CUDA)
+
+   # Add custom CUDA flags
+   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}  <your-CUDA-flags>")
+
+
+The snippet of code above will find a CUDA-enabled installation of AMReX and setup
+the CUDA support in the host project CMake via the AMReX-provided macro ``setup_cuda()``.
+The host project should **not call directly** ``enable_language(CUDA)``.
 
 
 

@@ -28,12 +28,6 @@ set_target_properties( ${EXENAME}
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}
-   # LINK_FLAGS
-   # "-Wl,--warn-unresolved-symbols"
-   CXX_STANDARD 14               # Adds -std=c++14
-   CXX_STANDARD_REQUIRED ON
-   CUDA_STANDARD 14               # Adds -std=c++14
-   CUDA_STANDARD_REQUIRED ON
    CUDA_SEPARABLE_COMPILATION ON  # This add -dc flag
    )
 

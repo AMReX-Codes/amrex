@@ -318,20 +318,7 @@ customization of the build, as described in the subsection on
 :ref:`sec:build:cmake:options`. If the option ``CMAKE_BUILD_TYPE`` is omitted,
 ``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
 build directory, we advise against doing so.  After the installation is
-complete, builddir can be removed.
-
-
-Cmake and macOS
----------------
-
-You can also specify your own compiler in cmake using the
-``-DCMAKE_C_COMPILER`` and ``-DCMAKE_CXX_COMPILER`` options. While not strictly
-necessary when using homebrew on macOS, it is highly recommended that the user
-specifies ``-DCMAKE_C_COMPILER=$(which gcc-X) -DCMAKE_CXX_COMPILER=$(which
-g++-X)`` (where X is the GCC version installed by homebrew) when using
-gfortran. This is because homebrew's cmake defaults to the clang c/c++
-compiler. Normaly clang plays well with gfortran, but if there are some issues,
-we recommend telling cmake to use gcc for c/c++ also.
+complete, ``builddir`` can be removed.
 
 
 .. _sec:build:cmake:options:
@@ -350,12 +337,12 @@ For example, one can enable OpenMP support as follows:
 
     cmake -DENABLE_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
-In the example above ``<var>=ENABLE_OMP`` and ``<value>=ON``.
+In the example above ``<var>=ENABLE_OMP`` and ``<value>=YES``.
 Configuration variables requiring a boolen value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
-The list of available option is reported in the table on :ref:`tab:cmakevar`
+The list of available options is reported in the table on :ref:`tab:cmakevar`
 below.
 
 
@@ -370,6 +357,10 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
+   | CMAKE_Fortran_COMPILER       |  User-defined Fortran compiler                  |             | user-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | CMAKE_CXX_COMPILER           |  User-defined C++ compiler                      |             | user-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+   
    | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |   
@@ -402,7 +393,9 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_AMRDATA               |  Build data services                            | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_PARTICLES             |  Build particle classes                         | NO          | YES NO          |
+   | ENABLE_EB                    |  Build Embedded Boundary support                | NO          | YES, NO         |   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_PARTICLES             |  Build particle classes                         | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_DP_PARTICLES          |  Use double-precision reals in particle classes | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -420,9 +413,9 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_BACKTRACE             |  Build with backtrace support                   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | NO          | YES,NO          |
+   | ENABLE_FPE                   |  Build with Floating Point Exceptions checks    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES,NO          |
+   | ENABLE_ASSERTIONS            |  Build with assertions turned on                | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_SUNDIALS              |  Enable SUNDIALS 4 interfaces                   | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -446,6 +439,11 @@ The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=YES``. In order
 assertions in debug mode, ``ENABLE_ASSERTION=NO`` must be set explicitly while
 invoking CMake.
 
+
+The ``CMAKE_C_COMPILER``, ``CMAKE_CXX_COMPILER``, and  ``CMAKE_Fortran_COMPILER`` options
+are used to tell CMake which compiler to use for the compilation of C, C++, and Fortran sources
+respectively. If those options are not set by the user, CMake will use the system default compilers.
+
 The options ``CMAKE_Fortran_FLAGS`` and ``CMAKE_CXX_FLAGS`` allow the user to
 set his own compilation flags for Fortran and C++ source files respectively.
 If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
@@ -453,38 +451,182 @@ they will be initialized with the value of the environmental variables ``FFLAGS`
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
 are defined, AMReX default flags are used.
 
-For a detailed explanation of CUDA support in CMake, refer to section :ref:`sec:gpu:build`.
+For a detailed explanation of CUDA support in AMReX CMake, refer to section :ref:`sec:gpu:build`.
+
+
+
+CMake and macOS
+---------------
+
+While not strictly necessary when using homebrew on macOS, it is highly
+recommended that the user specifies ``-DCMAKE_C_COMPILER=$(which gcc-X) -DCMAKE_CXX_COMPILER=$(which
+g++-X)`` (where X is the GCC version installed by homebrew) when using
+gfortran. This is because homebrew's CMake defaults to the Clang C/C++
+compiler. Normally Clang plays well with gfortran, but if there are some issues,
+we recommend telling CMake to use gcc for C/C++ also.
 
 .. _sec:build:cmake:config:
 
 Importing AMReX into your CMake project
 --------------------------------------------------
 
-In order to import the AMReX library into your CMake project, you need
+In order to import AMReX into your CMake project, you need
 to include the following line in the appropriate CMakeLists.txt file:
 
 .. highlight:: cmake
 
 ::
 
-    find_package(AMReX 18 [REQUIRED])
+    find_package(AMReX)
 
-    
-To specify a search path for the AMReX library, set the environmental variable
-``AMReX_ROOT`` to point to the AMReX installation directory or add
-``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation for your 
-project. More details on how CMake search for external packages can be find 
-`here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
-In the above snippet, ``18`` refer to the minimum AMReX version supporting
-the import feature discussed here. 
-Linking AMReX to any target defined in your CMake project is done by including
-the following line in the appropriate CMakeLists.txt file
+
+Calls to ``find_package(AMReX)`` will find a valid installation of AMReX, if present,
+and import its settings and targets into your CMake project.
+Imported AMReX targets can be linked to any of your targets, after they have been made available
+following a successful call to ``find_package(AMReX)``, by including
+the following line in the appropriate CMakeLists.txt file:
 
 .. highlight:: cmake
 
 ::
 
-    target_link_libraries( <your-target-name>  AMReX::amrex )
+    target_link_libraries( <your-target-name>  AMReX::<amrex-target-name> )
 
-The above snippet will take care of properly linking ``<your-target-name>``
-to AMReX and to all the required transitive dependencies.
+    
+In the above snippet, ``<amrex-target-name>`` is any of the targets listed in the table below.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:cmaketargets:
+
+.. table:: AMReX targets available for import. 
+
+   +-----------------------+-------------------------------------------------+
+   | Target name           | Description                                     |
+   +=======================+=================================================+
+   | amrex                 |  AMReX library                                  |
+   +-----------------------+-------------------------------------------------+
+   | Flags_CXX             |  C++ flags preset (interface)                   |
+   +-----------------------+-------------------------------------------------+
+   | Flags_Fortran         |  Fortran flags preset (interface)               |
+   +-----------------------+-------------------------------------------------+
+   | Flags_FPE             |  Floating Point Exception flags (interface)     |
+   +-----------------------+-------------------------------------------------+   
+.. raw:: latex
+
+   \end{center}
+
+
+The options used to configure the AMReX build may result in certain parts, or ``components``, of the AMReX source code
+to be excluded from compilation. For example, setting ``-DENABLE_LINEAR_SOLVERS=no`` at configure time
+prevents the compilation of AMReX linear solvers code. 
+Your CMake project can check which component is included in the AMReX library via `find_package`:
+
+
+.. highlight:: cmake
+
+::
+
+    find_package(AMReX REQUIRED <components-list>)
+
+    
+The keyword ``REQUIRED`` in the snippet above will cause a fatal error if AMReX is not found, or
+if it is found but the components listed in ``<components-list>`` are not include in the installation.
+A list of AMReX component names and related configure options are shown in the table below.
+  
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _tab:cmakecomponents:
+
+.. table:: AMReX components.   
+
+   +------------------------------+-----------------+
+   | Option                       | Component       |
+   +==============================+=================+
+   | DIM                          | 1D, 2D, 3D      |
+   +------------------------------+-----------------+   
+   | ENABLE_DP                    | DP              |
+   +------------------------------+-----------------+
+   | ENABLE_PIC                   | PIC             |
+   +------------------------------+-----------------+
+   | ENABLE_MPI                   | MPI             |
+   +------------------------------+-----------------+
+   | ENABLE_OMP                   | OMP             |
+   +------------------------------+-----------------+
+   | ENABLE_CUDA                  | CUDA            |
+   +------------------------------+-----------------+
+   | ENABLE_FORTRAN_INTERFACES    | FINTERFACES     |
+   +------------------------------+-----------------+
+   | ENABLE_LINEAR_SOLVERS        | LSOLVERS        |
+   +------------------------------+-----------------+
+   | ENABLE_AMRDATA               | AMRDATA         |
+   +------------------------------+-----------------+
+   | ENABLE_EB                    | EB              |   
+   +------------------------------+-----------------+
+   | ENABLE_PARTICLES             | PARTICLES       |
+   +------------------------------+-----------------+
+   | ENABLE_DP_PARTICLES          | DPARTICLES      |
+   +------------------------------+-----------------+
+   | ENABLE_BASE_PROFILE          | BASEP           |
+   +------------------------------+-----------------+
+   | ENABLE_TINY_PROFILE          | TINYP           |
+   +------------------------------+-----------------+
+   | ENABLE_TRACE_PROFILE         | TRACEP          |
+   +------------------------------+-----------------+
+   | ENABLE_COMM_PROFILE          | COMMP           |
+   +------------------------------+-----------------+
+   | ENABLE_MEM_PROFILE           | MEMP            |
+   +------------------------------+-----------------+
+   | ENABLE_PROFPARSER            | PROFPARSER      |
+   +------------------------------+-----------------+
+   | ENABLE_BACKTRACE             | BACKTRACE       |
+   +------------------------------+-----------------+
+   | ENABLE_FPE                   | FPE             |
+   +------------------------------+-----------------+
+   | ENABLE_ASSERTIONS            | ASSERTIONS      |
+   +------------------------------+-----------------+
+   | ENABLE_SUNDIALS              | SUNDIALS        |
+   +------------------------------+-----------------+
+   | ENABLE_SENSEI_IN_SITU        | SENSEI          |
+   +------------------------------+-----------------+
+   | ENABLE_CONDUIT               | CONDUIT         |
+   +------------------------------+-----------------+
+   | ENABLE_ASCENT                | ASCENT          |
+   +------------------------------+-----------------+
+   | ENABLE_HYPRE                 | HYPRE           |
+   +------------------------------+-----------------+ 
+   
+As an example, consider the following CMake code:
+
+
+.. highlight:: cmake
+
+::
+
+    find_package(AMReX REQUIRED 3D EB)
+    target_link_libraries( Foo  AMReX::amrex AMReX::Flags_CXX )
+
+The code in the snippet above checks wheather an AMReX installation with 3D and Embedded Boundary support
+is available on the system. If so, AMReX is linked to target ``Foo`` and AMReX flags preset is used
+to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the available one was built without
+3D or Embedded Boundary support, a fatal error is issued.
+
+
+..
+   It will fail if
+   it cannot find any, or if the available one was not built with 3D and Embedded Boudary support.
+   If AMReX is found, it will then link AMReX to target ``Foo`` and use the AMReX flags preset
+   to compile ``Foo``'s C++ sources.    
+
+
+You can tell CMake to look for the AMReX library in non-standard paths by setting the environmental variable
+``AMReX_ROOT`` to point to the AMReX installation directory or by adding
+``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.  
+More details on ``find_package`` can be found 
+`here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
+
