@@ -46,6 +46,10 @@ struct MFItInfo
         device_sync = false;
         return *this;
     }
+    MFItInfo& SetDeviceSync (bool f) noexcept {
+        device_sync = f;
+        return *this;
+    }
 };
 
 class MFIter
