@@ -183,10 +183,6 @@ target_sources( amrex
    AMReX_GpuDevice.cpp
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
-   AMReX_GpuAsyncFab.H
-   AMReX_GpuAsyncFab.cpp
-   AMReX_GpuAsyncFabImpl.H
-   AMReX_GpuAsyncFabImpl.cpp
    AMReX_GpuAsyncArray.H
    AMReX_GpuAsyncArray.cpp
    AMReX_GpuElixir.H

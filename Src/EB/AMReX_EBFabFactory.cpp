@@ -28,12 +28,12 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_support == EBSupport::none)
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);
+        return new FArrayBox(box, ncomps, info.alloc, info.shared, info.arena);
     }
     else
     {
         const EBCellFlagFab& ebcellflag = m_ebdc->getMultiEBCellFlagFab()[box_index];
-        return new EBFArrayBox(ebcellflag, box, ncomps);
+        return new EBFArrayBox(ebcellflag, box, ncomps, info.arena);
     }
 }
 

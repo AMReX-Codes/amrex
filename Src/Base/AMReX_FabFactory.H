@@ -6,6 +6,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_Vector.H>
+#include <AMReX_Arena.H>
 
 namespace amrex
 {
@@ -24,6 +25,7 @@ struct FabInfo
 {
     bool alloc = true;
     bool shared = false;
+    Arena* arena = nullptr;
 
     FabInfo& SetAlloc (bool a) noexcept {
         alloc = a;
@@ -32,6 +34,11 @@ struct FabInfo
 
     FabInfo& SetShared (bool s) noexcept {
         shared = s;
+        return *this;
+    }
+
+    FabInfo& SetArena (Arena* ar) noexcept {
+        arena = ar;
         return *this;
     }
 };
@@ -53,7 +60,7 @@ class DefaultFabFactory
 public:
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
     {
-        return new FAB(box, ncomps, info.alloc, info.shared);
+        return new FAB(box, ncomps, info.alloc, info.shared, info.arena);
     }
 
     virtual void destroy (FAB* fab) const override
