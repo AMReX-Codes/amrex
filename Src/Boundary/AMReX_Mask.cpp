@@ -6,15 +6,16 @@
 namespace amrex {
 
 Mask::Mask () noexcept
-    :
-    BaseFab<int>() {}
+    : BaseFab<int>() {}
 
-Mask::Mask (const Box& bx,
-            int        nc,
-	    bool       alloc,
-	    bool       shared)
-    :
-    BaseFab<int>(bx,nc,alloc,shared) {}
+Mask::Mask (Arena* ar) noexcept
+    : BaseFab<int>(ar) {}
+
+Mask::Mask (const Box& bx, int nc, Arena* ar)
+    : BaseFab<int>(bx,nc,ar) {}
+
+Mask::Mask (const Box& bx, int nc, bool alloc, bool shared, Arena* ar)
+    : BaseFab<int>(bx,nc,alloc,shared,ar) {}
 
 Mask::Mask (Mask const& rhs, MakeType make_type, int scomp, int ncomp)
     :

@@ -168,20 +168,22 @@ public:
     template <class U> friend class BaseFab;
 
     typedef T         value_type;
+
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab () noexcept;
+
+    explicit BaseFab (Arena* ar) noexcept;
+
+    BaseFab (const Box& bx, int n, Arena* ar);
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
-		      bool       shared = false);
+		      bool       shared = false,
+                      Arena*     ar = nullptr);
 
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
-
-#ifdef AMREX_USE_GPU
-    BaseFab (const BaseFab<T>& rhs, MakeType make_type);
-#endif
 
     /**
      * \brief Create an NON-OWNING BaseFab.  Thus BaseFab is not
@@ -1937,15 +1939,29 @@ BaseFab<T>::BaseFab () noexcept
 {}
 
 template <class T>
-BaseFab<T>::BaseFab (const Box& bx, int n, bool alloc, bool shared)
-    : domain(bx), nvar(n), shared_memory(shared)
+BaseFab<T>::BaseFab (Arena* ar) noexcept
+    : DataAllocator{ar}
+{}
+
+template <class T>
+BaseFab<T>::BaseFab (const Box& bx, int n, Arena* ar)
+    : DataAllocator{ar}, domain(bx), nvar(n)
+{
+    define();
+}
+
+template <class T>
+BaseFab<T>::BaseFab (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
+    : DataAllocator{ar}, domain(bx), nvar(n), shared_memory(shared)
 {
     if (!this->shared_memory && alloc) define();
 }
 
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
-    : dptr(const_cast<T*>(rhs.dataPtr(scomp))), domain(rhs.domain), nvar(ncomp),
+    : DataAllocator{rhs.arena()}, 
+      dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+      domain(rhs.domain), nvar(ncomp),
       truesize(ncomp*rhs.domain.numPts())
 {
     AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
@@ -2009,7 +2025,9 @@ BaseFab<T>::~BaseFab () noexcept
 
 template <class T>
 BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
-    : dptr(rhs.dptr), domain(rhs.domain), nvar(rhs.nvar), truesize(rhs.truesize),
+    : DataAllocator{rhs.arena()},
+      dptr(rhs.dptr), domain(rhs.domain),
+      nvar(rhs.nvar), truesize(rhs.truesize),
       ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
 {
     rhs.dptr = nullptr;

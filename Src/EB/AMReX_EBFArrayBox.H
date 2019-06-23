@@ -12,7 +12,8 @@ class EBFArrayBox
 {
 public:
     EBFArrayBox ();
-    EBFArrayBox (const EBCellFlagFab& ebcellflag, const Box& box, int ncomps);
+    EBFArrayBox (Arena* ar);
+    EBFArrayBox (const EBCellFlagFab& ebcellflag, const Box& box, int ncomps, Arena* ar);
     EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type, int scomp, int ncomp);
 
     EBFArrayBox (EBFArrayBox&& rhs) noexcept = default;

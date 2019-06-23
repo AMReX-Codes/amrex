@@ -13,21 +13,25 @@ namespace amrex {
 
 TagBox::TagBox () noexcept {}
 
-TagBox::TagBox (const Box& bx,
-                int        n,
-                bool       alloc,
-		bool       shared)
-    :
-    BaseFab<TagBox::TagType>(bx,n,alloc,shared)
+TagBox::TagBox (Arena* ar) noexcept
+    : BaseFab<TagBox::TagType>(ar)
+{}
+
+TagBox::TagBox (const Box& bx, int n, Arena* ar)
+    : BaseFab<TagBox::TagType>(bx,n,ar)
+{
+    setVal(TagBox::CLEAR);
+}
+
+TagBox::TagBox (const Box& bx, int n, bool alloc, bool shared, Arena* ar)
+    : BaseFab<TagBox::TagType>(bx,n,alloc,shared,ar)
 {
     if (alloc) setVal(TagBox::CLEAR);
 }
 
 TagBox::TagBox (const TagBox& rhs, MakeType make_type, int scomp, int ncomp)
-    :
-    BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
-{
-}
+    : BaseFab<TagBox::TagType>(rhs,make_type,scomp,ncomp)
+{}
 
 void
 TagBox::coarsen (const IntVect& ratio) noexcept
