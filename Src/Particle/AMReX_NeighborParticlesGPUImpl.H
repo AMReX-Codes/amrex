@@ -565,45 +565,106 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
 
+        std::map<int, size_t> new_sizes;
+        std::vector<int> grid_ids;
+        std::vector<size_t> start_indices;
+        std::vector<size_t> copy_sizes;
+        std::vector<char*> buffer_locs;
+        size_t num_grids;
+
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
-            size_t num_grids, num_particles;
+            size_t num_particles;
             int gid, pid;
-            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyHostToHost);
+            std::memcpy(&num_grids, buffer, sizeof(size_t));
             buffer += sizeof(size_t);
 
             for (int g = 0; g < num_grids; ++g) {
-                cudaMemcpyAsync(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
+                std::memcpy(&num_particles, buffer, sizeof(size_t));
                 buffer += sizeof(size_t);
-                cudaMemcpyAsync(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
+                std::memcpy(&gid, buffer, sizeof(int));
                 buffer += sizeof(int);
-                cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
+                std::memcpy(&pid, buffer, sizeof(int));
                 buffer += sizeof(int);
 
-                Gpu::streamSynchronize();
+                const int tid = 0;
+                auto pair_index = std::make_pair(gid, tid);
+                auto& ptile = this->GetParticles(lev)[pair_index];
+                const int nRParticles = ptile.numRealParticles();                
+                const int nNParticles = ptile.getNumNeighbors();
+                const int new_num_neighbors = nNParticles + num_particles;
 
-                if (num_particles == 0) continue;
+                new_sizes[gid] = new_num_neighbors;
 
-                AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
-                {
-                    const int tid = 0;
-                    auto pair_index = std::make_pair(gid, tid);
-                    auto& ptile = this->GetParticles(lev)[pair_index];
-                    const int nRParticles = ptile.numRealParticles();
-                    const int nNParticles = ptile.getNumNeighbors();
-                    const int new_num_neighbors = nNParticles + num_particles;
-                    ptile.setNumNeighbors(new_num_neighbors);
+                start_indices.push_back(nRParticles + nNParticles);
+                copy_sizes.push_back(new_num_neighbors);
+                grid_ids.push_back(gid);
+                buffer_locs.push_back(buffer);
 
-                    //copy structs
-                    auto& aos = ptile.GetArrayOfStructs();
-                    cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + nRParticles + nNParticles,
-                                    buffer, num_particles*sizeof(ParticleType),
-                                    cudaMemcpyHostToDevice);
-                    buffer += num_particles*sizeof(ParticleType);
-                }
+                buffer += num_particles*sizeof(ParticleType);
             }
         }
+
+        for (auto& kv : new_sizes)
+        {
+            const int tid = 0;
+            const int gid = kv.first;
+            auto pair_index = std::make_pair(gid, tid);
+            auto& ptile = this->GetParticles(lev)[pair_index];
+            ptile.setNumNeighbors(kv.second);
+        }
+
+        for (int i = 0; i < static_cast<int>(start_indices.size()); ++i)
+        {
+            Gpu::Device::setStreamIndex(i);
+            const int tid = 0;
+            auto pair_index = std::make_pair(grid_ids[i], tid);
+            auto& ptile = this->GetParticles(lev)[pair_index];
+            auto& aos = ptile.GetArrayOfStructs();
+            cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + start_indices[i],
+                            buffer_locs[i], copy_sizes[i]*sizeof(ParticleType),
+                            cudaMemcpyHostToDevice);
+        }
+
+        // for (int i = 0; i < nrcvs; ++i) {
+        //     const int offset = rOffset[i];
+        //     char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
+        //     size_t num_particles;
+        //     int gid, pid;
+        //     buffer += sizeof(size_t);
+
+        //     for (int g = 0; g < num_grids; ++g) {
+        //         cudaMemcpyAsync(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
+        //         buffer += sizeof(size_t);
+        //         cudaMemcpyAsync(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
+        //         buffer += sizeof(int);
+        //         cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
+        //         buffer += sizeof(int);
+
+        //         Gpu::streamSynchronize();
+
+        //         if (num_particles == 0) continue;
+
+        //         AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
+        //         {
+        //             const int tid = 0;
+        //             auto pair_index = std::make_pair(gid, tid);
+        //             auto& ptile = this->GetParticles(lev)[pair_index];
+        //             const int nRParticles = ptile.numRealParticles();
+        //             const int nNParticles = ptile.getNumNeighbors();
+        //             const int new_num_neighbors = nNParticles + num_particles;
+        //             ptile.setNumNeighbors(new_num_neighbors);
+
+        //             //copy structs
+        //             auto& aos = ptile.GetArrayOfStructs();
+        //             cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + nRParticles + nNParticles,
+        //                             buffer, num_particles*sizeof(ParticleType),
+        //                             cudaMemcpyHostToDevice);
+        //             buffer += num_particles*sizeof(ParticleType);
+        //         }
+        //     }
+        // }
     }
 
     if (ParallelDescriptor::UseGpuAwareMpi())
