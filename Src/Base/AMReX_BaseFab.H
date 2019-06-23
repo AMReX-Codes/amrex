@@ -247,6 +247,10 @@ public:
     AMREX_GPU_HOST_DEVICE
     std::size_t nBytes () const noexcept { return this->truesize*sizeof(T); }
 
+    std::size_t nBytesOwned () const noexcept {
+        return (this->ptr_owner) ? nBytes() : 0;
+    }
+
     static bool preAllocatable () noexcept { return true; }
 
     static bool isCopyOMPSafe () noexcept { return true; }
