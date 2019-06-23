@@ -424,14 +424,22 @@ updateNeighborsGPU ()
 
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
-                        if (this->Geom(lev).isAnyPeriodic()) {
-                            thrust::transform(thrust::device, 
-                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst)),
-                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst) + num_to_add),
-                                              thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst)),
-                                              functors::periodicTransformation(this->Geom(lev).data(),
-                                                                               dst_code.periodic_shift));
-                        }
+                        if (this->Geom(lev).isAnyPeriodic())
+                        {
+                            auto pstruct = thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst));
+                            auto pshift = dst_code.periodic_shift;
+                            AMREX_FOR_1D ( num_to_add, ip,
+                            {
+                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                                {
+                                    if (not is_per[idim]) continue;
+                                    if (pshift[idim] > 0) 
+                                        pstruct[ip].pos(idim) += phi[idim] - plo[idim]; 
+                                    else if (pshift[idim] < 0)
+                                        pstruct[ip].pos(idim) -= phi[idim] - plo[idim];
+                                }
+                            });
+                        }                        
                         dst += num_to_add*sizeof(ParticleType);
                     }
                 }
