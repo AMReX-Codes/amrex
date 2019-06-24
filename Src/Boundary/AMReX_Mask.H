@@ -28,23 +28,17 @@ class Mask
 {
 public:
 
-    /**
-    * \brief default constructor
-    */
     Mask () noexcept;
 
-    /**
-    * \brief allocating constructor (nc=number of components)
-    *
-    * \param bx
-    * \param nc
-    * \param alloc
-    * \param shared
-    */
+    explicit Mask (Arena* ar) noexcept;
+
+    Mask (const Box& bx, int nc, Arena* ar);
+
     explicit Mask (const Box& bx,
 		   int        nc = 1,
 		   bool       alloc=true,
-		   bool       shared=false);
+		   bool       shared=false,
+                   Arena*     ar = nullptr);
 
     /**
     * \brief construct from input stream

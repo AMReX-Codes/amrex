@@ -474,7 +474,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     DistributionMapping::Initialize();
     FArrayBox::Initialize();
     IArrayBox::Initialize();
-    Gpu::AsyncFab::Initialize();
     FabArrayBase::Initialize();
     MultiFab::Initialize();
     iMultiFab::Initialize();

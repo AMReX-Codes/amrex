@@ -214,10 +214,15 @@ class EBCellFlagFab
 {
 public:
 
+    explicit EBCellFlagFab (Arena* ar) noexcept;
+
+    explicit EBCellFlagFab (const Box& b, int ncomp, Arena* ar);
+
     explicit EBCellFlagFab (const Box& b,
                             int        ncomp=1,
                             bool       alloc=true,
-                            bool       shared=false);
+                            bool       shared=false,
+                            Arena*     ar = nullptr);
 
     EBCellFlagFab (const EBCellFlagFab& rhs, MakeType make_type, int scomp, int ncomp);
 
