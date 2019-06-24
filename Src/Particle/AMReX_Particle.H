@@ -582,8 +582,8 @@ Particle<NReal, NInt>::InterpDoit (const FArrayBox& fab,
 template <int NReal, int NInt>
 Real
 Particle<NReal, NInt>::InterpDoit (const FArrayBox& fab,
-			      const Real*      fracs,
-			      const IntVect*   cells,
+				   const Real*      fracs, //ecell
+				   const IntVect*   cells,    //efrac
 			      int              comp)
 {
     BL_PROFILE("Particle<NReal, NInt>::InterpDoit(ffcc)");
