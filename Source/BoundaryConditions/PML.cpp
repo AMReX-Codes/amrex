@@ -26,6 +26,9 @@ namespace
         int sslo = sigma_star.m_lo;
         Real cumsum = 0.;
         Real x = 10.0;
+        Real theta = 90.0;
+        Real coeff_v = std::sin(theta*MathConst::pi/180.);
+
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(glo-i);
@@ -35,7 +38,7 @@ namespace
         for (int j = olo; j <= ohi; ++j)
         {
             int i = -j + (ohi+olo);
-            cumsum = cumsum + sigma[i+1-slo]/(PhysConst::c*x/std::sqrt(1+x*x));
+            cumsum = cumsum + sigma[i+1-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
             sigma_cum[i-slo] = cumsum;
         }
 
@@ -57,11 +60,14 @@ namespace
         int sslo = sigma_star.m_lo;
         Real cumsum = 0.;
         Real x = 10.0;
+        Real theta = 90.0;
+        Real coeff_v = std::sin(theta*MathConst::pi/180.);
+
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            cumsum = cumsum+sigma[i-slo]/(PhysConst::c*x/std::sqrt(1+x*x));
+            cumsum = cumsum+sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
             if (i<=ohi){
               sigma_cum[i-slo] = cumsum;
             }

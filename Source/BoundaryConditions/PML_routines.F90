@@ -457,9 +457,19 @@ contains
     do    k = xlo(2), xhi(2)
        do i = xlo(1), xhi(1)
           if (flag==1) then
+            ! Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+            !      &                        -By(i,k-1,1)-By(i,k-1,2))&
+            !      &                        - mudt  * jx(i,k)
+            ! Ex(i,k,1) = Ex(i,k,1) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+            !      &                        -By(i,k-1,1)-By(i,k-1,2))
+            !
+            ! Ex(i,k,2) = Ex(i,k,2) - mudt  * jx(i,k)
+
             Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-                 &                        -By(i,k-1,1)-By(i,k-1,2))&
-                 &                        - mudt  * jx(i,k)
+                 &                        -By(i,k-1,1)-By(i,k-1,2)) ! Exz
+
+            Ex(i,k,1) = Ex(i,k,1) - mudt  * jx(i,k) ! Exy
+
           else
             Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
                  &                        -By(i,k-1,1)-By(i,k-1,2))
@@ -856,6 +866,7 @@ contains
 
     do    k = texlo(2), texhi(2)
        do i = texlo(1), texhi(1)
+          ! ex(i,k,1) = ex(i,k,1) * sigez(k) !No damping for Exy
           ex(i,k,2) = ex(i,k,2) * sigez(k)
           ex(i,k,3) = ex(i,k,3) * sigcx(i)
        end do
@@ -913,7 +924,7 @@ contains
 
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * sigjx(i) !sigjz(k)
+          jx(i,k) = jx(i,k) * minval((/sigjx(i),sigjz(k)/))  !sigjx(k)
        end do
     end do
 
@@ -925,7 +936,7 @@ contains
 
     do    k = tjzlo(2), tjzhi(2)
        do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * sigjz(k) !sigjx(k)
+          jz(i,k) = jz(i,k) * minval((/sigjx(i),sigjz(k)/)) !sigjz(k)
        end do
     end do
 
