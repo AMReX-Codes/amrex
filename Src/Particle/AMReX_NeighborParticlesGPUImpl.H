@@ -270,8 +270,7 @@ updateNeighborsGPU ()
     
     if (ba.size() == 1 and (not this->Geom(lev).isAnyPeriodic()) ) return;
 
-    std::map<int, Gpu::DeviceVector<char> > not_ours;
-    std::map<int, SendBuffer> send_buffer;
+    std::map<int, SendBuffer> not_ours;
     std::map<int, size_t> grid_counts;
     std::map<int, size_t> num_to_add_local;
     std::map<int, size_t> num_to_add_remote;
@@ -393,8 +392,8 @@ updateNeighborsGPU ()
                     if (old_size == 0)
                     {
                         remote_offset[dest_proc] = new_size + sizeof(size_t);
-                        cudaMemcpyAsync(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
-                                        &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                        std::memcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
+                                    &grid_counts[dest_proc], sizeof(size_t));
                         dst = thrust::raw_pointer_cast(
                             not_ours[dest_proc].data() + old_size + sizeof(size_t));
                     } else
@@ -403,16 +402,13 @@ updateNeighborsGPU ()
                         dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
                     }
                     
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                    &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
+                    std::memcpy(thrust::raw_pointer_cast(dst), &num_to_add, sizeof(size_t));
                     dst += sizeof(size_t);
                     
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &dst_grid, sizeof(int), 
-                                    cudaMemcpyHostToDevice);
+                    std::memcpy(thrust::raw_pointer_cast(dst), &dst_grid, sizeof(int));
                     dst += sizeof(int);
                     
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                    &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
+                    std::memcpy(thrust::raw_pointer_cast(dst), &dest_proc, sizeof(int));
                     dst += sizeof(int);
                     
                     // pack structs
@@ -420,7 +416,7 @@ updateNeighborsGPU ()
                         auto& aos = src_ptile.GetArrayOfStructs();
                         cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
                                         thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
-                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
 
                         // apply periodic shift so that a naive distance calculation returns
                         // the shortest distance between real and neighbor particles
@@ -428,7 +424,8 @@ updateNeighborsGPU ()
                         {
                             auto pstruct = thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst));
                             auto pshift = dst_code.periodic_shift;
-                            AMREX_FOR_1D ( num_to_add, ip,
+                            //                            AMREX_FOR_1D ( num_to_add, ip,
+                            for (int ip = 0; ip < num_to_add; ++ip)
                             {
                                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                                 {
@@ -438,7 +435,8 @@ updateNeighborsGPU ()
                                     else if (pshift[idim] < 0)
                                         pstruct[ip].pos(idim) -= phi[idim] - plo[idim];
                                 }
-                            });
+                            }
+                            //                            });
                         }                        
                         dst += num_to_add*sizeof(ParticleType);
                     }
@@ -447,17 +445,11 @@ updateNeighborsGPU ()
         }
     }
     
-    for (auto& kv : not_ours)
-    {
-        send_buffer[kv.first].resize(kv.second.size());
-        thrust::copy(kv.second.begin(), kv.second.end(), send_buffer[kv.first].begin());
-    }
-
     if (ParallelDescriptor::NProcs() == 1) {
-        BL_ASSERT(send_buffer.empty());
+        BL_ASSERT(not_ours.empty());
     }
     else {
-        fillNeighborsMPIGPU(send_buffer);
+        fillNeighborsMPIGPU(not_ours);
     }
 }
 
