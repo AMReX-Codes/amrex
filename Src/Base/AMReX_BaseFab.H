@@ -148,14 +148,21 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 
 struct DataAllocator {
     Arena* m_arena = nullptr;
-    DataAllocator ()  noexcept = default;
+
+    AMREX_GPU_HOST_DEVICE
+    DataAllocator ()  noexcept : m_arena(nullptr) {}
+
+    AMREX_GPU_HOST_DEVICE
     DataAllocator (Arena* ar) noexcept : m_arena(ar) {}
+
     void* alloc (std::size_t sz) const noexcept {
         return arena()->alloc(sz);
     }
+
     void free (void* pt) const noexcept {
         arena()->free(pt);
     }
+
     Arena* arena () const noexcept {
         return (m_arena) ? m_arena : The_Arena();
     }
