@@ -29,9 +29,6 @@ C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp AMReX_EArena.cpp
 C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H AMReX_EArena.H
 
-C$(AMREX_BASE)_sources += AMReX_FabAllocator.cpp
-C$(AMREX_BASE)_headers += AMReX_FabAllocator.H
-
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
 C$(AMREX_BASE)_headers += AMReX_BLBackTrace.H
@@ -59,12 +56,6 @@ C$(AMREX_BASE)_headers += AMReX_GpuMemory.H AMReX_GpuRange.H
 
 C$(AMREX_BASE)_sources += AMReX_GpuDevice.cpp AMReX_GpuUtility.cpp
 C$(AMREX_BASE)_headers += AMReX_GpuDevice.H   AMReX_GpuUtility.H
-
-C$(AMREX_BASE)_headers += AMReX_GpuAsyncFab.H
-C$(AMREX_BASE)_sources += AMReX_GpuAsyncFab.cpp
-
-C$(AMREX_BASE)_headers += AMReX_GpuAsyncFabImpl.H
-C$(AMREX_BASE)_sources += AMReX_GpuAsyncFabImpl.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_GpuAsyncArray.cpp

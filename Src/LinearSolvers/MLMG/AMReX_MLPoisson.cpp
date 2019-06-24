@@ -62,6 +62,11 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
 
+#if (AMREX_SPACEDIM < 3)
+    const Real dx = m_geom[amrlev][mglev].CellSize(0);
+    const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -76,27 +81,30 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
         {
             mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
         });
-#else
-        const auto& mfac = *m_metric_factor[amrlev][mglev];
-        const auto& re = mfac.cellEdges(mfi);
-        AsyncArray<Real> aa_re(re.data(), re.size());
-        Real const* rep = aa_re.data();
-        const int rlo = mfi.validbox().smallEnd(0);
-
-#if (AMREX_SPACEDIM == 2)
-        const auto& rc = mfac.cellCenters(mfi);
-        AsyncArray<Real> aa_rc(rc.data(), rc.size());
-        Real const* rcp = aa_rc.data();
-        AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
-        {
-            mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, rcp, rep, rlo);
-        });
+#elif (AMREX_SPACEDIM == 2)
+        if (m_has_metric_term) {
+            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            {
+                mlpoisson_adotx_m(i, j, yfab, xfab, dhx, dhy, dx, probxlo);
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            {
+                mlpoisson_adotx(i, j, yfab, xfab, dhx, dhy);
+            });
+        }
 #elif (AMREX_SPACEDIM == 1)
-        AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
-        {
-            mlpoisson_adotx(i, j, k, yfab, xfab, dhx, rep, rlo);
-        });
-#endif
+        if (m_has_metric_term) {
+            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            {
+                mlpoisson_adotx_m(i, yfab, xfab, dhx, dx, probxlo);
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            {
+                mlpoisson_adotx(i, yfab, xfab, dhx);
+            });
+        }
 #endif
     }
 }
@@ -107,10 +115,14 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
+    if (!m_has_metric_term) return;
+
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     AMREX_D_TERM(const Real dhx = dxinv[0]*dxinv[0];,
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
+    const Real dx = m_geom[amrlev][mglev].CellSize(0);
+    const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -120,24 +132,15 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
         const Box& bx = mfi.tilebox();
         const auto& fab = mf.array(mfi);
 
-        const auto& mfac = *m_metric_factor[amrlev][mglev];
-        const auto& re = mfac.cellEdges(mfi);
-        AsyncArray<Real> aa_re(re.data(), re.size());
-        Real const* rep = aa_re.data();
-        const int rlo = mfi.validbox().smallEnd(0);
-
 #if (AMREX_SPACEDIM == 2)
-        const auto& rc = mfac.cellCenters(mfi);
-        AsyncArray<Real> aa_rc(rc.data(), rc.size());
-        Real const* rcp = aa_rc.data();
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, thread_box,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
-            mlpoisson_normalize(thread_box, fab, rcp, rep, rlo, dhx, dhy);
+            mlpoisson_normalize(tbx, fab, dhx, dhy, dx, probxlo);
         });
 #else
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, thread_box,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
-            mlpoisson_normalize(thread_box, fab, rep, rlo, dhx);
+            mlpoisson_normalize(tbx, fab, dhx, dx, probxlo);
         });
 #endif
     }
@@ -181,6 +184,11 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
                  const Real dhy = dxinv[1]*dxinv[1];,
                  const Real dhz = dxinv[2]*dxinv[2];);
 
+#if (AMREX_SPACEDIM < 3)
+    const Real dx = m_geom[amrlev][mglev].CellSize(0);
+    const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
+#endif
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
@@ -216,39 +224,50 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 #endif
 
-#if (AMREX_SPACEDIM != 3)
-        const auto& mfac = *m_metric_factor[amrlev][mglev];
-        const auto& re = mfac.cellEdges(mfi);
-        AsyncArray<Real> aa_re(re.data(), re.size());
-        Real const* rep = aa_re.data();
-        const int rlo = mfi.validbox().smallEnd(0);
-#endif
-
 #if (AMREX_SPACEDIM == 1)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-        {
-            mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx,
-                           f0fab, m0,
-                           f1fab, m1,
-                           vbx, redblack,
-                           rep, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb_m(thread_box, solnfab, rhsfab, dhx,
+                                 f0fab, m0,
+                                 f1fab, m1,
+                                 vbx, redblack,
+                                 dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx,
+                               f0fab, m0,
+                               f1fab, m1,
+                               vbx, redblack);
+            });
+        }
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        const auto& rc = mfac.cellCenters(mfi);
-        AsyncArray<Real> aa_rc(rc.data(), rc.size());
-        Real const* rcp = aa_rc.data();
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
-        {
-            mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy,
-                           f0fab, m0,
-                           f1fab, m1,
-                           f2fab, m2,
-                           f3fab, m3,
-                           vbx, redblack,
-                           rcp, rep, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb_m(thread_box, solnfab, rhsfab, dhx, dhy,
+                                 f0fab, m0,
+                                 f1fab, m1,
+                                 f2fab, m2,
+                                 f3fab, m3,
+                                 vbx, redblack,
+                                 dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+            {
+                mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy,
+                               f0fab, m0,
+                               f1fab, m1,
+                               f2fab, m2,
+                               f3fab, m3,
+                               vbx, redblack);
+            });
+        }
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -284,16 +303,8 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
     const auto& solarr = sol.array();
 
 #if (AMREX_SPACEDIM != 3)
-    const auto& mfac = *m_metric_factor[amrlev][mglev];
-    const auto& re = mfac.cellEdges(mfi);
-    AsyncArray<Real> aa_re(re.data(), re.size());
-    Real const* rep = aa_re.data();
-    const int rlo = m_grids[amrlev][mglev][mfi].smallEnd(0);
-#endif
-#if (AMREX_SPACEDIM == 2)
-    const auto& rc = mfac.cellCenters(mfi);
-    AsyncArray<Real> aa_rc(rc.data(), rc.size());
-    Real const* rcp = aa_rc.data();
+    const Real dx = m_geom[amrlev][mglev].CellSize(0);
+    const Real probxlo = m_geom[amrlev][mglev].ProbLo(0);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -344,47 +355,89 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
         Real fac = dxinv[0];
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-        {
-            mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen, rep, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            {
+                mlpoisson_flux_xface_m(tbox, fxarr, solarr, fac, blen, dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            {
+                mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
+            });
+        }
         fac = dxinv[1];
         blo = amrex::bdryLo(box, 1);
         blen = box.length(1);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-        {
-            mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen, rcp, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            {
+                mlpoisson_flux_yface_m(tbox, fyarr, solarr, fac, blen, dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            {
+                mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
+            });
+        }
     } else {
         Real fac = dxinv[0];
         Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-        {
-            mlpoisson_flux_x(tbox, fxarr, solarr, fac, rep, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_x_m(tbox, fxarr, solarr, fac, dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_x(tbox, fxarr, solarr, fac);
+            });
+        }
         fac = dxinv[1];
         bflux = amrex::surroundingNodes(box, 1);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-        {
-            mlpoisson_flux_y(tbox, fyarr, solarr, fac, rcp, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_y_m(tbox, fyarr, solarr, fac, dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_y(tbox, fyarr, solarr, fac);
+            });
+        }
     }
 #else
     if (face_only) {
         Real fac = dxinv[0];
         Box blo = amrex::bdryLo(box, 0);
         int blen = box.length(0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
-        {
-            mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen, rep, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            {
+                mlpoisson_flux_xface_m(tbox, fxarr, solarr, fac, blen, dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+            {
+                mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
+            });
+        }
     } else {
         Real fac = dxinv[0];
         Box bflux = amrex::surroundingNodes(box, 0);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
-        {
-            mlpoisson_flux_x(tbox, fxarr, solarr, fac, rep, rlo);
-        });
+        if (m_has_metric_term) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_x_m(tbox, fxarr, solarr, fac, dx, probxlo);
+            });
+        } else {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+            {
+                mlpoisson_flux_x(tbox, fxarr, solarr, fac);
+            });
+        }
     }
 #endif
 }

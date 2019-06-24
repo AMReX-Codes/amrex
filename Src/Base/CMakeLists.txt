@@ -52,8 +52,6 @@ target_sources( amrex
    AMReX_DArena.cpp
    AMReX_EArena.H
    AMReX_EArena.cpp
-   AMReX_FabAllocator.H
-   AMReX_FabAllocator.cpp
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -185,10 +183,6 @@ target_sources( amrex
    AMReX_GpuDevice.cpp
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
-   AMReX_GpuAsyncFab.H
-   AMReX_GpuAsyncFab.cpp
-   AMReX_GpuAsyncFabImpl.H
-   AMReX_GpuAsyncFabImpl.cpp
    AMReX_GpuAsyncArray.H
    AMReX_GpuAsyncArray.cpp
    AMReX_GpuElixir.H

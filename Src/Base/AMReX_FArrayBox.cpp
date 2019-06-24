@@ -153,25 +153,29 @@ FABio* FArrayBox::fabio = 0;
 
 FArrayBox::FArrayBox () noexcept {}
 
-FArrayBox::FArrayBox (const Box& b,
-                      int        n,
-		      bool       alloc,
-		      bool       shared)
-    :
-    BaseFab<Real>(b,n,alloc,shared)
+FArrayBox::FArrayBox (Arena* ar) noexcept
+    : BaseFab<Real>(ar)
+{}
+
+FArrayBox::FArrayBox (const Box& b, int ncomp, Arena* ar)
+    : BaseFab<Real>(b,ncomp,ar)
+{
+    initVal();
+}
+
+FArrayBox::FArrayBox (const Box& b, int n, bool alloc, bool shared, Arena* ar)
+    : BaseFab<Real>(b,n,alloc,shared,ar)
 {
     if (alloc) initVal();
 }
 
 FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
-    :
-    BaseFab<Real>(rhs,make_type,scomp,ncomp)
+    : BaseFab<Real>(rhs,make_type,scomp,ncomp)
 {
 }
 
 FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p) noexcept
-    :
-    BaseFab<Real>(b,ncomp,p)
+    : BaseFab<Real>(b,ncomp,p)
 {
 }
 
@@ -213,8 +217,7 @@ FArrayBox::initVal () noexcept
 }
 
 void
-FArrayBox::resize (const Box& b,
-                   int        N)
+FArrayBox::resize (const Box& b, int N)
 {
     BaseFab<Real>::resize(b,N);
     initVal();
@@ -618,9 +621,7 @@ FABio::read_header (std::istream& is,
 }
 
 void
-FArrayBox::writeOn (std::ostream& os,
-                    int           comp,
-                    int           num_comp) const
+FArrayBox::writeOn (std::ostream& os, int comp, int num_comp) const
 {
 //    BL_PROFILE("FArrayBox::writeOn");
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());

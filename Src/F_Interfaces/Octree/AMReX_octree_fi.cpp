@@ -199,7 +199,7 @@ extern "C" {
             const Box& bx = mfi.tilebox();
             Array4<Real> const& crsearr = lmf.array(mfi);
             const int li = li_leaf_to_full[mfi.LocalIndex()];
-            Array4<Real const> const& finearr = fine->fabHostPtrAtLocalIdx(li)->array();
+            Array4<Real const> const& finearr = fine->atLocalIdx(li).array();
             if (fgeom.IsCartesian()) {
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {

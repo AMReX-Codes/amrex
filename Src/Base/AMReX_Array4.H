@@ -134,6 +134,9 @@ namespace amrex {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        int nComp () const noexcept { return ncomp; }
+
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
         AMREX_GPU_HOST_DEVICE inline
         void index_assert (int i, int j, int k, int n) const

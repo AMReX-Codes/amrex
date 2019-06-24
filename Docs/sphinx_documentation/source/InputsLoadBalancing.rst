@@ -9,7 +9,7 @@ The following inputs must be preceded by "amr" and determine how we create the g
 |                      | Description                                                           |   Type      | Default   |
 +======================+=======================================================================+=============+===========+
 | regrid_int           | How often to regrid (in number of steps at level 0)                   |   Int       |    -1     |
-|                      |  if regrid_int = -1 then no regridding will occur                     |             |           |
+|                      | if regrid_int = -1 then no regridding will occur                      |             |           |
 +----------------------+-----------------------------------------------------------------------+-------------+-----------+
 | max_grid_size_x      | Maximum number of cells at level 0 in each grid in x-direction        |    Int      | 32        |
 +----------------------+-----------------------------------------------------------------------+-------------+-----------+
