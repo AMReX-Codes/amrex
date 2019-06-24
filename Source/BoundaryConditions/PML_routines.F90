@@ -924,19 +924,19 @@ contains
 
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * minval((/sigjx(i),sigjz(k)/))  !sigjx(k)
+          jx(i,k) = jx(i,k) * minval((/sigjx(i),sigjz(k)/))  !sigjx(k) ! sigjx(i)*sigjz(k)
        end do
     end do
 
     do    k = tjylo(2), tjyhi(2)
        do i = tjylo(1), tjyhi(1)
-          jy(i,k) = jy(i,k) * sigjx(i) !sigjz(k)
+          jy(i,k) = jy(i,k) * minval((/sigjx(i),sigjz(k)/)) !sigjz(k) !no current jy...
        end do
     end do
 
     do    k = tjzlo(2), tjzhi(2)
        do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * minval((/sigjx(i),sigjz(k)/)) !sigjz(k)
+          jz(i,k) = jz(i,k) * minval((/sigjx(i),sigjz(k)/)) !sigjz(k)  ! sigjx(i)*sigjz(k)
        end do
     end do
 
