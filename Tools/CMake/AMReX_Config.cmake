@@ -144,10 +144,14 @@ function (configure_amrex)
    # Setup OpenMP 
    #
    if (ENABLE_OMP)
-      find_package(OpenMP REQUIRED)
-      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
+      find_package(OpenMP REQUIRED CXX Fortran)
+      target_link_libraries(amrex
+         PUBLIC
+         OpenMP::OpenMP_CXX
+         OpenMP::OpenMP_Fortran)
    else ()
-      target_compile_options( amrex PUBLIC
+      target_compile_options( amrex
+         PUBLIC
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
    
