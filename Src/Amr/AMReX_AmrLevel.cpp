@@ -125,6 +125,8 @@ AmrLevel::AmrLevel (Amr&            papa,
     // Note that this creates a distribution map associated with grids.
     for (int i = 0; i < state.size(); i++)
     {
+        MultiFab::RegionTag statedata_tag("StateData_Level_" + std::to_string(lev));
+        MultiFab::RegionTag level_tag("AmrLevel_Level_" + std::to_string(lev));
         state[i].define(geom.Domain(),
                         grids,
 			dm,
