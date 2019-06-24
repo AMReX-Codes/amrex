@@ -47,6 +47,12 @@
 
 namespace amrex {
 
+template <typename T, class = typename std::enable_if<!IsBaseFab<T>::value>::type >
+long nBytesOwned (T const& t) noexcept { return 0; }
+
+template <typename T>
+long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
+
 /*
   A Collection of Fortran Array-like Objects
 
@@ -898,9 +904,9 @@ FabArray<FAB>::clear ()
     }
 
     long nbytes = 0L;
-    for (auto it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
-        nbytes += (*it)->nBytesOwned();
-        m_factory->destroy(*it);
+    for (auto x : m_fabs_v) {
+        nbytes += amrex::nBytesOwned(*x);
+        m_factory->destroy(x);
     }
     m_fabs_v.clear();
     m_factory.reset();
@@ -1144,7 +1150,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
 	int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
         m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
-        nbytes += m_fabs_v.back()->nBytesOwned();
+        nbytes += amrex::nBytesOwned(*m_fabs_v.back());
     }
 
     m_tags.clear();
