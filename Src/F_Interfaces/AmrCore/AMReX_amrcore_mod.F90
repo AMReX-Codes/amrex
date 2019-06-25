@@ -12,6 +12,7 @@ module amrex_amrcore_module
        amrex_get_amrcore, amrex_get_finest_level, amrex_get_numlevels, &
        amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
        amrex_set_boxarray, amrex_set_distromap, amrex_set_geometry, &
+       amrex_set_finest_level, &
        amrex_init_from_scratch, amrex_init_virtual_functions, amrex_regrid, &
        amrex_init_post_regrid_function
 
@@ -251,6 +252,11 @@ contains
     type(amrex_geometry), intent(in) :: geom
     call amrex_fi_set_geometry(lev, geom%p, amrcore)
   end subroutine amrex_set_geometry
+
+  subroutine amrex_set_finest_level (flev)
+    integer, intent(in) :: flev
+    call amrex_fi_set_finest_level(flev, amrcore)
+  end subroutine amrex_set_finest_level
 
   subroutine amrex_init_from_scratch (t)
     real(amrex_real), intent(in) :: t
