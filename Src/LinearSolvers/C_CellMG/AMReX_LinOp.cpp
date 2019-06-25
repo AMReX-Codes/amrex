@@ -419,6 +419,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     switch (cdir)
     {
     case -1:
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -433,7 +434,8 @@ LinOp::makeCoefficients (MultiFab&       cs,
                            AMREX_ARLIM(fnfab.loVect()),AMREX_ARLIM(fnfab.hiVect()),
                            tbx.loVect(),tbx.hiVect(), &nc);
         }
-        break;
+    }
+    break;
     case 0:
     case 1:
     case 2:

@@ -599,7 +599,11 @@ A list of AMReX component names and related configure options are shown in the t
    | ENABLE_ASCENT                | ASCENT          |
    +------------------------------+-----------------+
    | ENABLE_HYPRE                 | HYPRE           |
-   +------------------------------+-----------------+ 
+   +------------------------------+-----------------+
+
+.. raw:: latex
+
+   \end{center}   
    
 As an example, consider the following CMake code:
 
