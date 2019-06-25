@@ -113,50 +113,80 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void amrex_interpolate_MAC_2 (const P& p,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-			      amrex::GpuArray<amrex::Array4<const double>,2> * p_uccarr[2],
+			      amrex::GpuArray<amrex::Array4<const double>*,2> & p_uccarr,
 			      amrex::Real * val,
-			      amrex::IntVect& index,
+			      amrex::IntVect const& index,
 			      int & lev)
 {
-
-  //  if (p.m_idata.id <=0) continue;
-
   amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] + 0.5; //len 
   amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] + 0.5;
-  
+
   int i = std::floor(lx); //cell
   int j = std::floor(ly);
   
-  amrex::Real xint = lx - i;
+  amrex::Real xint = lx - i; //frac
   amrex::Real yint = ly - j;
+  
+  for (int d=0; d < AMREX_SPACEDIM; ++d) 
+    {
+      if (d==0) {
+	//cells
+	int ecellx = i;
+	int ecelly = j;
+	ecellx = index[0] +1;
 
-  i = i+index[0];
-  j = j+index[1];
+	//fracs
+	Real efracx = xint;
+	Real efracy = yint;
+	efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - index[0];
 
-  auto xint2 = p.m_rdata.pos[0]-plo[0]*dxi[0] - index[0];
-  auto yint2 = p.m_rdata.pos[1]-plo[1]*dxi[1] - index[1];
-   
-  if (xint2 > 1) xint2 =1;
-  if (yint2 > 1) yint2 =1;
-  if (xint2 < 0) xint2 =0;
-  if (yint2 < 0) yint2 =0;
+	if (efracx > 1) efracx =1;
+	if (efracy > 1) efracy =1;
+	if (efracx < 0) efracx =0;
+	if (efracy < 0) efracy =0;
 
-  amrex::Real sx[] = {1.-xint2, xint2};
-  amrex::Real sy[] = {1.-yint2, yint2};
+	amrex::Real sx[] = {1.-efracx, efracx};
+	amrex::Real sy[] = {1.-efracy, efracy};
 
-  int d;
-    for (d=0 ; d < AMREX_SPACEDIM; ++d)
-      {
-      val = 0.0;
-      for (int jj = 0; jj <= 1; ++jj)
-        {
-	for (int ii = 0; ii <= 1; ++ii)
+	val[d] = 0.0;
+	for (int jj = 0; jj <= 1; ++jj)
 	  {
-	  val += (*p_uccarr)[d](i+ii, j+jj, 0,d)*sx[ii]*sy[jj];
+	    for (int ii = 0; ii <= 1; ++ii)
+	      {
+		val[d] += (*(p_uccarr[d]))(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
+	      }
 	  }
-	}
+
       }
+      else if (d==1) {
+	//cells
+        int ecellx = i;
+        int ecelly = j;
+        ecelly = index[1] +1;
+
+        //fracs                                                                                       
+	Real efracx = xint;
+        Real efracy = yint;
+        efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - index[1];
+
+        if (efracx > 1) efracx =1;
+        if (efracy > 1) efracy =1;
+        if (efracx < 0) efracx =0;
+        if (efracy < 0) efracy =0;
+
+        amrex::Real sx[] = {1.-efracx, efracx};
+        amrex::Real sy[] = {1.-efracy, efracy};
+
+        val[d] = 0.0;
+        for (int jj = 0; jj <= 1; ++jj)
+          {
+            for (int ii = 0; ii <= 1; ++ii)
+              {
+                val[d] += (*(p_uccarr[d]))(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
+              }
+          } 	
+      }
+    }
 }
 }
 #endif
-
