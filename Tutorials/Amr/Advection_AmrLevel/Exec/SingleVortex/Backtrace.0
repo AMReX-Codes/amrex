@@ -1,0 +1,53 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: ./main2d.gnu.DEBUG.MPI.ex() [0x57a5fe]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX_BLBackTrace.cpp:107
+
+ 1: ./main2d.gnu.DEBUG.MPI.ex() [0x57a406]
+    amrex::BLBackTrace::handler(int) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX_BLBackTrace.cpp:55
+
+ 2: ./main2d.gnu.DEBUG.MPI.ex() [0x4a1658]
+    amrex::ParallelDescriptor::Abort(int, bool) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX_ParallelDescriptor.cpp:224
+
+ 3: ./main2d.gnu.DEBUG.MPI.ex() [0x461dbc]
+    amrex::Abort(char const*) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX.cpp:197
+
+ 4: ./main2d.gnu.DEBUG.MPI.ex() [0x461dfd]
+    amrex::Abort(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX.cpp:203
+
+ 5: ./main2d.gnu.DEBUG.MPI.ex() [0x4ac75a]
+    amrex::Array4<double const>::index_assert(int, int, int, int) const at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX_Array4.H:159 (discriminator 3)
+
+ 6: ./main2d.gnu.DEBUG.MPI.ex() [0x62afa3]
+    double const& amrex::Array4<double const>::operator()<double const, void>(int, int, int, int) const at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Base/AMReX_Array4.H:68 (discriminator 2)
+     (inlined by) void amrex::amrex_interpolate_MAC_2<amrex::Particle<2, 0> >(amrex::Particle<2, 0> const&, std::array<double, 2ul> const&, std::array<double, 2ul> const&, std::array<amrex::Array4<double const>*, 2ul>&, double*, amrex::IntVect const&, int&) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Particle/AMReX_TracerParticle_mod_K.H:185 (discriminator 2)
+
+ 7: ./main2d.gnu.DEBUG.MPI.ex() [0x628a37]
+    amrex::TracerParticleContainer::AdvectWithUmac(amrex::MultiFab*, int, double) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Particle/AMReX_TracerParticles.cpp:97
+
+ 8: ./main2d.gnu.DEBUG.MPI.ex() [0x40ba94]
+    AmrLevelAdv::advance(double, double, int, int) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Tutorials/Amr/Advection_AmrLevel/Source/AmrLevelAdv.cpp:352
+
+ 9: ./main2d.gnu.DEBUG.MPI.ex() [0x5ecedf]
+    amrex::Amr::timeStep(int, double, int, int, double) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Amr/AMReX_Amr.cpp:2110
+
+10: ./main2d.gnu.DEBUG.MPI.ex() [0x5ed677]
+    amrex::Amr::coarseTimeStep(double) at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Src/Amr/AMReX_Amr.cpp:2437
+
+11: ./main2d.gnu.DEBUG.MPI.ex() [0x4615d3]
+    main at /home/cdegrendele/codes/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/../../../../../Tutorials/Amr/Advection_AmrLevel/Source/main.cpp:50
+
+12: /lib64/libc.so.6(__libc_start_main+0xeb) [0x7f8de58ad11b]
+    ?? ??:0
+
+13: ./main2d.gnu.DEBUG.MPI.ex() [0x40974a]
+    _start at ??:?
+
