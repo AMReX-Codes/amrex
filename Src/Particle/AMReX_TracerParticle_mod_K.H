@@ -118,22 +118,23 @@ void amrex_interpolate_MAC_2 (const P& p,
 			      amrex::IntVect const& index,
 			      int & lev)
 {
-  amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] + 0.5; //len 
-  amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] + 0.5;
 
-  int i = std::floor(lx); //cell
-  int j = std::floor(ly);
+    amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len 
+    amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
+
+    int i = std::floor(lx); //cell
+    int j = std::floor(ly);
   
-  amrex::Real xint = lx - i; //frac
-  amrex::Real yint = ly - j;
+    amrex::Real xint = lx - i; //frac
+    amrex::Real yint = ly - j;
   
-  for (int d=0; d < AMREX_SPACEDIM; ++d) 
+    for (int d=0; d < AMREX_SPACEDIM; ++d) 
     {
       if (d==0) {
 	//cells
 	int ecellx = i;
 	int ecelly = j;
-	ecellx = index[0] +1;
+	ecellx = i +1;
 
 	//fracs
 	Real efracx = xint;
@@ -153,7 +154,10 @@ void amrex_interpolate_MAC_2 (const P& p,
 	  {
 	    for (int ii = 0; ii <= 1; ++ii)
 	      {
-		val[d] += (*(p_uccarr[d]))(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
+                  if (p.id() == 254) {
+                      amrex::Print() << p << "\n";                      
+                  }
+                  val[d] += (*(p_uccarr[d]))(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
 	      }
 	  }
 
@@ -162,7 +166,7 @@ void amrex_interpolate_MAC_2 (const P& p,
 	//cells
         int ecellx = i;
         int ecelly = j;
-        ecelly = index[1] +1;
+        ecelly = j +1;
 
         //fracs                                                                                       
 	Real efracx = xint;

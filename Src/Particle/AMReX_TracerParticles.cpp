@@ -80,7 +80,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  //auto *p_uccarr = &uccarr;
 	  //^This might be simpler than I thought...
 	  //amrex::GpuArray<Real, 2> * p_uccarr[2] = {p_uccarrx, p_uccarry};
-	  
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -94,17 +94,17 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	 const IntVect& cc_cell = Index(p,lev);
          //BL_ASSERT(p.m_idata.id <= 0);
          Real v[AMREX_SPACEDIM]; //instead
-         amrex_interpolate_MAC_2 (p, plo, dxi,uccarr, v, cc_cell, lev);
-                
+         amrex_interpolate_MAC_2 (p, plo, dxi,uccarr, v, cc_cell, lev);         
+
+         if (p.id() == 254) {
+             amrex::Print() << "About to update particle 254, data is: " << p << "\n";
+         }
+         
 		if (ipass == 0)
                 {
 		  //                                                                                 
                   // Save old position and the vel & predict location at dt/2.                        
                   //
-
-		    amrex::Print() << "v[d] inside = " << v[0] << "\n";
-                    amrex::Print() << "v[d] inside = " << v[1] <<  "\n";
-
 		    p.m_rdata.arr[AMREX_SPACEDIM+0] = p.m_rdata.pos[0];
 		    p.m_rdata.pos[0] += 0.5*dt*v[0];
 
@@ -115,21 +115,18 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 }
                 else
                 {
-
-		  amrex::Print() << "v[d] inside = " <<v[0] <<"\n";
-                  amrex::Print() << "v[d] inside = " << v[1] <<  "\n";
 		  // Update to final time using the orig position and the vel at dt/2 /
 		  p.m_rdata.pos[0]  = p.m_rdata.arr[AMREX_SPACEDIM+0] + dt*v[0];
                   // Save the velocity for use in Timestamp().
 		  p.m_rdata.arr[AMREX_SPACEDIM+0] = v[0];
 
                   p.m_rdata.pos[1]  = p.m_rdata.arr[AMREX_SPACEDIM+1] + dt*v[1];
-                  p.m_rdata.arr[AMREX_SPACEDIM+1] = v[1];
-
-
-		  
+                  p.m_rdata.arr[AMREX_SPACEDIM+1] = v[1];		  
 		}
 
+                if (p.id() == 254) {
+                    amrex::Print() << "After updating particle 254, data is: " << p << "\n";
+                }
        }
       }
     }
