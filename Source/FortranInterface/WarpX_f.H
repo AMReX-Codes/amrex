@@ -454,7 +454,9 @@ extern "C"
                     amrex::Real* jy, const int* jylo, const int* jyhi,
                     amrex::Real* jz, const int* jzlo, const int* jzhi,
                     const amrex::Real* sigjx, int sigjx_lo, int sigjx_hi,
-                    const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi);
+                    const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi,
+                    const amrex::Real* sigsjx, int sigsjx_lo, int sigsjx_hi,
+                    const amrex::Real* sigjsz, int sigsjz_lo, int sigsjz_hi);
 #endif
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,

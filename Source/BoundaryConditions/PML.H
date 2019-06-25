@@ -26,7 +26,9 @@
 
 #define WRPX_PML_SIGMAJ_TO_FORTRAN(x)                              \
     (x).sigma_cum_fac[0].data(), (x).sigma_cum_fac[0].m_lo, (x).sigma_cum_fac[0].m_hi, \
-    (x).sigma_cum_fac[1].data(), (x).sigma_cum_fac[1].m_lo, (x).sigma_cum_fac[1].m_hi
+    (x).sigma_cum_fac[1].data(), (x).sigma_cum_fac[1].m_lo, (x).sigma_cum_fac[1].m_hi, \
+    (x).sigma_star_cum_fac[0].data(), (x).sigma_star_cum_fac[0].m_lo, (x).sigma_star_cum_fac[0].m_hi, \
+    (x).sigma_star_cum_fac[1].data(), (x).sigma_star_cum_fac[1].m_lo, (x).sigma_star_cum_fac[1].m_hi
 
 #endif
 
@@ -50,9 +52,11 @@ struct SigmaBox
     SigmaVect sigma;      // sigma/epsilon
     SigmaVect sigma_cum;      // cumsum(sigma)/(c*epsilon)
     SigmaVect sigma_star; // sigma_star/mu
+    SigmaVect sigma_star_cum;
     SigmaVect sigma_fac;
     SigmaVect sigma_cum_fac;
     SigmaVect sigma_star_fac;
+    SigmaVect sigma_star_cum_fac;
 };
 
 namespace amrex {

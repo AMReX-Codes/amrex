@@ -457,18 +457,17 @@ contains
     do    k = xlo(2), xhi(2)
        do i = xlo(1), xhi(1)
           if (flag==1) then
-            ! Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-            !      &                        -By(i,k-1,1)-By(i,k-1,2))&
-            !      &                        - mudt  * jx(i,k)
-            ! Ex(i,k,1) = Ex(i,k,1) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-            !      &                        -By(i,k-1,1)-By(i,k-1,2))
-            !
-            ! Ex(i,k,2) = Ex(i,k,2) - mudt  * jx(i,k)
-
+            ! for alpha_xy = 0, alpha_xz = 1
             Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-                 &                        -By(i,k-1,1)-By(i,k-1,2)) ! Exz
+                 &                        -By(i,k-1,1)-By(i,k-1,2))&
+                 &                        - mudt  * jx(i,k)
 
-            Ex(i,k,1) = Ex(i,k,1) - mudt  * jx(i,k) ! Exy
+            ! for alpha_xy = 1, alpha_xz = 0
+
+            ! Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+            !      &                        -By(i,k-1,1)-By(i,k-1,2)) ! Exz
+            !
+            ! Ex(i,k,1) = Ex(i,k,1) - mudt  * jx(i,k) ! Exy
 
           else
             Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
@@ -909,22 +908,26 @@ contains
 
   subroutine warpx_dampJ_pml_2d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
        &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
-       &                        sigjx, sjxlo, sjxhi, sigjz, sjzlo, sjzhi) &
+       &                        sigjx, sjxlo, sjxhi, sigjz, sjzlo, sjzhi, &
+       &                        sigsjx, ssjxlo, ssjxhi, sigsjz, ssjzlo, ssjzhi) &
        bind(c,name='warpx_dampJ_pml_2d')
     integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
          jxlo, jxhi, jylo, jyhi, jzlo, jzhi
-    integer, intent(in), value :: sjxlo, sjxhi, sjzlo, sjzhi
+    integer, intent(in), value :: sjxlo, sjxhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjzlo, ssjzhi
     real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2)) !,1)
     real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2)) !,1)
     real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2)) !,1)
     real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
     real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
+    real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
+    real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
 
     integer :: i,k
 
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * minval((/sigjx(i),sigjz(k)/))  !sigjx(k) ! sigjx(i)*sigjz(k)
+          ! jx(i,k) = jx(i,k) * sigjx(i) !minval((/sigjx(i),sigjz(k)/))
+          jx(i,k) = jx(i,k) * sigsjx(i)
        end do
     end do
 
@@ -936,7 +939,8 @@ contains
 
     do    k = tjzlo(2), tjzhi(2)
        do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * minval((/sigjx(i),sigjz(k)/)) !sigjz(k)  ! sigjx(i)*sigjz(k)
+          ! jz(i,k) = jz(i,k) * sigjz(k) !minval((/sigjx(i),sigjz(k)/)) !sigjz(k)  ! sigjx(i)*sigjz(k)
+          jz(i,k) = jz(i,k) * sigjz(k) ! not sigma*
        end do
     end do
 
