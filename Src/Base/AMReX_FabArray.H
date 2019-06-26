@@ -905,7 +905,7 @@ FabArray<FAB>::clear ()
 
     long nbytes = 0L;
     for (auto x : m_fabs_v) {
-        nbytes += amrex::nBytesOwned(*x);
+        if (x) nbytes += amrex::nBytesOwned(*x);
         m_factory->destroy(x);
     }
     m_fabs_v.clear();
