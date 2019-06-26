@@ -24,10 +24,10 @@ namespace
         int slo = sigma.m_lo;
         int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
-        Real cumsum = 0.;
+        Real cumsum=0.;
         Real x = 10.0;
         Real theta = 10.0;
-        Real coeff_v = std::sin(theta*MathConst::pi/180.);
+        Real coeff_v = 1.; //std::sin(theta*MathConst::pi/180.);
 
         for (int i = olo; i <= ohi+1; ++i)
         {
@@ -35,24 +35,57 @@ namespace
             sigma[i-slo] = fac*(offset*offset);
         }
 
-        for (int j = olo; j <= ohi+1; ++j)
-        {
-            int i = -j + (ohi+olo+1);
-            cumsum = cumsum + sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            sigma_cum[i-slo] = cumsum;
-        }
+        // for (int j = olo; j <= ohi+1; ++j)
+        // {
+        //     int i = -j + (ohi+olo+1);
+        //     cumsum = cumsum + sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        //     sigma_cum[i-slo] = cumsum;
+        // }
+        // for (int j = olo+1; j <= ohi+1; ++j)
+        // {
+        //     int i = -j + (ohi+olo+1);
+        //     cumsum = cumsum + sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        //     sigma_star_cum[i-sslo] = cumsum;
+        // }
 
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(glo-i) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
         }
-        cumsum = 0.;
-        for (int j = olo; j <= ohi; ++j)
+        // cumsum = 0.;
+        // for (int j = olo; j <= ohi; ++j)
+        // {
+        //     int i = -j + (ohi+olo);
+        //     cumsum = cumsum + sigma_star[i-sslo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        //     // sigma_star_cum[i-sslo] = cumsum;
+        //     sigma_cum[i+1-slo] = cumsum;
+        // }
+        // int i = olo;
+        // Real offset = static_cast<Real>(glo-(i-1)) - 0.5;
+        // cumsum = cumsum + fac*(offset*offset)/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        // sigma_cum[i-slo] = cumsum;
+
+        // approximated integrals
+        cumsum = sigma[ohi+1-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        sigma_cum[ohi+1-slo] = cumsum;
+        amrex::Print()<<"sigma_cum["<<idim<<"]["<<ohi+1-slo<<"] = "<<cumsum<<std::endl;
+        for (int j = olo+1; j <= ohi+1; ++j)
+        {
+            int i = -j + (ohi+olo+1);
+            cumsum = cumsum + (0.5*sigma[i+1-slo] + sigma_star[i-sslo] + 0.5*sigma[i-slo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+            sigma_cum[i-slo] = cumsum;
+            amrex::Print()<<"sigma_cum["<<idim<<"]["<<i-slo<<"] = "<<cumsum<<std::endl;
+        }
+
+        cumsum = 0.5*(sigma_star[ohi-sslo]+sigma[ohi+1-slo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        sigma_star_cum[ohi-sslo] = cumsum;
+        for (int j = olo+1; j <= ohi; ++j)
         {
             int i = -j + (ohi+olo);
-            cumsum = cumsum + sigma_star[i-sslo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+            cumsum = cumsum + (0.5*sigma_star[i+1-sslo] + sigma[i+1-slo] + 0.5*sigma_star[i-sslo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
             sigma_star_cum[i-sslo] = cumsum;
+            amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<i-sslo<<"] = "<<cumsum<<std::endl;
         }
     }
 
@@ -68,26 +101,49 @@ namespace
         Real cumsum = 0.;
         Real x = 10.0;
         Real theta = 10.0;
-        Real coeff_v = std::sin(theta*MathConst::pi/180.);
-
+        Real coeff_v = 1.; //std::sin(theta*MathConst::pi/180.);
+        amrex::Print()<<"===== FillHi =====" <<std::endl;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            cumsum = cumsum+sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            sigma_cum[i-slo] = cumsum;
+            // cumsum = cumsum+sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+            // // sigma_cum[i-slo] = cumsum;
             // if (i<=ohi){
-            //   sigma_cum[i-slo] = cumsum;
+            //   sigma_star_cum[i-sslo] = cumsum;
+            //   amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<i-sslo<<"] = "<< cumsum <<std::endl;
             // }
-
         }
-        cumsum = 0.;
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(i-ghi) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
-            cumsum = cumsum+sigma_star[i-sslo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+            // cumsum = cumsum+sigma_star[i-sslo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+            // // sigma_star_cum[i-sslo] = cumsum;
+            // sigma_cum[i-slo] = cumsum;
+            // amrex::Print()<<"sigma_cum["<<idim<<"]["<<i-slo<<"] = "<< cumsum <<std::endl;
+        }
+
+        // approximated integrals
+
+        cumsum = sigma[olo-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        sigma_cum[olo-slo] = cumsum;
+        amrex::Print()<<"sigma_cum["<<idim<<"]["<<olo-slo<<"] = "<<cumsum<<std::endl;
+        for (int i = olo+1; i <= ohi+1; ++i)
+        {
+            cumsum = cumsum + (0.5*sigma[i-1-slo] + sigma_star[i-1-sslo] + 0.5*sigma[i-slo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
             sigma_cum[i-slo] = cumsum;
+            amrex::Print()<<"sigma_cum["<<idim<<"]["<<i-slo<<"] = "<<cumsum<<std::endl;
+        }
+
+        cumsum = 0.5*(sigma[olo-slo]+sigma_star[olo-sslo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+        sigma_star_cum[olo-slo] = cumsum;
+        amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<olo-sslo<<"] = "<<cumsum<<std::endl;
+        for (int i = olo+1; i <= ohi; ++i)
+        {
+            cumsum = cumsum + (0.5*sigma_star[i-1-sslo] + sigma[i-1-slo] + 0.5*sigma_star[i-sslo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
+            sigma_star_cum[i-sslo] = cumsum;
+            amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<i-sslo<<"] = "<<cumsum<<std::endl;
         }
     }
 
@@ -98,7 +154,7 @@ namespace
         int slo = sigma.m_lo;
         int sslo = sigma_star.m_lo;
         std::fill(sigma.begin()+(olo-slo), sigma.begin()+(ohi+2-slo), 0.0);
-        std::fill(sigma_cum.begin()+(olo-slo), sigma_cum.begin()+(ohi+1-slo), 0.0);
+        std::fill(sigma_cum.begin()+(olo-slo), sigma_cum.begin()+(ohi+2-slo), 0.0);
         std::fill(sigma_star.begin()+(olo-sslo), sigma_star.begin()+(ohi+1-sslo), 0.0);
         std::fill(sigma_star_cum.begin()+(olo-sslo), sigma_star_cum.begin()+(ohi+1-sslo), 0.0);
     }

@@ -117,8 +117,8 @@ WarpX::DampJPML (int lev, PatchType patch_type)
             const Box& tjx  = mfi.tilebox(jx_nodal_flag);
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
-            // amrex::Print()<< "tjx = ["<< tjx.smallEnd()[0]<<", "<<tjx.smallEnd()[1]<<", "<<tjx.bigEnd()[0]<<", "<<tjx.bigEnd()[1]<<"]" <<std::endl;
-            // amrex::Print()<< "tjz = ["<< tjz.smallEnd()[0]<<", "<<tjz.smallEnd()[1]<<", "<<tjz.bigEnd()[0]<<", "<<tjz.bigEnd()[1]<<"]" <<std::endl;
+            amrex::Print()<< "tjx = ["<< tjx.smallEnd()[0]<<", "<<tjx.smallEnd()[1]<<", "<<tjx.bigEnd()[0]<<", "<<tjx.bigEnd()[1]<<"]" <<std::endl;
+            amrex::Print()<< "tjz = ["<< tjz.smallEnd()[0]<<", "<<tjz.smallEnd()[1]<<", "<<tjz.bigEnd()[0]<<", "<<tjz.bigEnd()[1]<<"]" <<std::endl;
             WRPX_DAMPJ_PML(tjx.loVect(), tjx.hiVect(),
 			    tjy.loVect(), tjy.hiVect(),
 			    tjz.loVect(), tjz.hiVect(),

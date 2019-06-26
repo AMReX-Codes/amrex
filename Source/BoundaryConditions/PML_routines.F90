@@ -923,7 +923,7 @@ contains
     real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
 
     integer :: i,k
-
+    !!!! FOR A PML ALONG X-AXIS !!!!!
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
           ! jx(i,k) = jx(i,k) * sigjx(i) !minval((/sigjx(i),sigjz(k)/))
@@ -933,14 +933,14 @@ contains
 
     do    k = tjylo(2), tjyhi(2)
        do i = tjylo(1), tjyhi(1)
-          jy(i,k) = jy(i,k) * minval((/sigjx(i),sigjz(k)/)) !sigjz(k) !no current jy...
+          jy(i,k) = jy(i,k) !* minval((/sigjx(i),sigjz(k)/)) !sigjz(k) !no current jy...
        end do
     end do
 
     do    k = tjzlo(2), tjzhi(2)
        do i = tjzlo(1), tjzhi(1)
           ! jz(i,k) = jz(i,k) * sigjz(k) !minval((/sigjx(i),sigjz(k)/)) !sigjz(k)  ! sigjx(i)*sigjz(k)
-          jz(i,k) = jz(i,k) * sigjz(k) ! not sigma*
+          jz(i,k) = jz(i,k) * sigjx(i)
        end do
     end do
 
