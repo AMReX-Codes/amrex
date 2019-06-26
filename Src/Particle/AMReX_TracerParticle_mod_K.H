@@ -113,10 +113,9 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void amrex_interpolate_MAC_2 (const P& p,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-			      amrex::GpuArray<amrex::Array4<const double>*,2> & p_uccarr,
+			      amrex::GpuArray<amrex::Array4<const double>*,2> const& p_uccarr,
 			      amrex::Real * val,
-			      amrex::IntVect const& index,
-			      int & lev)
+			      amrex::IntVect const& index)
 {
 
     amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len 

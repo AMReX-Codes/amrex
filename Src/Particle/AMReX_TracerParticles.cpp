@@ -25,13 +25,8 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
-    //const Real*     dx       = geom.CellSize();
-    //const Real*     plo      = geom.ProbLo();
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
-
-
-
     
     Vector<std::unique_ptr<MultiFab> > raii_umac(AMREX_SPACEDIM);
     Vector<MultiFab*> umac_pointer(AMREX_SPACEDIM);
@@ -65,8 +60,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  int grid    = kv.first.first;
 	  auto& aos  = kv.second.GetArrayOfStructs();
 	  const int n = aos.size();
-          //const FArrayBox& fab = umac[grid];
-          //const auto uccarr = fab.array();
 	  auto p_pbox = aos().data();
 	  const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
 							  &((*umac_pointer[1])[grid]),
@@ -76,30 +69,22 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  auto uccarry = (*fab[1]).array();
 	  amrex::Array4<const double> * p_uccarrx = &(uccarrx);
 	  amrex::Array4<const double> * p_uccarry = &(uccarry);
-	  amrex::GpuArray<amrex::Array4<const double>* , 2> uccarr {p_uccarrx, p_uccarry};
-	  //auto *p_uccarr = &uccarr;
-	  //^This might be simpler than I thought...
-	  //amrex::GpuArray<Real, 2> * p_uccarr[2] = {p_uccarrx, p_uccarry};
+	  amrex::GpuArray<amrex::Array4<const double>* , 2> const uccarr {p_uccarrx, p_uccarry};
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 
-	  //amrex::ParallelFor(n,   
-	  //    [=] AMREX_GPU_DEVICE (int i)      
-     for (int i = 0; i < n; i++)
+	  amrex::ParallelFor(n,   
+	  [=] AMREX_GPU_DEVICE (int i)      
        {
 					
 	 ParticleType& p = p_pbox[i];
-	 const IntVect& cc_cell = Index(p,lev);
-         //BL_ASSERT(p.m_idata.id <= 0);
-         Real v[AMREX_SPACEDIM]; //instead
-         amrex_interpolate_MAC_2 (p, plo, dxi,uccarr, v, cc_cell, lev);         
+	 IntVect const& cc_cell = Index(p,lev);
+         BL_ASSERT(p.m_idata.id <= 0);
+         Real v[AMREX_SPACEDIM];
+         amrex_interpolate_MAC_2 (p, plo, dxi,uccarr, v,cc_cell);         
 
-         if (p.id() == 254) {
-             amrex::Print() << "About to update particle 254, data is: " << p << "\n";
-         }
-         
 		if (ipass == 0)
                 {
 		  //                                                                                 
@@ -111,7 +96,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 		    p.m_rdata.arr[AMREX_SPACEDIM+1] = p.m_rdata.pos[1];
                     p.m_rdata.pos[1] += 0.5*dt*v[1];
 
-   				 
                 }
                 else
                 {
@@ -124,10 +108,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                   p.m_rdata.arr[AMREX_SPACEDIM+1] = v[1];		  
 		}
 
-                if (p.id() == 254) {
-                    amrex::Print() << "After updating particle 254, data is: " << p << "\n";
-                }
-       }
+       });
       }
     }
     if (m_verbose > 1)
@@ -182,18 +163,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 #endif
           amrex::ParallelFor(n,
 	  [=] AMREX_GPU_DEVICE (int i)
-	  //for (int i = 0; i < n; i++)             // Loop through particles on a box
             {
 
 	      ParticleType& p  = p_pbox[i];
+	      BL_ASSERT(p.m_idata.id <= 0);
+	      Real v[AMREX_SPACEDIM];
 
-                //if (p.m_idata.id <= 0) continue;
-		//BL_ASSERT(p.m_idata.id <= 0);
-
-		Real v[AMREX_SPACEDIM];
-
-		//ParticleType::Interp(p, geomdata, fab, idx, v, AMREX_SPACEDIM); e
-                amrex_interpolate_CIC_2 (p, plo, dxi, uccarr, v);
+              amrex_interpolate_CIC_2 (p, plo, dxi, uccarr, v);
 
 		if (ipass == 0) {
 		    //
@@ -215,7 +191,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 			p.m_rdata.arr[AMREX_SPACEDIM+d] = v[d];
                     }
                 }
-                //            });
             });
         }
     }
