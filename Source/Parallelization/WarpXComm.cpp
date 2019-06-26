@@ -246,7 +246,7 @@ void
 WarpX::FillBoundaryE (int lev, PatchType patch_type)
 {
     if (patch_type == PatchType::fine)
-    {        
+    {
         if (do_pml && pml[lev]->ok())
         {
     	    pml[lev]->ExchangeE(patch_type,
@@ -557,7 +557,8 @@ void
 WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc)
 {
-    if (!rhof[0]) return;
+    if (!rho_fp[0]) return;
+    const int ncomp = rho_fp[0]->nComp();
 
     // Restrict fine patch onto the coarse patch,
     // before summing the guard cells of the fine patch
@@ -568,104 +569,12 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         SyncRho(*rhof[lev], *rhoc[lev], refinement_ratio[0]);
     }
 
-    Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
-    Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
-    Vector<std::unique_ptr<MultiFab> > rho_buf_g(finest_level+1);
-
-    if (WarpX::use_filter) {
-        for (int lev = 0; lev <= finest_level; ++lev) {
-            const int ncomp = rhof[lev]->nComp();
-            IntVect ng = rhof[lev]->nGrowVect();
-            ng += bilinear_filter.stencil_length_each_dir-1;
-            rho_f_g[lev].reset(new MultiFab(rhof[lev]->boxArray(),
-                                            rhof[lev]->DistributionMap(),
-                                            ncomp, ng));
-            bilinear_filter.ApplyStencil(*rho_f_g[lev], *rhof[lev]);
-            std::swap(rho_f_g[lev], rhof[lev]);
-        }
-        for (int lev = 1; lev <= finest_level; ++lev) {
-            const int ncomp = rhoc[lev]->nComp();
-            IntVect ng = rhoc[lev]->nGrowVect();
-            ng += bilinear_filter.stencil_length_each_dir-1;
-            rho_c_g[lev].reset(new MultiFab(rhoc[lev]->boxArray(),
-                                            rhoc[lev]->DistributionMap(),
-                                            ncomp, ng));
-            bilinear_filter.ApplyStencil(*rho_c_g[lev], *rhoc[lev]);
-            std::swap(rho_c_g[lev], rhoc[lev]);
-        }
-        for (int lev = 1; lev <= finest_level; ++lev) {
-            if (charge_buf[lev]) {
-                const int ncomp = charge_buf[lev]->nComp();
-                IntVect ng = charge_buf[lev]->nGrowVect();
-                ng += bilinear_filter.stencil_length_each_dir-1;
-                rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
-                                                  charge_buf[lev]->DistributionMap(),
-                                                  ncomp, ng));
-                bilinear_filter.ApplyStencil(*rho_buf_g[lev], *charge_buf[lev]);
-                std::swap(*rho_buf_g[lev], *charge_buf[lev]);
-            }
-        }
-    }
-
-    // Sum up fine patch
-    for (int lev = 0; lev <= finest_level; ++lev)
-    {
-        const auto& period = Geom(lev).periodicity();
-        WarpXSumGuardCells( *(rhof[lev]), period, 0, rhof[lev]->nComp() );
-    }
-
-    // Add fine level's coarse patch to coarse level's fine patch
-    for (int lev = 0; lev < finest_level; ++lev)
-    {
-        const auto& period = Geom(lev).periodicity();
-        const int ncomp = rhoc[lev+1]->nComp();
-        const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
-        const IntVect ngdst = IntVect::TheZeroVector();
-        const MultiFab* crho = rhoc[lev+1].get();
-        if (charge_buf[lev+1])
-        {
-            MultiFab::Add(*charge_buf[lev+1], *rhoc[lev+1], 0, 0, ncomp, ngsrc);
-            crho = charge_buf[lev+1].get();
-        }
-
-        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
-    }
-
-    // Sum up coarse patch
-    for (int lev = 1; lev <= finest_level; ++lev)
-    {
-        const auto& cperiod = Geom(lev-1).periodicity();
-        WarpXSumGuardCells( *(rhoc[lev]), cperiod, 0, rhoc[lev]->nComp() );
-    }
-
-    if (WarpX::use_filter) {
-        for (int lev = 0; lev <= finest_level; ++lev) {
-            std::swap(rho_f_g[lev], rhof[lev]);
-            MultiFab::Copy(*rhof[lev], *rho_f_g[lev], 0, 0, rhof[lev]->nComp(), 0);
-        }
-        for (int lev = 1; lev <= finest_level; ++lev) {
-            std::swap(rho_c_g[lev], rhoc[lev]);
-            MultiFab::Copy(*rhoc[lev], *rho_c_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
-        }
-        for (int lev = 1; lev <= finest_level; ++lev)
-        {
-            if (rho_buf_g[lev]) {
-                std::swap(rho_buf_g[lev], charge_buf[lev]);
-                MultiFab::Copy(*charge_buf[lev], *rho_buf_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
-            }
-        }
-    }
-
-    // sync shared nodal points
-    for (int lev = 0; lev <= finest_level; ++lev)
-    {
-        const auto& period = Geom(lev).periodicity();
-        rhof[lev]->OverrideSync(*rho_fp_owner_masks[lev], period);
-    }
-    for (int lev = 1; lev <= finest_level; ++lev)
-    {
-        const auto& cperiod = Geom(lev-1).periodicity();
-        rhoc[lev]->OverrideSync(*rho_cp_owner_masks[lev], cperiod);
+    // For each level
+    // - apply filter to the fine patch of `lev` and coarse patch of `lev+1` (same resolution)
+    // - add the fine patch of `lev+1` into the fine patch of `lev`
+    // - sum guard cells of the fine patch of `lev` and coarse patch of `lev+1`
+    for (int lev=0; lev <= finest_level; ++lev) {
+        AddRhoFromFineLevelandSumBoundary(lev, 0, ncomp);
     }
 }
 
@@ -863,7 +772,10 @@ WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, i
 void
 WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
 {
-    if (rho_fp[lev]) {
+    if (!rho_fp[0]) return;
+
+    if (lev < finest_level){
+
         const auto& period = Geom(lev).periodicity();
         MultiFab mf(rho_fp[lev]->boxArray(),
                     rho_fp[lev]->DistributionMap(),
@@ -919,6 +831,13 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
 
         NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
         NodalSyncRho(lev+1, PatchType::coarse, icomp, ncomp);
+
+    } else if (lev == finest_level) {
+
+        // In this case, simply apply filter and nodal sync to the fine patch
+        ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
+        NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
+        
     }
 }
 
