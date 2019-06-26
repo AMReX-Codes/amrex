@@ -62,8 +62,15 @@ endif
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  SYSTEM_CUDA_PATH = $(CUDA_ROOT)
-  COMPILE_CUDA_PATH = $(CUDA_ROOT)
+
+  ifneq ($(CUDA_ROOT),)
+      SYSTEM_CUDA_PATH := $(CUDA_ROOT)
+      COMPILE_CUDA_PATH := $(CUDA_ROOT)
+  else ifneq ($(CUDA_HOME),)
+      SYSTEM_CUDA_PATH := $(CUDA_HOME)
+      COMPILE_CUDA_PATH := $(CUDA_HOME)
+  endif
+
   CUDA_ARCH = 70
   GPUS_PER_NODE = 8
   GPUS_PER_SOCKET = 4

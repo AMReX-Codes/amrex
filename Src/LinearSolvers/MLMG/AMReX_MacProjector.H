@@ -28,6 +28,9 @@ public:
     void setVerbose   (int v) noexcept { m_verbose = v; }
     void setCGVerbose (int v) noexcept { m_cg_verbose = v; }
     void setBottomVerbose (int v) noexcept { m_cg_verbose = v; }
+    void setMaxIter (int v) noexcept { m_maxiter = v; }
+    void setCGMaxIter (int v) noexcept { m_cg_maxiter = v; }
+    void setMaxCoarseningLevel (int v) noexcept { m_max_coarsening_level = v; }
 
     void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in) noexcept
      { bottom_solver_type = bottom_solver_type_in;}
@@ -54,6 +57,9 @@ private:
 
     int m_verbose = 0;
     int m_cg_verbose = 0;
+    int m_maxiter = 200;
+    int m_cg_maxiter = 200;
+    int m_max_coarsening_level = 100;
 
     MLMG::BottomSolver bottom_solver_type = MLMG::BottomSolver::bicgstab;
 };

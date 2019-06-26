@@ -359,7 +359,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
         Real s_avgbox = std::cbrt(npts_avgbox);
 #endif
 
-        const int block_size = 4 * (static_cast<int>(std::ceil(s_avgbox/4.))*4);
+        const int block_size = 4 * std::max(1,static_cast<int>(std::ceil(s_avgbox/4.))*4);
 	bl_mesh.maxSize(block_size);
 	const int N = bl_mesh.size();
 

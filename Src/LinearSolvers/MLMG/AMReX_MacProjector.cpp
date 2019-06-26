@@ -47,7 +47,9 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, LPInfo(), m_eb_factory));
+        LPInfo                       info;
+        info.setMaxCoarseningLevel(m_max_coarsening_level);
+        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, info, m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
         m_eb_abeclap->setScalars(0.0, 1.0);
@@ -69,7 +71,9 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm));
+        LPInfo                       info;
+        info.setMaxCoarseningLevel(m_max_coarsening_level);
+        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, info));
         m_linop = m_abeclap.get();
 
         m_abeclap->setScalars(0.0, 1.0);
@@ -103,6 +107,8 @@ MacProjector::project (Real reltol, Real atol )
         m_mlmg.reset(new MLMG(*m_linop));
         m_mlmg->setVerbose(m_verbose);
         m_mlmg->setCGVerbose(m_cg_verbose);
+        m_mlmg->setMaxIter(m_maxiter);
+        m_mlmg->setCGMaxIter(m_cg_maxiter);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);
@@ -149,7 +155,9 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
     {
         m_mlmg.reset(new MLMG(*m_linop));
         m_mlmg->setVerbose(m_verbose);
-        m_mlmg->setVerbose(m_cg_verbose);
+        m_mlmg->setCGVerbose(m_cg_verbose);
+        m_mlmg->setMaxIter(m_maxiter);
+        m_mlmg->setCGMaxIter(m_cg_maxiter);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);
