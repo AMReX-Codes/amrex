@@ -576,19 +576,6 @@ Numerics and algorithms
 
      If ``algo.maxwell_fdtd_solver`` is not specified, ``yee`` is the default.
 
-.. warning::
-
-   Previous versions of WarpX used integers to encode for the algorithms, 
-   instead of strings now. The encoding was as follows: 
-   **algo.current_deposition** could be **0** (**esirkepov**), 
-   **2** (**direct-vectorized**) or **3** (**direct**).
-   **algo.charge_deposition** could be **0** (**vectorized**) or **1** 
-   (**standard**). **algo.field_gathering** could be **0** (**vectorized**)
-   or **1** (**standard**). **algo.particle_pusher** could be **0** (**boris**)
-   or **1** (**vay**). Note that the integer encoding is no longer supported, 
-   This warning is shown to help updating old scripts, and will be removed in 
-   the future.
-
 * ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
     The order of the shape factors for the macroparticles, for the 3 dimensions of space.
     Lower-order shape factors result in faster simulations, but more noisy results,
