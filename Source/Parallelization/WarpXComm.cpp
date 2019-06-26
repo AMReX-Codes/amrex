@@ -554,8 +554,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 }
 
 void
-WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
-                amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc)
+WarpX::SyncRho ()
 {
     if (!rho_fp[0]) return;
     const int ncomp = rho_fp[0]->nComp();
@@ -564,9 +563,9 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     // before summing the guard cells of the fine patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
-        rhoc[lev]->setVal(0.0);
+        rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rhof[lev], *rhoc[lev], refinement_ratio[0]);
+        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 
     // For each level
@@ -772,7 +771,7 @@ WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, i
 void
 WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
 {
-    if (!rho_fp[0]) return;
+    if (!rho_fp[lev]) return;
 
     if (lev < finest_level){
 
@@ -837,7 +836,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
         // In this case, simply apply filter and nodal sync to the fine patch
         ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
         NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
-        
+
     }
 }
 
