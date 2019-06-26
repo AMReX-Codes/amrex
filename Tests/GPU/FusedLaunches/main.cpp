@@ -246,7 +246,7 @@ void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, std::string label,
     AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(src_d,    src_h,    lsize*sizeof(Array4<Real>), cudaMemcpyHostToDevice));
     AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(dst_d,    dst_h,    lsize*sizeof(Array4<Real>), cudaMemcpyHostToDevice));
 
-    // For simple test, assume all boxes have the same size. Otherwise, launch on the biggest box.
+    // For this simple test, assume all boxes have the same size. Otherwise, launch on the biggest box.
     const auto ec = Gpu::ExecutionConfig(((bx_h[0].numPts()*simul)+cpt-1)/cpt);
     int l_start = 0;
 
@@ -306,7 +306,10 @@ void standardLaunch(int n_cells, int max_grid_size, int Ncomp, int Nghost,
 {
     MultiFab src_fab, dst_fab;
     buildMFs(src_fab, dst_fab, n_cells, max_grid_size, Ncomp, Nghost);
-    std::string mf_label = "(" + std::to_string(n_cells) + "x" + std::to_string(max_grid_size) + ",1C/1G" + ")";
+
+    std::string mf_label = "(" + std::to_string(n_cells) + "x" + std::to_string(max_grid_size) + "," +
+                                 std::to_string(Ncomp) + "C/" std::to_string(Nghost) + "G)";
+
     standardLaunch(src_fab, dst_fab, mf_label, src_val, dst_val, Ncomp, cpt, ips, num_streams);
 }
 
@@ -316,7 +319,10 @@ void fusedLaunch(int n_cells, int max_grid_size, int Ncomp, int Nghost,
 {
     MultiFab src_fab, dst_fab;
     buildMFs(src_fab, dst_fab, n_cells, max_grid_size, Ncomp, Nghost);
-    std::string mf_label = "(" + std::to_string(n_cells) + "x" + std::to_string(max_grid_size) + ",1C/1G" + ")";
+
+    std::string mf_label = "(" + std::to_string(n_cells) + "x" + std::to_string(max_grid_size) + "," +
+                                 std::to_string(Ncomp) + "C/" std::to_string(Nghost) + "G)";
+
     fusedLaunch(src_fab, dst_fab, mf_label, src_val, dst_val, Ncomp, cpt, simul, num_launches);
 }
 
