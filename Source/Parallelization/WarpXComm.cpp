@@ -375,146 +375,12 @@ WarpX::SyncCurrent ()
         SyncCurrent(fine, crse, refinement_ratio[0]);
     }
 
-    Vector<Array<std::unique_ptr<MultiFab>,3> > j_fp(finest_level+1);
-    Vector<Array<std::unique_ptr<MultiFab>,3> > j_cp(finest_level+1);
-    Vector<Array<std::unique_ptr<MultiFab>,3> > j_buf(finest_level+1);
-
-    if (WarpX::use_filter) {
-        for (int lev = 0; lev <= finest_level; ++lev) {
-            IntVect ng = current_fp[lev][0]->nGrowVect();
-            ng += bilinear_filter.stencil_length_each_dir-1;
-            for (int idim = 0; idim < 3; ++idim) {
-                // Create new MultiFab j_jp with enough guard cells for the
-                // (potentially large) stencil of the multi-pass bilinear filter.
-                j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
-                                                   current_fp[lev][idim]->DistributionMap(),
-                                                   1, ng));
-                // Apply the filter to current_fp, store the result in j_fp.
-                bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
-                // Then swap j_fp and current_fp
-                std::swap(j_fp[lev][idim], current_fp[lev][idim]);
-                // At this point, current_fp may have false values close to the
-                // edges of each FAB. This will be solved with when summing
-                // the guard cells later.
-                // j_fp contains the exact MultiFab current_fp before this step.
-            }
-        }
-        for (int lev = 1; lev <= finest_level; ++lev) {
-            IntVect ng = current_cp[lev][0]->nGrowVect();
-            ng += bilinear_filter.stencil_length_each_dir-1;
-            for (int idim = 0; idim < 3; ++idim) {
-                j_cp[lev][idim].reset(new MultiFab(current_cp[lev][idim]->boxArray(),
-                                                   current_cp[lev][idim]->DistributionMap(),
-                                                   1, ng));
-                bilinear_filter.ApplyStencil(*j_cp[lev][idim], *current_cp[lev][idim]);
-                std::swap(j_cp[lev][idim], current_cp[lev][idim]);
-            }
-        }
-        for (int lev = 1; lev <= finest_level; ++lev) {
-            if (current_buf[lev][0]) {
-                IntVect ng = current_buf[lev][0]->nGrowVect();
-                ng += bilinear_filter.stencil_length_each_dir-1;
-                for (int idim = 0; idim < 3; ++idim) {
-                    j_buf[lev][idim].reset(new MultiFab(current_buf[lev][idim]->boxArray(),
-                                                        current_buf[lev][idim]->DistributionMap(),
-                                                        1, ng));
-                    bilinear_filter.ApplyStencil(*j_buf[lev][idim], *current_buf[lev][idim]);
-                    std::swap(*j_buf[lev][idim], *current_buf[lev][idim]);
-                }
-            }
-        }
-    }
-
-    // Sum up fine patch
-    for (int lev = 0; lev <= finest_level; ++lev)
-    {
-        const auto& period = Geom(lev).periodicity();
-        // When using a bilinear filter with many passes, current_fp has
-        // temporarily more ghost cells here, so that its value inside
-        // the domain is correct at the end of this stage.
-        WarpXSumGuardCells(*(current_fp[lev][0]),period);
-        WarpXSumGuardCells(*(current_fp[lev][1]),period);
-        WarpXSumGuardCells(*(current_fp[lev][2]),period);
-    }
-
-    // Add fine level's coarse patch to coarse level's fine patch
-    for (int lev = 0; lev < finest_level; ++lev)
-    {
-        const auto& period = Geom(lev).periodicity();
-        const IntVect& ngsrc = current_cp[lev+1][0]->nGrowVect();
-        const IntVect ngdst = IntVect::TheZeroVector();
-        const MultiFab* ccx = current_cp[lev+1][0].get();
-        const MultiFab* ccy = current_cp[lev+1][1].get();
-        const MultiFab* ccz = current_cp[lev+1][2].get();
-        if (current_buf[lev+1][0])
-        {
-            MultiFab::Add(*current_buf[lev+1][0], *current_cp[lev+1][0], 0, 0, 1, ngsrc);
-            MultiFab::Add(*current_buf[lev+1][1], *current_cp[lev+1][1], 0, 0, 1, ngsrc);
-            MultiFab::Add(*current_buf[lev+1][2], *current_cp[lev+1][2], 0, 0, 1, ngsrc);
-            ccx = current_buf[lev+1][0].get();
-            ccy = current_buf[lev+1][1].get();
-            ccz = current_buf[lev+1][2].get();
-        }
-        current_fp[lev][0]->copy(*ccx,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-        current_fp[lev][1]->copy(*ccy,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-        current_fp[lev][2]->copy(*ccz,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-    }
-
-    // Sum up coarse patch
-    for (int lev = 1; lev <= finest_level; ++lev)
-    {
-        const auto& cperiod = Geom(lev-1).periodicity();
-        WarpXSumGuardCells(*(current_cp[lev][0]),cperiod);
-        WarpXSumGuardCells(*(current_cp[lev][1]),cperiod);
-        WarpXSumGuardCells(*(current_cp[lev][2]),cperiod);
-    }
-
-    if (WarpX::use_filter) {
-        for (int lev = 0; lev <= finest_level; ++lev)
-        {
-            for (int idim = 0; idim < 3; ++idim) {
-                // swap j_fp and current_fp so that j_fp has correct values inside
-                // the domain and wrong number of ghost cells.
-                // current_fp has right number of ghost cells.
-                std::swap(j_fp[lev][idim], current_fp[lev][idim]);
-                // Then copy the interior of j_fp to current_fp.
-                MultiFab::Copy(*current_fp[lev][idim], *j_fp[lev][idim], 0, 0, 1, 0);
-                // current_fp has right number of ghost cells and
-                // correct filtered values here.
-            }
-        }
-        for (int lev = 1; lev <= finest_level; ++lev)
-        {
-            for (int idim = 0; idim < 3; ++idim) {
-                std::swap(j_cp[lev][idim], current_cp[lev][idim]);
-                MultiFab::Copy(*current_cp[lev][idim], *j_cp[lev][idim], 0, 0, 1, 0);
-            }
-        }
-        for (int lev = 1; lev <= finest_level; ++lev)
-        {
-            for (int idim = 0; idim < 3; ++idim) {
-                if (j_buf[lev][idim]) {
-                    std::swap(j_buf[lev][idim], current_buf[lev][idim]);
-                    MultiFab::Copy(*current_buf[lev][idim], *j_buf[lev][idim], 0, 0, 1, 0);
-                }
-            }
-        }
-    }
-
-    // sync shared nodal edges
-    for (int lev = 0; lev <= finest_level; ++lev)
-    {
-        const auto& period = Geom(lev).periodicity();
-        current_fp[lev][0]->OverrideSync(*current_fp_owner_masks[lev][0], period);
-        current_fp[lev][1]->OverrideSync(*current_fp_owner_masks[lev][1], period);
-        current_fp[lev][2]->OverrideSync(*current_fp_owner_masks[lev][2], period);
-    }
-    for (int lev = 1; lev <= finest_level; ++lev)
-    {
-        const auto& cperiod = Geom(lev-1).periodicity();
-        current_cp[lev][0]->OverrideSync(*current_cp_owner_masks[lev][0], cperiod);
-        current_cp[lev][1]->OverrideSync(*current_cp_owner_masks[lev][1], cperiod);
-        current_cp[lev][2]->OverrideSync(*current_cp_owner_masks[lev][2], cperiod);
+    // For each level
+    // - apply filter to the coarse patch/buffer of `lev+1` and fine patch of `lev` (same resolution)
+    // - add the coarse patch/buffer of `lev+1` into the fine patch of `lev`
+    // - sum guard cells of the coarse patch of `lev+1` and fine patch of `lev`
+    for (int lev=0; lev <= finest_level; ++lev) {
+        AddCurrentFromFineLevelandSumBoundary(lev);
     }
 }
 
@@ -569,9 +435,9 @@ WarpX::SyncRho ()
     }
 
     // For each level
-    // - apply filter to the fine patch of `lev` and coarse patch of `lev+1` (same resolution)
-    // - add the fine patch of `lev+1` into the fine patch of `lev`
-    // - sum guard cells of the fine patch of `lev` and coarse patch of `lev+1`
+    // - apply filter to the coarse patch/buffer of `lev+1` and fine patch of `lev` (same resolution)
+    // - add the coarse patch/buffer of `lev+1` into the fine patch of `lev`
+    // - sum guard cells of the coarse patch of `lev+1` and fine patch of `lev`
     for (int lev=0; lev <= finest_level; ++lev) {
         AddRhoFromFineLevelandSumBoundary(lev, 0, ncomp);
     }
@@ -666,65 +532,67 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
 {
     ApplyFilterandSumBoundaryJ(lev, PatchType::fine);
 
-    // When there are current buffers, unlike coarse patch,
-    // we don't care about the final state of them.
+    if (lev < finest_level) {
+        // When there are current buffers, unlike coarse patch,
+        // we don't care about the final state of them.
 
-    const auto& period = Geom(lev).periodicity();
-    for (int idim = 0; idim < 3; ++idim) {
-        MultiFab mf(current_fp[lev][idim]->boxArray(),
-                    current_fp[lev][idim]->DistributionMap(), 1, 0);
-        mf.setVal(0.0);
-        if (use_filter && current_buf[lev+1][idim])
-        {
-            // coarse patch of fine level
-            IntVect ng = current_cp[lev+1][idim]->nGrowVect();
-            ng += bilinear_filter.stencil_length_each_dir-1;
-            MultiFab jfc(current_cp[lev+1][idim]->boxArray(),
-                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
-            bilinear_filter.ApplyStencil(jfc, *current_cp[lev+1][idim]);
+        const auto& period = Geom(lev).periodicity();
+        for (int idim = 0; idim < 3; ++idim) {
+            MultiFab mf(current_fp[lev][idim]->boxArray(),
+                        current_fp[lev][idim]->DistributionMap(), 1, 0);
+            mf.setVal(0.0);
+            if (use_filter && current_buf[lev+1][idim])
+            {
+                // coarse patch of fine level
+                IntVect ng = current_cp[lev+1][idim]->nGrowVect();
+                ng += bilinear_filter.stencil_length_each_dir-1;
+                MultiFab jfc(current_cp[lev+1][idim]->boxArray(),
+                             current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+                bilinear_filter.ApplyStencil(jfc, *current_cp[lev+1][idim]);
 
-            // buffer patch of fine level
-            MultiFab jfb(current_buf[lev+1][idim]->boxArray(),
-                         current_buf[lev+1][idim]->DistributionMap(), 1, ng);
-            bilinear_filter.ApplyStencil(jfb, *current_buf[lev+1][idim]);
+                // buffer patch of fine level
+                MultiFab jfb(current_buf[lev+1][idim]->boxArray(),
+                             current_buf[lev+1][idim]->DistributionMap(), 1, ng);
+                bilinear_filter.ApplyStencil(jfb, *current_buf[lev+1][idim]);
 
-            MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
-            mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+                MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
+                mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
 
-            WarpXSumGuardCells(*current_cp[lev+1][idim], jfc, period);
+                WarpXSumGuardCells(*current_cp[lev+1][idim], jfc, period);
+            }
+            else if (use_filter) // but no buffer
+            {
+                // coarse patch of fine level
+                IntVect ng = current_cp[lev+1][idim]->nGrowVect();
+                ng += bilinear_filter.stencil_length_each_dir-1;
+                MultiFab jf(current_cp[lev+1][idim]->boxArray(),
+                            current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+                bilinear_filter.ApplyStencil(jf, *current_cp[lev+1][idim]);
+                mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+                WarpXSumGuardCells(*current_cp[lev+1][idim], jf, period);
+            }
+            else if (current_buf[lev+1][idim]) // but no filter
+            {
+                MultiFab::Copy(*current_buf[lev+1][idim],
+                               *current_cp [lev+1][idim], 0, 0, 1,
+                               current_cp[lev+1][idim]->nGrow());
+                mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, 1,
+                               current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                               period);
+                WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
+            }
+            else // no filter, no buffer
+            {
+                mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
+                               current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                               period);
+                WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
+            }
+            MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
         }
-        else if (use_filter) // but no buffer
-        {
-            // coarse patch of fine level
-            IntVect ng = current_cp[lev+1][idim]->nGrowVect();
-            ng += bilinear_filter.stencil_length_each_dir-1;
-            MultiFab jf(current_cp[lev+1][idim]->boxArray(),
-                        current_cp[lev+1][idim]->DistributionMap(), 1, ng);
-            bilinear_filter.ApplyStencil(jf, *current_cp[lev+1][idim]);
-            mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
-            WarpXSumGuardCells(*current_cp[lev+1][idim], jf, period);
-        }
-        else if (current_buf[lev+1][idim]) // but no filter
-        {
-            MultiFab::Copy(*current_buf[lev+1][idim],
-                           *current_cp [lev+1][idim], 0, 0, 1,
-                           current_cp[lev+1][idim]->nGrow());
-            mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, 1,
-                           current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
-                           period);
-            WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
-        }
-        else // no filter, no buffer
-        {
-            mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
-                           current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
-                           period);
-            WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
-        }
-        MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
+        NodalSyncJ(lev+1, PatchType::coarse);
     }
     NodalSyncJ(lev, PatchType::fine);
-    NodalSyncJ(lev+1, PatchType::coarse);
 }
 
 void
@@ -772,6 +640,8 @@ void
 WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
 {
     if (!rho_fp[lev]) return;
+
+    ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
 
     if (lev < finest_level){
 
@@ -825,19 +695,11 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
                            period);
             WarpXSumGuardCells(*(rho_cp[lev+1]), period, icomp, ncomp);
         }
-        ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
         MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);
-
-        NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
         NodalSyncRho(lev+1, PatchType::coarse, icomp, ncomp);
-
-    } else if (lev == finest_level) {
-
-        // In this case, simply apply filter and nodal sync to the fine patch
-        ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
-        NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
-
     }
+
+    NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
 }
 
 void
