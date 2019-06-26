@@ -41,6 +41,7 @@ void copy (int size, amrex::Box* bx, amrex::Dim3* offset,
 {
     // Works because boxes are currently of equal size.
     //    When box size varies: calc or pass in maximum box size.
+    //    Will need to adjust threads.
     int ncells = bx[0].numPts();
     int tid = blockDim.x*blockIdx.x+threadIdx.x;
     int bidx = tid/ncells;
@@ -68,7 +69,8 @@ void copy (int size, amrex::Box* bx, amrex::Dim3* offset,
     }
 }
 
-// Launch within MFIter loop version
+// Single box at a time version
+//    Launch within MFIter loop 
 AMREX_GPU_GLOBAL
 void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
            amrex::Dim3 offset, amrex::Array4<Real> src, amrex::Array4<Real> dst, 
@@ -90,11 +92,40 @@ void copy (amrex::Dim3 lo, amrex::Dim3 len, int ncells,
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_val,
-                                      int Ncomp, int cpt = 1, int num_streams = Gpu::Device::numGpuStreams())
+void buildMFs(MultiFab& src_fab, MultiFab& dst_fab, 
+              int n_cell, int max_grid_size, int Ncomp, int Nghost) 
+{
+    BoxArray ba;
+    {
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        Box domain(dom_lo, dom_hi);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        ba.maxSize(max_grid_size);
+    }
+
+    DistributionMapping dm(ba);
+
+    src_fab.define(ba, dm, Ncomp, Nghost);
+    dst_fab.define(ba, dm, Ncomp, Nghost);
+
+    src_fab.setVal(0.0);
+    dst_fab.setVal(0.0);
+}
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, std::string label, 
+                         Real src_val, Real dst_val, int Ncomp, 
+                         int cpt = 1, int ips = 0, int num_streams = Gpu::Device::numGpuStreams())
 {
     src_fab.setVal(src_val);
     dst_fab.setVal(dst_val);
+
+    // If CPT > CPB test/adjust?
 
     if (num_streams > Gpu::Device::numGpuStreams())
     {
@@ -102,14 +133,22 @@ void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst
         std::cout << "Too many streams requested. Using maximum value of " << num_streams << std::endl;
     }
 
-    std::string timer_name = "STANDARD: " +
-                               std::to_string(num_streams) + " streams, " + 
-                               std::to_string(cpt) + " CPT";
+    if ( (ips <= 0) || (ips > src_fab.local_size()) )
+    {
+        ips = src_fab.local_size();
+    }
 
+    std::string timer_name = "STANDARD" + label + ": " +
+                               std::to_string(num_streams) + " streams, " + 
+                               std::to_string(cpt) + " CPT, " +
+                               std::to_string(ips) + " IPS";
+
+    double timer_start = amrex::second();
     BL_PROFILE_VAR(timer_name, standard);
     for (MFIter mfi(src_fab); mfi.isValid(); ++mfi)
     {
-        Gpu::Device::setStreamIndex(mfi.LocalIndex() % num_streams);
+        const int idx = mfi.LocalIndex();
+        Gpu::Device::setStreamIndex(idx % num_streams);
         const Box bx = mfi.validbox();
 
         const auto src = src_fab.array(mfi);
@@ -125,17 +164,21 @@ void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst
                                 lo, len, ncells,
                                 offset, src, dst,
                                 0, 0, Ncomp);
+
+        if ((idx % ips) == 0)
+        {
+            Gpu::Device::synchronize();
+        }
     }
     BL_PROFILE_VAR_STOP(standard);
+    double timer_end = amrex::second();
 
+    amrex::Print() << timer_name << " = " << timer_end-timer_start << " seconds." << std::endl;
+
+    // Error check
     Real src_sum = src_fab.sum();
     Real dst_sum = dst_fab.sum();
-
-    if (src_sum == dst_sum)
-    {
-        amrex::Print() << timer_name << ": no error." << std::endl;
-    }
-    else
+    if (src_sum != dst_sum)
     {
         amrex::Print() << timer_name << " error found." << std::endl;
         amrex::Print() << " ---- dst = " << dst_sum 
@@ -145,9 +188,9 @@ void standardLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_val,
-                              int Ncomp, int cpt = 1, int simul = 1, int num_launches = 1)
-// NUM LAUNCHES.
+void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, std::string label, 
+                             Real src_val, Real dst_val, int Ncomp,
+                             int cpt = 1, int simul = 1, int num_launches = 1)
 {
     src_fab.setVal(src_val);
     dst_fab.setVal(dst_val);
@@ -155,24 +198,20 @@ void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_va
     int lsize = src_fab.local_size();
 
     // Note: Not a parallel copy, so src_ba = dst_ba.
-/*
+
     if (num_launches > lsize)
     {
         num_launches = lsize; 
         std::cout << "Too many launches requested. Using one box per launch: " << dst_fab.local_size() << std::endl;
     }
-*/
-    if (num_launches != 1)
-    {
-        num_launches = 1;
-        std::cout << "Multiple fused launches feature not yet implemented. num_launces set to 1" << std::endl; 
-    }
 
-    std::string timer_name = "FUSED: " +
+    std::string timer_name = "FUSED" + label + ": " +
                                std::to_string(num_launches) + " launches, " + 
                                std::to_string(cpt) + " CPT, " +
                                std::to_string(simul) + " simul";
 
+    double timer_start = amrex::second();
+    BL_PROFILE_REGION_START(std::string(timer_name + " region"));
     BL_PROFILE_VAR(timer_name, fused);
     BL_PROFILE_VAR("FUSED: ALLOC", fusedalloc);
 
@@ -207,25 +246,39 @@ void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_va
     AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(src_d,    src_h,    lsize*sizeof(Array4<Real>), cudaMemcpyHostToDevice));
     AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(dst_d,    dst_h,    lsize*sizeof(Array4<Real>), cudaMemcpyHostToDevice));
 
+    // For simple test, assume all boxes have the same size. Otherwise, launch on the biggest box.
     const auto ec = Gpu::ExecutionConfig(((bx_h[0].numPts()*simul)+cpt-1)/cpt);
+    int l_start = 0;
 
-    AMREX_GPU_LAUNCH_GLOBAL(ec, copy, lsize, 
-                            bx_d, offset_d,
-                            src_d, dst_d,
-                            0, 0, Ncomp, simul);
+    for(int lid = 0; lid < num_launches; ++lid) 
+    {
+        amrex::Gpu::Device::setStreamIndex(lid);
+        int bx_num = (lsize/num_launches) + (lid < (lsize%num_launches)); 
 
+        if (bx_num > 0)
+        {
+            AMREX_GPU_LAUNCH_GLOBAL(ec, copy, bx_num, 
+                                    bx_d+l_start,  offset_d+l_start,
+                                    src_d+l_start, dst_d+l_start,
+                                    0, 0, Ncomp, simul);
+        }
+        l_start += bx_num;
+    }
+    amrex::Gpu::Device::resetStreamIndex();
     amrex::Gpu::Device::synchronize();
 
     BL_PROFILE_VAR_STOP(fusedl);
     BL_PROFILE_VAR_STOP(fused);
+    BL_PROFILE_REGION_STOP(std::string(timer_name + " region"));
+    double timer_end = amrex::second();
+
+    amrex::Print() << timer_name << " = " << timer_end-timer_start << " seconds." << std::endl;
+
+
 
     Real src_sum = src_fab.sum();
     Real dst_sum = dst_fab.sum();
-    if (src_sum == dst_sum)
-    {
-        amrex::Print() << timer_name << ": no error." << std::endl;
-    }
-    else
+    if (src_sum != dst_sum)
     {
         amrex::Print() << timer_name << " error found." << std::endl;
         amrex::Print() << " ---- dst = " << dst_sum 
@@ -243,7 +296,29 @@ void fusedLaunch(MultiFab& src_fab, MultiFab& dst_fab, Real src_val, Real dst_va
     The_Device_Arena()->free(dst_d);
 }
 
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
+void standardLaunch(int n_cells, int max_grid_size, int Ncomp, int Nghost, 
+                                      Real src_val, Real dst_val,
+                                      int cpt = 1, int ips = 0,
+                                      int num_streams = Gpu::Device::numGpuStreams())
+
+{
+    MultiFab src_fab, dst_fab;
+    buildMFs(src_fab, dst_fab, n_cells, max_grid_size, Ncomp, Nghost);
+    std::string mf_label = "(" + std::to_string(n_cells) + "x" + std::to_string(max_grid_size) + ",1C/1G" + ")";
+    standardLaunch(src_fab, dst_fab, mf_label, src_val, dst_val, Ncomp, cpt, ips, num_streams);
+}
+
+void fusedLaunch(int n_cells, int max_grid_size, int Ncomp, int Nghost, 
+                                   Real src_val, Real dst_val,
+                                   int cpt = 1, int simul = 1, int num_launches = 1)
+{
+    MultiFab src_fab, dst_fab;
+    buildMFs(src_fab, dst_fab, n_cells, max_grid_size, Ncomp, Nghost);
+    std::string mf_label = "(" + std::to_string(n_cells) + "x" + std::to_string(max_grid_size) + ",1C/1G" + ")";
+    fusedLaunch(src_fab, dst_fab, mf_label, src_val, dst_val, Ncomp, cpt, simul, num_launches);
+}
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
@@ -269,56 +344,35 @@ int main (int argc, char* argv[])
             pp.get("max_grid_size",max_grid_size);
         }
 
-        // make BoxArray and Geometry
-        BoxArray ba;
-        {
-            IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-            IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
-            Box domain(dom_lo, dom_hi);
-
-            // Initialize the boxarray "ba" from the single box "bx"
-            ba.define(domain);
-            // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-            ba.maxSize(max_grid_size);
-        }
-
-        // Nghost = number of ghost cells for each array 
-        int Nghost = 1;
-    
-        // Ncomp = number of components for each array
-        int Ncomp  = 1;
-  
-        // How Boxes are distrubuted among MPI processes
-        DistributionMapping dm(ba);
-
-        // Malloc value for setval testing.
-        Real* val;
-        cudaMallocManaged(&val, sizeof(Real));
-
-        // Create the MultiFab and touch the data.
+        // Create the MultiFabs and touch the data.
         // Ensures the data in on the GPU for all further testing.
-        // NOTE: THIS IS NOT A PARALLEL COPY, SO BA & DM MUST BE IDENTICAL HERE.
-        //   (IT'S EITHER THIS, OR SETVAL / LOCAL SUM TYPE STUFF).
-        MultiFab x(ba, dm, Ncomp, Nghost);
-        MultiFab y(ba, dm, Ncomp, Nghost);
-        x.setVal(0.0);
-        y.setVal(0.0);
+        MultiFab x;
+        MultiFab y;
+        buildMFs(x, y, n_cell, max_grid_size, 1, 1);
 
+        std::string mf_label = "(" + std::to_string(n_cell) + "x" + std::to_string(max_grid_size) + ",1C/1G" + ")";
+        amrex::Print() << mf_label << std::endl;
+
+        amrex::Print() << std::endl;
         amrex::Print() << "Testing on " << n_cell << "^3 boxes with max grid size " << max_grid_size << std::endl 
                        << "Number of boxes per MultiFab: " << x.size() << std::endl << std::endl;
+        amrex::Print() << "=================================================" << std::endl;
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        // standardLaunch (src, dst, srcVal, dstVal, Ncomp, cellsPerThread, numStreams);
-        // fusedLaunch (src, dst, srcVal, dstVal, Ncomp, cellsPerThread, simultaneousBoxes, numLaunches );
+        // standardLaunch (src, dst,     label, srcVal, dstVal, Ncomp, cellsPerThread, iterationsPerSynch, numStreams);
+        standardLaunch(      x,   y,  mf_label,  0.004, 0.0027,     1,             16);
+        standardLaunch(      x,   y,  mf_label,  0.867, 0.5309,     1,              2);
+        standardLaunch(      x,   y,  mf_label,  0.123, 0.4560,     1,              1);
+        standardLaunch(      x,   y,  mf_label,  0.123, 0.4560,     1,              1,                 50);
 
-        standardLaunch(x, y, 0.004, 0.0027, 1, 16);
-        standardLaunch(x, y, 0.867, 0.5309, 1, 2);
-        standardLaunch(x, y, 0.123, 0.4560, 1, 1);
-        fusedLaunch(x, y, 0.123, 0.456, 1, 1, 1, 1);      
-        fusedLaunch(x, y, 1.0, 0.0, 1, 8, 1, 1);
-
-    }
+        // fusedLaunch (src, dst,     label, srcVal, dstVal, Ncomp, cellsPerThread, simultaneousBoxes, numLaunches);
+        fusedLaunch(      x,   y,  mf_label,  0.123,  0.456,     1,              1,                 1,           1);      
+        fusedLaunch(      x,   y,  mf_label,  0.123,  0.456,     1,              3,                 1,           1);      
+        fusedLaunch(      x,   y,  mf_label,    1.0,    0.0,     1,              8,                 1,           1);
+        fusedLaunch(      x,   y,  mf_label,    0.2,   0.05,     1,              8,                 1,           2);
+        fusedLaunch(      x,   y,  mf_label,    1.2,   0.74,     1,              1,                 1,           2);
+   }
 
     amrex::Finalize();
 }
