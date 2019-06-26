@@ -2,7 +2,6 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 
 target_sources(amrex
    PRIVATE 
-   AMReX_EBAmrUtil_F.H
    AMReX_EBCellFlag.H
    AMReX_EBFArrayBox.H
    AMReX_EBInterp_F.H
@@ -40,7 +39,6 @@ target_sources(amrex
    AMReX_EBFluxRegister_nd.F90
    AMReX_EBMultiFabUtil_${DIM}d.F90
    AMReX_EBMultiFabUtil_nd.F90
-   AMReX_EBAmrUtil_nd.F90     
    AMReX_ebinterp_${DIM}d.F90  
    AMReX_ebcellflag_mod.F90   
    AMReX_compute_normals.F90
