@@ -109,7 +109,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             u(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -121,7 +121,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             v(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -134,7 +134,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             w(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -155,7 +155,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             if (ax(i,j,k) == 0.0) u(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -167,7 +167,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             if (ay(i,j,k) == 0.0) v(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -180,7 +180,7 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             if (az(i,j,k) == 0.0) w(i,j,k,n) = 0.0;
                         }}}
                     }
