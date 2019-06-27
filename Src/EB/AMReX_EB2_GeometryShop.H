@@ -55,28 +55,26 @@ public:
     int getBoxType (const Box& bx, const Geometry& geom) const;
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
-    void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const noexcept
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on) const noexcept
     {
+        Gpu::LaunchSafeGuard lsg(run_on == RunOn::Gpu && Gpu::inLaunchRegion());
+
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         const auto& a = levelset.array();
-        
-        for         (int k = lo.z; k <= hi.z; ++k) {
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    a(i,j,k) = m_f(AMREX_D_DECL(problo[0]+i*dx[0],
-                                                problo[1]+j*dx[1],
-                                                problo[2]+k*dx[2]));
-                }
-            }
-        }
+
+        auto f = m_f;
+        AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+        {
+            a(i,j,k) = f(AMREX_D_DECL(problo[0]+i*dx[0],
+                                      problo[1]+j*dx[1],
+                                      problo[2]+k*dx[2]));
+        });
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* = nullptr >
-    void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const noexcept
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn) const noexcept
     {
         const Real* AMREX_RESTRICT problo = geom.ProbLo();
         const Real* AMREX_RESTRICT dx = geom.CellSize();

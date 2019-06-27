@@ -2,7 +2,6 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 
 target_sources(amrex
    PRIVATE 
-   AMReX_EBAmrUtil_F.H
    AMReX_EBCellFlag.H
    AMReX_EBFArrayBox.H
    AMReX_EBInterp_F.H
@@ -17,6 +16,7 @@ target_sources(amrex
    AMReX_EBFabFactory.H
    AMReX_EBFluxRegister.H
    AMReX_EBMultiFabUtil_F.H
+   AMReX_EBMultiFabUtil_C.H
    AMReX_EB_F.H
    AMReX_EB_levelset.H
    AMReX_EB_utils.H
@@ -39,8 +39,7 @@ target_sources(amrex
    AMReX_EBFluxRegister_${DIM}d.F90
    AMReX_EBFluxRegister_nd.F90
    AMReX_EBMultiFabUtil_${DIM}d.F90
-   AMReX_EBMultiFabUtil_nd.F90
-   AMReX_EBAmrUtil_nd.F90     
+   AMReX_EBMultiFabUtil_${DIM}D_C.H
    AMReX_ebinterp_${DIM}d.F90  
    AMReX_ebcellflag_mod.F90   
    AMReX_compute_normals.F90
@@ -49,6 +48,7 @@ target_sources(amrex
    AMReX_EB_Tagging.F90
    AMReX_EB_bc_fill_nd.F90
    AMReX_EB2_F.H
+   AMReX_EB2_C.H
    AMReX_EB2_IF_Box.H
    AMReX_EB2_IF_Lathe.H
    AMReX_EB2_IF_Union.H
@@ -79,6 +79,7 @@ target_sources(amrex
    AMReX_EB2_Level.cpp
    AMReX_EB2_MultiGFab.cpp
    AMReX_eb2_${DIM}d.F90
+   AMReX_EB2_${DIM}D_C.H
    AMReX_algoim.H
    AMReX_algoim_K.H
    AMReX_algoim.cpp
