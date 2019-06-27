@@ -64,51 +64,64 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
 							  &((*umac_pointer[1])[grid]),
 							  &((*umac_pointer[2])[grid])) };
+	  
 
-	  auto uccarrx = (*fab[0]).array();
-	  auto uccarry = (*fab[1]).array();
-	  amrex::Array4<const double> * p_uccarrx = &(uccarrx);
-	  amrex::Array4<const double> * p_uccarry = &(uccarry);
-	  amrex::GpuArray<amrex::Array4<const double>* , 2> const uccarr {p_uccarrx, p_uccarry};
+	  auto umacarrx = (*fab[0]).array();
+	  amrex::Array4<const double> * p_umacarrx = &(umacarrx);
+	  amrex::Array4<const double> * p_umacarry;
+	  amrex::Array4<const double> * p_umacarrz;
 
+	  //If this is true, we need the y component 
+	  if (AMREX_SPACEDIM >= 2) {
+	    auto umacarry = (*fab[1]).array();
+	    p_umacarry = &(umacarry);
+	  }
+	  //If this is true, we need the z component
+	  if (AMREX_SPACEDIM >= 3) {
+	    auto umacarrz = (*fab[2]).array();
+	    p_umacarrz = &(umacarrz);
+	  }
+
+	  //array of these pointers to pass to the GPU
+	  amrex::GpuArray<amrex::Array4<const double>* , AMREX_SPACEDIM>
+	    const umacarr {AMREX_D_DECL(p_umacarrx, p_umacarry, p_umacarrz )};
+	
+							   
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 
-	  amrex::ParallelFor(n,   
-	  [=] AMREX_GPU_DEVICE (int i)      
-       {
+	amrex::ParallelFor(n,   
+	     [=] AMREX_GPU_DEVICE (int i)      
+	 {
 					
 	 ParticleType& p = p_pbox[i];
 	 IntVect const& cc_cell = Index(p,lev);
-         BL_ASSERT(p.m_idata.id <= 0);
+         //BL_ASSERT(p.m_idata.id <= 0);
          Real v[AMREX_SPACEDIM];
-         amrex_interpolate_MAC_2 (p, plo, dxi,uccarr, v,cc_cell);         
+         mac_interpolate(p, plo, dxi, umacarr, v, cc_cell);         
 
 		if (ipass == 0)
                 {
-		  //                                                                                 
-                  // Save old position and the vel & predict location at dt/2.                        
-                  //
-		    p.m_rdata.arr[AMREX_SPACEDIM+0] = p.m_rdata.pos[0];
-		    p.m_rdata.pos[0] += 0.5*dt*v[0];
-
-		    p.m_rdata.arr[AMREX_SPACEDIM+1] = p.m_rdata.pos[1];
-                    p.m_rdata.pos[1] += 0.5*dt*v[1];
-
+		  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+		    {
+		      // Save old position for all dimensions and vel & predict location at dt/2.    
+		      p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];     
+                      p.m_rdata.pos[dim] += 0.5*dt*v[dim];   		 
+		    }
+    		  
                 }
                 else
                 {
-		  // Update to final time using the orig position and the vel at dt/2 /
-		  p.m_rdata.pos[0]  = p.m_rdata.arr[AMREX_SPACEDIM+0] + dt*v[0];
-                  // Save the velocity for use in Timestamp().
-		  p.m_rdata.arr[AMREX_SPACEDIM+0] = v[0];
-
-                  p.m_rdata.pos[1]  = p.m_rdata.arr[AMREX_SPACEDIM+1] + dt*v[1];
-                  p.m_rdata.arr[AMREX_SPACEDIM+1] = v[1];		  
+		  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+		    {
+		      // Update to final time using the orig position and the vel at dt/2.
+		      p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
+                      // Save the velocity for use in Timestamp().                                 
+		      p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
+		    }
 		}
-
-       });
+	 });
       }
     }
     if (m_verbose > 1)
@@ -169,28 +182,29 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 	      BL_ASSERT(p.m_idata.id <= 0);
 	      Real v[AMREX_SPACEDIM];
 
-              amrex_interpolate_CIC_2 (p, plo, dxi, uccarr, v);
+              cic_interpolate(p, plo, dxi, uccarr, v);
 
-		if (ipass == 0) {
-		    //
-		    // Save old position and the vel & predict location at dt/2.
-		    //
-		  for (int d = 0; d < AMREX_SPACEDIM; d++)
-		    {
-		        p.m_rdata.arr[AMREX_SPACEDIM+d] = p.m_rdata.pos[d];
-                        p.m_rdata.pos[d] += 0.5*dt*v[d];
+               if (ipass == 0)
+                {
+                  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    {
+                      // Save old position for all dimensions and vel & predict location at dt/2. 
+                      p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];
+                      p.m_rdata.pos[dim] += 0.5*dt*v[dim];
                     }
-		} else {
-		    //
-		    // Update to final time using the orig position and the vel at dt/2.
-		    //
-		    for (int d = 0; d < AMREX_SPACEDIM; d++)
-		    {
-                        p.m_rdata.pos[d]  = p.m_rdata.arr[AMREX_SPACEDIM+d] + dt*v[d];
-                        // Save the velocity for use in Timestamp().
-			p.m_rdata.arr[AMREX_SPACEDIM+d] = v[d];
+
+                }
+                else
+                {
+                  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    {
+                      // Update to final time using the orig position and the vel at dt/2.
+                      p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
+                      // Save the velocity for use in Timestamp().
+                      p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
                     }
                 }
+
             });
         }
     }
