@@ -711,15 +711,57 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                                flux, sol, face_only, ncomp);
         if (fabtyp != FabType::regular && !face_only) {
             const auto& area = factory->getAreaFrac();
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                const Box& fbx = amrex::surroundingNodes(box,idim);
-                amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx),
-                                           BL_TO_FORTRAN_ANYD(*flux[idim]),
-                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]),
-                                           &ncomp);
-            }
+            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->array(mfi);,
+                         Array4<Real const> const& ay = area[1]->array(mfi);,
+                         Array4<Real const> const& az = area[2]->array(mfi););
+            AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(box,0);,
+                         const Box& ybx = amrex::surroundingNodes(box,1);,
+                         const Box& zbx = amrex::surroundingNodes(box,2););
+            AMREX_D_TERM(Array4<Real> const& fx = flux[0]->array();,
+                         Array4<Real> const& fy = flux[1]->array();,
+                         Array4<Real> const& fz = flux[2]->array(););
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                xbx, txbx,
+                {
+                    const auto lo = amrex::lbound(txbx);
+                    const auto hi = amrex::ubound(txbx);
+                    for (int n = 0; n < ncomp; ++n) {
+                        for (int k = lo.z; k <= hi.z; ++k) {
+                        for (int j = lo.y; j <= hi.y; ++j) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
+                            if (ax(i,j,k) == 0.0) fx(i,j,k,n) = 0.0;
+                        }}}
+                    }
+                }
+                ,ybx, tybx,
+                {
+                    const auto lo = amrex::lbound(tybx);
+                    const auto hi = amrex::ubound(tybx);
+                    for (int n = 0; n < ncomp; ++n) {
+                        for (int k = lo.z; k <= hi.z; ++k) {
+                        for (int j = lo.y; j <= hi.y; ++j) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
+                            if (ay(i,j,k) == 0.0) fy(i,j,k,n) = 0.0;
+                        }}}
+                    }
+                }
+#if (AMREX_SPACEDIM == 3)
+                ,zbx, tzbx,
+                {
+                    const auto lo = amrex::lbound(tzbx);
+                    const auto hi = amrex::ubound(tzbx);
+                    for (int n = 0; n < ncomp; ++n) {
+                        for (int k = lo.z; k <= hi.z; ++k) {
+                        for (int j = lo.y; j <= hi.y; ++j) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
+                            if (az(i,j,k) == 0.0) fz(i,j,k,n) = 0.0;
+                        }}}
+                    }
+                }
+#endif
+                );
         }
-    } else {               
+    } else {
         const auto& area = factory->getAreaFrac();
         const auto& fcent = factory->getFaceCent();
 
@@ -806,12 +848,56 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             });
 #endif
             if (fabtyp != FabType::regular) {
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx[idim]),
-                                               BL_TO_FORTRAN_ANYD((*grad[idim])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*area[idim])[mfi]),
-                                               &ncomp);
-                }
+                AMREX_D_TERM(Array4<Real const> const& ax = area[0]->array(mfi);,
+                             Array4<Real const> const& ay = area[1]->array(mfi);,
+                             Array4<Real const> const& az = area[2]->array(mfi););
+                AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(box,0);,
+                             const Box& ybx = amrex::surroundingNodes(box,1);,
+                             const Box& zbx = amrex::surroundingNodes(box,2););
+                AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
+                             const auto& gy = grad[1]->array(mfi);,
+                             const auto& gz = grad[2]->array(mfi););
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                    xbx, txbx,
+                    {
+                        const auto lo = amrex::lbound(txbx);
+                        const auto hi = amrex::ubound(txbx);
+                        for (int n = 0; n < ncomp; ++n) {
+                            for (int k = lo.z; k <= hi.z; ++k) {
+                            for (int j = lo.y; j <= hi.y; ++j) {
+                            for (int i = lo.x; i <= hi.x; ++i) {
+                                if (ax(i,j,k) == 0.0) gx(i,j,k,n) = 0.0;
+                            }}}
+                        }
+                    }
+                    ,ybx, tybx,
+                    {
+                        const auto lo = amrex::lbound(tybx);
+                        const auto hi = amrex::ubound(tybx);
+                        for (int n = 0; n < ncomp; ++n) {
+                            for (int k = lo.z; k <= hi.z; ++k) {
+                            for (int j = lo.y; j <= hi.y; ++j) {
+                            for (int i = lo.x; i <= hi.x; ++i) {
+                                if (ay(i,j,k) == 0.0) gy(i,j,k,n) = 0.0;
+                            }}}
+                        }
+                    }
+#if (AMREX_SPACEDIM == 3)
+                    ,zbx, tzbx,
+                    {
+                        const auto lo = amrex::lbound(tzbx);
+                        const auto hi = amrex::ubound(tzbx);
+                        for (int n = 0; n < ncomp; ++n) {
+                            for (int k = lo.z; k <= hi.z; ++k) {
+                            for (int j = lo.y; j <= hi.y; ++j) {
+                            for (int i = lo.x; i <= hi.x; ++i) {
+                                if (az(i,j,k) == 0.0) gz(i,j,k,n) = 0.0;
+                            }}}
+                        }
+                    }
+#endif
+                    );
             }
         } else {
            amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(fbx[0]),

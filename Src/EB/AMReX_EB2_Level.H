@@ -168,25 +168,27 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = 2;
-    m_cellflag.define(m_grids, m_dmap, 1, ng);
-    m_volfrac.define(m_grids, m_dmap, 1, ng);
-    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
-    m_bndryarea.define(m_grids, m_dmap, 1, ng);
-    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
-    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+    MFInfo mf_info;
+    mf_info.SetTag("EB2::Level");
+    m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
+    m_volfrac.define(m_grids, m_dmap, 1, ng, mf_info);
+    m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
+    m_bndryarea.define(m_grids, m_dmap, 1, ng, mf_info);
+    m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
+    m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_areafrac[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, 1, ng);
+                                m_dmap, 1, ng, mf_info);
         m_facecent[idim].define(amrex::convert(m_grids, IntVect::TheDimensionVector(idim)),
-                                m_dmap, AMREX_SPACEDIM-1, ng);
+                                m_dmap, AMREX_SPACEDIM-1, ng, mf_info);
     }
 
-    const Real* dx = geom.CellSize();
-    const Real* dxinv = geom.InvCellSize();
-    const Real* problo = geom.ProbLo();
+    const auto dx = geom.CellSizeArray();
+    const auto dxinv = geom.InvCellSizeArray();
+    const auto problo = geom.ProbLoArray();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
@@ -198,11 +200,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             const Box& vbx = gfab.validbox();
 
             auto& levelset = gfab.getLevelSet();
-            gshop.fillFab(levelset, geom);
+            gshop.fillFab(levelset, geom, RunOn::Gpu);
 
             auto& cellflag = m_cellflag[mfi];
 
             gfab.buildTypes(cellflag);
+
+            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
 
 #if (AMREX_SPACEDIM == 3)
             auto& facetype = gfab.getFaceType();
@@ -254,7 +258,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(M2[0]),
                                   BL_TO_FORTRAN_ANYD(M2[1]),
                                   BL_TO_FORTRAN_ANYD(M2[2]),
-                                  dx, dxinv, problo);
+                                  dx.data(), dxinv.data(), problo.data());
 
             // regular by default
             m_volfrac[mfi].setVal(1.0);
@@ -317,7 +321,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
                                   BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
                                   BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                                  dx, dxinv, problo);
+                                  dx.data(), dxinv.data(), problo.data());
 
             // regular by default
             m_volfrac[mfi].setVal(1.0);
