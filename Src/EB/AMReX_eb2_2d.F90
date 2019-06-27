@@ -18,61 +18,10 @@ module amrex_eb2_2d_moudle
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
+  public :: amrex_eb2_build_faces, amrex_eb2_build_cells, &
        amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
 
 contains
-
-  subroutine amrex_eb2_gfab_build_types (lo, hi, s, slo, shi, cell, clo, chi, &
-       fx, fxlo, fxhi, fy, fylo, fyhi) bind(c,name='amrex_eb2_gfab_build_types')
-    integer, dimension(2), intent(in) :: lo, hi, slo, shi, clo, chi, fxlo, fxhi, fylo, fyhi
-    real(amrex_real), intent(in   ) ::    s( slo(1): shi(1), slo(2): shi(2))
-    integer(c_int)  , intent(inout) :: cell( clo(1): chi(1), clo(2): chi(2))
-    integer(c_int)  , intent(inout) ::   fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-    integer(c_int)  , intent(inout) ::   fy(fylo(1):fyhi(1),fylo(2):fyhi(2))
-
-    integer :: i,j
-
-    do    j = lo(2)-2, hi(2)+2
-       do i = lo(1)-2, hi(1)+2
-          if (       s(i,j  ).ge.zero .and. s(i+1,j  ).ge.zero &
-               .and. s(i,j+1).ge.zero .and. s(i+1,j+1).ge.zero) then
-             call set_covered_cell(cell(i,j))
-          else if (  s(i,j  ).lt.zero .and. s(i+1,j  ).lt.zero &
-               .and. s(i,j+1).lt.zero .and. s(i+1,j+1).lt.zero) then
-             call set_regular_cell(cell(i,j))
-          else
-             call set_single_valued_cell(cell(i,j))
-          end if
-       end do
-    end do
-
-    do    j = lo(2)-2, hi(2)+2
-       do i = lo(1)-2, hi(1)+3
-          if (s(i,j).ge.zero .and. s(i,j+1).ge.zero) then
-             fx(i,j) = covered
-          else if (s(i,j).lt.zero .and. s(i,j+1).lt.zero) then
-             fx(i,j) = regular
-          else
-             fx(i,j) = irregular
-          end if
-       end do
-    end do
-
-    do    j = lo(2)-2, hi(2)+3
-       do i = lo(1)-2, hi(1)+2
-          if (s(i,j).ge.zero .and. s(i+1,j).ge.zero) then
-             fy(i,j) = covered
-          else if (s(i,j).lt.zero .and. s(i+1,j).lt.zero) then
-             fy(i,j) = regular
-          else
-             fy(i,j) = irregular
-          end if
-       end do
-    end do
-
-  end subroutine amrex_eb2_gfab_build_types
-
 
   subroutine amrex_eb2_build_faces (lo, hi, cell, clo, chi, &
        fx, fxlo, fxhi, fy, fylo, fyhi, levset, slo, shi,&
