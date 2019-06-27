@@ -1587,6 +1587,110 @@ IntVect getCell (Box const* boxes, int nboxes, long icell) noexcept
     return boxes[ibox].atOffset(offset);
 }
 
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void Loop (Dim3 lo, Dim3 hi, F&& f) noexcept
+{
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k);
+    }}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void Loop (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
+{
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k,n);
+    }}}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void LoopConcurrent (Dim3 lo, Dim3 hi, F&& f) noexcept
+{
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k);
+    }}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F&& f) noexcept
+{
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k,n);
+    }}}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void Loop (Box const& bx, F&& f) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k);
+    }}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void Loop (Box const& bx, int ncomp, F&& f) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k,n);
+    }}}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void LoopConcurrent (Box const& bx, F&& f) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k);
+    }}}
+}
+
+template <class F>
+AMREX_GPU_HOST_DEVICE
+void LoopConcurrent (Box const& bx, int ncomp, F&& f) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k,n);
+    }}}}
+}
+
 }
 
 #endif /*BL_BOX_H*/
