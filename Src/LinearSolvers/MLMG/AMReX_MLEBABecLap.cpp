@@ -728,7 +728,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             if (ax(i,j,k) == 0.0) fx(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -740,7 +740,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             if (ay(i,j,k) == 0.0) fy(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -753,7 +753,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                     for (int n = 0; n < ncomp; ++n) {
                         for (int k = lo.z; k <= hi.z; ++k) {
                         for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.z; i <= hi.x; ++i) {
+                        for (int i = lo.x; i <= hi.x; ++i) {
                             if (az(i,j,k) == 0.0) fz(i,j,k,n) = 0.0;
                         }}}
                     }
@@ -866,7 +866,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                         for (int n = 0; n < ncomp; ++n) {
                             for (int k = lo.z; k <= hi.z; ++k) {
                             for (int j = lo.y; j <= hi.y; ++j) {
-                            for (int i = lo.z; i <= hi.x; ++i) {
+                            for (int i = lo.x; i <= hi.x; ++i) {
                                 if (ax(i,j,k) == 0.0) gx(i,j,k,n) = 0.0;
                             }}}
                         }
@@ -878,7 +878,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                         for (int n = 0; n < ncomp; ++n) {
                             for (int k = lo.z; k <= hi.z; ++k) {
                             for (int j = lo.y; j <= hi.y; ++j) {
-                            for (int i = lo.z; i <= hi.x; ++i) {
+                            for (int i = lo.x; i <= hi.x; ++i) {
                                 if (ay(i,j,k) == 0.0) gy(i,j,k,n) = 0.0;
                             }}}
                         }
@@ -891,7 +891,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                         for (int n = 0; n < ncomp; ++n) {
                             for (int k = lo.z; k <= hi.z; ++k) {
                             for (int j = lo.y; j <= hi.y; ++j) {
-                            for (int i = lo.z; i <= hi.x; ++i) {
+                            for (int i = lo.x; i <= hi.x; ++i) {
                                 if (az(i,j,k) == 0.0) gz(i,j,k,n) = 0.0;
                             }}}
                         }
