@@ -202,11 +202,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             auto& levelset = gfab.getLevelSet();
             gshop.fillFab(levelset, geom, RunOn::Gpu);
 
-            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
-
             auto& cellflag = m_cellflag[mfi];
 
             gfab.buildTypes(cellflag);
+
+            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
 
 #if (AMREX_SPACEDIM == 3)
             auto& facetype = gfab.getFaceType();

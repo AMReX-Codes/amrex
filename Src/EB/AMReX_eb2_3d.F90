@@ -19,7 +19,7 @@ module amrex_eb2_3d_module
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_gfab_build_types, amrex_eb2_build_faces, amrex_eb2_build_cells, &
+  public :: amrex_eb2_build_faces, amrex_eb2_build_cells, &
        amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
 
 contains
