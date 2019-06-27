@@ -195,8 +195,8 @@ public:
     void FillBoundaryF (int lev);
 
     void SyncCurrent ();
-    void SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
-                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
+    void SyncRho ();
+
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
