@@ -450,14 +450,11 @@ function( evaluate_genex input output )
             genex_list "${genex_list}")
          string(REPLACE "$<Fortran_COMPILER_ID:${ARG_COMP}>" "${true}"
             genex_list "${genex_list}")
-         # string(REPLACE
-         #    "$<STREQUAL:\"${CMAKE_Fortran_COMPILER_ID}\",\"${ARG_COMP}\">"
-         #    "${true}" genex_list "${genex_list}")
       endif ()
       string(REPLACE "$<C_COMPILER_ID:" "${false}" genex_list "${genex_list}")
       string(REPLACE "$<CXX_COMPILER_ID:" "${false}" genex_list "${genex_list}")
       string(REPLACE "$<Fortran_COMPILER_ID:" "${false}" genex_list "${genex_list}")
-      # string(REPLACE "$<STREQUAL:"        "${false}" genex_list "${genex_list}")
+
 
       # Tag by configuration
       if (ARG_COMP)
@@ -488,10 +485,6 @@ function( evaluate_genex input output )
 
       # Replace back regular semi-columns
       string(REPLACE  "${semicol}" ";" valid_genex_list "${valid_genex_list}" )
-
-      if (output MATCHES _amrex_fortran_flags)
-         print(valid_genex_list)
-      endif ()
 
       #
       # remove all remaining placeholders and genex characters
