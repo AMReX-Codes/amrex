@@ -507,9 +507,9 @@ WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), j[idim]->nComp(), ng);
             bilinear_filter.ApplyStencil(jf, *j[idim]);
-            WarpXSumGuardCells(*(j[idim]), jf, period);
+            WarpXSumGuardCells(*(j[idim]), jf, period, 0, (j[idim])->nComp());
         } else {
-            WarpXSumGuardCells(*(j[idim]), period);
+            WarpXSumGuardCells(*(j[idim]), period, 0, (j[idim])->nComp());
         }
     }
 }
@@ -558,7 +558,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                 MultiFab::Add(jfb, jfc, 0, 0, current_buf[lev+1][idim]->nComp(), ng);
                 mf.ParallelAdd(jfb, 0, 0, current_buf[lev+1][idim]->nComp(), ng, IntVect::TheZeroVector(), period);
 
-                WarpXSumGuardCells(*current_cp[lev+1][idim], jfc, period);
+                WarpXSumGuardCells(*current_cp[lev+1][idim], jfc, period, 0, current_cp[lev+1][idim]->nComp());
             }
             else if (use_filter) // but no buffer
             {
@@ -569,7 +569,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                             current_cp[lev+1][idim]->DistributionMap(), current_cp[lev+1][idim]->nComp(), ng);
                 bilinear_filter.ApplyStencil(jf, *current_cp[lev+1][idim]);
                 mf.ParallelAdd(jf, 0, 0, current_cp[lev+1][idim]->nComp(), ng, IntVect::TheZeroVector(), period);
-                WarpXSumGuardCells(*current_cp[lev+1][idim], jf, period);
+                WarpXSumGuardCells(*current_cp[lev+1][idim], jf, period, 0, current_cp[lev+1][idim]->nComp());
             }
             else if (current_buf[lev+1][idim]) // but no filter
             {
@@ -579,14 +579,14 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                 mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, current_buf[lev+1][idim]->nComp(),
                                current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                                period);
-                WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
+                WarpXSumGuardCells(*(current_cp[lev+1][idim]), period, 0, current_cp[lev+1][idim]->nComp());
             }
             else // no filter, no buffer
             {
                 mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, current_cp[lev+1][idim]->nComp(),
                                current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                                period);
-                WarpXSumGuardCells(*(current_cp[lev+1][idim]), period);
+                WarpXSumGuardCells(*(current_cp[lev+1][idim]), period, 0, current_cp[lev+1][idim]->nComp());
             }
             MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, current_fp[lev+1][idim]->nComp(), 0);
         }
