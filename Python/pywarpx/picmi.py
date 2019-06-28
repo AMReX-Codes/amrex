@@ -180,7 +180,6 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         species.zmin = self.lower_bound[2]
         species.zmax = self.upper_bound[2]
 
-        # --- Only constant density is supported at this time
         species.profile = "parse_density_function"
         species.__setattr__('density_function(x,y,z)', self.density_expression)
 
@@ -188,7 +187,10 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
             setattr(pywarpx.my_constants, k, v)
 
         # --- Note that WarpX takes gamma*beta as input
-        if np.any(np.not_equal(self.rms_velocity, 0.)):
+        if np.any(np.not_equal(self.momentum_expressions, None)):
+            species.momentum_distribution_type = 'parse_momentum_function'
+            self.setup_parse_momentum_functions(species)
+        elif np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
             species.ux_m = self.directed_velocity[0]/c
             species.uy_m = self.directed_velocity[1]/c
@@ -205,6 +207,19 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         if self.fill_in:
             species.do_continuous_injection = 1
 
+    def setup_parse_momentum_functions(self, species):
+        if self.momentum_expressions[0] is not None:
+            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[0], c))
+        else:
+            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.directed_velocity[0], c))
+        if self.momentum_expressions[1] is not None:
+            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[1], c))
+        else:
+            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.directed_velocity[1], c))
+        if self.momentum_expressions[2] is not None:
+            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[2], c))
+        else:
+            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.directed_velocity[2], c))
 
 class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
     def init(self, kw):
