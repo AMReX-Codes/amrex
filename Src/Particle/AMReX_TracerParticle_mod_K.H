@@ -114,8 +114,7 @@ void mac_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
 		      amrex::GpuArray<amrex::Array4<const double>*,AMREX_SPACEDIM> const& p_uccarr,
-		      amrex::Real * val,
-		      amrex::IntVect const& index)
+		      amrex::Real * val)
 {
 
 #if (AMREX_SPACEDIM == 1)
@@ -138,7 +137,7 @@ void mac_interpolate (const P& p,
           //cells
           ecellx = i +1;
           //fracs
-          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - index[0];
+          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - floor((p.m_rdata.pos[0]-plo[0])*dxi[0])
         }
 
       if (efracx > 1) efracx =1;
@@ -173,7 +172,8 @@ void mac_interpolate (const P& p,
       Real efracx = xint;
       Real efracy = yint; 
 
-      // This is a MAC grid, so in the x direction, y/z will be CC, but x will be on faces, adding 1 extra index
+      // This is a MAC grid, so in the x direction, y/z will be CC, 
+      // but x will be on faces, adding 1 extra index
       if (d==0)
 	{
 	  //cells 
@@ -181,7 +181,8 @@ void mac_interpolate (const P& p,
 	  ecelly = j;
 	  
 	  //fracs
-	  efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - index[0];
+	  efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] \ 
+	           -floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
 	  efracy = yint;
 	}
       
@@ -193,7 +194,8 @@ void mac_interpolate (const P& p,
 	
 	  //fracs
 	  efracx = xint;
-	  efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - index[1];
+	  efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] \ 
+	           - floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
 	}
 
       //The fraction must be between zero and one. 
@@ -238,7 +240,8 @@ void mac_interpolate (const P& p,
       int  ecellx, ecelly, ecellz;
       Real efracx, efracy, efracz;
 
-      // This is a MAC grid, so in the x direction, y/z will be CC, but x will be on faces, adding 1 extra index 
+      // This is a MAC grid, so in the x direction, y/z will be CC, 
+      // but x will be on faces, adding 1 extra index 
       if (d==0)
         {
           //cells
@@ -247,7 +250,8 @@ void mac_interpolate (const P& p,
 	  ecellz = k;
 
           //fracs
-          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - index[0];
+          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] \ 
+	           - floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
           efracy = yint;
 	  efracz = zint;
         }
@@ -261,11 +265,12 @@ void mac_interpolate (const P& p,
 
           //fracs
           efracx = xint;
-          efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - index[1];
+          efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] \ 
+	           - floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
 	  ecellz = zint;
 	}
 
-      else if (d==1)
+      else if (d==2)
         {
           //cells
           ecellx = i;
@@ -275,7 +280,8 @@ void mac_interpolate (const P& p,
           //fracs
           efracx = xint;
 	  efracy = yint;
-          efracz = p.m_rdata.pos[2]-plo[2]*dxi[2] - index[2];
+          efracz = p.m_rdata.pos[2]-plo[2]*dxi[2] \
+	           - floor((p.m_rdata.pos[2]-plo[2])*dxi[2]);
         }
 
 

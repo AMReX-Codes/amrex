@@ -96,10 +96,9 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	 {
 					
 	 ParticleType& p = p_pbox[i];
-	 IntVect const& cc_cell = Index(p,lev);
-         //BL_ASSERT(p.m_idata.id <= 0);
+	 //BL_ASSERT(p.m_idata.id <= 0);
          Real v[AMREX_SPACEDIM];
-         mac_interpolate(p, plo, dxi, umacarr, v, cc_cell);         
+         mac_interpolate(p, plo, dxi, umacarr, v);         
 
 		if (ipass == 0)
                 {
@@ -156,7 +155,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     const Geometry&     geom     = m_gdb->Geom(lev);
     const auto          plo      = geom.ProbLoArray();
     const auto          dxi      = geom.InvCellSizeArray();
-    //const GeometryData& geomdata = geom.data();
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
 
@@ -169,7 +167,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 	  const int n          = aos.size();
 	  const FArrayBox& fab = Ucc[grid];
 	  const auto uccarr = fab.array();
-	  // auto  p_gpu_fab = &fab;
 	  auto  p_pbox = aos().data();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

@@ -2040,8 +2040,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
       RedistributeMPI(not_ours, lev_min, lev_max, nGrow, local);
   }
   
-  BL_ASSERT(OK(lev_min, lev_max, nGrow));
-  
+  if (Gpu::notInLaunchRegion())
+     {
+       BL_ASSERT(OKCPU(lev_min, lev_max, nGrow));
+     }
+  else
+    {
+      BL_ASSERT(OKGPU(lev_min, lev_max, nGrow));
+    }
+    		
+	
+
   if (m_verbose > 0) {
       Real stoptime = amrex::second() - strttime;
       
