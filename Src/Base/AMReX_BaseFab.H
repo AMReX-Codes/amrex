@@ -146,28 +146,24 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 *  T MUST have a default constructor and an assignment operator.
 */
 
-template <typename T, bool = std::is_trivially_default_constructible<T>::value>
-struct PlaceNewer
+template <typename T>
+typename std::enable_if< std::is_trivially_default_constructible<T>::value>::type
+placementNew (T* const ptr, long n)
 {
-    void operator() (T* const ptr, long n)
-    {
-        for (long i = 0; i < n; ++i) {
-            new (ptr+i) T;
-        }
+    for (long i = 0; i < n; ++i) {
+        new (ptr+i) T;
     }
-};
+}
 
 template <typename T>
-struct PlaceNewer<T,false> // NOT is_trivially_default_constructible
-{                          // So we will do it on gpu.
-    void operator() (T* const ptr, long n)
+typename std::enable_if<!std::is_trivially_default_constructible<T>::value>::type
+placementNew (T* const ptr, long n)
+{
+    AMREX_HOST_DEVICE_FOR_1D ( n, i,
     {
-        AMREX_HOST_DEVICE_FOR_1D(n, i,
-        {
-            new (ptr+i) T;
-        });
-    }
-};
+        new (ptr+i) T;
+    });
+}
 
 struct DataAllocator {
     Arena* m_arena = nullptr;
@@ -1956,7 +1952,7 @@ BaseFab<T>::define ()
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
 
-    PlaceNewer<T>()(this->dptr, this->truesize);
+    placementNew(this->dptr, this->truesize);
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
 }
