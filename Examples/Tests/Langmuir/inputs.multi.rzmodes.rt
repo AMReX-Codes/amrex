@@ -1,13 +1,13 @@
 # Runs test with RZ multimode solver
 # Maximum number of time steps
-max_step = 80
+max_step = 40
 
 # number of grid points
-amr.n_cell =   64  128
+amr.n_cell =   64  200
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 64
+amr.max_grid_size = 32
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
@@ -28,12 +28,6 @@ warpx.plot_raw_fields = 1
 # Verbosity
 warpx.verbose = 1
 
-# Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 1
-algo.particle_pusher = 0
-
 # Interpolation
 interpolation.nox = 1
 interpolation.noy = 1
@@ -46,9 +40,9 @@ warpx.cfl = 1.0
 warpx.do_dive_cleaning = 0
 
 # Parameters for the plasma wave
-my_constants.epsilon0 = 0.01
-my_constants.epsilon1 = 0.01
-my_constants.epsilon2 = 0.01
+my_constants.epsilon0 = 0.001
+my_constants.epsilon1 = 0.001
+my_constants.epsilon2 = 0.001
 my_constants.kp = 266125.0928256017
 my_constants.k0 = 314159.2653589793
 my_constants.w0 = 5.e-6
@@ -62,7 +56,7 @@ particles.species_names = electrons ions
 electrons.charge = -q_e
 electrons.mass = m_e
 electrons.injection_style = "NUniformPerCell"
-electrons.num_particles_per_cell_each_dim = 2 16 2
+electrons.num_particles_per_cell_each_dim = 2 8 2
 electrons.xmin =   0.e-6
 electrons.xmax =  18.e-6
 electrons.zmin = -20.e-6
@@ -87,7 +81,7 @@ electrons.momentum_function_uz(x,y,z) = "- epsilon0/kp*k0*exp(-(x**2+y**2)/w0**2
 ions.charge = q_e
 ions.mass = m_p
 ions.injection_style = "NUniformPerCell"
-ions.num_particles_per_cell_each_dim = 2 16 2
+ions.num_particles_per_cell_each_dim = 2 8 2
 ions.xmin =   0.e-6
 ions.xmax =  18.e-6
 ions.zmin = -20.e-6
