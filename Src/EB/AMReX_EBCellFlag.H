@@ -14,7 +14,8 @@ class EBCellFlag
 {
 public:
 
-    EBCellFlag () noexcept = default;
+    AMREX_GPU_HOST_DEVICE
+    EBCellFlag () noexcept {}
 
     EBCellFlag (const EBCellFlag& rhs) noexcept = default;
 
