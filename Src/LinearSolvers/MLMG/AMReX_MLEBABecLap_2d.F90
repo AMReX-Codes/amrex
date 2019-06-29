@@ -188,9 +188,8 @@ contains
     real(amrex_real) :: sxm, sxp, sym, syp, oxm, oxp, oym, oyp
     real(amrex_real) :: feb, phib, phig, gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy
     real(amrex_real) :: feb_gamma, phig_gamma
-    real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
+    real(amrex_real) :: bctx, bcty
     real(amrex_real) :: dg, dx_eb
-    real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
     real(amrex_real), parameter :: omega = 1._amrex_real
 
     real(amrex_real) :: dphidn
@@ -662,9 +661,8 @@ contains
  
        real(amrex_real),        intent(  out) :: dphidn
  
-       real(amrex_real) :: bctx, bcty, bsxinv, bsyinv
+       real(amrex_real) :: bctx, bcty
        real(amrex_real) :: dg, dx_eb
-       real(amrex_real), dimension(-1:0,-1:0) :: c_0, c_x, c_y, c_xy
        real(amrex_real) :: phig, gx, gy, sx, sy
        integer          :: ii, jj
 

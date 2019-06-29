@@ -25,7 +25,7 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
 
     const auto& my_factory = dynamic_cast<EBFArrayBoxFactory const&>(intgmf.Factory());
 
-    const MultiFab&    vfrac = my_factory.getVolFrac();
+    // const MultiFab&    vfrac = my_factory.getVolFrac();
     const MultiCutFab& bcent = my_factory.getBndryCent();
     const MultiCutFab& bnorm = my_factory.getBndryNormal();
     const auto&        flags = my_factory.getMultiEBCellFlagFab();
@@ -60,7 +60,7 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
         }
         else
         {
-            auto const& vf = vfrac.array(mfi);
+            // auto const& vf = vfrac.array(mfi);
             auto const& bc = bcent.array(mfi);
             auto const& bn = bnorm.array(mfi);
             auto const& fg = flagfab.array();
