@@ -10,6 +10,7 @@ target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------
    AMReX_ccse-mpi.H
+   AMReX_Algorithm.H
    AMReX_Array.H
    AMReX_Vector.H
    AMReX_Tuple.H
