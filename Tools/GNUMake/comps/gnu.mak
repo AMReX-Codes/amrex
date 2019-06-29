@@ -70,12 +70,17 @@ CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
-  CFLAGS   += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CXXFLAGS += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CFLAGS   += -g -O0 -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
 
   ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
     CXXFLAGS += -Wnull-dereference
     CFLAGS += -Wnull-dereference
+  endif
+
+  ifneq ($(WARN_SHADOW),FALSE)
+    CXXFLAGS += -Wshadow
+    CFLAGS += -Wshadow
   endif
 
 else
