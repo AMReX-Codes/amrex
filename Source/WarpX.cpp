@@ -18,6 +18,7 @@
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
 #include <WarpXAlgorithmSelection.H>
+#include <WarpX_FDTD.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -925,17 +926,21 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<Real,3>& dx)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
-                           dx.data());
+        auto const& Bxfab = B[0]->array(mfi);
+        auto const& Byfab = B[1]->array(mfi);
+        auto const& Bzfab = B[2]->array(mfi);
+        auto const& divBfab = divB.array(mfi);
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dx);
+        });
     }
 }
 
@@ -945,17 +950,21 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<Real,3>& dx, int ngrow)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
-        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
-                           dx.data());
+        auto const& Bxfab = B[0]->array(mfi);
+        auto const& Byfab = B[1]->array(mfi);
+        auto const& Bzfab = B[2]->array(mfi);
+        auto const& divBfab = divB.array(mfi);
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dx);
+        });
     }
 }
 
@@ -965,24 +974,29 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<Real,3>& dx)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        auto const& Exfab = E[0]->array(mfi);
+        auto const& Eyfab = E[1]->array(mfi);
+        auto const& Ezfab = E[2]->array(mfi);
+        auto const& divEfab = divE.array(mfi);
+
 #ifdef WARPX_RZ
-        const Real xmin = GetInstance().Geom(0).ProbLo(0);
+        const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
-        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data()
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dx
 #ifdef WARPX_RZ
-                           ,&xmin
+                              ,rmin
 #endif
-                           );
+                              );
+        });
     }
 }
 
@@ -992,24 +1006,29 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<Real,3>& dx, int ngrow)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
+        auto const& Exfab = E[0]->array(mfi);
+        auto const& Eyfab = E[1]->array(mfi);
+        auto const& Ezfab = E[2]->array(mfi);
+        auto const& divEfab = divE.array(mfi);
+
 #ifdef WARPX_RZ
-        const Real xmin = GetInstance().Geom(0).ProbLo(0);
+        const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
-        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data()
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dx
 #ifdef WARPX_RZ
-                           ,&xmin
+                              ,rmin
 #endif
-                           );
+                              );
+        });
     }
 }
 
