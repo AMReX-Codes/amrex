@@ -193,7 +193,7 @@ the name of the NVIDIA GPU, i.e. ``Turing``, ``Volta``, ``Pascal``, ``...`` , or
 version number, i.e. ``10.0``, ``9.0``, ``8.0``, ``...`` .
 For example, on Cori GPUs you can specify the architecture as follows:
 
-.. highlight:: cmake
+.. highlight:: console
                
 ::
 
@@ -613,16 +613,6 @@ or, if necessary, we can make an alias :cpp:`BaseFab` from an
 
     AMREX_GPU_HOST_DEVICE void f (Box const& bx, Array4<Real> const& a)
     {
-      const Dim3 lo = lbound(bx);
-      const Dim3 hi = ubound(bx);
-      for     (int k = lo.z; k <= hi.z; ++k) {
-        for   (int j = lo.y; j <= hi.y; ++j) {
-          for (int i = lo.x; i <= hi.x; ++i) {
-            a(i,j,k) = 3.;
-          }
-        }
-      }
-
       FArrayBox fab(a,bx.ixType());
       g(fab);
     }
@@ -638,7 +628,7 @@ of the asynchronous nature of GPU kernel execution, their destructors
 might get called before their data are used on GPU.  :cpp:`Elixir` can
 be used to extend the life of the data.  For example,
 
-.. hightlight:: c++
+.. highlight:: c++
 
 ::
 
@@ -693,6 +683,8 @@ while maintaining performance.  The details can be found in
 <sec:basics:cppkernel>`.
 
 .. Overview table???
+
+.. _sec:gpu:for:
 
 Launching C++ nested loops
 --------------------------

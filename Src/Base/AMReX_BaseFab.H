@@ -146,6 +146,25 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 *  T MUST have a default constructor and an assignment operator.
 */
 
+template <typename T>
+typename std::enable_if< std::is_trivially_default_constructible<T>::value>::type
+placementNew (T* const ptr, long n)
+{
+    for (long i = 0; i < n; ++i) {
+        new (ptr+i) T;
+    }
+}
+
+template <typename T>
+typename std::enable_if<!std::is_trivially_default_constructible<T>::value>::type
+placementNew (T* const ptr, long n)
+{
+    AMREX_HOST_DEVICE_FOR_1D ( n, i,
+    {
+        new (ptr+i) T;
+    });
+}
+
 struct DataAllocator {
     Arena* m_arena = nullptr;
 
@@ -1932,17 +1951,8 @@ BaseFab<T>::define ()
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
-    //
-    // Now call T::T() on the raw memory so we have valid Ts.
-    //
-    T* ptr = this->dptr;
-    //
-    // Note this must be long not int for very large (e.g.,1024^3) boxes.
-    //
-    for (long i = 0; i < this->truesize; i++, ptr++)
-    {
-        new (ptr) T;
-    }
+
+    placementNew(this->dptr, this->truesize);
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
 }
@@ -2119,12 +2129,16 @@ BaseFab<T>::clear () noexcept
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
 
+#ifdef AMREX_USE_GPU
+            static_assert(std::is_trivially_destructible<T>::value,
+                          "BaseFab's T must be trivially destructible");
+#else
 	    T* ptr = this->dptr;
-
 	    for (long i = 0; i < this->truesize; i++, ptr++)
 	    {
 		ptr->~T();
 	    }
+#endif
 
 	    this->free(this->dptr);
 

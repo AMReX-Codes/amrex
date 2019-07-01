@@ -1664,7 +1664,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     const int tid = 0;
                     auto pair_index = std::make_pair(gid, tid);
-					auto& ptile = DefineAndReturnParticleTile(lev, pair_index.first, pair_index.second);
+                    auto& ptile = DefineAndReturnParticleTile(lev, pair_index.first, pair_index.second);
                     auto& aos = ptile.GetArrayOfStructs();
                     auto& soa = ptile.GetStructOfArrays();
                     const size_t old_size = ptile.numParticles();

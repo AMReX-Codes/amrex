@@ -1488,7 +1488,7 @@ they are different due to index types).
 
 Here function :cpp:`f2` might be something like below,
 
-.. highlight:: fortran
+.. highlight:: c++
 
 ::
 
@@ -2094,6 +2094,39 @@ These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when
 defining the loop bounds. If not, the highest index cells will be left out
 of the calculation. 
 
+.. _sec:basics:loop:
+
+Loop and LoopConcurrent
+=======================
+
+In the examples so far, we have explicitly written out the for loops
+when we iterate over a :cpp:`Box` or a range specified by
+:cpp:`Dim3`\ s.  AMReX also provides function templates for writing
+these in a concise way like below,
+
+.. highlight:: c++
+
+::
+
+    Box bx(...);
+
+    // Loop over Box
+    Loop(bx, [] (int i, int j, int k) { ... });
+
+    // Loop over Dim3 ranges
+    const Dim3 lo = lbound(bx);
+    const Dim3 hi = ubound(bx); // Inclusive upper bound
+    Loop(lo, hi, [] (int i, int j, int k) { ... });
+
+    // 4D loop
+    Loop(bx, numcomps, [] (int i, int j, int k, int comp) { ... });
+
+    // Give hint to compilers that loops can run concurrently
+    LoopConcurrent(bx, [] (int i, int j, int k) { ... });
+
+Note that, unlike :cpp:`ParalleFor` that will be introduced in section
+:ref:`sec:gpu:for`, they do not launch GPU kernels to do the work,
+although they can be used in GPU kernels.
 
 Ghost Cells
 ===========

@@ -24,13 +24,13 @@ LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
     : amr_lev(lev),
       ls_grid_ref(ls_ref), eb_grid_ref(eb_ref),
       ls_grid_pad(ls_pad), eb_grid_pad(eb_pad),
+      eb_tile_size(eb_tile_size),
       dx_vect(AMREX_D_DECL(geom.CellSize()[0]/ls_ref,
                            geom.CellSize()[1]/ls_ref,
                            geom.CellSize()[2]/ls_ref)),
       dx_eb_vect(AMREX_D_DECL(geom.CellSize()[0]/eb_ref,
                               geom.CellSize()[1]/eb_ref,
-                              geom.CellSize()[2]/eb_ref)),
-      eb_tile_size(eb_tile_size)
+                              geom.CellSize()[2]/eb_ref))
 {
 
     BL_PROFILE("LSFactory::LSFactory()");
