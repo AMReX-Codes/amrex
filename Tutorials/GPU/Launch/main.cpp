@@ -159,14 +159,11 @@ void main_main ()
             [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 // Array4<Real> fab is captured
-                const auto lo = amrex::lbound(tbx);
-                const auto hi = amrex::ubound(tbx);
-                for (int k = lo.z; k <= hi.z; ++k) {
-                for (int j = lo.y; j <= hi.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i <= hi.x; ++i) {
+                amrex::Loop(tbx,
+                [=] (int i, int j, int k)
+                {
                     fab(i,j,k) += 1.;
-                }}}  
+                });
             });
         }
     }
@@ -188,6 +185,7 @@ void main_main ()
                 // Array4<Real> fab is captured
                 const auto lo = amrex::lbound(tbx);
                 const auto hi = amrex::ubound(tbx);
+                // We could use amrex::Loop like above.
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {

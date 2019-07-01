@@ -134,14 +134,8 @@ public:
 
         BL_PROFILE("PhysBCFunct::FillBoundary");
 
-        const Box&     domain      = m_geom.Domain();
-        const int*     dlo         = domain.loVect();
-        const int*     dhi         = domain.hiVect();
-        const Real*    dx          = m_geom.CellSize();
-        const RealBox& prob_domain = m_geom.ProbDomain();
-        const Real*    problo      = prob_domain.lo();
-
         //! create a grown domain box containing valid + periodic cells
+        const Box& domain = m_geom.Domain();
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
         const IntVect& ngrow = mf.nGrowVect();
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {

@@ -11,12 +11,11 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                        Array4<Type_t> const& fx,
                        Array4<Type_t> const& fy)
 {
-    Box bx = amrex::getThreadBox(tbx, bxg2);
-    auto lo = amrex::lbound(bx);
-    auto hi = amrex::ubound(bx);
-    const int k = 0;
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    auto lo = amrex::max_lbound(tbx, bxg2);
+    auto hi = amrex::min_ubound(tbx, bxg2);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (    s(i,j  ,k) < 0.0 and s(i+1,j  ,k) < 0.0
             and s(i,j+1,k) < 0.0 and s(i+1,j+1,k) < 0.0)
         {
@@ -31,14 +30,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         {
             cell(i,j,k).setSingleValued();
         }
-    }}
+    });
 
     // x-face
-    bx = amrex::getThreadBox(tbx, amrex::surroundingNodes(bxg2,0));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    const Box& xbx = amrex::surroundingNodes(bxg2,0);
+    lo = amrex::max_lbound(tbx, xbx);
+    hi = amrex::min_ubound(tbx, xbx);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (s(i,j,k) < 0.0 and s(i,j+1,k) < 0.0) {
             fx(i,j,k) = Type::regular;
         } else if (s(i,j,k) >= 0.0 and s(i,j+1,k) >= 0.0) {
@@ -46,14 +46,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         } else {
             fx(i,j,k) = Type::irregular;
         }
-    }}
+    });
 
     // y-face
-    bx = amrex::getThreadBox(tbx, amrex::surroundingNodes(bxg2,1));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    const Box& ybx = amrex::surroundingNodes(bxg2,1);
+    lo = amrex::max_lbound(tbx, ybx);
+    hi = amrex::min_ubound(tbx, ybx);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (s(i,j,k) < 0.0 and s(i+1,j,k) < 0.0) {
             fy(i,j,k) = Type::regular;
         } else if (s(i,j,k) >= 0.0 and s(i+1,j,k) >= 0.0) {
@@ -61,7 +62,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         } else {
             fy(i,j,k) = Type::irregular;
         }
-    }}
+    });
 }
 
 }}
