@@ -130,25 +130,24 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	    line += "\n";
 #if !defined(_OPENMP) || !defined(__INTEL_COMPILER)
 	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
-		std::size_t found1 = line.rfind('[');
-		std::size_t found2 = line.rfind(']');
-		if (found1 != std::string::npos && found2 != std::string::npos) {
-		    std::string addr = line.substr(found1+1, found2-found1-1);
-		    std::string full_cmd = cmd + " " + addr;
-		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
-			char buff[512];
-			while (fgets(buff, sizeof(buff), ps)) {
-			    line += "    ";
-			    line += buff;
-			}
-			pclose(ps);
-		    }
-		}
+                std::ostringstream ss_full_cmd(cmd, std::ios_base::ate);
+                ss_full_cmd << " " << buffer[i];
+                const auto full_cmd = ss_full_cmd.str();
+                if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+                    char buff[512];
+                    while (fgets(buff, sizeof(buff), ps)) {
+                        line += "    ";
+                        line += buff;
+                    }
+                    pclose(ps);
+                }
 	    }
 #endif
-	    fprintf(f, "%2d: %s\n", i, line.c_str());
+	    fprintf(f, "%2d: [%p] %s\n", i, buffer[i], line.c_str());
 	}
     }
+
+    std::free(strings);
 }
 #endif
 
