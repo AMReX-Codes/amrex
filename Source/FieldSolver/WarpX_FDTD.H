@@ -8,15 +8,26 @@ using namespace amrex;
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
                        Array4<Real const> const& Bx, Array4<Real const> const& By, Array4<Real const> const& Bz,
-                       Real dxinv, Real dyinv, Real dzinv)
+                       Real dxinv, Real dyinv, Real dzinv
+#ifdef WARPX_RZ
+                       ,const Real rmin
+#endif
+                       )
 {
 #if (AMREX_SPACEDIM == 3)
     divB(i,j,k,dcomp) = (Bx(i+1,j  ,k  ) - Bx(i,j,k))*dxinv
                +        (By(i  ,j+1,k  ) - By(i,j,k))*dyinv
                +        (Bz(i  ,j  ,k+1) - Bz(i,j,k))*dzinv;
 #else
+#ifndef WARPX_RZ
     divB(i,j,0,dcomp) = (Bx(i+1,j  ,0) - Bx(i,j,0))*dxinv
                +        (Bz(i  ,j+1,0) - Bz(i,j,0))*dzinv;
+#else
+    Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
+    Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
+    divB(i,j,0,dcomp) = (ru*Bx(i+1,j,0) - rd*Bx(i,j,0))*dxinv
+                       + (Bz(i,j+1,0) - Bz(i,j,0))*dzinv;
+#endif
 #endif
 }
 

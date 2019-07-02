@@ -927,6 +927,10 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -941,7 +945,11 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv);
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
+#ifdef WARPX_RZ
+                              ,rmin
+#endif
+                              );
         });
     }
 }
@@ -952,6 +960,10 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<Real,3>& dx, int ngrow)
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -967,7 +979,11 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv);
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
+#ifdef WARPX_RZ
+                              ,rmin
+#endif
+                              );
         });
     }
 }
@@ -979,6 +995,10 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -989,10 +1009,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         auto const& Eyfab = E[1]->array(mfi);
         auto const& Ezfab = E[2]->array(mfi);
         auto const& divEfab = divE.array(mfi);
-
-#ifdef WARPX_RZ
-        const Real rmin = Geom(0).ProbLo(0);
-#endif
 
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
@@ -1013,6 +1029,10 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1023,10 +1043,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         auto const& Eyfab = E[1]->array(mfi);
         auto const& Ezfab = E[2]->array(mfi);
         auto const& divEfab = divE.array(mfi);
-
-#ifdef WARPX_RZ
-        const Real rmin = Geom(0).ProbLo(0);
-#endif
 
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
