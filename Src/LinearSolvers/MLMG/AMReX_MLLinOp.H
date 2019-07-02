@@ -277,8 +277,8 @@ protected:
     Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc;
     Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc;
 
-    Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{0.,0.,0.}};
-    Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{0.,0.,0.}};
+    Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0.,0.,0.)}};
+    Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0.,0.,0.)}};
 
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio = -1;
