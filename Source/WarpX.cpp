@@ -925,10 +925,12 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<const MultiFab*, 3>& B,
                     const std::array<Real,3>& dx)
 {
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(divB, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         auto const& Bxfab = B[0]->array(mfi);
@@ -939,7 +941,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dx);
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv);
         });
     }
 }
@@ -949,10 +951,12 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<const MultiFab*, 3>& B,
                     const std::array<Real,3>& dx, int ngrow)
 {
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(divB, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
         auto const& Bxfab = B[0]->array(mfi);
@@ -963,7 +967,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dx);
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv);
         });
     }
 }
@@ -973,10 +977,12 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<const MultiFab*, 3>& E,
                     const std::array<Real,3>& dx)
 {
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(divE, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         auto const& Exfab = E[0]->array(mfi);
@@ -985,13 +991,13 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         auto const& divEfab = divE.array(mfi);
 
 #ifdef WARPX_RZ
-        const Real rmin = GetInstance().Geom(0).ProbLo(0);
+        const Real rmin = Geom(0).ProbLo(0);
 #endif
 
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dx
+            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
 #ifdef WARPX_RZ
                               ,rmin
 #endif
@@ -1005,10 +1011,12 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<const MultiFab*, 3>& E,
                     const std::array<Real,3>& dx, int ngrow)
 {
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(divE, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
         auto const& Exfab = E[0]->array(mfi);
@@ -1017,13 +1025,13 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         auto const& divEfab = divE.array(mfi);
 
 #ifdef WARPX_RZ
-        const Real rmin = GetInstance().Geom(0).ProbLo(0);
+        const Real rmin = Geom(0).ProbLo(0);
 #endif
 
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dx
+            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
 #ifdef WARPX_RZ
                               ,rmin
 #endif
