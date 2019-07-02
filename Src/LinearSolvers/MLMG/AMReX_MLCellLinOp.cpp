@@ -227,7 +227,8 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     {
         m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
                                                    m_lobc, m_hibc,
-                                                   br_ref_ratio, m_coarse_bc_loc);
+                                                   br_ref_ratio, m_coarse_bc_loc,
+                                                   m_domain_bloc_lo, m_domain_bloc_hi);
     }
 }
 
@@ -850,7 +851,9 @@ void
 MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
                                             const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                                             const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
-                                            int ratio, const RealVect& a_loc)
+                                            int ratio, const RealVect& interior_bloc,
+                                            const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
+                                            const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi)
 {
     const Box& domain = geom.Domain();
 
@@ -864,7 +867,8 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
             RealTuple & bloc  = bcloc[mfi][icomp];
             BCTuple   & bctag = bcond[mfi][icomp];
             MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc[icomp], hibc[icomp],
-                                dx, ratio, a_loc, geom.isPeriodicArray());
+                                dx, ratio, interior_bloc, domain_bloc_lo, domain_bloc_hi,
+                                geom.isPeriodicArray());
         }
     }
 }
