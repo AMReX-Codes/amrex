@@ -32,7 +32,7 @@ for l in lines:
 
   # intel compiler
   if not matched:
-    m = re.match("\s*(\d+): \[(0x[\dabcdef]+)\]", l)
+    m = re.match("\s*(\d+): .*\[(0x[\dabcdef]+)\]", l)
     if m:
       matched = True
       frame = m.group(1)
