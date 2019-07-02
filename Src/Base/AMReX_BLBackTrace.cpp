@@ -38,8 +38,6 @@ BLBackTrace::handler(int s)
 	break;
     }
 
-#if defined(__linux__) && !defined(__NEC__)
-
     std::string errfilename;
     {
 	std::ostringstream ss;
@@ -73,15 +71,13 @@ BLBackTrace::handler(int s)
     }
 #endif
 
-    if (ParallelDescriptor::NProcs() > 1)
+    if (ParallelDescriptor::NProcs() > 1) {
 	sleep(3);
-
-#endif // __linux__
+    }
 
     ParallelDescriptor::Abort(s, false);
 }
 
-#if defined(__linux__) && !defined(__NEC__)
 void
 BLBackTrace::print_backtrace_info (const std::string& filename)
 {
@@ -171,7 +167,6 @@ BLBackTrace::print_backtrace_info (FILE* f)
         std::free(strings);
     }
 }
-#endif
 
 #ifdef AMREX_BACKTRACING
 
