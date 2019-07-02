@@ -161,10 +161,14 @@ protected:
     {
     public:
         BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm, int ncomp);
+
         void setLOBndryConds (const Geometry& geom, const Real* dx,
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                               const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc,
-                              int ratio, const RealVect& a_loc);
+                              int ratio, const RealVect& interior_bloc,
+                              const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
+                              const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi);
+
         const Vector<BCTuple>& bndryConds (const MFIter& mfi) const noexcept {
             return bcond[mfi];
         }

@@ -33,7 +33,10 @@ public:
     static void setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& domain,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& lo,
                           const Array<LinOpBCType,AMREX_SPACEDIM>& hi,
-                          const Real* dx, int ratio, const RealVect& a_loc,
+                          const Real* dx, int ratio,
+                          const RealVect& interior_bloc,
+                          const Array<Real,AMREX_SPACEDIM>& domain_bloc_lo,
+                          const Array<Real,AMREX_SPACEDIM>& domain_bloc_hi,
                           const GpuArray<int,AMREX_SPACEDIM>& is_periodic);
 };
 
