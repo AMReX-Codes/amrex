@@ -45,8 +45,8 @@ void warpx_computedive(int i, int j, int k, int dcomp, Array4<Real> const& divE,
         divE(i,j,0,dcomp) = 4.*Ex(i,j,0)*dxinv
                             + (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
     } else {
-        Real ru = 1. + 0.5/(rmin*dxinv + i)
-        Real rd = 1. - 0.5/(rmin*dxinv + i)
+        Real ru = 1. + 0.5/(rmin*dxinv + i);
+        Real rd = 1. - 0.5/(rmin*dxinv + i);
         divE(i,j,0,dcomp) = (ru*Ex(i,j,0) - rd*Ex(i-1,j,0))*dxinv
                            + (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
     }
