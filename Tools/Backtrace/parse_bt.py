@@ -17,6 +17,10 @@ with open(bt_file, 'rt') as f:
 
 for l in lines:
 
+  m = re.search("libc\.so", l)
+  if m:
+    continue
+
   matched = False
 
   # gnu compiler

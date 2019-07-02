@@ -130,40 +130,43 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	    line += "\n";
 #if !defined(_OPENMP) || !defined(__INTEL_COMPILER)
 	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
-                std::string addr;
-                {
-                    std::size_t found1 = line.rfind('(');
-                    std::size_t found2 = line.rfind(')');
-                    std::size_t found3 = line.rfind('+');
-                    if (found1 != std::string::npos && found2 != std::string::npos && found3 != std::string::npos) {
-                        if (found1 < found3 && found3 < found2) {
-                            addr = line.substr(found3+1, found2-found3-1);
+                std::size_t found_libc = line.find("libc.so");
+                if (found_libc == std::string::npos) {
+                    std::string addr;
+                    {
+                        std::size_t found1 = line.rfind('(');
+                        std::size_t found2 = line.rfind(')');
+                        std::size_t found3 = line.rfind('+');
+                        if (found1 != std::string::npos && found2 != std::string::npos && found3 != std::string::npos) {
+                            if (found1 < found3 && found3 < found2) {
+                                addr = line.substr(found3+1, found2-found3-1);
+                            }
+                        }
+                    }
+                    if (addr.empty()) {
+                        std::size_t found1 = line.rfind('[');
+                        std::size_t found2 = line.rfind(']');
+                        if (found1 != std::string::npos && found2 != std::string::npos) {
+                            if (found1 < found2) {
+                                addr = line.substr(found1+1, found2-found1-1);
+                            }
+                        }
+                    }
+                    if (!addr.empty()) {
+                        std::string full_cmd = cmd + " " + addr;
+                        if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+                            char buff[512];
+                            while (fgets(buff, sizeof(buff), ps)) {
+                                line += "    ";
+                                line += buff;
+                            }
+                            pclose(ps);
                         }
                     }
                 }
-                if (addr.empty()) {
-                    std::size_t found1 = line.rfind('[');
-                    std::size_t found2 = line.rfind(']');
-                    if (found1 != std::string::npos && found2 != std::string::npos) {
-                        if (found1 < found2) {
-                            addr = line.substr(found1+1, found2-found1-1);
-                        }
-                    }
-                }
-                if (!addr.empty()) {
-		    std::string full_cmd = cmd + " " + addr;
-		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
-			char buff[512];
-			while (fgets(buff, sizeof(buff), ps)) {
-			    line += "    ";
-			    line += buff;
-			}
-			pclose(ps);
-		    }
-		}
-	    }
+            }
 #endif
-	    fprintf(f, "%2d: %s\n", i, line.c_str());
+            fprintf(f, "%2d: %s\n", i, line.c_str());
 	}
         std::free(strings);
     }
