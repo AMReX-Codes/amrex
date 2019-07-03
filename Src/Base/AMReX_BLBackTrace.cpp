@@ -9,6 +9,14 @@
 #include <AMReX_Print.H>
 #include <AMReX.H>
 
+#if defined(AMREX_DYNAMIC_LOAD) && defined(__GNUC__) && defined(__APPLE__)
+#include <cxxabi.h>
+#include <dlfcn.h>
+#define AMREX_BACKTRACE_SUPPORTED 1
+#elif defined(__linux__)
+#define AMREX_BACKTRACE_SUPPORTED 1
+#endif
+
 namespace amrex {
 
 #ifdef AMREX_BACKTRACING
@@ -37,6 +45,8 @@ BLBackTrace::handler(int s)
 	amrex::ErrorStream() << "SIGABRT\n";
 	break;
     }
+
+#ifdef AMREX_BACKTRACE_SUPPORTED
 
     std::string errfilename;
     {
@@ -75,6 +85,8 @@ BLBackTrace::handler(int s)
 	sleep(3);
     }
 
+#endif
+
     ParallelDescriptor::Abort(s, false);
 }
 
@@ -98,10 +110,13 @@ void
 BLBackTrace::print_backtrace_info (FILE* f)
 {
     const int nbuf = 32;
-    char **strings = NULL;
     void *buffer[nbuf];
-    int nptrs = backtrace(buffer, nbuf);
-    strings = backtrace_symbols(buffer, nptrs);
+    int nentries = backtrace(buffer, nbuf);
+
+#ifdef __linux__
+
+    char **strings = NULL;
+    strings = backtrace_symbols(buffer, nentries);
     if (strings != NULL) {
 	int have_addr2line = 0;
 	std::string cmd = "/usr/bin/addr2line";
@@ -121,7 +136,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
 	fprintf(f, "    to find out the offset for that line.\n\n");
 
-	for (int i = 0; i < nptrs; ++i) {
+	for (int i = 0; i < nentries; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";
 #if !defined(_OPENMP) || !defined(__INTEL_COMPILER)
@@ -166,6 +181,25 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	}
         std::free(strings);
     }
+
+#elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(AMREX_DYNAMIC_LOAD)
+
+    for (int i = 0; i < nentries; ++i) {
+        Dl_info info;
+        if (dladdr(buffer[i], &info))
+        {
+            int status;
+            char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
+            if (status == 0) {
+                fprintf(f, "%2d: %s %s\n", i, demangled_name, info.dli_fname);
+            } else {
+                fprintf(f, "%2d: %s %s\n", i, info.dli_fname);
+            }
+            std::free(demangled_name);
+        }
+    }
+
+#endif
 }
 
 #ifdef AMREX_BACKTRACING

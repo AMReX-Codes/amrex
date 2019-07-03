@@ -95,6 +95,12 @@ else
   BACKTRACE := FALSE
 endif
 
+ifdef DYNAMIC_LOAD
+  DYNAMIC_LOAD := $(strip $(DYNAMIC_LOAD))
+else
+  DYNAMIC_LOAD := FALSE
+endif
+
 ifdef LAZY
   LAZY := $(strip $(LAZY))
 else
@@ -411,6 +417,11 @@ ifeq ($(BACKTRACE),TRUE)
     BTSuffix := .BT
 else
     BTSuffix :=
+endif
+
+ifeq ($(DYNAMIC_LOAD),TRUE)
+    CPPFLAGS += -DAMREX_DYNAMIC_LOAD
+    LIBRARIES += -ldl
 endif
 
 ifdef CRAY_CPU_TARGET
