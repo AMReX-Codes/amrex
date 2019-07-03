@@ -387,7 +387,9 @@ indexFromValue (iMultiFab const& mf, int comp, int nghost, int value, MPI_Op mml
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {
                 bool old;
-#if defined(_OPENMP) && _OPENMP < 201107
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
+// but we must work around a bug in gcc < 4.9
+#if defined(_OPENMP) && _OPENMP < 201307
 #pragma omp critical (amrex_indexfromvalue)
 #elif defined(_OPENMP)
 #pragma omp atomic capture
