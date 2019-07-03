@@ -13,7 +13,7 @@
 #include <AMReX_TinyProfiler.H>
 #endif
 
-#if defined(AMREX_DYNAMIC_LOAD) && defined(__GNUC__) && defined(__APPLE__)
+#if defined(AMREX_EXPORT_DYNAMIC) && defined(__APPLE__)
 #include <cxxabi.h>
 #include <dlfcn.h>
 #define AMREX_BACKTRACE_SUPPORTED 1
@@ -202,7 +202,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
         std::free(strings);
     }
 
-#elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(AMREX_DYNAMIC_LOAD)
+#elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(__APPLE__)
 
     int have_atos = 0;
     std::string cmd = "/usr/bin/atos";
