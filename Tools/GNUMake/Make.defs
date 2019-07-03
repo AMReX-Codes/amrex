@@ -9,6 +9,11 @@ ifneq (,$(findstring ~,$(AMREX_HOME)))
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
+ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local-pre)","")
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local-pre...)
+  include        $(AMREX_HOME)/Tools/GNUMake/Make.local-pre
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
 ifdef AMREX_XSDK
