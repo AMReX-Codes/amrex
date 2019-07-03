@@ -247,7 +247,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 #elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(__APPLE__)
 
     std::string cmd = "/usr/bin/atos";
-    int hav_atos = file_exists(cmd);
+    int have_atos = file_exists(cmd);
     static const pid_t pid = getpid();
     cmd += " -p " + std::to_string(pid);
 
