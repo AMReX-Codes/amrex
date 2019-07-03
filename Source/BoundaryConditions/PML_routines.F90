@@ -272,8 +272,8 @@ contains
          Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), &
          Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3), &
          jxlo(3), jxhi(3), jylo(3), jyhi(3), jzlo(3), jzhi(3), &
-         sjxlo(3), sjxhi(3), sjylo(3), sjyhi(3), sjzlo(3), sjzhi(3), &
-         ssjxlo(3), ssjxhi(3), ssjylo(3), ssjyhi(3), ssjzlo(3), ssjzhi(3), &
+         sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, &
+         ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi, &
          flag
     real(amrex_real), intent(in) :: mudt, dtsdx, dtsdy, dtsdz
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3),2)
@@ -285,47 +285,83 @@ contains
     real(amrex_real), intent(in   ) :: jx (jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
     real(amrex_real), intent(in   ) :: jy (jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
     real(amrex_real), intent(in   ) :: jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
-    real(amrex_real), intent(in   ) :: sigjx (sjxlo(1):sjxhi(1),sjxlo(2):sjxhi(2),sjxlo(3):sjxhi(3))
-    real(amrex_real), intent(in   ) :: sigjy (sjylo(1):sjyhi(1),sjylo(2):sjyhi(2),sjylo(3):sjyhi(3))
-    real(amrex_real), intent(in   ) :: sigjz (sjzlo(1):sjzhi(1),sjzlo(2):sjzhi(2),sjzlo(3):sjzhi(3))
-    real(amrex_real), intent(in   ) :: sigsjx (ssjxlo(1):ssjxhi(1),ssjxlo(2):ssjxhi(2),ssjxlo(3):ssjxhi(3))
-    real(amrex_real), intent(in   ) :: sigsjy (ssjylo(1):ssjyhi(1),ssjylo(2):ssjyhi(2),ssjylo(3):ssjyhi(3))
-    real(amrex_real), intent(in   ) :: sigsjz (ssjzlo(1):ssjzhi(1),ssjzlo(2):ssjzhi(2),ssjzlo(3):ssjzhi(3))
+    real(amrex_real), intent(in   ) :: sigjx (sjxlo:sjxhi)
+    real(amrex_real), intent(in   ) :: sigjy (sjylo:sjyhi)
+    real(amrex_real), intent(in   ) :: sigjz (sjzlo:sjzhi)
+    real(amrex_real), intent(in   ) :: sigsjx (ssjxlo:ssjxhi)
+    real(amrex_real), intent(in   ) :: sigsjy (ssjylo:ssjyhi)
+    real(amrex_real), intent(in   ) :: sigsjz (ssjzlo:ssjzhi)
 
     integer :: i, j, k
 
-    do       k = xlo(3), xhi(3)
-       do    j = xlo(2), xhi(2)
-          do i = xlo(1), xhi(1)
-             Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                  &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-             Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                  &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-          end do
-       end do
-    end do
+    if (flag == 0) then
+      do       k = xlo(3), xhi(3)
+         do    j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
+               Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
+                    &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
+               Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
+                    &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
+            end do
+         end do
+      end do
 
-    do       k = ylo(3), yhi(3)
-       do    j = ylo(2), yhi(2)
-          do i = ylo(1), yhi(1)
-             Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                  &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-             Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                  &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-          end do
-       end do
-    end do
+      do       k = ylo(3), yhi(3)
+         do    j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
+               Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
+                    &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
+               Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
+                    &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
+            end do
+         end do
+      end do
 
-    do       k = zlo(3), zhi(3)
-       do    j = zlo(2), zhi(2)
-          do i = zlo(1), zhi(1)
-             Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                  &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-             Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                  &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-          end do
-       end do
-    end do
+      do       k = zlo(3), zhi(3)
+         do    j = zlo(2), zhi(2)
+            do i = zlo(1), zhi(1)
+               Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
+                    &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
+               Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
+                    &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
+            end do
+         end do
+      end do
+
+    else
+      do       k = xlo(3), xhi(3)
+         do    j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
+               Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
+                    &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
+               Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
+                    &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
+            end do
+         end do
+      end do
+
+      do       k = ylo(3), yhi(3)
+         do    j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
+               Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
+                    &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
+               Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
+                    &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
+            end do
+         end do
+      end do
+
+      do       k = zlo(3), zhi(3)
+         do    j = zlo(2), zhi(2)
+            do i = zlo(1), zhi(1)
+               Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
+                    &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
+               Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
+                    &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
+            end do
+         end do
+      end do
+    end if
 
   end subroutine warpx_push_pml_evec_3d
 
