@@ -95,13 +95,13 @@ else
   BACKTRACE := FALSE
 endif
 
-ifdef DYNAMIC_LOAD
-  DYNAMIC_LOAD := $(strip $(DYNAMIC_LOAD))
+ifdef EXPORT_DYNAMIC
+  EXPORT_DYNAMIC := $(strip $(EXPORT_DYNAMIC))
 else
   ifeq ($(shell uname),Darwin)
-    DYNAMIC_LOAD := TRUE
+    EXPORT_DYNAMIC := TRUE
   else
-    DYNAMIC_LOAD := FALSE
+    EXPORT_DYNAMIC := FALSE
   endif
 endif
 
