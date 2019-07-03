@@ -68,8 +68,8 @@ add_library(Flags_Fortran INTERFACE)
 target_compile_options( Flags_Fortran
    INTERFACE
    $<${_fortran_gnu_dbg}:-O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused
-   -finit-real=snan -finit-integer=2147483647>
-   $<${_fortran_gnu_rel}:>
+   -finit-real=snan -finit-integer=2147483647 -fimplicit-none>
+   $<${_fortran_gnu_rel}:-fimplicit-none>
    $<${_fortran_intel_dbg}:-O0 -traceback -check bounds,uninit,pointers>
    $<${_fortran_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
    $<${_fortran_pgi_dbg}:-O0 -Mbounds>
@@ -79,7 +79,7 @@ target_compile_options( Flags_Fortran
    )
 
 #
-# Fortran REQUIRED flags -- This is for internal use only: it useless to export it
+# Fortran REQUIRED flags -- This is for internal use only: it is useless to export it
 #
 add_library(Flags_Fortran_REQUIRED INTERFACE)
 
