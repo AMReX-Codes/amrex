@@ -53,6 +53,12 @@ FMODULES = -J$(fmoddir) -I $(fmoddir)
 
 GENERIC_COMP_FLAGS =
 
+ifeq ($(EXPORT_DYNAMIC),TRUE)
+  CPPFLAGS += -DAMREX_EXPORT_DYNAMIC
+  LIBRARIES += -Xlinker -export_dynamic
+  GENERIC_COMP_FLAGS += -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
+endif
+
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=thread
 endif
