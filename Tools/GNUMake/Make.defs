@@ -98,7 +98,11 @@ endif
 ifdef DYNAMIC_LOAD
   DYNAMIC_LOAD := $(strip $(DYNAMIC_LOAD))
 else
-  DYNAMIC_LOAD := FALSE
+  ifeq ($(shell uname),Darwin)
+    DYNAMIC_LOAD := TRUE
+  else
+    DYNAMIC_LOAD := FALSE
+  endif
 endif
 
 ifdef LAZY
