@@ -16,6 +16,14 @@
     (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi, \
     (x).sigma_star_fac[2].data(), (x).sigma_star_fac[2].m_lo, (x).sigma_star_fac[2].m_hi
 
+#define WRPX_PML_SIGMAJ_TO_FORTRAN(x)                              \
+    (x).sigma_cum_fac[0].data(), (x).sigma_cum_fac[0].m_lo, (x).sigma_cum_fac[0].m_hi, \
+    (x).sigma_cum_fac[1].data(), (x).sigma_cum_fac[1].m_lo, (x).sigma_cum_fac[1].m_hi, \
+    (x).sigma_cum_fac[2].data(), (x).sigma_cum_fac[2].m_lo, (x).sigma_cum_fac[2].m_hi, \
+    (x).sigma_star_cum_fac[0].data(), (x).sigma_star_cum_fac[0].m_lo, (x).sigma_star_cum_fac[0].m_hi, \
+    (x).sigma_star_cum_fac[1].data(), (x).sigma_star_cum_fac[1].m_lo, (x).sigma_star_cum_fac[1].m_hi, \
+    (x).sigma_star_cum_fac[2].data(), (x).sigma_star_cum_fac[2].m_lo, (x).sigma_star_cum_fac[2].m_hi
+
 #else
 
 #define WRPX_PML_TO_FORTRAN(x)                              \
@@ -58,7 +66,6 @@ struct SigmaBox
     SigmaVect sigma_star_fac;
     SigmaVect sigma_star_cum_fac;
 
-    std::array<amrex::Real,9> alpha; //{alpha_xy, alpha_xz, alpha_xf, alpha_yx, alpha_yz, alpha_fy, alpha_zx, alpha_zy,  alpha_fz}
     std::string pml_type; // if pml normal to x : if pml Hi : pml_type={1,0,0}; if pml Lo: pml_type={-1,0,0}
 };
 

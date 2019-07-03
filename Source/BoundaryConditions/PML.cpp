@@ -24,7 +24,6 @@ namespace
         int slo = sigma.m_lo;
         int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
-        Real cumsum=0.;
         Real x = 10.0;
         Real theta = 10.0;
         Real coeff_damp = std::sin(theta*MathConst::pi/180.);
@@ -53,11 +52,9 @@ namespace
         int slo = sigma.m_lo;
         int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
-        Real cumsum = 0.;
         Real x = 10.0;
         Real theta = 10.0;
         Real coeff_damp = std::sin(theta*MathConst::pi/180.);
-        // amrex::Print()<<"===== FillHi =====" <<std::endl;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
@@ -123,7 +120,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_lo = lo[idim];
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
-    alpha = {0.,0.,0.,0.,0.,0.,0.,0.,0.};
+    
     pml_type = "";
 
     Array<Real,AMREX_SPACEDIM> fac;
@@ -346,27 +343,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
     }
     amrex::Print()<<"pml_type = "<<pml_type<<std::endl;
 
-    // initialization of alpha
-    if (pml_type[0] == 'd'){
-        // direct face
-        if (pml_type[2] == '0'){
-            alpha = {0.5, 0.5, 0., 1., 0., 0., 1., 0., 0.};
-        }
-        if (pml_type[2] == '1'){
-            alpha = {1., 0., 0., 0.5, 0.5, 0., 0., 1., 0.};
-        }
-        if (pml_type[2] == '2'){
-            alpha = {0., 1., 0., 0., 1., 0., 0.5, 0.5, 0.};
-        }
-    }
-    else if (pml_type[0] == 's'){
-        //side side edge
-
-    }
-    else{
-        // corner
-        alpha = {0.5, 0.5, 0., 0.5, 0.5, 0., 0.5, 0.5, 0.};
-    }
 }
 
 

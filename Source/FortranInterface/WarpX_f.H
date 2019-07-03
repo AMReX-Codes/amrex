@@ -38,6 +38,7 @@
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_3d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
+#define WRPX_DAMPJ_PML                   warpx_dampJ_pml_3d
 
 #elif (AMREX_SPACEDIM == 2)
 
@@ -385,6 +386,19 @@ extern "C"
                             const int* flag,
                             const amrex::Real* mudt,
 #endif
+#if (AMREX_SPACEDIM == 3)
+                            BL_FORT_FAB_ARG_3D(jx),
+                            BL_FORT_FAB_ARG_3D(jy),
+                            BL_FORT_FAB_ARG_3D(jz),
+                            const int* flag,
+                            const amrex::Real* sigjx, int sigjx_lo, int sigjx_hi,
+                            const amrex::Real* sigjy, int sigjy_lo, int sigjy_hi,
+                            const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi,
+                            const amrex::Real* sigsjx, int sigsjx_lo, int sigsjx_hi,
+                            const amrex::Real* sigsjy, int sigsjy_lo, int sigsjy_hi,
+                            const amrex::Real* sigjsz, int sigsjz_lo, int sigsjz_hi,
+                            const amrex::Real* mudt,
+#endif
                             const amrex::Real* dtsdx,
                             const amrex::Real* dtsdy,
                             const amrex::Real* dtsdz);
@@ -446,7 +460,7 @@ extern "C"
 #endif
                           const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
 
-#if (AMREX_SPACEDIM == 2)
+
     void WRPX_DAMPJ_PML (const int* tjxlo, const int* tjxhi,
                     const int* tjylo, const int* tjyhi,
                     const int* tjzlo, const int* tjzhi,
@@ -454,10 +468,16 @@ extern "C"
                     amrex::Real* jy, const int* jylo, const int* jyhi,
                     amrex::Real* jz, const int* jzlo, const int* jzhi,
                     const amrex::Real* sigjx, int sigjx_lo, int sigjx_hi,
+#if (AMREX_SPACEDIM == 3)
+                    const amrex::Real* sigjy, int sigjy_lo, int sigjy_hi,
+#endif
                     const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi,
                     const amrex::Real* sigsjx, int sigsjx_lo, int sigsjx_hi,
-                    const amrex::Real* sigjsz, int sigsjz_lo, int sigsjz_hi);
+#if (AMREX_SPACEDIM == 3)
+                    const amrex::Real* sigsjy, int sigsjy_lo, int sigsjy_hi,
 #endif
+                    const amrex::Real* sigjsz, int sigsjz_lo, int sigsjz_hi);
+
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(crse),

@@ -321,6 +321,8 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
         const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+        const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
+                                                              : pml[lev]->GetMultiSigmaBox_cp();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -347,8 +349,16 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
            &pml_has_particles,
                              &mu_c2_dt,
 #endif
+#if (AMREX_SPACEDIM==3)
+           BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
+           BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
+           BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
+           &pml_has_particles,
+           WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi]),
+                             &mu_c2_dt,
+#endif
                              &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
-                             
+
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(

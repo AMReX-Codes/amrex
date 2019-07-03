@@ -255,18 +255,42 @@ contains
        &                             Bx, Bxlo, Bxhi, &
        &                             By, Bylo, Byhi, &
        &                             Bz, Bzlo, Bzhi, &
+       &                             jx, jxlo, jxhi, &
+       &                             jy, jylo, jyhi, &
+       &                             jz, jzlo, jzhi, &
+       &                             flag, &
+       &                             sigjx, sjxlo, sjxhi, &
+       &                             sigjy, sjylo, sjyhi, &
+       &                             sigjz, sjzlo, sjzhi, &
+       &                             sigsjx, ssjxlo, ssjxhi, &
+       &                             sigsjy, ssjylo, ssjyhi, &
+       &                             sigsjz, ssjzlo, ssjzhi, &
+       &                             mudt, &
        &                             dtsdx, dtsdy, dtsdz) &
        bind(c,name='warpx_push_pml_evec_3d')
     integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
          Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), &
-         Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3)
-    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
+         Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3), &
+         jxlo(3), jxhi(3), jylo(3), jyhi(3), jzlo(3), jzhi(3), &
+         sjxlo(3), sjxhi(3), sjylo(3), sjyhi(3), sjzlo(3), sjzhi(3), &
+         ssjxlo(3), ssjxhi(3), ssjylo(3), ssjyhi(3), ssjzlo(3), ssjzhi(3), &
+         flag
+    real(amrex_real), intent(in) :: mudt, dtsdx, dtsdy, dtsdz
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3),2)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3),2)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3),2)
     real(amrex_real), intent(in   ) :: Bx (Bxlo(1):Bxhi(1),Bxlo(2):Bxhi(2),Bxlo(3):Bxhi(3),2)
     real(amrex_real), intent(in   ) :: By (Bylo(1):Byhi(1),Bylo(2):Byhi(2),Bylo(3):Byhi(3),2)
     real(amrex_real), intent(in   ) :: Bz (Bzlo(1):Bzhi(1),Bzlo(2):Bzhi(2),Bzlo(3):Bzhi(3),2)
+    real(amrex_real), intent(in   ) :: jx (jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
+    real(amrex_real), intent(in   ) :: jy (jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
+    real(amrex_real), intent(in   ) :: jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
+    real(amrex_real), intent(in   ) :: sigjx (sjxlo(1):sjxhi(1),sjxlo(2):sjxhi(2),sjxlo(3):sjxhi(3))
+    real(amrex_real), intent(in   ) :: sigjy (sjylo(1):sjyhi(1),sjylo(2):sjyhi(2),sjylo(3):sjyhi(3))
+    real(amrex_real), intent(in   ) :: sigjz (sjzlo(1):sjzhi(1),sjzlo(2):sjzhi(2),sjzlo(3):sjzhi(3))
+    real(amrex_real), intent(in   ) :: sigsjx (ssjxlo(1):ssjxhi(1),ssjxlo(2):ssjxhi(2),ssjxlo(3):ssjxhi(3))
+    real(amrex_real), intent(in   ) :: sigsjy (ssjylo(1):ssjyhi(1),ssjylo(2):ssjyhi(2),ssjylo(3):ssjyhi(3))
+    real(amrex_real), intent(in   ) :: sigsjz (ssjzlo(1):ssjzhi(1),ssjzlo(2):ssjzhi(2),ssjzlo(3):ssjzhi(3))
 
     integer :: i, j, k
 
@@ -915,9 +939,9 @@ contains
     integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
          jxlo, jxhi, jylo, jyhi, jzlo, jzhi
     integer, intent(in), value :: sjxlo, sjxhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjzlo, ssjzhi
-    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2)) !,1)
-    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2)) !,1)
-    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2)) !,1)
+    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2))
+    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2))
+    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2))
     real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
     real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
     real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
@@ -939,13 +963,55 @@ contains
     end do
 
     do    k = tjzlo(2), tjzhi(2)
-       do i = tjzlo(1), tjzhi(1) 
+       do i = tjzlo(1), tjzhi(1)
           jz(i,k) = jz(i,k) * sigjx(i)
        end do
     end do
 
 
   end subroutine warpx_dampJ_pml_2d
+
+  subroutine warpx_dampJ_pml_3d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+       &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
+       &                        sigjx, sjxlo, sjxhi, sigjy, sjylo, sjyhi, sigjz, sjzlo, sjzhi, &
+       &                        sigsjx, ssjxlo, ssjxhi, sigsjy, ssjylo, ssjyhi, sigsjz, ssjzlo, ssjzhi) &
+       bind(c,name='warpx_dampJ_pml_3d')
+    integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+         jxlo, jxhi, jylo, jyhi, jzlo, jzhi
+    integer, intent(in), value :: sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi
+    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2))
+    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2))
+    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2))
+    real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
+    real(amrex_real), intent(in) :: sigjy(sjylo:sjyhi)
+    real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
+    real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
+    real(amrex_real), intent(in) :: sigsjy(ssjylo:ssjyhi)
+    real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
+
+    integer :: i,k
+    !!!! FOR A PML ALONG X-AXIS !!!!!
+    do    k = tjxlo(2), tjxhi(2)
+       do i = tjxlo(1), tjxhi(1)
+          ! jx(i,k) = jx(i,k) * sigjx(i) !minval((/sigjx(i),sigjz(k)/))
+          jx(i,k) = jx(i,k) * sigsjx(i)
+       end do
+    end do
+
+    do    k = tjylo(2), tjyhi(2)
+       do i = tjylo(1), tjyhi(1)
+          jy(i,k) = jy(i,k) !* minval((/sigjx(i),sigjz(k)/)) !sigjz(k) !no current jy...
+       end do
+    end do
+
+    do    k = tjzlo(2), tjzhi(2)
+       do i = tjzlo(1), tjzhi(1)
+          jz(i,k) = jz(i,k) * sigjx(i)
+       end do
+    end do
+
+
+  end subroutine warpx_dampJ_pml_3d
 
 
   subroutine warpx_damp_pml_3d (texlo, texhi, teylo, teyhi, tezlo, tezhi, &
