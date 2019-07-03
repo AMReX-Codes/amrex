@@ -124,27 +124,60 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
     }
 }
 
+#ifdef AMREX_BACKTRACE_SUPPORTED
+namespace {
+    std::string run_command (std::string const& cmd)
+    {
+        std::string r;
+        if (FILE * ps = popen(cmd.c_str(), "r")) {
+            char print_buff[512];
+            while (fgets(print_buff, sizeof(print_buff), ps)) {
+                r += print_buff;
+            }
+            pclose(ps);
+        }
+        return r;
+    }
+
+    int file_exists (std::string const& file)
+    {
+        int r = 0;
+        if (FILE *fp = fopen(file.c_str(), "r")) {
+            fclose(fp);
+            r = 1;
+        }
+        return r;
+    }
+}
+#endif
+
 void
 BLBackTrace::print_backtrace_info (FILE* f)
 {
 #ifdef AMREX_BACKTRACE_SUPPORTED
 
     const int nbuf = 32;
-    void *buffer[nbuf];
-    int nentries = backtrace(buffer, nbuf);
+    void *bt_buffer[nbuf];
+    int nentries = backtrace(bt_buffer, nbuf);
 
 #ifdef __linux__
 
-    char **strings = NULL;
-    strings = backtrace_symbols(buffer, nentries);
+    char **strings = backtrace_symbols(bt_buffer, nentries);
     if (strings != NULL) {
-	int have_addr2line = 0;
-	std::string cmd = "/usr/bin/addr2line";
-	if (FILE *fp = fopen(cmd.c_str(), "r")) {
-	    fclose(fp);
-	    have_addr2line = 1;
-	}
-	cmd += " -Cpfie " + amrex::system::exename;
+	int have_eu_addr2line = 0;
+        int have_addr2line = 0;
+        std::string cmd;
+        {
+            cmd = "/usr/bin/eu-addr2line";
+            have_eu_addr2line = file_exists(cmd);
+            static const pid_t pid = getpid();
+            cmd += " -C -f -i --pretty-print -p " + std::to_string(pid);
+        }
+        if (!have_eu_addr2line) {
+            cmd = "/usr/bin/addr2line";
+            have_addr2line = file_exists(cmd);
+            cmd += " -Cpfie " + amrex::system::exename;
+        }
 
 	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
 	fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
@@ -156,11 +189,23 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
 	fprintf(f, "    to find out the offset for that line.\n\n");
 
-	for (int i = 0; i < nentries; ++i) {
-	    std::string line = strings[i];
-	    line += "\n";
+	for (int i = 0; i < nentries; ++i)
+        {
+            fprintf(f, "%2d: %s\n", i, strings[i]);
+
 #if !defined(_OPENMP) || !defined(__INTEL_COMPILER)
-	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
+            std::string addr2line_result;
+            if (amrex::system::call_addr2line && have_eu_addr2line) {
+                if (bt_buffer[i] != nullptr) {
+                    char print_buff[32];
+                    std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                    const std::string full_cmd = cmd + " " + print_buff;
+                    addr2line_result = run_command(full_cmd);
+                }
+            } else if (amrex::system::call_addr2line && have_addr2line &&
+                       !amrex::system::exename.empty())
+            {
+                const std::string line = strings[i];
                 std::size_t found_libc = line.find("libc.so");
                 if (found_libc == std::string::npos) {
                     std::string addr;
@@ -174,66 +219,50 @@ BLBackTrace::print_backtrace_info (FILE* f)
                             }
                         }
                     }
-                    if (addr.empty()) {
-                        std::size_t found1 = line.rfind('[');
-                        std::size_t found2 = line.rfind(']');
-                        if (found1 != std::string::npos && found2 != std::string::npos) {
-                            if (found1 < found2) {
-                                addr = line.substr(found1+1, found2-found1-1);
-                            }
+                    if (!addr.empty()) {
+                        const std::string full_cmd = cmd + " " + addr;
+                        addr2line_result = run_command(full_cmd);
+                        if (addr2line_result.find('?') != std::string::npos) {
+                            addr2line_result.clear();
                         }
                     }
-                    if (!addr.empty()) {
-                        std::string full_cmd = cmd + " " + addr;
-                        if (FILE * ps = popen(full_cmd.c_str(), "r")) {
-                            char buff[512];
-                            while (fgets(buff, sizeof(buff), ps)) {
-                                line += "    ";
-                                line += buff;
-                            }
-                            pclose(ps);
-                        }
+                    if (addr2line_result.empty()) {
+                        char print_buff[32];
+                        std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                        const std::string full_cmd = cmd + " " + print_buff;
+                        addr2line_result = run_command(full_cmd);
                     }
                 }
             }
+
+            if (!addr2line_result.empty()) {
+                fprintf(f, "    %s", addr2line_result.c_str());
+            }
 #endif
-            fprintf(f, "%2d: %s\n", i, line.c_str());
+            fprintf(f, "\n");
 	}
         std::free(strings);
     }
 
 #elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(__APPLE__)
 
-    int have_atos = 0;
     std::string cmd = "/usr/bin/atos";
-    if (FILE *fp = fopen(cmd.c_str(), "r")) {
-        fclose(fp);
-        have_atos = 1;
-    }
-
+    int hav_atos = file_exists(cmd);
     static const pid_t pid = getpid();
     cmd += " -p " + std::to_string(pid);
 
     for (int i = 0; i < nentries; ++i) {
         Dl_info info;
-        if (dladdr(buffer[i], &info))
+        if (dladdr(bt_buffer[i], &info))
         {
             std::string line;
-            bool atos_success = false;
             if (amrex::system::call_addr2line && have_atos) {
-                char buff[512];
-                std::snprintf(buff,sizeof(buff),"%p",buffer[i]);
-                std::string full_cmd = cmd + " " + buff;
-                if (FILE * ps = popen(full_cmd.c_str(), "r")) {
-                    buff[0] = '\n';
-                    while (fgets(buff, sizeof(buff), ps)) {
-                        line += buff;
-                    }
-                    pclose(ps);
-                    atos_success = true;
-                }
+                char print_buff[32];
+                std::snprintf(print_buff,sizeof(print_buff),"%p",bt_buffer[i]);
+                const std::string full_cmd = cmd + " " + print_buff;
+                line = run_command(full_cmd);
             }
-            if (!atos_success) {
+            if (line.empty()) {
                 int status;
                 char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
                 if (status == 0) {
