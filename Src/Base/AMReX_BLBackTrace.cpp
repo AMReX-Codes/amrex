@@ -191,9 +191,9 @@ BLBackTrace::print_backtrace_info (FILE* f)
             int status;
             char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
             if (status == 0) {
-                fprintf(f, "%2d: %s %s\n", i, demangled_name, info.dli_fname);
+                fprintf(f, "%2d: %s\n", i, demangled_name);
             } else {
-                fprintf(f, "%2d: %s %s\n", i, info.dli_fname);
+                fprintf(f, "%2d: %s\n", i, info.dli_fname);
             }
             std::free(demangled_name);
         }
