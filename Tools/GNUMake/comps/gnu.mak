@@ -35,6 +35,8 @@ DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 GENERIC_GNU_FLAGS =
 
 ifeq ($(DYNAMIC_LOAD),TRUE)
+  CPPFLAGS += -DAMREX_DYNAMIC_LOAD
+  LIBRARIES += -ldl
   GENERIC_GNU_FLAGS += -rdynamic -fno-omit-frame-pointer
 endif
 
