@@ -57,6 +57,9 @@ struct SigmaBox
     SigmaVect sigma_cum_fac;
     SigmaVect sigma_star_fac;
     SigmaVect sigma_star_cum_fac;
+
+    std::array<amrex::Real,9> alpha; //{alpha_xy, alpha_xz, alpha_xf, alpha_yx, alpha_yz, alpha_fy, alpha_zx, alpha_zy,  alpha_fz}
+    std::string pml_type; // if pml normal to x : if pml Hi : pml_type={1,0,0}; if pml Lo: pml_type={-1,0,0}
 };
 
 namespace amrex {

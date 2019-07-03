@@ -454,58 +454,59 @@ contains
     real(amrex_real), intent(in   ) :: jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2)) !jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2),1)
 
     integer :: i, k
-    do    k = xlo(2), xhi(2)
-       do i = xlo(1), xhi(1)
-          if (flag==1) then
-            ! for alpha_xy = 0, alpha_xz = 1
+
+    if (flag == 1) then
+      do    k = xlo(2), xhi(2)
+         do i = xlo(1), xhi(1)
             Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
                  &                        -By(i,k-1,1)-By(i,k-1,2))&
                  &                        - mudt  * jx(i,k)
+         end do
+      end do
 
-            ! for alpha_xy = 1, alpha_xz = 0
-
-            ! Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-            !      &                        -By(i,k-1,1)-By(i,k-1,2)) ! Exz
-            !
-            ! Ex(i,k,1) = Ex(i,k,1) - mudt  * jx(i,k) ! Exy
-
-          else
-            Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-                 &                        -By(i,k-1,1)-By(i,k-1,2))
-          end if
-       end do
-    end do
-
-    do    k = ylo(2), yhi(2)
-       do i = ylo(1), yhi(1)
-          if (flag==1) then
+      do    k = ylo(2), yhi(2)
+         do i = ylo(1), yhi(1)
             Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
                  &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))&
                  &                        - mudt * 0.5 * jy(i,k)
             Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
                  &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))&
                  &                        - mudt * 0.5 * jy(i,k)
-          else
+         end do
+      end do
+
+      do    k = zlo(2), zhi(2)
+         do i = zlo(1), zhi(1)
+            Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
+                 &                        -By(i-1,k,1)-By(i-1,k,2))&
+                 &                        - mudt * jz(i,k)
+         end do
+      end do
+
+    else
+      do    k = xlo(2), xhi(2)
+         do i = xlo(1), xhi(1)
+            Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+                 &                        -By(i,k-1,1)-By(i,k-1,2))
+         end do
+      end do
+
+      do    k = ylo(2), yhi(2)
+         do i = ylo(1), yhi(1)
             Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
                  &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))
             Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
                  &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))
-          end if
-       end do
-    end do
+         end do
+      end do
 
-    do    k = zlo(2), zhi(2)
-       do i = zlo(1), zhi(1)
-          if (flag==1) then
-            Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
-                 &                        -By(i-1,k,1)-By(i-1,k,2))&
-                 &                        - mudt * jz(i,k)
-          else
+      do    k = zlo(2), zhi(2)
+         do i = zlo(1), zhi(1)
             Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
                  &                        -By(i-1,k,1)-By(i-1,k,2))
-          end if
-       end do
-    end do
+         end do
+      end do
+    end if
 
   end subroutine warpx_push_pml_evec_2d
 
@@ -938,8 +939,7 @@ contains
     end do
 
     do    k = tjzlo(2), tjzhi(2)
-       do i = tjzlo(1), tjzhi(1)
-          ! jz(i,k) = jz(i,k) * sigjz(k) !minval((/sigjx(i),sigjz(k)/)) !sigjz(k)  ! sigjx(i)*sigjz(k)
+       do i = tjzlo(1), tjzhi(1) 
           jz(i,k) = jz(i,k) * sigjx(i)
        end do
     end do

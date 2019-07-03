@@ -27,65 +27,20 @@ namespace
         Real cumsum=0.;
         Real x = 10.0;
         Real theta = 10.0;
-        Real coeff_v = 1.; //std::sin(theta*MathConst::pi/180.);
+        Real coeff_damp = std::sin(theta*MathConst::pi/180.);
 
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(glo-i);
             sigma[i-slo] = fac*(offset*offset);
+            sigma_cum[i-slo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
         }
-
-        // for (int j = olo; j <= ohi+1; ++j)
-        // {
-        //     int i = -j + (ohi+olo+1);
-        //     cumsum = cumsum + sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        //     sigma_cum[i-slo] = cumsum;
-        // }
-        // for (int j = olo+1; j <= ohi+1; ++j)
-        // {
-        //     int i = -j + (ohi+olo+1);
-        //     cumsum = cumsum + sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        //     sigma_star_cum[i-sslo] = cumsum;
-        // }
 
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(glo-i) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
-        }
-        // cumsum = 0.;
-        // for (int j = olo; j <= ohi; ++j)
-        // {
-        //     int i = -j + (ohi+olo);
-        //     cumsum = cumsum + sigma_star[i-sslo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        //     // sigma_star_cum[i-sslo] = cumsum;
-        //     sigma_cum[i+1-slo] = cumsum;
-        // }
-        // int i = olo;
-        // Real offset = static_cast<Real>(glo-(i-1)) - 0.5;
-        // cumsum = cumsum + fac*(offset*offset)/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        // sigma_cum[i-slo] = cumsum;
-
-        // approximated integrals
-        cumsum = sigma[ohi+1-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        sigma_cum[ohi+1-slo] = cumsum;
-        amrex::Print()<<"sigma_cum["<<idim<<"]["<<ohi+1-slo<<"] = "<<cumsum<<std::endl;
-        for (int j = olo+1; j <= ohi+1; ++j)
-        {
-            int i = -j + (ohi+olo+1);
-            cumsum = cumsum + (0.5*sigma[i+1-slo] + sigma_star[i-sslo] + 0.5*sigma[i-slo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            sigma_cum[i-slo] = cumsum;
-            amrex::Print()<<"sigma_cum["<<idim<<"]["<<i-slo<<"] = "<<cumsum<<std::endl;
-        }
-
-        cumsum = 0.5*(sigma_star[ohi-sslo]+sigma[ohi+1-slo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        sigma_star_cum[ohi-sslo] = cumsum;
-        for (int j = olo+1; j <= ohi; ++j)
-        {
-            int i = -j + (ohi+olo);
-            cumsum = cumsum + (0.5*sigma_star[i+1-sslo] + sigma[i+1-slo] + 0.5*sigma_star[i-sslo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            sigma_star_cum[i-sslo] = cumsum;
-            amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<i-sslo<<"] = "<<cumsum<<std::endl;
+            sigma_star_cum[i-sslo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
         }
     }
 
@@ -101,49 +56,19 @@ namespace
         Real cumsum = 0.;
         Real x = 10.0;
         Real theta = 10.0;
-        Real coeff_v = 1.; //std::sin(theta*MathConst::pi/180.);
-        amrex::Print()<<"===== FillHi =====" <<std::endl;
+        Real coeff_damp = std::sin(theta*MathConst::pi/180.);
+        // amrex::Print()<<"===== FillHi =====" <<std::endl;
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            // cumsum = cumsum+sigma[i-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            // // sigma_cum[i-slo] = cumsum;
-            // if (i<=ohi){
-            //   sigma_star_cum[i-sslo] = cumsum;
-            //   amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<i-sslo<<"] = "<< cumsum <<std::endl;
-            // }
+            sigma_cum[i-slo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
         }
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(i-ghi) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
-            // cumsum = cumsum+sigma_star[i-sslo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            // // sigma_star_cum[i-sslo] = cumsum;
-            // sigma_cum[i-slo] = cumsum;
-            // amrex::Print()<<"sigma_cum["<<idim<<"]["<<i-slo<<"] = "<< cumsum <<std::endl;
-        }
-
-        // approximated integrals
-
-        cumsum = sigma[olo-slo]/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        sigma_cum[olo-slo] = cumsum;
-        amrex::Print()<<"sigma_cum["<<idim<<"]["<<olo-slo<<"] = "<<cumsum<<std::endl;
-        for (int i = olo+1; i <= ohi+1; ++i)
-        {
-            cumsum = cumsum + (0.5*sigma[i-1-slo] + sigma_star[i-1-sslo] + 0.5*sigma[i-slo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            sigma_cum[i-slo] = cumsum;
-            amrex::Print()<<"sigma_cum["<<idim<<"]["<<i-slo<<"] = "<<cumsum<<std::endl;
-        }
-
-        cumsum = 0.5*(sigma[olo-slo]+sigma_star[olo-sslo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-        sigma_star_cum[olo-slo] = cumsum;
-        amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<olo-sslo<<"] = "<<cumsum<<std::endl;
-        for (int i = olo+1; i <= ohi; ++i)
-        {
-            cumsum = cumsum + (0.5*sigma_star[i-1-sslo] + sigma[i-1-slo] + 0.5*sigma_star[i-sslo])/(coeff_v*PhysConst::c*x/std::sqrt(1+x*x));
-            sigma_star_cum[i-sslo] = cumsum;
-            amrex::Print()<<"sigma_star_cum["<<idim<<"]["<<i-sslo<<"] = "<<cumsum<<std::endl;
+            sigma_star_cum[i-sslo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
         }
     }
 
@@ -162,6 +87,8 @@ namespace
 
 SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
 {
+    amrex::Print()<< "===== BUILD SigmaBox ====="<<std::endl;
+    amrex::Print()<<"box = ["<<box.smallEnd()[0]<<", "<<box.smallEnd()[1]<<", "<<box.bigEnd()[0]<<", "<<box.bigEnd()[1]<<"]"<<std::endl;
     BL_ASSERT(box.cellCentered());
 
     const IntVect& sz = box.size();
@@ -196,6 +123,8 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_lo = lo[idim];
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
+    alpha = {0.,0.,0.,0.,0.,0.,0.,0.,0.};
+    pml_type = "";
 
     Array<Real,AMREX_SPACEDIM> fac;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -219,35 +148,42 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (amrex::grow(grid_box, idim, ncell).intersects(box))
             {
                 direct_faces.push_back(kv.first);
+                amrex::Print()<<"direct_faces"<<std::endl;
             }
             else if (amrex::grow(grid_box, jdim, ncell).intersects(box))
             {
                 side_faces.push_back(kv.first);
+                amrex::Print()<<"side_faces"<<std::endl;
             }
 #if (AMREX_SPACEDIM == 3)
             else if (amrex::grow(grid_box, kdim, ncell).intersects(box))
             {
                 side_faces.push_back(kv.first);
+                amrex::Print()<<"side_faces 2"<<std::endl;
             }
             else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
                                  jdim,ncell).intersects(box))
             {
                 direct_side_edges.push_back(kv.first);
+                amrex::Print()<<"direct_side_edges"<<std::endl;
             }
             else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
                                  kdim,ncell).intersects(box))
             {
                 direct_side_edges.push_back(kv.first);
+                amrex::Print()<<"direct_side_edges 2"<<std::endl;
             }
             else if (amrex::grow(amrex::grow(grid_box,jdim,ncell),
                                  kdim,ncell).intersects(box))
             {
                 side_side_edges.push_back(kv.first);
+                amrex::Print()<<"side_side_edges"<<std::endl;
             }
 #endif
             else
             {
                 corners.push_back(kv.first);
+                amrex::Print()<<"corners"<<std::endl;
             }
         }
 
@@ -263,6 +199,14 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
+                if (idim == 0){
+                    pml_type = "crn-++"; // for 2d only use the two first components
+                }
+                else {
+                    if (pml_type[0] == 'c'){
+                      pml_type[3+idim] = '-';
+                    }
+                }
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
@@ -273,6 +217,14 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
+                if (idim == 0){
+                    pml_type = "crn+++"; // for 2d only use the two first components
+                }
+                else {
+                    if (pml_type[0] == 'c'){
+                      pml_type[3+idim] = '+';
+                    }
+                }
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -287,7 +239,11 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
             if (overlap.ok()) {
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
-            } else {
+                if (idim==0){
+                    pml_type="sed33--";
+                }
+            }
+            else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_side_edges, how did this happen?\n");
             }
         }
@@ -300,12 +256,42 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
+                if (idim == 0){
+                    pml_type = "sed03-+"; // for 2d only use the two first components
+                }
+                else {
+                    if (pml_type[0] == 's'){
+                      if (pml_type[3]==3){
+                        pml_type[3]=idim+'0';
+                        pml_type[5]='-';
+                      }
+                      else{
+                        pml_type[4] = idim+'0';
+                        pml_type[6] = '-';
+                      }
+                    }
+                }
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
+                if (idim == 0){
+                    pml_type = "sed03++"; // for 2d only use the two first components
+                }
+                else {
+                    if (pml_type[0] == 's'){
+                      if (pml_type[3]==3){
+                        pml_type[3]=idim+'0';
+                        pml_type[5]='+';
+                      }
+                      else{
+                        pml_type[4] = idim+'0';
+                        pml_type[6] = '+';
+                      }
+                    }
+                }
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -337,12 +323,16 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
+                pml_type = "df0-";
+                if (idim > 0){pml_type[2]=idim+'0';} //std::to_string(idim)
             }
 
             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
+                pml_type = "df0+";
+                if (idim>0){pml_type[2] = idim+'0';}
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -353,6 +343,29 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         if (direct_faces.size() > 1) {
             amrex::Abort("SigmaBox::SigmaBox(): direct_faces.size() > 1, Box gaps not wide enough?\n");
         }
+    }
+    amrex::Print()<<"pml_type = "<<pml_type<<std::endl;
+
+    // initialization of alpha
+    if (pml_type[0] == 'd'){
+        // direct face
+        if (pml_type[2] == '0'){
+            alpha = {0.5, 0.5, 0., 1., 0., 0., 1., 0., 0.};
+        }
+        if (pml_type[2] == '1'){
+            alpha = {1., 0., 0., 0.5, 0.5, 0., 0., 1., 0.};
+        }
+        if (pml_type[2] == '2'){
+            alpha = {0., 1., 0., 0., 1., 0., 0.5, 0.5, 0.};
+        }
+    }
+    else if (pml_type[0] == 's'){
+        //side side edge
+
+    }
+    else{
+        // corner
+        alpha = {0.5, 0.5, 0., 0.5, 0.5, 0., 0.5, 0.5, 0.};
     }
 }
 
