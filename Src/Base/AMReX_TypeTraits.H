@@ -6,8 +6,10 @@
 // workaround missing "is_trivially_copyable" in g++ < 5.0
 #if defined(__GNUG__) && __GNUC__ < 5
 #define AMREX_IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
+#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::has_trivial_default_constructor<T>::value
 #else
 #define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
+#define AMREX_IS_TRIVIALLY_DEFAULT_CONSTRUCTIBLE(T) std::is_trivially_default_constructible<T>::value
 #endif
 
 namespace amrex
