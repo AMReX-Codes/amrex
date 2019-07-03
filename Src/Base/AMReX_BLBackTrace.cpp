@@ -127,6 +127,8 @@ BLBackTrace::print_backtrace_info (const std::string& filename)
 void
 BLBackTrace::print_backtrace_info (FILE* f)
 {
+#ifdef AMREX_BACKTRACE_SUPPORTED
+
     const int nbuf = 32;
     void *buffer[nbuf];
     int nentries = backtrace(buffer, nbuf);
@@ -202,20 +204,51 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(AMREX_DYNAMIC_LOAD)
 
+    int have_atos = 0;
+    std::string cmd = "/usr/bin/atos";
+    if (FILE *fp = fopen(cmd.c_str(), "r")) {
+        fclose(fp);
+        have_atos = 1;
+    }
+
+    static const pid_t pid = getpid();
+    cmd += " -p " + std::to_string(pid);
+
     for (int i = 0; i < nentries; ++i) {
         Dl_info info;
         if (dladdr(buffer[i], &info))
         {
-            int status;
-            char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
-            if (status == 0) {
-                fprintf(f, "%2d: %s\n", i, demangled_name);
-            } else {
-                fprintf(f, "%2d: %s\n", i, info.dli_fname);
+            std::string line;
+            bool atos_success = false;
+            if (amrex::system::call_addr2line && have_atos) {
+                char buff[512];
+                std::snprintf(buff,sizeof(buff),"%p",buffer[i]);
+                std::string full_cmd = cmd + " " + buff;
+                if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+                    buff[0] = '\n';
+                    while (fgets(buff, sizeof(buff), ps)) {
+                        line += buff;
+                    }
+                    pclose(ps);
+                    atos_success = true;
+                }
             }
-            std::free(demangled_name);
+            if (!atos_success) {
+                int status;
+                char * demangled_name = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
+                if (status == 0) {
+                    line += demangled_name;
+                } else {
+                    line += info.dli_fname;
+                }
+                line += '\n';
+                std::free(demangled_name);
+            }
+            fprintf(f, "%2d: %s\n", i, line.c_str());
         }
     }
+
+#endif
 
 #endif
 }
