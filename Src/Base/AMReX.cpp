@@ -468,7 +468,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	    if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
 	    if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
 	    if (curr_fpe_excepts != 0u) {
-	      _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
+                _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
+                prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
 	    }
 #endif
         }
