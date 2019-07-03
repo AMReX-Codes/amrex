@@ -9,6 +9,10 @@
 #include <AMReX_Print.H>
 #include <AMReX.H>
 
+#ifdef AMREX_TINY_PROFILING
+#include <AMReX_TinyProfiler.H>
+#endif
+
 #if defined(AMREX_DYNAMIC_LOAD) && defined(__GNUC__) && defined(__APPLE__)
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -46,7 +50,7 @@ BLBackTrace::handler(int s)
 	break;
     }
 
-#ifdef AMREX_BACKTRACE_SUPPORTED
+#if defined(AMREX_BACKTRACE_SUPPORTED) || defined(AMREX_TINY_PROFILING)
 
     std::string errfilename;
     {
@@ -59,7 +63,9 @@ BLBackTrace::handler(int s)
     }
 
     if (FILE* p = fopen(errfilename.c_str(), "w")) {
+#if defined(AMREX_BACKTRACE_SUPPORTED)
 	BLBackTrace::print_backtrace_info(p);
+#endif
 	fclose(p);
     }
     
@@ -77,6 +83,18 @@ BLBackTrace::handler(int s)
 		bt_stack.pop();
 	    }
 	    errfile << std::endl;
+	}
+    }
+#endif
+
+#ifdef AMREX_TINY_PROFILING
+    {
+        std::ofstream errfile;
+        errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
+        if (errfile.is_open()) {
+            errfile << std::endl;
+            TinyProfiler::PrintCallStack(errfile);
+            errfile << std::endl;
 	}
     }
 #endif
