@@ -34,6 +34,10 @@ DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 
 GENERIC_GNU_FLAGS =
 
+ifeq ($(DYNAMIC_LOAD),TRUE)
+  GENERIC_GNU_FLAGS += -rdynamic
+endif
+
 gcc_major_ge_8 = $(shell expr $(gcc_major_version) \>= 8)
 
 ifeq ($(THREAD_SANITIZER),TRUE)
