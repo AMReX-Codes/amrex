@@ -187,6 +187,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     const auto dxinv = geom.InvCellSizeArray();
     const auto problo = geom.ProbLoArray();
 
+    RunOn gshop_run_on = (Gpu::inLaunchRegion() && gshop.isGPUable())
+        ? RunOn::Gpu : RunOn::Cpu;
+
+    bool hybrid = Gpu::inLaunchRegion() and (gshop_run_on == RunOn::Cpu);
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -200,31 +205,44 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             const Box& vbx = gfab.validbox();
 
             auto& levelset = gfab.getLevelSet();
-            gshop.fillFab(levelset, geom, RunOn::Gpu);
+            gshop.fillFab(levelset, geom, gshop_run_on);
+
+            if (hybrid) levelset.prefetchToDevice();
 
             auto& cellflag = m_cellflag[mfi];
 
             gfab.buildTypes(cellflag);
 
-            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
-
 #if (AMREX_SPACEDIM == 3)
             auto& facetype = gfab.getFaceType();
             auto& edgetype = gfab.getEdgeType();
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                const auto& edgetype_fab = edgetype[idim];
-                const Box& b = edgetype_fab.box();
-                auto& inter = intercept[idim];
-                inter.resize(b);
-                inter.setVal(std::numeric_limits<Real>::quiet_NaN());
-                edgetype_fab.ForEachIV(b, 0, 1,
-                    [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
-                        if (t == Type::irregular) {
-                            inter(iv) = gshop.getIntercept(idim, iv, geom);
-                        }
-                    });
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                intercept[idim].resize(edgetype[idim].box());
             }
+            Elixir xinter_eli = intercept[0].elixir();
+            Elixir yinter_eli = intercept[1].elixir();
+            Elixir zinter_eli = intercept[2].elixir();
+
+            if (hybrid) {
+                Gpu::streamSynchronize();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    edgetype[idim].prefetchToHost();
+                    intercept[idim].prefetchToHost();
+                }
+            }
+
+            gshop.getIntercept(intercept, edgetype, geom, gshop_run_on);
+
+            if (hybrid) {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    edgetype[idim].prefetchToDevice();
+                    intercept[idim].prefetchToDevice();
+                }
+            }
+
+
+            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& b = facetype[idim].box();
@@ -289,20 +307,32 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
 #elif (AMREX_SPACEDIM == 2)
             auto& facetype = gfab.getFaceType();
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                const auto& facetype_fab = facetype[idim];
-                const Box& b = facetype_fab.box();
-                auto& inter = intercept[idim];
-                inter.resize(b);
-                inter.setVal(std::numeric_limits<Real>::quiet_NaN());
-                facetype_fab.ForEachIV(b, 0, 1,
-                    [&inter, &gshop, &geom, &idim] (const Type_t& t, const IntVect& iv) {
-                        if (t == Type::irregular) {
-                            inter(iv) = gshop.getIntercept(1-idim, iv, geom);
-                        }
-                    });
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                intercept[idim].resize(facetype[idim].box());
             }
+            Elixir xinter_eli = intercept[0].elixir();
+            Elixir yinter_eli = intercept[1].elixir();
+
+            if (hybrid) {
+                Gpu::streamSynchronize();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    facetype[idim].prefetchToHost();
+                    intercept[idim].prefetchToHost();
+                }
+            }
+
+            gshop.getIntercept(intercept, facetype, geom, gshop_run_on);
+
+            if (hybrid) {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    facetype[idim].prefetchToDevice();
+                    intercept[idim].prefetchToDevice();
+                }
+            }
+
+
+            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
 
             // regular by default
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
