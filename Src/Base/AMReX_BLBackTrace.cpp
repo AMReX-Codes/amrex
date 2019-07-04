@@ -1,6 +1,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cstring>
+#include <cstdio>
 
 #include <unistd.h>
 
@@ -139,10 +141,10 @@ namespace {
         return r;
     }
 
-    int file_exists (std::string const& file)
+    int file_exists (const char* file)
     {
         int r = 0;
-        if (FILE *fp = fopen(file.c_str(), "r")) {
+        if (FILE *fp = fopen(file, "r")) {
             fclose(fp);
             r = 1;
         }
@@ -168,15 +170,18 @@ BLBackTrace::print_backtrace_info (FILE* f)
         int have_addr2line = 0;
         std::string cmd;
         {
-            cmd = "/usr/bin/eu-addr2line";
-            have_eu_addr2line = file_exists(cmd);
-            static const pid_t pid = getpid();
-            cmd += " -C -f -i --pretty-print -p " + std::to_string(pid);
+            have_eu_addr2line = file_exists("/usr/bin/eu-addr2line");
+            if (have_eu_addr2line) {
+                const pid_t pid = getpid();
+                cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
+                    + std::to_string(pid);
+            }
         }
         if (!have_eu_addr2line) {
-            cmd = "/usr/bin/addr2line";
-            have_addr2line = file_exists(cmd);
-            cmd += " -Cpfie " + amrex::system::exename;
+            have_addr2line = file_exists("/usr/bin/addr2line");
+            if (have_addr2line) {
+                cmd = "/usr/bin/addr2line -Cpfie " + amrex::system::exename;
+            }
         }
 
 	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
@@ -246,10 +251,9 @@ BLBackTrace::print_backtrace_info (FILE* f)
 
 #elif defined(AMREX_BACKTRACE_SUPPORTED) && defined(__APPLE__)
 
-    std::string cmd = "/usr/bin/atos";
-    int have_atos = file_exists(cmd);
-    static const pid_t pid = getpid();
-    cmd += " -p " + std::to_string(pid);
+    const pid_t pid = getpid();
+    const std::string cmd = "/usr/bin/atos -p " + std::to_string(pid);
+    const int have_atos = file_exists("/usr/bin/atos");
 
     for (int i = 0; i < nentries; ++i) {
         Dl_info info;
