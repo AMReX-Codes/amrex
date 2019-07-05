@@ -25,9 +25,11 @@ public:
     void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol = 0.0 );
     void project (Real reltol, Real atol = 0.0 );
 
-    void setVerbose   (int v) noexcept { m_verbose = v; }
-    void setCGVerbose (int v) noexcept { m_cg_verbose = v; }
-    void setBottomVerbose (int v) noexcept { m_cg_verbose = v; }
+    void setVerbose            (int  v) noexcept { m_verbose = v; }
+    void setCGVerbose          (int  v) noexcept { m_cg_verbose = v; }
+    void setBottomVerbose      (int  v) noexcept { m_cg_verbose = v; }
+    void setBottomTolerance    (Real t) noexcept { m_bottom_reltol = t; }
+    void setBottomToleranceAbs (Real t) noexcept { m_bottom_abstol = t; }
     void setMaxIter (int v) noexcept { m_maxiter = v; }
     void setCGMaxIter (int v) noexcept { m_cg_maxiter = v; }
     void setMaxCoarseningLevel (int v) noexcept { m_max_coarsening_level = v; }
@@ -60,6 +62,9 @@ private:
     int m_maxiter = 200;
     int m_cg_maxiter = 200;
     int m_max_coarsening_level = 100;
+
+    Real m_bottom_reltol = 1.e-4;
+    Real m_bottom_abstol = -1.0;
 
     MLMG::BottomSolver bottom_solver_type = MLMG::BottomSolver::bicgstab;
 };

@@ -109,6 +109,8 @@ MacProjector::project (Real reltol, Real atol )
         m_mlmg->setCGVerbose(m_cg_verbose);
         m_mlmg->setMaxIter(m_maxiter);
         m_mlmg->setCGMaxIter(m_cg_maxiter);
+        m_mlmg->setBottomTolerance   (m_bottom_reltol);
+        m_mlmg->setBottomToleranceAbs(m_bottom_abstol);
     }
 
     m_mlmg->setBottomSolver(bottom_solver_type);
