@@ -6,8 +6,14 @@
 #include <AMReX_EB2_Graph.H>
 
 #if (AMREX_SPACEDIM == 2)
-
 #include <AMReX_EB2_2D_C.H>
+#elif (AMREX_SPACEDIM == 3)
+#include <AMReX_EB2_3D_C.H>
+#endif
+
+namespace amrex { namespace EB2 {
+
+#if (AMREX_SPACEDIM == 2)
 
 void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Type_t> const& fx, Array4<Type_t> const& fy,
@@ -20,8 +26,8 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
 
 #elif (AMREX_SPACEDIM == 3)
 
-#include <AMReX_EB2_3D_C.H>
-
 #endif
+
+}}
 
 #endif

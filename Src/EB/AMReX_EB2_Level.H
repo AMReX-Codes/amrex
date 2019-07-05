@@ -9,6 +9,7 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_MultiGFab.H>
+#include <AMReX_EB2_C.H>
 #include <AMReX_EB2_F.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 
@@ -335,8 +336,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             }
             Elixir xinter_eli = intercept[0].elixir();
             Elixir yinter_eli = intercept[1].elixir();
-            AMREX_D_TERM(Array4<Real> const& xip = intercept[0].array();,
-                         Array4<Real> const& yip = intercept[1].array(););
+            Array4<Real> const& xip = intercept[0].array();
+            Array4<Real> const& yip = intercept[1].array();
 
             if (hybrid) {
                 Gpu::streamSynchronize();
