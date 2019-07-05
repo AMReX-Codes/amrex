@@ -6,6 +6,71 @@
 using namespace amrex;
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
+                          Array4<Real const> const& By, Array4<Real const> const& Bz, Array4<Real const> const& Jx,
+                          Real mu_c2_dt, Real dtsdy_c2, Real dtsdz_c2)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ex(i,j,k) = Ex(i,j,k) + dtsdy_c2 * (Bz(i,j,k) - Bz(i,j-1,k  ))
+                          - dtsdz_c2 * (By(i,j,k) - By(i,j  ,k-1))
+                          - mu_c2_dt  * Jx(i,j,k);
+#else
+    // Note that the 2D Cartesian and RZ versions are the same
+    Ex(i,j,0) = Ex(i,j,0) - dtsdz_c2 * (By(i,j,0) - By(i,j-1,0))
+                          - mu_c2_dt  * Jx(i,j,0);
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
+                          Array4<Real const> const& Bx, Array4<Real const> const& Bz, Array4<Real const> const& Jy,
+                          Real mu_c2_dt, Real dtsdx_c2, Real dtsdz_c2, Real rmin)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ey(i,j,k) = Ey(i,j,k) - dtsdx_c2 * (Bz(i,j,k) - Bz(i-1,j,k))
+                          + dtsdz_c2 * (Bx(i,j,k) - Bx(i,j,k-1))
+                          - mu_c2_dt  * Jy(i,j,k);
+#else
+    // 2D Cartesian and RZ are the same, except that the axis is skipped with RZ
+#ifdef WARPX_RZ
+    if (i != 0 || rmin != 0.)
+#endif
+    {
+    Ey(i,j,0) = Ey(i,j,0) - dtsdx_c2 * (Bz(i,j,0) - Bz(i-1,j,0))
+                          + dtsdz_c2 * (Bx(i,j,0) - Bx(i,j-1,0))
+                          - mu_c2_dt  * Jy(i,j,0);
+    }
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
+                          Array4<Real const> const& Bx, Array4<Real const> const& By, Array4<Real const> const& Jz,
+                          Real mu_c2_dt, Real dtsdx_c2, Real dtsdy_c2, Real dxinv, Real rmin)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ez(i,j,k) = Ez(i,j,k) + dtsdx_c2 * (By(i,j,k) - By(i-1,j  ,k))
+                          - dtsdy_c2 * (Bx(i,j,k) - Bx(i  ,j-1,k))
+                          - mu_c2_dt  * Jz(i,j,k);
+#else
+#ifndef WARPX_RZ
+    Ez(i,j,0) = Ez(i,j,0) + dtsdx_c2 * (By(i,j,0) - By(i-1,j,0))
+                      - mu_c2_dt  * Jz(i,j,0);
+#else
+    if (i != 0 || rmin != 0.) {
+        Real ru = 1. + 0.5/(rmin*dxinv + i);
+        Real rd = 1. - 0.5/(rmin*dxinv + i);
+        Ez(i,j,0) = Ez(i,j,0) + dtsdx_c2 * (ru*By(i,j,0) - rd*By(j-1,k,0))
+                              - mu_c2_dt  * Jz(i,j,0);
+    } else {
+        Ez(i,j,0) = Ez(i,j,0) + 4.*dtsdx_c2 * By(i,j,0)
+                                - mu_c2_dt  * Jz(i,j,0);
+    }
+#endif
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
                        Array4<Real const> const& Bx, Array4<Real const> const& By, Array4<Real const> const& Bz,
                        Real dxinv, Real dyinv, Real dzinv

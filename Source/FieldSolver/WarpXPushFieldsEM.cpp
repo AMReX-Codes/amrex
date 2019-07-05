@@ -6,6 +6,7 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX_K.H>
+#include <WarpX_FDTD.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -192,6 +193,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
     int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
     Real dtsdx_c2 = c2dt/dx[0], dtsdy_c2 = c2dt/dx[1], dtsdz_c2 = c2dt/dx[2];
+    Real dxinv = 1./dx[0];
 
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz, *F;
     if (patch_type == PatchType::fine)
@@ -240,16 +242,17 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
+        auto const& Exfab = Ex->array(mfi);
+        auto const& Eyfab = Ey->array(mfi);
+        auto const& Ezfab = Ez->array(mfi);
+        auto const& Bxfab = Bx->array(mfi);
+        auto const& Byfab = By->array(mfi);
+        auto const& Bzfab = Bz->array(mfi);
+        auto const& jxfab = jx->array(mfi);
+        auto const& jyfab = jy->array(mfi);
+        auto const& jzfab = jz->array(mfi);
+
         if (do_nodal) {
-            auto const& Exfab = Ex->array(mfi);
-            auto const& Eyfab = Ey->array(mfi);
-            auto const& Ezfab = Ez->array(mfi);
-            auto const& Bxfab = Bx->array(mfi);
-            auto const& Byfab = By->array(mfi);
-            auto const& Bzfab = Bz->array(mfi);
-            auto const& jxfab = jx->array(mfi);
-            auto const& jyfab = jy->array(mfi);
-            auto const& jzfab = jz->array(mfi);
             amrex::ParallelFor(tex,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
@@ -266,23 +269,21 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                 warpx_push_ez_nodal(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2);
             });
         } else {
-            // Call picsar routine for each tile
-            warpx_push_evec(
-		      tex.loVect(), tex.hiVect(),
-		      tey.loVect(), tey.hiVect(),
-		      tez.loVect(), tez.hiVect(),
-		      BL_TO_FORTRAN_3D((*Ex)[mfi]),
-		      BL_TO_FORTRAN_3D((*Ey)[mfi]),
-		      BL_TO_FORTRAN_3D((*Ez)[mfi]),
-		      BL_TO_FORTRAN_3D((*Bx)[mfi]),
-		      BL_TO_FORTRAN_3D((*By)[mfi]),
-		      BL_TO_FORTRAN_3D((*Bz)[mfi]),
-		      BL_TO_FORTRAN_3D((*jx)[mfi]),
-		      BL_TO_FORTRAN_3D((*jy)[mfi]),
-		      BL_TO_FORTRAN_3D((*jz)[mfi]),
-		      &mu_c2_dt,
-		      &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
-		      &xmin, &dx[0]);
+            amrex::ParallelFor(tex,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
+                warpx_push_ex_yee(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdy_c2,dtsdz_c2);
+            });
+            amrex::ParallelFor(tey,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
+                warpx_push_ey_yee(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,mu_c2_dt,dtsdx_c2,dtsdz_c2,xmin);
+            });
+            amrex::ParallelFor(tez,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
+                warpx_push_ez_yee(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2,dxinv,xmin);
+            });
         }
 
         if (F)
