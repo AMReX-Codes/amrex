@@ -24,6 +24,13 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   GpuArray<Real,AMREX_SPACEDIM> const& problo);
 
+void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
+                  Array4<Type_t> const& fx, Array4<Type_t> const& fy,
+                  Array4<Real> const& apx, Array4<Real> const& apy,
+                  Array4<Real> const& vfrac, Array4<Real> const& vcent,
+                  Array4<Real> const& barea, Array4<Real> const& bcent,
+                  Array4<Real> const& bnorm);
+
 #elif (AMREX_SPACEDIM == 3)
 
 #endif
