@@ -391,6 +391,7 @@ extern "C"
                             BL_FORT_FAB_ARG_3D(jy),
                             BL_FORT_FAB_ARG_3D(jz),
                             const int* flag,
+                            std::string pml_type,
                             const amrex::Real* sigjx, int sigjx_lo, int sigjx_hi,
                             const amrex::Real* sigjy, int sigjy_lo, int sigjy_hi,
                             const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi,

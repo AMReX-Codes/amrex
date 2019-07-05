@@ -354,6 +354,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
            BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
            BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
            &pml_has_particles,
+           sigba[mfi].pml_type,
            WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi]),
                              &mu_c2_dt,
 #endif

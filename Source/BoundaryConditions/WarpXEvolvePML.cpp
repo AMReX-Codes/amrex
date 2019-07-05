@@ -125,7 +125,7 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 		    	BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
 			    BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
 			    BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
-			    WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi]));
+			    WRPX_PML_SIGMACOEFF_TO_FORTRAN(sigba[mfi])); //WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi])
         }
 
     }
