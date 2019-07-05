@@ -213,8 +213,32 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             gfab.buildTypes(cellflag);
 
-#if (AMREX_SPACEDIM == 3)
+            Array4<Real const> const& lst = levelset.array();
+            Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
+            Array4<Real> const& vfr = m_volfrac.array(mfi);
+            Array4<Real> const& ctr = m_centroid.array(mfi);
+            Array4<Real> const& bar = m_bndryarea.array(mfi);
+            Array4<Real> const& bct = m_bndrycent.array(mfi);
+            Array4<Real> const& bnm = m_bndrynorm.array(mfi);
+            AMREX_D_TERM(Array4<Real> const& apx = m_areafrac[0].array(mfi);,
+                         Array4<Real> const& apy = m_areafrac[1].array(mfi);,
+                         Array4<Real> const& apz = m_areafrac[2].array(mfi););
+            AMREX_D_TERM(Array4<Real> const& fcx = m_facecent[0].array(mfi);,
+                         Array4<Real> const& fcy = m_facecent[1].array(mfi);,
+                         Array4<Real> const& fcz = m_facecent[2].array(mfi););
+
             auto& facetype = gfab.getFaceType();
+            AMREX_D_TERM(Array4<Type_t> const& ftx = facetype[0].array();,
+                         Array4<Type_t> const& fty = facetype[1].array();,
+                         Array4<Type_t> const& ftz = facetype[2].array(););
+
+            AMREX_D_TERM(
+                const Box& xbxg2 = amrex::grow(amrex::surroundingNodes(vbx,0),ng);,
+                const Box& ybxg2 = amrex::grow(amrex::surroundingNodes(vbx,1),ng);,
+                const Box& zbxg2 = amrex::grow(amrex::surroundingNodes(vbx,2),ng););
+            const Box& ndbxg2 = amrex::grow(amrex::surroundingNodes(vbx),ng);
+
+#if (AMREX_SPACEDIM == 3)
             auto& edgetype = gfab.getEdgeType();
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -306,13 +330,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
 
 #elif (AMREX_SPACEDIM == 2)
-            auto& facetype = gfab.getFaceType();
-
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 intercept[idim].resize(facetype[idim].box());
             }
             Elixir xinter_eli = intercept[0].elixir();
             Elixir yinter_eli = intercept[1].elixir();
+            AMREX_D_TERM(Array4<Real> const& xip = intercept[0].array();,
+                         Array4<Real> const& yip = intercept[1].array(););
 
             if (hybrid) {
                 Gpu::streamSynchronize();
@@ -331,15 +355,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 }
             }
 
+            build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy, dx, problo);
 
             Gpu::streamSynchronize(); // needed until the whole loop is on gpu
 
-            // regular by default
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                m_areafrac[idim][mfi].setVal(1.0);
-                m_facecent[idim][mfi].setVal(0.0);
-            }
-
+#if 0
             amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
                                   BL_TO_FORTRAN_ANYD(facetype[0]),
@@ -352,6 +372,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
                                   BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
                                   dx.data(), dxinv.data(), problo.data());
+#endif
 
             // regular by default
             m_volfrac[mfi].setVal(1.0);

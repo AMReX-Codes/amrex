@@ -21,7 +21,7 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
     return f(AMREX_D_DECL(p[0],p[1],p[2]));
 }
 
-template <class F, typename std::enable_if<!IsGPUable<F>::value>::type* FOO = nullptr>
+template <class F, typename std::enable_if<!IsGPUable<F>::value>::type* BAR = nullptr>
 Real IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
     return f({AMREX_D_DECL(p[0],p[1],p[2])});
@@ -199,10 +199,10 @@ public:
 
     int getBoxType (const Box& bx, const Geometry& geom) const;
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* = nullptr >
+    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
     static constexpr bool isGPUable () noexcept { return true; }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* = nullptr >
+    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
     static constexpr bool isGPUable () noexcept { return false; }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
@@ -224,7 +224,7 @@ public:
         });
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* = nullptr >
+    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn) const noexcept
     {
         const Real* AMREX_RESTRICT problo = geom.ProbLo();
@@ -283,7 +283,7 @@ public:
         }
     }
 
-    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* FOO = nullptr >
+    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
     void getIntercept (Array<BaseFab<Real>,AMREX_SPACEDIM>& inter_fab,
                        Array<BaseFab<Type_t>,AMREX_SPACEDIM> const& type_fab,
                        Geometry const& geom, RunOn) const noexcept
