@@ -17,6 +17,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
+#include <AMReX_Loop.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>

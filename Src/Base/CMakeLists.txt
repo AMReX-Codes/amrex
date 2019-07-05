@@ -80,6 +80,7 @@ target_sources( amrex
    AMReX_IntVect.cpp
    AMReX_IndexType.H
    AMReX_IndexType.cpp
+   AMReX_Loop.H
    AMReX_Orientation.H 
    AMReX_Orientation.cpp
    AMReX_Periodicity.H 

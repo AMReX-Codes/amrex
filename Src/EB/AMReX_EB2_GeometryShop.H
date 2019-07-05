@@ -22,9 +22,16 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 }
 
 template <class F, typename std::enable_if<!IsGPUable<F>::value>::type* BAR = nullptr>
-Real IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
+AMREX_GPU_HOST_DEVICE
+Real
+IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 {
+#ifdef AMREX_DEVICE_COMPILE
+    amrex::Error("EB2::GeometryShop: how did this happen?");
+    return 0.0;
+#else
     return f({AMREX_D_DECL(p[0],p[1],p[2])});
+#endif
 }
 
 template <class F>
@@ -295,7 +302,7 @@ public:
             Array4<Type_t const> const& type = type_fab[idim].array();
             const Box& bx = inter_fab[idim].box();
             int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
-            amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+            amrex::LoopOnCpu(bx, [=] (int i, int j, int k) noexcept
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
