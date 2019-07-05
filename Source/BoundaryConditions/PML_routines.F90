@@ -486,9 +486,11 @@ contains
                  alpha_xy = sigjy(j)/(sigjy(j)+sigjz(k))
                  alpha_xz = sigjz(k)/(sigjy(j)+sigjz(k))
                  Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                      &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
+                      &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
+                      &                            -mudt*alpha_xy*jx(i,j,k)
                  Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                      &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
+                      &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
+                      &                            -mudt*alpha_xz*jx(i,j,k)
               end do
            end do
         end do
@@ -499,9 +501,11 @@ contains
                  alpha_yx = sigjx(i)/(sigjx(i)+sigjz(k))
                  alpha_yz = sigjz(k)/(sigjx(i)+sigjz(k))
                  Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                      &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
+                      &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
+                      &                            -mudt*alpha_yx*jy(i,j,k)
                  Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                      &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
+                      &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
+                      &                            -mudt*alpha_yz*jy(i,j,k)
               end do
            end do
         end do
@@ -512,9 +516,11 @@ contains
                  alpha_zx = sigjx(i)/(sigjx(i)+sigjy(j))
                  alpha_zy = sigjy(j)/(sigjx(i)+sigjy(j))
                  Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                      &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
+                      &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
+                      &                            -mudt*alpha_zx*jz(i,j,k)
                  Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                      &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
+                      &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
+                      &                            -mudt*alpha_zy*jz(i,j,k)
               end do
            end do
         end do
