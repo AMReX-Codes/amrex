@@ -333,13 +333,158 @@ contains
       end do
 
     else !flag = 1
-      !!!!! CORNER
-      if (pml_type(1)=='c') then
+      !!!!! DIRECT FACE
+      if (pml_type(1)=='d') then
+         if (pml_type(3)=='0') then
+           do       k = xlo(3), xhi(3)
+              do    j = xlo(2), xhi(2)
+                 do i = xlo(1), xhi(1)
+                    ! compute current coefficients alpha
+                    alpha_xy = 0.5
+                    alpha_xz = 0.5
+                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
+                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
+                         &                            -mudt*alpha_xy*jx(i,j,k)
+                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
+                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
+                         &                            -mudt*alpha_xz*jx(i,j,k)
+                 end do
+              end do
+           end do
+
+           do       k = ylo(3), yhi(3)
+              do    j = ylo(2), yhi(2)
+                 do i = ylo(1), yhi(1)
+                    alpha_yx = 1.
+                    alpha_yz = 0.
+                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
+                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
+                         &                            -mudt*alpha_yx*jy(i,j,k)
+                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
+                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
+                         &                            -mudt*alpha_yz*jy(i,j,k)
+                 end do
+              end do
+           end do
+
+           do       k = zlo(3), zhi(3)
+              do    j = zlo(2), zhi(2)
+                 do i = zlo(1), zhi(1)
+                    alpha_zx = 1.
+                    alpha_zy = 0.
+                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
+                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
+                         &                            -mudt*alpha_zx*jz(i,j,k)
+                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
+                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
+                         &                            -mudt*alpha_zy*jz(i,j,k)
+                 end do
+              end do
+           end do
+
+         else if (pml_type(3)=='1') then
+           do       k = xlo(3), xhi(3)
+              do    j = xlo(2), xhi(2)
+                 do i = xlo(1), xhi(1)
+                    ! compute current coefficients alpha
+                    alpha_xy = 1.
+                    alpha_xz = 0.
+                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
+                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
+                         &                            -mudt*alpha_xy*jx(i,j,k)
+                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
+                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
+                         &                            -mudt*alpha_xz*jx(i,j,k)
+                 end do
+              end do
+           end do
+
+           do       k = ylo(3), yhi(3)
+              do    j = ylo(2), yhi(2)
+                 do i = ylo(1), yhi(1)
+                    alpha_yx = 0.5
+                    alpha_yz = 0.5
+                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
+                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
+                         &                            -mudt*alpha_yx*jy(i,j,k)
+                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
+                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
+                         &                            -mudt*alpha_yz*jy(i,j,k)
+                 end do
+              end do
+           end do
+
+           do       k = zlo(3), zhi(3)
+              do    j = zlo(2), zhi(2)
+                 do i = zlo(1), zhi(1)
+                    alpha_zx = 0.
+                    alpha_zy = 1.
+                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
+                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
+                         &                            -mudt*alpha_zx*jz(i,j,k)
+                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
+                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
+                         &                            -mudt*alpha_zy*jz(i,j,k)
+                 end do
+              end do
+           end do
+
+         else !(pml_type(3)=='2')
+           do       k = xlo(3), xhi(3)
+              do    j = xlo(2), xhi(2)
+                 do i = xlo(1), xhi(1)
+                    ! compute current coefficients alpha
+                    alpha_xy = 0.
+                    alpha_xz = 1.
+                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
+                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
+                         &                            -mudt*alpha_xy*jx(i,j,k)
+                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
+                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
+                         &                            -mudt*alpha_xz*jx(i,j,k)
+                 end do
+              end do
+           end do
+
+           do       k = ylo(3), yhi(3)
+              do    j = ylo(2), yhi(2)
+                 do i = ylo(1), yhi(1)
+                    alpha_yx = 0.
+                    alpha_yz = 1.
+                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
+                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
+                         &                            -mudt*alpha_yx*jy(i,j,k)
+                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
+                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
+                         &                            -mudt*alpha_yz*jy(i,j,k)
+                 end do
+              end do
+           end do
+
+           do       k = zlo(3), zhi(3)
+              do    j = zlo(2), zhi(2)
+                 do i = zlo(1), zhi(1)
+                    alpha_zx = 0.5
+                    alpha_zy = 0.5
+                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
+                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
+                         &                            -mudt*alpha_zx*jz(i,j,k)
+                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
+                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
+                         &                            -mudt*alpha_zy*jz(i,j,k)
+                 end do
+              end do
+           end do
+         end if !DIRECT FACE
+
+      !!!!! SIDE EDGE OR CORNER
+      else
         do       k = xlo(3), xhi(3)
            do    j = xlo(2), xhi(2)
               do i = xlo(1), xhi(1)
                  ! compute current coefficients alpha
-
+                 alpha_xy = sigjy(j)/(sigjy(j)+sigjz(k))
+                 alpha_xz = sigjz(k)/(sigjy(j)+sigjz(k))
                  Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
                       &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
                  Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
@@ -351,6 +496,8 @@ contains
         do       k = ylo(3), yhi(3)
            do    j = ylo(2), yhi(2)
               do i = ylo(1), yhi(1)
+                 alpha_yx = sigjx(i)/(sigjx(i)+sigjz(k))
+                 alpha_yz = sigjz(k)/(sigjx(i)+sigjz(k))
                  Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                       &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
                  Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
@@ -362,6 +509,8 @@ contains
         do       k = zlo(3), zhi(3)
            do    j = zlo(2), zhi(2)
               do i = zlo(1), zhi(1)
+                 alpha_zx = sigjx(i)/(sigjx(i)+sigjy(j))
+                 alpha_zy = sigjy(j)/(sigjx(i)+sigjy(j))
                  Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
                       &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
                  Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
@@ -370,266 +519,9 @@ contains
            end do
         end do
 
-
-      !!!!! DIRECT FACE
-      else if (pml_type(1)=='d') then
-         if (pml_type(3)=='0') then
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-                 end do
-              end do
-           end do
-
-         else if (pml_type(3)=='1') then
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-                 end do
-              end do
-           end do
-
-         else !(pml_type(3)=='2')
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-                 end do
-              end do
-           end do
-         end if !DIRECT FACE
-
-      !!!!! SIDE EDGE
-      else  !(pml_type(1)=='s')
-         if ((pml_type(3)=='0') .AND. (pml_type(4)=='1')) then
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-                 end do
-              end do
-           end do
-         else if ((pml_type(3)=='0') .AND. (pml_type(4)=='2')) then
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-                 end do
-              end do
-           end do
-
-         else !((pml_type(3)=='1') .AND. (pml_type(4)=='2'))
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-                 end do
-              end do
-           end do
-         end if ! SIDE EDGE
-
       end if !PML_TYPE
 
     end if ! FLAG
-    !   do       k = xlo(3), xhi(3)
-    !      do    j = xlo(2), xhi(2)
-    !         do i = xlo(1), xhi(1)
-    !            ! compute current coefficients alpha
-    !
-    !            Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-    !                 &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-    !            Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-    !                 &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-    !         end do
-    !      end do
-    !   end do
-    !
-    !   do       k = ylo(3), yhi(3)
-    !      do    j = ylo(2), yhi(2)
-    !         do i = ylo(1), yhi(1)
-    !            Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-    !                 &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-    !            Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-    !                 &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-    !         end do
-    !      end do
-    !   end do
-    !
-    !   do       k = zlo(3), zhi(3)
-    !      do    j = zlo(2), zhi(2)
-    !         do i = zlo(1), zhi(1)
-    !            Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-    !                 &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-    !            Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-    !                 &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-    !         end do
-    !      end do
-    !   end do
-    ! end if
 
   end subroutine warpx_push_pml_evec_3d
 
