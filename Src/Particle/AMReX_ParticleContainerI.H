@@ -4127,7 +4127,7 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            Array4<Real> *rhoarr;
+            Array4<Real> *rhoarr = nullptr;
 #ifdef _OPENMP
             Box tile_box;
             if (Gpu::notInLaunchRegion())
