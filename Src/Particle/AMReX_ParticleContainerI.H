@@ -4127,7 +4127,7 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            Array4<Real> *rhoarr = nullptr;
+            auto rhoarr = fab.array();
 #ifdef _OPENMP
             Box tile_box;
             if (Gpu::notInLaunchRegion())
@@ -4136,28 +4136,22 @@ AssignCellDensitySingleLevel (int rho_index,
                 tile_box.grow(mf_pointer->nGrow());
                 local_rho.resize(tile_box,ncomp);
                 local_rho = 0.0;
-                *rhoarr = local_rho.array();
+                rhoarr = local_rho.array();
             }
-            else
-            {
-                *rhoarr = fab.array();
-            }
-#else
-            *rhoarr = fab.array();
 #endif
                         
             if (particle_lvl_offset == 0)
             {
                 AMREX_FOR_1D( np, i,
                 {
-                    amrex_deposit_cic(pstruct[i], ncomp, *rhoarr, plo, dxi);
+                    amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
                 });
             }
             else
             {
                 AMREX_FOR_1D( np, i,
                 {
-                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, *rhoarr, plo, dxi, pdxi);
+                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
                 });
             }
                 
