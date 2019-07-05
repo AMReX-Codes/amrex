@@ -295,7 +295,6 @@ contains
     Character, intent(in ) :: pml_type (9)
 
     integer :: i, j, k
-    real(amrex_real) :: sum_sigma
     real(amrex_real) :: alpha_xy, alpha_xz, alpha_yx, alpha_yz, alpha_zx, alpha_zy
 
     if (flag == 0) then
@@ -709,7 +708,7 @@ contains
          end do
       end do
 
-    else
+    else !no particles in PML
       do    k = xlo(2), xhi(2)
          do i = xlo(1), xhi(1)
             Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
@@ -732,7 +731,8 @@ contains
                  &                        -By(i-1,k,1)-By(i-1,k,2))
          end do
       end do
-    end if
+
+    end if !flag
 
   end subroutine warpx_push_pml_evec_2d
 
@@ -1154,7 +1154,7 @@ contains
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
           ! jx(i,k) = jx(i,k) * sigjx(i) !minval((/sigjx(i),sigjz(k)/))
-          jx(i,k) = jx(i,k) * sigsjx(i)
+          jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)
        end do
     end do
 
@@ -1166,7 +1166,7 @@ contains
 
     do    k = tjzlo(2), tjzhi(2)
        do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * sigjx(i)
+          jz(i,k) = jz(i,k) * sigjx(i) * sigsjz(k)
        end do
     end do
 
@@ -1178,12 +1178,12 @@ contains
        &                        sigjx, sjxlo, sjxhi, sigjy, sjylo, sjyhi, sigjz, sjzlo, sjzhi, &
        &                        sigsjx, ssjxlo, ssjxhi, sigsjy, ssjylo, ssjyhi, sigsjz, ssjzlo, ssjzhi) &
        bind(c,name='warpx_dampJ_pml_3d')
-    integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+    integer, dimension(3), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
          jxlo, jxhi, jylo, jyhi, jzlo, jzhi
     integer, intent(in), value :: sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi
-    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2))
-    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2))
-    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2))
+    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
+    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
+    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
     real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
     real(amrex_real), intent(in) :: sigjy(sjylo:sjyhi)
     real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
@@ -1191,27 +1191,31 @@ contains
     real(amrex_real), intent(in) :: sigsjy(ssjylo:ssjyhi)
     real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
 
-    integer :: i,k
-    !!!! FOR A PML ALONG X-AXIS !!!!!
-    do    k = tjxlo(2), tjxhi(2)
-       do i = tjxlo(1), tjxhi(1)
-          ! jx(i,k) = jx(i,k) * sigjx(i) !minval((/sigjx(i),sigjz(k)/))
-          jx(i,k) = jx(i,k) * sigsjx(i)
+    integer :: i,j,k
+
+    do       k = tjxlo(3), tjxhi(3)
+       do    j = tjylo(2), tjyhi(2)
+          do i = tjxlo(1), tjxhi(1)
+             jx(i,j,k) = jx(i,j,k) * sigsjx(i) * sigjy(j) * sigjz(k)
+          end do
        end do
     end do
 
-    do    k = tjylo(2), tjyhi(2)
-       do i = tjylo(1), tjyhi(1)
-          jy(i,k) = jy(i,k) !* minval((/sigjx(i),sigjz(k)/)) !sigjz(k) !no current jy...
+    do       k = tjxlo(3), tjxhi(3)
+       do    j = tjylo(2), tjyhi(2)
+          do i = tjxlo(1), tjxhi(1)
+             jy(i,j,k) = jy(i,j,k) * sigjx(i) * sigsjy(j) * sigjz(k)
+          end do
        end do
     end do
 
-    do    k = tjzlo(2), tjzhi(2)
-       do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * sigjx(i)
+    do       k = tjxlo(3), tjxhi(3)
+       do    j = tjylo(2), tjyhi(2)
+          do i = tjxlo(1), tjxhi(1)
+             jz(i,j,k) = jz(i,j,k) * sigjx(i) * sigjy(j) * sigsjz(k)
+          end do
        end do
     end do
-
 
   end subroutine warpx_dampJ_pml_3d
 

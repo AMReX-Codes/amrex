@@ -46,6 +46,12 @@
     (x).sigma_star_cum_fac[0].data(), (x).sigma_star_cum_fac[0].m_lo, (x).sigma_star_cum_fac[0].m_hi, \
     (x).sigma_star_cum_fac[1].data(), (x).sigma_star_cum_fac[1].m_lo, (x).sigma_star_cum_fac[1].m_hi
 
+#define WRPX_PML_SIGMACOEFF_TO_FORTRAN(x)                              \
+    (x).sigma[0].data(), (x).sigma[0].m_lo, (x).sigma[0].m_hi, \
+    (x).sigma[1].data(), (x).sigma[1].m_lo, (x).sigma[1].m_hi, \
+    (x).sigma_star[0].data(), (x).sigma_star[0].m_lo, (x).sigma_star[0].m_hi, \
+    (x).sigma_star[1].data(), (x).sigma_star[1].m_lo, (x).sigma_star[1].m_hi
+
 #endif
 
 struct Sigma : amrex::Vector<amrex::Real>
