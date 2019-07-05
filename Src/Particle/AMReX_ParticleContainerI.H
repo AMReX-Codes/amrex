@@ -4100,19 +4100,15 @@ AssignCellDensitySingleLevel (int rho_index,
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevel");
 
-#ifdef _OPENMP
-    const int       ng          = mf_pointer->nGrow();
-#endif
     const Real      strttime    = amrex::second();
 
     const auto dxi              = Geom(lev).InvCellSizeArray();
     const auto plo              = Geom(lev).ProbLoArray();
     const auto pdxi             = Geom(lev + particle_lvl_offset).InvCellSizeArray();
 
-    if (Geom(lev).isAnyPeriodic() && ! Geom(lev).isAllPeriodic()) {
-        amrex::Error(
-            "AssignCellDensitySingleLevel: problem must be periodic in no or all directions"
-            );
+    if (Geom(lev).isAnyPeriodic() && ! Geom(lev).isAllPeriodic())
+    {
+        amrex::Error("AssignCellDensitySingleLevel: problem must be periodic in no or all directions");
     }
     
     for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
@@ -4122,7 +4118,7 @@ AssignCellDensitySingleLevel (int rho_index,
     using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox local_rho;
@@ -4131,34 +4127,45 @@ AssignCellDensitySingleLevel (int rho_index,
             const auto pstruct = particles().data();
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
+            Array4<Real> *rhoarr;
 #ifdef _OPENMP
-            Box tile_box = pti.tilebox();
-            tile_box.grow(ng);
-            local_rho.resize(tile_box,ncomp);
-            local_rho = 0.0;
-            auto rhoarr = local_rho.array();
+            Box tile_box;
+            if (Gpu::notInLaunchRegion())
+            {
+                tile_box = pti.tilebox();
+                tile_box.grow(mf_pointer->nGrow());
+                local_rho.resize(tile_box,ncomp);
+                local_rho = 0.0;
+                *rhoarr = local_rho.array();
+            }
+            else
+            {
+                *rhoarr = fab.array();
+            }
 #else
-            const Box& box = fab.box();
-            auto rhoarr = fab.array();
+            *rhoarr = fab.array();
 #endif
                         
             if (particle_lvl_offset == 0)
             {
                 AMREX_FOR_1D( np, i,
                 {
-                    amrex_deposit_cic(pstruct[i], ncomp, rhoarr, plo, dxi);
+                    amrex_deposit_cic(pstruct[i], ncomp, *rhoarr, plo, dxi);
                 });
             }
             else
             {
                 AMREX_FOR_1D( np, i,
                 {
-                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, rhoarr, plo, dxi, pdxi);
+                    amrex_deposit_particle_dx_cic(pstruct[i], ncomp, *rhoarr, plo, dxi, pdxi);
                 });
             }
                 
 #ifdef _OPENMP
-            fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
+            if (Gpu::notInLaunchRegion())
+            {
+                fab.atomicAdd(local_rho, tile_box, tile_box, 0, 0, ncomp);
+            }
 #endif
         }
     }
@@ -4232,7 +4239,7 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (ParIter pti(*this, lev); pti.isValid(); ++pti)
     {
