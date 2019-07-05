@@ -7,33 +7,7 @@
 extern "C" {
 #endif
 
-#if (AMREX_SPACEDIM == 2)
-    void amrex_eb2_build_faces (const int* lo, const int* hi,
-                                void* cell, const int* clo, const int* chi,
-                                void* fx, const int* fxlo, const int* fxhi,
-                                void* fy, const int* fylo, const int* fyhi,
-                                const amrex_real* s, const int* slo, const int* shi,
-                                const amrex_real* interx, const int* ixlo, const int* ixhi,
-                                const amrex_real* intery, const int* iylo, const int* iyhi,
-                                amrex_real* apx, const int* axlo, const int* axhi,
-                                amrex_real* apy, const int* aylo, const int* ayhi,
-                                amrex_real* fcx, const int* cxlo, const int* cxhi,
-                                amrex_real* fcy, const int* cylo, const int* cyhi,
-                                const amrex_real* dx, const amrex_real* dxinv, const amrex_real* problo);
-
-    void amrex_eb2_build_cells (const int* lo, const int* hi,
-                                void* cell, const int* clo, const int* chi,
-                                void* fx, const int* fxlo, const int* fxhi,
-                                void* fy, const int* fylo, const int* fyhi,
-                                amrex_real* apx, const int* axlo, const int* axhi,
-                                amrex_real* apy, const int* aylo, const int* ayhi,
-                                amrex_real* vfrac, const int* vlo, const int* vhi,
-                                amrex_real* vcent, const int* tlo, const int* thi,
-                                amrex_real* barea, const int* alo, const int* ahi,
-                                amrex_real* bcent, const int* blo, const int* bhi,
-                                amrex_real* bnorm, const int* mlo, const int* mhi);
-
-#elif (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     void amrex_eb2_build_faces (const int* lo, const int* hi,
                                 void* cell, const int* clo, const int* chi,
                                 void* fx, const int* fxlo, const int* fxhi,

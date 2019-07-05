@@ -358,41 +358,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy, dx, problo);
 
-            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
-
-#if 0
-            amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
-                                  BL_TO_FORTRAN_ANYD(cellflag),
-                                  BL_TO_FORTRAN_ANYD(facetype[0]),
-                                  BL_TO_FORTRAN_ANYD(facetype[1]),
-                                  BL_TO_FORTRAN_ANYD(levelset),
-                                  BL_TO_FORTRAN_ANYD(intercept[0]),
-                                  BL_TO_FORTRAN_ANYD(intercept[1]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                                  dx.data(), dxinv.data(), problo.data());
-#endif
-
-            // regular by default
-            m_volfrac[mfi].setVal(1.0);
-            m_centroid[mfi].setVal(0.0);
-            m_bndryarea[mfi].setVal(0.0);
-            m_bndrycent[mfi].setVal(-1.0);
-            m_bndrynorm[mfi].setVal(0.0);
-
-            amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
-                                  BL_TO_FORTRAN_ANYD(cellflag),
-                                  BL_TO_FORTRAN_ANYD(facetype[0]),
-                                  BL_TO_FORTRAN_ANYD(facetype[1]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
+            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm);
 #endif
         }
     }
