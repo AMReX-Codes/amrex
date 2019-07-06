@@ -118,6 +118,163 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
 #endif
 }
 
+static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
+                                             Real &betaxy, Real &betaxz, Real &betayx, Real &betayz, Real &betazx, Real &betazy,
+                                             Real &gammax, Real &gammay, Real &gammaz,
+                                             Real &alphax, Real &alphay, Real &alphaz)
+{
+    // Cole-Karkkainen-Cowan push
+    // computes coefficients according to Cowan - PRST-AB 16, 041303 (2013)
+#if (AMREX_SPACEDIM == 3)
+    Real delta = std::max( { dtsdx,dtsdy,dtsdz } );
+    Real rx = (dtsdx/delta)*(dtsdx/delta);
+    Real ry = (dtsdy/delta)*(dtsdy/delta);
+    Real rz = (dtsdz/delta)*(dtsdz/delta);
+    Real beta = 0.125*(1. - rx*ry*rz/(ry*rz + rz*rx + rx*ry));
+    betaxy = ry*beta;
+    betaxz = rz*beta;
+    betayx = rx*beta;
+    betayz = rz*beta;
+    betazx = rx*beta;
+    betazy = ry*beta;
+    gammax = ry*rz*(0.0625 - 0.125*ry*rz/(ry*rz + rz*rx + rx*ry));
+    gammay = rx*rz*(0.0625 - 0.125*rx*rz/(ry*rz + rz*rx + rx*ry));
+    gammaz = rx*ry*(0.0625 - 0.125*rx*ry/(ry*rz + rz*rx + rx*ry));
+    alphax = 1. - 2.*betaxy - 2.*betaxz - 4.*gammax;
+    alphay = 1. - 2.*betayx - 2.*betayz - 4.*gammay;
+    alphaz = 1. - 2.*betazx - 2.*betazy - 4.*gammaz;
+
+    betaxy = dtsdx*betaxy;
+    betaxz = dtsdx*betaxz;
+    betayx = dtsdy*betayx;
+    betayz = dtsdy*betayz;
+    betazx = dtsdz*betazx;
+    betazy = dtsdz*betazy;
+    alphax = dtsdx*alphax;
+    alphay = dtsdy*alphay;
+    alphaz = dtsdz*alphaz;
+    gammax = dtsdx*gammax;
+    gammay = dtsdy*gammay;
+    gammaz = dtsdz*gammaz;
+#else
+    Real delta = std::max(dtsdx,dtsdz);
+    Real rx = (dtsdx/delta)*(dtsdx/delta);
+    Real rz = (dtsdz/delta)*(dtsdz/delta);
+    betaxz = 0.125*rz;
+    betazx = 0.125*rx;
+    alphax = 1. - 2.*betaxz;
+    alphaz = 1. - 2.*betazx;
+
+    betaxz = dtsdx*betaxz;
+    betazx = dtsdz*betazx;
+    alphax = dtsdx*alphax;
+    alphaz = dtsdz*alphaz;
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_bx_ckc(int j, int k, int l, Array4<Real> const& Bx,
+                       Array4<Real const> const& Ey, Array4<Real const> const& Ez,
+                       Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
+                       Real gammax, Real gammay, Real gammaz,
+                       Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    Bx(j,k,l) = Bx(j,k,l) - alphay * (Ez(j  ,k+1,l  ) - Ez(j,  k  ,l  ))
+                          - betayx * (Ez(j+1,k+1,l  ) - Ez(j+1,k  ,l  )
+                                   +  Ez(j-1,k+1,l  ) - Ez(j-1,k  ,l  ))
+                          - betayz * (Ez(j  ,k+1,l+1) - Ez(j  ,k  ,l+1)
+                                   +  Ez(j  ,k+1,l-1) - Ez(j  ,k  ,l-1))
+                          - gammay * (Ez(j+1,k+1,l+1) - Ez(j+1,k  ,l+1)
+                                   +  Ez(j-1,k+1,l+1) - Ez(j-1,k  ,l+1)
+                                   +  Ez(j+1,k+1,l-1) - Ez(j+1,k  ,l-1)
+                                   +  Ez(j-1,k+1,l-1) - Ez(j-1,k  ,l-1))
+                          + alphaz * (Ey(j  ,k  ,l+1) - Ey(j,  k,  l  ))
+                          + betazx * (Ey(j+1,k  ,l+1) - Ey(j+1,k  ,l  )
+                                   +  Ey(j-1,k  ,l+1) - Ey(j-1,k  ,l  ))
+                          + betazy * (Ey(j  ,k+1,l+1) - Ey(j  ,k+1,l  )
+                                   +  Ey(j  ,k-1,l+1) - Ey(j  ,k-1,l  ))
+                          + gammaz * (Ey(j+1,k+1,l+1) - Ey(j+1,k+1,l  )
+                                   +  Ey(j-1,k+1,l+1) - Ey(j-1,k+1,l  )
+                                   +  Ey(j+1,k-1,l+1) - Ey(j+1,k-1,l  )
+                                   +  Ey(j-1,k-1,l+1) - Ey(j-1,k-1,l  ));
+#else
+    Bx(j,k,0) = Bx(j,k,0) + alphaz * (Ey(j  ,k+1,0) - Ey(j,  k,0))
+                          + betazx * (Ey(j+1,k+1,0) - Ey(j+1,k,0)
+                                   +  Ey(j-1,k+1,0) - Ey(j-1,k,0));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_by_ckc(int j, int k, int l, Array4<Real> const& By,
+                       Array4<Real const> const& Ex, Array4<Real const> const& Ez,
+                       Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
+                       Real gammax, Real gammay, Real gammaz,
+                       Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    By(j,k,l) = By(j,k,l) + alphax * (Ez(j+1,k  ,l  ) - Ez(j,  k,  l  ))
+                          + betaxy * (Ez(j+1,k+1,l  ) - Ez(j  ,k+1,l  )
+                                   +  Ez(j+1,k-1,l  ) - Ez(j  ,k-1,l  ))
+                          + betaxz * (Ez(j+1,k  ,l+1) - Ez(j  ,k  ,l+1)
+                                   +  Ez(j+1,k  ,l-1) - Ez(j  ,k  ,l-1))
+                          + gammax * (Ez(j+1,k+1,l+1) - Ez(j  ,k+1,l+1)
+                                   +  Ez(j+1,k-1,l+1) - Ez(j  ,k-1,l+1)
+                                   +  Ez(j+1,k+1,l-1) - Ez(j  ,k+1,l-1)
+                                   +  Ez(j+1,k-1,l-1) - Ez(j  ,k-1,l-1))
+                          - alphaz * (Ex(j  ,k  ,l+1) - Ex(j  ,k  ,l  ))
+                          - betazx * (Ex(j+1,k  ,l+1) - Ex(j+1,k  ,l  )
+                                   +  Ex(j-1,k  ,l+1) - Ex(j-1,k  ,l  ))
+                          - betazy * (Ex(j  ,k+1,l+1) - Ex(j  ,k+1,l  )
+                                   +  Ex(j  ,k-1,l+1) - Ex(j  ,k-1,l  ))
+                          - gammaz * (Ex(j+1,k+1,l+1) - Ex(j+1,k+1,l  )
+                                   +  Ex(j-1,k+1,l+1) - Ex(j-1,k+1,l  )
+                                   +  Ex(j+1,k-1,l+1) - Ex(j+1,k-1,l  )
+                                   +  Ex(j-1,k-1,l+1) - Ex(j-1,k-1,l  ));
+#else
+    By(j,k,0) = By(j,k,0) + alphax * (Ez(j+1,k  ,0) - Ez(j,k  ,0))
+                          + betaxz * (Ez(j+1,k+1,0) - Ez(j,k+1,0)
+                                   +  Ez(j+1,k-1,0) - Ez(j,k-1,0))
+                          - alphaz * (Ex(j  ,k+1,0) - Ex(j,k  ,0))
+                          - betazx * (Ex(j+1,k+1,0) - Ex(j+1,k,0)
+                                   +  Ex(j-1,k+1,0) - Ex(j-1,k,0));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_bz_ckc(int j, int k, int l, Array4<Real> const& Bz,
+                       Array4<Real const> const& Ex, Array4<Real const> const& Ey,
+                       Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
+                       Real gammax, Real gammay, Real gammaz,
+                       Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    Bz(j,k,l) = Bz(j,k,l) - alphax * (Ey(j+1,k  ,l  ) - Ey(j  ,k  ,l  ))
+                          - betaxy * (Ey(j+1,k+1,l  ) - Ey(j  ,k+1,l  )
+                                   +  Ey(j+1,k-1,l  ) - Ey(j  ,k-1,l  ))
+                          - betaxz * (Ey(j+1,k  ,l+1) - Ey(j  ,k  ,l+1)
+                                   +  Ey(j+1,k  ,l-1) - Ey(j  ,k  ,l-1))
+                          - gammax * (Ey(j+1,k+1,l+1) - Ey(j  ,k+1,l+1)
+                                   +  Ey(j+1,k-1,l+1) - Ey(j  ,k-1,l+1)
+                                   +  Ey(j+1,k+1,l-1) - Ey(j  ,k+1,l-1)
+                                   +  Ey(j+1,k-1,l-1) - Ey(j  ,k-1,l-1))
+                          + alphay * (Ex(j  ,k+1,l  ) - Ex(j  ,k  ,l  ))
+                          + betayx * (Ex(j+1,k+1,l  ) - Ex(j+1,k  ,l  )
+                                   +  Ex(j-1,k+1,l  ) - Ex(j-1,k  ,l  ))
+                          + betayz * (Ex(j  ,k+1,l+1) - Ex(j  ,k  ,l+1)
+                                   +  Ex(j  ,k+1,l-1) - Ex(j  ,k  ,l-1))
+                          + gammay * (Ex(j+1,k+1,l+1) - Ex(j+1,k  ,l+1)
+                                   +  Ex(j-1,k+1,l+1) - Ex(j-1,k  ,l+1)
+                                   +  Ex(j+1,k+1,l-1) - Ex(j+1,k  ,l-1)
+                                   +  Ex(j-1,k+1,l-1) - Ex(j-1,k  ,l-1));
+
+#else
+    Bz(j,k,0) = Bz(j,k,0) - alphax * (Ey(j+1,k  ,0) - Ey(j,k  ,0))
+                          - betaxz * (Ey(j+1,k+1,0) - Ey(j,k+1,0)
+                                   +  Ey(j+1,k-1,0) - Ey(j,k-1,0));
+#endif
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
                        Array4<Real const> const& Bx, Array4<Real const> const& By, Array4<Real const> const& Bz,

@@ -105,7 +105,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
             {
                 warpx_push_bz_nodal(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy);
             });
-        } else {
+        } else if (WarpX::maxwell_fdtd_solver_id == 0) {
             amrex::ParallelFor(tbx,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
@@ -120,6 +120,38 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_yee(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy,dxinv,xmin);
+            });
+        } else if (WarpX::maxwell_fdtd_solver_id == 1) {
+            Real betaxy, betaxz, betayx, betayz, betazx, betazy;
+            Real gammax, gammay, gammaz;
+            Real alphax, alphay, alphaz;
+            warpx_calculate_ckc_coefficients(dtsdx, dtsdy, dtsdz,
+                                             betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                             gammax, gammay, gammaz,
+                                             alphax, alphay, alphaz);
+            amrex::ParallelFor(tbx,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
+                warpx_push_bx_ckc(j,k,l,Bxfab,Eyfab,Ezfab,
+                                  betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                  gammax, gammay, gammaz,
+                                  alphax, alphay, alphaz);
+            });
+            amrex::ParallelFor(tby,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
+                warpx_push_by_ckc(j,k,l,Byfab,Exfab,Ezfab,
+                                  betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                  gammax, gammay, gammaz,
+                                  alphax, alphay, alphaz);
+            });
+            amrex::ParallelFor(tbz,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
+                warpx_push_bz_ckc(j,k,l,Bzfab,Exfab,Eyfab,
+                                  betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                  gammax, gammay, gammaz,
+                                  alphax, alphay, alphaz);
             });
         }
 
