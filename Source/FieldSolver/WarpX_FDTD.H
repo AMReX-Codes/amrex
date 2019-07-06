@@ -118,6 +118,37 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
 #endif
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ex_f_yee(int j, int k, int l, Array4<Real> const& Ex,
+                         Array4<Real const> const& F, Real dtsdx_c2)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ex(j,k,l) = Ex(j,k,l) + dtsdx_c2 * (F(j+1,k,l) - F(j,k,l));
+#else
+    Ex(j,k,0) = Ex(j,k,0) + dtsdx_c2 * (F(j+1,k,0) - F(j  ,k,0));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ey_f_yee(int j, int k, int l, Array4<Real> const& Ey,
+                         Array4<Real const> const& F, Real dtsdy_c2)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ey(j,k,l) = Ey(j,k,l) + dtsdy_c2 * (F(j,k+1,l) - F(j,k,l));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ez_f_yee(int j, int k, int l, Array4<Real> const& Ez,
+                         Array4<Real const> const& F, Real dtsdz_c2)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ez(j,k,l) = Ez(j,k,l) + dtsdz_c2 * (F(j,k,l+1) - F(j,k,l));
+#else
+    Ez(j,k,0) = Ez(j,k,0) + dtsdz_c2 * (F(j,k+1,0) - F(j,k,0));
+#endif
+}
+
 static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
                                              Real &betaxy, Real &betaxz, Real &betayx, Real &betayz, Real &betazx, Real &betazy,
                                              Real &gammax, Real &gammay, Real &gammaz,
@@ -272,6 +303,74 @@ void warpx_push_bz_ckc(int j, int k, int l, Array4<Real> const& Bz,
     Bz(j,k,0) = Bz(j,k,0) - alphax * (Ey(j+1,k  ,0) - Ey(j,k  ,0))
                           - betaxz * (Ey(j+1,k+1,0) - Ey(j,k+1,0)
                                    +  Ey(j+1,k-1,0) - Ey(j,k-1,0));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ex_f_ckc(int j, int k, int l, Array4<Real> const& Ex,
+                         Array4<Real const> const& F,
+                         Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
+                         Real gammax, Real gammay, Real gammaz,
+                         Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ex(j,k,l) = Ex(j,k,l) + alphax * (F(j+1,k  ,l  ) - F(j,  k,  l  ))
+                          + betaxy * (F(j+1,k+1,l  ) - F(j,k+1,l  )
+                                   +  F(j+1,k-1,l  ) - F(j,k-1,l  ))
+                          + betaxz * (F(j+1,k  ,l+1) - F(j,k  ,l+1)
+                                   +  F(j+1,k  ,l-1) - F(j,k  ,l-1))
+                          + gammax * (F(j+1,k+1,l+1) - F(j,k+1,l+1)
+                                   +  F(j+1,k-1,l+1) - F(j,k-1,l+1)
+                                   +  F(j+1,k+1,l-1) - F(j,k+1,l-1)
+                                   +  F(j+1,k-1,l-1) - F(j,k-1,l-1));
+#else
+    Ex(j,k,0) = Ex(j,k,0) + alphax * (F(j+1,k  ,0) - F(j,k  ,0))
+                          + betaxz * (F(j+1,k+1,0) - F(j,k+1,0)
+                                   +  F(j+1,k-1,0) - F(j,k-1,0));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ey_f_ckc(int j, int k, int l, Array4<Real> const& Ey,
+                         Array4<Real const> const& F,
+                         Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
+                         Real gammax, Real gammay, Real gammaz,
+                         Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ey(j,k,l) = Ey(j,k,l) + alphay * (F(j  ,k+1,l  ) - F(j  ,k,l  ))
+                          + betayx * (F(j+1,k+1,l  ) - F(j+1,k,l  )
+                                   +  F(j-1,k+1,l  ) - F(j-1,k,l  ))
+                          + betayz * (F(j  ,k+1,l+1) - F(j  ,k,l+1)
+                                   +  F(j  ,k+1,l-1) - F(j  ,k,l-1))
+                          + gammay * (F(j+1,k+1,l+1) - F(j+1,k,l+1)
+                                   +  F(j-1,k+1,l+1) - F(j-1,k,l+1)
+                                   +  F(j+1,k+1,l-1) - F(j+1,k,l-1)
+                                   +  F(j-1,k+1,l-1) - F(j-1,k,l-1));
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void warpx_push_ez_f_ckc(int j, int k, int l, Array4<Real> const& Ez,
+                         Array4<Real const> const& F,
+                         Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
+                         Real gammax, Real gammay, Real gammaz,
+                         Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    Ez(j,k,l) = Ez(j,k,l) + alphaz * (F(j  ,k  ,l+1) - F(j,  k,  l))
+                          + betazx * (F(j+1,k  ,l+1) - F(j+1,k  ,l)
+                                   +  F(j-1,k  ,l+1) - F(j-1,k  ,l))
+                          + betazy * (F(j  ,k+1,l+1) - F(j  ,k+1,l)
+                                   +  F(j  ,k-1,l+1) - F(j  ,k-1,l))
+                          + gammaz * (F(j+1,k+1,l+1) - F(j+1,k+1,l)
+                                   +  F(j-1,k+1,l+1) - F(j-1,k+1,l)
+                                   +  F(j+1,k-1,l+1) - F(j+1,k-1,l)
+                                   +  F(j-1,k-1,l+1) - F(j-1,k-1,l));
+#else
+    Ez(j,k,0) = Ez(j,k,0) + alphaz * (F(j  ,k+1,0) - F(j  ,k,0))
+                          + betazx * (F(j+1,k+1,0) - F(j+1,k,0)
+                                   +  F(j-1,k+1,0) - F(j-1,k,0));
 #endif
 }
 

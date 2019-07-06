@@ -322,16 +322,57 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
         if (F)
         {
-            warpx_push_evec_f(
-			  tex.loVect(), tex.hiVect(),
-			  tey.loVect(), tey.hiVect(),
-			  tez.loVect(), tez.hiVect(),
-			  BL_TO_FORTRAN_3D((*Ex)[mfi]),
-			  BL_TO_FORTRAN_3D((*Ey)[mfi]),
-			  BL_TO_FORTRAN_3D((*Ez)[mfi]),
-			  BL_TO_FORTRAN_3D((*F)[mfi]),
-                          &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
-			  &WarpX::maxwell_fdtd_solver_id);
+            auto const& Ffab = F->array(mfi);
+            if (WarpX::maxwell_fdtd_solver_id == 0) {
+                amrex::ParallelFor(tex,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l)
+                {
+                    warpx_push_ex_f_yee(j,k,l,Exfab,Ffab,dtsdx_c2);
+                });
+                amrex::ParallelFor(tey,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l)
+                {
+                    warpx_push_ey_f_yee(j,k,l,Eyfab,Ffab,dtsdy_c2);
+                });
+                amrex::ParallelFor(tez,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l)
+                {
+                    warpx_push_ez_f_yee(j,k,l,Ezfab,Ffab,dtsdz_c2);
+                });
+            }
+            else if (WarpX::maxwell_fdtd_solver_id == 1) {
+                Real betaxy, betaxz, betayx, betayz, betazx, betazy;
+                Real gammax, gammay, gammaz;
+                Real alphax, alphay, alphaz;
+                warpx_calculate_ckc_coefficients(dtsdx_c2, dtsdy_c2, dtsdz_c2,
+                                                 betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                                 gammax, gammay, gammaz,
+                                                 alphax, alphay, alphaz);
+                amrex::ParallelFor(tex,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l)
+                {
+                    warpx_push_ex_f_ckc(j,k,l,Exfab,Ffab,
+                                        betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                        gammax, gammay, gammaz,
+                                        alphax, alphay, alphaz);
+                });
+                amrex::ParallelFor(tey,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l)
+                {
+                    warpx_push_ey_f_ckc(j,k,l,Eyfab,Ffab,
+                                        betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                        gammax, gammay, gammaz,
+                                        alphax, alphay, alphaz);
+                });
+                amrex::ParallelFor(tez,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l)
+                {
+                    warpx_push_ez_f_ckc(j,k,l,Ezfab,Ffab,
+                                        betaxy, betaxz, betayx, betayz, betazx, betazy,
+                                        gammax, gammay, gammaz,
+                                        alphax, alphay, alphaz);
+                });
+            }
         }
 
         if (cost) {
