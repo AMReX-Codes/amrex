@@ -49,13 +49,30 @@ function (configure_amrex)
          ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
       message(FATAL_ERROR "Support for Cray compiler is currently broken")
    endif()
+   
 
    # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++14" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
    target_compile_features(amrex PUBLIC cxx_std_14)
    set_target_properties(amrex PROPERTIES CXX_EXTENSIONS OFF) # This disable C++ standard extension
+  
+   #
+   # Setup OpenMP 
+   #
+   if (ENABLE_OMP)
+      find_package(OpenMP REQUIRED CXX Fortran)
+      target_link_libraries(amrex
+         PUBLIC
+         OpenMP::OpenMP_CXX
+         OpenMP::OpenMP_Fortran)
+   else ()
+      target_compile_options( amrex
+         PUBLIC
+         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
+   endif ()
 
+   
    if (ENABLE_CUDA)     
       # After we load the setups for ALL the supported compilers
       # we can load the setup for NVCC if required
@@ -83,7 +100,11 @@ function (configure_amrex)
       if (NOT CMAKE_CXX_FLAGS)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif ()
-
+      
+      if (ENABLE_OMP)
+         get_target_property(_amrex_flags_3 OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
+      endif ()
+      
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
@@ -91,7 +112,10 @@ function (configure_amrex)
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
       endif ()
-      
+      if (_amrex_flags_3)
+         list(APPEND _amrex_flags ${_amrex_flags_3})
+      endif ()
+     
       evaluate_genex(_amrex_flags _amrex_cxx_flags
          LANG   CXX
          COMP   ${CMAKE_CXX_COMPILER_ID}
@@ -139,21 +163,7 @@ function (configure_amrex)
          target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
       endif()
    endif() 
-   
-   #
-   # Setup OpenMP 
-   #
-   if (ENABLE_OMP)
-      find_package(OpenMP REQUIRED CXX Fortran)
-      target_link_libraries(amrex
-         PUBLIC
-         OpenMP::OpenMP_CXX
-         OpenMP::OpenMP_Fortran)
-   else ()
-      target_compile_options( amrex
-         PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
-   endif ()
+
    
    #
    # Setup third-party profilers
