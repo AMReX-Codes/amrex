@@ -8,47 +8,47 @@ using namespace amrex;
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
                        Array4<Real const> const& Ey, Array4<Real const> const& Ez,
-                       Real dtsdy_c2, Real dtsdz_c2)
+                       Real dtsdy, Real dtsdz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Bx(i,j,k) = Bx(i,j,k) - dtsdy_c2 * (Ez(i,j+1,k  ) - Ez(i,j,k))
-                          + dtsdz_c2 * (Ey(i,j  ,k+1) - Ey(i,j,k));
+    Bx(i,j,k) = Bx(i,j,k) - dtsdy * (Ez(i,j+1,k  ) - Ez(i,j,k))
+                          + dtsdz * (Ey(i,j  ,k+1) - Ey(i,j,k));
 #else
     // Note that the 2D Cartesian and RZ versions are the same
-    Bx(i,j,0) = Bx(i,j,0) + dtsdz_c2 * (Ey(i,j+1,0) - Ey(i,j,0));
+    Bx(i,j,0) = Bx(i,j,0) + dtsdz * (Ey(i,j+1,0) - Ey(i,j,0));
 #endif
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ez,
-                       Real dtsdx_c2, Real dtsdz_c2)
+                       Real dtsdx, Real dtsdz)
 {
 #if (AMREX_SPACEDIM == 3)
-    By(i,j,k) = By(i,j,k) + dtsdx_c2 * (Ez(i+1,j,k  ) - Ez(i,j,k))
-                          - dtsdz_c2 * (Ex(i  ,j,k+1) - Ex(i,j,k));
+    By(i,j,k) = By(i,j,k) + dtsdx * (Ez(i+1,j,k  ) - Ez(i,j,k))
+                          - dtsdz * (Ex(i  ,j,k+1) - Ex(i,j,k));
 #else
     // Note that the 2D Cartesian and RZ versions are the same
-    By(i,j,0) = By(i,j,0) + dtsdx_c2 * (Ez(i+1,j  ,0) - Ez(i,j,0))
-                      - dtsdz_c2 * (Ex(i  ,j+1,0) - Ex(i,j,0));
+    By(i,j,0) = By(i,j,0) + dtsdx * (Ez(i+1,j  ,0) - Ez(i,j,0))
+                          - dtsdz * (Ex(i  ,j+1,0) - Ex(i,j,0));
 #endif
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ey,
-                       Real dtsdx_c2, Real dtsdy_c2, Real dxinv, Real rmin)
+                       Real dtsdx, Real dtsdy, Real dxinv, Real rmin)
 {
 #if (AMREX_SPACEDIM == 3)
-    Bz(i,j,k) = Bz(i,j,k) - dtsdx_c2 * (Ey(i+1,j  ,k) - Ey(i,j,k))
-                          + dtsdy_c2 * (Ex(i  ,j+1,k) - Ex(i,j,k));
+    Bz(i,j,k) = Bz(i,j,k) - dtsdx * (Ey(i+1,j  ,k) - Ey(i,j,k))
+                          + dtsdy * (Ex(i  ,j+1,k) - Ex(i,j,k));
 #else
 #ifndef WARPX_RZ
-    Bz(i,j,0) = Bz(i,j,0) - dtsdx_c2 * (Ey(i+1,j,0) - Ey(i,j,0));
+    Bz(i,j,0) = Bz(i,j,0) - dtsdx * (Ey(i+1,j,0) - Ey(i,j,0));
 #else
     Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
     Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
-    Bz(i,j,0) = Bz(i,j,0) - dtsdx_c2 * (ru*Ey(i+1,j,0) - rd*Ey(i,j,0));
+    Bz(i,j,0) = Bz(i,j,0) - dtsdx * (ru*Ey(i+1,j,0) - rd*Ey(i,j,0));
 #endif
 #endif
 }
@@ -108,7 +108,7 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
     if (i != 0 || rmin != 0.) {
         Real ru = 1. + 0.5/(rmin*dxinv + i);
         Real rd = 1. - 0.5/(rmin*dxinv + i);
-        Ez(i,j,0) = Ez(i,j,0) + dtsdx_c2 * (ru*By(i,j,0) - rd*By(j-1,k,0))
+        Ez(i,j,0) = Ez(i,j,0) + dtsdx_c2 * (ru*By(i,j,0) - rd*By(i-1,j,0))
                               - mu_c2_dt  * Jz(i,j,0);
     } else {
         Ez(i,j,0) = Ez(i,j,0) + 4.*dtsdx_c2 * By(i,j,0)
