@@ -687,7 +687,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
     {
         if (cell(i,j,k).isCovered()) {
-            cell(i,j,i).setDisconnected();
+            cell(i,j,k).setDisconnected();
         } else {
             auto flg = cell(i,j,k);
 
