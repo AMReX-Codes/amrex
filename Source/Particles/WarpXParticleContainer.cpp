@@ -389,7 +389,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         &dt, &dx[0], &dx[1], &dx[2],
         &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
         &lvect,&WarpX::current_deposition_algo);
-    
 #ifdef WARPX_RZ
     warpx_current_deposition_rz_volume_scaling(
         jx_ptr, &ngJ, jxntot.getVect(),
