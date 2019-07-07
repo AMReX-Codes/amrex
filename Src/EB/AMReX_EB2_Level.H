@@ -233,14 +233,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                          Array4<Type_t> const& fty = facetype[1].array();,
                          Array4<Type_t> const& ftz = facetype[2].array(););
 
-            AMREX_D_TERM(
-                const Box& xbxg2 = amrex::grow(amrex::surroundingNodes(vbx,0),ng);,
-                const Box& ybxg2 = amrex::grow(amrex::surroundingNodes(vbx,1),ng);,
-                const Box& zbxg2 = amrex::grow(amrex::surroundingNodes(vbx,2),ng););
-            const Box& ndbxg2 = amrex::grow(amrex::surroundingNodes(vbx),ng);
-
 #if (AMREX_SPACEDIM == 3)
             auto& edgetype = gfab.getEdgeType();
+            Array4<Type_t> const& xdg = edgetype[0].array();
+            Array4<Type_t> const& ydg = edgetype[1].array();
+            Array4<Type_t> const& zdg = edgetype[2].array();
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 intercept[idim].resize(edgetype[idim].box());
@@ -248,6 +245,9 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             Elixir xinter_eli = intercept[0].elixir();
             Elixir yinter_eli = intercept[1].elixir();
             Elixir zinter_eli = intercept[2].elixir();
+            Array4<Real> const& xip = intercept[0].array();
+            Array4<Real> const& yip = intercept[1].array();
+            Array4<Real> const& zip = intercept[2].array();
 
             if (hybrid) {
                 Gpu::streamSynchronize();
@@ -266,42 +266,22 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 }
             }
 
-
-            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
-
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& b = facetype[idim].box();
                 M2[idim].resize(b,3);
             }
+            Elixir xm2_eli = M2[0].elixir();
+            Elixir ym2_eli = M2[1].elixir();
+            Elixir zm2_eli = M2[2].elixir();
+            Array4<Real> const& xm2 = M2[0].array();
+            Array4<Real> const& ym2 = M2[1].array();
+            Array4<Real> const& zm2 = M2[2].array();
 
-            // regular by default
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                m_areafrac[idim][mfi].setVal(1.0);
-                m_facecent[idim][mfi].setVal(0.0);
-            }
+            build_faces(vbx, cfg, ftx, fty, ftz, xdg, ydg, zdg, lst,
+                        xip, yip, zip, apx, apy, apz, fcx, fcy, fcz,
+                        xm2, ym2, zm2, dx, problo);
 
-            amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
-                                  BL_TO_FORTRAN_ANYD(cellflag),
-                                  BL_TO_FORTRAN_ANYD(facetype[0]),
-                                  BL_TO_FORTRAN_ANYD(facetype[1]),
-                                  BL_TO_FORTRAN_ANYD(facetype[2]),
-                                  BL_TO_FORTRAN_ANYD(edgetype[0]),
-                                  BL_TO_FORTRAN_ANYD(edgetype[1]),
-                                  BL_TO_FORTRAN_ANYD(edgetype[2]),
-                                  BL_TO_FORTRAN_ANYD(levelset),
-                                  BL_TO_FORTRAN_ANYD(intercept[0]),
-                                  BL_TO_FORTRAN_ANYD(intercept[1]),
-                                  BL_TO_FORTRAN_ANYD(intercept[2]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
-                                  BL_TO_FORTRAN_ANYD(M2[0]),
-                                  BL_TO_FORTRAN_ANYD(M2[1]),
-                                  BL_TO_FORTRAN_ANYD(M2[2]),
-                                  dx.data(), dxinv.data(), problo.data());
+            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
 
             // regular by default
             m_volfrac[mfi].setVal(1.0);
