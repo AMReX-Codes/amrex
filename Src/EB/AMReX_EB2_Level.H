@@ -199,6 +199,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     {
         Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
         Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
+        EBCellFlagFab cellflagtmp;
 
         for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
         {
@@ -281,9 +282,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                         xip, yip, zip, apx, apy, apz, fcx, fcy, fcz,
                         xm2, ym2, zm2, dx, problo);
 
+            cellflagtmp.resize(m_cellflag[mfi].box());
+            Elixir cellflagtmp_eli = cellflagtmp.elixir();
+            Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
+
             build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
                         fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
-                        bar, bct, bnm);
+                        bar, bct, bnm, cfgtmp);
 
 #elif (AMREX_SPACEDIM == 2)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

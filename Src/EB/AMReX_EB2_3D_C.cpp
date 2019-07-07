@@ -485,7 +485,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm)
+                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp)
 {
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
@@ -623,6 +623,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             vcent(i,j,k,1) = Sy * den;
             vcent(i,j,k,2) = Sz * den;
 
+            // remove small cells
             if (vfrac(i,j,k) < 1.e-14) {
                 vfrac(i,j,k) = 0.0;
                 vcent(i,j,k,0) = 0.0;
@@ -640,7 +641,229 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         }
     });
 
+    // fix faces for small cells
+    const auto bxlo = amrex::lbound(bx);
+    const auto bxhi = amrex::ubound(bx);
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,
+    {
+        auto lo = amrex::max_lbound(tbx, Dim3{bxlo.x  ,bxlo.y-1,bxlo.z-1});
+        auto hi = amrex::min_ubound(tbx, Dim3{bxlo.x+1,bxlo.y+1,bxlo.z+1});
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i)
+        {
+            if (vfrac(i-1,j,k) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+                fx(i,j,k) = Type::covered;
+                apx(i,j,k) = 0.0;
+            }
+        }}}
 
+        lo = amrex::max_lbound(tbx, Dim3{bxlo.x-1,bxlo.y  ,bxlo.z-1});
+        hi = amrex::min_ubound(tbx, Dim3{bxlo.x+1,bxlo.y+1,bxlo.z+1});
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i)
+        {
+            if (vfrac(i,j-1,k) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+                fy(i,j,k) = Type::covered;
+                apy(i,j,k) = 0.0;
+            }
+        }}}
+
+        lo = amrex::max_lbound(tbx, Dim3{bxlo.x-1,bxlo.y-1,bxlo.z  });
+        hi = amrex::min_ubound(tbx, Dim3{bxlo.x+1,bxlo.y+1,bxlo.z+1});
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i)
+        {
+            if (vfrac(i,j,k-1) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+                fz(i,j,k) = Type::covered;
+                apz(i,j,k) = 0.0;
+            }
+        }}}
+    });
+
+    // Build neighbors.  By default all 26 neighbors are already set.
+    AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
+    {
+        if (cell(i,j,k).isCovered()) {
+            cell(i,j,i).setDisconnected();
+        } else {
+            auto flg = cell(i,j,k);
+
+            if (fx(i,j,k) == Type::covered) {
+                flg.setDisconnected(-1,0,0);
+            }
+            if (fx(i+1,j,k) == Type::covered) {
+                flg.setDisconnected(1,0,0);
+            }
+            if (fy(i,j,k) == Type::covered) {
+                flg.setDisconnected(0,-1,0);
+            }
+            if (fy(i,j+1,k) == Type::covered) {
+                flg.setDisconnected(0,1,0);
+            }
+            if (fz(i,j,k) == Type::covered) {
+                flg.setDisconnected(0,0,-1);
+            }
+            if (fz(i,j,k+1) == Type::covered) {
+                flg.setDisconnected(0,0,1);
+            }
+
+            // x-y
+            if ((fx(i,j,k) == Type::covered or fy(i-1,j,k) == Type::covered) and
+                (fx(i,j-1,k) == Type::covered or fy(i,j,k) == Type::covered))
+            {
+                flg.setDisconnected(-1,-1,0);
+            }
+
+            if ((fx(i+1,j,k) == Type::covered or fy(i+1,j,k) == Type::covered) and
+                (fx(i+1,j-1,k) == Type::covered or fy(i,j,k) == Type::covered))
+            {
+                flg.setDisconnected(1,-1,0);
+            }
+
+            if ((fx(i,j,k) == Type::covered or fy(i-1,j+1,k) == Type::covered) and
+                (fx(i,j+1,k) == Type::covered or fy(i,j+1,k) == Type::covered))
+            {
+                flg.setDisconnected(-1,1,0);
+            }
+
+            if ((fx(i+1,j,k) == Type::covered or fy(i+1,j+1,k) == Type::covered) and
+                (fx(i+1,j+1,k) == Type::covered or fy(i,j+1,k) == Type::covered))
+            {
+                flg.setDisconnected(1,1,0);
+            }
+
+            // x-z
+            if ((fx(i,j,k) == Type::covered or fz(i-1,j,k) == Type::covered) and
+                (fx(i,j,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            {
+                flg.setDisconnected(-1,0,-1);
+            }
+
+            if ((fx(i+1,j,k) == Type::covered or fz(i+1,j,k) == Type::covered) and
+                (fx(i+1,j,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            {
+                flg.setDisconnected(1,0,-1);
+            }
+
+            if ((fx(i,j,k) == Type::covered or fz(i-1,j,k+1) == Type::covered) and
+                (fx(i,j,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            {
+                flg.setDisconnected(-1,0,1);
+            }
+
+            if ((fx(i+1,j,k) == Type::covered or fz(i+1,j,k+1) == Type::covered) and
+                (fx(i+1,j,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            {
+                flg.setDisconnected(1,0,1);
+            }
+
+            // y-z
+            if ((fy(i,j,k) == Type::covered or fz(i,j-1,k) == Type::covered) and
+                (fy(i,j,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            {
+                flg.setDisconnected(0,-1,-1);
+            }
+
+            if ((fy(i,j+1,k) == Type::covered or fz(i,j+1,k) == Type::covered) and
+                (fy(i,j+1,k-1) == Type::covered or fz(i,j,k) == Type::covered))
+            {
+                flg.setDisconnected(0,1,-1);
+            }
+
+            if ((fy(i,j,k) == Type::covered or fz(i,j-1,k+1) == Type::covered) and
+                (fy(i,j,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            {
+                flg.setDisconnected(0,-1,1);
+            }
+
+            if ((fy(i,j+1,k) == Type::covered or fz(i,j+1,k+1) == Type::covered) and
+                (fy(i,j+1,k+1) == Type::covered or fz(i,j,k+1) == Type::covered))
+            {
+                flg.setDisconnected(0,1,1);
+            }
+
+            cell(i,j,k) = flg;
+        }
+
+        ctmp(i,j,k) = cell(i,j,k);
+    });
+
+    AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+    {
+        if (!cell(i,j,k).isCovered()) {
+            auto tmpflg = ctmp(i,j,k);
+            auto newflg = tmpflg;
+
+            // -1, -1, -1 corner
+            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0,-1,-1)) and
+                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected(-1, 0,-1)) and
+                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected(-1,-1, 0)))
+            {
+                newflg.setDisconnected(-1,-1,-1);
+            }
+
+            // 1, -1, -1 corner
+            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0,-1,-1)) and
+                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected( 1, 0,-1)) and
+                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected( 1,-1, 0)))
+            {
+                newflg.setDisconnected(1,-1,-1);
+            }
+
+            // -1, 1, -1 corner
+            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0, 1,-1)) and
+                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected(-1, 0,-1)) and
+                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected(-1, 1, 0)))
+            {
+                newflg.setDisconnected(-1, 1,-1);
+            }
+
+            // 1, 1, -1 corner
+            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0, 1,-1)) and
+                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected( 1, 0,-1)) and
+                (tmpflg.isDisconnected( 0, 0,-1) or ctmp(i  ,j  ,k-1).isDisconnected( 1, 1, 0)))
+            {
+                newflg.setDisconnected(1, 1,-1);
+            }
+
+            // -1, -1, 1 corner
+            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0,-1, 1)) and
+                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected(-1, 0, 1)) and
+                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected(-1,-1, 0)))
+            {
+                newflg.setDisconnected(-1,-1, 1);
+            }
+
+            // 1, -1, 1 corner
+            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0,-1, 1)) and
+                (tmpflg.isDisconnected( 0,-1, 0) or ctmp(i  ,j-1,k  ).isDisconnected( 1, 0, 1)) and
+                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected( 1,-1, 0)))
+            {
+                newflg.setDisconnected(1,-1, 1);
+            }
+
+            // -1, 1, 1 corner
+            if ((tmpflg.isDisconnected(-1, 0, 0) or ctmp(i-1,j  ,k  ).isDisconnected( 0, 1, 1)) and
+                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected(-1, 0, 1)) and
+                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected(-1, 1, 0)))
+            {
+                newflg.setDisconnected(-1,1,1);
+            }
+
+            // 1, 1, 1 corner
+            if ((tmpflg.isDisconnected( 1, 0, 0) or ctmp(i+1,j  ,k  ).isDisconnected( 0, 1, 1)) and
+                (tmpflg.isDisconnected( 0, 1, 0) or ctmp(i  ,j+1,k  ).isDisconnected( 1, 0, 1)) and
+                (tmpflg.isDisconnected( 0, 0, 1) or ctmp(i  ,j  ,k+1).isDisconnected( 1, 1, 0)))
+            {
+                newflg.setDisconnected(1,1,1);
+            }
+
+            cell(i,j,k) = newflg;
+        }
+    });
 }
 
 }}
