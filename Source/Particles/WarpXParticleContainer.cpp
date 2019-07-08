@@ -301,7 +301,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                        MultiFab* jx, MultiFab* jy, MultiFab* jz,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev,
-                                       Real dt, const long ngJ)
+                                       Real dt)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
                                      (depos_lev==(lev  )),
@@ -309,6 +309,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // If no particles, do not do anything
     if (np_to_depose == 0) return;
 
+    const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
     const long lvect = 8;
     int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
@@ -316,7 +317,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
 
-    // Get tile box where current is deposited
+    // Get tile box where current is deposited.
+    // The tile box is different when depositing in the buffers (depos_lev<lev)
+    // or when depositing inside the level (depos_lev=lev)
     Box tilebox;
     if (lev == depos_lev) {
         tilebox = pti.tilebox();
@@ -496,6 +499,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
             &lvect,&WarpX::current_deposition_algo);
     }
 #ifdef WARPX_RZ
+    // Rescale current in r-z mode
     warpx_current_deposition_rz_volume_scaling(
         jx_ptr, &ngJ, jxntot.getVect(),
         jy_ptr, &ngJ, jyntot.getVect(),
