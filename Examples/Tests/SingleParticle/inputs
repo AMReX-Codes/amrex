@@ -13,6 +13,11 @@ algo.charge_deposition = standard
 algo.field_gathering = standard
 warpx.cfl = 1.0
 
+algo.current_deposition = direct
+interpolation.nox = 1
+interpolation.noy = 1
+interpolation.noz = 1
+
 particles.nspecies = 1
 particles.species_names = electron
 electron.charge = -q_e

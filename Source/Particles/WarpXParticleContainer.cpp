@@ -408,21 +408,29 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
         Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
         Real* AMREX_RESTRICT w  = attribs[PIdx::w ].dataPtr();
-        Cuda::ManagedDeviceVector<Real> Vx, Vy, Vz;
-        pti.GetPosition(Vx, Vy, Vz);
-        Real* AMREX_RESTRICT xp  = Vx.dataPtr() + offset;
-        // Real* AMREX_RESTRICT yp  = y.dataPtr();
-        Real* AMREX_RESTRICT zp  = Vz.dataPtr() + offset;
+        
+        
+        //Cuda::ManagedDeviceVector<Real> Vx, Vy, Vz;
+        //pti.GetPosition(Vx, Vy, Vz);
+        //Real* AMREX_RESTRICT xp  = Vx.dataPtr() + offset;
+        //Real* AMREX_RESTRICT zp  = Vz.dataPtr() + offset;
+
+        Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
+        Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
+
         // Loop over the particles and convert momentum
         // const long np = pti.numParticles();
         Print()<<"np_to_depose "<<np_to_depose<<'\n';
         ParallelFor( np_to_depose,
                      [=] AMREX_GPU_DEVICE (long ip) {
                          std::cout<<" ip "<<ip<<'\n';
-                         Real x = (xp[ip]-xmin)*dxi;
-                         Real z = (zp[ip]-zmin)*dzi;
+                         Real x = (Real) (xp[ip]-xmin)*dxi;
+                         Real z = (Real) (zp[ip]-zmin)*dzi;
                          std::cout<<" x "<<x<<'\n';
                          std::cout<<" z "<<z<<'\n';
+                         std::cout<<" xp[ip] "<<xp[ip]<<'\n';
+                         std::cout<<" xmin "<<xmin<<'\n';
+                         std::cout<<" dxi "<<dxi<<'\n';
                          Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                          + uyp[ip]*uyp[ip]*clightsq
                                                          + uzp[ip]*uzp[ip]*clightsq);
@@ -448,8 +456,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
                          int j = (int) xmid;
                          int l = (int) zmid;
-                         int j0=(int) (xmid-stagger_shift);
-                         int l0=(int) (zmid-stagger_shift);
+                         int j0= (int) (xmid-stagger_shift);
+                         int l0= (int) (zmid-stagger_shift);
                          std::cout<<" j "<<j<<" j0 "<<j0<<'\n';
                          std::cout<<" l "<<l<<" l0 "<<l0<<'\n';
 
