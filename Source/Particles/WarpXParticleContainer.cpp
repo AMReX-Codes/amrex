@@ -333,6 +333,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Lower corner of tile box physical domain
     const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(tilebox, depos_lev);
     const std::array<Real, 3>& xyzmin = xyzmin_tile;
+    Print()<<" xyzmin_tile "<<xyzmin_tile[0]<<' '<<xyzmin_tile[1]<<' '<<xyzmin_tile[2]<<'\n';
+    Print()<<" xyzmin "<<xyzmin[0]<<' '<<xyzmin[1]<<' '<<xyzmin[2]<<'\n';
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
@@ -372,23 +374,127 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // CPU, tiling: deposit into local_jx
     // (same for jx and jz)
     BL_PROFILE_VAR_START(blp_pxr_cd);
-    warpx_current_deposition(
-        jx_ptr, &ngJ, jxntot.getVect(),
-        jy_ptr, &ngJ, jyntot.getVect(),
-        jz_ptr, &ngJ, jzntot.getVect(),
-        &np_to_depose,
-        m_xp[thread_num].dataPtr() + offset,
-        m_yp[thread_num].dataPtr() + offset,
-        m_zp[thread_num].dataPtr() + offset,
-        uxp.dataPtr() + offset,
-        uyp.dataPtr() + offset,
-        uzp.dataPtr() + offset,
-        m_giv[thread_num].dataPtr() + offset,
-        wp.dataPtr() + offset, &this->charge,
-        &xyzmin[0], &xyzmin[1], &xyzmin[2],
-        &dt, &dx[0], &dx[1], &dx[2],
-        &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
-        &lvect,&WarpX::current_deposition_algo);
+    bool use_new = true;
+    if (use_new){
+        Real dxi = 1.0/dx[0];
+        Real dzi = 1.0/dx[2];
+        Real invvol = dxi*dzi;
+        Real dts2dx = 0.5*dt*dxi;
+        Real dts2dz = 0.5*dt*dzi;
+        Real clightsq = 1.0/PhysConst::c/PhysConst::c;
+        Real c = PhysConst::c;
+
+        Real xmin = xyzmin[0];
+        Real zmin = xyzmin[2];
+        Real q = this->charge;
+        Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
+        Print()<<"xmin "<<xmin<<" zmin "<<zmin<<" stagger_shift "<<stagger_shift<<'\n';
+        Print()<<"dxi  "<<dxi<<" dzi "<<dzi<<'\n';
+        
+        auto jx_arr = jx->array(pti);
+        auto jy_arr = jy->array(pti);
+        auto jz_arr = jz->array(pti);
+
+        // auto const& jx_arr = jx->array();
+        // auto const& jy_arr = jy->array();
+        // auto const& jz_arr = jz->array();
+
+        // - momenta are stored as a struct of array, in `attribs`
+        auto& attribs = pti.GetAttribs();
+        Real* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
+        Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
+        Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
+        Real* AMREX_RESTRICT w  = attribs[PIdx::w ].dataPtr();
+        Cuda::ManagedDeviceVector<Real> Vx, Vy, Vz;
+        pti.GetPosition(Vx, Vy, Vz);
+        Real* AMREX_RESTRICT xp  = Vx.dataPtr() + offset;
+        // Real* AMREX_RESTRICT yp  = y.dataPtr();
+        Real* AMREX_RESTRICT zp  = Vz.dataPtr() + offset;
+        // Loop over the particles and convert momentum
+        // const long np = pti.numParticles();
+        Print()<<"np_to_depose "<<np_to_depose<<'\n';
+        ParallelFor( np_to_depose,
+                     [=] AMREX_GPU_DEVICE (long ip) {
+                         std::cout<<" ip "<<ip<<'\n';
+                         Real x = (xp[ip]-xmin)*dxi;
+                         Real z = (zp[ip]-zmin)*dzi;
+                         std::cout<<" x "<<x<<'\n';
+                         std::cout<<" z "<<z<<'\n';
+                         Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
+                                                         + uyp[ip]*uyp[ip]*clightsq
+                                                         + uzp[ip]*uzp[ip]*clightsq);
+                         
+                         Real vx = uxp[ip]*gaminv;
+                         Real vy = uyp[ip]*gaminv;
+                         Real vz = uzp[ip]*gaminv;
+
+                         std::cout<<" uxp[ip] "<<uxp[ip]<<'\n';
+                         std::cout<<" uyp[ip] "<<uyp[ip]<<'\n';
+                         std::cout<<" uzp[ip] "<<uzp[ip]<<'\n';
+
+                         std::cout<<" vx "<<vx<<'\n';
+                         std::cout<<" vz "<<vz<<'\n';
+
+                         Real wq=q*w[ip];
+                         Real wqx=wq*invvol*vx;
+                         Real wqy=wq*invvol*vy;
+                         Real wqz=wq*invvol*vz;
+
+                         Real xmid=x-dts2dx*vx;
+                         Real zmid=z-dts2dz*vz;
+
+                         int j = (int) xmid;
+                         int l = (int) zmid;
+                         int j0=(int) (xmid-stagger_shift);
+                         int l0=(int) (zmid-stagger_shift);
+                         std::cout<<" j "<<j<<" j0 "<<j0<<'\n';
+                         std::cout<<" l "<<l<<" l0 "<<l0<<'\n';
+
+                         Real xint = xmid-j;
+                         Real zint = zmid-l;
+                         Real sx[2] = {1.0 - xint, xint};
+                         Real sz[2] = {1.0 - zint, zint};
+
+                         xint = xmid-stagger_shift-j0;
+                         zint = zmid-stagger_shift-l0;
+                         Real sx0[2] = {1.0 - xint, xint};
+                         Real sz0[2] = {1.0 - zint, zint};
+
+                         jx_arr(j0  ,l  ,0) += sx0[0]*sz[0]*wqx;
+                         jx_arr(j0+1,l  ,0) += sx0[1]*sz[0]*wqx;
+                         jx_arr(j0  ,l+1,0) += sx0[0]*sz[1]*wqx;
+                         jx_arr(j0+1,l+1,0) += sx0[1]*sz[1]*wqx;
+
+                         jy_arr(j  ,l  ,0) += sx[0]*sz[0]*wqy;
+                         jy_arr(j+1,l  ,0) += sx[1]*sz[0]*wqy;
+                         jy_arr(j  ,l+1,0) += sx[0]*sz[1]*wqy;
+                         jy_arr(j+1,l+1,0) += sx[1]*sz[1]*wqy;
+
+                         jz_arr(j  ,l0  ,0) += sx[0]*sz0[0]*wqz;
+                         jz_arr(j+1,l0  ,0) += sx[1]*sz0[0]*wqz;
+                         jz_arr(j  ,l0+1,0) += sx[0]*sz0[1]*wqz;
+                         jz_arr(j+1,l0+1,0) += sx[1]*sz0[1]*wqz;
+                     }
+            );
+    } else {
+        warpx_current_deposition(
+            jx_ptr, &ngJ, jxntot.getVect(),
+            jy_ptr, &ngJ, jyntot.getVect(),
+            jz_ptr, &ngJ, jzntot.getVect(),
+            &np_to_depose,
+            m_xp[thread_num].dataPtr() + offset,
+            m_yp[thread_num].dataPtr() + offset,
+            m_zp[thread_num].dataPtr() + offset,
+            uxp.dataPtr() + offset,
+            uyp.dataPtr() + offset,
+            uzp.dataPtr() + offset,
+            m_giv[thread_num].dataPtr() + offset,
+            wp.dataPtr() + offset, &this->charge,
+            &xyzmin[0], &xyzmin[1], &xyzmin[2],
+            &dt, &dx[0], &dx[1], &dx[2],
+            &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
+            &lvect,&WarpX::current_deposition_algo);
+    }
 #ifdef WARPX_RZ
     warpx_current_deposition_rz_volume_scaling(
         jx_ptr, &ngJ, jxntot.getVect(),
