@@ -34,11 +34,5 @@ USE_RZ = FALSE
 
 DO_ELECTROSTATIC = FALSE
 
-ifeq ($(USE_RZ),TRUE)
-  # DIM is set here so that it is properly set for
-  # all of the included files.
-  DIM = 2
-endif
-
 WARPX_HOME := .
 include $(WARPX_HOME)/Source/Make.WarpX

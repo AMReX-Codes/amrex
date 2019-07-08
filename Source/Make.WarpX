@@ -12,6 +12,12 @@ ifeq ($(USE_GPU),TRUE)
   NVCC_HOST_COMP = gcc
 endif
 
+ifeq ($(USE_RZ),TRUE)
+  # DIM is set here so that it is properly set for
+  # all of the included files.
+  DIM = 2
+endif
+
 ifeq ($(USE_ASCENT_INSITU),TRUE)
   ASCENT_HOME ?= NOT_SET
   ifneq ($(ASCENT_HOME),NOT_SET)
