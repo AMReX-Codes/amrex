@@ -199,6 +199,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     {
         Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
         Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
+        EBCellFlagFab cellflagtmp;
 
         for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
         {
@@ -281,34 +282,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                         xip, yip, zip, apx, apy, apz, fcx, fcy, fcz,
                         xm2, ym2, zm2, dx, problo);
 
-            Gpu::streamSynchronize(); // needed until the whole loop is on gpu
+            cellflagtmp.resize(m_cellflag[mfi].box());
+            Elixir cellflagtmp_eli = cellflagtmp.elixir();
+            Array4<EBCellFlag> const& cfgtmp = cellflagtmp.array();
 
-            // regular by default
-            m_volfrac[mfi].setVal(1.0);
-            m_centroid[mfi].setVal(0.0);
-            m_bndryarea[mfi].setVal(0.0);
-            m_bndrycent[mfi].setVal(-1.0);
-            m_bndrynorm[mfi].setVal(0.0);
-
-            amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
-                                  BL_TO_FORTRAN_ANYD(cellflag),
-                                  BL_TO_FORTRAN_ANYD(facetype[0]),
-                                  BL_TO_FORTRAN_ANYD(facetype[1]),
-                                  BL_TO_FORTRAN_ANYD(facetype[2]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
-                                  BL_TO_FORTRAN_ANYD(M2[0]),
-                                  BL_TO_FORTRAN_ANYD(M2[1]),
-                                  BL_TO_FORTRAN_ANYD(M2[2]),
-                                  BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
-                                  BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
+            build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
+                        fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
+                        bar, bct, bnm, cfgtmp);
 
 #elif (AMREX_SPACEDIM == 2)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
