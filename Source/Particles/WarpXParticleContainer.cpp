@@ -344,9 +344,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Real* jy_ptr = (*jy)[pti].dataPtr();
     Real* jz_ptr = (*jz)[pti].dataPtr();
     
-    auto jxntot = jx[pti].length();
-    auto jyntot = jy[pti].length();
-    auto jzntot = jz[pti].length();
+    auto jxntot = (*jx)[pti].length();
+    auto jyntot = (*jy)[pti].length();
+    auto jzntot = (*jz)[pti].length();
 #else
     // Tiling is on: jx_ptr points to local_jx[thread_num]
     // (same for jy_ptr and jz_ptr)
