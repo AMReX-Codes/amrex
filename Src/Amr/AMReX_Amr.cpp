@@ -1207,7 +1207,9 @@ Amr::init (Real strt_time,
     else
     {
         initialInit(strt_time,stop_time);
-        checkPoint();
+        if (check_int > 0 || check_per > 0) {
+            checkPoint();
+        }
 
         if(plot_int > 0 || plot_per > 0 || plot_log_per > 0) {
             writePlotFile();
