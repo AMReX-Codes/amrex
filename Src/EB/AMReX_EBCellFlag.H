@@ -174,6 +174,9 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr EBCellFlag TheDefaultCell () { return EBCellFlag{default_value}; }
 
+    // DO NOT test covered cells using cell == TheCoveredCell()
+    // Use cell.isCovered() instead.
+    // Each covered cell is covered in its own way.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr EBCellFlag TheCoveredCell () { return EBCellFlag{covered_value}; }
 
