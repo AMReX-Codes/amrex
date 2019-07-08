@@ -66,6 +66,22 @@ function (configure_amrex)
          PUBLIC
          OpenMP::OpenMP_CXX
          OpenMP::OpenMP_Fortran)
+
+      # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
+      # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
+      # they do not provide flags for all possible compiler ids, we assume the same compiler used
+      # for building amrex will be used to build the application code
+      if (ENABLE_CUDA)
+         get_target_property(_cxx_omp_flags OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
+         
+         evaluate_genex(_cxx_omp_flags _omp_flags
+            LANG   CXX
+            COMP   ${_comp}
+            STRING )
+         
+         target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_omp_flags}>)
+      endif ()
+      
    else ()
       target_compile_options( amrex
          PUBLIC
@@ -101,19 +117,12 @@ function (configure_amrex)
          get_target_property( _amrex_flags_2 Flags_CXX INTERFACE_COMPILE_OPTIONS)
       endif ()
       
-      if (ENABLE_OMP)
-         get_target_property(_amrex_flags_3 OpenMP::OpenMP_CXX INTERFACE_COMPILE_OPTIONS)
-      endif ()
-      
       set(_amrex_flags)
       if (_amrex_flags_1)
          list(APPEND _amrex_flags ${_amrex_flags_1})
       endif ()
       if (_amrex_flags_2)
          list(APPEND _amrex_flags ${_amrex_flags_2})
-      endif ()
-      if (_amrex_flags_3)
-         list(APPEND _amrex_flags ${_amrex_flags_3})
       endif ()
      
       evaluate_genex(_amrex_flags _amrex_cxx_flags
@@ -128,7 +137,6 @@ function (configure_amrex)
       
    endif ()
    
-
    #
    # GNU-specific defines
    # 
