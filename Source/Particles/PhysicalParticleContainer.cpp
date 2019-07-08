@@ -1897,7 +1897,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     
     for (int lev = 0; lev < nlevs; ++lev) {
 
-        const Real* dx  = Geom(lev).CellSize();
+        const Real* dx  = Geom(lev).CellSize();         
         const Real* plo = Geom(lev).ProbLo();
 
         // first we touch each map entry in serial
@@ -1951,7 +1951,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     // timestep, skip it.
                     if ( not (((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
                               ((zp_new[i] <= z_new) && (zp_old[i] >= z_old))) ) continue;
-
+                    
                     // Lorentz transform particles to lab frame
                     Real gamma_new_p = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
                     Real t_new_p = WarpX::gamma_boost*t_boost - uzfrm*zp_new[i]*inv_c2;

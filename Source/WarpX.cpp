@@ -64,6 +64,9 @@ Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 bool WarpX::do_boosted_frame_fields = true;
 bool WarpX::do_boosted_frame_particles = true;
 
+int  WarpX::num_slice_snapshots_lab = 0;
+Real WarpX::dt_slice_snapshots_lab  = std::numeric_limits<Real>::lowest();
+
 bool WarpX::do_dynamic_scheduling = true;
 
 #if (AMREX_SPACEDIM == 3)
@@ -541,6 +544,13 @@ WarpX::ReadParameters ()
              slice_cr_ratio[idim] = slice_crse_ratio[idim];
           }
        }
+
+       if (do_boosted_frame_diagnostic) {
+          AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0, 
+                 "gamma_boost must be > 1 to use the boost frame diagnostic");
+          pp.query("num_slice_snapshots_lab", num_slice_snapshots_lab);
+          pp.query("dt_slice_snapshots_lab", dt_slice_snapshots_lab );          
+       }       
 
     }
 

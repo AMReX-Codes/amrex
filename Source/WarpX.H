@@ -250,6 +250,9 @@ public:
     void SliceGenerationForDiagnostics ();
     void WriteSlicePlotFile () const;
     void ClearSliceMultiFabs ();
+    static int num_slice_snapshots_lab;
+    static amrex::Real dt_slice_snapshots_lab;
+    amrex::RealBox getSliceRealBox() const {return slice_realbox;}
 
 protected:
 

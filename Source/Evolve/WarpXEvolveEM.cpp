@@ -174,6 +174,7 @@ WarpX::EvolveEM (int numsteps)
         }
 
         if (do_boosted_frame_diagnostic) {
+ // bl profile region
             std::unique_ptr<MultiFab> cell_centered_data = nullptr;
             if (WarpX::do_boosted_frame_fields) {
                 cell_centered_data = GetCellCenteredData();
