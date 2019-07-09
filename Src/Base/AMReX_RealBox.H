@@ -127,6 +127,11 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 //! Nice ASCII input.
 std::istream& operator>> (std::istream&, RealBox&);
 
+// Check for equality of real boxes within a certain tolerance
+bool AlmostEqual (const RealBox& box1,
+                  const RealBox& box2,
+                  Real eps = std::numeric_limits<Real>::round_error()) noexcept;
+
 }
 
 #endif /*_RealBox_H_*/
