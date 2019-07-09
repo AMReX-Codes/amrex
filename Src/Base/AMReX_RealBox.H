@@ -83,6 +83,7 @@ public:
 #endif
             ;
     }
+
     //! Returns the volume of the RealBox. If this RealBox is invalid,
     //! it's volume is considered to be zero.
     AMREX_GPU_HOST_DEVICE
@@ -90,17 +91,24 @@ public:
         if (ok()) return AMREX_D_TERM(length(0), *length(1), *length(2));
         return 0.0;
     }
+
     //! Is the specified point contained in the RealBox?
     AMREX_GPU_HOST_DEVICE
-    bool contains (const Real* point, Real eps=0.0) const noexcept {
+    bool contains (const Real* point,
+                   Real eps = std::numeric_limits<Real>::round_error()) const noexcept {
         return  AMREX_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
                           && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
                           && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
     }
-    bool contains (const RealVect& rv, Real eps=0.0) const noexcept { return contains(rv.dataPtr(), eps); }
+
+    //! Is the specified RealVect contained in this RealBox?
+    bool contains (const RealVect& rv,
+                   Real eps=std::numeric_limits<Real>::round_error()) const noexcept { return contains(rv.dataPtr(), eps); }
+
     //! Is the specified RealBox contained in this RealBox?
     AMREX_GPU_HOST_DEVICE
-    bool contains (const RealBox& rb, Real eps=0.0) const noexcept {
+    bool contains (const RealBox& rb,
+                   Real eps = std::numeric_limits<Real>::round_error()) const noexcept {
         return contains(rb.xlo, eps) && contains(rb.xhi, eps);
     }
 
