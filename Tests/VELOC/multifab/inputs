@@ -1,4 +1,4 @@
-n_cell = 256
+n_cell = 512
 max_grid_size = 64
 check_file = chk
 # restart_step = 0
