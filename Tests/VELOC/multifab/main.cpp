@@ -74,8 +74,11 @@ std::thread WriteVeloC (MultiFab& mf, std::string const& mf_name, int step)
     }
 
     MultiFab mfcpu(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrowVect(),
-                   MFInfo().SetArena(The_Cpu_Arena()));
-    amrex::dtoh_memcpy(mfcpu, mf);
+                   MFInfo().SetArena(The_Pinned_Arena()));
+    {
+        BL_PROFILE("dtoh_memcpy");
+        amrex::dtoh_memcpy(mfcpu, mf);
+    }
 
     Vector<std::unique_ptr<Real,DataDeleter> > ptrs;
     {
@@ -87,12 +90,10 @@ std::thread WriteVeloC (MultiFab& mf, std::string const& mf_name, int step)
         }
     }
 
-    {
-        BL_PROFILE("WriteVeloC()-checkpoint");
-        const auto veloc_status = VELOC_Checkpoint(mf_name.c_str(), step);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(veloc_status == VELOC_SUCCESS,
-                                         "VELOC_Checkpoint failed");
-    }
+    BL_PROFILE_VAR("WriteVeloC()-checkpoint", blp);
+    const auto veloc_status = VELOC_Checkpoint(mf_name.c_str(), step);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(veloc_status == VELOC_SUCCESS,
+                                     "VELOC_Checkpoint failed");
 
     std::thread t(VeloCDeleter<Real>(), std::move(ptrs));
 
@@ -181,6 +182,12 @@ void main_main ()
                 arr(i,j,k) = amrex::Random();
             });
             Gpu::streamSynchronize(); // because of random nubmer generator
+        }
+
+        { // touch pinned memory so that the one-time cost is removed from timers.
+            MultiFab mfcpu(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrowVect(),
+                           MFInfo().SetArena(The_Pinned_Arena()));
+            amrex::dtoh_memcpy(mfcpu, mf);
         }
 
         { // Write VisMF data
