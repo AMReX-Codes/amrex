@@ -8,6 +8,7 @@
 #include <climits>
 #include <array>
 #include <type_traits>
+#include <memory>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -188,6 +189,13 @@ struct DataAllocator {
     }
 };
 
+struct DataDeleter {
+    Arena* m_arena = nullptr;
+    DataDeleter (Arena* ar) noexcept : m_arena(ar) {}
+    Arena* arena () const noexcept { return (m_arena) ? m_arena : The_Arena(); }
+    void operator() (void* pt) const noexcept { arena()->free(pt); }
+};
+
 template <class T>
 class BaseFab
     : public DataAllocator
@@ -271,6 +279,9 @@ public:
      * The memory is freed.
      */
     void clear () noexcept;
+
+    // Release ownership of memory
+    std::unique_ptr<T,DataDeleter> release () noexcept;
 
     //! Returns how many bytes used
     AMREX_GPU_HOST_DEVICE
@@ -2153,6 +2164,23 @@ BaseFab<T>::clear () noexcept
 	this->dptr = 0;
 	this->truesize = 0;
     }
+}
+
+template <class T>
+std::unique_ptr<T,DataDeleter>
+BaseFab<T>::release () noexcept
+{
+    std::unique_ptr<T,DataDeleter> r(nullptr, DataDeleter{this->arena()});
+    if (this->dptr && this->ptr_owner) {
+        r.reset(this->dptr);
+        this->ptr_owner = false;
+        if (this->nvar > 1) {
+            amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+        } else {
+            amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+        }
+    }
+    return r;
 }
 
 template <class T>

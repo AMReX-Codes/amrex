@@ -3,6 +3,9 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
+
+#include <thread>
+
 #include <veloc.h>
 
 using namespace amrex;
@@ -29,7 +32,19 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
-MultiFab WriteVeloC (MultiFab& mf, std::string const& mf_name, int step)
+template <class T>
+struct VeloCDeleter {
+    void operator() (Vector<std::unique_ptr<T,DataDeleter> > ptrs) {
+        if (VELOC_SUCCESS == VELOC_Checkpoint_wait()) {
+            amrex::Print() << "VELOC_Checkpoint_wait() finished" << std::endl; // Here for testing only
+            ptrs.clear();
+        } else {
+            amrex::Abort("VeloCDeleter failed");
+        }
+    }
+};
+
+std::thread WriteVeloC (MultiFab& mf, std::string const& mf_name, int step)
 {
     if (amrex::Verbose() > 0) {
         amrex::Print() << "Writing VeloC " << mf_name << " " << step << "\n";
@@ -47,6 +62,7 @@ MultiFab WriteVeloC (MultiFab& mf, std::string const& mf_name, int step)
         ofs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         ofs.open(file_name.c_str(), std::ios::out | std::ios::trunc);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ofs.good(), "Failed to open file");
+        ofs << ParallelDescriptor::NProcs() << '\n';
         ofs << mf.nComp() << '\n';
         ofs << mf.nGrowVect() << '\n';
         const auto& ba = mf.boxArray();
@@ -61,17 +77,30 @@ MultiFab WriteVeloC (MultiFab& mf, std::string const& mf_name, int step)
                    MFInfo().SetArena(The_Cpu_Arena()));
     amrex::dtoh_memcpy(mfcpu, mf);
 
-    BL_PROFILE_VAR("WriteVeloC()-data",blp_data);
-    for (MFIter mfi(mfcpu); mfi.isValid(); ++mfi) {
-        void* p = mfcpu[mfi].dataPtr();
-        VELOC_Mem_protect(mfi.LocalIndex(), p, mfcpu[mfi].size(), sizeof(Real));
+    Vector<std::unique_ptr<Real,DataDeleter> > ptrs;
+    {
+        BL_PROFILE("WriteVeloC()-memprotect");
+        for (MFIter mfi(mfcpu); mfi.isValid(); ++mfi) {
+            auto p = mfcpu[mfi].release();
+            VELOC_Mem_protect(mfi.LocalIndex(), p.get(), mfcpu[mfi].size(), sizeof(Real));
+            ptrs.push_back(std::move(p));
+        }
     }
 
-    const auto veloc_status = VELOC_Checkpoint(mf_name.c_str(), step);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(veloc_status == VELOC_SUCCESS,
-                                     "VELOC_Checkpoint failed");
+    {
+        BL_PROFILE("WriteVeloC()-checkpoint");
+        const auto veloc_status = VELOC_Checkpoint(mf_name.c_str(), step);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(veloc_status == VELOC_SUCCESS,
+                                         "VELOC_Checkpoint failed");
+    }
 
-    return mfcpu;
+    std::thread t(VeloCDeleter<Real>(), std::move(ptrs));
+
+    if (amrex::Verbose() > 0) {
+        amrex::Print() << "WriteVeloC finished." << std::endl;
+    }
+
+    return t;
 }
 
 MultiFab ReadVeloC (std::string const& mf_name, int step)
@@ -95,6 +124,10 @@ MultiFab ReadVeloC (std::string const& mf_name, int step)
         ParallelDescriptor::ReadAndBcastFile(file_name, medata_buffer);
         std::istringstream iss(medata_buffer.data(), std::istringstream::in);
 
+        int nprocs;
+        iss >> nprocs;
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nprocs == ParallelDescriptor::NProcs(),
+                                         "ReadVeloc: must use the same number of MPI processes");
         iss >> ncomp;
         iss >> ngrow;
         ba.readFrom(iss);
@@ -105,7 +138,7 @@ MultiFab ReadVeloC (std::string const& mf_name, int step)
 
     BL_PROFILE_VAR("ReadVeloC()-data",blp_data);
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        void*p = mf[mfi].dataPtr();
+        auto p = mf[mfi].dataPtr();
         VELOC_Mem_protect(mfi.LocalIndex(), p, mf[mfi].size(), sizeof(Real));
     }
 
@@ -120,7 +153,7 @@ void main_main ()
 {
     BL_PROFILE("main");
 
-    int n_cell = 256;
+    int n_cell = 512;
     int max_grid_size = 64;
     std::string check_file("chk");
     int restart_step = -1;
@@ -132,7 +165,8 @@ void main_main ()
         pp.query("restart_step", restart_step);
     }
 
-    if (restart_step < 0) {
+    if (restart_step < 0)
+    {
         BoxArray ba(Box(IntVect(0),IntVect(n_cell-1)));
         ba.maxSize(max_grid_size);
         DistributionMapping dm(ba);
@@ -141,27 +175,29 @@ void main_main ()
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
             const auto& arr = mf.array(mfi);
+            amrex::CheckSeedArraySizeAndResize(bx.numPts());
             amrex::ParallelFor (bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 arr(i,j,k) = amrex::Random();
             });
+            Gpu::streamSynchronize(); // because of random nubmer generator
         }
 
         { // Write VisMF data
             amrex::UtilCreateDirectoryDestructive("vismfdata");
+            amrex::prefetchToHost(mf);
             VisMF::Write(mf, "vismfdata/mf");
+            amrex::prefetchToDevice(mf);
         }
 
-        MultiFab mf_cpucopy = WriteVeloC(mf, check_file.c_str(), 0);
+        auto t = WriteVeloC(mf, check_file.c_str(), 0);
 
         amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
 
-        if (VELOC_SUCCESS == VELOC_Checkpoint_wait()) {
-            mf_cpucopy.clear();
-        } else {
-            amrex::Abort("VELOC_Checkpoint_wait failed");
-        }
-    } else {
+        t.join();
+    }
+    else
+    {
         MultiFab mf_veloc = ReadVeloC(check_file, restart_step);
         amrex::prefetchToDevice(mf_veloc);
 

@@ -15,7 +15,7 @@ VELOC_DIR ?= /path/to/veloc/installation/dir
 VPATH_LOCATIONS += $(VELOC_DIR)/include
 INCLUDE_LOCATIONS += $(VELOC_DIR)/include
 LIBRARY_LOCATIONS += $(VELOC_DIR)/lib
-LIBRARIES += -Xlinker -rpath -Xlinker $(VELOC_DIR)/lib -lveloc-client
+libraries += -Xlinker -rpath -Xlinker $(VELOC_DIR)/lib -lveloc-client
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
