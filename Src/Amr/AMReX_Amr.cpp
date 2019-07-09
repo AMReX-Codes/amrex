@@ -1130,7 +1130,7 @@ Amr::checkInput ()
     //
     // Check that blocking_factor is a power of 2.
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
@@ -1164,7 +1164,7 @@ Amr::checkInput ()
     //
     // Check that max_grid_size is even.
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%2 != 0) {
@@ -1176,7 +1176,7 @@ Amr::checkInput ()
     //
     // Check that max_grid_size is a multiple of blocking_factor at every level.
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
