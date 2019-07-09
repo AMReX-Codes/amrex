@@ -80,7 +80,7 @@ operator >> (std::istream &is, RealBox& b)
 
 bool AlmostEqual (const RealBox& box1,
                   const RealBox& box2,
-                  Real eps /* = std::numeric_limits<Real>::epsilon() */) noexcept
+                  Real eps /* = 0.0 */) noexcept
 {
     bool almostEqual = true;
     for(int i = 0; i < AMREX_SPACEDIM && almostEqual; ++i)
