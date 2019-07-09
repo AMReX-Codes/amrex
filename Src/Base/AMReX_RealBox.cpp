@@ -85,8 +85,8 @@ bool AlmostEqual (const RealBox& box1,
     bool almostEqual = true;
     for(int i = 0; i < AMREX_SPACEDIM && almostEqual; ++i)
     {
-        almostEqual = almostEqual && std::abs(box1.lo(i) - box2.lo(i)) < eps;
-        almostEqual = almostEqual && std::abs(box1.hi(i) - box2.hi(i)) < eps;
+        almostEqual = almostEqual && std::abs(box1.lo(i) - box2.lo(i)) <= eps;
+        almostEqual = almostEqual && std::abs(box1.hi(i) - box2.hi(i)) <= eps;
     }
     return almostEqual;
 }
