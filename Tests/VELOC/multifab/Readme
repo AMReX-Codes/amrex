@@ -1,0 +1,20 @@
+Follow VeloC Quick Start Guide
+(https://veloc.readthedocs.io/en/latest/quick.html) for installation.
+For an easier setup and testing on your local machine, you can use the
+`barebone` branch.
+
+Set environment variable VELOC_DIR to VeloC installation directory or
+modify `GNUmakefile`.
+
+Run `mkdir veloc` and then `${VELOC_DIR}/bin/veloc-backend veloc.cfg`.
+
+In another terminal, type `make`.
+
+Run with `mpiexec -n 2 ./main3d.gnu.TPROF.MPI.ex inputs`.  This will
+write MultiFab data in AMReX native format in the `vismfdata`
+directory, and in VeloC format in the `veloc` directory.
+
+Run with `mpiexe -n 2 ./main3d.gnu.TPROF.MPI.ex inputs
+restart_step=0`.  This will read both AMReX and VeloC data you just
+wrote and compare them.  The code will abort if there are any
+differences.
