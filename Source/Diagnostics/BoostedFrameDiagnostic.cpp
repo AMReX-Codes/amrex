@@ -764,6 +764,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     const std::vector<std::string> species_names = mypc.GetSpeciesNames();
     Real prev_t_lab = -dt;
     std::unique_ptr<amrex::MultiFab> tmp_slice_ptr;
+//    std::unique_ptr<amrex::MultiFab> slice ;
 
     // Loop over snapshots
     for (int i = 0; i < LabFrameDiags_.size(); ++i) {
@@ -791,12 +792,14 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             // ... reset fields buffer data_buffer_
             if (WarpX::do_boosted_frame_fields) {
                 //Box buff_box = geom.Domain();
-                LabFrameDiags_[i]->buff_box_.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
+                LabFrameDiags_[i]->buff_box_.setSmall(boost_direction_,
+                                             i_lab - num_buffer_ + 1);
                 LabFrameDiags_[i]->buff_box_.setBig(boost_direction_, i_lab);
                 BoxArray buff_ba(LabFrameDiags_[i]->buff_box_);
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
-                LabFrameDiags_[i]->data_buffer_.reset( new MultiFab(buff_ba, buff_dm, ncomp_to_dump, 0) );
+                LabFrameDiags_[i]->data_buffer_.reset( new MultiFab(buff_ba,
+                                                buff_dm, ncomp_to_dump, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
             if (WarpX::do_boosted_frame_particles) 
@@ -807,12 +810,12 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             const int ncomp = cell_centered_data->nComp();
             const int start_comp = 0;
             const bool interpolate = true;
-            //if (LabFrameDiags_[i]->t_lab != prev_t_lab ) { 
+            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) { 
             // Get slice in the boosted frame
-            std::unique_ptr<MultiFab> slice = amrex::get_slice_data(boost_direction_,
-                                                                    LabFrameDiags_[i]->current_z_boost,
-                                                                    *cell_centered_data, geom,
-                                                                    start_comp, ncomp, interpolate);
+            std::unique_ptr<amrex::MultiFab> slice  = amrex::get_slice_data(boost_direction_,
+                                                      LabFrameDiags_[i]->current_z_boost,
+                                                      *cell_centered_data, geom,
+                                                      start_comp, ncomp, interpolate);
             
             // transform it to the lab frame
             LorentzTransformZ(*slice, gamma_boost_, beta_boost_, ncomp);
@@ -826,12 +829,15 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             BoxArray slice_ba(slice_box);
             slice_ba.maxSize(max_box_size_);
             // Create MultiFab tmp on slice_ba with data from slice
-            tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba, LabFrameDiags_[i]->data_buffer_->DistributionMap(), ncomp, 0));
+            tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba, 
+                            LabFrameDiags_[i]->data_buffer_->DistributionMap(), 
+                            ncomp, 0));
              
             tmp_slice_ptr->copy(*slice, 0, 0, ncomp);
+            }
             LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
                                                map_actual_fields_to_dump);
-            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) { 
+            if (LabFrameDiags_[i]->t_lab == prev_t_lab ) { 
             tmp_slice_ptr.reset(new MultiFab());
             tmp_slice_ptr.reset(nullptr);
             }
