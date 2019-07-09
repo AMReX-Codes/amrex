@@ -78,4 +78,17 @@ operator >> (std::istream &is, RealBox& b)
     return is;
 }
 
+bool AlmostEqual (const RealBox& box1,
+                  const RealBox& box2,
+                  Real eps /* = std::numeric_limits<Real>::round_error() */) noexcept
+{
+    bool almostEqual = true;
+    for(int i = 0; i < AMREX_SPACEDIM && almostEqual; ++i)
+    {
+        almostEqual &= abs(box1.lo(i) - box2.lo(i)) < eps;
+        almostEqual &= abs(box1.hi(i) - box2.hi(i)) < eps;
+    }
+    return almostEqual;
+}
+
 }
