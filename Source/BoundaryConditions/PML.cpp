@@ -490,7 +490,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     // }
     // amrex::Print()<< "];" << std::endl;
     amrex::Print()<<"===== BUILDING PML ====="<<std::endl;
-    Box domain0 = amrex::grow(geom->Domain(), -ncell);
+    Box domain0 = geom->Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if ( ! geom->isPeriodic(idim) ) {
+            domain0.grow(idim, -ncell);
+        }
+    }
+    // Box domain0 = amrex::grow(geom->Domain(), -ncell);
     amrex::Print() << "[" << domain0.smallEnd()[0]<<", "<< domain0.smallEnd()[1]<<", "<< domain0.smallEnd()[2]<< ", "<<domain0.bigEnd()[0] << ", "<< domain0.bigEnd()[1]<< ", "<< domain0.bigEnd()[2] << "]," << std::endl;
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
@@ -631,8 +637,8 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     {
         const Box& grid_bx = grid_ba[i];
         const IntVect& grid_bx_sz = grid_bx.size();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
-                                         "Consider using larger amr.blocking_factor");
+        // AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
+        //                                  "Consider using larger amr.blocking_factor");
 
         Box bx = grid_bx;
         bx.grow(ncell);
