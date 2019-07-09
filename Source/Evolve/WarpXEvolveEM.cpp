@@ -298,11 +298,11 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryE();
     FillBoundaryB();
 #else
-    amrex::Print()<< "WarpXEvolveEM.cpp : before CopyJinPMLs "<<std::endl;
+    // amrex::Print()<< "WarpXEvolveEM.cpp : before CopyJinPMLs "<<std::endl;
     if (do_pml && pml_has_particles){
         // do current deposition in PMLs
         // copy current computed on mother grid to PMLs
-        amrex::Print()<< "WarpXEvolveEM.cpp : IN CopyJinPMLs "<<std::endl;
+        // amrex::Print()<< "WarpXEvolveEM.cpp : IN CopyJinPMLs "<<std::endl;
         for (int lev = 0; lev <= finest_level; ++lev)
         {
             if (pml[lev]->ok()){
@@ -317,7 +317,7 @@ WarpX::OneStep_nosub (Real cur_time)
     }
 
     if (do_pml && do_pml_j_damping){
-        amrex::Print()<< "WarpXEvolveEM.cpp : DampJ "<<std::endl;
+        // amrex::Print()<< "WarpXEvolveEM.cpp : DampJ "<<std::endl;
         // damp current in pmls
         // amrex::Print() << "===== DAMPING IN PMLs =====" << std::endl;
 
@@ -336,11 +336,11 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryE();
     EvolveF(0.5*dt[0], DtType::SecondHalf);
 
-    amrex::Print()<< "WarpXEvolveEM.cpp : before CopyJinReg "<<std::endl;
+    // amrex::Print()<< "WarpXEvolveEM.cpp : before CopyJinReg "<<std::endl;
     if (do_pml && pml_has_particles){
         // do current deposition in PMLs
         // copy current computed on mother grid to PMLs
-        amrex::Print()<< "WarpXEvolveEM.cpp : IN CopyJinReg "<<std::endl;
+        // amrex::Print()<< "WarpXEvolveEM.cpp : IN CopyJinReg "<<std::endl;
         for (int lev = 0; lev <= finest_level; ++lev)
         {
             if (pml[lev]->ok()){
@@ -361,7 +361,7 @@ WarpX::OneStep_nosub (Real cur_time)
 
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {
-        amrex::Print()<< "WarpXEvolveEM.cpp : DampPML "<<std::endl;
+        // amrex::Print()<< "WarpXEvolveEM.cpp : Damp "<<std::endl;
         DampPML();
         FillBoundaryE();
     }

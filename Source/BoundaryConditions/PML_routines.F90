@@ -297,8 +297,8 @@ contains
     integer :: i, j, k
     real(amrex_real) :: alpha_xy, alpha_xz, alpha_yx, alpha_yz, alpha_zx, alpha_zy
 
-    PRINT *, "hello world!"
-    PRINT *, "pml_type = ", pml_type(1)
+    ! PRINT *, ">>> PML_routine"
+    ! PRINT *, "pml_type = ", pml_type(1)
 
     if (flag == 0) then
       do       k = xlo(3), xhi(3)
@@ -485,8 +485,17 @@ contains
            do    j = xlo(2), xhi(2)
               do i = xlo(1), xhi(1)
                  ! compute current coefficients alpha
-                 alpha_xy = sigjy(j)/(sigjy(j)+sigjz(k))
-                 alpha_xz = sigjz(k)/(sigjy(j)+sigjz(k))
+                 if ((sigjy(j)==0.) .AND. (sigjz(k)==0.)) then
+                    alpha_xy = 0.5
+                    alpha_xz = 0.5
+                 else
+                    alpha_xy = sigjy(j)/(sigjy(j)+sigjz(k))
+                    alpha_xz = sigjz(k)/(sigjy(j)+sigjz(k))
+                 end if
+                !  PRINT *, "alpha_xy = ", alpha_xy
+                !  PRINT *, "alpha_xz = ", alpha_xz
+                !  PRINT *, "sigsjy = ", sigsjy(j)
+                !  PRINT *, "sigsjz = ", sigsjz(k)
                  Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
                       &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
                       &                            -mudt*alpha_xy*jx(i,j,k)
@@ -500,8 +509,18 @@ contains
         do       k = ylo(3), yhi(3)
            do    j = ylo(2), yhi(2)
               do i = ylo(1), yhi(1)
-                 alpha_yx = sigjx(i)/(sigjx(i)+sigjz(k))
-                 alpha_yz = sigjz(k)/(sigjx(i)+sigjz(k))
+                 if ((sigjx(i)==0.) .AND. (sigjz(k)==0.)) then
+                    alpha_yx = 0.5
+                    alpha_yz = 0.5
+                 else
+                    alpha_yx = sigjx(i)/(sigjx(i)+sigjz(k))
+                    alpha_yz = sigjz(k)/(sigjx(i)+sigjz(k))
+                 end if
+
+                !  PRINT *, "alpha_yx = ", alpha_yx
+                !  PRINT *, "alpha_yz = ", alpha_yz
+                !  PRINT *, "sigsjx = ", sigsjx(i)
+                !  PRINT *, "sigsjz = ", sigsjz(k)
                  Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                       &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
                       &                            -mudt*alpha_yx*jy(i,j,k)
@@ -515,8 +534,18 @@ contains
         do       k = zlo(3), zhi(3)
            do    j = zlo(2), zhi(2)
               do i = zlo(1), zhi(1)
-                 alpha_zx = sigjx(i)/(sigjx(i)+sigjy(j))
-                 alpha_zy = sigjy(j)/(sigjx(i)+sigjy(j))
+                 if ((sigjx(i)==0.) .AND. (sigjy(j)==0.)) then
+                    alpha_zx = 0.5
+                    alpha_zy = 0.5
+                 else
+                    alpha_zx = sigjx(i)/(sigjx(i)+sigjy(j))
+                    alpha_zy = sigjy(j)/(sigjx(i)+sigjy(j))
+                 end if
+
+                !  PRINT *, "alpha_zx = ", alpha_zx
+                !  PRINT *, "alpha_zy = ", alpha_zy
+                !  PRINT *, "sigsjx = ", sigsjx(i)
+                !  PRINT *, "sigsjy = ", sigsjy(j)
                  Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
                       &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
                       &                            -mudt*alpha_zx*jz(i,j,k)
