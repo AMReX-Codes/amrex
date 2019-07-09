@@ -25,12 +25,12 @@
     (x).sigma_star_cum_fac[2].data(), (x).sigma_star_cum_fac[2].m_lo, (x).sigma_star_cum_fac[2].m_hi
 
 #define WRPX_PML_SIGMACOEFF_TO_FORTRAN(x)                              \
-    (x).sigma[0].data(), (x).sigma[0].m_lo, (x).sigma[0].m_hi, \
-    (x).sigma[1].data(), (x).sigma[1].m_lo, (x).sigma[1].m_hi, \
-    (x).sigma[2].data(), (x).sigma[2].m_lo, (x).sigma[2].m_hi, \
-    (x).sigma_star[0].data(), (x).sigma_star[0].m_lo, (x).sigma_star[0].m_hi, \
-    (x).sigma_star[1].data(), (x).sigma_star[1].m_lo, (x).sigma_star[1].m_hi, \
-    (x).sigma_star[2].data(), (x).sigma_star[2].m_lo, (x).sigma_star[2].m_hi
+    (x).sigma[0].dataPtr(), &((x).sigma[0].m_lo), &((x).sigma[0].m_hi), \
+    (x).sigma[1].dataPtr(), &((x).sigma[1].m_lo), &((x).sigma[1].m_hi), \
+    (x).sigma[2].dataPtr(), &((x).sigma[2].m_lo), &((x).sigma[2].m_hi), \
+    (x).sigma_star[0].dataPtr(), &((x).sigma_star[0].m_lo), &((x).sigma_star[0].m_hi), \
+    (x).sigma_star[1].dataPtr(), &((x).sigma_star[1].m_lo), &((x).sigma_star[1].m_hi), \
+    (x).sigma_star[2].dataPtr(), &((x).sigma_star[2].m_lo), &((x).sigma_star[2].m_hi)
 
 #else
 
@@ -81,6 +81,7 @@ struct SigmaBox
     SigmaVect sigma_star_cum_fac;
 
     std::string pml_type; // if pml normal to x : if pml Hi : pml_type={1,0,0}; if pml Lo: pml_type={-1,0,0}
+    std::array<int,5> pml_type_array;
 };
 
 namespace amrex {

@@ -275,7 +275,7 @@ contains
          jxlo(3), jxhi(3), jylo(3), jyhi(3), jzlo(3), jzhi(3), &
          sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, &
          ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi, &
-         flag
+         flag, pml_type(5)
     real(amrex_real), intent(in   ) :: mudt, dtsdx, dtsdy, dtsdz
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3),2)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3),2)
@@ -292,10 +292,13 @@ contains
     real(amrex_real), intent(in   ) :: sigsjx (ssjxlo:ssjxhi)
     real(amrex_real), intent(in   ) :: sigsjy (ssjylo:ssjyhi)
     real(amrex_real), intent(in   ) :: sigsjz (ssjzlo:ssjzhi)
-    Character, intent(in ) :: pml_type (9)
+    !Character, intent(in ) :: pml_type (9)
 
     integer :: i, j, k
     real(amrex_real) :: alpha_xy, alpha_xz, alpha_yx, alpha_yz, alpha_zx, alpha_zy
+
+    PRINT *, "hello world!"
+    PRINT *, "pml_type = ", pml_type(1)
 
     if (flag == 0) then
       do       k = xlo(3), xhi(3)
@@ -333,8 +336,8 @@ contains
 
     else !flag = 1
       !!!!! DIRECT FACE
-      if (pml_type(1)=='d') then
-         if (pml_type(3)=='0') then
+      if (pml_type(1)==0) then
+         if (pml_type(2)==0) then
            do       k = xlo(3), xhi(3)
               do    j = xlo(2), xhi(2)
                  do i = xlo(1), xhi(1)
@@ -381,7 +384,7 @@ contains
               end do
            end do
 
-         else if (pml_type(3)=='1') then
+         else if (pml_type(2)==1) then
            do       k = xlo(3), xhi(3)
               do    j = xlo(2), xhi(2)
                  do i = xlo(1), xhi(1)
@@ -428,7 +431,7 @@ contains
               end do
            end do
 
-         else !(pml_type(3)=='2')
+         else !(pml_type(2)==2)
            do       k = xlo(3), xhi(3)
               do    j = xlo(2), xhi(2)
                  do i = xlo(1), xhi(1)

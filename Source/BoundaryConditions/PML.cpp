@@ -26,7 +26,7 @@ namespace
         int sslo = sigma_star.m_lo;
         Real x = 10.0;
         Real theta = 10.0;
-        Real coeff_damp = std::sin(theta*MathConst::pi/180.);
+        Real coeff_damp = 1.; //std::sin(theta*MathConst::pi/180.);
 
         for (int i = olo; i <= ohi+1; ++i)
         {
@@ -54,7 +54,7 @@ namespace
         int sslo = sigma_star.m_lo;
         Real x = 10.0;
         Real theta = 10.0;
-        Real coeff_damp = std::sin(theta*MathConst::pi/180.);
+        Real coeff_damp = 1.;//std::sin(theta*MathConst::pi/180.);
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
@@ -85,7 +85,8 @@ namespace
 SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
 {
     amrex::Print()<< "===== BUILD SigmaBox ====="<<std::endl;
-    amrex::Print()<<"box = ["<<box.smallEnd()[0]<<", "<<box.smallEnd()[1]<<", "<<box.bigEnd()[0]<<", "<<box.bigEnd()[1]<<"]"<<std::endl;
+    // amrex::Print()<<"box = ["<<box.smallEnd()[0]<<", "<<box.smallEnd()[1]<<", "<<box.bigEnd()[0]<<", "<<box.bigEnd()[1]<<"]"<<std::endl;
+    amrex::Print()<<"box = ["<<box.smallEnd()[0]<<", "<<box.smallEnd()[1]<<", "<<box.smallEnd()[2]<<", "<<box.bigEnd()[0]<<", "<<box.bigEnd()[1]<<", "<<box.bigEnd()[2]<<"]"<<std::endl;
     BL_ASSERT(box.cellCentered());
 
     const IntVect& sz = box.size();
@@ -120,8 +121,9 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_lo = lo[idim];
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
-    
+
     pml_type = "";
+    pml_type_array = {3, 3, 3, 3, 3};
 
     Array<Real,AMREX_SPACEDIM> fac;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -198,10 +200,15 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "crn-++"; // for 2d only use the two first components
+                    pml_type_array[0] = 1;
+                    pml_type_array[1] = 0;
+                    pml_type_array[2] = 1;
+                    pml_type_array[3] = 1;
                 }
                 else {
                     if (pml_type[0] == 'c'){
                       pml_type[3+idim] = '-';
+                      pml_type_array[1+idim] = 0;
                     }
                 }
             }
@@ -216,10 +223,15 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "crn+++"; // for 2d only use the two first components
+                    pml_type_array[0] = 1;
+                    pml_type_array[1] = 1;
+                    pml_type_array[2] = 1;
+                    pml_type_array[3] = 1;
                 }
                 else {
                     if (pml_type[0] == 'c'){
                       pml_type[3+idim] = '+';
+                      pml_type_array[1+idim] = 1;
                     }
                 }
             }
@@ -238,6 +250,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
                 if (idim==0){
                     pml_type="sed33--";
+                    pml_type_array[0] = 2;
                 }
             }
             else {
@@ -255,16 +268,23 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "sed03-+"; // for 2d only use the two first components
+                    pml_type_array[0] = 2;
+                    pml_type_array[1] = idim;
+                    pml_type_array[3] = 0;
                 }
                 else {
                     if (pml_type[0] == 's'){
-                      if (pml_type[3]==3){
+                      if (pml_type[3]=='3'){
                         pml_type[3]=idim+'0';
                         pml_type[5]='-';
+                        pml_type_array[1] = idim;
+                        pml_type_array[3] = 0;
                       }
                       else{
                         pml_type[4] = idim+'0';
                         pml_type[6] = '-';
+                        pml_type_array[2] = idim;
+                        pml_type_array[4] = 0;
                       }
                     }
                 }
@@ -276,16 +296,23 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "sed03++"; // for 2d only use the two first components
+                    pml_type_array[0] = 2;
+                    pml_type_array[1] = idim;
+                    pml_type_array[3] = 1;
                 }
                 else {
                     if (pml_type[0] == 's'){
-                      if (pml_type[3]==3){
+                      if (pml_type[3]=='3'){
                         pml_type[3]=idim+'0';
                         pml_type[5]='+';
+                        pml_type_array[1] = idim;
+                        pml_type_array[3] = 1;
                       }
                       else{
                         pml_type[4] = idim+'0';
                         pml_type[6] = '+';
+                        pml_type_array[2] = idim;
+                        pml_type_array[4] = 1;
                       }
                     }
                 }
@@ -321,6 +348,9 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 pml_type = "df0-";
+                pml_type_array[0] = 0;
+                pml_type_array[1] = idim;
+                pml_type_array[2] = 0;
                 if (idim > 0){pml_type[2]=idim+'0';} //std::to_string(idim)
             }
 
@@ -329,6 +359,9 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 pml_type = "df0+";
+                pml_type_array[0] = 0;
+                pml_type_array[1] = idim;
+                pml_type_array[2] = 1;
                 if (idim>0){pml_type[2] = idim+'0';}
             }
 
@@ -342,7 +375,11 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         }
     }
     amrex::Print()<<"pml_type = "<<pml_type<<std::endl;
-
+    amrex::Print()<<"pml_type_array = [";
+    for (int i=0; i<5; i++){
+      amrex::Print()<<pml_type_array[i]<<", ";
+    }
+    amrex::Print()<<"]"<<std::endl;
 }
 
 
@@ -452,8 +489,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     //   amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
     // }
     // amrex::Print()<< "];" << std::endl;
-
+    amrex::Print()<<"===== BUILDING PML ====="<<std::endl;
     Box domain0 = amrex::grow(geom->Domain(), -ncell);
+    amrex::Print() << "[" << domain0.smallEnd()[0]<<", "<< domain0.smallEnd()[1]<<", "<< domain0.smallEnd()[2]<< ", "<<domain0.bigEnd()[0] << ", "<< domain0.bigEnd()[1]<< ", "<< domain0.bigEnd()[2] << "]," << std::endl;
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
     // BoxList bl_reduced = BoxList(grid_ba_reduced);
