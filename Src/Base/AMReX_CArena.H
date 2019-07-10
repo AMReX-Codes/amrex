@@ -113,7 +113,7 @@ protected:
     typedef std::set<Node> NL;
 
     //! The list of blocks allocated via ::operator new().
-    std::vector<void*> m_alloc;
+    std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     /**
     * \brief The free list of allocated but not currently used blocks.
