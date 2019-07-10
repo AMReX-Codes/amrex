@@ -119,6 +119,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
   # Specify that we want to build for Volta
 
   CUDA_ARCH = 70
+  CUDA_VER = 10.1
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
 
   # Provide system configuration information.
@@ -128,6 +129,10 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)
   GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
+endif
+
+ifeq ($(USE_ACC),TRUE)
+  GENERIC_PGI_FLAGS += -ta=tesla:cc$(CUDA_ARCH),cuda$(CUDA_VER)
 endif
 
 endif
