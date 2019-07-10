@@ -279,312 +279,140 @@ WarpXParticleContainer::AddNParticles (int lev,
     Redistribute();
 }
 
-
+/* \brief Current Deposition for thread thread_num
+ * \param pti         : Particle iterator
+ * \param wp          : Array of particle weights
+ * \param uxp uyp uzp : Array of particle
+ * \param jx jy jz    : Full array of current density
+ * \param offset      : Index of first particle for which current is deposited
+ * \param np_to_depose: Number of particles for which current is deposited.
+                        Particles [offset,offset+np_tp_depose] deposit their
+                        current
+ * \param thread_num  : Thread number (if tiling)
+ * \param lev         : Level of box that contains particles
+ * \param depos_lev   : Level on which particles deposit (if buffers are used)
+ * \param dt          : Time step for particle level
+ * \param ngJ         : Number of ghosts cells (of lev)
+ */
 void
 WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                        RealVector& wp, RealVector& uxp,
                                        RealVector& uyp, RealVector& uzp,
-                                       MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                       MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                       const long np_current, const long np,
-                                       int thread_num, int lev, Real dt )
+                                       MultiFab* jx, MultiFab* jy, MultiFab* jz,
+                                       const long offset, const long np_to_depose,
+                                       int thread_num, int lev, int depos_lev,
+                                       Real dt)
 {
-  Real *jx_ptr, *jy_ptr, *jz_ptr;
-  const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-  const std::array<Real,3>& dx = WarpX::CellSize(lev);
-  const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
-  const std::array<Real, 3>& xyzmin = xyzmin_tile;
-  const long lvect = 8;
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
+                                     (depos_lev==(lev  )),
+                                     "Deposition buffers only work for lev-1");
+    // If no particles, do not do anything
+    if (np_to_depose == 0) return;
 
-  BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
-  BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
+    const long ngJ = jx->nGrow();
+    const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
+    const long lvect = 8;
+    int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
 
-  Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
-  Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
-  Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+    BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
 
-  // WarpX assumes the same number of guard cells for Jx, Jy, Jz
-  long ngJ = jx.nGrow();
-
-  bool j_is_nodal = jx.is_nodal() and jy.is_nodal() and jz.is_nodal();
-
-  // Deposit charge for particles that are not in the current buffers
-  if (np_current > 0)
-  {
-#ifdef AMREX_USE_GPU
-      jx_ptr = jx[pti].dataPtr();
-      jy_ptr = jy[pti].dataPtr();
-      jz_ptr = jz[pti].dataPtr();
-
-      auto jxntot = jx[pti].length();
-      auto jyntot = jy[pti].length();
-      auto jzntot = jz[pti].length();
-#else
-      tbx.grow(ngJ);
-      tby.grow(ngJ);
-      tbz.grow(ngJ);
-
-      local_jx[thread_num].resize(tbx);
-      local_jy[thread_num].resize(tby);
-      local_jz[thread_num].resize(tbz);
-
-      jx_ptr = local_jx[thread_num].dataPtr();
-      jy_ptr = local_jy[thread_num].dataPtr();
-      jz_ptr = local_jz[thread_num].dataPtr();
-
-      local_jx[thread_num].setVal(0.0);
-      local_jy[thread_num].setVal(0.0);
-      local_jz[thread_num].setVal(0.0);
-
-      auto jxntot = local_jx[thread_num].length();
-      auto jyntot = local_jy[thread_num].length();
-      auto jzntot = local_jz[thread_num].length();
-#endif
-
-      BL_PROFILE_VAR_START(blp_pxr_cd);
-      if (j_is_nodal) {
-          const Real* p_wp = wp.dataPtr();
-          const Real* p_gaminv = m_giv[thread_num].dataPtr();
-          const Real* p_uxp = uxp.dataPtr();
-          const Real* p_uyp = uyp.dataPtr();
-          const Real* p_uzp = uzp.dataPtr();
-          AsyncArray<Real> wptmp_aa(np_current);
-          Real* const wptmp = wptmp_aa.data();
-          const Box& tile_box = pti.tilebox();
-#if (AMREX_SPACEDIM == 3)
-          const long nx = tile_box.length(0);
-          const long ny = tile_box.length(1);
-          const long nz = tile_box.length(2);
-#else
-          const long nx = tile_box.length(0);
-          const long ny = 0;
-          const long nz = tile_box.length(1);
-#endif
-          amrex::ParallelFor (np_current, [=] AMREX_GPU_DEVICE (long ip) {
-                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uxp[ip];
-          });
-          warpx_charge_deposition(jx_ptr, &np_current,
-                                  m_xp[thread_num].dataPtr(),
-                                  m_yp[thread_num].dataPtr(),
-                                  m_zp[thread_num].dataPtr(),
-                                  wptmp,
-                                  &this->charge,
-                                  &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                  &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                  &ngJ, &ngJ, &ngJ,
-                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                  &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (np_current, [=] AMREX_GPU_DEVICE (long ip) {
-                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uyp[ip];
-          });
-          warpx_charge_deposition(jy_ptr, &np_current,
-                                  m_xp[thread_num].dataPtr(),
-                                  m_yp[thread_num].dataPtr(),
-                                  m_zp[thread_num].dataPtr(),
-                                  wptmp,
-                                  &this->charge,
-                                  &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                  &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                  &ngJ, &ngJ, &ngJ,
-                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                  &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (np_current, [=] AMREX_GPU_DEVICE (long ip) {
-                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uzp[ip];
-          });
-          warpx_charge_deposition(jz_ptr, &np_current,
-                                  m_xp[thread_num].dataPtr(),
-                                  m_yp[thread_num].dataPtr(),
-                                  m_zp[thread_num].dataPtr(),
-                                  wptmp,
-                                  &this->charge,
-                                  &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                  &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                  &ngJ, &ngJ, &ngJ,
-                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                  &lvect, &WarpX::current_deposition_algo);
-      } else {
-          warpx_current_deposition(
-                               jx_ptr, &ngJ, jxntot.getVect(),
-                               jy_ptr, &ngJ, jyntot.getVect(),
-                               jz_ptr, &ngJ, jzntot.getVect(),
-                               &np_current,
-                               m_xp[thread_num].dataPtr(),
-                               m_yp[thread_num].dataPtr(),
-                               m_zp[thread_num].dataPtr(),
-                               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                               m_giv[thread_num].dataPtr(),
-                               wp.dataPtr(), &this->charge,
-                               &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                               &dt, &dx[0], &dx[1], &dx[2],
-                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                               &lvect,&WarpX::current_deposition_algo);
-
-#ifdef WARPX_RZ
-         warpx_current_deposition_rz_volume_scaling(
-                                  jx_ptr, &ngJ, jxntot.getVect(),
-                                  jy_ptr, &ngJ, jyntot.getVect(),
-                                  jz_ptr, &ngJ, jzntot.getVect(),
-                                  &xyzmin[0], &dx[0]);
-#endif
-      }
-
-      BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
-#ifndef AMREX_USE_GPU
-      BL_PROFILE_VAR_START(blp_accumulate);
-
-      jx[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-      jy[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-      jz[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
-
-      BL_PROFILE_VAR_STOP(blp_accumulate);
-#endif
-  }
-
-  // Deposit charge for particles that are in the current buffers
-  if (np_current < np)
-  {
-      const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
-      const Box& ctilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
-      const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
-
-#ifdef AMREX_USE_GPU
-      jx_ptr = (*cjx)[pti].dataPtr();
-      jy_ptr = (*cjy)[pti].dataPtr();
-      jz_ptr = (*cjz)[pti].dataPtr();
-
-      auto jxntot = jx[pti].length();
-      auto jyntot = jy[pti].length();
-      auto jzntot = jz[pti].length();
-#else
-
-      tbx = amrex::convert(ctilebox, WarpX::jx_nodal_flag);
-      tby = amrex::convert(ctilebox, WarpX::jy_nodal_flag);
-      tbz = amrex::convert(ctilebox, WarpX::jz_nodal_flag);
-      tbx.grow(ngJ);
-      tby.grow(ngJ);
-      tbz.grow(ngJ);
-
-      local_jx[thread_num].resize(tbx);
-      local_jy[thread_num].resize(tby);
-      local_jz[thread_num].resize(tbz);
-
-      jx_ptr = local_jx[thread_num].dataPtr();
-      jy_ptr = local_jy[thread_num].dataPtr();
-      jz_ptr = local_jz[thread_num].dataPtr();
-
-      local_jx[thread_num].setVal(0.0);
-      local_jy[thread_num].setVal(0.0);
-      local_jz[thread_num].setVal(0.0);
-
-      auto jxntot = local_jx[thread_num].length();
-      auto jyntot = local_jy[thread_num].length();
-      auto jzntot = local_jz[thread_num].length();
-#endif
-
-      long ncrse = np - np_current;
-      BL_PROFILE_VAR_START(blp_pxr_cd);
-      if (j_is_nodal) {
-          const Real* p_wp = wp.dataPtr() + np_current;
-          const Real* p_gaminv = m_giv[thread_num].dataPtr() + np_current;
-          const Real* p_uxp = uxp.dataPtr() + np_current;
-          const Real* p_uyp = uyp.dataPtr() + np_current;
-          const Real* p_uzp = uzp.dataPtr() + np_current;
-          AsyncArray<Real> wptmp_aa(ncrse);
-          Real* const wptmp = wptmp_aa.data();
-          const Box& tile_box = pti.tilebox();
-#if (AMREX_SPACEDIM == 3)
-          const long nx = tile_box.length(0);
-          const long ny = tile_box.length(1);
-          const long nz = tile_box.length(2);
-#else
-          const long nx = tile_box.length(0);
-          const long ny = 0;
-          const long nz = tile_box.length(1);
-#endif
-          amrex::ParallelFor (ncrse, [=] AMREX_GPU_DEVICE (long ip) {
-                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uxp[ip];
-          });
-          warpx_charge_deposition(jx_ptr, &ncrse,
-                                  m_xp[thread_num].dataPtr() +np_current,
-                                  m_yp[thread_num].dataPtr() +np_current,
-                                  m_zp[thread_num].dataPtr() +np_current,
-                                  wptmp,
-                                  &this->charge,
-                                  &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
-                                  &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
-                                  &ngJ, &ngJ, &ngJ,
-                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                  &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (ncrse, [=] AMREX_GPU_DEVICE (long ip) {
-                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uyp[ip];
-          });
-          warpx_charge_deposition(jy_ptr, &ncrse,
-                                  m_xp[thread_num].dataPtr() +np_current,
-                                  m_yp[thread_num].dataPtr() +np_current,
-                                  m_zp[thread_num].dataPtr() +np_current,
-                                  wptmp,
-                                  &this->charge,
-                                  &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
-                                  &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
-                                  &ngJ, &ngJ, &ngJ,
-                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                  &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (ncrse, [=] AMREX_GPU_DEVICE (long ip) {
-                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uzp[ip];
-          });
-          warpx_charge_deposition(jz_ptr, &ncrse,
-                                  m_xp[thread_num].dataPtr() +np_current,
-                                  m_yp[thread_num].dataPtr() +np_current,
-                                  m_zp[thread_num].dataPtr() +np_current,
-                                  wptmp,
-                                  &this->charge,
-                                  &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
-                                  &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
-                                  &ngJ, &ngJ, &ngJ,
-                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                  &lvect, &WarpX::current_deposition_algo);
-      } else {
-          warpx_current_deposition(
-                               jx_ptr, &ngJ, jxntot.getVect(),
-                               jy_ptr, &ngJ, jyntot.getVect(),
-                               jz_ptr, &ngJ, jzntot.getVect(),
-                               &ncrse,
-                               m_xp[thread_num].dataPtr() +np_current,
-                               m_yp[thread_num].dataPtr() +np_current,
-                               m_zp[thread_num].dataPtr() +np_current,
-                               uxp.dataPtr()+np_current,
-                               uyp.dataPtr()+np_current,
-                               uzp.dataPtr()+np_current,
-                               m_giv[thread_num].dataPtr()+np_current,
-                               wp.dataPtr()+np_current, &this->charge,
-                               &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
-                               &dt, &cdx[0], &cdx[1], &cdx[2],
-                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                               &lvect,&WarpX::current_deposition_algo);
-#ifdef WARPX_RZ
-         warpx_current_deposition_rz_volume_scaling(
-                                  jx_ptr, &ngJ, jxntot.getVect(),
-                                  jy_ptr, &ngJ, jyntot.getVect(),
-                                  jz_ptr, &ngJ, jzntot.getVect(),
-                                  &xyzmin[0], &dx[0]);
-#endif
-      }
-
-      BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
-#ifndef AMREX_USE_GPU
-      BL_PROFILE_VAR_START(blp_accumulate);
-
-      (*cjx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-      (*cjy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-      (*cjz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
-
-      BL_PROFILE_VAR_STOP(blp_accumulate);
-#endif
+    // Get tile box where current is deposited.
+    // The tile box is different when depositing in the buffers (depos_lev<lev)
+    // or when depositing inside the level (depos_lev=lev)
+    Box tilebox;
+    if (lev == depos_lev) {
+        tilebox = pti.tilebox();
+    } else {
+        const IntVect& ref_ratio = WarpX::RefRatio(depos_lev);
+        tilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
     }
-};
+    
+    // Staggered tile boxes (different in each direction)
+    Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
+    Box tby = convert(tilebox, WarpX::jy_nodal_flag);
+    Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
 
+    // Lower corner of tile box physical domain
+    const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(tilebox, depos_lev);
+    const std::array<Real, 3>& xyzmin = xyzmin_tile;
+
+#ifdef AMREX_USE_GPU
+    // No tiling on GPU: jx_ptr points to the full
+    // jx array (same for jy_ptr and jz_ptr).
+    Real* jx_ptr = (*jx)[pti].dataPtr();
+    Real* jy_ptr = (*jy)[pti].dataPtr();
+    Real* jz_ptr = (*jz)[pti].dataPtr();
+    
+    auto jxntot = (*jx)[pti].length();
+    auto jyntot = (*jy)[pti].length();
+    auto jzntot = (*jz)[pti].length();
+#else
+    // Tiling is on: jx_ptr points to local_jx[thread_num]
+    // (same for jy_ptr and jz_ptr)
+    tbx.grow(ngJ);
+    tby.grow(ngJ);
+    tbz.grow(ngJ);
+
+    local_jx[thread_num].resize(tbx);
+    local_jy[thread_num].resize(tby);
+    local_jz[thread_num].resize(tbz);
+
+    Real* jx_ptr = local_jx[thread_num].dataPtr();
+    Real* jy_ptr = local_jy[thread_num].dataPtr();
+    Real* jz_ptr = local_jz[thread_num].dataPtr();
+
+    // local_jx[thread_num] is set to zero
+    local_jx[thread_num].setVal(0.0);
+    local_jy[thread_num].setVal(0.0);
+    local_jz[thread_num].setVal(0.0);
+
+    auto jxntot = local_jx[thread_num].length();
+    auto jyntot = local_jy[thread_num].length();
+    auto jzntot = local_jz[thread_num].length();
+#endif
+    // GPU, no tiling: deposit directly in jx
+    // CPU, tiling: deposit into local_jx
+    // (same for jx and jz)
+    BL_PROFILE_VAR_START(blp_pxr_cd);
+    warpx_current_deposition(
+        jx_ptr, &ngJ, jxntot.getVect(),
+        jy_ptr, &ngJ, jyntot.getVect(),
+        jz_ptr, &ngJ, jzntot.getVect(),
+        &np_to_depose,
+        m_xp[thread_num].dataPtr() + offset,
+        m_yp[thread_num].dataPtr() + offset,
+        m_zp[thread_num].dataPtr() + offset,
+        uxp.dataPtr() + offset,
+        uyp.dataPtr() + offset,
+        uzp.dataPtr() + offset,
+        m_giv[thread_num].dataPtr() + offset,
+        wp.dataPtr() + offset, &this->charge,
+        &xyzmin[0], &xyzmin[1], &xyzmin[2],
+        &dt, &dx[0], &dx[1], &dx[2],
+        &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
+        &lvect,&WarpX::current_deposition_algo);
+
+#ifdef WARPX_RZ
+    // Rescale current in r-z mode
+    warpx_current_deposition_rz_volume_scaling(
+        jx_ptr, &ngJ, jxntot.getVect(),
+        jy_ptr, &ngJ, jyntot.getVect(),
+        jz_ptr, &ngJ, jzntot.getVect(),
+        &xyzmin[0], &dx[0]);
+#endif
+    BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+#ifndef AMREX_USE_GPU
+    BL_PROFILE_VAR_START(blp_accumulate);
+    // CPU, tiling: atomicAdd local_jx into jx
+    // (same for jx and jz)
+    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+    BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
+}
 
 void
 WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
@@ -669,7 +497,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
 
 #ifdef AMREX_USE_GPU
-      data_ptr = (*crhomf)[pti].dataPtr();
+      data_ptr = (*crhomf)[pti].dataPtr(icomp);
       auto rholen = (*crhomf)[pti].length();
 #else
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
@@ -1074,10 +902,11 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                FArrayBox* costfab = cost->fabPtr(pti);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                Array4<Real> const& costarr = cost->array(pti);
+                amrex::ParallelFor(tbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    costfab->plus(wt, work_box);
+                    costarr(i,j,k) += wt;
                 });
             }
         }

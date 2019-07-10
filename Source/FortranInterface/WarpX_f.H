@@ -112,7 +112,7 @@ extern "C"
 			const amrex::Real* dt,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
 			const long* nox, const long* noy,const long* noz,
-			const long* lvect, const long* current_depo_algo);
+                        const int* l_nodal, const long* lvect, const long* current_depo_algo);
 
         // Current deposition finalize for RZ
         void warpx_current_deposition_rz_volume_scaling(

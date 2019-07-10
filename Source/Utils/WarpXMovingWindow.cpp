@@ -214,7 +214,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 
     AMREX_ALWAYS_ASSERT(ng.min() >= num_shift);
 
-    MultiFab tmpmf(ba, dm, nc, ng, MFInfo().SetDeviceFab(false));
+    MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
 

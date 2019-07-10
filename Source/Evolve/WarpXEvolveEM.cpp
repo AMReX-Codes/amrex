@@ -84,12 +84,14 @@ WarpX::EvolveEM (int numsteps)
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
             is_synchronized = false;
+
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
             FillBoundaryE();
             FillBoundaryB();
             UpdateAuxilaryData();
+
         }
 
         if (do_subcycling == 0 || finest_level == 0) {
@@ -134,6 +136,7 @@ WarpX::EvolveEM (int numsteps)
 
         // slice generation //
         bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);
+
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -283,13 +286,14 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_beforedeposition) warpx_py_beforedeposition();
 #endif
     PushParticlesandDepose(cur_time);
+
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 #endif
 
     SyncCurrent();
 
-    SyncRho(rho_fp, rho_cp);
+    SyncRho();
 
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)

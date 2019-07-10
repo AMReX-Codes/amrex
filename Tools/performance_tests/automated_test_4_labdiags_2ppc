@@ -17,12 +17,6 @@ geometry.prob_hi     =  150.e-6    150.e-6    0.
 # Verbosity
 warpx.verbose = 1
 
-# Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
-
 # Numerics
 interpolation.nox = 3
 interpolation.noy = 3
@@ -78,7 +72,8 @@ ions.momentum_distribution_type = "constant"
 ions.do_continuous_injection = 1
 
 # Laser
-warpx.use_laser = 1
+lasers.nlasers = 1
+lasers.names = laser
 laser.profile      = Gaussian
 laser.position     = 0. 0. -1.e-6 # This point is on the laser plane
 laser.direction    = 0. 0. 1.    # The plane normal direction
