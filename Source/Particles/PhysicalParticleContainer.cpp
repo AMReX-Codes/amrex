@@ -1731,7 +1731,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
-        warpx_copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
+        copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
     }
 
     // The following attributes should be included in CPP version of warpx_particle_pusher
@@ -1861,7 +1861,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     }
 }
 
-void PhysicalParticleContainer::warpx_copy_attribs(WarpXParIter& pti,const Real* xp,
+void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
                         const Real* yp, const Real* zp)
 {
 

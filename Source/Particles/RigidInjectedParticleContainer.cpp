@@ -213,7 +213,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
-        warpx_copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
+        copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
     }
     
     // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.

@@ -78,7 +78,7 @@ public:
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
                         
-    void warpx_copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
+    void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
                         const amrex::Real* yp, const amrex::Real* zp);
 
     virtual void PostRestart () final {}
