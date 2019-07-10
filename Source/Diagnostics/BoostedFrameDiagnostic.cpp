@@ -764,7 +764,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     const std::vector<std::string> species_names = mypc.GetSpeciesNames();
     Real prev_t_lab = -dt;
     std::unique_ptr<amrex::MultiFab> tmp_slice_ptr;
-//    std::unique_ptr<amrex::MultiFab> slice ;
+    amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer;
 
     // Loop over snapshots
     for (int i = 0; i < LabFrameDiags_.size(); ++i) {
@@ -843,14 +843,22 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             }
         }
 
-        if (WarpX::do_boosted_frame_particles) {
-            amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer;
-            tmp_particle_buffer.resize(mypc.nSpeciesBoostedFrameDiags());         
-            mypc.GetLabFrameData( LabFrameDiags_[i]->file_name, i_lab, boost_direction_,
+        if (WarpX::do_boosted_frame_particles) {            
+            
+            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) { 
+               if (tmp_particle_buffer.size()>0) 
+               {
+                  tmp_particle_buffer.clear();
+                  tmp_particle_buffer.shrink_to_fit();
+               }
+               tmp_particle_buffer.resize(mypc.nSpeciesBoostedFrameDiags());         
+               mypc.GetLabFrameData( LabFrameDiags_[i]->file_name, i_lab, boost_direction_,
                                  old_z_boost, LabFrameDiags_[i]->current_z_boost,
                                  t_boost, LabFrameDiags_[i]->t_lab, dt, tmp_particle_buffer);
+            } 
+            LabFrameDiags_[i]->AddPartDataToParticleBuffer(tmp_particle_buffer, 
+                               mypc.nSpeciesBoostedFrameDiags());
             
-            LabFrameDiags_[i]->AddPartDataToParticleBuffer(tmp_particle_buffer);
         }
 
         ++LabFrameDiags_[i]->buff_counter_;
@@ -1317,8 +1325,8 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
 
 void 
 LabFrameSnapShot::
-AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer) {
-   for (int isp = 0; isp < 2; ++isp) {
+AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nspeciesBoostedFrame) {
+   for (int isp = 0; isp < nspeciesBoostedFrame; ++isp) {
        auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
        if (np == 0) return;
        auto const &wp = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
@@ -1371,8 +1379,8 @@ AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleDat
 
 void 
 LabFrameSlice::
-AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer) {
-   for (int isp = 0; isp < 2; ++isp) {
+AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame) {
+   for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
        auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
 
        if (np == 0) return;

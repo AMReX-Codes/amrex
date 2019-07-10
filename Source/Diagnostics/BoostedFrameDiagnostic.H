@@ -75,7 +75,7 @@ class LabFrameDiag {
    virtual void AddDataToBuffer(amrex::MultiFab& tmp_slice_ptr, int i_lab,
                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump){}; 
 //   virtual void initializeBufferMF(int boost_direction, int i_lab); 
-   virtual void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer) {};
+   virtual void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame) {};
 
 };
 
@@ -99,7 +99,7 @@ class LabFrameSnapShot : public LabFrameDiag {
                     amrex::Box diag_box, int file_num_in);
    void AddDataToBuffer( amrex::MultiFab& tmp_slice, int k_lab,
                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump); 
-   void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer);
+   void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame);
 };
 
 class LabFrameSlice : public LabFrameDiag {
@@ -116,7 +116,7 @@ class LabFrameSlice : public LabFrameDiag {
                     amrex::Real cell_dx, amrex::Real cell_dy);
    void AddDataToBuffer( amrex::MultiFab& tmp_slice_ptr, int i_lab,
                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump); 
-   void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer);
+   void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame);
 };
 
 class BoostedFrameDiagnostic {
