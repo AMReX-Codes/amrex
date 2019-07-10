@@ -1,5 +1,5 @@
 max_step = 10
-amr.n_cell = 8 16
+amr.n_cell = 24 24
 amr.max_level = 0
 amr.blocking_factor = 8
 amr.max_grid_size = 16

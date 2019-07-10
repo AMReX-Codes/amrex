@@ -292,7 +292,6 @@ WarpXParticleContainer::AddNParticles (int lev,
  * \param lev         : Level of box that contains particles
  * \param depos_lev   : Level on which particles deposit (if buffers are used)
  * \param dt          : Time step for particle level
- * \param ngJ         : Number of ghosts cells (of lev)
  */
 void
 WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
@@ -336,10 +335,10 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Lower corner of tile box physical domain
     // const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(tilebox, depos_lev);
     // const std::array<Real, 3>& xyzmin = xyzmin_tile;
+    tilebox.grow(ngJ);
     const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
 
     // Print()<<" xyzmin_tile "<<xyzmin_tile[0]<<' '<<xyzmin_tile[1]<<' '<<xyzmin_tile[2]<<'\n';
-    Print()<<" xyzmin "<<xyzmin[0]<<' '<<xyzmin[1]<<' '<<xyzmin[2]<<'\n';
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
@@ -358,24 +357,21 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     tby.grow(ngJ);
     tbz.grow(ngJ);
 
+    const std::array<Real, 3>& xyzminx = WarpX::LowerCorner(tbx, depos_lev);;
+    const std::array<Real, 3>& xyzminy = WarpX::LowerCorner(tby, depos_lev);;
+    const std::array<Real, 3>& xyzminz = WarpX::LowerCorner(tbz, depos_lev);;
+
     Print()<<"ngJ "<<ngJ<<'\n';
 
     local_jx[thread_num].resize(tbx);
     local_jy[thread_num].resize(tby);
     local_jz[thread_num].resize(tbz);
 
-    Real* jx_ptr = local_jx[thread_num].dataPtr();
-    Real* jy_ptr = local_jy[thread_num].dataPtr();
-    Real* jz_ptr = local_jz[thread_num].dataPtr();
-
     // local_jx[thread_num] is set to zero
     local_jx[thread_num].setVal(0.0);
     local_jy[thread_num].setVal(0.0);
     local_jz[thread_num].setVal(0.0);
 
-    auto jxntot = local_jx[thread_num].length();
-    auto jyntot = local_jy[thread_num].length();
-    auto jzntot = local_jz[thread_num].length();
 #endif
     // GPU, no tiling: deposit directly in jx
     // CPU, tiling: deposit into local_jx
@@ -383,8 +379,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     BL_PROFILE_VAR_START(blp_pxr_cd);
     bool use_new = true;
     if (use_new){
-
-
         Real dxi = 1.0/dx[0];
         Real dzi = 1.0/dx[2];
         Real invvol = dxi*dzi;
@@ -395,9 +389,17 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
         Real xmin = xyzmin[0];
         Real zmin = xyzmin[2];
+        /*
+        Real xminx = xyzminx[0];
+        Real zminx = xyzminx[2];
+        Real xminy = xyzminy[0];
+        Real zminy = xyzminy[2];
+        Real xminz = xyzminz[0];
+        Real zminz = xyzminz[2];
+        */
         Real q = this->charge;
         Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
-        Print()<<"xmin "<<xmin<<" zmin "<<zmin<<" stagger_shift "<<stagger_shift<<'\n';
+        // Print()<<"xmin "<<xmin<<" zmin "<<zmin<<" stagger_shift "<<stagger_shift<<'\n';
         Print()<<"dxi  "<<dxi<<" dzi "<<dzi<<'\n';
         
         /* works for GPU/no tiling
@@ -406,29 +408,16 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         auto jz_arr = jz->array(pti);
         */
 
-        // const auto& jx_arr = local_jx[thread_num].array();
-        // const auto& jy_arr = local_jy[thread_num].array();
-        // const auto& jz_arr = local_jz[thread_num].array();
-
-        //Array4<Real> const& jx_arr = local_jx[thread_num].array(tbx);
-        //Array4<Real> const& jy_arr = local_jy[thread_num].array(tby);
-        //Array4<Real> const& jz_arr = local_jz[thread_num].array(tbz);
         Array4<Real> const& jx_arr = local_jx[thread_num].array();
         Array4<Real> const& jy_arr = local_jy[thread_num].array();
         Array4<Real> const& jz_arr = local_jz[thread_num].array();
 
-        Dim3 lox = lbound(jx_arr);
-        Dim3 loy = lbound(jy_arr);
-        Dim3 loz = lbound(jz_arr);
-        /*
-        Dim3 loy = lbound(local_jy[thread_num]);
-        Dim3 loz = lbound(local_jz[thread_num]);
-        Dim3 hix = hbound(local_jx[thread_num]);
-        Dim3 hiy = hbound(local_jy[thread_num]);
-        Dim3 hiz = hbound(local_jz[thread_num]);
-        */
-        Print()<<" lox "<<lox<<" loy "<<loy<<" loz "<<loz<<'\n';
-        Print()<<" lox.x "<<lox.x<<" lox.y "<<loy.x<<" lox.z "<<lox.z<<'\n';
+        Print()<<"tbx"<<tbx<<'\n';
+        Print()<<"lbound(tbx)"<<"lbound(tbx).x "<<lbound(tbx).x<<"lbound(tbx).y "<<lbound(tbx).y<<"lbound(tbz).z "<<lbound(tbx).z<<'\n';
+        Print()<<"lbound(tbx)"<<lbound(tbx)<<'\n';
+        Dim3 lox = lbound(tbx);
+        Dim3 loy = lbound(tby);
+        Dim3 loz = lbound(tbz);
 
         // - momenta are stored as a struct of array, in `attribs`
         // auto& attribs = pti.GetAttribs();
@@ -446,19 +435,10 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
         Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
 
-        // Loop over the particles and convert momentum
-        // const long np = pti.numParticles();
         Print()<<"np_to_depose "<<np_to_depose<<'\n';
         ParallelFor( np_to_depose,
                      [=] AMREX_GPU_DEVICE (long ip) {
                          std::cout<<" ip "<<ip<<'\n';
-                         Real x = (Real) (xp[ip]-xmin)*dxi;
-                         Real z = (Real) (zp[ip]-zmin)*dzi;
-                         std::cout<<" x "<<x<<'\n';
-                         std::cout<<" z "<<z<<'\n';
-                         std::cout<<" xp[ip] "<<xp[ip]<<'\n';
-                         std::cout<<" xmin "<<xmin<<'\n';
-                         std::cout<<" dxi "<<dxi<<'\n';
                          Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                          + uyp[ip]*uyp[ip]*clightsq
                                                          + uzp[ip]*uzp[ip]*clightsq);
@@ -479,6 +459,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                          Real wqy=wq*invvol*vy;
                          Real wqz=wq*invvol*vz;
 
+
+                         // int j0= (int) xmid;
+                         // int l0= (int) zmid;
+                         // std::cout<<" j "<<j<<" j0 "<<j0<<'\n';
+                         // std::cout<<" l "<<l<<" l0 "<<l0<<'\n';
+
+                         Real x = (Real) (xp[ip]-xmin)*dxi;
+                         Real z = (Real) (zp[ip]-zmin)*dzi;
+
                          Real xmid=x-dts2dx*vx;
                          Real zmid=z-dts2dz*vz;
 
@@ -486,42 +475,46 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                          int l = (int) zmid;
                          int j0= (int) (xmid-stagger_shift);
                          int l0= (int) (zmid-stagger_shift);
-                         std::cout<<" j "<<j<<" j0 "<<j0<<'\n';
-                         std::cout<<" l "<<l<<" l0 "<<l0<<'\n';
 
                          Real xint = xmid-j;
                          Real zint = zmid-l;
+
                          Real sx[2] = {1.0 - xint, xint};
                          Real sz[2] = {1.0 - zint, zint};
 
                          xint = xmid-stagger_shift-j0;
                          zint = zmid-stagger_shift-l0;
+
                          Real sx0[2] = {1.0 - xint, xint};
                          Real sz0[2] = {1.0 - zint, zint};
 
-                         // jx_arr(2,2,0) = 1.;
-                         jx_arr(lox.x+j0  ,l  ,0) += sx0[0]*sz[0]*wqx;
+                         jx_arr(lox.x+j0  ,lox.y+l  ,0) += sx0[0]*sz[0]*wqx;
+                         jx_arr(lox.x+j0+1,lox.y+l  ,0) += sx0[1]*sz[0]*wqx;
+                         jx_arr(lox.x+j0  ,lox.y+l+1,0) += sx0[0]*sz[1]*wqx;
+                         jx_arr(lox.x+j0+1,lox.y+l+1,0) += sx0[1]*sz[1]*wqx;
 
-                         /*
-                         jx_arr(j0  ,l  ,0) += sx0[0]*sz[0]*wqx;
-                         jx_arr(j0+1,l  ,0) += sx0[1]*sz[0]*wqx;
-                         jx_arr(j0  ,l+1,0) += sx0[0]*sz[1]*wqx;
-                         jx_arr(j0+1,l+1,0) += sx0[1]*sz[1]*wqx;
+                         jy_arr(loy.x+j  ,loy.y+l  ,0) += sx[0]*sz[0]*wqy;
+                         jy_arr(loy.x+j+1,loy.y+l  ,0) += sx[1]*sz[0]*wqy;
+                         jy_arr(loy.x+j  ,loy.y+l+1,0) += sx[0]*sz[1]*wqy;
+                         jy_arr(loy.x+j+1,loy.y+l+1,0) += sx[1]*sz[1]*wqy;
 
-                         jy_arr(j  ,l  ,0) += sx[0]*sz[0]*wqy;
-                         jy_arr(j+1,l  ,0) += sx[1]*sz[0]*wqy;
-                         jy_arr(j  ,l+1,0) += sx[0]*sz[1]*wqy;
-                         jy_arr(j+1,l+1,0) += sx[1]*sz[1]*wqy;
-
-                         jz_arr(j  ,l0  ,0) += sx[0]*sz0[0]*wqz;
-                         jz_arr(j+1,l0  ,0) += sx[1]*sz0[0]*wqz;
-                         jz_arr(j  ,l0+1,0) += sx[0]*sz0[1]*wqz;
-                         jz_arr(j+1,l0+1,0) += sx[1]*sz0[1]*wqz;
-                         */
+                         jz_arr(loz.x+j  ,loz.y+l0  ,0) += sx[0]*sz0[0]*wqz;
+                         jz_arr(loz.x+j+1,loz.y+l0  ,0) += sx[1]*sz0[0]*wqz;
+                         jz_arr(loz.x+j  ,loz.y+l0+1,0) += sx[0]*sz0[1]*wqz;
+                         jz_arr(loz.x+j+1,loz.y+l0+1,0) += sx[1]*sz0[1]*wqz;
                      }
             );
         Print()<<"ParallelFor done!\n";
     } else {
+
+        Real* jx_ptr = local_jx[thread_num].dataPtr();
+        Real* jy_ptr = local_jy[thread_num].dataPtr();
+        Real* jz_ptr = local_jz[thread_num].dataPtr();
+
+        auto jxntot = local_jx[thread_num].length();
+        auto jyntot = local_jy[thread_num].length();
+        auto jzntot = local_jz[thread_num].length();
+
         warpx_current_deposition(
             jx_ptr, &ngJ, jxntot.getVect(),
             jy_ptr, &ngJ, jyntot.getVect(),
