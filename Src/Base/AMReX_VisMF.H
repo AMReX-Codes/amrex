@@ -5,6 +5,7 @@
 #include <iosfwd>
 #include <string>
 #include <fstream>
+#include <thread>
 
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
@@ -77,10 +78,11 @@ public:
         Header ();
         //! Construct from a FabArray<FArrayBox>.
         Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1,
-		bool calcMinMax = true);
+		bool calcMinMax = true, MPI_Comm = ParallelDescriptor::Communicator());
 	//! Calculate the min and max arrays
 	void CalculateMinMax(const FabArray<FArrayBox>& fafab,
-			     int procToWrite = ParallelDescriptor::IOProcessorNumber());
+			     int procToWrite = ParallelDescriptor::IOProcessorNumber(),
+                             MPI_Comm = ParallelDescriptor::Communicator());
         //
         // The data.
         //
@@ -178,6 +180,10 @@ public:
                        const std::string& name,
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
+
+    static std::thread WriteAsync (const FabArray<FArrayBox>& fafab,
+                                   const std::string& name);
+
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
     * disk without the corresponding FAB data. This writes BoxArray information
@@ -218,17 +224,15 @@ public:
     //! The file offset of the passed ostream.
     static long FileOffset (std::ostream& os);
     //! Read the entire fab (all components).
-    FArrayBox* readFAB (int                fabIndex,
-                        const std::string& fafabName);
+    FArrayBox* readFAB (int fabIndex, const std::string& fafabName);
     //! Read the specified fab component.
-    FArrayBox* readFAB (int fabIndex,
-                        int icomp);
+    FArrayBox* readFAB (int fabIndex, int icomp);
 
     static int  GetNOutFiles ();
-    static void SetNOutFiles (int noutfiles);
+    static void SetNOutFiles (int noutfiles, MPI_Comm comm = ParallelDescriptor::Communicator());
 
     static int  GetMFFileInStreams ()  { return nMFFileInStreams; }
-    static void SetMFFileInStreams (int nstreams);
+    static void SetMFFileInStreams (int nstreams, MPI_Comm comm = ParallelDescriptor::Communicator());
 
     static int GetVerbose ()       { return verbose; }
     static void SetVerbose (int v) { verbose = v; }
@@ -284,7 +288,8 @@ private:
 
     static long WriteHeader (const std::string &fafab_name,
                              VisMF::Header     &hdr,
-			     int procToWrite = ParallelDescriptor::IOProcessorNumber());
+			     int procToWrite = ParallelDescriptor::IOProcessorNumber(),
+                             MPI_Comm comm = ParallelDescriptor::Communicator());
 
     //! fileNumbers must be passed in for dynamic set selection [proc]
     static void FindOffsets (const FabArray<FArrayBox> &fafab,
@@ -292,7 +297,8 @@ private:
                              VisMF::Header &hdr,
 			     bool groupSets,
 			     VisMF::Header::Version whichVersion,
-			     NFilesIter &nfi);
+			     NFilesIter &nfi,
+                             MPI_Comm comm = ParallelDescriptor::Communicator());
     /**
     * \brief Make a new FAB from a fab in a FabArray<FArrayBox> on disk.
     * The returned *FAB will have either one component filled from
