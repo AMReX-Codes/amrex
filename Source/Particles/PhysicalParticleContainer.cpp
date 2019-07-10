@@ -1861,27 +1861,26 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     }
 }
 
-void PhysicalParticleContainer::warpx_copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
-                        const amrex::Real* yp, const amrex::Real* zp)
+void PhysicalParticleContainer::warpx_copy_attribs(WarpXParIter& pti,const Real* xp,
+                        const Real* yp, const Real* zp)
 {
+
     auto& attribs = pti.GetAttribs();
     
-    //Real* AMREX_RESTRICT
+    Real* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
+    Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
+    Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
     
-    const amrex::Real* uxp = attribs[PIdx::ux].dataPtr();
-    const amrex::Real* uyp = attribs[PIdx::uy].dataPtr();
-    const amrex::Real* uzp = attribs[PIdx::uz].dataPtr();
-    
-    amrex::Real* xpold = attribs[PIdx::nattribs].dataPtr();
-    amrex::Real* ypold = attribs[PIdx::nattribs+1].dataPtr();
-    amrex::Real* zpold = attribs[PIdx::nattribs+2].dataPtr();
-    amrex::Real* uxpold = attribs[PIdx::nattribs+3].dataPtr();
-    amrex::Real* uypold = attribs[PIdx::nattribs+4].dataPtr();
-    amrex::Real* uzpold = attribs[PIdx::nattribs+5].dataPtr();
+    Real* AMREX_RESTRICT xpold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
+    Real* AMREX_RESTRICT ypold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
+    Real* AMREX_RESTRICT zpold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
+    Real* AMREX_RESTRICT uxpold = pti.GetAttribs(particle_comps["uxold"]).dataPtr();
+    Real* AMREX_RESTRICT uypold = pti.GetAttribs(particle_comps["uyold"]).dataPtr();
+    Real* AMREX_RESTRICT uzpold = pti.GetAttribs(particle_comps["uzold"]).dataPtr();
     
     const long np = pti.numParticles();
     
-    amrex::ParallelFor( np,
+    ParallelFor( np,
         [=] AMREX_GPU_DEVICE (long i) {
             xpold[i]=xp[i];
             ypold[i]=yp[i];
