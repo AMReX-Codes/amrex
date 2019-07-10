@@ -310,7 +310,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
     const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
-    const long lvect = 8;
     int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
 
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
@@ -332,13 +331,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Box tby = convert(tilebox, WarpX::jy_nodal_flag);
     Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
 
-    // Lower corner of tile box physical domain
-    // const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(tilebox, depos_lev);
-    // const std::array<Real, 3>& xyzmin = xyzmin_tile;
     tilebox.grow(ngJ);
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
-
-    // Print()<<" xyzmin_tile "<<xyzmin_tile[0]<<' '<<xyzmin_tile[1]<<' '<<xyzmin_tile[2]<<'\n';
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
@@ -357,12 +350,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     tby.grow(ngJ);
     tbz.grow(ngJ);
 
-    const std::array<Real, 3>& xyzminx = WarpX::LowerCorner(tbx, depos_lev);;
-    const std::array<Real, 3>& xyzminy = WarpX::LowerCorner(tby, depos_lev);;
-    const std::array<Real, 3>& xyzminz = WarpX::LowerCorner(tbz, depos_lev);;
-
-    Print()<<"ngJ "<<ngJ<<'\n';
-
     local_jx[thread_num].resize(tbx);
     local_jy[thread_num].resize(tby);
     local_jz[thread_num].resize(tbz);
@@ -377,162 +364,87 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // CPU, tiling: deposit into local_jx
     // (same for jx and jz)
     BL_PROFILE_VAR_START(blp_pxr_cd);
-    bool use_new = true;
-    if (use_new){
-        Real dxi = 1.0/dx[0];
-        Real dzi = 1.0/dx[2];
-        Real invvol = dxi*dzi;
-        Real dts2dx = 0.5*dt*dxi;
-        Real dts2dz = 0.5*dt*dzi;
-        Real clightsq = 1.0/PhysConst::c/PhysConst::c;
-        Real c = PhysConst::c;
+    Real dxi = 1.0/dx[0];
+    Real dzi = 1.0/dx[2];
+    Real invvol = dxi*dzi;
+    Real dts2dx = 0.5*dt*dxi;
+    Real dts2dz = 0.5*dt*dzi;
+    Real clightsq = 1.0/PhysConst::c/PhysConst::c;
+    Real q = this->charge;
 
-        Real xmin = xyzmin[0];
-        Real zmin = xyzmin[2];
-        /*
-        Real xminx = xyzminx[0];
-        Real zminx = xyzminx[2];
-        Real xminy = xyzminy[0];
-        Real zminy = xyzminy[2];
-        Real xminz = xyzminz[0];
-        Real zminz = xyzminz[2];
-        */
-        Real q = this->charge;
-        Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
-        // Print()<<"xmin "<<xmin<<" zmin "<<zmin<<" stagger_shift "<<stagger_shift<<'\n';
-        Print()<<"dxi  "<<dxi<<" dzi "<<dzi<<'\n';
-        
-        /* works for GPU/no tiling
-        auto jx_arr = jx->array(pti);
-        auto jy_arr = jy->array(pti);
-        auto jz_arr = jz->array(pti);
-        */
+    // Lower corner of tile box physical domain
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
+    // xmin and zmin are built on pti.tilebox(), so it does 
+    // not include staggering, so the stagger_shift has to be done by hand.
+    // Alternatively, we could define xminx from tbx (and the same for 3 
+    // directions and for jx, jy, jz). This way, sxo would not be needed.
+    // Better for memory? worth trying?
+    const Real xmin = xyzmin[0];
+    const Real zmin = xyzmin[2];
+    const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
 
-        Array4<Real> const& jx_arr = local_jx[thread_num].array();
-        Array4<Real> const& jy_arr = local_jy[thread_num].array();
-        Array4<Real> const& jz_arr = local_jz[thread_num].array();
+    Array4<Real> const& jx_arr = local_jx[thread_num].array();
+    Array4<Real> const& jy_arr = local_jy[thread_num].array();
+    Array4<Real> const& jz_arr = local_jz[thread_num].array();
+    
+    const Dim3 lo = lbound(tilebox);
 
-        Print()<<"tbx"<<tbx<<'\n';
-        Print()<<"lbound(tbx)"<<"lbound(tbx).x "<<lbound(tbx).x<<"lbound(tbx).y "<<lbound(tbx).y<<"lbound(tbz).z "<<lbound(tbx).z<<'\n';
-        Print()<<"lbound(tbx)"<<lbound(tbx)<<'\n';
-        Dim3 lox = lbound(tbx);
-        Dim3 loy = lbound(tby);
-        Dim3 loz = lbound(tbz);
+    Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
+    Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
 
-        // - momenta are stored as a struct of array, in `attribs`
-        // auto& attribs = pti.GetAttribs();
+    ParallelFor( np_to_depose,
+                 [=] AMREX_GPU_DEVICE (long ip) {
+                     Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
+                                                     + uyp[ip]*uyp[ip]*clightsq
+                                                     + uzp[ip]*uzp[ip]*clightsq);
+                     
+                     Real vx = uxp[ip]*gaminv;
+                     Real vy = uyp[ip]*gaminv;
+                     Real vz = uzp[ip]*gaminv;
 
-        // Real* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
-        // Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
-        // Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
-        // Real* AMREX_RESTRICT w  = attribs[PIdx::w ].dataPtr();
-        
-        //Cuda::ManagedDeviceVector<Real> Vx, Vy, Vz;
-        //pti.GetPosition(Vx, Vy, Vz);
-        //Real* AMREX_RESTRICT xp  = Vx.dataPtr() + offset;
-        //Real* AMREX_RESTRICT zp  = Vz.dataPtr() + offset;
+                     Real wq=q*wp[ip];
+                     Real wqx=wq*invvol*vx;
+                     Real wqy=wq*invvol*vy;
+                     Real wqz=wq*invvol*vz;
 
-        Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
-        Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
+                     Real x = (Real) (xp[ip]-xmin)*dxi;
+                     Real z = (Real) (zp[ip]-zmin)*dzi;
+                     Real xmid=x-dts2dx*vx;
+                     Real zmid=z-dts2dz*vz;
 
-        Print()<<"np_to_depose "<<np_to_depose<<'\n';
-        ParallelFor( np_to_depose,
-                     [=] AMREX_GPU_DEVICE (long ip) {
-                         std::cout<<" ip "<<ip<<'\n';
-                         Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                         + uyp[ip]*uyp[ip]*clightsq
-                                                         + uzp[ip]*uzp[ip]*clightsq);
-                         
-                         Real vx = uxp[ip]*gaminv;
-                         Real vy = uyp[ip]*gaminv;
-                         Real vz = uzp[ip]*gaminv;
+                     int j = (int) xmid;
+                     int l = (int) zmid;
+                     int j0= (int) (xmid-stagger_shift);
+                     int l0= (int) (zmid-stagger_shift);
 
-                         std::cout<<" uxp[ip] "<<uxp[ip]<<'\n';
-                         std::cout<<" uyp[ip] "<<uyp[ip]<<'\n';
-                         std::cout<<" uzp[ip] "<<uzp[ip]<<'\n';
+                     Real xint = xmid-j;
+                     Real zint = zmid-l;
 
-                         std::cout<<" vx "<<vx<<'\n';
-                         std::cout<<" vz "<<vz<<'\n';
+                     Real sx[2] = {1.0 - xint, xint};
+                     Real sz[2] = {1.0 - zint, zint};
 
-                         Real wq=q*wp[ip];
-                         Real wqx=wq*invvol*vx;
-                         Real wqy=wq*invvol*vy;
-                         Real wqz=wq*invvol*vz;
+                     xint = xmid-stagger_shift-j0;
+                     zint = zmid-stagger_shift-l0;
 
+                     Real sx0[2] = {1.0 - xint, xint};
+                     Real sz0[2] = {1.0 - zint, zint};
 
-                         // int j0= (int) xmid;
-                         // int l0= (int) zmid;
-                         // std::cout<<" j "<<j<<" j0 "<<j0<<'\n';
-                         // std::cout<<" l "<<l<<" l0 "<<l0<<'\n';
+                     jx_arr(lo.x+j0  ,lo.y+l  ,0) += sx0[0]*sz[0]*wqx;
+                     jx_arr(lo.x+j0+1,lo.y+l  ,0) += sx0[1]*sz[0]*wqx;
+                     jx_arr(lo.x+j0  ,lo.y+l+1,0) += sx0[0]*sz[1]*wqx;
+                     jx_arr(lo.x+j0+1,lo.y+l+1,0) += sx0[1]*sz[1]*wqx;
 
-                         Real x = (Real) (xp[ip]-xmin)*dxi;
-                         Real z = (Real) (zp[ip]-zmin)*dzi;
+                     jy_arr(lo.x+j  ,lo.y+l  ,0) += sx[0]*sz[0]*wqy;
+                     jy_arr(lo.x+j+1,lo.y+l  ,0) += sx[1]*sz[0]*wqy;
+                     jy_arr(lo.x+j  ,lo.y+l+1,0) += sx[0]*sz[1]*wqy;
+                     jy_arr(lo.x+j+1,lo.y+l+1,0) += sx[1]*sz[1]*wqy;
 
-                         Real xmid=x-dts2dx*vx;
-                         Real zmid=z-dts2dz*vz;
-
-                         int j = (int) xmid;
-                         int l = (int) zmid;
-                         int j0= (int) (xmid-stagger_shift);
-                         int l0= (int) (zmid-stagger_shift);
-
-                         Real xint = xmid-j;
-                         Real zint = zmid-l;
-
-                         Real sx[2] = {1.0 - xint, xint};
-                         Real sz[2] = {1.0 - zint, zint};
-
-                         xint = xmid-stagger_shift-j0;
-                         zint = zmid-stagger_shift-l0;
-
-                         Real sx0[2] = {1.0 - xint, xint};
-                         Real sz0[2] = {1.0 - zint, zint};
-
-                         jx_arr(lox.x+j0  ,lox.y+l  ,0) += sx0[0]*sz[0]*wqx;
-                         jx_arr(lox.x+j0+1,lox.y+l  ,0) += sx0[1]*sz[0]*wqx;
-                         jx_arr(lox.x+j0  ,lox.y+l+1,0) += sx0[0]*sz[1]*wqx;
-                         jx_arr(lox.x+j0+1,lox.y+l+1,0) += sx0[1]*sz[1]*wqx;
-
-                         jy_arr(loy.x+j  ,loy.y+l  ,0) += sx[0]*sz[0]*wqy;
-                         jy_arr(loy.x+j+1,loy.y+l  ,0) += sx[1]*sz[0]*wqy;
-                         jy_arr(loy.x+j  ,loy.y+l+1,0) += sx[0]*sz[1]*wqy;
-                         jy_arr(loy.x+j+1,loy.y+l+1,0) += sx[1]*sz[1]*wqy;
-
-                         jz_arr(loz.x+j  ,loz.y+l0  ,0) += sx[0]*sz0[0]*wqz;
-                         jz_arr(loz.x+j+1,loz.y+l0  ,0) += sx[1]*sz0[0]*wqz;
-                         jz_arr(loz.x+j  ,loz.y+l0+1,0) += sx[0]*sz0[1]*wqz;
-                         jz_arr(loz.x+j+1,loz.y+l0+1,0) += sx[1]*sz0[1]*wqz;
-                     }
-            );
-        Print()<<"ParallelFor done!\n";
-    } else {
-
-        Real* jx_ptr = local_jx[thread_num].dataPtr();
-        Real* jy_ptr = local_jy[thread_num].dataPtr();
-        Real* jz_ptr = local_jz[thread_num].dataPtr();
-
-        auto jxntot = local_jx[thread_num].length();
-        auto jyntot = local_jy[thread_num].length();
-        auto jzntot = local_jz[thread_num].length();
-
-        warpx_current_deposition(
-            jx_ptr, &ngJ, jxntot.getVect(),
-            jy_ptr, &ngJ, jyntot.getVect(),
-            jz_ptr, &ngJ, jzntot.getVect(),
-            &np_to_depose,
-            m_xp[thread_num].dataPtr() + offset,
-            m_yp[thread_num].dataPtr() + offset,
-            m_zp[thread_num].dataPtr() + offset,
-            uxp.dataPtr() + offset,
-            uyp.dataPtr() + offset,
-            uzp.dataPtr() + offset,
-            m_giv[thread_num].dataPtr() + offset,
-            wp.dataPtr() + offset, &this->charge,
-            &xyzmin[0], &xyzmin[1], &xyzmin[2],
-            &dt, &dx[0], &dx[1], &dx[2],
-            &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
-            &lvect,&WarpX::current_deposition_algo);
-    }
+                     jz_arr(lo.x+j  ,lo.y+l0  ,0) += sx[0]*sz0[0]*wqz;
+                     jz_arr(lo.x+j+1,lo.y+l0  ,0) += sx[1]*sz0[0]*wqz;
+                     jz_arr(lo.x+j  ,lo.y+l0+1,0) += sx[0]*sz0[1]*wqz;
+                     jz_arr(lo.x+j+1,lo.y+l0+1,0) += sx[1]*sz0[1]*wqz;
+                 }
+        );
 #ifdef WARPX_RZ
     // Rescale current in r-z mode
     warpx_current_deposition_rz_volume_scaling(

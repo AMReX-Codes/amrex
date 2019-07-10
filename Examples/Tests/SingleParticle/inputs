@@ -1,5 +1,5 @@
 max_step = 10
-amr.n_cell = 24 24
+amr.n_cell = 8 16
 amr.max_level = 0
 amr.blocking_factor = 8
 amr.max_grid_size = 16
@@ -24,5 +24,5 @@ electron.charge = -q_e
 electron.mass = 1.e10
 electron.injection_style = "SingleParticle"
 electron.single_particle_pos = 4 0 6
-electron.single_particle_vel = -2 0 -5 # -2. 1. 4.
+electron.single_particle_vel = -2 0 -5000 # -2. 1. 4.
 electron.single_particle_weight = 1.0
