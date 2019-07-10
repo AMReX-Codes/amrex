@@ -1,5 +1,3 @@
-// TODO: need to work on read for upc++
-
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -93,15 +91,15 @@ VisMF::Finalize ()
 }
 
 void
-VisMF::SetNOutFiles (int noutfiles)
+VisMF::SetNOutFiles (int noutfiles, MPI_Comm comm)
 {
-    nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
+    nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(comm), noutfiles));
 }
 
 void
-VisMF::SetMFFileInStreams (int nstreams)
+VisMF::SetMFFileInStreams (int nstreams, MPI_Comm comm)
 {
-    nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(), nstreams));
+    nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(comm), nstreams));
 }
 
 int
@@ -111,8 +109,7 @@ VisMF::GetNOutFiles()
 }
 
 std::ostream&
-operator<< (std::ostream&           os,
-            const VisMF::FabOnDisk& fod)
+operator<< (std::ostream& os, const VisMF::FabOnDisk& fod)
 {
     os << TheFabOnDiskPrefix << ' ' << fod.m_name << ' ' << fod.m_head;
 
@@ -124,8 +121,7 @@ operator<< (std::ostream&           os,
 }
 
 std::istream&
-operator>> (std::istream&     is,
-            VisMF::FabOnDisk& fod)
+operator>> (std::istream& is, VisMF::FabOnDisk& fod)
 {
     std::string str;
     is >> str;
@@ -645,9 +641,10 @@ VisMF::Header::Header ()
 //
 
 VisMF::Header::Header (const FabArray<FArrayBox>& mf,
-                       VisMF::How      how,
+                       VisMF::How how,
 		       Version version,
-		       bool calcMinMax)
+		       bool calcMinMax,
+                       MPI_Comm comm)
     :
     m_vers(version),
     m_how(how),
@@ -680,21 +677,20 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
           m_famax[i] = std::max(m_famax[i], mf[mfi].max(m_ba[idx],i));
         }
       }
-      ParallelDescriptor::ReduceRealMin(m_famin.dataPtr(), m_famin.size());
-      ParallelDescriptor::ReduceRealMax(m_famax.dataPtr(), m_famax.size());
+      ParallelAllReduce::Min(m_famin.dataPtr(), m_famin.size(), comm);
+      ParallelAllReduce::Max(m_famax.dataPtr(), m_famax.size(), comm);
 
       return;
     }
 
     if(calcMinMax) {
-      CalculateMinMax(mf);
+      CalculateMinMax(mf,0, comm);
     }
 }
 
-
 void
 VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
-                                int procToWrite)
+                                int procToWrite, MPI_Comm comm)
 {
 //    BL_PROFILE("VisMF::CalculateMinMax");
 
@@ -719,8 +715,8 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         }
     }
 
-    Vector<int> nmtags(ParallelDescriptor::NProcs(), 0);
-    Vector<int> offset(ParallelDescriptor::NProcs(), 0);
+    Vector<int> nmtags(ParallelDescriptor::NProcs(comm), 0);
+    Vector<int> offset(ParallelDescriptor::NProcs(comm), 0);
 
     const Vector<int> &pmap = mf.DistributionMap().ProcessorMap();
 
@@ -739,7 +735,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         offset[i] = offset[i-1] + nmtags[i-1];
     }
 
-    Vector<Real> senddata(nmtags[ParallelDescriptor::MyProc()]);
+    Vector<Real> senddata(nmtags[ParallelDescriptor::MyProc(comm)]);
 
     if(senddata.empty()) {
         //
@@ -759,27 +755,27 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
         ioffset += 2*m_ncomp;
     }
 
-    BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
+    BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc(comm)]);
 
     Vector<Real> recvdata(mf.size()*2*m_ncomp);
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+                    ParallelDescriptor::MyProc(comm), BLProfiler::BeforeCall());
 
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
-                                nmtags[ParallelDescriptor::MyProc()],
+                                nmtags[ParallelDescriptor::MyProc(comm)],
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                                 recvdata.dataPtr(),
                                 nmtags.dataPtr(),
                                 offset.dataPtr(),
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                                 procToWrite,
-                                ParallelDescriptor::Communicator()) );
+                                comm) );
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+                    ParallelDescriptor::MyProc(comm), BLProfiler::AfterCall());
 
-    if(ParallelDescriptor::MyProc() == procToWrite) {
+    if(ParallelDescriptor::MyProc(comm) == procToWrite) {
         for(int i(0), N(mf.size()); i < N; ++i) {
             if(pmap[i] != procToWrite) {
                 m_min[i].resize(m_ncomp);
@@ -815,7 +811,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 #endif /*BL_USE_MPI*/
 
 #ifdef BL_FIXHEADERDENORMS
-    if(ParallelDescriptor::MyProc() == procToWrite) {
+    if(ParallelDescriptor::MyProc(comm) == procToWrite) {
         for(int i(0); i < m_min.size(); ++i) {
             for(int j(0); j < m_min[i].size(); ++j) {
                 if(std::abs(m_min[i][j]) < 1.0e-300) {
@@ -855,14 +851,13 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
 
 
 long
-VisMF::WriteHeader (const std::string &mf_name,
-                    VisMF::Header     &hdr,
-		    int                procToWrite)
+VisMF::WriteHeader (const std::string &mf_name, VisMF::Header &hdr,
+		    int procToWrite, MPI_Comm comm)
 {
 //    BL_PROFILE("VisMF::WriteHeader");
     long bytesWritten(0);
 
-    if(ParallelDescriptor::MyProc() == procToWrite) {
+    if(ParallelDescriptor::MyProc(comm) == procToWrite) {
         std::string MFHdrFileName(mf_name);
 
         MFHdrFileName += TheMultiFabHdrFileSuffix;
@@ -1068,7 +1063,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       hdr.CalculateMinMax(mf, coordinatorProc);
     }
 
-    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion, nfi);
+    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion, nfi,
+                       ParallelDescriptor::Communicator());
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
@@ -1118,13 +1114,13 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
                     VisMF::Header &hdr,
 		    bool groupSets,
 		    VisMF::Header::Version whichVersion,
-		    NFilesIter &nfi)
+		    NFilesIter &nfi, MPI_Comm comm)
 {
 //    BL_PROFILE("VisMF::FindOffsets");
 
-    const int myProc(ParallelDescriptor::MyProc());
-    const int nProcs(ParallelDescriptor::NProcs());
-    int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
+    const int myProc(ParallelDescriptor::MyProc(comm));
+    const int nProcs(ParallelDescriptor::NProcs(comm));
+    int coordinatorProc(ParallelDescriptor::IOProcessorNumber(comm));
     if(nfi.GetDynamic()) {
       coordinatorProc = nfi.CoordinatorProc();
     }
@@ -1175,7 +1171,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
                                 offset.dataPtr(),
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
                                 coordinatorProc,
-                                ParallelDescriptor::Communicator()) );
+                                comm) );
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
                     myProc, BLProfiler::AfterCall());
@@ -2118,6 +2114,13 @@ void VisMF::DeleteStream(const std::string &fileName)
 
 void VisMF::CloseAllStreams() {
   VisMF::persistentIFStreams.clear();
+}
+
+std::thread
+VisMF::WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name)
+{
+    std::thread t;
+    return t;
 }
 
 }
