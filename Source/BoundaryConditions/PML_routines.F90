@@ -292,13 +292,9 @@ contains
     real(amrex_real), intent(in   ) :: sigsjx (ssjxlo:ssjxhi)
     real(amrex_real), intent(in   ) :: sigsjy (ssjylo:ssjyhi)
     real(amrex_real), intent(in   ) :: sigsjz (ssjzlo:ssjzhi)
-    !Character, intent(in ) :: pml_type (9)
 
     integer :: i, j, k
     real(amrex_real) :: alpha_xy, alpha_xz, alpha_yx, alpha_yz, alpha_zx, alpha_zy
-
-    ! PRINT *, ">>> PML_routine"
-    ! PRINT *, "pml_type = ", pml_type(1)
 
     if (flag == 0) then
       do       k = xlo(3), xhi(3)
@@ -492,10 +488,7 @@ contains
                     alpha_xy = sigjy(j)/(sigjy(j)+sigjz(k))
                     alpha_xz = sigjz(k)/(sigjy(j)+sigjz(k))
                  end if
-                !  PRINT *, "alpha_xy = ", alpha_xy
-                !  PRINT *, "alpha_xz = ", alpha_xz
-                !  PRINT *, "sigsjy = ", sigsjy(j)
-                !  PRINT *, "sigsjz = ", sigsjz(k)
+
                  Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
                       &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
                       &                            -mudt*alpha_xy*jx(i,j,k)
@@ -517,10 +510,6 @@ contains
                     alpha_yz = sigjz(k)/(sigjx(i)+sigjz(k))
                  end if
 
-                !  PRINT *, "alpha_yx = ", alpha_yx
-                !  PRINT *, "alpha_yz = ", alpha_yz
-                !  PRINT *, "sigsjx = ", sigsjx(i)
-                !  PRINT *, "sigsjz = ", sigsjz(k)
                  Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                       &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
                       &                            -mudt*alpha_yx*jy(i,j,k)
@@ -542,10 +531,6 @@ contains
                     alpha_zy = sigjy(j)/(sigjx(i)+sigjy(j))
                  end if
 
-                !  PRINT *, "alpha_zx = ", alpha_zx
-                !  PRINT *, "alpha_zy = ", alpha_zy
-                !  PRINT *, "sigsjx = ", sigsjx(i)
-                !  PRINT *, "sigsjy = ", sigsjy(j)
                  Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
                       &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
                       &                            -mudt*alpha_zx*jz(i,j,k)
