@@ -366,9 +366,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     BL_PROFILE_VAR_START(blp_pxr_cd);
     Real dxi = 1.0/dx[0];
     Real dzi = 1.0/dx[2];
-    Real invvol = dxi*dzi;
     Real dts2dx = 0.5*dt*dxi;
     Real dts2dz = 0.5*dt*dzi;
+#if (AMREX_SPACEDIM == 2)
+    Real invvol = dxi*dzi;
+#else // (AMREX_SPACEDIM == 3)
+    Real dyi = 1.0/dx[1];
+    Real dts2dy = 0.5*dt*dyi;
+    Real invvol = dxi*dyi*dzi;
+#endif
     Real clightsq = 1.0/PhysConst::c/PhysConst::c;
     Real q = this->charge;
 
@@ -392,59 +398,94 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
     Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
 
+#if (AMREX_SPACEDIM == 3)
+    Real* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
+    const Real ymin = xyzmin[1];
+#endif
+
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
+
+                     // macro-particle current in all 3D (even for 2D runs)
+                     // wqx, wqy and wqz are the particle current in each 
+                     // direction
                      Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                      + uyp[ip]*uyp[ip]*clightsq
                                                      + uzp[ip]*uzp[ip]*clightsq);
-                     
+                     Real wq = q*wp[ip];
                      Real vx = uxp[ip]*gaminv;
+                     Real wqx = wq*invvol*vx;
                      Real vy = uyp[ip]*gaminv;
+                     Real wqy = wq*invvol*vy;
                      Real vz = uzp[ip]*gaminv;
+                     Real wqz = wq*invvol*vz;
 
-                     Real wq=q*wp[ip];
-                     Real wqx=wq*invvol*vx;
-                     Real wqy=wq*invvol*vy;
-                     Real wqz=wq*invvol*vz;
-
-                     Real x = (Real) (xp[ip]-xmin)*dxi;
-                     Real z = (Real) (zp[ip]-zmin)*dzi;
-                     Real xmid=x-dts2dx*vx;
-                     Real zmid=z-dts2dz*vz;
-
+                     // --- x direction
+                     // particle position in cell unit (1/2 timestep back)
+                     // Real x = (Real) (xp[ip]-xmin)*dxi;
+                     // particle position in cell unit
+                     // Real xmid=x-dts2dx*vx;
+                     Real xmid= (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
+                     // x index of cell containing particle (cell-centered)
                      int j = (int) xmid;
-                     int l = (int) zmid;
+                     // x index of cell containing particle (node-centered)
                      int j0= (int) (xmid-stagger_shift);
-                     int l0= (int) (zmid-stagger_shift);
-
+                     // for the cell-centered quantities, compute current on 
+                     // each point
                      Real xint = xmid-j;
-                     Real zint = zmid-l;
-
                      Real sx[2] = {1.0 - xint, xint};
-                     Real sz[2] = {1.0 - zint, zint};
-
+                     // for the node-centered quantities, compute current on 
+                     // each point
                      xint = xmid-stagger_shift-j0;
-                     zint = zmid-stagger_shift-l0;
-
                      Real sx0[2] = {1.0 - xint, xint};
+
+#if (AMREX_SPACEDIM == 3)
+                     // --- y direction
+                     Real y = (Real) (yp[ip]-ymin)*dyi;
+                     Real ymid=y-dts2dy*vy;
+                     int k = (int) ymid;
+                     int k0= (int) (ymid-stagger_shift);
+                     Real yint = ymid-k;
+                     Real sy[2] = {1.0 - yint, yint};
+                     yint = ymid-stagger_shift-k0;
+                     Real sy0[2] = {1.0 - yint, yint};
+#endif
+                     // --- z direction
+                     Real z = (Real) (zp[ip]-zmin)*dzi;
+                     Real zmid=z-dts2dz*vz;
+                     int l = (int) zmid;
+                     int l0= (int) (zmid-stagger_shift);
+                     Real zint = zmid-l;
+                     Real sz[2] = {1.0 - zint, zint};
+                     zint = zmid-stagger_shift-l0;
                      Real sz0[2] = {1.0 - zint, zint};
 
-                     jx_arr(lo.x+j0  ,lo.y+l  ,0) += sx0[0]*sz[0]*wqx;
-                     jx_arr(lo.x+j0+1,lo.y+l  ,0) += sx0[1]*sz[0]*wqx;
-                     jx_arr(lo.x+j0  ,lo.y+l+1,0) += sx0[0]*sz[1]*wqx;
-                     jx_arr(lo.x+j0+1,lo.y+l+1,0) += sx0[1]*sz[1]*wqx;
-
-                     jy_arr(lo.x+j  ,lo.y+l  ,0) += sx[0]*sz[0]*wqy;
-                     jy_arr(lo.x+j+1,lo.y+l  ,0) += sx[1]*sz[0]*wqy;
-                     jy_arr(lo.x+j  ,lo.y+l+1,0) += sx[0]*sz[1]*wqy;
-                     jy_arr(lo.x+j+1,lo.y+l+1,0) += sx[1]*sz[1]*wqy;
-
-                     jz_arr(lo.x+j  ,lo.y+l0  ,0) += sx[0]*sz0[0]*wqz;
-                     jz_arr(lo.x+j+1,lo.y+l0  ,0) += sx[1]*sz0[0]*wqz;
-                     jz_arr(lo.x+j  ,lo.y+l0+1,0) += sx[0]*sz0[1]*wqz;
-                     jz_arr(lo.x+j+1,lo.y+l0+1,0) += sx[1]*sz0[1]*wqz;
+                     // Real xbounds[2], ybounds[2], zbounds[2];
+                     // compute_shape_factor<WarpX::nox>(xbounds, sx, xint);
+                     // deposit_current()
+                     
+#if (AMREX_SPACEDIM == 2)
+                     for (int iz=0; iz<2; iz++){
+                         for (int ix=0; ix<2; ix++){
+                             jx_arr(lo.x+j0+ix  ,lo.y+l +iz  ,0) += sx0[ix]*sz [iz]*wqx;
+                             jy_arr(lo.x+j +ix  ,lo.y+l +iz  ,0) += sx [ix]*sz [iz]*wqy;
+                             jz_arr(lo.x+j +ix  ,lo.y+l0+iz  ,0) += sx [ix]*sz0[iz]*wqz;
+                         }
+                     }
+#else // (AMREX_SPACEDIM == 3)
+                     for (int iz=0; iz<2; iz++){
+                         for (int iy=0; iy<2; iy++){
+                             for (int ix=0; ix<2; ix++){
+                                 jx_arr(lo.x+j0+ix  ,lo.y+k +iy  ,lo.z+l +iz  ) += sx0[ix]*sy [iy]*sz [iz]*wqx;
+                                 jy_arr(lo.x+j +ix  ,lo.y+k0+iy  ,lo.z+l +iz  ) += sx [ix]*sy0[iy]*sz [iz]*wqy;
+                                 jz_arr(lo.x+j +ix  ,lo.y+k +iy  ,lo.z+l0+iz  ) += sx [ix]*sy [iy]*sz0[iz]*wqz;
+                             }
+                         }
+                     }
+#endif
                  }
         );
+
 #ifdef WARPX_RZ
     // Rescale current in r-z mode
     warpx_current_deposition_rz_volume_scaling(
