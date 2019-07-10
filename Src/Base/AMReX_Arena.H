@@ -92,7 +92,7 @@ protected:
     ArenaInfo arena_info;
 
     void* allocate_system (std::size_t nbytes);
-    void deallocate_system (void* p);
+    void deallocate_system (void* p, std::size_t nbytes);
 };
 
 }
