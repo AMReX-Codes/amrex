@@ -468,9 +468,9 @@ namespace
                 {
                     const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
-                    buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
+                    buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
 #else
-                    buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,icomp);
+                    buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
 #endif
                 }
             );

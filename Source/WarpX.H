@@ -252,7 +252,7 @@ public:
     void WriteSlicePlotFile () const;
     void ClearSliceMultiFabs ();
 
-
+    // these should be private, but can't due to Cuda limitations
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx);
@@ -401,6 +401,10 @@ private:
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
+<<<<<<< HEAD
+=======
+
+>>>>>>> dev
     void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                       const std::array<      amrex::MultiFab*,3>& crse,
                       int ref_ratio);
