@@ -401,10 +401,7 @@ private:
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
-<<<<<<< HEAD
-=======
 
->>>>>>> dev
     void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                       const std::array<      amrex::MultiFab*,3>& crse,
                       int ref_ratio);
