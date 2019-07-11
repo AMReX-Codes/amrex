@@ -191,17 +191,40 @@ void main_main ()
         }
 
         { // Write VisMF data
+            BL_PROFILE_VAR("VisMFTotal", blp);
             amrex::UtilCreateDirectoryDestructive("vismfdata");
-            amrex::prefetchToHost(mf);
+#if 1
+            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf");
+            {
+                BL_PROFILE_VAR("VisMFOverlapped", blp2);
+                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+            }
+            {
+                BL_PROFILE_VAR("VisMFWait", blp3);
+                wrt_future.wait();
+            }
+#else
             VisMF::Write(mf, "vismfdata/mf");
-            amrex::prefetchToDevice(mf);
+#endif
         }
 
-        auto t = WriteVeloC(mf, check_file.c_str(), 0);
+#if 0
+        {
+            BL_PROFILE_VAR("VeloCTotal", blp);
+            auto t = WriteVeloC(mf, check_file.c_str(), 0);
 
-        amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
-
-        t.join();
+            {
+                BL_PROFILE_VAR("VeloCOverlapped", blp2);
+                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+            }
+            {
+                BL_PROFILE_VAR("VeloCWait", blp3);
+                t.join();
+            }
+        }
+#endif
     }
     else
     {

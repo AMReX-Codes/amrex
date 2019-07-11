@@ -6,6 +6,7 @@
 #include <string>
 #include <fstream>
 #include <thread>
+#include <future>
 
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
@@ -184,7 +185,7 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
-    static void WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
+    static std::future<void> WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
 
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to

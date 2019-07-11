@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <atomic>
 #include <cstdio>
-#include <future>
 #include <limits>
 #include <array>
 #include <numeric>
@@ -2134,15 +2133,16 @@ void VisMF::CloseAllStreams() {
   VisMF::persistentIFStreams.clear();
 }
 
-void
+std::future<void>
 VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
 {
     BL_PROFILE("VisMF::WriteAysnc()");
     AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int nfiles = nOutFiles;
-//xxxxx for testing only
-    nOutFiles = 2;
+    //  nOutFiles = 2; // for testing only
+
+    const DistributionMapping& dm = mf.DistributionMap();
 
     int myproc = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();
@@ -2266,8 +2266,6 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
     }
     localdata[0] = total_bytes;
 
-    const DistributionMapping& dm = mf.DistributionMap();
-
     Vector<int64_t> globaldata;
     if (nprocs == 1) {
         globaldata = std::move(localdata);
@@ -2275,7 +2273,24 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
 #ifdef BL_USE_MPI
     else {
         const long n_global_nums = n_fab_nums * n_global_fabs + nprocs;
-        amrex::Abort("xxxxx todo");
+        Vector<int> rcnt, rdsp;
+        if (myproc == nprocs-1) {
+            globaldata.resize(n_global_nums);
+            rcnt.resize(nprocs,1);
+            rdsp.resize(nprocs,0);
+            for (int k = 0; k < n_global_fabs; ++k) {
+                int rank = dm[k];
+                rcnt[rank] += n_fab_nums;
+            }
+            std::partial_sum(rcnt.begin(), rcnt.end()-1, rdsp.begin()+1);
+        } else {
+            globaldata.resize(1,0);
+            rcnt.resize(1,0);
+            rdsp.resize(1,0);
+        }
+        BL_MPI_REQUIRE(MPI_Gatherv(localdata.data(), localdata.size(), MPI_INT64_T,
+                                   globaldata.data(), rcnt.data(), rdsp.data(), MPI_INT64_T,
+                                   nprocs-1, ParallelDescriptor::Communicator()));
     }
 #endif
 
@@ -2324,14 +2339,31 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
             h.m_famax.resize(ncomp,std::numeric_limits<Real>::lowest());
 
             Vector<int64_t> nbytes_on_rank(nprocs,-1L);
+            Vector<Vector<int> > gidx(nprocs);
+            for (int k = 0; k < n_global_fabs; ++k) {
+                int rank = dm[k];
+                gidx[rank].push_back(k);
+            }
 
             auto pgd = (char*)(gdata.data());
-            for (int k = 0; k < n_global_fabs; ++k)
+            int rank = 0;
+            int lidx = 0;
+            for (int j = 0; j < n_global_fabs; ++j)
             {
+                int k = -1;
+                do {
+                    if (lidx < gidx[rank].size()) {
+                        k = gidx[rank][lidx];
+                        ++lidx;
+                    } else {
+                        ++rank;
+                        lidx = 0;
+                    }
+                } while (k < 0);
+
                 h.m_min[k].resize(ncomp);
                 h.m_max[k].resize(ncomp);
 
-                int rank = dm[k];
                 if (nbytes_on_rank[rank] < 0) { // First time for this rank
                     std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
                     pgd += sizeof(int64_t);
@@ -2362,8 +2394,7 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
             std::partial_sum(nbytes_on_rank.begin(), nbytes_on_rank.end()-1, offset.begin()+1);
 
             for (int k = 0; k < n_global_fabs; ++k) {
-                int rank = dm[k];
-                h.m_fod[k].m_head += offset[rank];
+                h.m_fod[k].m_head += offset[dm[k]];
             }
 
             VisMF::WriteHeaderDoit(mf_name, h);
@@ -2404,7 +2435,7 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
     },
     std::move(alldata), std::move(hdr), std::move(globaldata));
 
-    af.wait();
+    return af;
 }
 
 }
