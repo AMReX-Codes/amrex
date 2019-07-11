@@ -1,5 +1,5 @@
-#ifndef COMPUTESHAPEFACTORS_H_
-#define COMPUTESHAPEFACTORS_H_
+#ifndef CURRENTDEPOSITION_H_
+#define CURRENTDEPOSITION_H_
 
 //#include <memory>
 //#include <AMReX_Particles.H>
@@ -192,4 +192,4 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
         );
 }
 
-#endif // COMPUTESHAPEFACTORS_H_
+#endif // CURRENTDEPOSITION_H_

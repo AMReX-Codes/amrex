@@ -10,7 +10,7 @@
 // Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
 #include <UpdatePosition.H>
-#include <ComputeShapeFactors.H>
+#include <CurrentDeposition.H>
 
 using namespace amrex;
 
