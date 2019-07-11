@@ -112,11 +112,10 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
     const Real ymin = xyzmin[1];
     const Real zmin = xyzmin[2];
 
-    Print()<<"toto\n";
-
     Dim3 shape_lo;
     compute_shape_factor_lo<depos_order>(shape_lo);
     Real clightsq = 1.0/PhysConst::c/PhysConst::c;
+
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
 
@@ -135,77 +134,41 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                      Real wqz = wq*invvol*vz;
 
                      // --- x direction
-                     // particle position in cell unit (1/2 timestep back)
-                     // Real x = (Real) (xp[ip]-xmin)*dxi;
-                     // particle position in cell unit
-                     // Real xmid=x-dts2dx*vx;
+                     // Get particle position after 1/2 push back in position
                      Real xmid= (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
-                     // x index of cell containing particle (cell-centered)
-                     int j = (int) xmid;
-                     // x index of cell containing particle (node-centered)
-                     int j0= (int) (xmid-stagger_shift);
-                     // for the cell-centered quantities, compute current on 
-                     // each point
-                     Real xint = xmid-j;
+                     // Initialize arrays for node-centered and cell-centered
+                     // shape factors
                      Real sx[depos_order + 1], sx0[depos_order + 1];
-                     // Real sx[2] = {1.0 - xint, xint};
+                     // Compute shape factors for node-centered quantities
+                     int j = (int) xmid;
+                     Real xint = xmid-j;
                      compute_shape_factor<depos_order>(sx, xint);
-                     // for the node-centered quantities, compute current on 
-                     // each point
+                     // Compute shape factors for cell-centered quantities
+                     int j0= (int) (xmid-stagger_shift);
                      xint = xmid-stagger_shift-j0;
                      compute_shape_factor<depos_order>(sx0, xint);
-                     // Real sx0[2] = {1.0 - xint, xint};
-                     // compute_shape_factor<WarpX::nox>(sx0, xint);
                      
 #if (AMREX_SPACEDIM == 3)
                      // --- y direction
-                     Real y = (Real) (yp[ip]-ymin)*dyi;
-                     Real ymid=y-dts2dy*vy;
-                     int k = (int) ymid;
-                     int k0= (int) (ymid-stagger_shift);
-                     Real yint = ymid-k;
+                     Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
                      Real sy[depos_order + 1], sy0[depos_order + 1];
+                     int k = (int) ymid;
+                     Real yint = ymid-k;
                      compute_shape_factor<depos_order>(sy, yint);
-                     // Real sy[2] = {1.0 - yint, yint};
+                     int k0= (int) (ymid-stagger_shift);
                      yint = ymid-stagger_shift-k0;
                      compute_shape_factor<depos_order>(sy0, yint);
-                     //Real sy0[2] = {1.0 - yint, yint};
-                     // compute_shape_factor<WarpX::noy>(shape_lo, shape_hi, sy, yint);
 #endif
                      // --- z direction
-                     Real z = (Real) (zp[ip]-zmin)*dzi;
-                     Real zmid=z-dts2dz*vz;
-                     int l = (int) zmid;
-                     int l0= (int) (zmid-stagger_shift);
-                     Real zint = zmid-l;
+                     Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
                      Real sz[depos_order + 1], sz0[depos_order + 1];
+                     int l = (int) zmid;
+                     Real zint = zmid-l;
                      compute_shape_factor<depos_order>(sz, zint);
-                     // Real sz[2] = {1.0 - zint, zint};
+                     int l0= (int) (zmid-stagger_shift);
                      zint = zmid-stagger_shift-l0;
                      compute_shape_factor<depos_order>(sz0, zint);
-                     // Real sz0[2] = {1.0 - zint, zint};
-                     // compute_shape_factor<WarpX::noz>(shape_lo, shape_hi, sz, zint);
-/*
-  #if (AMREX_SPACEDIM == 2)
-  for (int iz=shape_lo.y; iz<=shape_hi.y; iz++){
-  for (int ix=shape_lo.x; ix<=shape_hi.x; ix++){
-  jx_arr(lo.x+j0+ix  ,lo.y+l +iz  ,0) += sx0[ix]*sz [iz]*wqx;
-  jy_arr(lo.x+j +ix  ,lo.y+l +iz  ,0) += sx [ix]*sz [iz]*wqy;
-  jz_arr(lo.x+j +ix  ,lo.y+l0+iz  ,0) += sx [ix]*sz0[iz]*wqz;
-  }
-  }
-  #else // (AMREX_SPACEDIM == 3)
-  for (int iz=shape_lo.z; iz<=shape_hi.z; iz++){
-  for (int iy=shape_lo.y; iy<=shape_hi.y; iy++){
-  for (int ix=shape_lo.x; ix<=shape_hi.x; ix++){
-  jx_arr(lo.x+j0+ix  ,lo.y+k +iy  ,lo.z+l +iz  ) += sx0[ix]*sy [iy]*sz [iz]*wqx;
-  jy_arr(lo.x+j +ix  ,lo.y+k0+iy  ,lo.z+l +iz  ) += sx [ix]*sy0[iy]*sz [iz]*wqy;
-  jz_arr(lo.x+j +ix  ,lo.y+k +iy  ,lo.z+l0+iz  ) += sx [ix]*sy [iy]*sz0[iz]*wqz;
-  }
-  }
-  }
-  #endif
-*/
+
 #if (AMREX_SPACEDIM == 2)
                      for (int iz=0; iz<=depos_order; iz++){
                          for (int ix=0; ix<=depos_order; ix++){
