@@ -63,6 +63,17 @@ SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
 # Turn on MPS. Needed when running multiple MPI ranks per GPU. 
 # For standard runs, this is not needed. 
 
+# Profiler flags
+# =====================
+# --openmp-profiling off
+# Needed when using nvprof with cuda/10.1.105 on summit: 
+# https://www.olcf.ornl.gov/for-users/system-user-guides/summit/summit-user-guide/#known-issues
+
+# --device-buffer-size <size in MBs> (recommended initial value: 64)
+# Reserves memory for storing profiling data for non-CDP operations for each buffer on a
+#       context. The default value is 8MB. 
+# Ensures sufficient memory so that profiling information written to stdout is reported
+#       in cases wher HBM is over-subscribed (big problems.
 
 # Example run lines
 # =====================
