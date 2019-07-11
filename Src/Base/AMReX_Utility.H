@@ -196,6 +196,11 @@ namespace amrex
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
     */
+
+    AMREX_GPU_HOST_DEVICE double gpusafe_Random (); 
+  // description
+
+
     unsigned long Random_int(unsigned long n); // [0,n-1]
 
     /** \brief Set the seed of the random number generator.
