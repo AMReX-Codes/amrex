@@ -327,7 +327,7 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        int CAS(int* address, int compare, int val) noexcept
+        int CAS (int* address, int compare, int val) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
             return atomicCAS(address, compare, val);
@@ -339,9 +339,9 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned int CAS(unsigned int* address,
-                         unsigned int compare,
-                         unsigned int val) noexcept
+        unsigned int CAS (unsigned int* address,
+                          unsigned int compare,
+                          unsigned int val) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
             return atomicCAS(address, compare, val);
@@ -353,9 +353,9 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned long long int CAS(unsigned long long int* address,
-                                   unsigned long long int compare,
-                                   unsigned long long int val) noexcept
+        unsigned long long int CAS (unsigned long long int* address,
+                                    unsigned long long int compare,
+                                    unsigned long long int val) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
             return atomicCAS(address, compare, val);
@@ -367,9 +367,9 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned short int CAS(unsigned short int *address,
-                               unsigned short int compare,
-                               unsigned short int val) noexcept
+        unsigned short int CAS (unsigned short int *address,
+                                unsigned short int compare,
+                                unsigned short int val) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
             return atomicCAS(address, compare, val);
