@@ -3,33 +3,45 @@
 
 using namespace amrex;
 
-
+// Compute lower bound for current deposition shape factor:
+// order 1: 0
+// order 2: -1
+// order 3: -1
+// non-type template parameter depos_order is the order for current deposition
+// shape factor. Specialized templates are defined below for orders 1, 2 and 3.
+// Currently, the shape factor is the same in all directions.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void compute_shape_factor_lo(amrex::Dim3& shape_lo) {};
 
+// Compute lower bound for order 1.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void compute_shape_factor_lo <1> (amrex::Dim3& shape_lo) {
     shape_lo = {0, 0, 0};
 }
 
+// Compute lower bound for order 2.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void compute_shape_factor_lo <2> (amrex::Dim3& shape_lo) {
     shape_lo = {-1, -1, -1};
 }
 
+// Compute lower bound for order 3.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void compute_shape_factor_lo <3> (amrex::Dim3& shape_lo) {
     shape_lo = {-1, -1, -1};
 }
 
+// Compute shape factor and return index of cell containing particle.
+// Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor(Real* sx, Real xint) {return 0;};
 
+// Compute shape factor for order 1.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <1> (Real* sx, Real xmid){
@@ -40,6 +52,7 @@ int compute_shape_factor <1> (Real* sx, Real xmid){
     return j;
 }
 
+// Compute shape factor for order 2.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <2> (Real* sx, Real xmid){
@@ -51,6 +64,7 @@ int compute_shape_factor <2> (Real* sx, Real xmid){
     return j;
 }
 
+// Compute shape factor for order 3.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int compute_shape_factor <3> (Real* sx, Real xmid){
@@ -63,6 +77,23 @@ int compute_shape_factor <3> (Real* sx, Real xmid){
     return j;
 }
 
+/* \brief Current Deposition for thread thread_num
+ * /param xp, yp, zp   : Pointer to arrays of particle positions.
+ * \param wp           : Pointer to array of particle weights.
+ * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param jx_arr       : Array4 of current density, either full array or tile.
+ * \param jy_arr       : Array4 of current density, either full array or tile.
+ * \param jz_arr       : Array4 of current density, either full array or tile.
+ * \param offset       : Index of first particle for which current is deposited
+ * \param np_to_depose : Number of particles for which current is deposited.
+                        Particles [offset,offset+np_tp_depose] deposit current.
+ * \param dt           : Time step for particle level
+ * \param dx           : 3D cell size
+ * \param xyzmin       : Physical lower bounds of domain.
+ * \param lo           : Index lower bounds of domain.
+ * \param stagger_shift: 0 if nodal, 0.5 if staggered.
+ * /param q            : species charge.
+ */
 template <int depos_order>
 void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                         Real* wp, Real* uxp,
@@ -102,63 +133,82 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
 
-                     // macro-particle current in all 3D (even for 2D runs)
-                     // wqx, wqy and wqz are the particle current in each 
-                     // direction
                      Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                 + uyp[ip]*uyp[ip]*clightsq
-                                                 + uzp[ip]*uzp[ip]*clightsq);
-                     Real wq = q*wp[ip];
-                     Real vx = uxp[ip]*gaminv;
+                                                     + uyp[ip]*uyp[ip]*clightsq
+                                                     + uzp[ip]*uzp[ip]*clightsq);
+                     Real wq  = q*wp[ip];
+                     Real vx  = uxp[ip]*gaminv;
+                     Real vy  = uyp[ip]*gaminv;
+                     Real vz  = uzp[ip]*gaminv;
+                     // wqx, wqy wqz are particle current in each direction 
                      Real wqx = wq*invvol*vx;
-                     Real vy = uyp[ip]*gaminv;
                      Real wqy = wq*invvol*vy;
-                     Real vz = uzp[ip]*gaminv;
                      Real wqz = wq*invvol*vz;
 
                      // --- x direction
                      // Get particle position after 1/2 push back in position
-                     Real xmid= (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
-                     // Initialize arrays for node-centered and cell-centered
-                     // shape factors
-                     Real sx[depos_order + 1], sx0[depos_order + 1];
+                     Real xmid = (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
                      // Compute shape factors for node-centered quantities
-                     int j  = compute_shape_factor<depos_order>(sx, xmid);
+                     Real sx [depos_order + 1];
+                     int j  = compute_shape_factor<depos_order>(sx,  xmid);
                      // Compute shape factors for cell-centered quantities
+                     Real sx0[depos_order + 1];
                      int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (AMREX_SPACEDIM == 3)
                      // --- y direction
                      Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
-                     Real sy[depos_order + 1], sy0[depos_order + 1];
-                     int k  = compute_shape_factor<depos_order>(sy, ymid);
+                     Real sy [depos_order + 1];
+                     int k  = compute_shape_factor<depos_order>(sy,  ymid);
+                     Real sy0[depos_order + 1];
                      int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
                      // --- z direction
                      Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
-                     Real sz[depos_order + 1], sz0[depos_order + 1];
-                     int l  = compute_shape_factor<depos_order>(sz, zmid);
+                     Real sz [depos_order + 1];
+                     int l  = compute_shape_factor<depos_order>(sz,  zmid);
+                     Real sz0[depos_order + 1];
                      int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
 #if (AMREX_SPACEDIM == 2)
                      for (int iz=0; iz<=depos_order; iz++){
                          for (int ix=0; ix<=depos_order; ix++){
-                             jx_arr(lo.x+j0+ix+shape_lo.x, lo.y+l +iz+shape_lo.y, 0) += sx0[ix]*sz [iz]*wqx;
-                             jy_arr(lo.x+j +ix+shape_lo.x, lo.y+l +iz+shape_lo.y, 0) += sx [ix]*sz [iz]*wqy;
-                             jz_arr(lo.x+j +ix+shape_lo.x, lo.y+l0+iz+shape_lo.y, 0) += sx [ix]*sz0[iz]*wqz;
+                             amrex::Gpu::Atomic::Add(
+                                 &jx_arr(lo.x+j0+ix+shape_lo.x, 
+                                         lo.y+l +iz+shape_lo.y, 
+                                         0), 
+                                 sx0[ix]*sz [iz]*wqx);
+                             amrex::Gpu::Atomic::Add(
+                                 &jy_arr(lo.x+j +ix+shape_lo.x, 
+                                         lo.y+l +iz+shape_lo.y, 
+                                         0), 
+                                 sx [ix]*sz [iz]*wqy);
+                             amrex::Gpu::Atomic::Add(
+                                 &jz_arr(lo.x+j +ix+shape_lo.x, 
+                                         lo.y+l0+iz+shape_lo.y, 
+                                         0), 
+                                 sx [ix]*sz0[iz]*wqz);
                          }
                      }
 #else // (AMREX_SPACEDIM == 3)
                      for (int iz=0; iz<=depos_order; iz++){
                          for (int iy=0; iy<=depos_order; iy++){
                              for (int ix=0; ix<=depos_order; ix++){
-			         amrex::Gpu::Atomic::Add(&jx_arr(lo.x+j0+ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l +iz+shape_lo.z), sx0[ix]*sy [iy]*sz [iz]*wqx);
-			         amrex::Gpu::Atomic::Add(&jy_arr(lo.x+j +ix+shape_lo.x, lo.y+k0+iy+shape_lo.y, lo.z+l +iz+shape_lo.z), sx [ix]*sy0[iy]*sz [iz]*wqy);
-			         amrex::Gpu::Atomic::Add(&jz_arr(lo.x+j +ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l0+iz+shape_lo.z), sx [ix]*sy [iy]*sz0[iz]*wqz);
-			         // amrex::Gpu::Atomic::Add(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
-                                 // jx_arr(lo.x+j0+ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l +iz+shape_lo.z) += sx0[ix]*sy [iy]*sz [iz]*wqx;
-                                 // jy_arr(lo.x+j +ix+shape_lo.x, lo.y+k0+iy+shape_lo.y, lo.z+l +iz+shape_lo.z) += sx [ix]*sy0[iy]*sz [iz]*wqy;
-                                 // jz_arr(lo.x+j +ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l0+iz+shape_lo.z) += sx [ix]*sy [iy]*sz0[iz]*wqz;
+                                 amrex::Gpu::Atomic::Add(
+                                     &jx_arr(lo.x+j0+ix+shape_lo.x, 
+                                             lo.y+k +iy+shape_lo.y, 
+                                             lo.z+l +iz+shape_lo.z), 
+                                     sx0[ix]*sy [iy]*sz [iz]*wqx);
+                                 amrex::Gpu::Atomic::Add(
+                                     &jy_arr(lo.x+j +ix+shape_lo.x, 
+                                             lo.y+k0+iy+shape_lo.y, 
+                                             lo.z+l +iz+shape_lo.z), 
+                                     sx [ix]*sy0[iy]*sz [iz]*wqy);
+                                 amrex::Gpu::Atomic::Add(
+                                     &jz_arr(lo.x+j +ix+shape_lo.x, 
+                                             lo.y+k +iy+shape_lo.y, 
+                                             lo.z+l0+iz+shape_lo.z), 
+                                     sx [ix]*sy [iy]*sz0[iz]*wqz);
                              }
                          }
                      }

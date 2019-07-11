@@ -37,6 +37,7 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
+long WarpX::use_picsar_deposition = 1;
 long WarpX::current_deposition_algo;
 long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
@@ -484,6 +485,7 @@ WarpX::ReadParameters ()
 
     {
         ParmParse pp("algo");
+        pp.query("use_picsar_deposition", use_picsar_deposition)
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
