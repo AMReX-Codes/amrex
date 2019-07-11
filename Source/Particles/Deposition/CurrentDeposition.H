@@ -28,32 +28,39 @@ void compute_shape_factor_lo <3> (amrex::Dim3& shape_lo) {
 
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor(Real* sx, Real xint) {};
+int compute_shape_factor(Real* sx, Real xint) {return 0;};
 
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor <1> (Real* sx, Real xint){
+int compute_shape_factor <1> (Real* sx, Real xmid){
+    int j = (int) xmid;
+    Real xint = xmid-j;
     sx[0] = 1.0 - xint;
     sx[1] = xint;
+    return j;
 }
 
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor <2> (Real* sx, Real xint){
-    Print()<<"compute_shape_factor <2>\n";
+int compute_shape_factor <2> (Real* sx, Real xmid){
+    int j = (int) (xmid+0.5);
+    Real xint = xmid-j;
     sx[0] = 0.5*(0.5-xint)*(0.5-xint);
     sx[1] = 0.75-xint*xint;
     sx[2] = 0.5*(0.5+xint)*(0.5+xint);
+    return j;
 }
 
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor <3> (Real* sx, Real xint){
-    Print()<<"compute_shape_factor <2>\n";
+int compute_shape_factor <3> (Real* sx, Real xmid){
+    int j = (int) xmid;
+    Real xint = xmid-j;
     sx[0] = 1.0/6.0*(1.0-xint)*(1.0-xint)*(1.0-xint);
     sx[1] = 2.0/3.0-xint*xint*(1-xint/2.0);
     sx[2] = 2.0/3.0-(1-xint)*(1-xint)*(1.0-0.5*(1-xint));
     sx[3] = 1.0/6.0*xint*xint*xint;
+    return j;
 }
 
 template <int depos_order>
@@ -114,34 +121,22 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                      // shape factors
                      Real sx[depos_order + 1], sx0[depos_order + 1];
                      // Compute shape factors for node-centered quantities
-                     int j = (int) xmid;
-                     Real xint = xmid-j;
-                     compute_shape_factor<depos_order>(sx, xint);
+                     int j  = compute_shape_factor<depos_order>(sx, xmid);
                      // Compute shape factors for cell-centered quantities
-                     int j0= (int) (xmid-stagger_shift);
-                     xint = xmid-stagger_shift-j0;
-                     compute_shape_factor<depos_order>(sx0, xint);
+                     int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (AMREX_SPACEDIM == 3)
                      // --- y direction
                      Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
                      Real sy[depos_order + 1], sy0[depos_order + 1];
-                     int k = (int) ymid;
-                     Real yint = ymid-k;
-                     compute_shape_factor<depos_order>(sy, yint);
-                     int k0= (int) (ymid-stagger_shift);
-                     yint = ymid-stagger_shift-k0;
-                     compute_shape_factor<depos_order>(sy0, yint);
+                     int k  = compute_shape_factor<depos_order>(sy, ymid);
+                     int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
                      // --- z direction
                      Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
                      Real sz[depos_order + 1], sz0[depos_order + 1];
-                     int l = (int) zmid;
-                     Real zint = zmid-l;
-                     compute_shape_factor<depos_order>(sz, zint);
-                     int l0= (int) (zmid-stagger_shift);
-                     zint = zmid-stagger_shift-l0;
-                     compute_shape_factor<depos_order>(sz0, zint);
+                     int l  = compute_shape_factor<depos_order>(sz, zmid);
+                     int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
 #if (AMREX_SPACEDIM == 2)
                      for (int iz=0; iz<=depos_order; iz++){
