@@ -281,8 +281,8 @@ struct ImplicitIntegral
             bool uniform_sign = (phi_0 > dphi_max) or (phi_0 < -dphi_max);
             if (uniform_sign)
             {
-                if (phi_0 >= 0.0 and psi[i].sign() >= 0 or
-                    phi_0 <= 0.0 and psi[i].sign() <= 0)
+                if ((phi_0 >= 0.0 and psi[i].sign() >= 0) or
+                    (phi_0 <= 0.0 and psi[i].sign() <= 0) )
                 {
                     --psiCount;
                     detail::swap(psi[i], psi[psiCount]);

@@ -66,10 +66,10 @@ StateData::operator= (StateData const& rhs)
     dmap = rhs.dmap;
     new_time = rhs.new_time;
     old_time = rhs.old_time;
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     MultiFab::Copy(*new_data, *rhs.new_data, 0, 0, desc->nComp(),desc->nExtra());
     if (rhs.old_data) {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
         MultiFab::Copy(*old_data, *rhs.old_data, 0, 0, desc->nComp(),desc->nExtra());
     } else {
         old_data.reset();
@@ -115,7 +115,7 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo(), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     old_data.reset();
 }
 
@@ -207,11 +207,11 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     is >> nsets;
 
     new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                MFInfo(), *m_factory));
+                                MFInfo().SetTag("StateData"), *m_factory));
     old_data.reset();
     if (nsets == 2) {
         old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                    MFInfo(), *m_factory));
+                                    MFInfo().SetTag("StateData"), *m_factory));
     }
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
@@ -273,7 +273,7 @@ StateData::restart (const StateDescriptor& d,
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
     old_data.reset();
-    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     new_data->setVal(0.);
 }
 
@@ -287,7 +287,7 @@ StateData::allocOldData ()
 {
     if (old_data == nullptr)
     {
-        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo().SetTag("StateData"), *m_factory));
     }
 }
 

@@ -13,40 +13,40 @@ public:
     PlotFileDataImpl (std::string const& plotfile_name);
     ~PlotFileDataImpl ();
 
-    int spaceDim () const { return m_spacedim; }
+    int spaceDim () const noexcept { return m_spacedim; }
 
-    Real time () const { return m_time; }
+    Real time () const noexcept { return m_time; }
 
-    int finestLevel () const { return m_finest_level; }
+    int finestLevel () const noexcept { return m_finest_level; }
 
-    int refRatio (int level) const { return m_ref_ratio[level]; }
+    int refRatio (int level) const noexcept { return m_ref_ratio[level]; }
 
-    int levelStep (int level) const { return m_level_steps[level]; }
+    int levelStep (int level) const noexcept { return m_level_steps[level]; }
 
-    const BoxArray& boxArray (int level) const { return m_ba[level]; }
+    const BoxArray& boxArray (int level) const noexcept { return m_ba[level]; }
 
-    const DistributionMapping& DistributionMap (int level) const { return m_dmap[level]; }
+    const DistributionMapping& DistributionMap (int level) const noexcept { return m_dmap[level]; }
 
-    void syncDistributionMap (PlotFileDataImpl const& src);
+    void syncDistributionMap (PlotFileDataImpl const& src) noexcept;
 
-    void syncDistributionMap (int level, PlotFileDataImpl const& src);
+    void syncDistributionMap (int level, PlotFileDataImpl const& src) noexcept;
 
-    int coordSys () const { return m_coordsys; }
+    int coordSys () const noexcept { return m_coordsys; }
 
-    Box probDomain (int level) const { return m_prob_domain[level]; }
+    Box probDomain (int level) const noexcept { return m_prob_domain[level]; }
 
-    Array<Real,AMREX_SPACEDIM> probSize () const { return m_prob_size; }
-    Array<Real,AMREX_SPACEDIM> probLo () const { return m_prob_lo; }
-    Array<Real,AMREX_SPACEDIM> probHi () const { return m_prob_hi; }
-    Array<Real,AMREX_SPACEDIM> cellSize (int level) const { return m_cell_size[level]; }
+    Array<Real,AMREX_SPACEDIM> probSize () const noexcept { return m_prob_size; }
+    Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_prob_lo; }
+    Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_prob_hi; }
+    Array<Real,AMREX_SPACEDIM> cellSize (int level) const noexcept { return m_cell_size[level]; }
 
-    const Vector<std::string>& varNames () const { return m_var_names; }
+    const Vector<std::string>& varNames () const noexcept { return m_var_names; }
 
-    int nComp () const { return m_ncomp; }
-    IntVect nGrowVect (int level) const { return m_ngrow[level]; }
+    int nComp () const noexcept { return m_ncomp; }
+    IntVect nGrowVect (int level) const noexcept { return m_ngrow[level]; }
 
-    MultiFab get (int level);
-    MultiFab get (int level, std::string const& varname);
+    MultiFab get (int level) noexcept;
+    MultiFab get (int level, std::string const& varname) noexcept;
 
 private:
     std::string m_plotfile_name;

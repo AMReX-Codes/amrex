@@ -204,6 +204,10 @@ public:
     //! Construct an invalid FAB with no memory.
     FArrayBox () noexcept;
 
+    explicit FArrayBox (Arena* ar) noexcept;
+
+    FArrayBox (const Box& b, int ncomp, Arena* ar);
+
     /**
     * \brief Construct an initial FAB with the data space allocated but
     * not inititialized. ncomp is the number of components
@@ -212,7 +216,8 @@ public:
     explicit FArrayBox (const Box& b,
                         int        ncomp=1,
 			bool       alloc=true,
-			bool       shared=false);
+			bool       shared=false,
+                        Arena*     ar = nullptr);
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 

@@ -56,6 +56,9 @@ add_subdirectory(Amr)
 # Optional components
 #
 if (ENABLE_EB)
+   if (ENABLE_CUDA AND ( "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}" VERSION_EQUAL "9.2") )
+      message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")
+   endif ()
    add_subdirectory(EB)
 endif ()
 

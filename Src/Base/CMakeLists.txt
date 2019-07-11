@@ -2,14 +2,15 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 
 # MPI header is incapsulated in AMReX_ccse-mpi.H
 if (ENABLE_MPI)
-   find_package(MPI REQUIRED C)
-   target_link_libraries(amrex PUBLIC MPI::MPI_C) 
+   find_package(MPI REQUIRED C CXX)
+   target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX) 
 endif ()  
 
 target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------
    AMReX_ccse-mpi.H
+   AMReX_Algorithm.H
    AMReX_Array.H
    AMReX_Vector.H
    AMReX_Tuple.H
@@ -52,8 +53,6 @@ target_sources( amrex
    AMReX_DArena.cpp
    AMReX_EArena.H
    AMReX_EArena.cpp
-   AMReX_FabAllocator.H
-   AMReX_FabAllocator.cpp
    AMReX_BLProfiler.H
    AMReX_BLBackTrace.H
    AMReX_BLFort.H
@@ -81,6 +80,7 @@ target_sources( amrex
    AMReX_IntVect.cpp
    AMReX_IndexType.H
    AMReX_IndexType.cpp
+   AMReX_Loop.H
    AMReX_Orientation.H 
    AMReX_Orientation.cpp
    AMReX_Periodicity.H 
@@ -185,10 +185,6 @@ target_sources( amrex
    AMReX_GpuDevice.cpp
    AMReX_GpuUtility.H
    AMReX_GpuUtility.cpp
-   AMReX_GpuAsyncFab.H
-   AMReX_GpuAsyncFab.cpp
-   AMReX_GpuAsyncFabImpl.H
-   AMReX_GpuAsyncFabImpl.cpp
    AMReX_GpuAsyncArray.H
    AMReX_GpuAsyncArray.cpp
    AMReX_GpuElixir.H

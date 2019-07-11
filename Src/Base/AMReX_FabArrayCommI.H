@@ -55,7 +55,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
                 loc_copy_tags[tag.dstIndex].push_back
-                    ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                    ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
             }
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
@@ -446,7 +446,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
                 {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                     launches++;
                 }
             }
@@ -842,7 +842,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({src.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 #ifdef _OPENMP
@@ -1111,7 +1111,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                     if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                         copy_tags[tag.dstIndex].push_back
-                            ({src.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                            ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                     }
                 }
 
@@ -1726,7 +1726,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                         if (dm[tag.dstIndex] == myproc)
                         {
                             loc_copy_tags[tag.dstIndex].push_back
-                                ({fa.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                                ({fa.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                         }
                     }
 

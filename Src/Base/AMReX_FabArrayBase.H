@@ -5,6 +5,7 @@
 #include <omp.h>
 #endif
 
+#include <string>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -386,6 +387,29 @@ public:
                                    Vector<MPI_Request>& send_reqs,
                                    Vector<char*>&       send_data,
                                    Vector<MPI_Status>&  stats);
+
+    // Memory Usage Tags
+    struct meminfo {
+        long nbytes = 0L;
+        long nbytes_hwm = 0L;
+    };
+    static std::map<std::string, meminfo> m_mem_usage;
+
+    static void updateMemUsage (std::string const& tag, long nbytes, Arena const* ar);
+    static void printMemUsage ();
+    static long queryMemUsage (const std::string& tag = std::string("All"));
+    static long queryMemUsageHWM (const std::string& tag = std::string("All"));
+
+    static void pushRegionTag (const char* t);
+    static void pushRegionTag (std::string t);
+    static void popRegionTag ();
+
+    static std::vector<std::string> m_region_tag;
+    struct RegionTag {
+        RegionTag (const char* t) { pushRegionTag(t); }
+        RegionTag (std::string t) { pushRegionTag(std::move(t)); }
+        ~RegionTag () { popRegionTag(); }
+    };
 
 protected:
 

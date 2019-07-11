@@ -4,6 +4,7 @@
 
 #include <iosfwd>
 
+#include <AMReX_Algorithm.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H>
@@ -701,6 +702,11 @@ public:
     AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 begin  (Box const& box) noexcept;
     AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 end    (Box const& box) noexcept;
     AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 length (Box const& box) noexcept;
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 max_lbound (Box const&, Box const&) noexcept;
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 max_lbound (Box const&, Dim3 const&) noexcept;
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 min_ubound (Box const&, Box const&) noexcept;
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 min_ubound (Box const&, Dim3 const&) noexcept;
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Box minBox (Box const&, Box const&, IndexType) noexcept;
 
 private:
     IntVect         smallend;
@@ -1524,30 +1530,115 @@ Dim3 length (Box const& box) noexcept
 #endif
 }
 
+// Max of lower bound
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE
-Dim3 length (Box index_bounds, Box const& work_domain) noexcept
+AMREX_FORCE_INLINE
+Dim3 max_lbound (Box const& b1, Box const& b2) noexcept
 {
-    index_bounds.setType(work_domain.ixType());
-    index_bounds &= work_domain;
-    return length(index_bounds);
+#if (AMREX_SPACEDIM == 1)
+    return {amrex::max(b1.smallend[0], b2.smallend[0]),
+            0, 0};
+#elif (AMREX_SPACEDIM == 2)
+    return {amrex::max(b1.smallend[0], b2.smallend[0]),
+            amrex::max(b1.smallend[1], b2.smallend[1]),
+            0};
+#elif (AMREX_SPACEDIM == 3)
+    return {amrex::max(b1.smallend[0], b2.smallend[0]),
+            amrex::max(b1.smallend[1], b2.smallend[1]),
+            amrex::max(b1.smallend[2], b2.smallend[2])};
+#endif
 }
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE
-Box getThreadBox (Box index_bounds, Box const& work_domain) noexcept
+AMREX_FORCE_INLINE
+Dim3 max_lbound (Box const& b1, Dim3 const& lo) noexcept
 {
-    index_bounds.setType(work_domain.ixType());
-    index_bounds &= work_domain;
-    return index_bounds;
+#if (AMREX_SPACEDIM == 1)
+    return {amrex::max(b1.smallend[0], lo.x),
+            0, 0};
+#elif (AMREX_SPACEDIM == 2)
+    return {amrex::max(b1.smallend[0], lo.x),
+            amrex::max(b1.smallend[1], lo.y),
+            0};
+#elif (AMREX_SPACEDIM == 3)
+    return {amrex::max(b1.smallend[0], lo.x),
+            amrex::max(b1.smallend[1], lo.y),
+            amrex::max(b1.smallend[2], lo.z)};
+#endif
 }
 
-    /**
-    * Returns a Box that covers all the argument Boxes in index
-    * space. The types are ignored. Thus, the arguments can have
-    * different index types, and the returned Box's index type has no
-    * meaning.
-    */
+// Min of upper bound
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Dim3 min_ubound (Box const& b1, Box const& b2) noexcept
+{
+#if (AMREX_SPACEDIM == 1)
+    return {amrex::min(b1.bigend[0], b2.bigend[0]),
+            0, 0};
+#elif (AMREX_SPACEDIM == 2)
+    return {amrex::min(b1.bigend[0], b2.bigend[0]),
+            amrex::min(b1.bigend[1], b2.bigend[1]),
+            0};
+#elif (AMREX_SPACEDIM == 3)
+    return {amrex::min(b1.bigend[0], b2.bigend[0]),
+            amrex::min(b1.bigend[1], b2.bigend[1]),
+            amrex::min(b1.bigend[2], b2.bigend[2])};
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Dim3 min_ubound (Box const& b1, Dim3 const& hi) noexcept
+{
+#if (AMREX_SPACEDIM == 1)
+    return {amrex::min(b1.bigend[0], hi.x),
+            0, 0};
+#elif (AMREX_SPACEDIM == 2)
+    return {amrex::min(b1.bigend[0], hi.x),
+            amrex::min(b1.bigend[1], hi.y),
+            0};
+#elif (AMREX_SPACEDIM == 3)
+    return {amrex::min(b1.bigend[0], hi.x),
+            amrex::min(b1.bigend[1], hi.y),
+            amrex::min(b1.bigend[2], hi.z)};
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Box minBox (Box const& b1, Box const& b2, IndexType typ) noexcept
+{
+#if (AMREX_SPACEDIM == 1)
+    return Box(IntVect(amrex::max(b1.smallend[0], b2.smallend[0])),
+               IntVect(amrex::min(b1.bigend  [0], b2.bigend  [0])),
+               typ);
+#elif (AMREX_SPACEDIM == 2)
+    return Box(IntVect(amrex::max(b1.smallend[0], b2.smallend[0]),
+                       amrex::max(b1.smallend[1], b2.smallend[1])),
+               IntVect(amrex::min(b1.bigend  [0], b2.bigend  [0]),
+                       amrex::min(b1.bigend  [1], b2.bigend  [1])),
+               typ);
+#elif (AMREX_SPACEDIM == 3)
+    return Box(IntVect(amrex::max(b1.smallend[0], b2.smallend[0]),
+                       amrex::max(b1.smallend[1], b2.smallend[1]),
+                       amrex::max(b1.smallend[2], b2.smallend[2])),
+               IntVect(amrex::min(b1.bigend  [0], b2.bigend  [0]),
+                       amrex::min(b1.bigend  [1], b2.bigend  [1]),
+                       amrex::min(b1.bigend  [2], b2.bigend  [2])),
+               typ);
+#endif
+}
+
+// Returns a Box that covers all the argument Boxes in index
+// space. The types are ignored. Thus, the arguments can have
+// different index types, and the returned Box's index type has no
+// meaning.
+inline
+Box getIndexBounds (Box const& b1) noexcept
+{
+    return b1;
+}
+
 inline
 Box getIndexBounds (Box const& b1, Box const& b2) noexcept
 {
@@ -1557,17 +1648,13 @@ Box getIndexBounds (Box const& b1, Box const& b2) noexcept
     return b;
 }
 
+template <class T, class ... Ts>
 inline
-Box getIndexBounds (Box const& b1, Box const& b2, Box const& b3) noexcept
+Box getIndexBounds (T const& b1, T const& b2, Ts const& ... b3) noexcept
 {
-    return getIndexBounds(getIndexBounds(b1,b2),b3);
+    return getIndexBounds(getIndexBounds(b1,b2),b3...);
 }
 
-inline
-Box getIndexBounds (Box const& b1) noexcept
-{
-    return b1;
-}
 
 AMREX_GPU_HOST_DEVICE
 AMREX_INLINE

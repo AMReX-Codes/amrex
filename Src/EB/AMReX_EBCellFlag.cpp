@@ -3,19 +3,22 @@
 
 namespace amrex {
 
-EBCellFlagFab::EBCellFlagFab (const Box& b,
-                              int        n,
-                              bool       alloc,
-                              bool       shared)
-    : BaseFab<EBCellFlag>(b,n,alloc,shared)
+EBCellFlagFab::EBCellFlagFab (Arena* ar) noexcept
+    : BaseFab<EBCellFlag>(ar)
+{}
+
+EBCellFlagFab::EBCellFlagFab (const Box& b, int n, Arena* ar)
+    : BaseFab<EBCellFlag>(b,n,ar)
+{}
+
+EBCellFlagFab::EBCellFlagFab (const Box& b, int n, bool alloc, bool shared, Arena* ar)
+    : BaseFab<EBCellFlag>(b,n,alloc,shared,ar)
 {}
 
 EBCellFlagFab::EBCellFlagFab (const EBCellFlagFab& rhs,
                               MakeType make_type, int scomp, int ncomp)
-    :
-    BaseFab<EBCellFlag>(rhs,make_type,scomp,ncomp)
-{
-}
+    : BaseFab<EBCellFlag>(rhs,make_type,scomp,ncomp)
+{}
 
 FabType
 EBCellFlagFab::getType (const Box& bx_in) const noexcept

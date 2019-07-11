@@ -79,6 +79,13 @@ extern "C" {
 	}
     }
 
+    void amrex_fi_set_geometry (int lev, const Geometry* gm, FAmrCore* amrcore)
+    {
+        if (gm) {
+            amrcore->SetGeometry(lev, *gm);
+        }
+    }
+
     void amrex_fi_make_new_grids (int baselev, Real time, int* new_finest, const BoxArray** ba,
 				  FAmrCore* amrcore)
     {

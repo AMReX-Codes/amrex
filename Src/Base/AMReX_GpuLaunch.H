@@ -7,6 +7,7 @@
 #include <AMReX_GpuRange.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Box.H>
+#include <AMReX_Loop.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_TypeTraits.H>
