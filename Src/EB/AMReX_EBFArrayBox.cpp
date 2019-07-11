@@ -10,8 +10,14 @@ EBFArrayBox::EBFArrayBox ()
 {
 }
 
-EBFArrayBox::EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps)
-    : FArrayBox(bx, ncomps),
+EBFArrayBox::EBFArrayBox (Arena* ar)
+    : FArrayBox(ar),
+      m_ebcellflag(nullptr)
+{
+}
+
+EBFArrayBox::EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps, Arena* ar)
+    : FArrayBox(bx, ncomps, ar),
       m_ebcellflag(&ebflag)
 {
     BL_ASSERT(ebflag.box().contains(amrex::enclosedCells(bx)));

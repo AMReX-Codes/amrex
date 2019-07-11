@@ -503,6 +503,14 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
 }
 
 void
+MLLinOp::setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
+                         const Array<Real,AMREX_SPACEDIM>& hi_bcloc) noexcept
+{
+    m_domain_bloc_lo = lo_bcloc;
+    m_domain_bloc_hi = hi_bcloc;
+}
+
+void
 MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept
 {
     m_coarse_data_for_bc = crse;

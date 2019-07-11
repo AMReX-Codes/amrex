@@ -46,6 +46,10 @@ struct MFItInfo
         device_sync = false;
         return *this;
     }
+    MFItInfo& SetDeviceSync (bool f) noexcept {
+        device_sync = f;
+        return *this;
+    }
 };
 
 class MFIter
@@ -223,6 +227,13 @@ private:
     void Initialize ();
     FabArrayBase::TileArray lta;
 };
+
+//! Is it safe to have these two MultiFabs in the same MFiter?
+//! Ture means safe; false means maybe.
+inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
+    return x.DistributionMap() == y.DistributionMap()
+        && BoxArray::SameRefs(x.boxArray(), y.boxArray());
+}
 
 inline Arena* The_MFIter_Arena () noexcept { return The_Device_Arena(); }
 

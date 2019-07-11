@@ -7,8 +7,11 @@
 #include <AMReX_ParallelDescriptor.H>
 
 namespace {
+#if (AMREX_SPACEDIM == 2)
     constexpr double  TWOPI = 2.*3.14159265358979323846264338327950288;
+#elif (AMREX_SPACEDIM == 1)
     constexpr double FOURPI = 4.*3.14159265358979323846264338327950288;
+#endif
 }
 
 namespace amrex {

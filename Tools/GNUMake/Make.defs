@@ -9,6 +9,11 @@ ifneq (,$(findstring ~,$(AMREX_HOME)))
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
+ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local-pre)","")
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local-pre...)
+  include        $(AMREX_HOME)/Tools/GNUMake/Make.local-pre
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
 ifdef AMREX_XSDK
@@ -93,6 +98,16 @@ ifdef BACKTRACE
   BACKTRACE := $(strip $(BACKTRACE))
 else
   BACKTRACE := FALSE
+endif
+
+ifdef EXPORT_DYNAMIC
+  EXPORT_DYNAMIC := $(strip $(EXPORT_DYNAMIC))
+else
+  ifeq ($(shell uname),Darwin)
+    EXPORT_DYNAMIC := TRUE
+  else
+    EXPORT_DYNAMIC := FALSE
+  endif
 endif
 
 ifdef LAZY
@@ -237,19 +252,6 @@ ifdef GPU_ERROR_CHECK
 else
   GPU_ERROR_CHECK := TRUE
 endif 
-
-ifdef FAB_IS_PINNED
-  FAB_IS_PINNED := $(strip $(FAB_IS_PINNED))
-else
-  FAB_IS_PINNED := FALSE
-endif
-
-ifdef FAB_IS_MANAGED
-  FAB_IS_MANAGED := $(strip $(FAB_IS_MANAGED))
-else
-  FAB_IS_MANAGED := TRUE
-endif
-# By default, FAB_IS_MANAGED is TURE and FAB_IS_PINNED is FALSE
 
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
@@ -497,10 +499,6 @@ ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
 
-    ifeq ($(USE_OMP),TRUE)
-        $(error The HIP implementation is not thread-safe; do not try to use OpenMP)
-    endif
-
     ifneq ($(lowercase_comp),gnu)
         $(error HIP can only be used with COMP=gnu)
     endif
@@ -513,21 +511,8 @@ ifeq ($(USE_HIP),TRUE)
 
     DEFINES += -DAMREX_USE_HIP
 
-    ifeq ($(FAB_IS_PINNED),TRUE)
-        DEFINES += -DAMREX_FAB_IS_PINNED
-        ifeq ($(FAB_IS_MANAGED),TRUE)
-            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-        endif
-    endif
-
     ifeq ($(HIP_PLATFORM),nvcc)
         DEFINES += -DAMREX_USE_CUDA
-        ifeq ($(FAB_IS_MANAGED),TRUE)
-            DEFINES += -DAMREX_FAB_IS_MANAGED
-            ifeq ($(FAB_IS_PINNED),TRUE)
-                $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-            endif
-        endif
     endif
 
     GPUSuffix := .HIP
@@ -538,10 +523,6 @@ else ifeq ($(USE_CUDA),TRUE)
 
     # The CUDA implementation is not currently threadsafe.
     # Throw an error if the user tries to build with OpenMP and CUDA.
-
-    ifeq ($(USE_OMP),TRUE)
-        $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
-    endif
 
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE
@@ -575,20 +556,6 @@ else ifeq ($(USE_CUDA),TRUE)
 
     ifeq ($(USE_GPU_PRAGMA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
-    endif
-
-    ifeq ($(FAB_IS_PINNED),TRUE)
-        DEFINES += -DAMREX_FAB_IS_PINNED
-        ifeq ($(FAB_IS_MANAGED),TRUE)
-            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-        endif
-    endif
-
-    ifeq ($(FAB_IS_MANAGED),TRUE)
-        DEFINES += -DAMREX_FAB_IS_MANAGED
-        ifeq ($(FAB_IS_PINNED),TRUE)
-            $(error FAB_IS_PINNED and FAB_IS_MANAGED cannot both be TRUE)
-        endif
     endif
 
     GPUSuffix := .CUDA

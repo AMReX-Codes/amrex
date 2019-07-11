@@ -822,7 +822,9 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
 
             if (priv_loc.allGT(IntVect::TheMinVector())) {
                 bool old;
-#if defined(_OPENMP) && _OPENMP < 201107
+// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
+// but we must work around a bug in gcc < 4.9
+#if defined(_OPENMP) && _OPENMP < 201307 // OpenMP 4.0
 #pragma omp critical (amrex_indexfromvalue)
 #elif defined(_OPENMP)
 #pragma omp atomic capture
@@ -1172,7 +1174,7 @@ MultiFab::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Period
 	// Self copy is safe only for cell-centered MultiFab
 	this->copy(*this,scomp,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);
     } else {
-	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo().SetDeviceFab(false), Factory());
+	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
 	this->setVal(0.0, scomp, ncomp, nghost);
 	this->copy(tmp,0,scomp,ncomp,n_grow,nghost,period,FabArrayBase::ADD);

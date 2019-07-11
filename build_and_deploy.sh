@@ -62,7 +62,7 @@ make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
 cd ../sphinx_tutorials
 echo "Build the Sphinx documentation for the Amrex tutorials."
 make SPHINX_BUILD="python -msphinx" latexpdf &> make_tutorials_latex.out
-mv build/latex/amrex-tutorials.pdf source/
+mv build/latex/amrex.pdf source/
 make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 

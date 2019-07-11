@@ -232,7 +232,7 @@ contains
     real(rt), intent(out) :: d(dlo(1):dhi(1),dlo(2):dhi(2),nc)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2))
 
-    integer :: i,j,n, nbr(-1:1,-1:1), ii,jj
+    integer :: i,j, nbr(-1:1,-1:1), ii,jj
     real(rt) :: dm(nc), wtot, drho(nc)
 
     do    j = lo(2)-1, hi(2)+1

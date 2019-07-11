@@ -28,4 +28,4 @@ Options supported by AMReX include the following; the default is SFC:
   resulting ordering across ranks in a way that balances the load
 
 - Round-robin: sort grids and assign them to ranks in round-robin fashion -- specifically
-  FAB *i* is owned by CPU *i*%N where N is the total number of MPI ranks.
+  FAB i is owned by CPU i%N where N is the total number of MPI ranks.

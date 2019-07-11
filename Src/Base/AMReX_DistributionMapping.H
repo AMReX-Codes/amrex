@@ -5,6 +5,7 @@
 #include <limits>
 #include <memory>
 #include <cstddef>
+#include <iostream>
 
 #include <AMReX.H>
 #include <AMReX_Array.H>
@@ -108,6 +109,10 @@ class DistributionMapping
 
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
+
+    std::istream& readFrom (std::istream& is);
+
+    std::ostream& writeOn (std::ostream& os) const;
 
     //! Set/get the distribution strategy.
     static void strategy (Strategy how);

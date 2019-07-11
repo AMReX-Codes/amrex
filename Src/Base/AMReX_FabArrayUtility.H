@@ -1025,10 +1025,10 @@ Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
 
 template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-prefetchToHost (FabArray<FAB> const& fa)
+prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_CUDA
-    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
         fa.prefetchToHost(mfi);
     }
 #endif
@@ -1036,10 +1036,10 @@ prefetchToHost (FabArray<FAB> const& fa)
 
 template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 void
-prefetchToDevice (FabArray<FAB> const& fa)
+prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 {
 #ifdef AMREX_USE_CUDA
-    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(fa, MFItInfo().SetDeviceSync(synchronous)); mfi.isValid(); ++mfi) {
         fa.prefetchToDevice(mfi);
     }
 #endif
@@ -1071,11 +1071,61 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
     }
     
     FabArray<FAB> tmpmf(fa.boxArray(), fa.DistributionMap(), ncomp, 0,
-                        MFInfo().SetDeviceFab(false), fa.Factory());
+                        MFInfo(), fa.Factory());
     tmpmf.setVal(0);
     tmpmf.ParallelCopy(fa, period, FabArrayBase::ADD);
 
     amrex::Copy(fa, tmpmf, 0, 0, ncomp, 0);
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
+             int scomp, int dcomp, int ncomp)
+{
+    AMREX_ASSERT(isMFIterSafe(dst, src));
+    AMREX_ASSERT(dst.nGrowVect() == src.nGrowVect());
+#ifdef AMREX_USE_GPU
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
+        void* pdst = dst[mfi].dataPtr(dcomp);
+        void const* psrc = src[mfi].dataPtr(scomp);
+        Gpu::dtoh_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+    }
+#else
+    Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());
+#endif
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
+{
+    dtoh_memcpy(dst, src, 0, 0, dst.nComp());
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
+             int scomp, int dcomp, int ncomp)
+{
+    AMREX_ASSERT(isMFIterSafe(dst, src));
+    AMREX_ASSERT(dst.nGrowVect() == src.nGrowVect());
+#ifdef AMREX_USE_GPU
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
+        void* pdst = dst[mfi].dataPtr(dcomp);
+        void const* psrc = src[mfi].dataPtr(scomp);
+        Gpu::htod_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+    }
+#else
+    Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());
+#endif
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
+{
+    htod_memcpy(dst, src, 0, 0, dst.nComp());
 }
 
 }
