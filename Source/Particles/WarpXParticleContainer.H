@@ -253,8 +253,8 @@ public:
         AddIntComp(comm);
     }
 
-    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }
-    
+    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }    
+
 protected:
 
     std::map<std::string, int> particle_comps;

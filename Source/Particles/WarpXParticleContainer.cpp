@@ -10,6 +10,7 @@
 // Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
 #include <UpdatePosition.H>
+#include <ComputeShapeFactors.H>
 
 using namespace amrex;
 
@@ -279,6 +280,22 @@ WarpXParticleContainer::AddNParticles (int lev,
     Redistribute();
 }
 
+//doDepositionShapeN<1>(wp, uxp, uyp, uzp, jx_arr, jy_arr, jz_arr,
+//                      offset, np_to_depose, dt, dx,
+//                      tilebox, stagger_shift, q);
+
+// template <int depos_order>
+/*
+void WarpXParticleContainer::doDepositionShapeN(RealVector& wp, RealVector& uxp,
+                        RealVector& uyp, RealVector& uzp,
+                        Array4<Real>& jx_arr, 
+                        Array4<Real>& jy_arr, 
+                        Array4<Real>& jz_arr,
+                        const long offset, const long np_to_depose, 
+                        const Real dt, const std::array<Real,3>& dx,
+                        const Box tilebox, const Real stagger_shift, 
+                        const Real q)
+*/
 /* \brief Current Deposition for thread thread_num
  * \param pti         : Particle iterator
  * \param wp          : Array of particle weights
@@ -311,6 +328,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
     int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
+    Real q = this->charge;
+    const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
 
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
@@ -330,19 +349,14 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
     Box tby = convert(tilebox, WarpX::jy_nodal_flag);
     Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
-
     tilebox.grow(ngJ);
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
     // jx array (same for jy_ptr and jz_ptr).
-    Real* jx_ptr = (*jx)[pti].dataPtr();
-    Real* jy_ptr = (*jy)[pti].dataPtr();
-    Real* jz_ptr = (*jz)[pti].dataPtr();
-    
-    auto jxntot = jx[pti].length();
-    auto jyntot = jy[pti].length();
-    auto jzntot = jz[pti].length();
+    Array4<Real> const& jx_arr = jx.array(pti);
+    Array4<Real> const& jy_arr = jy.array(pti);
+    Array4<Real> const& jz_arr = jz.array(pti);
 #else
     // Tiling is on: jx_ptr points to local_jx[thread_num]
     // (same for jy_ptr and jz_ptr)
@@ -359,132 +373,41 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     local_jy[thread_num].setVal(0.0);
     local_jz[thread_num].setVal(0.0);
 
+    Array4<Real> const& jx_arr = local_jx[thread_num].array();
+    Array4<Real> const& jy_arr = local_jy[thread_num].array();
+    Array4<Real> const& jz_arr = local_jz[thread_num].array();
 #endif
     // GPU, no tiling: deposit directly in jx
     // CPU, tiling: deposit into local_jx
     // (same for jx and jz)
     BL_PROFILE_VAR_START(blp_pxr_cd);
-    Real dxi = 1.0/dx[0];
-    Real dzi = 1.0/dx[2];
-    Real dts2dx = 0.5*dt*dxi;
-    Real dts2dz = 0.5*dt*dzi;
-#if (AMREX_SPACEDIM == 2)
-    Real invvol = dxi*dzi;
-#else // (AMREX_SPACEDIM == 3)
-    Real dyi = 1.0/dx[1];
-    Real dts2dy = 0.5*dt*dyi;
-    Real invvol = dxi*dyi*dzi;
-#endif
-    Real clightsq = 1.0/PhysConst::c/PhysConst::c;
-    Real q = this->charge;
-
-    // Lower corner of tile box physical domain
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
-    // xmin and zmin are built on pti.tilebox(), so it does 
-    // not include staggering, so the stagger_shift has to be done by hand.
-    // Alternatively, we could define xminx from tbx (and the same for 3 
-    // directions and for jx, jy, jz). This way, sxo would not be needed.
-    // Better for memory? worth trying?
-    const Real xmin = xyzmin[0];
-    const Real zmin = xyzmin[2];
-    const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
-
-    Array4<Real> const& jx_arr = local_jx[thread_num].array();
-    Array4<Real> const& jy_arr = local_jy[thread_num].array();
-    Array4<Real> const& jz_arr = local_jz[thread_num].array();
-    
-    const Dim3 lo = lbound(tilebox);
 
     Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
     Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
-
-#if (AMREX_SPACEDIM == 3)
     Real* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
-    const Real ymin = xyzmin[1];
-#endif
 
-    ParallelFor( np_to_depose,
-                 [=] AMREX_GPU_DEVICE (long ip) {
+    // Lower corner of tile box physical domain
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
+    // xyzmin is built on pti.tilebox(), so it does 
+    // not include staggering, so the stagger_shift has to be done by hand.
+    // Alternatively, we could define xyzminx from tbx (and the same for 3 
+    // directions and for jx, jy, jz). This way, sx0 would not be needed.
+    // Better for memory? worth trying?    
+    const Dim3 lo = lbound(tilebox);
 
-                     // macro-particle current in all 3D (even for 2D runs)
-                     // wqx, wqy and wqz are the particle current in each 
-                     // direction
-                     Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                     + uyp[ip]*uyp[ip]*clightsq
-                                                     + uzp[ip]*uzp[ip]*clightsq);
-                     Real wq = q*wp[ip];
-                     Real vx = uxp[ip]*gaminv;
-                     Real wqx = wq*invvol*vx;
-                     Real vy = uyp[ip]*gaminv;
-                     Real wqy = wq*invvol*vy;
-                     Real vz = uzp[ip]*gaminv;
-                     Real wqz = wq*invvol*vz;
-
-                     // --- x direction
-                     // particle position in cell unit (1/2 timestep back)
-                     // Real x = (Real) (xp[ip]-xmin)*dxi;
-                     // particle position in cell unit
-                     // Real xmid=x-dts2dx*vx;
-                     Real xmid= (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
-                     // x index of cell containing particle (cell-centered)
-                     int j = (int) xmid;
-                     // x index of cell containing particle (node-centered)
-                     int j0= (int) (xmid-stagger_shift);
-                     // for the cell-centered quantities, compute current on 
-                     // each point
-                     Real xint = xmid-j;
-                     Real sx[2] = {1.0 - xint, xint};
-                     // for the node-centered quantities, compute current on 
-                     // each point
-                     xint = xmid-stagger_shift-j0;
-                     Real sx0[2] = {1.0 - xint, xint};
-
-#if (AMREX_SPACEDIM == 3)
-                     // --- y direction
-                     Real y = (Real) (yp[ip]-ymin)*dyi;
-                     Real ymid=y-dts2dy*vy;
-                     int k = (int) ymid;
-                     int k0= (int) (ymid-stagger_shift);
-                     Real yint = ymid-k;
-                     Real sy[2] = {1.0 - yint, yint};
-                     yint = ymid-stagger_shift-k0;
-                     Real sy0[2] = {1.0 - yint, yint};
-#endif
-                     // --- z direction
-                     Real z = (Real) (zp[ip]-zmin)*dzi;
-                     Real zmid=z-dts2dz*vz;
-                     int l = (int) zmid;
-                     int l0= (int) (zmid-stagger_shift);
-                     Real zint = zmid-l;
-                     Real sz[2] = {1.0 - zint, zint};
-                     zint = zmid-stagger_shift-l0;
-                     Real sz0[2] = {1.0 - zint, zint};
-
-                     // Real xbounds[2], ybounds[2], zbounds[2];
-                     // compute_shape_factor<WarpX::nox>(xbounds, sx, xint);
-                     // deposit_current()
-                     
-#if (AMREX_SPACEDIM == 2)
-                     for (int iz=0; iz<2; iz++){
-                         for (int ix=0; ix<2; ix++){
-                             jx_arr(lo.x+j0+ix  ,lo.y+l +iz  ,0) += sx0[ix]*sz [iz]*wqx;
-                             jy_arr(lo.x+j +ix  ,lo.y+l +iz  ,0) += sx [ix]*sz [iz]*wqy;
-                             jz_arr(lo.x+j +ix  ,lo.y+l0+iz  ,0) += sx [ix]*sz0[iz]*wqz;
-                         }
-                     }
-#else // (AMREX_SPACEDIM == 3)
-                     for (int iz=0; iz<2; iz++){
-                         for (int iy=0; iy<2; iy++){
-                             for (int ix=0; ix<2; ix++){
-                                 jx_arr(lo.x+j0+ix  ,lo.y+k +iy  ,lo.z+l +iz  ) += sx0[ix]*sy [iy]*sz [iz]*wqx;
-                                 jy_arr(lo.x+j +ix  ,lo.y+k0+iy  ,lo.z+l +iz  ) += sx [ix]*sy0[iy]*sz [iz]*wqy;
-                                 jz_arr(lo.x+j +ix  ,lo.y+k +iy  ,lo.z+l0+iz  ) += sx [ix]*sy [iy]*sz0[iz]*wqz;
-                             }
-                         }
-                     }
-#endif
-                 }
-        );
+    if (WarpX::nox == 1){
+        doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, jz_arr,
+                              offset, np_to_depose, dt, dx,
+                              xyzmin, lo, stagger_shift, q);
+    } else if (WarpX::nox == 2){
+        doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, jz_arr,
+                              offset, np_to_depose, dt, dx,
+                              xyzmin, lo, stagger_shift, q);
+    } else if (WarpX::nox == 3){
+        doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, jz_arr,
+                              offset, np_to_depose, dt, dx,
+                              xyzmin, lo, stagger_shift, q);
+    }
 
 #ifdef WARPX_RZ
     // Rescale current in r-z mode
@@ -1029,3 +952,5 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     if (pld.m_lev == lev-1){
     }
 }
+
+
