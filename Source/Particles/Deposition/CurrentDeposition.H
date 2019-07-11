@@ -77,6 +77,8 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                         const amrex::Real stagger_shift, 
                         const amrex::Real q)
 {
+    BL_PROFILE("PICSAR::CurrentDeposition");
+
     Real dxi = 1.0/dx[0];
     Real dzi = 1.0/dx[2];
     Real dts2dx = 0.5*dt*dxi;
@@ -150,9 +152,13 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                      for (int iz=0; iz<=depos_order; iz++){
                          for (int iy=0; iy<=depos_order; iy++){
                              for (int ix=0; ix<=depos_order; ix++){
-                                 jx_arr(lo.x+j0+ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l +iz+shape_lo.z) += sx0[ix]*sy [iy]*sz [iz]*wqx;
-                                 jy_arr(lo.x+j +ix+shape_lo.x, lo.y+k0+iy+shape_lo.y, lo.z+l +iz+shape_lo.z) += sx [ix]*sy0[iy]*sz [iz]*wqy;
-                                 jz_arr(lo.x+j +ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l0+iz+shape_lo.z) += sx [ix]*sy [iy]*sz0[iz]*wqz;
+			         amrex::Gpu::Atomic::Add(&jx_arr(lo.x+j0+ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l +iz+shape_lo.z), sx0[ix]*sy [iy]*sz [iz]*wqx);
+			         amrex::Gpu::Atomic::Add(&jy_arr(lo.x+j +ix+shape_lo.x, lo.y+k0+iy+shape_lo.y, lo.z+l +iz+shape_lo.z), sx [ix]*sy0[iy]*sz [iz]*wqy);
+			         amrex::Gpu::Atomic::Add(&jz_arr(lo.x+j +ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l0+iz+shape_lo.z), sx [ix]*sy [iy]*sz0[iz]*wqz);
+			         // amrex::Gpu::Atomic::Add(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
+                                 // jx_arr(lo.x+j0+ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l +iz+shape_lo.z) += sx0[ix]*sy [iy]*sz [iz]*wqx;
+                                 // jy_arr(lo.x+j +ix+shape_lo.x, lo.y+k0+iy+shape_lo.y, lo.z+l +iz+shape_lo.z) += sx [ix]*sy0[iy]*sz [iz]*wqy;
+                                 // jz_arr(lo.x+j +ix+shape_lo.x, lo.y+k +iy+shape_lo.y, lo.z+l0+iz+shape_lo.z) += sx [ix]*sy [iy]*sz0[iz]*wqz;
                              }
                          }
                      }

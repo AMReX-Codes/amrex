@@ -331,7 +331,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Real q = this->charge;
     const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
 
-    BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
 
     // Get tile box where current is deposited.
@@ -354,9 +353,12 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
     // jx array (same for jy_ptr and jz_ptr).
-    Array4<Real> const& jx_arr = jx.array(pti);
-    Array4<Real> const& jy_arr = jy.array(pti);
-    Array4<Real> const& jz_arr = jz.array(pti);
+    Array4<Real> const& jx_arr = jx->array(pti);
+    Array4<Real> const& jy_arr = jy->array(pti);
+    Array4<Real> const& jz_arr = jz->array(pti);
+    //auto const& jx_arr = jx->array(pti);
+    //auto const& jy_arr = jy->array(pti);
+    //auto const& jz_arr = jz->array(pti);
 #else
     // Tiling is on: jx_ptr points to local_jx[thread_num]
     // (same for jy_ptr and jz_ptr)
@@ -380,7 +382,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // GPU, no tiling: deposit directly in jx
     // CPU, tiling: deposit into local_jx
     // (same for jx and jz)
-    BL_PROFILE_VAR_START(blp_pxr_cd);
 
     Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
     Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
@@ -417,7 +418,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         jz_ptr, &ngJ, jzntot.getVect(),
         &xyzmin[0], &dx[0]);
 #endif
-    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
