@@ -79,6 +79,9 @@ public:
         //! Construct from a FabArray<FArrayBox>.
         Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1,
 		bool calcMinMax = true, MPI_Comm = ParallelDescriptor::Communicator());
+
+        Header (Header&& rhs) noexcept = default;
+
 	//! Calculate the min and max arrays
 	void CalculateMinMax(const FabArray<FArrayBox>& fafab,
 			     int procToWrite = ParallelDescriptor::IOProcessorNumber(),
@@ -181,8 +184,7 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
-    static std::thread WriteAsync (const FabArray<FArrayBox>& fafab,
-                                   const std::string& name);
+    static void WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
 
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
@@ -285,6 +287,9 @@ private:
                             const std::string& filename,
                             std::ostream&      os,
                             long&              bytes);
+
+    static long WriteHeaderDoit (const std::string &fafab_name,
+                                 VisMF::Header const &hdr);
 
     static long WriteHeader (const std::string &fafab_name,
                              VisMF::Header     &hdr,
