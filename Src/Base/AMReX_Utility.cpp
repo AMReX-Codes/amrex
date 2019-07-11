@@ -474,7 +474,7 @@ amrex::Random ()
 }
 
 
-
+/*
 AMREX_GPU_DEVICE int
 get_state(int tid)
 {
@@ -520,7 +520,7 @@ amrex::gpusafe_Random ()
 
 
 
-
+*/
 
 unsigned long
 amrex::Random_int(unsigned long n)
