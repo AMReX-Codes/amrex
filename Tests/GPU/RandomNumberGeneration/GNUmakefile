@@ -4,7 +4,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = gcc
+COMP    = pgi
 
 USE_CUDA  = TRUE
 USE_ACC   = FALSE

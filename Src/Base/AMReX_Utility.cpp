@@ -20,6 +20,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Print.H>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
@@ -34,6 +35,9 @@
 #include <sys/time.h>
 #include <sys/param.h>
 #include <unistd.h>
+
+
+
 
 
 using std::ostringstream;
@@ -373,6 +377,9 @@ namespace
     */
     __device__ curandState_t *glo_RandStates;
     amrex::Gpu::DeviceVector<curandState_t> dev_RandStates_Seed;
+    __device__ int *glo_mutex;
+    amrex::Gpu::DeviceVector<int> dev_mutex;
+
 #endif
 
 }
@@ -448,9 +455,7 @@ amrex::Random ()
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
-
     rand = curand_uniform_double(&glo_RandStates[tid]); 
-
 
 #else
 
@@ -461,11 +466,60 @@ amrex::Random ()
 #endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     rand = distribution(generators[tid]);
+    //    std::printf("Tid = %d",tid);
 
 #endif
 
     return rand;
 }
+
+
+
+AMREX_GPU_DEVICE int
+get_state(int tid)
+{
+  int i = tid % dev_RandStates_Seed.capacity();
+  while (amrex::Gpu::Atomic::CAS(&glo_mutex[i], 0, 1))
+    {
+      continue;
+    }
+  return i;
+}
+
+
+AMREX_GPU_HOST_DEVICE double
+amrex::gpusafe_Random ()
+{
+  double rand;
+  
+#ifdef __CUDA_ARCH__
+
+  int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+  int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+    + (threadIdx.z * (blockDim.x * blockDim.y))
+    + (threadIdx.y * blockDim.x) + threadIdx.x ;
+  //int num = dev_RandStates_Seed.capacity();
+  //int *num_p = &num;
+  int i = get_state(tid);
+  rand = curand_uniform_double(&glo_RandStates[i]);
+  amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0); // free state
+  
+#else
+
+#ifdef _OPENMP
+  int tid = omp_get_thread_num();
+#else
+  int tid = 0;
+#endif
+  std::uniform_real_distribution<double> distribution(0.0, 1.0);
+  rand = distribution(generators[tid]);
+#endif
+  return rand;
+}
+
+
+
 
 
 unsigned long
@@ -559,12 +613,16 @@ amrex::ResizeRandomSeed (int N)
 
   int PrevSize = dev_RandStates_Seed.size();
 
+
   const int MyProc = amrex::ParallelDescriptor::MyProc();
   int SizeDiff = Nbuffer - PrevSize;
 
   dev_RandStates_Seed.resize(Nbuffer);
+
   curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
+  int * dp_mutex = dev_mutex.dataPtr();
   cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
+  cudaMemcpyToSymbol(glo_mutex, &dp_mutex,sizeof(int *));
 
   AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
   {
