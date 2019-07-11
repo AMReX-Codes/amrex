@@ -417,7 +417,7 @@ function( evaluate_genex input output )
    if (nogenex_list)
       list(REMOVE_ITEM genex_list ${nogenex_list})
    endif ()
-
+   
    if (genex_list)
       # The genex_list is a list of genex-es in the form
       # $<SOME_GENEX:something;something;something;...>.
@@ -448,13 +448,13 @@ function( evaluate_genex input output )
             genex_list "${genex_list}")
          string(REPLACE "$<CXX_COMPILER_ID:${ARG_COMP}>" "${true}"
             genex_list "${genex_list}")
-         string(REPLACE
-            "$<STREQUAL:\"${CMAKE_Fortran_COMPILER_ID}\",\"${ARG_COMP}\">"
-            "${true}" genex_list "${genex_list}")
+         string(REPLACE "$<Fortran_COMPILER_ID:${ARG_COMP}>" "${true}"
+            genex_list "${genex_list}")
       endif ()
       string(REPLACE "$<C_COMPILER_ID:" "${false}" genex_list "${genex_list}")
       string(REPLACE "$<CXX_COMPILER_ID:" "${false}" genex_list "${genex_list}")
-      string(REPLACE "$<STREQUAL:"        "${false}" genex_list "${genex_list}")
+      string(REPLACE "$<Fortran_COMPILER_ID:" "${false}" genex_list "${genex_list}")
+
 
       # Tag by configuration
       if (ARG_COMP)

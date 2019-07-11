@@ -97,6 +97,14 @@ public:
     void setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
                       const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc) noexcept;
 
+    // By default, domain BC is on the domain face.  If that's the
+    // case, this function doesn't need to be called.  However, one
+    // could use this function to set non-zero domain BC locations.
+    // Note all values should be >= 0.  If this function is called,
+    // it MUST be called before setLevelBC.
+    void setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
+                         const Array<Real,AMREX_SPACEDIM>& hi_bcloc) noexcept;
+
     /**
     * \brief Needs coarse data for bc?  If the lowest level grids does not
     * cover the entire domain, coarse level data are needed for
@@ -268,6 +276,9 @@ protected:
     // BC
     Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc;
     Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc;
+
+    Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0.,0.,0.)}};
+    Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0.,0.,0.)}};
 
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio = -1;

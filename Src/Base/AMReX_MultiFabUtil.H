@@ -5,6 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_MFIter.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 
@@ -127,13 +128,6 @@ namespace amrex
                                              const MultiFab& cc,
                                              const Geometry& geom, int fstart, int ncomp,
                                              bool interpolate=false);
-
-    //! Is it safe to have these two MultiFabs in the same MFiter?
-    //! Ture means safe; false means maybe.
-    inline bool isMFIterSafe (const MultiFab& x, const MultiFab& y) {
-        return x.DistributionMap() == y.DistributionMap()
-            && BoxArray::SameRefs(x.boxArray(), y.boxArray());
-    }
 
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids

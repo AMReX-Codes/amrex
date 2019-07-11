@@ -350,6 +350,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int tile = mfi.LocalTileIndex();
             PairIndex dst_index(grid, tile);
             neighbors[lev][dst_index].resize(local_neighbor_sizes[lev][dst_index]);
+            if ( enableInverse() )
+               inverse_tags[lev][dst_index].resize(local_neighbor_sizes[lev][dst_index]);
         }
     }
     BL_PROFILE_VAR_STOP(update);
@@ -367,6 +369,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
     resizeContainers(this->numLevels());
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         neighbors[lev].clear();
+        if ( enableInverse() )
+           inverse_tags[lev].clear();
         buffer_tag_cache[lev].clear();
     }
 

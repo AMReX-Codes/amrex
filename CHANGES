@@ -1,3 +1,26 @@
+# 19.07
+
+  -- Geometry/CoordSys: Static class members have been removed.
+     Functions such as `isPeriodic`, `isAnyPeriodic`, `isAllPeriodic`,
+     `ProbLo`, `ProbHi`, `IsCartesian`, `IsRZ`, and `IsSPHERICAL` are
+     now non-static.  The default Geometry can been obtained via
+     `DefaultGeometry()` function.
+
+  -- Funciton amrex::Loop and amrex:LoopConcurrent are added to help
+     looping over cells in a Box.
+
+  -- Nodal solver: A bug in nodal owner mask that could affect
+     covergence was fixed.
+
+  -- Fortran amrex_amrcore_module: add amrex_set_boxarray,
+     amrex_set_distromap, and amrex_set_finest_level.
+
+  -- Option to allocate MultiFab data in arenas different from
+     The_Arena().
+
+  -- Option to tag MultiFabs and query their memory usages.
+
+  -- AsyncFab has been deleted.
 
 # 19.06
 

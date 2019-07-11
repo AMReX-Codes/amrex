@@ -20,7 +20,7 @@
 namespace amrex {
 
 std::vector<std::string>          TinyProfiler::regionstack;
-std::stack<std::pair<double,double> > TinyProfiler::ttstack;
+std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
 
@@ -68,7 +68,7 @@ TinyProfiler::start () noexcept
     {
 	double t = amrex::second();
 
-	ttstack.push(std::make_pair(t, 0.0));
+	ttstack.emplace_back(std::make_tuple(t, 0.0, &fname));
 	global_depth = ttstack.size();
 
 #ifdef AMREX_USE_CUDA
@@ -95,18 +95,18 @@ TinyProfiler::stop () noexcept
 	double t = amrex::second();
 
 	while (static_cast<int>(ttstack.size()) > global_depth) {
-	    ttstack.pop();
+	    ttstack.pop_back();
 	};
 
 	if (static_cast<int>(ttstack.size()) == global_depth)
 	{
-	    const std::pair<double,double>& tt = ttstack.top();
+	    const std::tuple<double,double,std::string*>& tt = ttstack.back();
 	    
 	    // first: wall time when the pair is pushed into the stack
 	    // second: accumulated dt of children
 	    
-	    double dtin = t - tt.first; // elapsed time since start() is called.
-	    double dtex = dtin - tt.second;
+	    double dtin = t - std::get<0>(tt); // elapsed time since start() is called.
+	    double dtex = dtin - std::get<1>(tt);
 
             for (Stats* st : stats)
             {
@@ -118,10 +118,10 @@ TinyProfiler::stop () noexcept
                 st->dtex += dtex;
             }
                 
-	    ttstack.pop();
+	    ttstack.pop_back();
 	    if (!ttstack.empty()) {
-		std::pair<double,double>& parent = ttstack.top();
-		parent.second += dtin;
+		std::tuple<double,double,std::string*>& parent = ttstack.back();
+		std::get<1>(parent) += dtin;
 	    }
 
 #ifdef AMREX_USE_CUDA
@@ -413,6 +413,15 @@ TinyProfileRegion::~TinyProfileRegion ()
 {
     tprof.stop();
     TinyProfiler::StopRegion(regname);
+}
+
+void
+TinyProfiler::PrintCallStack (std::ostream& os)
+{
+    os << "===== TinyProfilers ======\n";
+    for (auto const& x : ttstack) {
+        os << *(std::get<2>(x)) << "\n";
+    }
 }
 
 }

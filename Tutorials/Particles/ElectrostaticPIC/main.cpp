@@ -18,16 +18,6 @@
 
 using namespace amrex;
 
-class NoOpPhysBC
-    : public amrex::PhysBCFunctBase
-{
-public:
-    NoOpPhysBC () {}
-    virtual ~NoOpPhysBC () {}
-    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time, int) override { }
-    using amrex::PhysBCFunctBase::FillBoundary;
-};
-
 void WritePlotFile(const ScalarMeshData& rhs,
                    const ScalarMeshData& phi,
                    const VectorMeshData& E,
@@ -234,7 +224,7 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
 
         if (lev < num_levels-1) {
 
-            NoOpPhysBC cphysbc, fphysbc;
+            PhysBCFunctNoOp cphysbc, fphysbc;
 #if BL_SPACEDIM == 3
             int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
             int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};

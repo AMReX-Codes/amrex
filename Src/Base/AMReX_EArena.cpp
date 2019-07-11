@@ -92,7 +92,6 @@ EArena::free (void* vp)
     auto pair_mitb = m_mergelist.insert(*bit);
     m_free_size += bit->m_size;
     AMREX_ASSERT(pair_fitb.second == true && pair_mitb.second);
-    auto fit = pair_fitb.first;
     auto mit = pair_mitb.first;
 
     m_busylist.erase(bit);

@@ -393,10 +393,10 @@ class GShopLSFactory {
             mf_impfunc->define(m_ls_ba, m_ls_dm, 1, m_ls_pad);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for(MFIter mfi(* mf_impfunc); mfi.isValid(); ++ mfi)
-                m_gshop.fillFab((* mf_impfunc)[mfi], m_geom);
+                m_gshop.fillFab((* mf_impfunc)[mfi], m_geom, RunOn::Gpu);
 
             mf_impfunc->FillBoundary(m_geom.periodicity());
 
