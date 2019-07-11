@@ -70,7 +70,7 @@ alternatively, in tcsh one can set
     setenv AMREX_HOME /path/to/amrex
 
 Note: when setting ``AMREX_HOME`` in the ``GNUmakefile``, be aware that ``~`` does
-not expand, so ``AMREX_HOME=~/amrex/`` will yield an error. 
+not expand, so ``AMREX_HOME=~/amrex/`` will yield an error.
 
 One must set the ``COMP`` variable to choose a compiler. Currently the list of
 supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
@@ -351,7 +351,7 @@ For example, one can enable OpenMP support as follows:
     cmake -DENABLE_OMP=YES -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
 In the example above ``<var>=ENABLE_OMP`` and ``<value>=ON``.
-Configuration variables requiring a boolen value are evaluated to true if they
+Configuration variables requiring a boolean value are evaluated to true if they
 are assigned a value of ``1``, ``ON``, ``YES``, ``TRUE``, ``Y``. Conversely they are evaluated to false
 if they are assigned a value of ``0``, ``OFF``, ``NO``, ``FALSE``, ``N``.
 Boolean configuration variables are case-insensitive.
@@ -372,12 +372,12 @@ below.
    +==============================+=================================================+=============+=================+
    | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |   
+   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_DP                    |  Build with double-precision reals              | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PIC                   |  Build Position Independent Code                | NO          | YES, NO         |
@@ -392,9 +392,9 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAX_THREADS             |  Max number of CUDA threads per block           | 256         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |   
-   +------------------------------+-------------------------------------------------+-------------+-----------------+   
-   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |    
+   | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
+   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -433,7 +433,7 @@ below.
    | ENABLE_ASCENT                |  Enable Ascent support                          | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_HYPRE                 |  Enable HYPRE interfaces                        | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+  
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
    \end{center}
@@ -465,14 +465,14 @@ to include the following line in the appropriate CMakeLists.txt file:
 
     find_package(AMReX 18 [REQUIRED])
 
-    
+
 To specify a search path for the AMReX library, set the environmental variable
 ``AMReX_ROOT`` to point to the AMReX installation directory or add
-``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation for your 
-project. More details on how CMake search for external packages can be find 
+``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation for your
+project. More details on how CMake search for external packages can be find
 `here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
 In the above snippet, ``18`` refer to the minimum AMReX version supporting
-the import feature discussed here. 
+the import feature discussed here.
 Linking AMReX to any target defined in your CMake project is done by including
 the following line in the appropriate CMakeLists.txt file
 
