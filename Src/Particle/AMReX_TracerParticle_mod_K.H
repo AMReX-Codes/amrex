@@ -44,8 +44,8 @@ void cic_interpolate (const P& p,
   
 #elif (AMREX_SPACEDIM == 2)
 
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5; 
-    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] - 0.5; 
+    amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] - 0.5;
 
     int i = std::floor(lx); 
     int j = std::floor(ly);
