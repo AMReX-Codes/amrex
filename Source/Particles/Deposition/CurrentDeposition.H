@@ -133,7 +133,7 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
     // Loop over particles and deposit into jx_arr, jy_arr and jz_arr
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
-
+                     // --- Get particle quantities
                      Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                      + uyp[ip]*uyp[ip]*clightsq
                                                      + uzp[ip]*uzp[ip]*clightsq);
@@ -146,7 +146,8 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                      Real wqy = wq*invvol*vy;
                      Real wqz = wq*invvol*vz;
 
-                     // --- x direction
+                     // --- Compute shape factors
+                     // x direction
                      // Get particle position after 1/2 push back in position
                      Real xmid = (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
                      // Compute shape factors for node-centered quantities
@@ -157,20 +158,21 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                      int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (AMREX_SPACEDIM == 3)
-                     // --- y direction
+                     // y direction
                      Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
                      Real sy [depos_order + 1];
                      int k  = compute_shape_factor<depos_order>(sy,  ymid);
                      Real sy0[depos_order + 1];
                      int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
-                     // --- z direction
+                     // z direction
                      Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
                      Real sz [depos_order + 1];
                      int l  = compute_shape_factor<depos_order>(sz,  zmid);
                      Real sz0[depos_order + 1];
                      int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
+                     // Deposit current into jx_arr, jy_arr and jz_arr
 #if (AMREX_SPACEDIM == 2)
                      for (int iz=0; iz<=depos_order; iz++){
                          for (int ix=0; ix<=depos_order; ix++){
