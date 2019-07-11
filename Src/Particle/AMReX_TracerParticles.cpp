@@ -14,12 +14,12 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     AMREX_D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
-           BL_ASSERT(umac[1].nGrow() >= 1);,
-           BL_ASSERT(umac[2].nGrow() >= 1););
+                 BL_ASSERT(umac[1].nGrow() >= 1);,
+                 BL_ASSERT(umac[2].nGrow() >= 1););
 
     AMREX_D_TERM(BL_ASSERT(!umac[0].contains_nan());,
-           BL_ASSERT(!umac[1].contains_nan());,
-           BL_ASSERT(!umac[2].contains_nan()););
+                 BL_ASSERT(!umac[1].contains_nan());,
+                 BL_ASSERT(!umac[2].contains_nan()););
 
     const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
@@ -42,8 +42,8 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	    int ng = umac[i].nGrow();
 	    raii_umac[i].reset(new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
                                                            IntVect::TheDimensionVector(i)),
-					    m_gdb->ParticleDistributionMap(lev),
-					    umac[i].nComp(), ng));
+					                   m_gdb->ParticleDistributionMap(lev),
+					                   umac[i].nComp(), ng));
 					    
 	    umac_pointer[i] = raii_umac[i].get();
 	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
@@ -59,8 +59,8 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  const int n = pbox.size();
 
 	  FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
-						 &((*umac_pointer[1])[grid]),
-						 &((*umac_pointer[2])[grid])) };
+						          &((*umac_pointer[1])[grid]),
+						          &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -74,8 +74,8 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 const IntVect& cc_cell = Index(p, lev);
 
                 const Real len[AMREX_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
-                                                       (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
-                                                       (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
+                                                                (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
+                                                                (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
                 const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -120,6 +120,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             }
         }
     }
+
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
