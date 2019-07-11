@@ -435,7 +435,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev,
                                        Real dt)
-{
+{    
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
                                      (depos_lev==(lev  )),
                                      "Deposition buffers only work for lev-1");

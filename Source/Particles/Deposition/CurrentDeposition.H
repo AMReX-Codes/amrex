@@ -109,7 +109,7 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                         const amrex::Real q)
 {
     BL_PROFILE("PICSAR::CurrentDeposition");
-
+    
     Real dxi = 1.0/dx[0];
     Real dzi = 1.0/dx[2];
     Real dts2dx = 0.5*dt*dxi;
@@ -130,6 +130,7 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
     compute_shape_factor_lo<depos_order>(shape_lo);
     Real clightsq = 1.0/PhysConst::c/PhysConst::c;
 
+    // Loop over particles and deposit into jx_arr, jy_arr and jz_arr
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
 

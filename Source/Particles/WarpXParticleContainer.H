@@ -189,6 +189,21 @@ public:
                                 int depos_lev,
                                 amrex::Real dt);
 
+    virtual void DepositCurrentFortran(WarpXParIter& pti,
+                                       RealVector& wp,
+                                       RealVector& uxp,
+                                       RealVector& uyp,
+                                       RealVector& uzp,
+                                       amrex::MultiFab* jx,
+                                       amrex::MultiFab* jy,
+                                       amrex::MultiFab* jz,
+                                       const long offset,
+                                       const long np_to_depose,
+                                       int thread_num,
+                                       int lev,
+                                       int depos_lev,
+                                       amrex::Real dt);
+
     // If particles start outside of the domain, ContinuousInjection 
     // makes sure that they are initialized when they enter the domain, and 
     // NOT before. Virtual function, overriden by derived classes. 

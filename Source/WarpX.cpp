@@ -485,11 +485,11 @@ WarpX::ReadParameters ()
 
     {
         ParmParse pp("algo");
-        pp.query("use_picsar_deposition", use_picsar_deposition)
+        pp.query("use_picsar_deposition", use_picsar_deposition);
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
-        if (!use_picsar_algo){
+        if (!use_picsar_deposition){
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( current_deposition_algo >= 2, 
-                "if not use_picsar_deposition, cannot use Esirkepov deposition.")
+                "if not use_picsar_deposition, cannot use Esirkepov deposition.");
         }
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
