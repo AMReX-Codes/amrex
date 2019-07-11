@@ -421,15 +421,11 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
-    Print()<<"start atomic add\n";
     // CPU, tiling: atomicAdd local_jx into jx
     // (same for jx and jz)
     (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-    Print()<<"end x atomic add\n";
     (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-    Print()<<"end y atomic add\n";
     (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
-    Print()<<"end z atomic add\n";
     BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
 }

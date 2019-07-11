@@ -1530,7 +1530,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Current Deposition
                 //
                 // Deposit inside domains
-                Print()<<"np_current "<<np_current<<'\n';
                 DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
                                0, np_current, thread_num,
                                lev, lev, dt);
