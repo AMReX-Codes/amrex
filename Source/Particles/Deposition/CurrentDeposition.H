@@ -1,32 +1,6 @@
 #ifndef CURRENTDEPOSITION_H_
 #define CURRENTDEPOSITION_H_
 
-//#include <memory>
-//#include <AMReX_Particles.H>
-//#include <AMReX_AmrCore.H>
-//#include <MultiParticleContainer.H>
-//#include <WarpXParticleContainer.H>
-//#include <AMReX_AmrParGDB.H>
-//#include <WarpX_f.H>
-//#include <WarpX.H>
-
-//#include <AMReX_FArrayBox.H>
-//#include <WarpXParticleContainer.H>
-//#include <AMReX_Particles.H>
-//#include <WarpX.H> 
-//#include <AMReX_AmrCore.H>
-
-//#include <AMReX_Particles.H>
-//#include <AMReX_AmrCore.H>
-//#include <MultiParticleContainer.H>
-//#include <WarpXParticleContainer.H>
-//#include <AMReX_AmrParGDB.H>
-// #include <WarpX_f.H>
-// #include <WarpX.H>
-//#include "WarpXParticleContainer.H"
-//#include <AMReX_FArrayBox.H>
-//#include <AMReX_Dim3.H>
-
 using namespace amrex;
 
 
