@@ -9,8 +9,9 @@
 #include <cstdio>
 #include <cstdlib>
 
-#if defined(__linux__) && !defined(__NEC__)
 #include <execinfo.h>
+#if defined(__APPLE__)
+#include <xmmintrin.h>
 #endif
 
 #include <csignal>

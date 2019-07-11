@@ -254,7 +254,7 @@ main (int   argc,
         // Output Statistics
         //
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "  " << iLevel << "    ";
+            std::cout << " Level: " << iLevel << "   \n";
 
 
 #ifdef BL_USE_MPI
@@ -311,7 +311,7 @@ main (int   argc,
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 
-                std::cout << norms[iComp] << " ";
+                std::cout << derives[iComp] << " : " << norms[iComp] << " \n";
             }
             std::cout << std::endl;
         }

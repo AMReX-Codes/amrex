@@ -1566,4 +1566,38 @@ operator<< (std::ostream& os, const DistributionMapping::RefID& id)
     return os;
 }
 
+std::istream&
+DistributionMapping::readFrom (std::istream& is)
+{
+    AMREX_ASSERT(size() == 0);
+    m_ref->clear();
+    auto& pmap = m_ref->m_pmap;
+
+    int n;
+    is.ignore(100000, '(') >> n;
+    pmap.resize(n);
+    for (auto& x : pmap) {
+        is >> x;
+    }
+    is.ignore(100000, ')');
+    if (is.fail()) {
+        amrex::Error("DistributionMapping::readFrom(istream&) failed");
+    }
+    return is;
+}
+
+std::ostream&
+DistributionMapping::writeOn (std::ostream& os) const
+{
+    os << '(' << size() << '\n';
+    for (int i = 0; i < size(); ++i) {
+        os << (*this)[i] << '\n';
+    }
+    os << ')';
+    if (os.fail()) {
+        amrex::Error("DistributionMapping::writeOn(ostream&) failed");
+    }
+    return os;
+}
+
 }

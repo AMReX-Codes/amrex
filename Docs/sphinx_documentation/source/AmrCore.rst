@@ -82,7 +82,7 @@ The protected data members are:
         Vector<BoxArray>            grids;    
 
 The following parameters are frequently set via the inputs file or the command line.
-Their usage is described in the section on :ref:`ss:grid_creation`
+Their usage is described in the section on :ref:`sec:grid_creation`
 
 .. raw:: latex
 

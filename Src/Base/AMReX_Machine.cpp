@@ -404,10 +404,9 @@ class Machine
     // this is collective over ALL ranks in the job
     Vector<int> get_node_ids ()
     {
-        int node_id = -1;
         Vector<int> ids(ParallelDescriptor::NProcs(), 0);
 #ifdef BL_USE_MPI
-        node_id = get_my_node_id();
+        int node_id = get_my_node_id();
         ParallelAllGather::AllGather(node_id, ids.data(), ParallelContext::CommunicatorAll());
 #endif
         if (flag_verbose) {

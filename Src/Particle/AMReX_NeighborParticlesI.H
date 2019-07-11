@@ -3,7 +3,7 @@ template <int NStructReal, int NStructInt>
 bool NeighborParticleContainer<NStructReal, NStructInt>::use_mask = false;
 
 template <int NStructReal, int NStructInt>
-bool NeighborParticleContainer<NStructReal, NStructInt>::enable_inverse = true;
+bool NeighborParticleContainer<NStructReal, NStructInt>::enable_inverse = false;
 
 template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
