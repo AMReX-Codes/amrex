@@ -35,7 +35,7 @@ below
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info = LPInfo(),
                      const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
-     
+
 It takes :cpp:`Vectors` of :cpp:`Geometry`, :cpp:`BoxArray` and
 :cpp:`DistributionMapping`.  The arguments are :cpp:`Vectors` because MLMG can
 do multi-level composite solve.  If you are using it for single-level,
@@ -46,9 +46,9 @@ you can do
 ::
 
     // Given Geometry geom, BoxArray grids, and DistributionMapping dmap on single level
-    MLABecLaplacian mlabeclap({geom}, {grids}, {dmap});
+    MLABecLaplacian mlabeclaplacian({geom}, {grids}, {dmap});
 
-to let the compiler construct :cpp:`Vectors` for you.  Recall that the 
+to let the compiler construct :cpp:`Vectors` for you.  Recall that the
 classes :cpp:`Vector`, :cpp:`Geometry`, :cpp:`BoxArray`, and
 :cpp:`DistributionMapping` are defined in chapter :ref:`Chap:Basics`.  There are
 two new classes that are optional parameters.  :cpp:`LPInfo` is a
@@ -69,8 +69,8 @@ For :cpp:`MLABecLaplacian`, we next need to call member functions
     void setACoeffs (int amrlev, const MultiFab& A);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& B);
 
-to set up the coefficients for equation :eq:`eqn::abeclap`. This is unecessary for 
-:cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`, 
+to set up the coefficients for equation :eq:`eqn::abeclap`. This is unecessary for
+:cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`,
 one needs to call the member function
 
 .. highlight:: c++
@@ -83,7 +83,7 @@ The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
 ``A`` and ``B``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
 mean the lowest level for the solver, which is not necessarily the lowest
-level in the AMR hierarchy. This is so solves can be done on different sections 
+level in the AMR hierarchy. This is so solves can be done on different sections
 of the AMR hierarchy, e.g. on AMR levels 3 to 5.
 
 After boundary conditions and coefficients are prescribed, the linear
@@ -107,14 +107,14 @@ and then we can use the ``MLMG`` member function
                 Real a_tol_rel, Real a_tol_abs);
 
 to solve the problem given an initial guess and a right-hand side.
-Zero is a perfectly fine initial guess.  The two :cpp:`Reals` in the argument 
-list are the targeted relative and absolute error tolerances.  
-The solver will terminate when one of these targets is met.  
+Zero is a perfectly fine initial guess.  The two :cpp:`Reals` in the argument
+list are the targeted relative and absolute error tolerances.
+The solver will terminate when one of these targets is met.
 Set the absolute tolerance to zero if one
 does not have a good value for it.  The return value of :cpp:`solve`
 is the max-norm error.
 
-After the solver returns successfully, if needed, we can call 
+After the solver returns successfully, if needed, we can call
 
 .. highlight:: c++
 
@@ -276,7 +276,7 @@ divergence operator has extra metric terms.  If one does not want the
 solver to include the metric terms because they have been handled in
 other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
-operators. 
+operators.
 
 HYPRE
 =====
