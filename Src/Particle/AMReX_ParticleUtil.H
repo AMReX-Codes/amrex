@@ -17,18 +17,17 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
                   const IntVect& a_tile_size, Box& tbx);
 
 
-template <class Type, class PC, class F>
-Type
+template <class value_type, class PC, class F>
+value_type
 ReduceSum (PC const& pc, int lev, F f)
 {
-    return ReduceSum<Type>(pc, lev, lev, std::move(f));
+    return ReduceSum<value_type>(pc, lev, lev, std::move(f));
 }
 
-template <class Type, class PC, class F>
-Type
+template <class value_type, class PC, class F>
+value_type
 ReduceSum (PC const& pc, int lev_min, int lev_max, F f)
 {
-    using value_type = Type;
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -107,18 +106,17 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f)
     return sm;
 }
 
-template <class Type, class PC, class F>
-Type
+template <class value_type, class PC, class F>
+value_type
 ReduceMax (PC const& pc, int lev, F f)
 {
-    return ReduceMax<Type>(pc, lev, lev, std::move(f));
+    return ReduceMax<value_type>(pc, lev, lev, std::move(f));
 }
 
-template <class Type, class PC, class F>
-Type
+template <class value_type, class PC, class F>
+value_type
 ReduceMax (PC const& pc, int lev_min, int lev_max, F f)
 {
-    using value_type = Type;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -199,18 +197,17 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f)
     return r;
 }
 
-template <class Type, class PC, class F>
-Type
+template <class value_type, class PC, class F>
+value_type
 ReduceMin (PC const& pc, int lev, F f)
 {
-    return ReduceMin<Type>(pc, lev, lev, std::move(f));
+    return ReduceMin<value_type>(pc, lev, lev, std::move(f));
 }
 
-template <class Type, class PC, class F>
-Type
+template <class value_type, class PC, class F>
+value_type
 ReduceMin (PC const& pc, int lev_min, int lev_max, F f)
 {
-    using value_type = Type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
