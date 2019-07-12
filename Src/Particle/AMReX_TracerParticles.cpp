@@ -16,12 +16,12 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     AMREX_D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
-           BL_ASSERT(umac[1].nGrow() >= 1);,
-           BL_ASSERT(umac[2].nGrow() >= 1););
+                 BL_ASSERT(umac[1].nGrow() >= 1);,
+                 BL_ASSERT(umac[2].nGrow() >= 1););
 
     AMREX_D_TERM(BL_ASSERT(!umac[0].contains_nan());,
-           BL_ASSERT(!umac[1].contains_nan());,
-           BL_ASSERT(!umac[2].contains_nan()););
+                 BL_ASSERT(!umac[1].contains_nan());,
+                 BL_ASSERT(!umac[2].contains_nan()););
 
     const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
@@ -44,8 +44,10 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	    int ng = umac[i].nGrow();
 	    raii_umac[i].reset(new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
                                                            IntVect::TheDimensionVector(i)),
-					    m_gdb->ParticleDistributionMap(lev),
-					    umac[i].nComp(), ng));
+
+					                   m_gdb->ParticleDistributionMap(lev),
+					                   umac[i].nComp(), ng));
+					    
 
 	    umac_pointer[i] = raii_umac[i].get();
 	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
@@ -55,6 +57,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         auto& pmap = GetParticles(lev);
+
 	for (auto& kv : pmap)
 	{
 	  int grid    = kv.first.first;
@@ -87,9 +90,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	    const umacarr {AMREX_D_DECL(p_umacarrx, p_umacarry, p_umacarrz )};
 	
 							   
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+
 
 	amrex::ParallelFor(n,   
 	     [=] AMREX_GPU_DEVICE (int i)      
@@ -123,6 +128,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	 });
       }
     }
+
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
