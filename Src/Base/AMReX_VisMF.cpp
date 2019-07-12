@@ -2390,8 +2390,16 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
                 h.m_fod[k].m_head = nbytes;
             }
 
-            Vector<int64_t> offset(nprocs,0);
-            std::partial_sum(nbytes_on_rank.begin(), nbytes_on_rank.end()-1, offset.begin()+1);
+            Vector<int64_t> offset(nprocs);
+            for (int ip = 0; ip < nprocs; ++ip) {
+                auto info = rank_to_info(rank);
+                int sno = std::get<1>(info);
+                if (sno == 0) {
+                    offset[ip] = 0;
+                } else {
+                    offset[ip] = offset[ip-1] + nbytes_on_rank[ip-1];
+                }
+            }
 
             for (int k = 0; k < n_global_fabs; ++k) {
                 h.m_fod[k].m_head += offset[dm[k]];
