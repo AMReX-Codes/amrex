@@ -251,6 +251,23 @@ public:
     void WriteSlicePlotFile () const;
     void ClearSliceMultiFabs ();
 
+    // these should be private, but can't due to Cuda limitations
+    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
+
+    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int ngrow);
+
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
+
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int ngrow);
+
 protected:
 
     //! Tagging cells for refinement
@@ -383,22 +400,6 @@ private:
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
-
-    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
-                             const std::array<const amrex::MultiFab*, 3>& B,
-                             const std::array<amrex::Real,3>& dx);
-
-    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
-                             const std::array<const amrex::MultiFab*, 3>& B,
-                             const std::array<amrex::Real,3>& dx, int ngrow);
-
-    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
-                             const std::array<const amrex::MultiFab*, 3>& B,
-                             const std::array<amrex::Real,3>& dx);
-
-    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
-                             const std::array<const amrex::MultiFab*, 3>& B,
-                             const std::array<amrex::Real,3>& dx, int ngrow);
 
     void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                       const std::array<      amrex::MultiFab*,3>& crse,

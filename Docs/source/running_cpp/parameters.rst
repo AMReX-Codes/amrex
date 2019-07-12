@@ -70,7 +70,7 @@ Setting up the field mesh
     This patch is rectangular, and thus its extent is given here by the coordinates
     of the lower corner (``warpx.fine_tag_lo``) and upper corner (``warpx.fine_tag_hi``).
 
-* ``n_field_gather_buffer`` (`integer`; 0 by default)
+* ``warpx.n_field_gather_buffer`` (`integer`; 0 by default)
     When using mesh refinement: the particles that are located inside
     a refinement patch, but within ``n_field_gather_buffer`` cells of
     the edge of this patch, will gather the fields from the lower refinement
@@ -79,12 +79,17 @@ Setting up the field mesh
     refinement patch, close to its edge. See the section
     :doc:`../../theory/amr` for more details.
 
-* ``n_current_deposition_buffer`` (`integer`)
+* ``warpx.n_current_deposition_buffer`` (`integer`)
     When using mesh refinement: the particles that are located inside
     a refinement patch, but within ``n_field_gather_buffer`` cells of
     the edge of this patch, will deposit their charge and current to the
     lower refinement level, instead of depositing to the refinement patch
     itself. See the section :doc:`../../theory/amr` for more details.
+
+* ``particles.deposit_on_main_grid`` (list of strings)
+    When using mesh refinement: the particle species whose name are included
+    in the list will deposit their charge/current directly on the main grid
+    (i.e. the coarsest level), even if they are inside a refinement patch.
 
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
@@ -187,13 +192,13 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
-    * ``gaussian_beam``: Inject particle beam with gaussian distribution in 
-      space in all directions. This requires additional parameters: 
-      ``<species_name>.q_tot`` (beam charge), 
-      ``<species_name>.npart`` (number of particles in the beam), 
-      ``<species_name>.x/y/z_m`` (average position in `x/y/z`), 
-      ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`), 
-      and optional argument ``<species_name>.do_symmetrize`` (whether to 
+    * ``gaussian_beam``: Inject particle beam with gaussian distribution in
+      space in all directions. This requires additional parameters:
+      ``<species_name>.q_tot`` (beam charge),
+      ``<species_name>.npart`` (number of particles in the beam),
+      ``<species_name>.x/y/z_m`` (average position in `x/y/z`),
+      ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`),
+      and optional argument ``<species_name>.do_symmetrize`` (whether to
       symmetrize the beam in the x and y directions).
 
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
@@ -476,13 +481,13 @@ Laser initialization
 
 * ``<laser_name>.do_continuous_injection`` (`0` or `1`) optional (default `0`).
     Whether or not to use continuous injection.
-    If the antenna starts outside of the simulation domain but enters it 
-    at some point (due to moving window or moving antenna in the boosted 
-    frame), use this so that the laser antenna is injected when it reaches 
-    the box boundary. If running in a boosted frame, this requires the 
-    boost direction, moving window direction and laser propagation direction 
-    to be along `z`. If not running in a boosted frame, this requires the 
-    moving window and laser propagation directions to be the same (`x`, `y` 
+    If the antenna starts outside of the simulation domain but enters it
+    at some point (due to moving window or moving antenna in the boosted
+    frame), use this so that the laser antenna is injected when it reaches
+    the box boundary. If running in a boosted frame, this requires the
+    boost direction, moving window direction and laser propagation direction
+    to be along `z`. If not running in a boosted frame, this requires the
+    moving window and laser propagation directions to be the same (`x`, `y`
     or `z`)
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
