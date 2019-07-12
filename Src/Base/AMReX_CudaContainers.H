@@ -1,6 +1,8 @@
 #ifndef AMREX_CUDA_CONTAINERS_H_
 #define AMREX_CUDA_CONTAINERS_H_
 
+#include <numeric>
+
 #include <AMReX_Vector.H>
 #include <AMReX_CudaAllocators.H>
 
@@ -301,6 +303,15 @@ public:
 #endif
     }
 
+    template<class InIter, class OutIter>
+    OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_CUDA
+        return thrust::inclusive_scan(begin, end, result);
+#else
+        return std::partial_sum(begin, end, result);
+#endif
+    }   
 }
 
 

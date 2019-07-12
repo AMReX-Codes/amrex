@@ -364,24 +364,8 @@ namespace Gpu {
             *address = (old == compare ? val : old);
             return old;
 #endif
-	}
+        }
 
-
-
-      AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-      unsigned short int CAS(unsigned short int *address,
-			     unsigned short int compare,
-			     unsigned short int val) noexcept
-      {
-#ifdef AMREX_DEVICE_COMPILE
-	return atomicCAS(address, compare, val);
-#else
-	unsigned short int old = *address;
-	*address = (old == compare ? val : old);
-	return old;
-#endif
-      }
-    
     } // namespace Atomic
 
     template <class T>
