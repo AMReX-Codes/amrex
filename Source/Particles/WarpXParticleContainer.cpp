@@ -527,15 +527,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                               xyzmin, lo, stagger_shift, q);
     }
 
-#ifdef WARPX_RZ
-    // Rescale current in r-z mode
-    warpx_current_deposition_rz_volume_scaling(
-        jx_ptr, &ngJ, jxntot.getVect(),
-        jy_ptr, &ngJ, jyntot.getVect(),
-        jz_ptr, &ngJ, jzntot.getVect(),
-        &xyzmin[0], &dx[0]);
-#endif
-
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
     // CPU, tiling: atomicAdd local_jx into jx
