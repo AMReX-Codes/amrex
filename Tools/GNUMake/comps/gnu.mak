@@ -123,7 +123,7 @@ CFLAGS     += -std=gnu99
 
 ########################################################################
 
-CXXFLAGS += $(GENERIC_GNU_FLAGS)
+CXXFLAGS += $(GENERIC_GNU_FLAGS) -pthread
 CFLAGS   += $(GENERIC_GNU_FLAGS)
 FFLAGS   += $(GENERIC_GNU_FLAGS)
 F90FLAGS += $(GENERIC_GNU_FLAGS)
