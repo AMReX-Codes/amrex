@@ -2086,8 +2086,8 @@ vectorize the loop.  This should be done whenever possible to achieve the
 best performance. Be aware: the macro generates a compiler dependent
 pragma, so their exact effect on the resulting code is also compiler
 dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
-macro on loops that are not safe for vectorization will lead to a variety
-of errors, so if unsure about the independence of the iterations of a
+macro on loops that are not safe for vectorization may lead to errors,
+so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
 
 These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
