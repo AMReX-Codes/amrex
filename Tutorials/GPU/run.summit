@@ -73,7 +73,7 @@ SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
 # Reserves memory for storing profiling data for non-CDP operations for each buffer on a
 #       context. The default value is 8MB. 
 # Ensures sufficient memory so that profiling information written to stdout is reported
-#       in cases wher HBM is over-subscribed (big problems.
+#       in cases wher HBM is over-subscribed (large memory problems).
 
 # Example run lines
 # =====================
