@@ -17,18 +17,18 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
                   const IntVect& a_tile_size, Box& tbx);
 
 
-template <class PC, class F>
-typename PC::RealType
-ReduceRealSum (PC const& pc, int lev, F f)
+template <class Type, class PC, class F>
+Type
+ReduceSum (PC const& pc, int lev, F f)
 {
-    return ReduceRealSum(pc, lev, lev, std::move(f));
+    return ReduceSum<Type>(pc, lev, lev, std::move(f));
 }
 
-template <class PC, class F>
-typename PC::RealType
-ReduceRealSum (PC const& pc, int lev_min, int lev_max, F f)
+template <class Type, class PC, class F>
+Type
+ReduceSum (PC const& pc, int lev_min, int lev_max, F f)
 {
-    using value_type = typename PC::RealType;
+    using value_type = Type;
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -107,18 +107,18 @@ ReduceRealSum (PC const& pc, int lev_min, int lev_max, F f)
     return sm;
 }
 
-template <class PC, class F>
-typename PC::RealType
-ReduceRealMax (PC const& pc, int lev, F f)
+template <class Type, class PC, class F>
+Type
+ReduceMax (PC const& pc, int lev, F f)
 {
-    return ReduceRealMax(pc, lev, lev, std::move(f));
+    return ReduceMax<Type>(pc, lev, lev, std::move(f));
 }
 
-template <class PC, class F>
-typename PC::RealType
-ReduceRealMax (PC const& pc, int lev_min, int lev_max, F f)
+template <class Type, class PC, class F>
+Type
+ReduceMax (PC const& pc, int lev_min, int lev_max, F f)
 {
-    using value_type = typename PC::RealType;
+    using value_type = Type;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -199,18 +199,18 @@ ReduceRealMax (PC const& pc, int lev_min, int lev_max, F f)
     return r;
 }
 
-template <class PC, class F>
-typename PC::RealType
-ReduceRealMin (PC const& pc, int lev, F f)
+template <class Type, class PC, class F>
+Type
+ReduceMin (PC const& pc, int lev, F f)
 {
-    return ReduceRealMin(pc, lev, lev, std::move(f));
+    return ReduceMin<Type>(pc, lev, lev, std::move(f));
 }
 
-template <class PC, class F>
-typename PC::RealType
-ReduceRealMin (PC const& pc, int lev_min, int lev_max, F f)
+template <class Type, class PC, class F>
+Type
+ReduceMin (PC const& pc, int lev_min, int lev_max, F f)
 {
-    using value_type = typename PC::RealType;
+    using value_type = Type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
