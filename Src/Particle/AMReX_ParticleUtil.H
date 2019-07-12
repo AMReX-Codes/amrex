@@ -52,7 +52,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f)
                 const auto pstruct = aos().dataPtr();
 
                 constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/parts_per_thread);
+                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
 
                 amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -142,7 +142,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f)
                 const auto pstruct = aos().dataPtr();
 
                 constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/parts_per_thread);
+                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
 
                 amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -233,7 +233,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f)
                 const auto pstruct = aos().dataPtr();
 
                 constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/parts_per_thread);
+                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
 
                 amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -245,7 +245,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f)
                     value_type tmin = value_max;
                     for (auto const i : Gpu::Range(np)) {
                         value_type local_tmin = f(pstruct[i]);
-                        tmax = amrex::min(tmin, local_tmin);
+                        tmin = amrex::min(tmin, local_tmin);
                     }
                     sdata[threadIdx.x] = tmin;
                     __syncthreads();
