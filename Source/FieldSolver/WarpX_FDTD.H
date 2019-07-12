@@ -11,11 +11,11 @@ void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
                        Real dtsdy, Real dtsdz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Bx(i,j,k) = Bx(i,j,k) - dtsdy * (Ez(i,j+1,k  ) - Ez(i,j,k))
-                          + dtsdz * (Ey(i,j  ,k+1) - Ey(i,j,k));
+    Bx(i,j,k) += - dtsdy * (Ez(i,j+1,k  ) - Ez(i,j,k))
+                 + dtsdz * (Ey(i,j  ,k+1) - Ey(i,j,k));
 #else
     // Note that the 2D Cartesian and RZ versions are the same
-    Bx(i,j,0) = Bx(i,j,0) + dtsdz * (Ey(i,j+1,0) - Ey(i,j,0));
+    Bx(i,j,0) += + dtsdz * (Ey(i,j+1,0) - Ey(i,j,0));
 #endif
 }
 
@@ -25,12 +25,12 @@ void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
                        Real dtsdx, Real dtsdz)
 {
 #if (AMREX_SPACEDIM == 3)
-    By(i,j,k) = By(i,j,k) + dtsdx * (Ez(i+1,j,k  ) - Ez(i,j,k))
-                          - dtsdz * (Ex(i  ,j,k+1) - Ex(i,j,k));
+    By(i,j,k) += + dtsdx * (Ez(i+1,j,k  ) - Ez(i,j,k))
+                 - dtsdz * (Ex(i  ,j,k+1) - Ex(i,j,k));
 #else
     // Note that the 2D Cartesian and RZ versions are the same
-    By(i,j,0) = By(i,j,0) + dtsdx * (Ez(i+1,j  ,0) - Ez(i,j,0))
-                          - dtsdz * (Ex(i  ,j+1,0) - Ex(i,j,0));
+    By(i,j,0) += + dtsdx * (Ez(i+1,j  ,0) - Ez(i,j,0))
+                 - dtsdz * (Ex(i  ,j+1,0) - Ex(i,j,0));
 #endif
 }
 
@@ -40,15 +40,15 @@ void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
                        Real dtsdx, Real dtsdy, Real dxinv, Real rmin)
 {
 #if (AMREX_SPACEDIM == 3)
-    Bz(i,j,k) = Bz(i,j,k) - dtsdx * (Ey(i+1,j  ,k) - Ey(i,j,k))
-                          + dtsdy * (Ex(i  ,j+1,k) - Ex(i,j,k));
+    Bz(i,j,k) += - dtsdx * (Ey(i+1,j  ,k) - Ey(i,j,k))
+                 + dtsdy * (Ex(i  ,j+1,k) - Ex(i,j,k));
 #else
 #ifndef WARPX_RZ
-    Bz(i,j,0) = Bz(i,j,0) - dtsdx * (Ey(i+1,j,0) - Ey(i,j,0));
+    Bz(i,j,0) += - dtsdx * (Ey(i+1,j,0) - Ey(i,j,0));
 #else
     Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
     Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
-    Bz(i,j,0) = Bz(i,j,0) - dtsdx * (ru*Ey(i+1,j,0) - rd*Ey(i,j,0));
+    Bz(i,j,0) += - dtsdx * (ru*Ey(i+1,j,0) - rd*Ey(i,j,0));
 #endif
 #endif
 }
@@ -59,13 +59,13 @@ void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
                        Real mu_c2_dt, Real dtsdy_c2, Real dtsdz_c2)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ex(i,j,k) = Ex(i,j,k) + dtsdy_c2 * (Bz(i,j,k) - Bz(i,j-1,k  ))
-                          - dtsdz_c2 * (By(i,j,k) - By(i,j  ,k-1))
-                          - mu_c2_dt  * Jx(i,j,k);
+    Ex(i,j,k) += + dtsdy_c2 * (Bz(i,j,k) - Bz(i,j-1,k  ))
+                 - dtsdz_c2 * (By(i,j,k) - By(i,j  ,k-1))
+                 - mu_c2_dt  * Jx(i,j,k);
 #else
     // Note that the 2D Cartesian and RZ versions are the same
-    Ex(i,j,0) = Ex(i,j,0) - dtsdz_c2 * (By(i,j,0) - By(i,j-1,0))
-                          - mu_c2_dt  * Jx(i,j,0);
+    Ex(i,j,0) += - dtsdz_c2 * (By(i,j,0) - By(i,j-1,0))
+                 - mu_c2_dt  * Jx(i,j,0);
 #endif
 }
 
@@ -75,18 +75,18 @@ void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
                        Real mu_c2_dt, Real dtsdx_c2, Real dtsdz_c2, Real rmin)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ey(i,j,k) = Ey(i,j,k) - dtsdx_c2 * (Bz(i,j,k) - Bz(i-1,j,k))
-                          + dtsdz_c2 * (Bx(i,j,k) - Bx(i,j,k-1))
-                          - mu_c2_dt  * Jy(i,j,k);
+    Ey(i,j,k) += - dtsdx_c2 * (Bz(i,j,k) - Bz(i-1,j,k))
+                 + dtsdz_c2 * (Bx(i,j,k) - Bx(i,j,k-1))
+                 - mu_c2_dt  * Jy(i,j,k);
 #else
     // 2D Cartesian and RZ are the same, except that the axis is skipped with RZ
 #ifdef WARPX_RZ
     if (i != 0 || rmin != 0.)
 #endif
     {
-    Ey(i,j,0) = Ey(i,j,0) - dtsdx_c2 * (Bz(i,j,0) - Bz(i-1,j,0))
-                          + dtsdz_c2 * (Bx(i,j,0) - Bx(i,j-1,0))
-                          - mu_c2_dt  * Jy(i,j,0);
+    Ey(i,j,0) += - dtsdx_c2 * (Bz(i,j,0) - Bz(i-1,j,0))
+                 + dtsdz_c2 * (Bx(i,j,0) - Bx(i,j-1,0))
+                 - mu_c2_dt  * Jy(i,j,0);
     }
 #endif
 }
@@ -97,22 +97,22 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
                        Real mu_c2_dt, Real dtsdx_c2, Real dtsdy_c2, Real dxinv, Real rmin)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ez(i,j,k) = Ez(i,j,k) + dtsdx_c2 * (By(i,j,k) - By(i-1,j  ,k))
-                          - dtsdy_c2 * (Bx(i,j,k) - Bx(i  ,j-1,k))
-                          - mu_c2_dt  * Jz(i,j,k);
+    Ez(i,j,k) += + dtsdx_c2 * (By(i,j,k) - By(i-1,j  ,k))
+                 - dtsdy_c2 * (Bx(i,j,k) - Bx(i  ,j-1,k))
+                 - mu_c2_dt  * Jz(i,j,k);
 #else
 #ifndef WARPX_RZ
-    Ez(i,j,0) = Ez(i,j,0) + dtsdx_c2 * (By(i,j,0) - By(i-1,j,0))
-                      - mu_c2_dt  * Jz(i,j,0);
+    Ez(i,j,0) += + dtsdx_c2 * (By(i,j,0) - By(i-1,j,0))
+                 - mu_c2_dt  * Jz(i,j,0);
 #else
     if (i != 0 || rmin != 0.) {
         Real ru = 1. + 0.5/(rmin*dxinv + i);
         Real rd = 1. - 0.5/(rmin*dxinv + i);
-        Ez(i,j,0) = Ez(i,j,0) + dtsdx_c2 * (ru*By(i,j,0) - rd*By(i-1,j,0))
-                              - mu_c2_dt  * Jz(i,j,0);
+        Ez(i,j,0) += + dtsdx_c2 * (ru*By(i,j,0) - rd*By(i-1,j,0))
+                     - mu_c2_dt  * Jz(i,j,0);
     } else {
-        Ez(i,j,0) = Ez(i,j,0) + 4.*dtsdx_c2 * By(i,j,0)
-                                - mu_c2_dt  * Jz(i,j,0);
+        Ez(i,j,0) += + 4.*dtsdx_c2 * By(i,j,0)
+                       - mu_c2_dt  * Jz(i,j,0);
     }
 #endif
 #endif
@@ -123,9 +123,9 @@ void warpx_push_ex_f_yee(int j, int k, int l, Array4<Real> const& Ex,
                          Array4<Real const> const& F, Real dtsdx_c2)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ex(j,k,l) = Ex(j,k,l) + dtsdx_c2 * (F(j+1,k,l) - F(j,k,l));
+    Ex(j,k,l) += + dtsdx_c2 * (F(j+1,k,l) - F(j,k,l));
 #else
-    Ex(j,k,0) = Ex(j,k,0) + dtsdx_c2 * (F(j+1,k,0) - F(j  ,k,0));
+    Ex(j,k,0) += + dtsdx_c2 * (F(j+1,k,0) - F(j  ,k,0));
 #endif
 }
 
@@ -134,7 +134,7 @@ void warpx_push_ey_f_yee(int j, int k, int l, Array4<Real> const& Ey,
                          Array4<Real const> const& F, Real dtsdy_c2)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ey(j,k,l) = Ey(j,k,l) + dtsdy_c2 * (F(j,k+1,l) - F(j,k,l));
+    Ey(j,k,l) += + dtsdy_c2 * (F(j,k+1,l) - F(j,k,l));
 #endif
 }
 
@@ -143,9 +143,9 @@ void warpx_push_ez_f_yee(int j, int k, int l, Array4<Real> const& Ez,
                          Array4<Real const> const& F, Real dtsdz_c2)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ez(j,k,l) = Ez(j,k,l) + dtsdz_c2 * (F(j,k,l+1) - F(j,k,l));
+    Ez(j,k,l) += + dtsdz_c2 * (F(j,k,l+1) - F(j,k,l));
 #else
-    Ez(j,k,0) = Ez(j,k,0) + dtsdz_c2 * (F(j,k+1,0) - F(j,k,0));
+    Ez(j,k,0) += + dtsdz_c2 * (F(j,k+1,0) - F(j,k,0));
 #endif
 }
 
@@ -175,18 +175,18 @@ static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
     alphay = 1. - 2.*betayx - 2.*betayz - 4.*gammay;
     alphaz = 1. - 2.*betazx - 2.*betazy - 4.*gammaz;
 
-    betaxy = dtsdx*betaxy;
-    betaxz = dtsdx*betaxz;
-    betayx = dtsdy*betayx;
-    betayz = dtsdy*betayz;
-    betazx = dtsdz*betazx;
-    betazy = dtsdz*betazy;
-    alphax = dtsdx*alphax;
-    alphay = dtsdy*alphay;
-    alphaz = dtsdz*alphaz;
-    gammax = dtsdx*gammax;
-    gammay = dtsdy*gammay;
-    gammaz = dtsdz*gammaz;
+    betaxy *= dtsdx;
+    betaxz *= dtsdx;
+    betayx *= dtsdy;
+    betayz *= dtsdy;
+    betazx *= dtsdz;
+    betazy *= dtsdz;
+    alphax *= dtsdx;
+    alphay *= dtsdy;
+    alphaz *= dtsdz;
+    gammax *= dtsdx;
+    gammay *= dtsdy;
+    gammaz *= dtsdz;
 #else
     Real delta = std::max(dtsdx,dtsdz);
     Real rx = (dtsdx/delta)*(dtsdx/delta);
@@ -196,10 +196,10 @@ static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
     alphax = 1. - 2.*betaxz;
     alphaz = 1. - 2.*betazx;
 
-    betaxz = dtsdx*betaxz;
-    betazx = dtsdz*betazx;
-    alphax = dtsdx*alphax;
-    alphaz = dtsdz*alphaz;
+    betaxz *= dtsdx;
+    betazx *= dtsdz;
+    alphax *= dtsdx;
+    alphaz *= dtsdz;
 #endif
 }
 
@@ -211,28 +211,28 @@ void warpx_push_bx_ckc(int j, int k, int l, Array4<Real> const& Bx,
                        Real alphax, Real alphay, Real alphaz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Bx(j,k,l) = Bx(j,k,l) - alphay * (Ez(j  ,k+1,l  ) - Ez(j,  k  ,l  ))
-                          - betayx * (Ez(j+1,k+1,l  ) - Ez(j+1,k  ,l  )
-                                   +  Ez(j-1,k+1,l  ) - Ez(j-1,k  ,l  ))
-                          - betayz * (Ez(j  ,k+1,l+1) - Ez(j  ,k  ,l+1)
-                                   +  Ez(j  ,k+1,l-1) - Ez(j  ,k  ,l-1))
-                          - gammay * (Ez(j+1,k+1,l+1) - Ez(j+1,k  ,l+1)
-                                   +  Ez(j-1,k+1,l+1) - Ez(j-1,k  ,l+1)
-                                   +  Ez(j+1,k+1,l-1) - Ez(j+1,k  ,l-1)
-                                   +  Ez(j-1,k+1,l-1) - Ez(j-1,k  ,l-1))
-                          + alphaz * (Ey(j  ,k  ,l+1) - Ey(j,  k,  l  ))
-                          + betazx * (Ey(j+1,k  ,l+1) - Ey(j+1,k  ,l  )
-                                   +  Ey(j-1,k  ,l+1) - Ey(j-1,k  ,l  ))
-                          + betazy * (Ey(j  ,k+1,l+1) - Ey(j  ,k+1,l  )
-                                   +  Ey(j  ,k-1,l+1) - Ey(j  ,k-1,l  ))
-                          + gammaz * (Ey(j+1,k+1,l+1) - Ey(j+1,k+1,l  )
-                                   +  Ey(j-1,k+1,l+1) - Ey(j-1,k+1,l  )
-                                   +  Ey(j+1,k-1,l+1) - Ey(j+1,k-1,l  )
-                                   +  Ey(j-1,k-1,l+1) - Ey(j-1,k-1,l  ));
+    Bx(j,k,l) += - alphay * (Ez(j  ,k+1,l  ) - Ez(j,  k  ,l  ))
+                 - betayx * (Ez(j+1,k+1,l  ) - Ez(j+1,k  ,l  )
+                          +  Ez(j-1,k+1,l  ) - Ez(j-1,k  ,l  ))
+                 - betayz * (Ez(j  ,k+1,l+1) - Ez(j  ,k  ,l+1)
+                          +  Ez(j  ,k+1,l-1) - Ez(j  ,k  ,l-1))
+                 - gammay * (Ez(j+1,k+1,l+1) - Ez(j+1,k  ,l+1)
+                          +  Ez(j-1,k+1,l+1) - Ez(j-1,k  ,l+1)
+                          +  Ez(j+1,k+1,l-1) - Ez(j+1,k  ,l-1)
+                          +  Ez(j-1,k+1,l-1) - Ez(j-1,k  ,l-1))
+                 + alphaz * (Ey(j  ,k  ,l+1) - Ey(j,  k,  l  ))
+                 + betazx * (Ey(j+1,k  ,l+1) - Ey(j+1,k  ,l  )
+                          +  Ey(j-1,k  ,l+1) - Ey(j-1,k  ,l  ))
+                 + betazy * (Ey(j  ,k+1,l+1) - Ey(j  ,k+1,l  )
+                          +  Ey(j  ,k-1,l+1) - Ey(j  ,k-1,l  ))
+                 + gammaz * (Ey(j+1,k+1,l+1) - Ey(j+1,k+1,l  )
+                          +  Ey(j-1,k+1,l+1) - Ey(j-1,k+1,l  )
+                          +  Ey(j+1,k-1,l+1) - Ey(j+1,k-1,l  )
+                          +  Ey(j-1,k-1,l+1) - Ey(j-1,k-1,l  ));
 #else
-    Bx(j,k,0) = Bx(j,k,0) + alphaz * (Ey(j  ,k+1,0) - Ey(j,  k,0))
-                          + betazx * (Ey(j+1,k+1,0) - Ey(j+1,k,0)
-                                   +  Ey(j-1,k+1,0) - Ey(j-1,k,0));
+    Bx(j,k,0) += + alphaz * (Ey(j  ,k+1,0) - Ey(j,  k,0))
+                 + betazx * (Ey(j+1,k+1,0) - Ey(j+1,k,0)
+                          +  Ey(j-1,k+1,0) - Ey(j-1,k,0));
 #endif
 }
 
@@ -244,31 +244,31 @@ void warpx_push_by_ckc(int j, int k, int l, Array4<Real> const& By,
                        Real alphax, Real alphay, Real alphaz)
 {
 #if (AMREX_SPACEDIM == 3)
-    By(j,k,l) = By(j,k,l) + alphax * (Ez(j+1,k  ,l  ) - Ez(j,  k,  l  ))
-                          + betaxy * (Ez(j+1,k+1,l  ) - Ez(j  ,k+1,l  )
-                                   +  Ez(j+1,k-1,l  ) - Ez(j  ,k-1,l  ))
-                          + betaxz * (Ez(j+1,k  ,l+1) - Ez(j  ,k  ,l+1)
-                                   +  Ez(j+1,k  ,l-1) - Ez(j  ,k  ,l-1))
-                          + gammax * (Ez(j+1,k+1,l+1) - Ez(j  ,k+1,l+1)
-                                   +  Ez(j+1,k-1,l+1) - Ez(j  ,k-1,l+1)
-                                   +  Ez(j+1,k+1,l-1) - Ez(j  ,k+1,l-1)
-                                   +  Ez(j+1,k-1,l-1) - Ez(j  ,k-1,l-1))
-                          - alphaz * (Ex(j  ,k  ,l+1) - Ex(j  ,k  ,l  ))
-                          - betazx * (Ex(j+1,k  ,l+1) - Ex(j+1,k  ,l  )
-                                   +  Ex(j-1,k  ,l+1) - Ex(j-1,k  ,l  ))
-                          - betazy * (Ex(j  ,k+1,l+1) - Ex(j  ,k+1,l  )
-                                   +  Ex(j  ,k-1,l+1) - Ex(j  ,k-1,l  ))
-                          - gammaz * (Ex(j+1,k+1,l+1) - Ex(j+1,k+1,l  )
-                                   +  Ex(j-1,k+1,l+1) - Ex(j-1,k+1,l  )
-                                   +  Ex(j+1,k-1,l+1) - Ex(j+1,k-1,l  )
-                                   +  Ex(j-1,k-1,l+1) - Ex(j-1,k-1,l  ));
+    By(j,k,l) += + alphax * (Ez(j+1,k  ,l  ) - Ez(j,  k,  l  ))
+                 + betaxy * (Ez(j+1,k+1,l  ) - Ez(j  ,k+1,l  )
+                          +  Ez(j+1,k-1,l  ) - Ez(j  ,k-1,l  ))
+                 + betaxz * (Ez(j+1,k  ,l+1) - Ez(j  ,k  ,l+1)
+                          +  Ez(j+1,k  ,l-1) - Ez(j  ,k  ,l-1))
+                 + gammax * (Ez(j+1,k+1,l+1) - Ez(j  ,k+1,l+1)
+                          +  Ez(j+1,k-1,l+1) - Ez(j  ,k-1,l+1)
+                          +  Ez(j+1,k+1,l-1) - Ez(j  ,k+1,l-1)
+                          +  Ez(j+1,k-1,l-1) - Ez(j  ,k-1,l-1))
+                 - alphaz * (Ex(j  ,k  ,l+1) - Ex(j  ,k  ,l  ))
+                 - betazx * (Ex(j+1,k  ,l+1) - Ex(j+1,k  ,l  )
+                          +  Ex(j-1,k  ,l+1) - Ex(j-1,k  ,l  ))
+                 - betazy * (Ex(j  ,k+1,l+1) - Ex(j  ,k+1,l  )
+                          +  Ex(j  ,k-1,l+1) - Ex(j  ,k-1,l  ))
+                 - gammaz * (Ex(j+1,k+1,l+1) - Ex(j+1,k+1,l  )
+                          +  Ex(j-1,k+1,l+1) - Ex(j-1,k+1,l  )
+                          +  Ex(j+1,k-1,l+1) - Ex(j+1,k-1,l  )
+                          +  Ex(j-1,k-1,l+1) - Ex(j-1,k-1,l  ));
 #else
-    By(j,k,0) = By(j,k,0) + alphax * (Ez(j+1,k  ,0) - Ez(j,k  ,0))
-                          + betaxz * (Ez(j+1,k+1,0) - Ez(j,k+1,0)
-                                   +  Ez(j+1,k-1,0) - Ez(j,k-1,0))
-                          - alphaz * (Ex(j  ,k+1,0) - Ex(j,k  ,0))
-                          - betazx * (Ex(j+1,k+1,0) - Ex(j+1,k,0)
-                                   +  Ex(j-1,k+1,0) - Ex(j-1,k,0));
+    By(j,k,0) += + alphax * (Ez(j+1,k  ,0) - Ez(j,k  ,0))
+                 + betaxz * (Ez(j+1,k+1,0) - Ez(j,k+1,0)
+                          +  Ez(j+1,k-1,0) - Ez(j,k-1,0))
+                 - alphaz * (Ex(j  ,k+1,0) - Ex(j,k  ,0))
+                 - betazx * (Ex(j+1,k+1,0) - Ex(j+1,k,0)
+                          +  Ex(j-1,k+1,0) - Ex(j-1,k,0));
 #endif
 }
 
@@ -280,29 +280,29 @@ void warpx_push_bz_ckc(int j, int k, int l, Array4<Real> const& Bz,
                        Real alphax, Real alphay, Real alphaz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Bz(j,k,l) = Bz(j,k,l) - alphax * (Ey(j+1,k  ,l  ) - Ey(j  ,k  ,l  ))
-                          - betaxy * (Ey(j+1,k+1,l  ) - Ey(j  ,k+1,l  )
-                                   +  Ey(j+1,k-1,l  ) - Ey(j  ,k-1,l  ))
-                          - betaxz * (Ey(j+1,k  ,l+1) - Ey(j  ,k  ,l+1)
-                                   +  Ey(j+1,k  ,l-1) - Ey(j  ,k  ,l-1))
-                          - gammax * (Ey(j+1,k+1,l+1) - Ey(j  ,k+1,l+1)
-                                   +  Ey(j+1,k-1,l+1) - Ey(j  ,k-1,l+1)
-                                   +  Ey(j+1,k+1,l-1) - Ey(j  ,k+1,l-1)
-                                   +  Ey(j+1,k-1,l-1) - Ey(j  ,k-1,l-1))
-                          + alphay * (Ex(j  ,k+1,l  ) - Ex(j  ,k  ,l  ))
-                          + betayx * (Ex(j+1,k+1,l  ) - Ex(j+1,k  ,l  )
-                                   +  Ex(j-1,k+1,l  ) - Ex(j-1,k  ,l  ))
-                          + betayz * (Ex(j  ,k+1,l+1) - Ex(j  ,k  ,l+1)
-                                   +  Ex(j  ,k+1,l-1) - Ex(j  ,k  ,l-1))
-                          + gammay * (Ex(j+1,k+1,l+1) - Ex(j+1,k  ,l+1)
-                                   +  Ex(j-1,k+1,l+1) - Ex(j-1,k  ,l+1)
-                                   +  Ex(j+1,k+1,l-1) - Ex(j+1,k  ,l-1)
-                                   +  Ex(j-1,k+1,l-1) - Ex(j-1,k  ,l-1));
+    Bz(j,k,l) += - alphax * (Ey(j+1,k  ,l  ) - Ey(j  ,k  ,l  ))
+                 - betaxy * (Ey(j+1,k+1,l  ) - Ey(j  ,k+1,l  )
+                          +  Ey(j+1,k-1,l  ) - Ey(j  ,k-1,l  ))
+                 - betaxz * (Ey(j+1,k  ,l+1) - Ey(j  ,k  ,l+1)
+                          +  Ey(j+1,k  ,l-1) - Ey(j  ,k  ,l-1))
+                 - gammax * (Ey(j+1,k+1,l+1) - Ey(j  ,k+1,l+1)
+                          +  Ey(j+1,k-1,l+1) - Ey(j  ,k-1,l+1)
+                          +  Ey(j+1,k+1,l-1) - Ey(j  ,k+1,l-1)
+                          +  Ey(j+1,k-1,l-1) - Ey(j  ,k-1,l-1))
+                 + alphay * (Ex(j  ,k+1,l  ) - Ex(j  ,k  ,l  ))
+                 + betayx * (Ex(j+1,k+1,l  ) - Ex(j+1,k  ,l  )
+                          +  Ex(j-1,k+1,l  ) - Ex(j-1,k  ,l  ))
+                 + betayz * (Ex(j  ,k+1,l+1) - Ex(j  ,k  ,l+1)
+                          +  Ex(j  ,k+1,l-1) - Ex(j  ,k  ,l-1))
+                 + gammay * (Ex(j+1,k+1,l+1) - Ex(j+1,k  ,l+1)
+                          +  Ex(j-1,k+1,l+1) - Ex(j-1,k  ,l+1)
+                          +  Ex(j+1,k+1,l-1) - Ex(j+1,k  ,l-1)
+                          +  Ex(j-1,k+1,l-1) - Ex(j-1,k  ,l-1));
 
 #else
-    Bz(j,k,0) = Bz(j,k,0) - alphax * (Ey(j+1,k  ,0) - Ey(j,k  ,0))
-                          - betaxz * (Ey(j+1,k+1,0) - Ey(j,k+1,0)
-                                   +  Ey(j+1,k-1,0) - Ey(j,k-1,0));
+    Bz(j,k,0) += - alphax * (Ey(j+1,k  ,0) - Ey(j,k  ,0))
+                 - betaxz * (Ey(j+1,k+1,0) - Ey(j,k+1,0)
+                          +  Ey(j+1,k-1,0) - Ey(j,k-1,0));
 #endif
 }
 
@@ -314,19 +314,19 @@ void warpx_push_ex_f_ckc(int j, int k, int l, Array4<Real> const& Ex,
                          Real alphax, Real alphay, Real alphaz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ex(j,k,l) = Ex(j,k,l) + alphax * (F(j+1,k  ,l  ) - F(j,  k,  l  ))
-                          + betaxy * (F(j+1,k+1,l  ) - F(j,k+1,l  )
-                                   +  F(j+1,k-1,l  ) - F(j,k-1,l  ))
-                          + betaxz * (F(j+1,k  ,l+1) - F(j,k  ,l+1)
-                                   +  F(j+1,k  ,l-1) - F(j,k  ,l-1))
-                          + gammax * (F(j+1,k+1,l+1) - F(j,k+1,l+1)
-                                   +  F(j+1,k-1,l+1) - F(j,k-1,l+1)
-                                   +  F(j+1,k+1,l-1) - F(j,k+1,l-1)
-                                   +  F(j+1,k-1,l-1) - F(j,k-1,l-1));
+    Ex(j,k,l) += + alphax * (F(j+1,k  ,l  ) - F(j,  k,  l  ))
+                 + betaxy * (F(j+1,k+1,l  ) - F(j,k+1,l  )
+                          +  F(j+1,k-1,l  ) - F(j,k-1,l  ))
+                 + betaxz * (F(j+1,k  ,l+1) - F(j,k  ,l+1)
+                          +  F(j+1,k  ,l-1) - F(j,k  ,l-1))
+                 + gammax * (F(j+1,k+1,l+1) - F(j,k+1,l+1)
+                          +  F(j+1,k-1,l+1) - F(j,k-1,l+1)
+                          +  F(j+1,k+1,l-1) - F(j,k+1,l-1)
+                          +  F(j+1,k-1,l-1) - F(j,k-1,l-1));
 #else
-    Ex(j,k,0) = Ex(j,k,0) + alphax * (F(j+1,k  ,0) - F(j,k  ,0))
-                          + betaxz * (F(j+1,k+1,0) - F(j,k+1,0)
-                                   +  F(j+1,k-1,0) - F(j,k-1,0));
+    Ex(j,k,0) += + alphax * (F(j+1,k  ,0) - F(j,k  ,0))
+                 + betaxz * (F(j+1,k+1,0) - F(j,k+1,0)
+                          +  F(j+1,k-1,0) - F(j,k-1,0));
 #endif
 }
 
@@ -338,15 +338,15 @@ void warpx_push_ey_f_ckc(int j, int k, int l, Array4<Real> const& Ey,
                          Real alphax, Real alphay, Real alphaz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ey(j,k,l) = Ey(j,k,l) + alphay * (F(j  ,k+1,l  ) - F(j  ,k,l  ))
-                          + betayx * (F(j+1,k+1,l  ) - F(j+1,k,l  )
-                                   +  F(j-1,k+1,l  ) - F(j-1,k,l  ))
-                          + betayz * (F(j  ,k+1,l+1) - F(j  ,k,l+1)
-                                   +  F(j  ,k+1,l-1) - F(j  ,k,l-1))
-                          + gammay * (F(j+1,k+1,l+1) - F(j+1,k,l+1)
-                                   +  F(j-1,k+1,l+1) - F(j-1,k,l+1)
-                                   +  F(j+1,k+1,l-1) - F(j+1,k,l-1)
-                                   +  F(j-1,k+1,l-1) - F(j-1,k,l-1));
+    Ey(j,k,l) += + alphay * (F(j  ,k+1,l  ) - F(j  ,k,l  ))
+                 + betayx * (F(j+1,k+1,l  ) - F(j+1,k,l  )
+                          +  F(j-1,k+1,l  ) - F(j-1,k,l  ))
+                 + betayz * (F(j  ,k+1,l+1) - F(j  ,k,l+1)
+                          +  F(j  ,k+1,l-1) - F(j  ,k,l-1))
+                 + gammay * (F(j+1,k+1,l+1) - F(j+1,k,l+1)
+                          +  F(j-1,k+1,l+1) - F(j-1,k,l+1)
+                          +  F(j+1,k+1,l-1) - F(j+1,k,l-1)
+                          +  F(j-1,k+1,l-1) - F(j-1,k,l-1));
 #endif
 }
 
@@ -358,19 +358,19 @@ void warpx_push_ez_f_ckc(int j, int k, int l, Array4<Real> const& Ez,
                          Real alphax, Real alphay, Real alphaz)
 {
 #if (AMREX_SPACEDIM == 3)
-    Ez(j,k,l) = Ez(j,k,l) + alphaz * (F(j  ,k  ,l+1) - F(j,  k,  l))
-                          + betazx * (F(j+1,k  ,l+1) - F(j+1,k  ,l)
-                                   +  F(j-1,k  ,l+1) - F(j-1,k  ,l))
-                          + betazy * (F(j  ,k+1,l+1) - F(j  ,k+1,l)
-                                   +  F(j  ,k-1,l+1) - F(j  ,k-1,l))
-                          + gammaz * (F(j+1,k+1,l+1) - F(j+1,k+1,l)
-                                   +  F(j-1,k+1,l+1) - F(j-1,k+1,l)
-                                   +  F(j+1,k-1,l+1) - F(j+1,k-1,l)
-                                   +  F(j-1,k-1,l+1) - F(j-1,k-1,l));
+    Ez(j,k,l) += + alphaz * (F(j  ,k  ,l+1) - F(j,  k,  l))
+                 + betazx * (F(j+1,k  ,l+1) - F(j+1,k  ,l)
+                          +  F(j-1,k  ,l+1) - F(j-1,k  ,l))
+                 + betazy * (F(j  ,k+1,l+1) - F(j  ,k+1,l)
+                          +  F(j  ,k-1,l+1) - F(j  ,k-1,l))
+                 + gammaz * (F(j+1,k+1,l+1) - F(j+1,k+1,l)
+                          +  F(j-1,k+1,l+1) - F(j-1,k+1,l)
+                          +  F(j+1,k-1,l+1) - F(j+1,k-1,l)
+                          +  F(j-1,k-1,l+1) - F(j-1,k-1,l));
 #else
-    Ez(j,k,0) = Ez(j,k,0) + alphaz * (F(j  ,k+1,0) - F(j  ,k,0))
-                          + betazx * (F(j+1,k+1,0) - F(j+1,k,0)
-                                   +  F(j-1,k+1,0) - F(j-1,k,0));
+    Ez(j,k,0) += + alphaz * (F(j  ,k+1,0) - F(j  ,k,0))
+                 + betazx * (F(j+1,k+1,0) - F(j+1,k,0)
+                          +  F(j-1,k+1,0) - F(j-1,k,0));
 #endif
 }
 
