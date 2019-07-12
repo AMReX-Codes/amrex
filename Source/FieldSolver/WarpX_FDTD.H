@@ -5,7 +5,7 @@
 
 using namespace amrex;
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
                        Array4<Real const> const& Ey, Array4<Real const> const& Ez,
                        Real dtsdy, Real dtsdz)
@@ -19,7 +19,7 @@ void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ez,
                        Real dtsdx, Real dtsdz)
@@ -34,7 +34,7 @@ void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ey,
                        Real dtsdx, Real dtsdy, Real dxinv, Real rmin)
@@ -53,7 +53,7 @@ void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
                        Array4<Real const> const& By, Array4<Real const> const& Bz, Array4<Real const> const& Jx,
                        Real mu_c2_dt, Real dtsdy_c2, Real dtsdz_c2)
@@ -69,7 +69,7 @@ void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
                        Array4<Real const> const& Bx, Array4<Real const> const& Bz, Array4<Real const> const& Jy,
                        Real mu_c2_dt, Real dtsdx_c2, Real dtsdz_c2, Real rmin)
@@ -91,7 +91,7 @@ void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
                        Array4<Real const> const& Bx, Array4<Real const> const& By, Array4<Real const> const& Jz,
                        Real mu_c2_dt, Real dtsdx_c2, Real dtsdy_c2, Real dxinv, Real rmin)
@@ -118,7 +118,7 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ex_f_yee(int j, int k, int l, Array4<Real> const& Ex,
                          Array4<Real const> const& F, Real dtsdx_c2)
 {
@@ -129,7 +129,7 @@ void warpx_push_ex_f_yee(int j, int k, int l, Array4<Real> const& Ex,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ey_f_yee(int j, int k, int l, Array4<Real> const& Ey,
                          Array4<Real const> const& F, Real dtsdy_c2)
 {
@@ -138,7 +138,7 @@ void warpx_push_ey_f_yee(int j, int k, int l, Array4<Real> const& Ey,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ez_f_yee(int j, int k, int l, Array4<Real> const& Ez,
                          Array4<Real const> const& F, Real dtsdz_c2)
 {
@@ -203,7 +203,7 @@ static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_bx_ckc(int j, int k, int l, Array4<Real> const& Bx,
                        Array4<Real const> const& Ey, Array4<Real const> const& Ez,
                        Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
@@ -236,7 +236,7 @@ void warpx_push_bx_ckc(int j, int k, int l, Array4<Real> const& Bx,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_by_ckc(int j, int k, int l, Array4<Real> const& By,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ez,
                        Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
@@ -272,7 +272,7 @@ void warpx_push_by_ckc(int j, int k, int l, Array4<Real> const& By,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_bz_ckc(int j, int k, int l, Array4<Real> const& Bz,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ey,
                        Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
@@ -306,7 +306,7 @@ void warpx_push_bz_ckc(int j, int k, int l, Array4<Real> const& Bz,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ex_f_ckc(int j, int k, int l, Array4<Real> const& Ex,
                          Array4<Real const> const& F,
                          Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
@@ -330,7 +330,7 @@ void warpx_push_ex_f_ckc(int j, int k, int l, Array4<Real> const& Ex,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ey_f_ckc(int j, int k, int l, Array4<Real> const& Ey,
                          Array4<Real const> const& F,
                          Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
@@ -350,7 +350,7 @@ void warpx_push_ey_f_ckc(int j, int k, int l, Array4<Real> const& Ey,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_ez_f_ckc(int j, int k, int l, Array4<Real> const& Ez,
                          Array4<Real const> const& F,
                          Real betaxy, Real betaxz, Real betayx, Real betayz, Real betazx, Real betazy,
@@ -374,7 +374,7 @@ void warpx_push_ez_f_ckc(int j, int k, int l, Array4<Real> const& Ez,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
                        Array4<Real const> const& Bx, Array4<Real const> const& By, Array4<Real const> const& Bz,
                        Real dxinv, Real dyinv, Real dzinv
@@ -400,7 +400,7 @@ void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
 #endif
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_computedive(int i, int j, int k, int dcomp, Array4<Real> const& divE,
                        Array4<Real const> const& Ex, Array4<Real const> const& Ey, Array4<Real const> const& Ez,
                        Real dxinv, Real dyinv, Real dzinv
