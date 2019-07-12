@@ -402,7 +402,7 @@ class GaussianLaser(picmistandard.PICMI_GaussianLaser):
         self.laser.profile = "Gaussian"
         self.laser.wavelength = self.wavelength  # The wavelength of the laser (in meters)
         self.laser.e_max = self.E0  # Maximum amplitude of the laser field (in V/m)
-        self.laser.polarization = [np.cos(self.polarization_angle), np.sin(self.polarization_angle), 0.]  # The main polarization vector
+        self.laser.polarization = self.polarization_direction  # The main polarization vector
         self.laser.profile_waist = self.waist  # The waist of the laser (in meters)
         self.laser.profile_duration = self.duration  # The duration of the laser (in seconds)
         self.laser.zeta = self.zeta
