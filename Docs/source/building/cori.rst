@@ -65,7 +65,7 @@ Then, you need to load the following modules:
 
     ::
 
-        module load esslurm cuda pgi openmpi/3.1.0-ucx
+        module load modules/3.2.10.6 esslurm cgpu/1.0 pgi/19.5 cuda/10.1 mpich/3.3-pgi-19.5 
 
 Currently, you need to use OpenMPI; mvapich2 seems not to work.
 

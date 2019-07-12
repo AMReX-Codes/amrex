@@ -396,15 +396,10 @@ class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
         pywarpx.warpx.pml_ncell = self.pml_ncell
 
         # --- Same method names are used, though mapped to lower case.
-        pywarpx.warpx.maxwell_fdtd_solver = self.method
+        pywarpx.algo.maxwell_fdtd_solver = self.method
 
         if self.cfl is not None:
             pywarpx.warpx.cfl = self.cfl
-
-        if self.stencil_order is not None:
-            pywarpx.interpolation.nox = self.stencil_order[0]
-            pywarpx.interpolation.noy = self.stencil_order[1]
-            pywarpx.interpolation.noz = self.stencil_order[2]
 
 
 class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
@@ -422,7 +417,7 @@ class GaussianLaser(picmistandard.PICMI_GaussianLaser):
         self.laser.profile = "Gaussian"
         self.laser.wavelength = self.wavelength  # The wavelength of the laser (in meters)
         self.laser.e_max = self.E0  # Maximum amplitude of the laser field (in V/m)
-        self.laser.polarization = [np.cos(self.polarization_angle), np.sin(self.polarization_angle), 0.]  # The main polarization vector
+        self.laser.polarization = self.polarization_direction  # The main polarization vector
         self.laser.profile_waist = self.waist  # The waist of the laser (in meters)
         self.laser.profile_duration = self.duration  # The duration of the laser (in seconds)
         self.laser.zeta = self.zeta
@@ -468,7 +463,7 @@ class Simulation(picmistandard.PICMI_Simulation):
 
         if self.gamma_boost is not None:
             pywarpx.warpx.gamma_boost = self.gamma_boost
-            pywarpx.warpx.boost_direction = 'z'
+            pywarpx.warpx.boost_direction = None
 
         pywarpx.amr.plot_int = self.plot_int
         pywarpx.amr.plot_file = self.plot_file
@@ -585,7 +580,7 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnostic):
     def initialize_inputs(self):
@@ -596,7 +591,7 @@ class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnos
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 
 class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
@@ -615,7 +610,7 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 
 # ----------------------------
