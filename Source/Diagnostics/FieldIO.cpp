@@ -263,6 +263,7 @@ AverageAndPackVectorField( MultiFab& mf_avg,
         // and copies over directly the y (or theta) component (which is
         // already cell centered).
         if (vector_field[0]->nComp() > 1) {
+#ifdef WARPX_RZ
             // When there are more than one components, the total
             // fields needs to be constructed in temporary MultiFabs
             // Note that mf_total is declared in the same way as
@@ -288,6 +289,9 @@ AverageAndPackVectorField( MultiFab& mf_avg,
                 MultiFab::Copy( mf_avg, mf_avg, id+1, id+2, 1, ngrow);
                 MultiFab::Copy( mf_avg, v_comp1, 0, id+1, 1, ngrow);
             }
+#else
+           amrex::Abort("AverageAndPackVectorField not implemented for ncomp > 1");
+#endif
         } else {
             PackPlotDataPtrs(srcmf, vector_field);
             amrex::average_face_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
@@ -303,6 +307,7 @@ AverageAndPackVectorField( MultiFab& mf_avg,
         // See comment above, though here, the y (or theta) component
         // has node centering.
         if (vector_field[0]->nComp() > 1) {
+#ifdef WARPX_RZ
             // When there are more than one components, the total
             // fields needs to be constructed in temporary MultiFabs
             // Note that mf_total is declared in the same way as
@@ -330,6 +335,9 @@ AverageAndPackVectorField( MultiFab& mf_avg,
                 amrex::average_node_to_cellcenter( mf_avg, id+1,
                                                    v_comp1, 0, 1, ngrow);
             }
+#else
+           amrex::Abort("AverageAndPackVectorField not implemented for ncomp > 1");
+#endif
         } else {
             PackPlotDataPtrs(srcmf, vector_field);
             amrex::average_edge_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
