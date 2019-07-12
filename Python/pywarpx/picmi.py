@@ -381,15 +381,10 @@ class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
         pywarpx.warpx.pml_ncell = self.pml_ncell
 
         # --- Same method names are used, though mapped to lower case.
-        pywarpx.warpx.maxwell_fdtd_solver = self.method
+        pywarpx.algo.maxwell_fdtd_solver = self.method
 
         if self.cfl is not None:
             pywarpx.warpx.cfl = self.cfl
-
-        if self.stencil_order is not None:
-            pywarpx.interpolation.nox = self.stencil_order[0]
-            pywarpx.interpolation.noy = self.stencil_order[1]
-            pywarpx.interpolation.noz = self.stencil_order[2]
 
 
 class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
@@ -570,7 +565,7 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnostic):
     def initialize_inputs(self):
@@ -581,7 +576,7 @@ class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnos
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 
 class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
@@ -600,7 +595,7 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 
 # ----------------------------
