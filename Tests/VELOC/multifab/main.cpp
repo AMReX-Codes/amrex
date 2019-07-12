@@ -201,26 +201,26 @@ void main_main ()
 
         amrex::UtilCreateDirectoryDestructive("vismfdata");
 
-        {
-            BL_PROFILE_VAR("vismf-orig", blp);
-            VisMF::Write(mf, "vismfdata/mf1");
-        }
+        const int nwork = 10;
 
         {
-            BL_PROFILE_REGION("vismf-async-nooverlap");
-            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf2");
+            BL_PROFILE_REGION("vismf-orig");
+            VisMF::Write(mf, "vismfdata/mf1");
             {
-                BL_PROFILE_VAR("vismf-async-wait", blp3);
-                wrt_future.wait();
+                BL_PROFILE_VAR("vismf-orig-work", blp2);
+                for (int i = 0; i < nwork; ++i) {
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                }
             }
         }
 
         {
             BL_PROFILE_REGION("vismf-async-overlap");
-            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf3");
+            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf2");
             {
-                BL_PROFILE_VAR("vismf-async-compute", blp2);
-                for (int i = 0; i < 10; ++i) {
+                BL_PROFILE_VAR("vismf-async-work", blp2);
+                for (int i = 0; i < nwork; ++i) {
                     amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
                     amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
                 }
@@ -233,13 +233,15 @@ void main_main ()
 
 #ifdef AMREX_USE_VELOC
         {
-            BL_PROFILE_VAR("VeloCTotal", blp);
+            BL_PROFILE_REGION("VeloCTotal");
             auto t = WriteVeloC(mf, check_file.c_str(), 0);
 
             {
-                BL_PROFILE_VAR("VeloCOverlapped", blp2);
-                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
-                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                BL_PROFILE_VAR("VeloC-work", blp2);
+                for (int i = 0; i < nwork; ++i) {
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                }
             }
             {
                 BL_PROFILE_VAR("VeloCWait", blp3);
