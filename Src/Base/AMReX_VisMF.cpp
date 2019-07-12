@@ -2140,7 +2140,7 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
     AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int nfiles = nOutFiles;
-    //  nOutFiles = 2; // for testing only
+    // const int nfiles = 2; // for testing only
 
     const DistributionMapping& dm = mf.DistributionMap();
 
@@ -2346,53 +2346,54 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
             }
 
             auto pgd = (char*)(gdata.data());
-            int rank = 0;
-            int lidx = 0;
-            for (int j = 0; j < n_global_fabs; ++j)
             {
-                int k = -1;
-                do {
-                    if (lidx < gidx[rank].size()) {
-                        k = gidx[rank][lidx];
-                        ++lidx;
-                    } else {
-                        ++rank;
-                        lidx = 0;
+                int rank = 0, lidx = 0;
+                for (int j = 0; j < n_global_fabs; ++j)
+                {
+                    int k = -1;
+                    do {
+                        if (lidx < gidx[rank].size()) {
+                            k = gidx[rank][lidx];
+                            ++lidx;
+                        } else {
+                            ++rank;
+                            lidx = 0;
+                        }
+                    } while (k < 0);
+                    
+                    h.m_min[k].resize(ncomp);
+                    h.m_max[k].resize(ncomp);
+                    
+                    if (nbytes_on_rank[rank] < 0) { // First time for this rank
+                        std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
+                        pgd += sizeof(int64_t);
                     }
-                } while (k < 0);
-
-                h.m_min[k].resize(ncomp);
-                h.m_max[k].resize(ncomp);
-
-                if (nbytes_on_rank[rank] < 0) { // First time for this rank
-                    std::memcpy(&(nbytes_on_rank[rank]), pgd, sizeof(int64_t));
+                    
+                    int64_t nbytes;
+                    std::memcpy(&nbytes, pgd, sizeof(int64_t));
                     pgd += sizeof(int64_t);
+                    
+                    for (int icomp = 0; icomp < ncomp; ++icomp) {
+                        Real cmin, cmax;
+                        std::memcpy(&cmin, pgd             , sizeof(Real));
+                        std::memcpy(&cmax, pgd+sizeof(Real), sizeof(Real));
+                        pgd += sizeof(Real)*2;
+                        h.m_min[k][icomp] = cmin;
+                        h.m_max[k][icomp] = cmax;
+                        h.m_famin[icomp] = std::min(h.m_famin[icomp],cmin);
+                        h.m_famax[icomp] = std::max(h.m_famax[icomp],cmax);
+                    }
+                    
+                    auto info = rank_to_info(rank);
+                    int fno = std::get<0>(info);   // file #
+                    h.m_fod[k].m_name = amrex::Concatenate(VisMF::BaseName(mf_name)+FabFileSuffix, fno, 5);
+                    h.m_fod[k].m_head = nbytes;
                 }
-
-                int64_t nbytes;
-                std::memcpy(&nbytes, pgd, sizeof(int64_t));
-                pgd += sizeof(int64_t);
-
-                for (int icomp = 0; icomp < ncomp; ++icomp) {
-                    Real cmin, cmax;
-                    std::memcpy(&cmin, pgd             , sizeof(Real));
-                    std::memcpy(&cmax, pgd+sizeof(Real), sizeof(Real));
-                    pgd += sizeof(Real)*2;
-                    h.m_min[k][icomp] = cmin;
-                    h.m_max[k][icomp] = cmax;
-                    h.m_famin[icomp] = std::min(h.m_famin[icomp],cmin);
-                    h.m_famax[icomp] = std::max(h.m_famax[icomp],cmax);
-                }
-
-                auto info = rank_to_info(rank);
-                int fno = std::get<0>(info);   // file #
-                h.m_fod[k].m_name = amrex::Concatenate(VisMF::BaseName(mf_name)+FabFileSuffix, fno, 5);
-                h.m_fod[k].m_head = nbytes;
             }
 
             Vector<int64_t> offset(nprocs);
             for (int ip = 0; ip < nprocs; ++ip) {
-                auto info = rank_to_info(rank);
+                auto info = rank_to_info(ip);
                 int sno = std::get<1>(info);
                 if (sno == 0) {
                     offset[ip] = 0;
