@@ -168,7 +168,7 @@ namespace Gpu {
                                     __double_as_longlong(fmin(val, __longlong_as_double(assumed))));
                 } while (assumed != old);
                 return __longlong_as_double(old);
-            }
+            }            
         } // namespace detail
 #endif  // AMREX_USE_GPU
 
@@ -326,6 +326,45 @@ namespace Gpu {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        int CAS (int* address, int compare, int val) noexcept
+        {
+#ifdef AMREX_DEVICE_COMPILE
+            return atomicCAS(address, compare, val);
+#else
+            int old = *address;
+            *address = (old == compare ? val : old);
+            return old;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        unsigned int CAS (unsigned int* address,
+                          unsigned int compare,
+                          unsigned int val) noexcept
+        {
+#ifdef AMREX_DEVICE_COMPILE
+            return atomicCAS(address, compare, val);
+#else
+            unsigned int old = *address;
+            *address = (old == compare ? val : old);
+            return old;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        unsigned long long int CAS (unsigned long long int* address,
+                                    unsigned long long int compare,
+                                    unsigned long long int val) noexcept
+        {
+#ifdef AMREX_DEVICE_COMPILE
+            return atomicCAS(address, compare, val);
+#else
+            unsigned long long int old = *address;
+            *address = (old == compare ? val : old);
+            return old;
+#endif
+        }
     } // namespace Atomic
 
     template <class T>

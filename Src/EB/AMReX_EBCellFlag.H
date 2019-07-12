@@ -14,7 +14,8 @@ class EBCellFlag
 {
 public:
 
-    EBCellFlag () noexcept = default;
+    AMREX_GPU_HOST_DEVICE
+    EBCellFlag () noexcept {}
 
     EBCellFlag (const EBCellFlag& rhs) noexcept = default;
 
@@ -32,27 +33,27 @@ public:
         return *this;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setRegular () noexcept {
         flag &= zero_lower_mask; //!< clean lower bits
         flag |= regular_bits;
         flag |= single_vof_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setCovered () noexcept {
         flag &= zero_lower_mask;
         flag |= covered_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setSingleValued () noexcept {
         flag &= zero_lower_mask;
         flag |= single_vauled_bits;
         flag |= single_vof_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setMultiValued (int n) noexcept {
         flag &= zero_lower_mask;
         flag |= multi_valued_bits;
@@ -60,45 +61,45 @@ public:
         flag |= static_cast<uint32_t>(n) << pos_numvofs;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool operator==(const EBCellFlag& a_input) const noexcept
     {
         return (flag == (a_input.flag));
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool operator!=(const EBCellFlag& a_input) const noexcept
     {
         return (flag != (a_input.flag));
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int getNumVoFs () const noexcept
     {
         return (flag & one_numvofs_mask) >> pos_numvofs;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool isRegular () const noexcept {
         return (flag & one_type_mask) == regular_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool isSingleValued () const noexcept {
         return (flag & one_type_mask) == single_vauled_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool isMultiValued () const noexcept {
         return (flag & one_type_mask) == multi_valued_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool isCovered () const noexcept {
         return (flag & one_type_mask) == covered_bits;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool isConnected (const IntVect& iv) const noexcept {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
@@ -106,18 +107,32 @@ public:
         return flag & (1 << n);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool isConnected (int i, int j, int k) const  noexcept {
         const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         return flag & (1 << n);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    bool isDisconnected (const IntVect& iv) const noexcept {
+        int i=0, j=0, k=0;
+        AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
+        return !(flag & (1 << n));
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    bool isDisconnected (int i, int j, int k) const  noexcept {
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
+        return !(flag & (1 << n));
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setDisconnected () noexcept {
         flag &= one_lower_mask;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setDisconnected (const IntVect& iv) noexcept {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
@@ -125,12 +140,18 @@ public:
         flag &= ~(1 << n);
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    void setDisconnected (int i, int j, int k) noexcept {
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
+        flag &= ~(1 << n);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setConnected () noexcept {
         flag |= zero_lower_mask;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setConnected (const IntVect& iv) noexcept {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
@@ -138,16 +159,25 @@ public:
         flag |= 1 << n;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    void setConnected (int i, int j, int k) noexcept {
+        const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
+        flag |= 1 << n;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     uint32_t getValue() const noexcept
     {
         return flag;
     }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr EBCellFlag TheDefaultCell () { return EBCellFlag{default_value}; }
 
-    AMREX_GPU_HOST_DEVICE
+    // DO NOT test covered cells using cell == TheCoveredCell()
+    // Use cell.isCovered() instead.
+    // Each covered cell is covered in its own way.
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr EBCellFlag TheCoveredCell () { return EBCellFlag{covered_value}; }
 
 private:
@@ -234,18 +264,18 @@ public:
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (EBCellFlagFab&&) = delete;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     FabType getType () const noexcept { return m_type; }
 
     FabType getType (const Box& bx) const noexcept;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Box& getRegion () const noexcept { return m_region; }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setType (FabType t) noexcept { m_type = t; }
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setRegion (const Box& bx) noexcept { m_region = bx; }
 
 private:

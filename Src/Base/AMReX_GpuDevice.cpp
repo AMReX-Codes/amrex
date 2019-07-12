@@ -800,6 +800,10 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
     numThreads.y = 1;
     numThreads.z = 1;
 
+    // Limit the number of threads per block to be no larger in each dimension
+    // than the sizes of the box in the corresponding dimension.
+    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
+    
 #elif (AMREX_SPACEDIM == 2)
 
     numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / numThreadsMin.y);
@@ -808,6 +812,11 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
     numThreads.z = 1;
 
+    // Limit the number of threads per block to be no larger in each dimension
+    // than the sizes of the box in the corresponding dimension.
+    numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
+    numThreads.y = std::min(numThreads.y, static_cast<unsigned>(bx.length(1)));
+    
 #else
 
     numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_GPU_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
@@ -818,14 +827,13 @@ Device::box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads
     numThreads.y = std::max(numThreadsMin.y, numThreads.y);
     numThreads.z = std::max(numThreadsMin.z, numThreads.z);
 
-#endif
-
     // Limit the number of threads per block to be no larger in each dimension
     // than the sizes of the box in the corresponding dimension.
-
     numThreads.x = std::min(numThreads.x, static_cast<unsigned>(bx.length(0)));
     numThreads.y = std::min(numThreads.y, static_cast<unsigned>(bx.length(1)));
     numThreads.z = std::min(numThreads.z, static_cast<unsigned>(bx.length(2)));
+    
+#endif
 
     // Allow the user to override these at runtime.
 

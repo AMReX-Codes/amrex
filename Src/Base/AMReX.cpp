@@ -85,8 +85,13 @@ namespace {
     SignalHandler prev_handler_sigint;
     SignalHandler prev_handler_sigabrt;
     SignalHandler prev_handler_sigfpe;
+#if defined(__linux__)
     int           prev_fpe_excepts;
     int           curr_fpe_excepts;
+#elif defined(__APPLE__)
+    unsigned int  prev_fpe_mask;
+    unsigned int  curr_fpe_excepts;
+#endif
 }
 
 std::string amrex::Version ()
@@ -442,11 +447,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.query("fpe_trap_invalid", invalid);
             pp.query("fpe_trap_zero", divbyzero);
             pp.query("fpe_trap_overflow", overflow);
+
+#if defined(__linux__)
             curr_fpe_excepts = 0;
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
@@ -454,6 +460,17 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                 prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
             }
 #endif
+
+#elif defined(__APPLE__)
+	    prev_fpe_mask = _MM_GET_EXCEPTION_MASK();
+	    curr_fpe_excepts = 0u;
+	    if (invalid)   curr_fpe_excepts |= _MM_MASK_INVALID;
+	    if (divbyzero) curr_fpe_excepts |= _MM_MASK_DIV_ZERO;
+	    if (overflow)  curr_fpe_excepts |= _MM_MASK_OVERFLOW;
+	    if (curr_fpe_excepts != 0u) {
+                _MM_SET_EXCEPTION_MASK(prev_fpe_mask & ~curr_fpe_excepts);
+                prev_handler_sigfpe = signal(SIGFPE,  BLBackTrace::handler);
+	    }
 #endif
         }
     }
@@ -598,13 +615,17 @@ amrex::Finalize (amrex::AMReX* pamrex)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
-#if defined(__linux__) && !defined(__NEC__)
+#if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);
             feenableexcept(prev_fpe_excepts);
         }
 #endif
+#elif defined(__APPLE__)
+	if (curr_fpe_excepts != 0u) {
+            _MM_SET_EXCEPTION_MASK(prev_fpe_mask);
+	}
 #endif
     }
 #endif

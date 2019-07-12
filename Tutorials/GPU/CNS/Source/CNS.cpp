@@ -293,7 +293,6 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 
     if (level < refine_max_dengrad_lev)
     {
-        int ng = 1;
         const MultiFab& S_new = get_new_data(State_Type);
         const Real cur_time = state[State_Type].curTime();
         MultiFab rho(S_new.boxArray(), S_new.DistributionMap(), 1, 1);

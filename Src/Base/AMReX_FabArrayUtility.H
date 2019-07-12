@@ -1078,6 +1078,56 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
     amrex::Copy(fa, tmpmf, 0, 0, ncomp, 0);
 }
 
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
+             int scomp, int dcomp, int ncomp)
+{
+    AMREX_ASSERT(isMFIterSafe(dst, src));
+    AMREX_ASSERT(dst.nGrowVect() == src.nGrowVect());
+#ifdef AMREX_USE_GPU
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
+        void* pdst = dst[mfi].dataPtr(dcomp);
+        void const* psrc = src[mfi].dataPtr(scomp);
+        Gpu::dtoh_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+    }
+#else
+    Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());
+#endif
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
+{
+    dtoh_memcpy(dst, src, 0, 0, dst.nComp());
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
+             int scomp, int dcomp, int ncomp)
+{
+    AMREX_ASSERT(isMFIterSafe(dst, src));
+    AMREX_ASSERT(dst.nGrowVect() == src.nGrowVect());
+#ifdef AMREX_USE_GPU
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi) {
+        void* pdst = dst[mfi].dataPtr(dcomp);
+        void const* psrc = src[mfi].dataPtr(scomp);
+        Gpu::htod_memcpy_async(pdst, psrc, dst[mfi].nBytes(mfi.fabbox(), dcomp, ncomp));
+    }
+#else
+    Copy(dst, src, scomp, dcomp, ncomp, dst.nGrowVect());
+#endif
+}
+
+template <class FAB, class foo = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
+{
+    htod_memcpy(dst, src, 0, 0, dst.nComp());
+}
+
 }
 
 #endif

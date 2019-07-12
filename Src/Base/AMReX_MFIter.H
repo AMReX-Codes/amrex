@@ -228,6 +228,13 @@ private:
     FabArrayBase::TileArray lta;
 };
 
+//! Is it safe to have these two MultiFabs in the same MFiter?
+//! Ture means safe; false means maybe.
+inline bool isMFIterSafe (const FabArrayBase& x, const FabArrayBase& y) {
+    return x.DistributionMap() == y.DistributionMap()
+        && BoxArray::SameRefs(x.boxArray(), y.boxArray());
+}
+
 inline Arena* The_MFIter_Arena () noexcept { return The_Device_Arena(); }
 
 }

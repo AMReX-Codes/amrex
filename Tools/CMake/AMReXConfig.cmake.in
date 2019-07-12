@@ -78,9 +78,9 @@ set(AMReX_PROFPARSER_FOUND          @ENABLE_PROFPARSER@)
 # Find dependencies if needed
 #
 if (@ENABLE_MPI@)
-   set( _mpi_components "C" )
+   set( _mpi_components C CXX )
    if (@ENABLE_FORTRAN_INTERFACES@)
-         set( _mpi_components "${_mpi_components} Fortran" )
+      list(APPEND _mpi_components Fortran)
    endif ()
    find_dependency(MPI REQUIRED ${_mpi_components})
    unset(_mpi_components)

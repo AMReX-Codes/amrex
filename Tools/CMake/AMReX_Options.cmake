@@ -266,8 +266,3 @@ if (ENABLE_CUDA OR ENABLE_ACC)
       "Number of GPUs per node" )
    print_option(GPUS_PER_NODE)
 endif ()
-
-   
-if (ENABLE_CUDA AND ENABLE_OMP)
-   message(FATAL_ERROR "ENABLE_CUDA and ENABLE_OMP are both set to ON")
-endif ()

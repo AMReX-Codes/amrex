@@ -9,6 +9,11 @@ ifneq (,$(findstring ~,$(AMREX_HOME)))
   AMREX_HOME := $(shell echo $(AMREX_HOME))
 endif
 
+ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local-pre)","")
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local-pre...)
+  include        $(AMREX_HOME)/Tools/GNUMake/Make.local-pre
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
 ifdef AMREX_XSDK
@@ -93,6 +98,16 @@ ifdef BACKTRACE
   BACKTRACE := $(strip $(BACKTRACE))
 else
   BACKTRACE := FALSE
+endif
+
+ifdef EXPORT_DYNAMIC
+  EXPORT_DYNAMIC := $(strip $(EXPORT_DYNAMIC))
+else
+  ifeq ($(shell uname),Darwin)
+    EXPORT_DYNAMIC := TRUE
+  else
+    EXPORT_DYNAMIC := FALSE
+  endif
 endif
 
 ifdef LAZY
@@ -484,10 +499,6 @@ ifeq ($(USE_HIP),TRUE)
 
     USE_GPU := TRUE
 
-    ifeq ($(USE_OMP),TRUE)
-        $(error The HIP implementation is not thread-safe; do not try to use OpenMP)
-    endif
-
     ifneq ($(lowercase_comp),gnu)
         $(error HIP can only be used with COMP=gnu)
     endif
@@ -512,10 +523,6 @@ else ifeq ($(USE_CUDA),TRUE)
 
     # The CUDA implementation is not currently threadsafe.
     # Throw an error if the user tries to build with OpenMP and CUDA.
-
-    ifeq ($(USE_OMP),TRUE)
-        $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
-    endif
 
     ifeq ($(lowercase_comp),pgi)
         LINK_WITH_FORTRAN_COMPILER=TRUE

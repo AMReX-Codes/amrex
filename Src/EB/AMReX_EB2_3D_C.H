@@ -15,12 +15,11 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                        Array4<Type_t> const& ey,
                        Array4<Type_t> const& ez)
 {
-    Box bx = amrex::getThreadBox(tbx, bxg2);
-    auto lo = amrex::lbound(bx);
-    auto hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    auto lo = amrex::max_lbound(tbx, bxg2);
+    auto hi = amrex::min_ubound(tbx, bxg2);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (    s(i,j  ,k  ) < 0.0 and s(i+1,j  ,k  ) < 0.0
             and s(i,j+1,k  ) < 0.0 and s(i+1,j+1,k  ) < 0.0
             and s(i,j  ,k+1) < 0.0 and s(i+1,j  ,k+1) < 0.0
@@ -39,15 +38,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         {
             cell(i,j,k).setSingleValued();
         }
-    }}}
+    });
 
     // x-face
-    bx = amrex::getThreadBox(tbx, amrex::surroundingNodes(bxg2,0));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    Box b = amrex::surroundingNodes(bxg2,0);
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (    s(i,j,k  ) < 0.0 and s(i,j+1,k  ) < 0.0
             and s(i,j,k+1) < 0.0 and s(i,j+1,k+1) < 0.0 )
         {
@@ -62,15 +61,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         {
             fx(i,j,k) = Type::irregular;
         }
-    }}}
+    });
 
     // y-face
-    bx = amrex::getThreadBox(tbx, amrex::surroundingNodes(bxg2,1));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    b = amrex::surroundingNodes(bxg2,1);
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (    s(i,j,k  ) < 0.0 and s(i+1,j,k  ) < 0.0
             and s(i,j,k+1) < 0.0 and s(i+1,j,k+1) < 0.0 )
         {
@@ -85,15 +84,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         {
             fy(i,j,k) = Type::irregular;
         }
-    }}}
+    });
 
     // z-face
-    bx = amrex::getThreadBox(tbx, amrex::surroundingNodes(bxg2,2));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    b = amrex::surroundingNodes(bxg2,2);
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (    s(i,j  ,k) < 0.0 and s(i+1,j  ,k) < 0.0
             and s(i,j+1,k) < 0.0 and s(i+1,j+1,k) < 0.0)
         {
@@ -108,15 +107,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         {
             fz(i,j,k) = Type::irregular;
         }
-    }}}
+    });
 
     // x-edge
-    bx = amrex::getThreadBox(tbx, amrex::convert(bxg2,IntVect(0,1,1)));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    b = amrex::convert(bxg2,IntVect(0,1,1));
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (s(i,j,k) < 0.0 and s(i+1,j,k) < 0.0) {
             ex(i,j,k) = Type::regular;
         } else if (s(i,j,k) >= 0.0 and s(i+1,j,k) >= 0.0) {
@@ -124,15 +123,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         } else {
             ex(i,j,k) = Type::irregular;
         }
-    }}}
+    });
 
     // y-edge
-    bx = amrex::getThreadBox(tbx, amrex::convert(bxg2,IntVect(1,0,1)));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    b = amrex::convert(bxg2,IntVect(1,0,1));
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (s(i,j,k) < 0.0 and s(i,j+1,k) < 0.0) {
             ey(i,j,k) = Type::regular;
         } else if (s(i,j,k) >= 0.0 and s(i,j+1,k) >= 0.0) {
@@ -140,15 +139,15 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         } else {
             ey(i,j,k) = Type::irregular;
         }
-    }}}
+    });
 
     // z-edge
-    bx = amrex::getThreadBox(tbx, amrex::convert(bxg2,IntVect(1,1,0)));
-    lo = amrex::lbound(bx);
-    hi = amrex::ubound(bx);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
+    b = amrex::convert(bxg2,IntVect(1,1,0));
+    lo = amrex::max_lbound(tbx, b);
+    hi = amrex::min_ubound(tbx, b);
+    amrex::Loop(lo, hi,
+    [=] (int i, int j, int k) noexcept
+    {
         if (s(i,j,k) < 0.0 and s(i,j,k+1) < 0.0) {
             ez(i,j,k) = Type::regular;
         } else if (s(i,j,k) >= 0.0 and s(i,j,k+1) >= 0.0) {
@@ -156,7 +155,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
         } else {
             ez(i,j,k) = Type::irregular;
         }
-    }}}
+    });
 }
 
 }}
