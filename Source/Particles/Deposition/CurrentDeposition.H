@@ -151,25 +151,25 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
                      // Get particle position after 1/2 push back in position
                      Real xmid = (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
                      // Compute shape factors for node-centered quantities
-                     Real sx [depos_order + 1];
+                     Real AMREX_RESTRICT sx [depos_order + 1];
                      int j  = compute_shape_factor<depos_order>(sx,  xmid);
                      // Compute shape factors for cell-centered quantities
-                     Real sx0[depos_order + 1];
+                     Real AMREX_RESTRICT sx0[depos_order + 1];
                      int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (AMREX_SPACEDIM == 3)
                      // y direction
                      Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
-                     Real sy [depos_order + 1];
+                     Real AMREX_RESTRICT sy [depos_order + 1];
                      int k  = compute_shape_factor<depos_order>(sy,  ymid);
-                     Real sy0[depos_order + 1];
+                     Real AMREX_RESTRICT sy0[depos_order + 1];
                      int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
                      // z direction
                      Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
-                     Real sz [depos_order + 1];
+                     Real AMREX_RESTRICT sz [depos_order + 1];
                      int l  = compute_shape_factor<depos_order>(sz,  zmid);
-                     Real sz0[depos_order + 1];
+                     Real AMREX_RESTRICT sz0[depos_order + 1];
                      int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
                      // Deposit current into jx_arr, jy_arr and jz_arr
