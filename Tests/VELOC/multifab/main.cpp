@@ -5,8 +5,11 @@
 #include <AMReX_BLProfiler.H>
 
 #include <thread>
+#include <future>
 
+#ifdef AMREX_USE_VELOC
 #include <veloc.h>
+#endif
 
 using namespace amrex;
 
@@ -16,6 +19,7 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
+#ifdef AMREX_USE_VELOC
     std::string veloc_cfg("veloc.cfg");
     {
         ParmParse pp("veloc");
@@ -24,14 +28,18 @@ int main (int argc, char* argv[])
     const auto veloc_status = VELOC_Init(ParallelDescriptor::Communicator(),
                                          veloc_cfg.c_str());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(veloc_status == VELOC_SUCCESS, "VELOC_Init failed");
+#endif
 
     main_main();
 
+#ifdef AMREX_USE_VELOC
     VELOC_Finalize(0); // no clean up
+#endif
 
     amrex::Finalize();
 }
 
+#ifdef AMREX_USE_VELOC
 template <class T>
 struct VeloCDeleter {
     void operator() (Vector<std::unique_ptr<T,DataDeleter> > ptrs) {
@@ -149,6 +157,7 @@ MultiFab ReadVeloC (std::string const& mf_name, int step)
 
     return mf;
 }
+#endif
 
 void main_main ()
 {
@@ -190,26 +199,39 @@ void main_main ()
             amrex::dtoh_memcpy(mfcpu, mf);
         }
 
-        { // Write VisMF data
-            BL_PROFILE_VAR("VisMFTotal", blp);
-            amrex::UtilCreateDirectoryDestructive("vismfdata");
-#if 1
-            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf");
-            {
-                BL_PROFILE_VAR("VisMFOverlapped", blp2);
-                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
-                amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
-            }
-            {
-                BL_PROFILE_VAR("VisMFWait", blp3);
-                wrt_future.wait();
-            }
-#else
-            VisMF::Write(mf, "vismfdata/mf");
-#endif
+        amrex::UtilCreateDirectoryDestructive("vismfdata");
+
+        {
+            BL_PROFILE_VAR("vismf-orig", blp);
+            VisMF::Write(mf, "vismfdata/mf1");
         }
 
-#if 0
+        {
+            BL_PROFILE_REGION("vismf-async-nooverlap");
+            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf2");
+            {
+                BL_PROFILE_VAR("vismf-async-wait", blp3);
+                wrt_future.wait();
+            }
+        }
+
+        {
+            BL_PROFILE_REGION("vismf-async-overlap");
+            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf3");
+            {
+                BL_PROFILE_VAR("vismf-async-compute", blp2);
+                for (int i = 0; i < 10; ++i) {
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                }
+            }
+            {
+                BL_PROFILE_VAR("vismf-async-wait", blp3);
+                wrt_future.wait();
+            }
+        }
+
+#ifdef AMREX_USE_VELOC
         {
             BL_PROFILE_VAR("VeloCTotal", blp);
             auto t = WriteVeloC(mf, check_file.c_str(), 0);
@@ -228,6 +250,7 @@ void main_main ()
     }
     else
     {
+#ifdef AMREX_USE_VELOC
         MultiFab mf_veloc = ReadVeloC(check_file, restart_step);
         amrex::prefetchToDevice(mf_veloc);
 
@@ -241,6 +264,7 @@ void main_main ()
         amrex::Print() << "diff min = " << dmin << ", max = " << dmax << "\n";
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmin == 0.0 and dmax == 0.0,
                                          "Restart failed.");
+#endif
     }
 }
 
