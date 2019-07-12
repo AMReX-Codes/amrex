@@ -35,7 +35,6 @@ interpolation.noz = 3
 #################################
 particles.nspecies = 3
 particles.species_names = plasma_e beam driver
-particles.use_fdtd_nci_corr = 1
 
 driver.charge = -q_e
 driver.mass = m_e

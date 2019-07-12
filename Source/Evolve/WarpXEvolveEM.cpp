@@ -135,7 +135,8 @@ WarpX::EvolveEM (int numsteps)
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
         // slice generation //
-        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);        
+        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0); 
+
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -292,7 +293,7 @@ WarpX::OneStep_nosub (Real cur_time)
 
     SyncCurrent();
 
-    SyncRho(rho_fp, rho_cp);
+    SyncRho();
 
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)

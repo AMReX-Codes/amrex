@@ -1,4 +1,5 @@
 CEXE_headers += WarpX_K.H
+CEXE_headers += WarpX_FDTD.H
 CEXE_sources += WarpXPushFieldsEM.cpp
 ifeq ($(USE_PSATD),TRUE)
   CEXE_sources += WarpXFFT.cpp

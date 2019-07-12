@@ -34,10 +34,7 @@ sim = picmi.Simulation(solver = solver,
                        max_steps = 40,
                        verbose = 1,
                        warpx_plot_int = 40,
-                       warpx_current_deposition_algo = 3,
-                       warpx_charge_deposition_algo = 0,
-                       warpx_field_gathering_algo = 0,
-                       warpx_particle_pusher_algo = 0)
+                       warpx_current_deposition_algo = 'direct')
 
 sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,2,2], grid=grid))
 
