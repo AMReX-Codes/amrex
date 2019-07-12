@@ -57,7 +57,7 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cge
 
 namespace {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 compute_slopes (const Dim3& lo, const Dim3& hi,
                 Array4<Real> const& slopes, const Dim3& slo, const Dim3& shi, int ns,
                 Array4<Real const> const& u, int nu,
@@ -138,7 +138,7 @@ compute_slopes (const Dim3& lo, const Dim3& hi,
 
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
                            Array4<Real const> const& u, const int icomp, const int ncomp,
                            BCRec const* AMREX_RESTRICT bcr) noexcept
@@ -203,7 +203,7 @@ cellconslin_slopes_linlim (Box const& bx, Array4<Real> const& slopes,
     }
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cellconslin_interp (Box const& bx,
                     Array4<Real> const& fine, const int fcomp, const int ncomp,
                     Array4<Real const> const& slopes,
@@ -234,7 +234,7 @@ cellconslin_interp (Box const& bx,
     }
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
                           Array4<Real const> const& u, const int icomp, const int ncomp,
                           BCRec const* AMREX_RESTRICT bcr) noexcept
@@ -285,7 +285,7 @@ cellconslin_slopes_mclim (Box const& bx, Array4<Real> const& slopes,
     }
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cellconslin_fine_alpha (Box const& bx, Array4<Real> const& alpha,
                         Array4<Real const> const& slopes, const int ncomp,
                         Real const* AMREX_RESTRICT voff, IntVect const& ratio) noexcept
@@ -324,7 +324,7 @@ cellconslin_fine_alpha (Box const& bx, Array4<Real> const& alpha,
     }
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 cellconslin_slopes_mmlim (Box const& bx, Array4<Real> const& slopes,
                           Array4<Real const> const& alpha,
                           const int ncomp, IntVect const& ratio) noexcept
@@ -350,7 +350,7 @@ cellconslin_slopes_mmlim (Box const& bx, Array4<Real> const& slopes,
     }
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 pcinterp_interp (Box const& bx,
                  Array4<Real> const& fine, const int fcomp, const int ncomp,
                  Array4<Real const> const& crse, const int ccomp,
@@ -377,7 +377,7 @@ namespace {
     static constexpr int ixy  = 2;
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> const& u,
                   const int icomp, const int ncomp, IntVect const& ratio) noexcept
 {
@@ -403,7 +403,7 @@ nodebilin_slopes (Box const& bx, Array4<Real> const& slope, Array4<Real const> c
     }
 }
 
-AMREX_GPU_HOST_DEVICE inline void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 nodebilin_interp (Box const& bx, Array4<Real> const& fine, const int fcomp, const int ncomp,
                   Array4<Real const> const& slope, Array4<Real const> const& crse,
                   const int ccomp, IntVect const& ratio) noexcept

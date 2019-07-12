@@ -3,7 +3,7 @@
 
 namespace amrex {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
                             Array4<Real const> const& cc, int nc) noexcept
 {
@@ -28,7 +28,7 @@ void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlmg_lin_cc_interp_r4 (Box const& bx, Array4<Real> const& ff,
                             Array4<Real const> const& cc, int nc) noexcept
 {

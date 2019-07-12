@@ -1401,7 +1401,7 @@ AMReX for GPUs:
   resources to perform other tasks. This increases parallel
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
-  the ``AMREX_INLINE`` AMReX macro.  Examples can be found in
+  the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found in
   ``Tutorials/GPU/Launch``. For example:
 
 .. highlight:: cpp
@@ -1409,7 +1409,7 @@ AMReX for GPUs:
 ::
 
     AMREX_GPU_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     void plusone_cudacpp (amrex::Box const& bx, amrex::FArrayBox& fab)
     {
         ...
