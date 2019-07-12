@@ -253,7 +253,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
                     sdata[threadIdx.x] = tmin;
                     __syncthreads();
 
-                    Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
+                    Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
                     if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
                 });
