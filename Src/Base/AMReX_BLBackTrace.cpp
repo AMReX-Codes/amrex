@@ -174,7 +174,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
             if (have_eu_addr2line) {
                 const pid_t pid = getpid();
                 // cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
-                cmd = "/usr/bin/eu-addr2line -C -f -i --pretty-print -p "
+                cmd = "/usr/bin/eu-addr2line -C -f -i -p "
                     + std::to_string(pid);
             }
         }
