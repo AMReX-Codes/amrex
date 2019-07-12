@@ -448,7 +448,7 @@ class Simulation(picmistandard.PICMI_Simulation):
 
         if self.gamma_boost is not None:
             pywarpx.warpx.gamma_boost = self.gamma_boost
-            pywarpx.warpx.boost_direction = 'z'
+            pywarpx.warpx.boost_direction = None
 
         pywarpx.amr.plot_int = self.plot_int
         pywarpx.amr.plot_file = self.plot_file
