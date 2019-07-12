@@ -96,13 +96,13 @@ simultaneous physics calculations.  These comms are managed by AMReX's
 :cpp:`ParallelContext` in ``AMReX_ParallelContext.H.``  It maintains a
 stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
 :cpp:`ParallelContext` stack during AMReX's initialization and
-additional subcommunicators can be handled by adding comms with 
+additional subcommunicators can be handled by adding comms with
 :cpp:`push(MPI_Comm)` and removed using :cpp:`pop()`.  This creates a
 hierarchy of :cpp:`MPI_Comm` objects that can be used to split work as
 the user sees fit.   Note that ``ParallelDescriptor`` by default uses
 AMReX's base comm, independent of the status of the
 ``ParallelContext`` stack.
- 
+
 :cpp:`ParallelContext` also tracks and returns information about the
 local (most recently added) and global :cpp:`MPI_Comm`.  The most common
 access functions are given below.  See ``AMReX_ParallelContext.H.`` for
@@ -115,7 +115,7 @@ a full listing of the available functions.
      MPI_Comm subCommA = ....;
      MPI_Comm subCommB = ....;
      // Add a communicator to ParallelContext.
-     // After these pushes, subCommB becomes the 
+     // After these pushes, subCommB becomes the
      //     "local" communicator.
      ParallelContext::push(subCommA);
      ParallelContext::push(subCommB);
@@ -143,7 +143,7 @@ a full listing of the available functions.
 
      // Remove the last added subcommunicator.
      // This would make "subCommA" the new local communicator.
-     // Note: The user still needs to free "subCommB". 
+     // Note: The user still needs to free "subCommB".
      ParallelContext::pop();
 
 .. _sec:basics:print:
@@ -341,7 +341,7 @@ parent-child connection. In this chapter, we will focus on single levels.
 .. raw:: latex
 
    \end{center}
-   
+
 
 .. _sec:basics:box:
 
@@ -623,7 +623,7 @@ following examples.
       Box b0 ({16,16,16}, {31,31,31});
       Box b1 ({ 0, 0,30}, {23,23,63});
       if (b0.intersects(b1)) {                  // true
-          Print() << "b0 and b1 intersect.\n"; 
+          Print() << "b0 and b1 intersect.\n";
       }
 
       Box b2 = b0 & b1;     // b0 and b1 unchanged
@@ -739,13 +739,13 @@ cells in each direction.
       // This defines the physical box, [-1,1] in each direction.
       RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
                        {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-      
+
       // This says we are using Cartesian coordinates
       int coord = 0;
-      
+
       // This sets the boundary conditions to be doubly or triply periodic
       Array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
-      
+
       // This defines a Geometry object
       Geometry geom(domain, real_box, coord, is_periodic);
 
@@ -820,7 +820,7 @@ show how one can convert BoxArray to a different type.
       // Return an all node BoxArray
       const BoxArray& nodeba = amrex::convert(faceba, IntVect{1,1,1});
       Print() << cellba[0] << "\n";  // ((0,0,0) (63,63,63) (0,0,0))
-      Print() << faceba[0] << "\n";  // ((0,0,0) (63,63,64) (0,0,1))  
+      Print() << faceba[0] << "\n";  // ((0,0,0) (63,63,64) (0,0,1))
       Print() << nodeba[0] << "\n";  // ((0,0,0) (64,64,64) (1,1,1))
 
 As shown in the example above, :cpp:`BoxArray` has an :cpp:`operator[]` that
@@ -897,7 +897,7 @@ a :cpp:`BoxArray`,
 
       DistributionMapping dm {ba};
 
-or by simply making a copy, 
+or by simply making a copy,
 
 .. highlight:: c++
 
@@ -1028,10 +1028,10 @@ returning the minimum or maximum value.
 ::
 
       T min (int comp=0) const;  // Minimum value of given component.
-      T min (const Box& subbox, int comp=0) const; // Minimum value of given 
+      T min (const Box& subbox, int comp=0) const; // Minimum value of given
                                                    // component in given subbox.
       T max (int comp=0) const;  // Maximum value of given component.
-      T max (const Box& subbox, int comp=0) const; // Maximum value of given 
+      T max (const Box& subbox, int comp=0) const; // Maximum value of given
                                                    // component in given subbox.
 
 :cpp:`BaseFab` also has many arithmetic functions. Here are some examples using
@@ -1161,7 +1161,7 @@ defined on a union of rectangular regions embedded in a uniform index space.
 For example, a FabArray object can be used to hold data for one level as in
 :numref:`fig:basics:amrgrids`.
 
-:cpp:`FabArray` is a parallel data structure that the data (i.e., FAB) are
+:cpp:`FabArray` is a parallel data structure in which the data (i.e., FAB) are
 distributed among parallel processes. For each process, a FabArray contains
 only the FAB objects owned by that process, and the process operates only on
 its local data. For operations that require data owned by other processes,
@@ -1197,7 +1197,7 @@ on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
 (1 in this example). That is the :cpp:`Box` in the :cpp:`FArrayBox` is not
 exactly the same as in the :cpp:`BoxArray`.  If the :cpp:`BoxArray` has a
 :cpp:`Box{(7,7,7) (15,15,15)}`, the one used for constructing :cpp:`FArrayBox`
-will be :cpp:`Box{(8,8,8) (16,16,16)}` in this example. For cells in
+will be :cpp:`Box{(6,6,6) (16,16,16)}` in this example. For cells in
 :cpp:`FArrayBox`, we call those in the original :cpp:`Box` **valid cells** and
 the grown part **ghost cells**. Note that :cpp:`FArrayBox` itself does not have
 the concept of ghost cells.  Ghost cells are a key concept of
@@ -1253,7 +1253,7 @@ achieve this.
       MultiFab mf1(ba,dm,ncomp,ngrow);  // new MF with the same ncomp and ngrow
       MultiFab mf2(ba,dm,ncomp,0);      // new MF with no ghost cells
       // new MF with 1 component and 2 ghost cells
-      MultiFab mf3(mf0.boxArray(), mf0.DistributionMap(), 1, 2);               
+      MultiFab mf3(mf0.boxArray(), mf0.DistributionMap(), 1, 2);
 
 As we have repeatedly mentioned in this chapter that :cpp:`Box` and
 :cpp:`BoxArray` have various index types. Thus, :cpp:`MultiFab` also has an
@@ -1302,7 +1302,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
 
       MultiFab::Add(mfdst, mfsrc, sc, dc, nc, ng);  // Add mfsrc to mfdst
       MultiFab::Copy(mfdst, mfsrc, sc, dc, nc, ng); // Copy from mfsrc to mfdst
-      // MultiFab mfdst: destination 
+      // MultiFab mfdst: destination
       // MultiFab mfsrc: source
       // int      sc   : starting component index in mfsrc for this operation
       // int      dc   : starting component index in mfdst for this operation
@@ -1562,7 +1562,7 @@ version. The first example in (see the previous section on
 :ref:`sec:basics:mfiter:notiling`) requires only two minor changes:
 
     #. passing :cpp:`true` when defining :cpp:`MFIter` to indicate tiling;
-    #. calling :cpp:`tilebox` instead of :cpp:`validbox` to obtain the work region 
+    #. calling :cpp:`tilebox` instead of :cpp:`validbox` to obtain the work region
        for the loop iteration.
 
 .. highlight:: c++
@@ -1587,7 +1587,7 @@ also requires only two minor changes.
 
 ::
 
-      //              * true *  turns on tiling  
+      //              * true *  turns on tiling
       for (MFIter mfi(F,true); mfi.isValid(); ++mfi) // Loop over tiles
       {
           //                   tilebox() instead of validbox()
@@ -1612,7 +1612,7 @@ usually require very little changes.
 
 .. table:: Comparison of :cpp:`MFIter` with (right) and without (left) tiling.
    :align: center
-   
+
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |a|                          |                        |b|                           |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -1632,7 +1632,7 @@ non-tiling version, whereas in the tiling version the kernel function is called
 8 times.
 
 It is important to use the correct :cpp:`Box` when implementing tiling, especially
-if the box is used to define a work region inside of the loop. For example: 
+if the box is used to define a work region inside of the loop. For example:
 
 .. highlight:: c++
 
@@ -1643,7 +1643,7 @@ if the box is used to define a work region inside of the loop. For example:
     {
         Box bx = mfi.validbox();     // Gets box of entire, untiled region.
         calcOverBox(bx);             // ERROR! Works on entire box, not tiled box.
-                                     // Other iterations will redo many of the same cells.  
+                                     // Other iterations will redo many of the same cells.
     }
 
 The tile size can be explicitly set when defining :cpp:`MFIter`.
@@ -1673,21 +1673,21 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
 
 .. table:: Comparison of :cpp:`MFIter` with (right) and without (left) tiling, for face-centered nodal indexing.
    :align: center
-   
+
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |c|                          |                        |d|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of face valid boxes. There are two        | | Example of face tile boxes. Each grid is           |
    | | valid boxes in this example. Each has             | | *logically* broken into 4 tiles as indicated by    |
    | | :math:`9\times 8` points. Note that points in one | | the symbols. There are 8 tiles in total. Some      |
-   | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       | 
+   | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       |
    | | :cpp:`Box`. However, the memory locations for     | | others have :math:`4 \times 4` points. Points from |
    | | storing floating point data of those points do    | | different Boxes may overlap, but points from       |
    | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-Dynamic tiling, which runs one box per OpenMP thread, is also available. 
+Dynamic tiling, which runs one box per OpenMP thread, is also available.
 This is useful when the underlying work cannot benefit from thread
 parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
 object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
@@ -1699,12 +1699,12 @@ parallel region:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No further tiling details,
-  //   so each thread works on a single tilebox. 
-  #ifdef _OPENMP 
+  //   so each thread works on a single tilebox.
+  #ifdef _OPENMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-      {  
+      {
           const Box& bx = mfi.validbox();
           ...
       }
@@ -1717,11 +1717,11 @@ Dynamic tiling also allows explicit definition of a tile size:
 
   // Dynamic tiling, one box per OpenMP thread.
   // No tiling in x-direction. Tile size is 16 for y and 32 for z.
-  #ifdef _OPENMP 
+  #ifdef _OPENMP
   #pragma omp parallel
   #endif
       for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
-      {  
+      {
           const Box& bx = mfi.tilebox();
           ...
       }
@@ -1749,7 +1749,7 @@ has a number of functions returning various Boxes.  Examples include,
 
       // Return tilebox with provided nodal flag as if the MFIter
       // is constructed with MultiFab of such flag.
-      Box tilebox(const IntVect& nodal_flag); 
+      Box tilebox(const IntVect& nodal_flag);
 
 It should be noted that the function :cpp:`growntilebox` does not grow the tile
 Box like a normal :cpp:`Box`. Growing a :cpp:`Box` normally means the Box is
@@ -1771,14 +1771,14 @@ multi-threaded codes race conditions could occur.
 
 .. table:: Comparing growing cell-type and face-type tile boxes.
    :align: center
-   
+
    +-----------------------------------------------------+------------------------------------------------------+
    |                        |e|                          |                        |f|                           |
    +-----------------------------------------------------+------------------------------------------------------+
    | | Example of cell-centered grown tile boxes. As     | | Example of face type grown tile boxes. As          |
    | | indicated by symbols, there are 8 tiles and four  | | indicated by symbols, there are 8 tiles and four   |
    | | in each grid in this example. Tiles from the      | | in each grid in this example. Tiles from the       |
-   | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          | 
+   | | same grid do not overlap. But tiles from          | | same grid do not overlap even though they          |
    | | different grids may overlap.                      | | have face index type.                              |
    |                                                     |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -1821,7 +1821,7 @@ layout transformation. The kernel function still gets the whole arrays in
 :cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
 arrays.  We have shown examples of writing kernels in C++ in the
 previous section.  Fortran is also often used for writing these kernels because of its
-native multi-dimensional array support.  To C++, these kernel functions are 
+native multi-dimensional array support.  To C++, these kernel functions are
 C functions, whose function signatures are typically declared in a header file
 named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
 Examples of these function declarations are as follows.
@@ -1966,20 +1966,20 @@ cannot catch it.  For example
     extern "C" {
         void f (amrex_real* x);
     }
-    
+
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
         f(mf[mfi].dataPtr()));
     }
 
-    ! Fortra definition
+    ! Fortran definition
     subroutine f(x,y) bind(c)
         implicit none
         integer x, y
     end subroutine f
 
 The code above will compile without errors even though the number of
-arguments and types don't match.  
+arguments and types don't match.
 
 To help detect this kind of issues, AMReX provides a type check tool.
 Note that it only works when GCC is used.  In the directory an AMReX
@@ -2061,22 +2061,22 @@ example below.
         f(box, mf1[mfi], mf2[mfi]);
     }
 
-A :cpp:`Box` and two :cpp:`FArrayBox`\es are passed to a C++ kernel 
+A :cpp:`Box` and two :cpp:`FArrayBox`\es are passed to a C++ kernel
 function.  In the function, :cpp:`amrex::lbound` and :cpp:`amrex::hbound`
 are called to get the start and end of the loops from :cpp:`Box::smallend()`
-and :cpp:`Box::bigend` of ``bx``.  Both functions return a 
+and :cpp:`Box::bigend` of ``bx``.  Both functions return a
 :cpp:`amrex::Dim3`, a Plain Old Data (POD) type containing three integers.
 The individual components are accessed by using :cpp:`.x`, :cpp:`.y` and
-:cpp:`.z`, as shown in the :cpp:`for` loops. 
+:cpp:`.z`, as shown in the :cpp:`for` loops.
 
 :cpp:`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
 designed as an independent, :cpp:`operator()` based accessor to the
 :cpp:`BaseFab` data. :cpp:`Array4` is an AMReX class that contains a
 pointer to the :cpp:`FArrayBox` data and two :cpp:`Dim3` vectors that
-contain the bounds of the :cpp:`FArrayBox`.  The bounds are stored to 
+contain the bounds of the :cpp:`FArrayBox`.  The bounds are stored to
 properly translate the three dimensional coordinates to the appropriate
-location in the one-dimensional array.  :cpp:`Array4`\'s :cpp:`operator()` 
-can also take a fourth integer to access across states of the 
+location in the one-dimensional array.  :cpp:`Array4`\'s :cpp:`operator()`
+can also take a fourth integer to access across states of the
 :cpp:`FArrayBox` and can be used in lower dimensions by passing `0` to
 the higher order dimensions.
 
@@ -2092,7 +2092,7 @@ loop, test and verify before adding the macro.
 
 These loops should usually use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
 defining the loop bounds. If not, the highest index cells will be left out
-of the calculation. 
+of the calculation.
 
 .. _sec:basics:loop:
 
@@ -2190,7 +2190,7 @@ The basic idea behind physical boundary conditions is as follows:
    all the components are contiguous in memory.  Here we need to provide
    boundary types to each component of the :cpp:`MultiFab`. Below is an example
    of setting up :cpp:`Vector<BCRec>` before the call to ghost cell routines.
-   
+
    .. highlight:: c++
 
    ::
@@ -2405,7 +2405,7 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
-    
+
 .. _sec:basics:heat1:
 
 Example: HeatEquation_EX1_C
@@ -2442,7 +2442,7 @@ Source code tree for the HeatEquation_EX1_C example
 
     amrex/Tutorials/HeatEquation_EX1_C/Source
         Contains the following source code specific to this tutorial:
-        
+
         #. ``Make.package``: lists the source code files
         #. ``main.cpp``: contains the C++ ``main`` function
         #. ``advance.cpp``: advance the solution by a time step
@@ -2468,7 +2468,7 @@ demonstrate how to read in parameters from the inputs file:
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of
         //   a square (or cubic) domain.
         pp.get("n_cell",n_cell);
 
@@ -2521,12 +2521,12 @@ and ghost cells associated with each grid:
 
 ::
 
-    // Nghost = number of ghost cells for each array 
+    // Nghost = number of ghost cells for each array
     int Nghost = 1;
-    
+
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-  
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -2585,9 +2585,9 @@ The associated fortran routines must shape the data accordinly:
 
    integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
    real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-   real(amrex_real), intent(in   ) :: dx(2) 
-   real(amrex_real), intent(in   ) :: prob_lo(2) 
-   real(amrex_real), intent(in   ) :: prob_hi(2) 
+   real(amrex_real), intent(in   ) :: dx(2)
+   real(amrex_real), intent(in   ) :: prob_lo(2)
+   real(amrex_real), intent(in   ) :: prob_hi(2)
 
    integer          :: i,j
    double precision :: x,y,r2
