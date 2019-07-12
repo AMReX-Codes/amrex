@@ -259,13 +259,13 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
 
         assert self.lower_bound[0] >= 0., Exception('Lower radial boundary must be >= 0.')
         assert self.bc_rmin != 'periodic' and self.bc_rmax != 'periodic', Exception('Radial boundaries can not be periodic')
-        assert self.n_azimuthal_modes is None or self.n_azimuthal_modes == 1, Exception('Only one azimuthal mode supported')
 
         # Geometry
         pywarpx.geometry.coord_sys = 1  # RZ
         pywarpx.geometry.is_periodic = '0 %d'%(self.bc_zmin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
+        pywarpx.warpx.nmodes = self.n_azimuthal_modes
 
         if self.moving_window_velocity is not None and np.any(np.not_equal(self.moving_window_velocity, 0.)):
             pywarpx.warpx.do_moving_window = 1
