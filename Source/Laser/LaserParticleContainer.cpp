@@ -503,8 +503,17 @@ LaserParticleContainer::Evolve (int lev,
             //
             // Current Deposition
             //
-            DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
-                           cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
+            // Deposit inside domains
+            DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                           0, np_current, thread_num,
+                           lev, lev, dt);
+            bool has_buffer = cjx;
+            if (has_buffer){
+                // Deposit in buffers
+                DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                               np_current, np-np_current, thread_num,
+                               lev, lev-1, dt);
+            }
 
             //
             // copy particle data back
