@@ -4,7 +4,6 @@
 #include <vector>
 #include <deque>
 #include <cerrno>
-#include <cstdint>
 #include <atomic>
 #include <cstdio>
 #include <limits>
@@ -2133,7 +2132,7 @@ void VisMF::CloseAllStreams() {
   VisMF::persistentIFStreams.clear();
 }
 
-std::future<void>
+std::future<WriteAsyncStatus>
 VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
 {
     BL_PROFILE("VisMF::WriteAysnc()");
@@ -2327,7 +2326,9 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
 
     auto af = std::async(std::launch::async,
     [=] (std::unique_ptr<char,DataDeleter> d, Header h, Vector<int64_t> gdata)
+         -> WriteAsyncStatus
     {
+        Real tbegin = amrex::second();
         if (myproc == nprocs-1)
         {
             h.m_fod.resize(n_global_fabs);
@@ -2412,10 +2413,15 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
         const std::string my_turn_file = mf_name + "_proc_" + std::to_string(myproc);
         const std::string next_in_line_file = mf_name + "_proc_" + std::to_string(myproc+1);
         bool myturn = (ispot == 0);
-        int tsleep = amrex::max(amrex::min(1000*ispot,1000),1000000);
+        int tsleep = amrex::min(amrex::max(1000*ispot,1000),1000000);
+        long nchecks = 0;
+
+        Real t0 = amrex::second();
+
         while (!myturn) {
+            ++nchecks;
             usleep(tsleep);
-            tsleep = amrex::min(1000,tsleep/2);
+            tsleep = amrex::min(1000,tsleep*7/10);
             if (FILE* fp = fopen(my_turn_file.c_str(), "r")) {
                 fclose(fp);
                 myturn = true;
@@ -2424,6 +2430,8 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
                 remove(my_turn_file.c_str());
             }
         }
+
+        Real t1 = amrex::second();
 
         if (total_bytes > 0) {
             std::string file_name = amrex::Concatenate(mf_name + FabFileSuffix, ifile, 5);
@@ -2436,15 +2444,39 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
             ofs.close();
         }
 
+        Real t2 = amrex::second();
+
         if (!iamlast) {
             if (FILE* fp = fopen(next_in_line_file.c_str(), "w")) {
                 fclose(fp);
             }
-        }        
+        }
+
+        Real tend = amrex::second();
+
+        WriteAsyncStatus status;
+        status.nbytes = total_bytes;
+        status.nspins = nchecks;
+        status.t_total = tend-tbegin;
+        status.t_header = t0-tbegin;
+        status.t_spin = t1-t0;
+        status.t_write = t2-t1;
+        status.t_send = tend-t2;
+        return status;
     },
     std::move(alldata), std::move(hdr), std::move(globaldata));
 
     return af;
+}
+
+std::ostream&
+operator<< (std::ostream& os, const WriteAsyncStatus& status)
+{
+    os << "total bytes: " << status.nbytes << ", nspins: " << status.nspins
+       << ", t_total: " << status.t_total << ", t_header: " << status.t_header
+       << ", t_spin: " << status.t_spin << ", t_write: " << status.t_write
+       << ", t_send: " << status.t_send;
+    return os;
 }
 
 }

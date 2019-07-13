@@ -215,6 +215,7 @@ void main_main ()
             }
         }
 
+        WriteAsyncStatus status;
         {
             BL_PROFILE_REGION("vismf-async-overlap");
             auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf2");
@@ -228,7 +229,14 @@ void main_main ()
             {
                 BL_PROFILE_VAR("vismf-async-wait", blp3);
                 wrt_future.wait();
+                status = wrt_future.get();
             }
+        }
+        for (int ip = 0; ip < ParallelDescriptor::NProcs(); ++ip) {
+            if (ip == ParallelDescriptor::MyProc()) {
+                amrex::AllPrint() << "Proc. " << ip << ": " << status << std::endl;
+            }
+            ParallelDescriptor::Barrier();
         }
 
 #ifdef AMREX_USE_VELOC
