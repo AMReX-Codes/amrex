@@ -379,7 +379,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         jx_ptr, &ngJ, jxntot.getVect(),
         jy_ptr, &ngJ, jyntot.getVect(),
         jz_ptr, &ngJ, jzntot.getVect(),
-        &WarpX::nmodes,
+        &WarpX::n_rz_azimuthal_modes,
         &np_to_depose,
         m_xp[thread_num].dataPtr() + offset,
         m_yp[thread_num].dataPtr() + offset,
@@ -400,7 +400,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         jx_ptr, &ngJ, jxntot.getVect(),
         jy_ptr, &ngJ, jyntot.getVect(),
         jz_ptr, &ngJ, jzntot.getVect(),
-        &WarpX::nmodes,
+        &WarpX::n_rz_azimuthal_modes,
         &xyzmin[0], &dx[0]);
 #endif
     BL_PROFILE_VAR_STOP(blp_pxr_cd);

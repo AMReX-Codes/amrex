@@ -388,14 +388,14 @@ AverageAndPackScalarField( MultiFab& mf_avg,
 void
 AddToVarNames( Vector<std::string>& varnames,
                std::string name, std::string suffix,
-               int nmodes ) {
+               int n_rz_azimuthal_modes ) {
     auto coords = {"x", "y", "z"};
     auto coordsRZ = {"r", "theta", "z"};
     for(auto coord:coords) varnames.push_back(name+coord+suffix);
-    if (nmodes > 1) {
+    if (n_rz_azimuthal_modes > 1) {
         // Note that the names are added in the same order as the fields
         // are packed in AverageAndPackVectorField
-        for (int i = 0 ; i < nmodes ; i++) {
+        for (int i = 0 ; i < n_rz_azimuthal_modes ; i++) {
             for(auto coord:coordsRZ) {
                 varnames.push_back(name + coord + suffix + std::to_string(i) + "_real");
             }
@@ -415,12 +415,12 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
     amrex::Vector<MultiFab>& mf_avg, const int ngrow) const
 {
     // Factor to account for quantities that have multiple components.
-    // If nmodes > 1, allow space for total field and the real and
+    // If n_rz_azimuthal_modes > 1, allow space for total field and the real and
     // imaginary part of each node. For now, also include the
     // imaginary part of mode 0 for code symmetry, even though
     // it is always zero.
     int modes_factor = 1;
-    if (nmodes > 1) modes_factor = 2*nmodes + 1;
+    if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes + 1;
 
     // Count how many different fields should be written (ncomp)
     const int ncomp = 0
@@ -450,17 +450,17 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         int dcomp = 0;
         if (plot_J_field) {
             AverageAndPackVectorField(mf_avg[lev], current_fp[lev], dmap[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, "j", "", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "j", "", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
         }
         if (plot_E_field) {
             AverageAndPackVectorField(mf_avg[lev], Efield_aux[lev], dmap[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, "E", "", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "E", "", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
         }
         if (plot_B_field) {
             AverageAndPackVectorField(mf_avg[lev], Bfield_aux[lev], dmap[lev], dcomp, ngrow);
-            if (lev == 0) AddToVarNames(varnames, "B", "", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "B", "", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
         }
 
@@ -569,10 +569,10 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         if (plot_finepatch)
         {
             AverageAndPackVectorField( mf_avg[lev], Efield_fp[lev], dmap[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, "E", "_fp", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "E", "_fp", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
             AverageAndPackVectorField( mf_avg[lev], Bfield_fp[lev], dmap[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, "B", "_fp", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "B", "_fp", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
         }
 
@@ -589,7 +589,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 AverageAndPackVectorField( mf_avg[lev], E, dmap[lev], dcomp, ngrow );
 
             }
-            if (lev == 0) AddToVarNames(varnames, "E", "_cp", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "E", "_cp", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
 
             // now the magnetic field
@@ -603,7 +603,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
                 AverageAndPackVectorField( mf_avg[lev], B, dmap[lev], dcomp, ngrow );
             }
-            if (lev == 0) AddToVarNames(varnames, "B", "_cp", nmodes);
+            if (lev == 0) AddToVarNames(varnames, "B", "_cp", n_rz_azimuthal_modes);
             dcomp += 3*modes_factor;
         }
 

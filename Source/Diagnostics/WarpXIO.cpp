@@ -416,12 +416,12 @@ WarpX::GetCellCenteredData() {
     Vector<std::unique_ptr<MultiFab> > cc(finest_level+1);
 
     // Factor to account for quantities that have multiple components.
-    // If nmodes > 1, allow space for total field and the real and
+    // If n_rz_azimuthal_modes > 1, allow space for total field and the real and
     // imaginary part of each node. For now, also include the
     // imaginary part of mode 0 for code symmetry, even though
     // it is always zero.
     int modes_factor = 1;
-    if (nmodes > 1) modes_factor = 2*nmodes + 1;
+    if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes + 1;
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {

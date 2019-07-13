@@ -43,7 +43,7 @@ long WarpX::field_gathering_algo;
 long WarpX::particle_pusher_algo;
 int WarpX::maxwell_fdtd_solver_id;
 
-long WarpX::nmodes = 1;
+long WarpX::n_rz_azimuthal_modes = 1;
 long WarpX::ncomps = 1;
 
 long WarpX::nox = 1;
@@ -475,7 +475,7 @@ WarpX::ReadParameters ()
         }
 
         // Only needs to be set with WARPX_RZ, otherwise defaults to 1.
-        pp.query("nmodes", nmodes);
+        pp.query("n_rz_azimuthal_modes", n_rz_azimuthal_modes);
 
     }
 
@@ -709,9 +709,9 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 {
 
 #if defined WARPX_RZ
-    if (nmodes > 1) {
+    if (n_rz_azimuthal_modes > 1) {
         // There is a real and imaginary component for each mode
-        ncomps = nmodes*2;
+        ncomps = n_rz_azimuthal_modes*2;
     } else {
         // With only mode 0, only reals are used
         ncomps = 1;

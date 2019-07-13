@@ -426,7 +426,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bxfab),
                 BL_TO_FORTRAN_ANYD(byfab),
                 BL_TO_FORTRAN_ANYD(bzfab),
-                &WarpX::nmodes,
+                &WarpX::n_rz_azimuthal_modes,
                 &ll4symtry, &l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 

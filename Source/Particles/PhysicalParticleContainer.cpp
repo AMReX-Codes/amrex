@@ -482,7 +482,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     // Replace the x and y, setting an angle theta.
                     // These x and y are used to get the momentum and density
                     Real theta;
-                    if (WarpX::nmodes == 1) {
+                    if (WarpX::n_rz_azimuthal_modes == 1) {
                         // With only 1 mode, the angle doesn't matter so
                         // choose it randomly.
                         theta = 2.*MathConst::pi*amrex::Random();
@@ -734,7 +734,7 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                     // Replace the x and y, setting an angle theta.
                     // These x and y are used to get the momentum and density
                     Real theta;
-                    if (WarpX::nmodes == 1) {
+                    if (WarpX::n_rz_azimuthal_modes == 1) {
                         // With only 1 mode, the angle doesn't matter so
                         // choose it randomly.
                         theta = 2.*MathConst::pi*amrex::Random();
@@ -1156,7 +1156,7 @@ PhysicalParticleContainer::FieldGather (int lev,
                BL_TO_FORTRAN_ANYD(bxfab),
 	       BL_TO_FORTRAN_ANYD(byfab),
 	       BL_TO_FORTRAN_ANYD(bzfab),
-           &WarpX::nmodes,
+	       &WarpX::n_rz_azimuthal_modes,
 	       &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
@@ -1449,7 +1449,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     BL_TO_FORTRAN_ANYD(*bxfab),
                     BL_TO_FORTRAN_ANYD(*byfab),
                     BL_TO_FORTRAN_ANYD(*bzfab),
-                    &WarpX::nmodes,
+                    &WarpX::n_rz_azimuthal_modes,
                     &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
@@ -1537,7 +1537,7 @@ PhysicalParticleContainer::Evolve (int lev,
                         BL_TO_FORTRAN_ANYD(*cbxfab),
                         BL_TO_FORTRAN_ANYD(*cbyfab),
                         BL_TO_FORTRAN_ANYD(*cbzfab),
-                        &WarpX::nmodes,
+                        &WarpX::n_rz_azimuthal_modes,
                         &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 }
@@ -1879,7 +1879,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bxfab),
                 BL_TO_FORTRAN_ANYD(byfab),
                 BL_TO_FORTRAN_ANYD(bzfab),
-                &WarpX::nmodes,
+                &WarpX::n_rz_azimuthal_modes,
                 &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
