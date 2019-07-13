@@ -3,7 +3,7 @@
 
 namespace amrex {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_adotx (Box const& box, Array4<Real> const& y,
                    Array4<Real const> const& x,
                    Array4<Real const> const& a,
@@ -30,7 +30,7 @@ void mlalap_adotx (Box const& box, Array4<Real> const& y,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_normalize (Box const& box, Array4<Real> const& x,
                        Array4<Real const> const& a,
                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -54,7 +54,7 @@ void mlalap_normalize (Box const& box, Array4<Real> const& x,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol, Real fac) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -70,7 +70,7 @@ void mlalap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> c
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
                         Real fac, int xlen) noexcept
 {
@@ -87,7 +87,7 @@ void mlalap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real cons
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol, Real fac) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -103,7 +103,7 @@ void mlalap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> c
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
                         Real fac, int ylen) noexcept
 {
@@ -124,7 +124,7 @@ void mlalap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real cons
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
                     Real fac) noexcept
 {
@@ -141,7 +141,7 @@ void mlalap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const> c
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
                         Real fac, int zlen) noexcept
 {
@@ -165,7 +165,7 @@ void mlalap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real cons
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlalap_gsrb (Box const& box, Array4<Real> const& phi,
                   Array4<Real const> const& rhs, Real alpha,
                   Real dhx, Real dhy, Real dhz, Array4<Real const> const& a,

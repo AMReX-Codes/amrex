@@ -7,6 +7,24 @@
 
 #ifdef __cplusplus
 
+
+#if defined(__INTEL_COMPILER)
+#define AMREX_CXX_INTEL
+#elif defined(_CRAYC)
+#define AMREX_CXX_CRAY
+#elif defined(__PGI)
+#define AMREX_CXX_PGI
+#elif defined(__NEC__)
+#define AMREX_CXX_NEC
+#elif defined(__ibmxl__)
+#define AMREX_CXX_IBM
+#elif defined(__clang__)
+#define AMREX_CXX_CLANG
+#elif defined(__GNUC__)
+#define AMREX_CXX_GCC
+#endif
+
+
 #ifdef _WIN32
 #define AMREX_RESTRICT __restrict
 #else

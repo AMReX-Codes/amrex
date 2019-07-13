@@ -407,42 +407,42 @@ public:
     void prefetchToDevice () const noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     Array4<T const> array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (int n = 0) const noexcept
     {
         return view(this->domain.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (int n = 0) noexcept
     {
         return view(this->domain.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const IntVect& iv, int n = 0) const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
@@ -455,7 +455,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const IntVect& iv, int n = 0) noexcept
     {
 #if (AMREX_SPACEDIM == 1)
@@ -468,21 +468,21 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const Box& subbox, int n = 0) const noexcept
     {
         return view(subbox.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const Box& subbox, int n = 0) noexcept
     {
         return view(subbox.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const GpuArray<int,3>& slo, int n = 0) const noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -511,7 +511,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const GpuArray<int,3>& slo, int n = 0) noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -540,7 +540,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const Dim3& slo, int n = 0) const noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -569,7 +569,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const Dim3& slo, int n = 0) noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -1715,7 +1715,7 @@ BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 T*
 BaseFab<T>::dataPtr (const IntVect& p, int n) noexcept
 {
@@ -1728,7 +1728,7 @@ BaseFab<T>::dataPtr (const IntVect& p, int n) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 const T*
 BaseFab<T>::dataPtr (const IntVect& p, int n) const noexcept
 {
@@ -1765,7 +1765,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 T&
 BaseFab<T>::operator() (const IntVect& p, int n) noexcept
 {
@@ -1778,7 +1778,7 @@ BaseFab<T>::operator() (const IntVect& p, int n) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 T&
 BaseFab<T>::operator() (const IntVect& p) noexcept
 {
@@ -1789,7 +1789,7 @@ BaseFab<T>::operator() (const IntVect& p) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 const T&
 BaseFab<T>::operator() (const IntVect& p, int n) const noexcept
 {
@@ -1802,7 +1802,7 @@ BaseFab<T>::operator() (const IntVect& p, int n) const noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 const T&
 BaseFab<T>::operator() (const IntVect& p) const noexcept
 {

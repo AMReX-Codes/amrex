@@ -11,28 +11,28 @@ namespace amrex
 {
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& min (const T& a, const T& b) noexcept
+    AMREX_FORCE_INLINE const T& min (const T& a, const T& b) noexcept
     {
         return (b < a) ? b : a;
     }
 
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& min (const T& a, const T& b, const Ts& ... c) noexcept
+    AMREX_FORCE_INLINE const T& min (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return min(min(a,b),c...);
     }
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& max (const T& a, const T& b) noexcept
+    AMREX_FORCE_INLINE const T& max (const T& a, const T& b) noexcept
     {
         return (a < b) ? b : a;
     }
 
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& max (const T& a, const T& b, const Ts& ... c) noexcept
+    AMREX_FORCE_INLINE const T& max (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return max(max(a,b),c...);
     }

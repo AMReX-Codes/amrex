@@ -6,7 +6,7 @@
 struct CheckPair
 {
     template <class P>
-    AMREX_GPU_DEVICE AMREX_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool operator()(const P& p1, const P& p2) const
     {
         amrex::Real d0 = (p1.pos(0) - p2.pos(0));
