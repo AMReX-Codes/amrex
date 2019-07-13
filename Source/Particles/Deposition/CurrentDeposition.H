@@ -39,12 +39,12 @@ void compute_shape_factor_lo <3> (amrex::Dim3& shape_lo) {
 // Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shape_factor(Real* sx, Real xint) {return 0;};
+int compute_shape_factor(Real* const sx, Real xint) {return 0;};
 
 // Compute shape factor for order 1.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shape_factor <1> (Real* sx, Real xmid){
+int compute_shape_factor <1> (Real* const sx, Real xmid){
     int j = (int) xmid;
     Real xint = xmid-j;
     sx[0] = 1.0 - xint;
@@ -55,7 +55,7 @@ int compute_shape_factor <1> (Real* sx, Real xmid){
 // Compute shape factor for order 2.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shape_factor <2> (Real* sx, Real xmid){
+int compute_shape_factor <2> (Real* const sx, Real xmid){
     int j = (int) (xmid+0.5);
     Real xint = xmid-j;
     sx[0] = 0.5*(0.5-xint)*(0.5-xint);
@@ -67,7 +67,7 @@ int compute_shape_factor <2> (Real* sx, Real xmid){
 // Compute shape factor for order 3.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shape_factor <3> (Real* sx, Real xmid){
+int compute_shape_factor <3> (Real* const sx, Real xmid){
     int j = (int) xmid;
     Real xint = xmid-j;
     sx[0] = 1.0/6.0*(1.0-xint)*(1.0-xint)*(1.0-xint);
@@ -95,9 +95,9 @@ int compute_shape_factor <3> (Real* sx, Real xmid){
  * /param q            : species charge.
  */
 template <int depos_order>
-void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
-                        Real* wp, Real* uxp,
-                        Real* uyp, Real* uzp,
+void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real * const zp,
+                        const Real * const wp, const Real * const uxp,
+                        const Real * const uyp, const Real * const uzp,
                         const amrex::Array4<amrex::Real>& jx_arr, 
                         const amrex::Array4<amrex::Real>& jy_arr, 
                         const amrex::Array4<amrex::Real>& jz_arr,
@@ -110,16 +110,16 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
 {
     BL_PROFILE("PICSAR::CurrentDeposition");
     
-    Real dxi = 1.0/dx[0];
-    Real dzi = 1.0/dx[2];
-    Real dts2dx = 0.5*dt*dxi;
-    Real dts2dz = 0.5*dt*dzi;
+    const Real dxi = 1.0/dx[0];
+    const Real dzi = 1.0/dx[2];
+    const Real dts2dx = 0.5*dt*dxi;
+    const Real dts2dz = 0.5*dt*dzi;
 #if (AMREX_SPACEDIM == 2)
-    Real invvol = dxi*dzi;
+    const Real invvol = dxi*dzi;
 #else // (AMREX_SPACEDIM == 3)
-    Real dyi = 1.0/dx[1];
-    Real dts2dy = 0.5*dt*dyi;
-    Real invvol = dxi*dyi*dzi;
+    const Real dyi = 1.0/dx[1];
+    const Real dts2dy = 0.5*dt*dyi;
+    const Real invvol = dxi*dyi*dzi;
 #endif
 
     const Real xmin = xyzmin[0];
@@ -128,49 +128,49 @@ void doDepositionShapeN(Real* xp, Real* yp, Real* zp,
 
     Dim3 shape_lo;
     compute_shape_factor_lo<depos_order>(shape_lo);
-    Real clightsq = 1.0/PhysConst::c/PhysConst::c;
+    const Real clightsq = 1.0/PhysConst::c/PhysConst::c;
 
     // Loop over particles and deposit into jx_arr, jy_arr and jz_arr
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
                      // --- Get particle quantities
-                     Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                     + uyp[ip]*uyp[ip]*clightsq
-                                                     + uzp[ip]*uzp[ip]*clightsq);
-                     Real wq  = q*wp[ip];
-                     Real vx  = uxp[ip]*gaminv;
-                     Real vy  = uyp[ip]*gaminv;
-                     Real vz  = uzp[ip]*gaminv;
+                     const Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
+						       + uyp[ip]*uyp[ip]*clightsq
+						       + uzp[ip]*uzp[ip]*clightsq);
+                     const Real wq  = q*wp[ip];
+                     const Real vx  = uxp[ip]*gaminv;
+                     const Real vy  = uyp[ip]*gaminv;
+                     const Real vz  = uzp[ip]*gaminv;
                      // wqx, wqy wqz are particle current in each direction 
-                     Real wqx = wq*invvol*vx;
-                     Real wqy = wq*invvol*vy;
-                     Real wqz = wq*invvol*vz;
+                     const Real wqx = wq*invvol*vx;
+                     const Real wqy = wq*invvol*vy;
+                     const Real wqz = wq*invvol*vz;
 
                      // --- Compute shape factors
                      // x direction
                      // Get particle position after 1/2 push back in position
-                     Real xmid = (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
+                     const Real xmid = (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
                      // Compute shape factors for node-centered quantities
                      Real AMREX_RESTRICT sx [depos_order + 1];
-                     int j  = compute_shape_factor<depos_order>(sx,  xmid);
+		     const int j  = compute_shape_factor<depos_order>(sx,  xmid);
                      // Compute shape factors for cell-centered quantities
                      Real AMREX_RESTRICT sx0[depos_order + 1];
-                     int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
+		     const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (AMREX_SPACEDIM == 3)
                      // y direction
-                     Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
+                     const Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
                      Real AMREX_RESTRICT sy [depos_order + 1];
-                     int k  = compute_shape_factor<depos_order>(sy,  ymid);
+		     const int k  = compute_shape_factor<depos_order>(sy,  ymid);
                      Real AMREX_RESTRICT sy0[depos_order + 1];
-                     int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
+		     const int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
                      // z direction
-                     Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
+                     const Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
                      Real AMREX_RESTRICT sz [depos_order + 1];
-                     int l  = compute_shape_factor<depos_order>(sz,  zmid);
+		     const int l  = compute_shape_factor<depos_order>(sz,  zmid);
                      Real AMREX_RESTRICT sz0[depos_order + 1];
-                     int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
+		     const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
                      // Deposit current into jx_arr, jy_arr and jz_arr
 #if (AMREX_SPACEDIM == 2)
