@@ -176,7 +176,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
         {
             const auto& plevel = pc.GetParticles(lev);
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
 #endif
             for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
             {
@@ -268,7 +268,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
         {
             const auto& plevel = pc.GetParticles(lev);
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
             for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
             {
