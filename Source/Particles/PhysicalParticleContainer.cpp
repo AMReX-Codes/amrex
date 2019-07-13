@@ -1729,7 +1729,13 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                   Real dt)
 {
 
-    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    {
+        copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
+    }
+
+    // The following attributes should be included in CPP version of warpx_particle_pusher
+	// This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     auto& uxp = attribs[PIdx::ux];
     auto& uyp = attribs[PIdx::uy];
@@ -1741,22 +1747,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     auto& Byp = attribs[PIdx::By];
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
-
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-    {
-        auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
-        auto& ypold    = pti.GetAttribs(particle_comps["yold"]);
-        auto& zpold    = pti.GetAttribs(particle_comps["zold"]);
-        auto& uxpold   = pti.GetAttribs(particle_comps["uxold"]);
-        auto& uypold   = pti.GetAttribs(particle_comps["uyold"]);
-        auto& uzpold   = pti.GetAttribs(particle_comps["uzold"]);
-
-        warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                           xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
-                           uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
-    }
-
+    
     warpx_particle_pusher(&np,
                           xp.dataPtr(),
                           yp.dataPtr(),
@@ -1868,6 +1859,38 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                                           &WarpX::particle_pusher_algo);
         }
     }
+}
+
+void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
+                        const Real* yp, const Real* zp)
+{
+
+    auto& attribs = pti.GetAttribs();
+    
+    Real* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
+    Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
+    Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
+    
+    Real* AMREX_RESTRICT xpold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
+    Real* AMREX_RESTRICT ypold = pti.GetAttribs(particle_comps["yold"]).dataPtr();
+    Real* AMREX_RESTRICT zpold = pti.GetAttribs(particle_comps["zold"]).dataPtr();
+    Real* AMREX_RESTRICT uxpold = pti.GetAttribs(particle_comps["uxold"]).dataPtr();
+    Real* AMREX_RESTRICT uypold = pti.GetAttribs(particle_comps["uyold"]).dataPtr();
+    Real* AMREX_RESTRICT uzpold = pti.GetAttribs(particle_comps["uzold"]).dataPtr();
+    
+    const long np = pti.numParticles();
+    
+    ParallelFor( np,
+        [=] AMREX_GPU_DEVICE (long i) {
+            xpold[i]=xp[i];
+            ypold[i]=yp[i];
+            zpold[i]=zp[i];
+            
+            uxpold[i]=uxp[i];
+            uypold[i]=uyp[i];
+            uzpold[i]=uzp[i];
+        }
+    );
 }
 
 void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real z_old,
