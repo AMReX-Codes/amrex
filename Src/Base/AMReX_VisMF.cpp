@@ -2413,7 +2413,8 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
         const std::string my_turn_file = mf_name + "_proc_" + std::to_string(myproc);
         const std::string next_in_line_file = mf_name + "_proc_" + std::to_string(myproc+1);
         bool myturn = (ispot == 0);
-        int tsleep = amrex::min(amrex::max(1000*ispot,1000),1000000);
+        useconds_t tsleep = amrex::min(10000*ispot,1000000);
+        useconds_t tsleep_min = tsleep/10;
         long nchecks = 0;
 
         Real t0 = amrex::second();
@@ -2421,7 +2422,8 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
         while (!myturn) {
             ++nchecks;
             usleep(tsleep);
-            tsleep = amrex::min(1000,tsleep*7/10);
+            tsleep = (tsleep/5) * 4;
+            tsleep = std::max(tsleep, tsleep_min);
             if (FILE* fp = fopen(my_turn_file.c_str(), "r")) {
                 fclose(fp);
                 myturn = true;

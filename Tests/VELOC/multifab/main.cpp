@@ -201,7 +201,7 @@ void main_main ()
 
         amrex::UtilCreateDirectoryDestructive("vismfdata");
 
-        const int nwork = 10;
+        const int nwork = 50;
 
         {
             BL_PROFILE_REGION("vismf-orig");
