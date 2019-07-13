@@ -396,16 +396,16 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     auto period_fp = geom[lev].periodicity();
 
     BL_PROFILE_VAR_START(blp_copy);
-    Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
-    Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
-    Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    Bfield_fp_fft[lev][0]->ParallelCopy(*Bfield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
-    Bfield_fp_fft[lev][1]->ParallelCopy(*Bfield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
-    Bfield_fp_fft[lev][2]->ParallelCopy(*Bfield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
-    current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
-    current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, 0, 0, period_fp);
+    Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, Efield_fp[lev][0]->nGrow(), 0, period_fp);
+    Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, Efield_fp[lev][1]->nGrow(), 0, period_fp);
+    Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, Efield_fp[lev][2]->nGrow(), 0, period_fp);
+    Bfield_fp_fft[lev][0]->ParallelCopy(*Bfield_fp[lev][0], 0, 0, 1, Bfield_fp[lev][0]->nGrow(), 0, period_fp);
+    Bfield_fp_fft[lev][1]->ParallelCopy(*Bfield_fp[lev][1], 0, 0, 1, Bfield_fp[lev][1]->nGrow(), 0, period_fp);
+    Bfield_fp_fft[lev][2]->ParallelCopy(*Bfield_fp[lev][2], 0, 0, 1, Bfield_fp[lev][2]->nGrow(), 0, period_fp);
+    current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, current_fp[lev][0]->nGrow(), 0, period_fp);
+    current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, current_fp[lev][1]->nGrow(), 0, period_fp);
+    current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, current_fp[lev][2]->nGrow(), 0, period_fp);
+    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, rho_fp[lev]->nGrow(), 0, period_fp);
     BL_PROFILE_VAR_STOP(blp_copy);
 
     BL_PROFILE_VAR_START(blp_push_eb);
