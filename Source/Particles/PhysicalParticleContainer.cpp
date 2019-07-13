@@ -1872,8 +1872,8 @@ void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
     Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
     
     Real* AMREX_RESTRICT xpold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
-    Real* AMREX_RESTRICT ypold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
-    Real* AMREX_RESTRICT zpold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
+    Real* AMREX_RESTRICT ypold = pti.GetAttribs(particle_comps["yold"]).dataPtr();
+    Real* AMREX_RESTRICT zpold = pti.GetAttribs(particle_comps["zold"]).dataPtr();
     Real* AMREX_RESTRICT uxpold = pti.GetAttribs(particle_comps["uxold"]).dataPtr();
     Real* AMREX_RESTRICT uypold = pti.GetAttribs(particle_comps["uyold"]).dataPtr();
     Real* AMREX_RESTRICT uzpold = pti.GetAttribs(particle_comps["uzold"]).dataPtr();
