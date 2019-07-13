@@ -715,7 +715,7 @@ private:
 };
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::refine (const IntVect& ref_ratio) noexcept
 {
@@ -731,7 +731,7 @@ Box::refine (const IntVect& ref_ratio) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::coarsen (const IntVect& ref_ratio) noexcept
 {
@@ -761,7 +761,7 @@ Box::coarsen (const IntVect& ref_ratio) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::convert (const IntVect& typ) noexcept
 {
@@ -773,7 +773,7 @@ Box::convert (const IntVect& typ) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::convert (IndexType t) noexcept
 {
@@ -789,7 +789,7 @@ Box::convert (IndexType t) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::surroundingNodes (int dir) noexcept
 {
@@ -805,7 +805,7 @@ Box::surroundingNodes (int dir) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::surroundingNodes () noexcept
 {
@@ -817,7 +817,7 @@ Box::surroundingNodes () noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::enclosedCells (int dir) noexcept
 {
@@ -833,7 +833,7 @@ Box::enclosedCells (int dir) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::enclosedCells () noexcept
 {
@@ -875,7 +875,7 @@ Box::atOffset (long offset) const noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 GpuArray<int,3>
 Box::atOffset3d (long offset) const noexcept
 {
@@ -890,7 +890,7 @@ Box::atOffset3d (long offset) const noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box&
 Box::setRange (int dir,
                int sm_index,
@@ -930,7 +930,7 @@ Box::linearIn(void* a_buffer ) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 void
 Box::next (IntVect& p) const noexcept
 {
@@ -955,7 +955,7 @@ Box::next (IntVect& p) const noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 bool
 Box::isSquare () const noexcept
 {
@@ -1080,7 +1080,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box grow (const Box& b, int i) noexcept
 {
     Box result = b;
@@ -1090,7 +1090,7 @@ Box grow (const Box& b, int i) noexcept
 
     //! Grow Box in each direction by specified amount.
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box grow (const Box& b, const IntVect& v) noexcept
 {
     Box result = b;
@@ -1100,7 +1100,7 @@ Box grow (const Box& b, const IntVect& v) noexcept
 
     //! Grow Box in direction idir be n_cell cells
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box grow (const Box& b, int idir, int n_cell) noexcept
 {
     Box result = b;
@@ -1109,7 +1109,7 @@ Box grow (const Box& b, int idir, int n_cell) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box growLo (const Box& b, int idir, int n_cell) noexcept
 {
     Box result = b;
@@ -1118,7 +1118,7 @@ Box growLo (const Box& b, int idir, int n_cell) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box growHi (const Box& b, int idir, int n_cell) noexcept
 {
     Box result = b;
@@ -1136,7 +1136,7 @@ Box growHi (const Box& b, int idir, int n_cell) noexcept
     * the original Box.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box coarsen (const Box& b, int ref_ratio) noexcept
 {
     Box result = b;
@@ -1154,7 +1154,7 @@ Box coarsen (const Box& b, int ref_ratio) noexcept
     * the original Box.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box coarsen (const Box& b, const IntVect& ref_ratio) noexcept
 {
     Box result = b;
@@ -1170,7 +1170,7 @@ Box coarsen (const Box& b, const IntVect& ref_ratio) noexcept
     * hi <- hi*ratio.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box refine (const Box& b, int ref_ratio) noexcept
 {
     Box result = b;
@@ -1186,7 +1186,7 @@ Box refine (const Box& b, int ref_ratio) noexcept
     * hi <- hi*ratio.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box refine (const Box& b, const IntVect& ref_ratio) noexcept
 {
     Box result = b;
@@ -1196,7 +1196,7 @@ Box refine (const Box& b, const IntVect& ref_ratio) noexcept
 
     //! Return a Box with indices shifted by nzones in dir direction.
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box shift (const Box& b, int dir, int nzones) noexcept
 {
     Box result = b;
@@ -1205,7 +1205,7 @@ Box shift (const Box& b, int dir, int nzones) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box shift (const Box& b, const IntVect& nzones) noexcept
 {
     Box result = b;
@@ -1219,7 +1219,7 @@ Box shift (const Box& b, const IntVect& nzones) noexcept
     * NOTE: error if b.type(dir) == NODE.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box surroundingNodes (const Box& b, int dir) noexcept
 {
     Box bx(b);
@@ -1232,7 +1232,7 @@ Box surroundingNodes (const Box& b, int dir) noexcept
     * directions that encloses Box b.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box surroundingNodes (const Box& b) noexcept
 {
     Box bx(b);
@@ -1242,7 +1242,7 @@ Box surroundingNodes (const Box& b) noexcept
 
     //! Returns a Box with different type
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box convert (const Box& b, const IntVect& typ) noexcept
 {
     Box bx(b);
@@ -1251,7 +1251,7 @@ Box convert (const Box& b, const IntVect& typ) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box convert (const Box& b, const IndexType& typ) noexcept
 {
     Box bx(b);
@@ -1266,7 +1266,7 @@ Box convert (const Box& b, const IndexType& typ) noexcept
     * NOTE: error if b.type(dir) == CELL.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box enclosedCells (const Box& b, int dir) noexcept
 {
     Box bx(b);
@@ -1279,7 +1279,7 @@ Box enclosedCells (const Box& b, int dir) noexcept
     * directions that is enclosed by b.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box enclosedCells (const Box& b) noexcept
 {
     Box bx(b);
@@ -1292,7 +1292,7 @@ Box enclosedCells (const Box& b) noexcept
     * the low side of Box b.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box bdryLo (const Box& b, int dir, int len=1) noexcept
 {
     IntVect low(b.smallEnd());
@@ -1313,7 +1313,7 @@ Box bdryLo (const Box& b, int dir, int len=1) noexcept
     * the high side of Box b.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box bdryHi (const Box& b, int dir, int len=1) noexcept
 {
     IntVect low(b.smallEnd());
@@ -1335,7 +1335,7 @@ Box bdryHi (const Box& b, int dir, int len=1) noexcept
     * given face of  box b.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box bdryNode (const Box& b, Orientation face, int len=1) noexcept
 {
     int dir = face.coordDir();
@@ -1375,7 +1375,7 @@ Box bdryNode (const Box& b, Orientation face, int len=1) noexcept
     * retval.setrange(dir,retval.smallEnd(dir)-len,len);
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box adjCellLo (const Box& b, int dir, int len=1) noexcept
 {
     BL_ASSERT(len > 0);
@@ -1394,7 +1394,7 @@ Box adjCellLo (const Box& b, int dir, int len=1) noexcept
 
     //! Similar to adjCellLo but builds an adjacent Box on the high end.
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box adjCellHi (const Box& b, int dir, int len=1) noexcept
 {
     BL_ASSERT(len > 0);
@@ -1414,7 +1414,7 @@ Box adjCellHi (const Box& b, int dir, int len=1) noexcept
 
     //! Similar to adjCellLo and adjCellHi; operates on given face.
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box adjCell (const Box& b, Orientation face, int len=1) noexcept
 {
     BL_ASSERT(len > 0);
@@ -1448,7 +1448,7 @@ Box adjCell (const Box& b, Orientation face, int len=1) noexcept
     * Both Boxes must have identical type.
     */
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 Box minBox (const Box& b1, const Box& b2) noexcept
 {
     Box result = b1;
@@ -1633,13 +1633,13 @@ Box minBox (Box const& b1, Box const& b2, IndexType typ) noexcept
 // space. The types are ignored. Thus, the arguments can have
 // different index types, and the returned Box's index type has no
 // meaning.
-inline
+AMREX_FORCE_INLINE
 Box getIndexBounds (Box const& b1) noexcept
 {
     return b1;
 }
 
-inline
+AMREX_FORCE_INLINE
 Box getIndexBounds (Box const& b1, Box const& b2) noexcept
 {
     Box b = b1;
@@ -1649,7 +1649,7 @@ Box getIndexBounds (Box const& b1, Box const& b2) noexcept
 }
 
 template <class T, class ... Ts>
-inline
+AMREX_FORCE_INLINE
 Box getIndexBounds (T const& b1, T const& b2, Ts const& ... b3) noexcept
 {
     return getIndexBounds(getIndexBounds(b1,b2),b3...);
@@ -1657,7 +1657,7 @@ Box getIndexBounds (T const& b1, T const& b2, Ts const& ... b3) noexcept
 
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 IntVect getCell (Box const* boxes, int nboxes, long icell) noexcept
 {
     int ibox;

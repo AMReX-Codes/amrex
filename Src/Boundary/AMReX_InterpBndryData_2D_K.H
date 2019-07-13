@@ -7,7 +7,7 @@
 
 namespace amrex {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interpbndrydata_x_o1 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
                            Array4<Real const> const& crse, int nc, Dim3 const& r) noexcept
@@ -20,7 +20,7 @@ void interpbndrydata_x_o1 (int islo, int ic, int jc, int /*kc*/, int n,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interpbndrydata_y_o1 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
                            Array4<Real const> const& crse, int nc, Dim3 const& r) noexcept
@@ -33,7 +33,7 @@ void interpbndrydata_y_o1 (int islo, int ic, int jc, int /*kc*/, int n,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interpbndrydata_x_o3 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
                            Array4<Real const> const& crse, int nc, Dim3 const& r,
@@ -82,7 +82,7 @@ void interpbndrydata_x_o3 (int islo, int ic, int jc, int /*kc*/, int n,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void interpbndrydata_y_o3 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
                            Array4<Real const> const& crse, int nc, Dim3 const& r,

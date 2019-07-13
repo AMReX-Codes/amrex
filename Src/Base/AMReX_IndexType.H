@@ -46,60 +46,60 @@ public:
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Set IndexType to be NODE based in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void set (int dir) noexcept { itype |= mask(dir); }
     //! Set IndexType to be CELL based in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void unset (int dir) noexcept { itype &= ~mask(dir); }
     //! True if IndexType is NODE based in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool test (int dir) const noexcept { return (itype & mask(dir)) != 0; }
     //! Set NODE based in all directions.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setall () noexcept { itype = (1 << AMREX_SPACEDIM) - 1; }
     //! Set CELL based in all directions.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void clear () noexcept { itype = 0; }
     //! True if this IndexType is NODE based in any direction.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool any () const noexcept { return itype != 0; }
     //! True if IndexType is valid.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool ok () const noexcept { return itype < (1 << AMREX_SPACEDIM); }
     //! Change from CELL to NODE or NODE to CELL in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void flip (int i) noexcept { itype ^= mask(i); }
     //! True if IndexTypes are identical.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator== (const IndexType& t) const noexcept { return t.itype == itype; }
     //! True if IndexTypes are not identical.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator!= (const IndexType& t) const noexcept { return t.itype != itype; }
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator< (const IndexType& t) const noexcept { return itype < t.itype; }
     //! True if the IndexType is CELL based in all directions.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool cellCentered () const noexcept { return itype == 0; }
     //! True if the IndexType is CELL based in dir-direction.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool cellCentered (int dir) const noexcept { return (itype & mask(dir)) == 0; }
     //! True if the IndexType is NODE based in all directions.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool nodeCentered () const noexcept { return itype == (1<<AMREX_SPACEDIM)-1; }
     //! True if the IndexType is NODE based in dir-direction.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool nodeCentered (int dir) const noexcept { return (itype & mask(dir)) != 0; }
     //! Set IndexType to CellIndex type t in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setType (int dir, CellIndex t) noexcept { t == CELL ? unset(dir) : set(dir); }
     //! Returns  the CellIndex in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     CellIndex ixType (int dir) const noexcept { return (CellIndex) ((itype & (1<<dir)) >> dir); }
     //! Return an integer representing the IndexType in direction dir.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator[] (int dir) const noexcept { return test(dir); }
     //! Fill an IntVect of size AMREX_SPACEDIM with IndexTypes.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     IntVect ixType () const noexcept { return IntVect(AMREX_D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
     /**
     * \brief This static member function returns an IndexType object of value
@@ -107,7 +107,7 @@ public:
     * when defining a Box all of whose faces should be of type
     * IndexType::CELL.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IndexType TheCellType () noexcept {
         return IndexType(AMREX_D_DECL(IndexType::CELL,
                                       IndexType::CELL,
@@ -119,7 +119,7 @@ public:
     * when defining a Box all of whose faces should be of type
     * IndexType::NODE.
     */
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IndexType TheNodeType () noexcept {
         return IndexType(AMREX_D_DECL(IndexType::NODE,
                                       IndexType::NODE,
@@ -128,7 +128,7 @@ public:
 
 private:
     //! Returns 1<<k.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static int mask (int k) noexcept { return 1<<k; }
     //! An integer holding the CellIndex in bits 0 - AMREX_SPACEDIM-1.
     unsigned int itype;
