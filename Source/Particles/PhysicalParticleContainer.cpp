@@ -50,6 +50,7 @@ NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
 #elif ( AMREX_SPACEDIM == 2 )
 	    Real y = 0;
 #ifdef WARPX_RZ
+            // Note that for RZ, point[1] will be theta
 	    Real z = overlap_corner[1] + (iv[1] + point[2])*dx[1];
 #else
 	    Real z = overlap_corner[1] + (iv[1] + point[1])*dx[1];
@@ -460,6 +461,7 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
 #elif ( AMREX_SPACEDIM == 2 )
                     Real y = 0;
 #ifdef WARPX_RZ
+                    // Note that for RZ, point[1] will be theta
                     Real z = overlap_corner[1] + (iv[1] + point[2])*dx[1];
 #else
                     Real z = overlap_corner[1] + (iv[1] + point[1])*dx[1];

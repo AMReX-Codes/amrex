@@ -296,6 +296,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         parseDensity(pp);
         parseMomentum(pp);
     } else if (part_pos_s == "nuniformpercell") {
+        // Note that for RZ, three numbers are expected, r, theta, and z.
+        // For 2D, only two are expected. The third is overwritten with 1.
         num_particles_per_cell_each_dim.assign(3, 1);
         pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
 #if ( AMREX_SPACEDIM == 2 ) && !defined(WARPX_RZ)
