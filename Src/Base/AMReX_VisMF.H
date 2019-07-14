@@ -7,6 +7,8 @@
 #include <fstream>
 #include <thread>
 #include <future>
+#include <utility>
+#include <cstdint>
 
 #include <AMReX_REAL.H>
 #include <AMReX_FabArray.H>
@@ -14,6 +16,16 @@
 #include <AMReX_FabConv.H>
 
 namespace amrex {
+
+struct WriteAsyncStatus {
+    int64_t nbytes;
+    long nspins;
+    Real t_total;
+    Real t_header;
+    Real t_spin;
+    Real t_write;
+    Real t_send;
+};
 
 class NFilesIter;
 
@@ -185,7 +197,8 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
-    static std::future<void> WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
+    static std::future<WriteAsyncStatus>
+    WriteAsync (const FabArray<FArrayBox>& fafab, const std::string& name);
 
     /**
     * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
@@ -368,6 +381,7 @@ std::istream& operator>> (std::istream& is, Vector<VisMF::FabOnDisk>& fa);
 std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 //! Read a VisMF::Header from an istream.
 std::istream& operator>> (std::istream& is, VisMF::Header& hd);
+std::ostream& operator<< (std::ostream& os, const WriteAsyncStatus& status);
 
 }
 
