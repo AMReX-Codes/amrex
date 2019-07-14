@@ -2222,10 +2222,10 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         Vector<int> rcv_grid(npart);
         Vector<int> rcv_tile(npart);
 
-        ParticleLocData pld;
 #ifdef _OPENMP
-#pragma omp parallel for private(pld)
-#endif                
+#pragma omp parallel
+#endif
+        { ParticleLocData pld;
         for (int i = 0; i < npart; ++i)
         {
             char* pbuf = recvdata.data() + i*superparticle_size;
@@ -2235,6 +2235,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             rcv_levs[i] = pld.m_lev;
             rcv_grid[i] = pld.m_grid;
             rcv_tile[i] = pld.m_tile;
+        }
         }
 
 	BL_PROFILE_VAR_STOP(blp_locate);
