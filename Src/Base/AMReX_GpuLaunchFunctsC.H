@@ -7,7 +7,7 @@ template<typename T, typename L>
 AMREX_FORCE_INLINE
 void launch (T const& n, L&& f) noexcept
 {
-    std::forward<L>(f)(n);
+    f(n);
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
@@ -15,7 +15,7 @@ AMREX_FORCE_INLINE
 void For (T n, L&& f) noexcept
 {
     for (T i = 0; i < n; ++i) {
-        std::forward<L>(f)(i);
+        f(i);
     }
 }
 
@@ -25,7 +25,7 @@ void ParallelFor (T n, L&& f) noexcept
 {
     AMREX_PRAGMA_SIMD
     for (T i = 0; i < n; ++i) {
-        std::forward<L>(f)(i);
+        f(i);
     }
 }
 
@@ -38,7 +38,7 @@ void For (Box const& box, L&& f) noexcept
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        std::forward<L>(f)(i,j,k);
+        f(i,j,k);
     }}}
 }
 
@@ -52,7 +52,7 @@ void ParallelFor (Box const& box, L&& f) noexcept
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        std::forward<L>(f)(i,j,k);
+        f(i,j,k);
     }}}
 }
 
@@ -66,7 +66,7 @@ void For (Box const& box, T ncomp, L&& f) noexcept
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            std::forward<L>(f)(i,j,k,n);
+            f(i,j,k,n);
         }}}
     }
 }
@@ -82,7 +82,7 @@ void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            std::forward<L>(f)(i,j,k,n);
+            f(i,j,k,n);
         }}}
     }
 }

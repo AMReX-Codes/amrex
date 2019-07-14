@@ -40,11 +40,11 @@ namespace amrex {
 // CPU variation
 
     template<class L>
-    void launch_host (L&& f0) noexcept { std::forward<L>(f0)(); }
+    void launch_host (L&& f0) noexcept { f0(); }
     
     template<class L, class... Lambdas>
     void launch_host (L&& f0, Lambdas&&... fs) noexcept {
-        std::forward<L>(f0)();
+        f0();
         launch_host(std::forward<Lambdas>(fs)...);
     }
 
