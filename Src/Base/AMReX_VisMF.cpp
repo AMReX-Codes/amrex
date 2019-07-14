@@ -2325,7 +2325,7 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
     }
 
     auto af = std::async(std::launch::async,
-    [=] (std::unique_ptr<char,DataDeleter> d, Header h, Vector<int64_t> gdata)
+    [=] (std::unique_ptr<char,DataDeleter> d, Header h, Vector<int64_t> const& gdata)
          -> WriteAsyncStatus
     {
         Real tbegin = amrex::second();
