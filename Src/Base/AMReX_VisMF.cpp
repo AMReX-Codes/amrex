@@ -1211,7 +1211,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
     } else {    // ---- calculate offsets
 
-      RealDescriptor *whichRD;
+      RealDescriptor *whichRD = nullptr;
       if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
         whichRD = FPC::NativeRealDescriptor().clone();
       } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {

@@ -254,7 +254,7 @@ while ( false )
     inline bool
     IOProcessor (MPI_Comm comm) noexcept
     {
-        return MyProc(comm) == IOProcessor(comm);
+        return MyProc(comm) == IOProcessorNumber(comm);
     }
 
     //
