@@ -44,9 +44,11 @@ public:
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
-        XDim3 pos{AMREX_D_DECL(x-m_center.x,
-                               y-m_center.y,
-                               z-m_center.z)};
+#if (AMREX_SPACEDIM == 3)
+        XDim3 pos{x-m_center.x, y-m_center.y, z-m_center.z};
+#else
+        XDim3 pos{x-m_center.x, y-m_center.y, 0.0};
+#endif
         Real d2 = 0.0;
         Real pdir;
         switch (m_direction) {
