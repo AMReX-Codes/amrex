@@ -290,6 +290,184 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 
     return r;
 }
+
+template <class PC, class F>
+bool
+ReduceLogicalAnd (PC const& pc, int lev, F f)
+{
+    return ReduceLogicalAnd(pc, lev, lev, std::move(f));
+}
+
+template <class PC, class F>
+bool
+ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
+{
+    int r = true;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        Gpu::DeviceScalar<int> ds_r(r);
+        int* d_r = ds_r.dataPtr();
+
+        for (int lev = lev_min; lev <= lev_max; ++lev)
+        {
+            const auto& plevel = pc.GetParticles(lev);
+            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            {
+                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+                if(plevel.find(index) == plevel.end()) continue;            
+                const auto& tile = plevel.at(index);
+
+                const auto np = tile.numParticles();
+                if (np == 0) continue;
+            
+                const auto& aos = tile.GetArrayOfStructs();
+                const auto pstruct = aos().dataPtr();
+
+                constexpr int parts_per_thread = 32;
+                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
+
+                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
+                                   Gpu::gpuStream()>>>(
+                [=] AMREX_GPU_DEVICE () {
+                    Gpu::SharedMemory<int> gr;
+                    int* block_r = gr.dataPtr();
+                    int* sdata = block_r + 1;
+
+                    int tr = true;
+                    for (auto const i : Gpu::Range(np)) {
+                        tr = tr && f(pstruct[i]);
+                    }
+                    sdata[threadIdx.x] = tr;
+                    __syncthreads();
+
+                    Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
+
+                    if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
+                });
+            }
+        }
+        r = ds_r.dataValue();
+    }
+    else
+#endif
+    {
+        for (int lev = lev_min; lev <= lev_max; ++lev)
+        {
+            const auto& plevel = pc.GetParticles(lev);
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
+#endif
+            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            {
+                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+                if(plevel.find(index) == plevel.end()) continue;            
+                const auto& tile = plevel.at(index);
+
+                const auto np = tile.numParticles();
+                if (np == 0) continue;
+            
+                const auto& aos = tile.GetArrayOfStructs();
+                const auto pstruct = aos().dataPtr();
+
+                for (int i = 0; i < np; ++i)
+                    r = r && f(pstruct[i]);
+            }
+        }
+    }
+
+    return r;
+}
+
+template <class PC, class F>
+bool
+ReduceLogicalOr (PC const& pc, int lev, F f)
+{
+    return ReduceLogicalOr(pc, lev, lev, std::move(f));
+}
+
+template <class PC, class F>
+bool
+ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
+{
+    int r = false;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        Gpu::DeviceScalar<int> ds_r(r);
+        int* d_r = ds_r.dataPtr();
+
+        for (int lev = lev_min; lev <= lev_max; ++lev)
+        {
+            const auto& plevel = pc.GetParticles(lev);
+            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            {
+                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+                if(plevel.find(index) == plevel.end()) continue;            
+                const auto& tile = plevel.at(index);
+
+                const auto np = tile.numParticles();
+                if (np == 0) continue;
+            
+                const auto& aos = tile.GetArrayOfStructs();
+                const auto pstruct = aos().dataPtr();
+
+                constexpr int parts_per_thread = 32;
+                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
+
+                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
+                                   Gpu::gpuStream()>>>(
+                [=] AMREX_GPU_DEVICE () {
+                    Gpu::SharedMemory<int> gr;
+                    int* block_r = gr.dataPtr();
+                    int* sdata = block_r + 1;
+
+                    int tr = false;
+                    for (auto const i : Gpu::Range(np)) {
+                        tr = tr || f(pstruct[i]);
+                    }
+                    sdata[threadIdx.x] = tr;
+                    __syncthreads();
+
+                    Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
+
+                    if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
+                });
+            }
+        }
+        r = ds_r.dataValue();
+    }
+    else
+#endif
+    {
+        for (int lev = lev_min; lev <= lev_max; ++lev)
+        {
+            const auto& plevel = pc.GetParticles(lev);
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
+#endif
+            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            {
+                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+                if(plevel.find(index) == plevel.end()) continue;            
+                const auto& tile = plevel.at(index);
+
+                const auto np = tile.numParticles();
+                if (np == 0) continue;
+            
+                const auto& aos = tile.GetArrayOfStructs();
+                const auto pstruct = aos().dataPtr();
+
+                for (int i = 0; i < np; ++i)
+                    r = r || f(pstruct[i]);
+            }
+        }
+    }
+
+    return r;
+}
     
 }
 
