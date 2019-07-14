@@ -191,6 +191,7 @@ struct DataAllocator {
 
 struct DataDeleter {
     Arena* m_arena = nullptr;
+    DataDeleter () noexcept : m_arena(nullptr) {}
     DataDeleter (Arena* ar) noexcept : m_arena(ar) {}
     Arena* arena () const noexcept { return (m_arena) ? m_arena : The_Arena(); }
     void operator() (void* pt) const noexcept { arena()->free(pt); }
