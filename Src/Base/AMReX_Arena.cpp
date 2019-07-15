@@ -90,6 +90,7 @@ Arena::allocate_system (std::size_t nbytes)
 #else
     void* p = std::malloc(nbytes);
     if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p == nullptr) amrex::Abort("Sorry, malloc failed");
     return p;
 #endif
 }
