@@ -101,7 +101,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                           particle_tile.GetArrayOfStructs().begin() + old_size);        
     }
     
-    this->TotalNumberOfParticles();
+    amrex::Print() << " Number of particles is " << this->TotalNumberOfParticles()<< " \n";
     amrex::Print() << "done. \n";
 }
 
