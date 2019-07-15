@@ -111,21 +111,19 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        // amrex::Print()<<"===== DAMP PML ====="<<std::endl;
+
         for ( MFIter mfi(*pml_j[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
             const Box& tjx  = mfi.tilebox(jx_nodal_flag);
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
-            // amrex::Print()<< "tjx = ["<< tjx.smallEnd()[0]<<", "<<tjx.smallEnd()[1]<<", "<<tjx.bigEnd()[0]<<", "<<tjx.bigEnd()[1]<<"]" <<std::endl;
-            // amrex::Print()<< "tjz = ["<< tjz.smallEnd()[0]<<", "<<tjz.smallEnd()[1]<<", "<<tjz.bigEnd()[0]<<", "<<tjz.bigEnd()[1]<<"]" <<std::endl;
             WRPX_DAMPJ_PML(tjx.loVect(), tjx.hiVect(),
 			    tjy.loVect(), tjy.hiVect(),
 			    tjz.loVect(), tjz.hiVect(),
 		    	BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
 			    BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
 			    BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
-			    WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi])); //WRPX_PML_SIGMACOEFF_TO_FORTRAN(sigba[mfi])
+			    WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi]));
         }
 
     }

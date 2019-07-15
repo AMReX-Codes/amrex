@@ -492,6 +492,7 @@ private:
     int pml_delta = 10;
     int pml_has_particles = 0;
     int do_pml_j_damping = 0;
+    int do_pml_in_domain = 0;
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();

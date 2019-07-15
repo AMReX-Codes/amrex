@@ -71,9 +71,9 @@ struct SigmaBox
 
     using SigmaVect = std::array<Sigma,AMREX_SPACEDIM>;
 
-    SigmaVect sigma;      // sigma/epsilon
-    SigmaVect sigma_cum;      // cumsum(sigma)/(c*epsilon)
-    SigmaVect sigma_star; // sigma_star/mu
+    SigmaVect sigma;
+    SigmaVect sigma_cum;
+    SigmaVect sigma_star;
     SigmaVect sigma_star_cum;
     SigmaVect sigma_fac;
     SigmaVect sigma_cum_fac;
@@ -81,7 +81,7 @@ struct SigmaBox
     SigmaVect sigma_star_cum_fac;
 
     std::string pml_type; // if pml normal to x : if pml Hi : pml_type={1,0,0}; if pml Lo: pml_type={-1,0,0}
-    std::array<int,5> pml_type_array;
+    std::array<int,5> pml_type_array; 
 };
 
 namespace amrex {

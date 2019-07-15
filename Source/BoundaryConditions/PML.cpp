@@ -84,9 +84,6 @@ namespace
 
 SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
 {
-    amrex::Print()<< "===== BUILD SigmaBox ====="<<std::endl;
-    // amrex::Print()<<"box = ["<<box.smallEnd()[0]<<", "<<box.smallEnd()[1]<<", "<<box.bigEnd()[0]<<", "<<box.bigEnd()[1]<<"]"<<std::endl;
-    amrex::Print()<<"box = ["<<box.smallEnd()[0]<<", "<<box.smallEnd()[1]<<", "<<box.smallEnd()[2]<<", "<<box.bigEnd()[0]<<", "<<box.bigEnd()[1]<<", "<<box.bigEnd()[2]<<"]"<<std::endl;
     BL_ASSERT(box.cellCentered());
 
     const IntVect& sz = box.size();
@@ -481,33 +478,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     : m_geom(geom),
       m_cgeom(cgeom)
 {
-    // BoxList bl_init = BoxList(grid_ba);
-    //
-    // amrex::Print() << "========== Printing grid_ba boxes" << std::endl;
-    // amrex::Print() << "[" << std::endl;
-    // for (const Box& b: bl_init) {
-    //   amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
-    // }
-    // amrex::Print()<< "];" << std::endl;
-    amrex::Print()<<"===== BUILDING PML ====="<<std::endl;
     Box domain0 = geom->Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom->isPeriodic(idim) ) {
             domain0.grow(idim, -ncell);
         }
     }
-    // Box domain0 = amrex::grow(geom->Domain(), -ncell);
-    amrex::Print() << "[" << domain0.smallEnd()[0]<<", "<< domain0.smallEnd()[1]<<", "<< domain0.smallEnd()[2]<< ", "<<domain0.bigEnd()[0] << ", "<< domain0.bigEnd()[1]<< ", "<< domain0.bigEnd()[2] << "]," << std::endl;
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
-
-    // BoxList bl_reduced = BoxList(grid_ba_reduced);
-    //
-    // amrex::Print() << "========== Printing grid_ba_reduced boxes" << std::endl;
-    // amrex::Print() << "[" << std::endl;
-    // for (const Box& b: bl_reduced) {
-    //   amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
-    // }
-    // amrex::Print()<< "];" << std::endl;
 
     const BoxArray& ba = MakeBoxArray(*geom, grid_ba_reduced, ncell); //MakeBoxArray(*geom, grid_ba, ncell);
     if (ba.size() == 0) {
@@ -545,17 +522,6 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     pml_j_fp[0]->setVal(0.0);
     pml_j_fp[1]->setVal(0.0);
     pml_j_fp[2]->setVal(0.0);
-
-    // if (pml_has_particles){
-    //   pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
-    //   pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
-    //   pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
-    //   pml_j_fp[0]->setVal(0.0);
-    //   pml_j_fp[1]->setVal(0.0);
-    //   pml_j_fp[2]->setVal(0.0);
-    //   amrex::Print() << "PML HAS PARTICLES - fine"<< std::endl;
-    //
-    // }
 
     if (do_dive_cleaning)
     {
@@ -605,16 +571,6 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_j_cp[0]->setVal(0.0);
         pml_j_cp[1]->setVal(0.0);
         pml_j_cp[2]->setVal(0.0);
-        // if (pml_has_particles)
-        // {
-        //     pml_j_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::jx_nodal_flag), cdm, 1, ngb));
-        //     pml_j_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::jy_nodal_flag), cdm, 1, ngb));
-        //     pml_j_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::jz_nodal_flag), cdm, 1, ngb));
-        //     pml_j_cp[0]->setVal(0.0);
-        //     pml_j_cp[1]->setVal(0.0);
-        //     pml_j_cp[2]->setVal(0.0);
-        //     amrex::Print() << "PML HAS PARTICLES - coarse"<< std::endl;
-        // }
 
         // sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba_reduced, cgeom->CellSize(), ncell, delta));
@@ -678,15 +634,6 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 
     BoxArray ba(bl);
     ba.removeOverlap(false);
-
-    // BoxList bl_2 = BoxList(ba);
-    //
-    // amrex::Print() << "Printing PML boxes AFTER cleaning" << std::endl;
-    // amrex::Print() << "[" << std::endl;
-    // for (const Box& b: bl_2) {
-    //   amrex::Print() << "[" << b.smallEnd()[0]<<", "<< b.smallEnd()[1]<< ", "<<b.bigEnd()[0] << ", "<< b.bigEnd()[1] << "]," << std::endl;
-    // }
-    // amrex::Print()<< "];" << std::endl;
 
     return ba;
 }
@@ -873,6 +820,49 @@ PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
     }
 }
 
+// void
+// PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
+// {
+//     const IntVect& ngr = reg.nGrowVect();
+//     const IntVect& ngp = pml.nGrowVect();
+//     const int ncp = pml.nComp();
+//     const auto& period = geom.periodicity();
+//
+//     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
+//
+//     if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
+//     {
+//         MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
+//         MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
+//         if (ncp == 3) {
+//             MultiFab::Add(totpmlmf,pml,2,0,1,0);
+//         }
+//
+//         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
+//         tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
+//
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//         for (MFIter mfi(reg); mfi.isValid(); ++mfi)
+//         {
+//             const FArrayBox& src = tmpregmf[mfi];
+//             FArrayBox& dst = reg[mfi];
+//             const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+//             for (const Box& bx : bl)
+//             {
+//                 dst.copy(src, bx, 0, bx, 0, 1);
+//             }
+//         }
+//     }
+//
+//     // Copy from regular data to PML's first component
+//     // Zero out the second (and third) component
+//     MultiFab::Copy(tmpregmf,reg,0,0,1,0);
+//     tmpregmf.setVal(0.0, 1, ncp-1, 0);
+//     pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
+// }
+
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
@@ -924,15 +914,7 @@ PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 // #endif
   const IntVect& ngr = reg.nGrowVect();
   const IntVect& ngp = pml.nGrowVect();
-  // const int ncp = pml.nComp();
   const auto& period = geom.periodicity();
-
-  // MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), 1, ngr);
-  // tmpregmf.setVal(0.0, 0, 1, ngr);
-  // MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, ngp);
-  // totpmlmf.setVal(0.0, 0, 1, ngp);
-  // realise sum of splitted fields inside pml
-
 
   pml.ParallelCopy(reg, 0, 0, 1, ngr, ngp, period);
 
@@ -948,7 +930,6 @@ PML::CopyPMLsInReg (MultiFab& pml, MultiFab& reg, const Geometry& geom)
   const IntVect& ngp = pml.nGrowVect();
   const auto& period = geom.periodicity();
 
-  // reg.ParallelCopy(pml, 0, 0, 1, IntVect(0), ngr, period);
   reg.ParallelCopy(pml, 0, 0, 1, ngp, ngr, period);
 
 }
