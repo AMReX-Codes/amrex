@@ -66,7 +66,7 @@ void main_main ()
     const int ncells = 1;
     MDParticleContainer pc(geom, dm, ba, ncells);
 
-    IntVect nppc = IntVect(AMREX_D_DECL(1, 1, 1));
+    IntVect nppc = IntVect(AMREX_D_DECL(2, 2, 2));
     constexpr Real dt = 0.0005;
 
     pc.InitParticles(nppc, 1.0, 0.0);
