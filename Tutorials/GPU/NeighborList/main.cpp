@@ -71,13 +71,22 @@ void main_main ()
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
+    int num_rebuild = 25;
+
     for (int step = 0; step < params.nsteps; ++step) {
 
         amrex::Print() << "Taking step " << step << "\n";
 
-        pc.fillNeighbors();
+	if (step % num_rebuild == 0)
+	{
+	  pc.fillNeighbors();
 
-        pc.buildNeighborList(CheckPair());
+	  pc.buildNeighborList(CheckPair());
+	} 
+	else
+	{
+	  pc.updateNeighbors();
+	}
 
         if (params.print_neighbor_list) pc.printNeighborList();
 
@@ -85,7 +94,7 @@ void main_main ()
 
         pc.moveParticles(dt);
 
-        pc.RedistributeLocal();
+        if (step % num_rebuild == 0) pc.RedistributeLocal();
     }
 
     if (params.write_particles) pc.writeParticles(params.nsteps);
