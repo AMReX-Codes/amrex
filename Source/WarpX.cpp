@@ -567,8 +567,10 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
     InitLevelData(lev, time);
 
 #ifdef WARPX_USE_PSATD
-    AllocLevelDataFFT(lev);
-    InitLevelDataFFT(lev, time);
+    if (fft_hybrid_mpi_decomposition){
+        AllocLevelDataFFT(lev);
+        InitLevelDataFFT(lev, time);
+    }
 #endif
 }
 
@@ -704,6 +706,37 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     // CKC solver requires one additional guard cell
     if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
 
+#ifdef WARPX_USE_PSATD
+    if (fft_hybrid_mpi_decomposition == false){
+        // All boxes should have the same number of guard cells
+        // (to avoid temporary parallel copies)
+        // Thus take the max of the required number of guards for each field
+        // Also: the number of guard cell should be enough to contain
+        // the stencil of the FFT solver. Here, this number (`ngFFT`)
+        // is determined *empirically* to be the order of the solver
+        // for nodal, and half the order of the solver for staggered.
+        IntVect ngFFT;
+        if (do_nodal) {
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
+        } else {
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
+        }
+        for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
+            int ng_required = ngFFT[i_dim];
+            // Get the max
+            ng_required = std::max( ng_required, ngE[i_dim] );
+            ng_required = std::max( ng_required, ngJ[i_dim] );
+            ng_required = std::max( ng_required, ngRho[i_dim] );
+            ng_required = std::max( ng_required, ngF );
+            // Set the guard cells to this max
+            ngE[i_dim] = ng_required;
+            ngJ[i_dim] = ng_required;
+            ngRho[i_dim] = ng_required;
+            ngF = ng_required;
+        }
+    }
+#endif
+
     AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF);
 }
 
@@ -753,6 +786,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
+    }
+    if (fft_hybrid_mpi_decomposition == false){
+        // Allocate and initialize the spectral solver
+        std::array<Real,3> dx = CellSize(lev);
+#if (AMREX_SPACEDIM == 3)
+        RealVect dx_vect(dx[0], dx[1], dx[2]);
+#elif (AMREX_SPACEDIM == 2)
+        RealVect dx_vect(dx[0], dx[2]);
+#endif
+        // Get the cell-centered box, with guard cells
+        BoxArray realspace_ba = ba;  // Copy box
+        realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+        // Define spectral solver
+        spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
+            nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
     }
 #endif
 

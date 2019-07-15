@@ -657,7 +657,8 @@ private:
 
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
-    void PushPSATD (int lev, amrex::Real dt);
+    void PushPSATD_localFFT (int lev, amrex::Real dt);
+    void PushPSATD_hybridFFT (int lev, amrex::Real dt);
 
 #endif
 
