@@ -37,6 +37,7 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
+long WarpX::use_picsar_deposition = 1;
 long WarpX::current_deposition_algo;
 long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
@@ -484,7 +485,17 @@ WarpX::ReadParameters ()
 
     {
         ParmParse pp("algo");
+        // If not in RZ mode, read use_picsar_deposition
+        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // of the deposition does not support RZ
+#ifndef WARPX_RZ
+        pp.query("use_picsar_deposition", use_picsar_deposition);
+#endif
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
+        if (!use_picsar_deposition){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( current_deposition_algo >= 2, 
+                "if not use_picsar_deposition, cannot use Esirkepov deposition.");
+        }
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
         particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");

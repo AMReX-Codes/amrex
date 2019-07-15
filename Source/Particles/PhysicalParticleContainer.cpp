@@ -1529,17 +1529,30 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Current Deposition
                 //
-                // Deposit inside domains
-                DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
-                               0, np_current, thread_num,
-                               lev, lev, dt);
-                if (has_buffer){
-                    // Deposit in buffers
-                    DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
-                                   np_current, np-np_current, thread_num,
-                                   lev, lev-1, dt);
+                if (WarpX::use_picsar_deposition) {
+                    // Deposit inside domains
+                    DepositCurrentFortran(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                                          0, np_current, thread_num,
+                                          lev, lev, dt);
+                    if (has_buffer){
+                        // Deposit in buffers
+                        DepositCurrentFortran(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                                              np_current, np-np_current, thread_num,
+                                              lev, lev-1, dt);
+                    }
+                } else {
+                    // Deposit inside domains
+                    DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                                   0, np_current, thread_num,
+                                   lev, lev, dt);
+                    if (has_buffer){
+                        // Deposit in buffers
+                        DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                                       np_current, np-np_current, thread_num,
+                                       lev, lev-1, dt);
+                    }
                 }
-  
+
                 //
                 // copy particle data back
                 //
