@@ -3,38 +3,6 @@
 
 using namespace amrex;
 
-// Compute lower bound for current deposition shape factor:
-// order 1: 0
-// order 2: -1
-// order 3: -1
-// non-type template parameter depos_order is the order for current deposition
-// shape factor. Specialized templates are defined below for orders 1, 2 and 3.
-// Currently, the shape factor is the same in all directions.
-template <int depos_order>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor_lo(amrex::Dim3& shape_lo) {};
-
-// Compute lower bound for order 1.
-template <>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor_lo <1> (amrex::Dim3& shape_lo) {
-    shape_lo = {0, 0, 0};
-}
-
-// Compute lower bound for order 2.
-template <>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor_lo <2> (amrex::Dim3& shape_lo) {
-    shape_lo = {-1, -1, -1};
-}
-
-// Compute lower bound for order 3.
-template <>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void compute_shape_factor_lo <3> (amrex::Dim3& shape_lo) {
-    shape_lo = {-1, -1, -1};
-}
-
 // Compute shape factor and return index of cell containing particle.
 // Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
@@ -61,7 +29,8 @@ int compute_shape_factor <2> (Real* const sx, Real xmid){
     sx[0] = 0.5*(0.5-xint)*(0.5-xint);
     sx[1] = 0.75-xint*xint;
     sx[2] = 0.5*(0.5+xint)*(0.5+xint);
-    return j;
+    // index of the leftmost cell where particle deposits
+    return j-1;
 }
 
 // Compute shape factor for order 3.
@@ -74,7 +43,8 @@ int compute_shape_factor <3> (Real* const sx, Real xmid){
     sx[1] = 2.0/3.0-xint*xint*(1-xint/2.0);
     sx[2] = 2.0/3.0-(1-xint)*(1-xint)*(1.0-0.5*(1-xint));
     sx[3] = 1.0/6.0*xint*xint*xint;
-    return j;
+    // index of the leftmost cell where particle deposits
+    return j-1;
 }
 
 /* \brief Current Deposition for thread thread_num
@@ -108,8 +78,6 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
                         const amrex::Real stagger_shift, 
                         const amrex::Real q)
 {
-    BL_PROFILE("PICSAR::CurrentDeposition");
-    
     const Real dxi = 1.0/dx[0];
     const Real dzi = 1.0/dx[2];
     const Real dts2dx = 0.5*dt*dxi;
@@ -125,9 +93,6 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
     const Real xmin = xyzmin[0];
     const Real ymin = xyzmin[1];
     const Real zmin = xyzmin[2];
-
-    Dim3 shape_lo;
-    compute_shape_factor_lo<depos_order>(shape_lo);
     const Real clightsq = 1.0/PhysConst::c/PhysConst::c;
 
     // Loop over particles and deposit into jx_arr, jy_arr and jz_arr
@@ -149,24 +114,26 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
                      // --- Compute shape factors
                      // x direction
                      // Get particle position after 1/2 push back in position
-                     const Real xmid = (Real) (xp[ip]-xmin)*dxi-dts2dx*vx;
+                     const Real xmid = (xp[ip]-xmin)*dxi-dts2dx*vx;
                      // Compute shape factors for node-centered quantities
                      Real AMREX_RESTRICT sx [depos_order + 1];
-		     const int j  = compute_shape_factor<depos_order>(sx,  xmid);
+                     // j: leftmost grid point (node-centered) that the particle touches
+                     const int j  = compute_shape_factor<depos_order>(sx,  xmid);
                      // Compute shape factors for cell-centered quantities
                      Real AMREX_RESTRICT sx0[depos_order + 1];
-		     const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
+                     // j0: leftmost grid point (cell-centered) that the particle touches
+                     const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (AMREX_SPACEDIM == 3)
                      // y direction
-                     const Real ymid= (Real) (yp[ip]-ymin)*dyi-dts2dy*vy;
+                     const Real ymid= (yp[ip]-ymin)*dyi-dts2dy*vy;
                      Real AMREX_RESTRICT sy [depos_order + 1];
 		     const int k  = compute_shape_factor<depos_order>(sy,  ymid);
                      Real AMREX_RESTRICT sy0[depos_order + 1];
 		     const int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
                      // z direction
-                     const Real zmid=(Real) (zp[ip]-zmin)*dzi-dts2dz*vz;
+                     const Real zmid= (zp[ip]-zmin)*dzi-dts2dz*vz;
                      Real AMREX_RESTRICT sz [depos_order + 1];
 		     const int l  = compute_shape_factor<depos_order>(sz,  zmid);
                      Real AMREX_RESTRICT sz0[depos_order + 1];
@@ -177,19 +144,13 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
                      for (int iz=0; iz<=depos_order; iz++){
                          for (int ix=0; ix<=depos_order; ix++){
                              amrex::Gpu::Atomic::Add(
-                                 &jx_arr(lo.x+j0+ix+shape_lo.x, 
-                                         lo.y+l +iz+shape_lo.y, 
-                                         0), 
+                                 &jx_arr(lo.x+j0+ix, lo.y+l +iz, 0), 
                                  sx0[ix]*sz [iz]*wqx);
                              amrex::Gpu::Atomic::Add(
-                                 &jy_arr(lo.x+j +ix+shape_lo.x, 
-                                         lo.y+l +iz+shape_lo.y, 
-                                         0), 
+                                 &jy_arr(lo.x+j +ix, lo.y+l +iz, 0), 
                                  sx [ix]*sz [iz]*wqy);
                              amrex::Gpu::Atomic::Add(
-                                 &jz_arr(lo.x+j +ix+shape_lo.x, 
-                                         lo.y+l0+iz+shape_lo.y, 
-                                         0), 
+                                 &jz_arr(lo.x+j +ix, lo.y+l0+iz, 0), 
                                  sx [ix]*sz0[iz]*wqz);
                          }
                      }
@@ -198,19 +159,13 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
                          for (int iy=0; iy<=depos_order; iy++){
                              for (int ix=0; ix<=depos_order; ix++){
                                  amrex::Gpu::Atomic::Add(
-                                     &jx_arr(lo.x+j0+ix+shape_lo.x, 
-                                             lo.y+k +iy+shape_lo.y, 
-                                             lo.z+l +iz+shape_lo.z), 
+                                     &jx_arr(lo.x+j0+ix, lo.y+k +iy, lo.z+l +iz),
                                      sx0[ix]*sy [iy]*sz [iz]*wqx);
                                  amrex::Gpu::Atomic::Add(
-                                     &jy_arr(lo.x+j +ix+shape_lo.x, 
-                                             lo.y+k0+iy+shape_lo.y, 
-                                             lo.z+l +iz+shape_lo.z), 
+                                     &jy_arr(lo.x+j +ix, lo.y+k0+iy, lo.z+l +iz), 
                                      sx [ix]*sy0[iy]*sz [iz]*wqy);
                                  amrex::Gpu::Atomic::Add(
-                                     &jz_arr(lo.x+j +ix+shape_lo.x, 
-                                             lo.y+k +iy+shape_lo.y, 
-                                             lo.z+l0+iz+shape_lo.z), 
+                                     &jz_arr(lo.x+j +ix, lo.y+k +iy, lo.z+l0+iz),
                                      sx [ix]*sy [iy]*sz0[iz]*wqz);
                              }
                          }
