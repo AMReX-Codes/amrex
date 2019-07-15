@@ -3,7 +3,8 @@
 
 using namespace amrex;
 
-// Compute shape factor and return index of cell containing particle.
+// Compute shape factor and return index of leftmost cell where 
+// particle writes.
 // Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
