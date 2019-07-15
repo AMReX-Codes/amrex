@@ -17,10 +17,6 @@ warpx.fine_tag_hi =  5.e-6   -25.e-6
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
 interpolation.noy = 3
 interpolation.noz = 3

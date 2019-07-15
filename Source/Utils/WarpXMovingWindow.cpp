@@ -5,7 +5,7 @@
 using namespace amrex;
 
 void
-WarpX::UpdatePlasmaInjectionPosition (Real dt)
+WarpX::UpdatePlasmaInjectionPosition (Real a_dt)
 {
     int dir = moving_window_dir;
     // Continuously inject plasma in new cells (by default only on level 0)
@@ -14,12 +14,12 @@ WarpX::UpdatePlasmaInjectionPosition (Real dt)
         // call to this function, and injection position needs to be updated
         current_injection_position -= WarpX::beta_boost *
 #if ( AMREX_SPACEDIM == 3 )
-            WarpX::boost_direction[dir] * PhysConst::c * dt;
+            WarpX::boost_direction[dir] * PhysConst::c * a_dt;
 #elif ( AMREX_SPACEDIM == 2 )
             // In 2D, dir=0 corresponds to x and dir=1 corresponds to z
             // This needs to be converted in order to index `boost_direction`
             // which has 3 components, for both 2D and 3D simulations.
-            WarpX::boost_direction[2*dir] * PhysConst::c * dt;
+            WarpX::boost_direction[2*dir] * PhysConst::c * a_dt;
 #endif
     }
 }
@@ -64,6 +64,26 @@ WarpX::MoveWindow (bool move_j)
     new_hi[dir] = current_hi[dir] + num_shift_base * cdx[dir];
 
     ResetProbDomain(RealBox(new_lo, new_hi));
+
+    // Moving slice coordinates - lo and hi - with moving window //
+    // slice box is modified only if slice diagnostics is initialized in input //
+    if ( slice_plot_int > 0 )
+    {
+       Real new_slice_lo[AMREX_SPACEDIM];
+       Real new_slice_hi[AMREX_SPACEDIM];
+       const Real* current_slice_lo = slice_realbox.lo();
+       const Real* current_slice_hi = slice_realbox.hi();
+       for ( int i = 0; i < AMREX_SPACEDIM; i++) {
+           new_slice_lo[i] = current_slice_lo[i];
+           new_slice_hi[i] = current_slice_hi[i];
+       }
+       int num_shift_base_slice = static_cast<int> ((moving_window_x - 
+                                  current_slice_lo[dir]) / cdx[dir]);
+       new_slice_lo[dir] = current_slice_lo[dir] + num_shift_base_slice*cdx[dir];
+       new_slice_hi[dir] = current_slice_hi[dir] + num_shift_base_slice*cdx[dir];
+       slice_realbox.setLo(new_slice_lo);
+       slice_realbox.setHi(new_slice_hi);
+    }
 
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
@@ -194,7 +214,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 
     AMREX_ALWAYS_ASSERT(ng.min() >= num_shift);
 
-    MultiFab tmpmf(ba, dm, nc, ng, MFInfo().SetDeviceFab(false));
+    MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
 

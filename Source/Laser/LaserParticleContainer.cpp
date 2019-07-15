@@ -78,14 +78,14 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         parser.define(field_function);
         parser.registerVariables({"X","Y","t"});
 
-        ParmParse pp("my_constants");
+        ParmParse ppc("my_constants");
         std::set<std::string> symbols = parser.symbols();
         symbols.erase("X");
         symbols.erase("Y");
         symbols.erase("t"); // after removing variables, we are left with constants
         for (auto it = symbols.begin(); it != symbols.end(); ) {
             Real v;
-            if (pp.query(it->c_str(), v)) {
+            if (ppc.query(it->c_str(), v)) {
                 parser.setConstant(*it, v);
                 it = symbols.erase(it);
             } else {
@@ -429,8 +429,6 @@ LaserParticleContainer::Evolve (int lev,
         {
             Real wt = amrex::second();
 
-            const Box& box = pti.validbox();
-
             auto& attribs = pti.GetAttribs();
 
             auto&  wp = attribs[PIdx::w ];
@@ -505,8 +503,17 @@ LaserParticleContainer::Evolve (int lev,
             //
             // Current Deposition
             //
-            DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
-                           cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
+            // Deposit inside domains
+            DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                           0, np_current, thread_num,
+                           lev, lev, dt);
+            bool has_buffer = cjx;
+            if (has_buffer){
+                // Deposit in buffers
+                DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                               np_current, np-np_current, thread_num,
+                               lev, lev-1, dt);
+            }
 
             //
             // copy particle data back
@@ -520,10 +527,11 @@ LaserParticleContainer::Evolve (int lev,
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                FArrayBox* costfab = cost->fabPtr(pti);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                Array4<Real> const& costarr = cost->array(pti);
+                amrex::ParallelFor(tbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    costfab->plus(wt, work_box);
+                    costarr(i,j,k) += wt;
                 });
             }
         }

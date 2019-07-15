@@ -286,6 +286,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.get("z_rms", z_rms);
         pp.get("q_tot", q_tot);
         pp.get("npart", npart);
+        pp.query("do_symmetrize", do_symmetrize);
         gaussian_beam = true;
         parseMomentum(pp);
     }

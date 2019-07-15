@@ -27,10 +27,7 @@ warpx.moving_window_dir = z
 warpx.moving_window_v = 0.0 # in units of the speed of light
 
 # Algorithms
-algo.current_deposition = 3
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
+algo.current_deposition = direct
 interpolation.nox = 1
 interpolation.noy = 1
 interpolation.noz = 1

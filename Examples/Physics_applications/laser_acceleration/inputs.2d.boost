@@ -19,10 +19,10 @@ geometry.prob_hi     =  128.e-6     0.96e-6
 #################################
 warpx.verbose = 1
 amrex.v = 1
-algo.current_deposition = 2
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 1
+algo.current_deposition = direct
+algo.charge_deposition = standard
+algo.field_gathering = standard
+algo.particle_pusher = vay
 algo.maxwell_fdtd_solver = ckc
 interpolation.nox = 3
 interpolation.noy = 3
@@ -44,7 +44,6 @@ warpx.boost_direction = z
 warpx.do_boosted_frame_diagnostic = 1
 warpx.num_snapshots_lab = 7
 warpx.dt_snapshots_lab = 1.6678204759907604e-12
-warpx.boosted_frame_diag_fields = Ex Ez By jz
 
 #################################
 ############ PLASMA #############

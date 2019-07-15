@@ -24,10 +24,7 @@ geometry.prob_hi     =  150.e-6    150.e-6    0.
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 3
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
+algo.current_deposition = direct
 
 # Numerics
 interpolation.nox = 3

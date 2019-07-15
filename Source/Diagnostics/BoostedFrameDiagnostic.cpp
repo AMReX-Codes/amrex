@@ -468,9 +468,9 @@ namespace
                 {
                     const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
-                    buf_arr(i,j,k_lab,n) += tmp_arr(i,j,k,icomp);
+                    buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
 #else
-                    buf_arr(i,k_lab,k,n) += tmp_arr(i,j,k,icomp);
+                    buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
 #endif
                 }
             );
@@ -497,8 +497,6 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
                 // Transform the transverse E and B fields. Note that ez and bz are not 
                 // changed by the tranform.
                 Real e_lab, b_lab, j_lab, r_lab;
-                int i0 = 0;
-                int i4 = 4;
                 e_lab = gamma_boost * (arr(i, j, k, 0) + beta_boost*clight*arr(i, j, k, 4));
                 b_lab = gamma_boost * (arr(i, j, k, 4) + beta_boost*arr(i, j, k, 0)/clight);
 
@@ -718,7 +716,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         if (buff_counter_[i] == 0) {
             // ... reset fields buffer data_buffer_[i]
             if (WarpX::do_boosted_frame_fields) {
-                const int ncomp = cell_centered_data->nComp();
                 Box buff_box = geom.Domain();
                 buff_box.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
                 buff_box.setBig(boost_direction_, i_lab);
@@ -726,7 +723,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
                 data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp_to_dump, 0) );
-                // data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
             if (WarpX::do_boosted_frame_particles) 
@@ -758,9 +754,6 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             MultiFab tmp(slice_ba, data_buffer_[i]->DistributionMap(), ncomp, 0);
             tmp.copy(*slice, 0, 0, ncomp);
             
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
             // Copy data from MultiFab tmp to MultiDab data_buffer[i]
             CopySlice(tmp, *data_buffer_[i], i_lab, map_actual_fields_to_dump);
         }
@@ -961,12 +954,11 @@ LabSnapShot(Real t_lab_in, Real t_boost, RealBox prob_domain_lab,
       my_bfd(bfd)
 {
     Real zmin_lab = prob_domain_lab_.lo(AMREX_SPACEDIM-1);
-    Real zmax_lab = prob_domain_lab_.hi(AMREX_SPACEDIM-1);
     current_z_lab = 0.0;
     current_z_boost = 0.0;
     updateCurrentZPositions(t_boost, my_bfd.inv_gamma_boost_, my_bfd.inv_beta_boost_);
     initial_i = (current_z_lab - zmin_lab) / my_bfd.dz_lab_;
-    file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
+    file_name = Concatenate(WarpX::lab_data_directory + "/snapshot", file_num, 5);
 
 #ifdef WARPX_USE_HDF5
     if (ParallelDescriptor::IOProcessor())

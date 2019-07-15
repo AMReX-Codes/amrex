@@ -77,7 +77,6 @@ RigidInjectedParticleContainer::RemapParticles()
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
-
                     auto& attribs = pti.GetAttribs();
                     auto& uxp = attribs[PIdx::ux];
                     auto& uyp = attribs[PIdx::uy];
@@ -212,6 +211,11 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                                        Real dt)
 {
 
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    {
+        copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
+    }
+    
     // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     auto& uxp = attribs[PIdx::ux];
@@ -224,21 +228,6 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& Byp = attribs[PIdx::By];
     auto& Bzp = attribs[PIdx::Bz];
     const long np  = pti.numParticles();
-
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-    {
-        auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
-        auto& ypold    = pti.GetAttribs(particle_comps["yold"]);
-        auto& zpold    = pti.GetAttribs(particle_comps["zold"]);
-        auto& uxpold   = pti.GetAttribs(particle_comps["uxold"]);
-        auto& uypold   = pti.GetAttribs(particle_comps["uyold"]);
-        auto& uzpold   = pti.GetAttribs(particle_comps["uzold"]);
-
-        warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                           xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
-                           uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
-    }
 
     // Save the position and momenta, making copies
     Cuda::ManagedDeviceVector<Real> xp_save, yp_save, zp_save;

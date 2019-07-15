@@ -11,6 +11,8 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
+#include "SliceDiagnostic.H"
+
 #ifdef AMREX_USE_ASCENT
 #include <ascent.hpp>
 #include <AMReX_Conduit_Blueprint.H>
@@ -612,37 +614,7 @@ WarpX::WritePlotFile () const
         }
     }
 
-    Vector<std::string> particle_varnames;
-    particle_varnames.push_back("weight");
-
-    particle_varnames.push_back("momentum_x");
-    particle_varnames.push_back("momentum_y");
-    particle_varnames.push_back("momentum_z");
-
-    particle_varnames.push_back("Ex");
-    particle_varnames.push_back("Ey");
-    particle_varnames.push_back("Ez");
-
-    particle_varnames.push_back("Bx");
-    particle_varnames.push_back("By");
-    particle_varnames.push_back("Bz");
-
-#ifdef WARPX_RZ
-    particle_varnames.push_back("theta");
-#endif
-
-    if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-    {
-        particle_varnames.push_back("xold");
-        particle_varnames.push_back("yold");
-        particle_varnames.push_back("zold");
-
-        particle_varnames.push_back("uxold");
-        particle_varnames.push_back("uyold");
-        particle_varnames.push_back("uzold");
-    }
-
-    mypc->WritePlotFile(plotfilename, particle_varnames);
+    mypc->WritePlotFile(plotfilename);
 
     WriteJobInfo(plotfilename);
 
@@ -771,3 +743,137 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	jobInfoFile.close();
     }
 }
+
+
+/* \brief
+ *  The raw slice data is written out in the plotfile format and can be visualized using yt.
+ *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
+ */
+void
+WarpX::WriteSlicePlotFile () const
+{
+    // writing plotfile //
+    const std::string& slice_plotfilename = amrex::Concatenate(slice_plot_file,istep[0]);
+    amrex::Print() << " Writing slice plotfile " << slice_plotfilename << "\n";
+    const int ngrow = 0;
+
+    Vector<std::string> rfs;
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(slice_plotfile_headerversion);
+    rfs.emplace_back("raw_fields");
+    
+    const int nlevels = finestLevel() + 1;
+     
+    // creating a temporary cell-centered dummy multifab //
+    // to get around the issue of yt complaining about no field data //
+    Vector< std::unique_ptr<MultiFab> > dummy_mf(nlevels);
+    const DistributionMapping &dm2 = Efield_slice[0][0]->DistributionMap();
+    Vector<std::string> varnames;
+    IntVect cc(AMREX_D_DECL(0,0,0));
+    for (int lev = 0; lev < nlevels; ++lev) 
+    {
+       dummy_mf[lev].reset(new MultiFab( 
+                     amrex::convert(Efield_slice[lev][0]->boxArray(),cc), 
+                     dm2, 1, 0 ));
+       dummy_mf[lev]->setVal(0.0);
+    } 
+    amrex::WriteMultiLevelPlotfile(slice_plotfilename, nlevels,
+                                   GetVecOfConstPtrs(dummy_mf), 
+                                   varnames, Geom(), t_new[0],
+                                   istep, refRatio(),
+                                   "HyperCLaw-V1.1", 
+                                   "Level_", "Cell", rfs);
+
+    for (int lev = 0; lev < nlevels; ++lev) 
+    {
+        const std::unique_ptr<MultiFab> empty_ptr;
+        const std::string raw_spltname = slice_plotfilename + "/raw_fields";
+        amrex::Print() << " raw spltname " << raw_spltname << "\n";
+        const DistributionMapping &dm = Efield_slice[lev][0]->DistributionMap();
+ 
+        WriteRawField( *Efield_slice[lev][0], dm, raw_spltname, level_prefix, "Ex_slice", lev, 0);
+        WriteRawField( *Efield_slice[lev][1], dm, raw_spltname, level_prefix, "Ey_slice", lev, 0);
+        WriteRawField( *Efield_slice[lev][2], dm, raw_spltname, level_prefix, "Ez_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][0], dm, raw_spltname, level_prefix, "Bx_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][1], dm, raw_spltname, level_prefix, "By_slice", lev, 0);
+        WriteRawField( *Bfield_slice[lev][2], dm, raw_spltname, level_prefix, "Bz_slice", lev, 0);
+        WriteRawField( *current_slice[lev][0], dm, raw_spltname, level_prefix, "jx_slice", lev,0);
+        WriteRawField( *current_slice[lev][1], dm, raw_spltname, level_prefix, "jy_slice", lev,0);
+        WriteRawField( *current_slice[lev][2], dm, raw_spltname, level_prefix, "jz_slice", lev,0);
+        if ( F_fp[lev] ) WriteRawField( *F_slice[lev], dm, raw_spltname, level_prefix, "F_slice", lev, 0);
+        if (plot_rho) {
+            MultiFab rho_new(*rho_slice[lev], amrex::make_alias, 1, 1);
+            WriteRawField( rho_new, dm, raw_spltname, level_prefix, "rho_slice", lev, 0);
+        }
+    } 
+ 
+    WriteJobInfo(slice_plotfilename);
+
+    WriteWarpXHeader(slice_plotfilename);
+
+    VisMF::SetHeaderVersion(current_version);
+}
+
+
+void 
+WarpX::InitializeSliceMultiFabs ()
+{
+
+    int nlevels = Geom().size();
+
+    F_slice.resize(nlevels);
+    rho_slice.resize(nlevels);
+    current_slice.resize(nlevels);
+    Efield_slice.resize(nlevels);
+    Bfield_slice.resize(nlevels);
+ 
+}
+
+
+// To generate slice that inherits index type of underlying data //
+void 
+WarpX::SliceGenerationForDiagnostics ()
+{
+
+    Vector<Geometry> dom_geom;
+    dom_geom = Geom();
+
+    if (F_fp[0] ) {
+       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox, 
+                                 slice_cr_ratio );
+    }
+    if (rho_fp[0]) {
+       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox, 
+                                   slice_cr_ratio );
+    }
+
+    for (int idim = 0; idim < 3; ++idim) {
+       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(), 
+                                dom_geom, slice_realbox, slice_cr_ratio );
+       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(), 
+                               dom_geom, slice_realbox, slice_cr_ratio );
+       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(), 
+                               dom_geom, slice_realbox, slice_cr_ratio );
+    }
+
+
+}
+
+
+void 
+WarpX::ClearSliceMultiFabs ()
+{
+
+    F_slice.clear();
+    rho_slice.clear();
+    current_slice.clear();
+    Efield_slice.clear();
+    Bfield_slice.clear();
+    F_slice.shrink_to_fit();
+    rho_slice.shrink_to_fit();
+    current_slice.shrink_to_fit();
+    Efield_slice.shrink_to_fit();
+    Bfield_slice.shrink_to_fit();
+
+}
+

@@ -77,6 +77,9 @@ public:
                         const amrex::MultiFab& Bx,
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
+                        
+    void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
+                        const amrex::Real* yp, const amrex::Real* zp);
 
     virtual void PostRestart () final {}
 
@@ -94,7 +97,10 @@ public:
 
     void AddGaussianBeam(amrex::Real x_m, amrex::Real y_m, amrex::Real z_m,
                          amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms,
-                         amrex::Real q_tot, long npart);
+                         amrex::Real q_tot, long npart, int do_symmetrize);
+
+    void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
+                             std::array<amrex::Real, 3> u, amrex::Real weight);
 
     virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
                                   const amrex::Real z_new, const amrex::Real t_boost, 

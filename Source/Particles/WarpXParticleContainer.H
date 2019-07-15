@@ -164,32 +164,30 @@ public:
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-   virtual void DepositCharge(WarpXParIter& pti,
-                             RealVector& wp,
-                             amrex::MultiFab* rhomf,
-                             amrex::MultiFab* crhomf,
-                             int icomp,
-                             const long np_current,
-                             const long np,
-                             int thread_num,
-                             int lev );
-  
-  virtual void DepositCurrent(WarpXParIter& pti,
-                              RealVector& wp,
-                              RealVector& uxp,
-                              RealVector& uyp,
-                              RealVector& uzp,
-                              amrex::MultiFab& jx,
-                              amrex::MultiFab& jy,
-                              amrex::MultiFab& jz,
-                              amrex::MultiFab* cjx,
-                              amrex::MultiFab* cjy,
-                              amrex::MultiFab* cjz,
-                              const long np_current,
-                              const long np,
-                              int thread_num,
-                              int lev,
-                              amrex::Real dt );
+    virtual void DepositCharge(WarpXParIter& pti,
+                               RealVector& wp,
+                               amrex::MultiFab* rhomf,
+                               amrex::MultiFab* crhomf,
+                               int icomp,
+                               const long np_current,
+                               const long np,
+                               int thread_num,
+                               int lev );
+
+    virtual void DepositCurrent(WarpXParIter& pti,
+                                RealVector& wp,
+                                RealVector& uxp,
+                                RealVector& uyp,
+                                RealVector& uzp,
+                                amrex::MultiFab* jx,
+                                amrex::MultiFab* jy,
+                                amrex::MultiFab* jz,
+                                const long offset,
+                                const long np_to_depose,
+                                int thread_num,
+                                int lev,
+                                int depos_lev,
+                                amrex::Real dt);
 
     // If particles start outside of the domain, ContinuousInjection 
     // makes sure that they are initialized when they enter the domain, and 
@@ -225,9 +223,9 @@ public:
                          amrex::Real x, amrex::Real y, amrex::Real z,
                          std::array<amrex::Real,PIdx::nattribs>& attribs);
 
-    void ReadHeader (std::istream& is);
+    virtual void ReadHeader (std::istream& is);
 
-    void WriteHeader (std::ostream& os) const;
+    virtual void WriteHeader (std::ostream& os) const;
 
     virtual void ConvertUnits (ConvertDirection convert_dir){};
 
@@ -255,6 +253,8 @@ public:
         AddIntComp(comm);
     }
 
+    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }
+    
 protected:
 
     std::map<std::string, int> particle_comps;

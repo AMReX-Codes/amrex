@@ -39,10 +39,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
-#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
-#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
-
-
 #elif (AMREX_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
@@ -66,9 +62,6 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
-#define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
-#define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
-
 #ifdef WARPX_RZ
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_rz
 #else
@@ -82,12 +75,6 @@ extern "C"
 {
 #endif
 
-    void warpx_copy_attribs(const long* np,
-                            const amrex_real* xp, const amrex_real* yp, const amrex_real* zp,
-                            const amrex_real* uxp, const amrex_real* uyp, const amrex_real* uzp,
-                            amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
-                            amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
-    
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -117,7 +104,7 @@ extern "C"
 			const amrex::Real* dt,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
 			const long* nox, const long* noy,const long* noz,
-			const long* lvect, const long* current_depo_algo);
+                        const int* l_nodal, const long* lvect, const long* current_depo_algo);
 
         // Current deposition finalize for RZ
         void warpx_current_deposition_rz_volume_scaling(
@@ -185,7 +172,7 @@ extern "C"
        amrex::Real* u_Xx, amrex::Real* u_Xy, amrex::Real* u_Xz,
        amrex::Real* u_Yx, amrex::Real* u_Yy, amrex::Real* u_Yz,
        amrex::Real* positionx, amrex::Real* positiony, amrex::Real* positionz );
-  
+
   void update_laser_particle( const long* np,
        amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
        amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp,
@@ -194,7 +181,7 @@ extern "C"
        amrex::Real* nvecx, amrex::Real* nvecy, amrex::Real* nvecz,
        amrex::Real* mobility, amrex::Real* dt,  const amrex::Real* c,
        const amrex::Real* beta_boost, const amrex::Real* gamma_boost );
-  
+
     // Maxwell solver
 
         void warpx_push_evec(
@@ -454,14 +441,6 @@ extern "C"
                         BL_FORT_FAB_ARG_ANYD(crse),
                         const BL_FORT_FAB_ARG_ANYD(fine),
                         const int* ncomp);
-
-    void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int,
-                                const amrex::Real, const int);
-
-    void WRPX_PXR_GODFREY_FILTER (const int* lo, const int* hi,
-                                  amrex_real* fou, const int* olo, const int* ohi,
-                                  const amrex_real* fin, const int* ilo, const int* ihi,
-                                  const amrex_real* stencil, const int* nsten);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);

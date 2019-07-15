@@ -45,6 +45,16 @@ endif
   DEFINES += -DWARPX_USE_PY
 endif
 
+ifeq ($(DIM),3)
+  DEFINES += -DWARPX_DIM_3D
+else
+ifeq ($(USE_RZ),TRUE)
+  DEFINES += -DWARPX_DIM_RZ
+else
+  DEFINES += -DWARPX_DIM_2D
+endif
+endif
+
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
