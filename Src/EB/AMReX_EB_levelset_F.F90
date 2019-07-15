@@ -410,7 +410,7 @@ contains
       do k_shift = -1, 1
          do j_shift = -1, 1
             do i_shift = -1, 1
-               vi_pt(:) = floor( (eb_min_pt(:) + (/i_shift, j_shift, k_shift /)*1d-6 ) * inv_dx);
+               vi_pt(:) = floor( (eb_min_pt(:) + (/i_shift, j_shift, k_shift /)*1d-6*dx_eb ) * inv_dx);
                if ( all( vi_pt == vi_cent ) ) min_pt_valid = .true.
             end do
          end do
