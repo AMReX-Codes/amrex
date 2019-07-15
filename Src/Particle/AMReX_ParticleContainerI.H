@@ -3790,7 +3790,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-	    for (int k = 0; k < aos.size(); ++k) {
+	    for (int k = 0; k < aos.numParticles(); ++k) {
 	        const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0)
                     //
@@ -3862,7 +3862,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
                 const auto& aos = kv.second.GetArrayOfStructs();
                 const auto& soa = kv.second.GetStructOfArrays();
 
-		for (int index = 0; index < aos.size(); ++index) {
+		for (int index = 0; index < aos.numParticles(); ++index) {
 		    const ParticleType* it = &aos[index];
 		    if (it->m_idata.id > 0) {
 
