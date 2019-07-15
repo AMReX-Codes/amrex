@@ -30,7 +30,7 @@ ${JSRUN} --smpiargs="-gpu" ${EXE} inputs
 
 # 3. Run under nvprof and store performance data in a nvvp file
 # Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
-#${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes -o nvprof-timeline-%p.nvvp ${EXE} inputs
+#${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes --openmp-profiling off  -o nvprof-timeline-%p.nvvp ${EXE} inputs
 
 # COLLECT PERFORMANCE METRICS - THIS IS MUCH SLOWER. Set nsteps=2 in the inputs files
 # 4. Run under nvprof and collect metrics for a subset of kernels
