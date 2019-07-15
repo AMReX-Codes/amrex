@@ -312,6 +312,9 @@ contains
             facet_normal = (/ 0., 0., 0. /)
             facet_normal(tmp_facet) = 1.  ! whether facing inwards or outwards is not important here
 
+            ! thenically this should never be called, leaving here for reference
+            !if (all(abs(eb_normal) == abs(facet_normal))) cycle
+
             ind_cell = ind_loop(tmp_facet)
             ind_nb = ind_pt(tmp_facet)
 
