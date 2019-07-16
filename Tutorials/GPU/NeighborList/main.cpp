@@ -38,7 +38,7 @@ void get_test_params(TestParams& params)
     pp.get("print_neighbor_list", params.print_neighbor_list);
     pp.get("write_particles", params.write_particles);
     pp.get("num_rebuild", params.num_rebuild);
-    pp.get("num_ppc" params.num_ppc)
+    pp.get("num_ppc", params.num_ppc);
 }
 
 void main_main ()
