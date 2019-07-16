@@ -11,4 +11,6 @@ write_particles = false
 
 num_rebuild = 25
 
+cfl = 0.1 
+
 num_ppc = 2

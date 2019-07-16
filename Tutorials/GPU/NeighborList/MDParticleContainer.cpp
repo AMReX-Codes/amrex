@@ -147,7 +147,7 @@ void MDParticleContainer::computeForces()
 
                 Real r = sqrt(r2);
                 
-                Real coef = (1.0 - Params::cutoff / r) / r2 / Params::mass;
+                Real coef = (1.0 - Params::cutoff / r) / r2;
                 p1.rdata(PIdx::ax) += coef * dx;
                 p1.rdata(PIdx::ay) += coef * dy;
                 p1.rdata(PIdx::az) += coef * dz;
@@ -265,4 +265,31 @@ void MDParticleContainer::writeParticles(const int n)
     BL_PROFILE("MDParticleContainer::writeParticles");
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
     WriteAsciiFile(pltfile);
+}
+
+
+Real MDParticleContainer::computeStepSize(amrex::Real& cfl)
+{
+    BL_PROFILE("MDParticleContainer::computeStepSize");
+
+    using ParticleType = MDParticleContainer::ParticleType;
+
+    Real maxVel = amrex::ReduceMax(*this, 0,
+    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> Real
+                              {
+                                 Real u = std::abs(p.rdata(PIdx::vx));
+                                 Real v = std::abs(p.rdata(PIdx::vy));
+                                 Real w = std::abs(p.rdata(PIdx::vz));
+                                 return amrex::max(u,amrex::max(v,w));
+                              });
+
+    ParallelDescriptor::ReduceRealMax(maxVel);
+    
+    // This would compute dt based on the grid spacing dx
+    // const int lev = 0;   
+    // const Real* dx = Geom(lev).CellSize();
+    // return cfl*dx[0]/maxVel;
+
+    // This computes dt based on the particle cutoff radius
+    return cfl * Params::cutoff /maxVel;
 }
