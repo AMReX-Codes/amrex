@@ -1754,6 +1754,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     Real* AMREX_RESTRICT x = xp.dataPtr();
     Real* AMREX_RESTRICT y = yp.dataPtr();
     Real* AMREX_RESTRICT z = zp.dataPtr();
+    Real* AMREX_RESTRICT gi = giv.dataPtr();
     Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
@@ -1775,7 +1776,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-                UpdateMomentumBoris( ux[i], uy[i], uz[i],
+                UpdateMomentumBoris( ux[i], uy[i], uz[i], gi[i],
                       Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
                       ux[i], uy[i], uz[i], dt );
@@ -1784,7 +1785,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-                UpdateMomentumVay( ux[i], uy[i], uz[i],
+                UpdateMomentumVay( ux[i], uy[i], uz[i], gi[i],
                       Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
                       ux[i], uy[i], uz[i], dt );
