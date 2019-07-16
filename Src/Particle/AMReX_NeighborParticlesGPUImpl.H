@@ -139,6 +139,8 @@ sortParticlesByNeighborDestGPU()
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
+    AMREX_ASSERT(hasNeighbors() == false);
+
     const int lev = 0;
     const auto& geom = this->Geom(lev);
     const auto dxi = this->Geom(lev).InvCellSizeArray();

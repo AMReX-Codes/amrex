@@ -185,9 +185,6 @@ Real MDParticleContainer::minDistance()
         AMREX_FOR_1D ( np, i,
         {
             ParticleType& p1 = pstruct[i];
-            p1.rdata(PIdx::ax) = 0.0;
-            p1.rdata(PIdx::ay) = 0.0;
-            p1.rdata(PIdx::az) = 0.0;
 
             for (const auto& p2 : nbor_data.getNeighbors(i))
             {                	      
