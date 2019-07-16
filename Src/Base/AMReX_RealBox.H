@@ -15,7 +15,7 @@ namespace amrex {
 
 //!A Box with real dimensions.  A RealBox is OK iff volume >= 0.
 
-class RealBox // : public Gpu::Managed
+class RealBox
 {
 public:
     //! The default constructor.  Builds invalid RealBox.
@@ -99,6 +99,14 @@ public:
         return  AMREX_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
                           && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
                           && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
+    }
+
+    //! Is the specified point contained in the RealBox?
+    AMREX_GPU_HOST_DEVICE
+    bool contains (XDim3 point, Real eps = 0.0) const noexcept {
+        return  AMREX_D_TERM((xlo[0]-eps < point.x) && (point.x < xhi[0]+eps),
+                          && (xlo[1]-eps < point.y) && (point.y < xhi[1]+eps),
+                          && (xlo[2]-eps < point.z) && (point.z < xhi[2]+eps));
     }
 
     //! Is the specified RealVect contained in this RealBox?
