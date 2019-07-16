@@ -294,6 +294,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     clearNeighbors();
 
+    AMREX_ASSERT(hasNeighbors() == false);
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     amrex::Vector<std::map<PairIndex,       Vector<NeighborIndexMap> > > local_map;
@@ -618,6 +620,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #else
     fillNeighborsCPU();
 #endif
+    m_has_neighbors = true;
 }
 
 template <int NStructReal, int NStructInt>
@@ -637,11 +640,15 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::updateNeighbors ()
 {
+
+  AMREX_ASSERT(hasNeighbors());
+
 #ifdef AMREX_USE_CUDA
     updateNeighborsGPU();
 #else
     updateNeighborsCPU(true);
 #endif
+    m_has_neighbors = true;
 }
 
 template <int NStructReal, int NStructInt>
@@ -654,6 +661,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #else
     clearNeighborsCPU();
 #endif
+    m_has_neighbors = false;
 }
 
 template <int NStructReal, int NStructInt>
