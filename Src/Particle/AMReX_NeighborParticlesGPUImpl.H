@@ -247,6 +247,7 @@ fillNeighborsGPU ()
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
+    clearNeighbors();
     buildNeighborMask();
     sortParticlesByNeighborDestGPU();
     updateNeighborsGPU();
