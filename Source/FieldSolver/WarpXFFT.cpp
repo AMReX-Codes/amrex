@@ -90,7 +90,7 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
 
         const FArrayBox& srcfab = mf_fft[mfi];
         const Box& srcbox = srcfab.box();
- 
+
         if (srcbox.contains(bx))
         {
             // Copy the interior region (without guard cells)
@@ -109,7 +109,7 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
     mf.setVal(0.0, 0);
     mf.ParallelAdd(mftmp);
 
-  
+
 }
 
 }
@@ -128,19 +128,6 @@ WarpX::AllocLevelDataFFT (int lev)
     DistributionMapping dm_fp_fft;
     FFTDomainDecomposition(lev, ba_fp_fft, dm_fp_fft, ba_valid_fp_fft[lev], domain_fp_fft[lev],
                            geom[lev].Domain());
-
-    if (fft_hybrid_mpi_decomposition == false){
-        // Allocate and initialize objects for the spectral solver
-        // (all use the same distribution mapping)
-        std::array<Real,3> dx = CellSize(lev);
-#if (AMREX_SPACEDIM == 3)
-        RealVect dx_vect(dx[0], dx[1], dx[2]);
-#elif (AMREX_SPACEDIM == 2)
-        RealVect dx_vect(dx[0], dx[2]);
-#endif
-        spectral_solver_fp[lev].reset( new SpectralSolver( ba_fp_fft, dm_fp_fft,
-                 nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
-    }
 
     // rho2 has one extra ghost cell, so that it's safe to deposit charge density after
     // pushing particle.
@@ -383,13 +370,48 @@ WarpX::PushPSATD (amrex::Real a_dt)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
-        PushPSATD(lev, a_dt);
+        if (fft_hybrid_mpi_decomposition){
+            PushPSATD_hybridFFT(lev, a_dt);
+        } else {
+            PushPSATD_localFFT(lev, a_dt);
+        }
     }
 }
 
-void
-WarpX::PushPSATD (int lev, amrex::Real /* dt */)
+void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
 {
+    auto& solver = *spectral_solver_fp[lev];
+
+    // Perform forward Fourier transform
+    solver.ForwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
+    solver.ForwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
+    solver.ForwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
+    solver.ForwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
+    solver.ForwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
+    solver.ForwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
+    solver.ForwardTransform(*current_fp[lev][0], SpectralFieldIndex::Jx);
+    solver.ForwardTransform(*current_fp[lev][1], SpectralFieldIndex::Jy);
+    solver.ForwardTransform(*current_fp[lev][2], SpectralFieldIndex::Jz);
+    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_old, 0);
+    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_new, 1);
+
+    // Advance fields in spectral space
+    solver.pushSpectralFields();
+
+    // Perform backward Fourier Transform
+    solver.BackwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
+    solver.BackwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
+    solver.BackwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
+    solver.BackwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
+    solver.BackwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
+    solver.BackwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
+}
+
+void
+WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
+{
+#ifndef AMREX_USE_CUDA // Running on CPU ; use PICSAR code for the hybrid FFT
+
     BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
 
@@ -409,79 +431,45 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     BL_PROFILE_VAR_STOP(blp_copy);
 
     BL_PROFILE_VAR_START(blp_push_eb);
-    if (fft_hybrid_mpi_decomposition){
-#ifndef AMREX_USE_CUDA // When running on CPU: use PICSAR code
-        if (Efield_fp_fft[lev][0]->local_size() == 1)
-           //Only one FFT patch on this MPI
-        {
-        	for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
-        	{
-                    warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
-                                      WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
-                                      WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],0),
-                                      WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],1));
-        	}
-        }
-        else if (Efield_fp_fft[lev][0]->local_size() == 0)
-          // No FFT patch on this MPI rank
-          // Still need to call the MPI-FFT routine.
-        {
-        	FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
-        	warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab),
-        			  WARPX_TO_FORTRAN_ANYD(fab));
-        }
-        else
-          // Multiple FFT patches on this MPI rank
-        {
-    	amrex::Abort("WarpX::PushPSATD: TODO");
-        }
-#else // AMREX_USE_CUDA is defined ; running on GPU
-        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
-#endif
-    } else {
-        // Not using the hybrid decomposition
-        auto& solver = *spectral_solver_fp[lev];
-
-        // Perform forward Fourier transform
-        solver.ForwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
-        solver.ForwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
-        solver.ForwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
-        solver.ForwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
-        solver.ForwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
-        solver.ForwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
-        solver.ForwardTransform(*current_fp_fft[lev][0], SpectralFieldIndex::Jx);
-        solver.ForwardTransform(*current_fp_fft[lev][1], SpectralFieldIndex::Jy);
-        solver.ForwardTransform(*current_fp_fft[lev][2], SpectralFieldIndex::Jz);
-        solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_old, 0);
-        solver.ForwardTransform(*rho_fp_fft[lev], SpectralFieldIndex::rho_new, 1);
-
-        // Advance fields in spectral space
-        solver.pushSpectralFields();
-
-        // Perform backward Fourier Transform
-        solver.BackwardTransform(*Efield_fp_fft[lev][0], SpectralFieldIndex::Ex);
-        solver.BackwardTransform(*Efield_fp_fft[lev][1], SpectralFieldIndex::Ey);
-        solver.BackwardTransform(*Efield_fp_fft[lev][2], SpectralFieldIndex::Ez);
-        solver.BackwardTransform(*Bfield_fp_fft[lev][0], SpectralFieldIndex::Bx);
-        solver.BackwardTransform(*Bfield_fp_fft[lev][1], SpectralFieldIndex::By);
-        solver.BackwardTransform(*Bfield_fp_fft[lev][2], SpectralFieldIndex::Bz);
-
+    if (Efield_fp_fft[lev][0]->local_size() == 1)
+       //Only one FFT patch on this MPI
+    {
+    	for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
+    	{
+                warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][0])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][1])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*Bfield_fp_fft[lev][2])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][0])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][1])[mfi]),
+                                  WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
+                                  WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],0),
+                                  WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],1));
+    	}
+    }
+    else if (Efield_fp_fft[lev][0]->local_size() == 0)
+      // No FFT patch on this MPI rank
+      // Still need to call the MPI-FFT routine.
+    {
+    	FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
+    	warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab),
+    			  WARPX_TO_FORTRAN_ANYD(fab));
+    }
+    else
+      // Multiple FFT patches on this MPI rank
+    {
+	amrex::Abort("WarpX::PushPSATD: TODO");
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 
@@ -498,7 +486,8 @@ WarpX::PushPSATD (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
+#else // AMREX_USE_CUDA is defined ; running on GPU
+        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
 
 }
-
-

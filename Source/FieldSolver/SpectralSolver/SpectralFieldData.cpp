@@ -55,30 +55,30 @@ SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
 #ifdef AMREX_USE_GPU
         // Create cuFFT plans
         // Creating 3D plan for real to complex -- double precision
-        // Assuming CUDA is used for programming GPU 
-        // Note that D2Z is inherently forward plan 
-        // and  Z2D is inherently backward plan 
+        // Assuming CUDA is used for programming GPU
+        // Note that D2Z is inherently forward plan
+        // and  Z2D is inherently backward plan
         cufftResult result;
 #if (AMREX_SPACEDIM == 3)
-        result = cufftPlan3d( &forward_plan[mfi], fft_size[2], 
+        result = cufftPlan3d( &forward_plan[mfi], fft_size[2],
                               fft_size[1],fft_size[0], CUFFT_D2Z);
         if ( result != CUFFT_SUCCESS ) {
            amrex::Print() << " cufftplan3d forward failed! \n";
         }
 
-        result = cufftPlan3d( &backward_plan[mfi], fft_size[2], 
+        result = cufftPlan3d( &backward_plan[mfi], fft_size[2],
                               fft_size[1], fft_size[0], CUFFT_Z2D);
         if ( result != CUFFT_SUCCESS ) {
            amrex::Print() << " cufftplan3d backward failed! \n";
         }
 #else
-        result = cufftPlan2d( &forward_plan[mfi], fft_size[1], 
+        result = cufftPlan2d( &forward_plan[mfi], fft_size[1],
                               fft_size[0], CUFFT_D2Z );
         if ( result != CUFFT_SUCCESS ) {
            amrex::Print() << " cufftplan2d forward failed! \n";
         }
 
-        result = cufftPlan2d( &backward_plan[mfi], fft_size[1], 
+        result = cufftPlan2d( &backward_plan[mfi], fft_size[1],
                                fft_size[0], CUFFT_Z2D );
         if ( result != CUFFT_SUCCESS ) {
            amrex::Print() << " cufftplan2d backward failed! \n";
@@ -162,20 +162,20 @@ SpectralFieldData::ForwardTransform( const MultiFab& mf,
             Array4<Real> tmp_arr = tmpRealField[mfi].array();
             ParallelFor( realspace_bx,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                tmp_arr(i,j,k) = mf_arr(i,j,k,i_comp);                
+                tmp_arr(i,j,k) = mf_arr(i,j,k,i_comp);
             });
         }
 
         // Perform Fourier transform from `tmpRealField` to `tmpSpectralField`
 #ifdef AMREX_USE_GPU
-        // Perform Fast Fourier Transform on GPU using cuFFT 
-        // make sure that this is done on the same 
-        // GPU stream as the above copy        
+        // Perform Fast Fourier Transform on GPU using cuFFT
+        // make sure that this is done on the same
+        // GPU stream as the above copy
         cufftResult result;
-        cudaStream_t stream = amrex::Gpu::Device::cudaStream(); 
+        cudaStream_t stream = amrex::Gpu::Device::cudaStream();
         cufftSetStream ( forward_plan[mfi], stream);
-        result = cufftExecD2Z( forward_plan[mfi], 
-                               tmpRealField[mfi].dataPtr(), 
+        result = cufftExecD2Z( forward_plan[mfi],
+                               tmpRealField[mfi].dataPtr(),
                                reinterpret_cast<cuDoubleComplex*>(
                                tmpSpectralField[mfi].dataPtr()) );
         if ( result != CUFFT_SUCCESS ) {
@@ -271,13 +271,13 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 
         // Perform Fourier transform from `tmpSpectralField` to `tmpRealField`
 #ifdef AMREX_USE_GPU
-        // Perform Fast Fourier Transform on GPU using cuFFT. 
-        // make sure that this is done on the same 
+        // Perform Fast Fourier Transform on GPU using cuFFT.
+        // make sure that this is done on the same
         // GPU stream as the above copy
         cufftResult result;
-        cudaStream_t stream = amrex::Gpu::Device::cudaStream(); 
+        cudaStream_t stream = amrex::Gpu::Device::cudaStream();
         cufftSetStream ( backward_plan[mfi], stream);
-        result = cufftExecZ2D( backward_plan[mfi], 
+        result = cufftExecZ2D( backward_plan[mfi],
                                reinterpret_cast<cuDoubleComplex*>(
                                tmpSpectralField[mfi].dataPtr()),
                                tmpRealField[mfi].dataPtr() );
@@ -289,16 +289,17 @@ SpectralFieldData::BackwardTransform( MultiFab& mf,
 #endif
 
         // Copy the temporary field `tmpRealField` to the real-space field `mf`
-
+        // (only in the valid cells ; not in the guard cells)
         // Normalize (divide by 1/N) since the FFT+IFFT results in a factor N
         {
-            const Box realspace_bx = tmpRealField[mfi].box();
             Array4<Real> mf_arr = mf[mfi].array();
             Array4<const Real> tmp_arr = tmpRealField[mfi].array();
             // Normalization: divide by the number of points in realspace
+            // (includes the guard cells)
+            const Box realspace_bx = tmpRealField[mfi].box();
             const Real inv_N = 1./realspace_bx.numPts();
 
-            ParallelFor( realspace_bx,
+            ParallelFor( mfi.validbox(),
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 // Copy and normalize field
                 mf_arr(i,j,k,i_comp) = inv_N*tmp_arr(i,j,k);
