@@ -18,6 +18,7 @@ struct TestParams
     int num_ppc;
     bool print_neighbor_list;
     bool write_particles;
+    Real dt = 0.0001;
 };
 
 void main_main();
@@ -39,6 +40,7 @@ void get_test_params(TestParams& params)
     pp.get("write_particles", params.write_particles);
     pp.get("num_rebuild", params.num_rebuild);
     pp.get("num_ppc", params.num_ppc);
+    pp.query("dt", params.dt);
 }
 
 void main_main ()
@@ -72,7 +74,6 @@ void main_main ()
 
     int npc = params.num_ppc;
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
-    constexpr Real dt = 0.0005;
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
@@ -82,7 +83,8 @@ void main_main ()
 
     for (int step = 0; step < params.nsteps; ++step) {
 
-        amrex::Print() << "Taking step " << step << ", n particles: " << pc.TotalNumberOfParticles() << "\n";
+        amrex::Print() << "Taking step " << step << " with dt = " << params.dt
+                       <<", n particles: " << pc.TotalNumberOfParticles() << "\n";
 
 	if (step % num_rebuild == 0)
 	{
@@ -104,7 +106,7 @@ void main_main ()
 
 	pc.computeForces();
 
-	pc.moveParticles(dt);
+	pc.moveParticles(params.dt);
     }
 
     amrex::Print() << "Min distance is " << min_d << "\n";
