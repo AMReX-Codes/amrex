@@ -32,6 +32,8 @@ public:
 
     void computeForces ();
 
+    amrex::Real minDistance ();
+
     void moveParticles (const amrex::Real& dt);
 
     void writeParticles (const int n);    
