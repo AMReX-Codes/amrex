@@ -14,6 +14,8 @@ struct TestParams
     IntVect size;
     int max_grid_size;
     int nsteps;
+    int num_rebuild;
+    int num_ppc;
     bool print_neighbor_list;
     bool write_particles;
 };
@@ -35,6 +37,8 @@ void get_test_params(TestParams& params)
     pp.get("nsteps", params.nsteps);
     pp.get("print_neighbor_list", params.print_neighbor_list);
     pp.get("write_particles", params.write_particles);
+    pp.get("num_rebuild", params.num_rebuild);
+    pp.get("num_ppc" params.num_ppc)
 }
 
 void main_main ()
@@ -66,16 +70,19 @@ void main_main ()
     const int ncells = 1;
     MDParticleContainer pc(geom, dm, ba, ncells);
 
-    IntVect nppc = IntVect(AMREX_D_DECL(2, 2, 2));
+    int npc = params.num_ppc;
+    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
     constexpr Real dt = 0.0005;
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    int num_rebuild = 25;
+    int num_rebuild = params.num_rebuild;
+    
+    Real min_d = std::numeric_limits<Real>::max();
 
     for (int step = 0; step < params.nsteps; ++step) {
 
-        amrex::Print() << "Taking step " << step << "\n";
+        amrex::Print() << "Taking step " << step << ", n particles: " << pc.TotalNumberOfParticles() << "\n";
 
 	if (step % num_rebuild == 0)
 	{
@@ -90,12 +97,16 @@ void main_main ()
 
         if (params.print_neighbor_list) pc.printNeighborList();
 
-        pc.computeForces();
+	pc.computeForces();
 
-        pc.moveParticles(dt);
+	pc.moveParticles(dt);
+
+	min_d = std::min(min_d, pc.minDistance());
 
         if (step % num_rebuild == 0) pc.RedistributeLocal();
     }
+
+    amrex::Print() << "Min distance is " << min_d << "\n";
 
     if (params.write_particles) pc.writeParticles(params.nsteps);
 }
