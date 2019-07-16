@@ -134,13 +134,13 @@ WarpX::InitPML ()
     if (do_pml)
     {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window, pml_has_particles)); //pml_has_particles));
+                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window, pml_has_particles, do_pml_in_domain)); //pml_has_particles));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
                                    pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning,
-                                   do_moving_window, pml_has_particles)); //pml_has_particles));
+                                   do_moving_window, pml_has_particles, do_pml_in_domain)); //pml_has_particles));
         }
     }
 }
@@ -322,7 +322,7 @@ WarpX::InitLevelData (int lev, Real time)
 void
 WarpX::InitLevelDataFFT (int lev, Real time)
 {
- 
+
     Efield_fp_fft[lev][0]->setVal(0.0);
     Efield_fp_fft[lev][1]->setVal(0.0);
     Efield_fp_fft[lev][2]->setVal(0.0);

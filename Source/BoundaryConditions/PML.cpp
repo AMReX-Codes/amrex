@@ -474,10 +474,11 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles)
+          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles, int do_pml_in_domain)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
+
     Box domain0 = geom->Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom->isPeriodic(idim) ) {
@@ -486,7 +487,11 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     }
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
-    const BoxArray& ba = MakeBoxArray(*geom, grid_ba_reduced, ncell); //MakeBoxArray(*geom, grid_ba, ncell);
+    // const BoxArray& ba =  MakeBoxArray(*geom, grid_ba_reduced, ncell);
+    //
+    // const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
+    const BoxArray& ba = (do_pml_in_domain)? MakeBoxArray(*geom, grid_ba_reduced, ncell) : MakeBoxArray(*geom, grid_ba, ncell);
+
     if (ba.size() == 0) {
         m_ok = false;
         return;
@@ -529,8 +534,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_F_fp->setVal(0.0);
     }
 
+    if (do_pml_in_domain){
+        sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba_reduced, geom->CellSize(), ncell, delta));
+    }
+    else {
+        sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell, delta));
+    }
 
-    sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba_reduced, geom->CellSize(), ncell, delta));
 
     if (cgeom)
     {
@@ -541,7 +551,8 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
         const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0));
-        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba_reduced, ncell);
+        // const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba_reduced, ncell);
+        const BoxArray& cba = (do_pml_in_domain) ? MakeBoxArray(*cgeom, grid_cba_reduced, ncell) :  MakeBoxArray(*cgeom, grid_cba, ncell);
 
         DistributionMapping cdm{cba};
 
@@ -572,8 +583,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_j_cp[1]->setVal(0.0);
         pml_j_cp[2]->setVal(0.0);
 
-        // sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
-        sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba_reduced, cgeom->CellSize(), ncell, delta));
+        if (do_pml_in_domain){
+            sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba_reduced, cgeom->CellSize(), ncell, delta));
+        }
+        else {
+            sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
+        }
+
     }
 
 }
@@ -701,53 +717,53 @@ PML::GetF_cp ()
 
 void
 PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                const std::array<amrex::MultiFab*,3>& B_cp)
+                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain)
 {
-  ExchangeB(PatchType::fine, B_fp);
-  ExchangeB(PatchType::coarse, B_cp);
+  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain);
+  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain);
 }
 
 void
 PML::ExchangeB (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Bp)
+                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_B_fp[0] && Bp[0])
     {
-        Exchange(*pml_B_fp[0], *Bp[0], *m_geom);
-        Exchange(*pml_B_fp[1], *Bp[1], *m_geom);
-        Exchange(*pml_B_fp[2], *Bp[2], *m_geom);
+        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain);
+        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain);
+        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain);
     }
     else if (patch_type == PatchType::coarse && pml_B_cp[0] && Bp[0])
     {
-        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom);
-        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom);
-        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom);
+        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain);
     }
 }
 
 void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                const std::array<amrex::MultiFab*,3>& E_cp)
+                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain)
 {
-    ExchangeE(PatchType::fine, E_fp);
-    ExchangeE(PatchType::coarse, E_cp);
+    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain);
+    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain);
 }
 
 void
 PML::ExchangeE (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Ep)
+                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
     {
-        Exchange(*pml_E_fp[0], *Ep[0], *m_geom);
-        Exchange(*pml_E_fp[1], *Ep[1], *m_geom);
-        Exchange(*pml_E_fp[2], *Ep[2], *m_geom);
+        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain);
+        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain);
+        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain);
     }
     else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
     {
-        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom);
-        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom);
-        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom);
+        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain);
     }
 }
 
@@ -804,19 +820,19 @@ PML::CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
 }
 
 void
-PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
+PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain)
 {
-    ExchangeF(PatchType::fine, F_fp);
-    ExchangeF(PatchType::coarse, F_cp);
+    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain);
+    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain);
 }
 
 void
-PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
+PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_F_fp && Fp) {
-        Exchange(*pml_F_fp, *Fp, *m_geom);
+        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain);
     } else if (patch_type == PatchType::coarse && pml_F_cp && Fp) {
-        Exchange(*pml_F_cp, *Fp, *m_cgeom);
+        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain);
     }
 }
 
@@ -864,7 +880,7 @@ PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
 // }
 
 void
-PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
+PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in_domain)
 {
 
     const IntVect& ngr = reg.nGrowVect();

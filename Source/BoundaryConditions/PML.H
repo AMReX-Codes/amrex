@@ -81,7 +81,7 @@ struct SigmaBox
     SigmaVect sigma_star_cum_fac;
 
     std::string pml_type; // if pml normal to x : if pml Hi : pml_type={1,0,0}; if pml Lo: pml_type={-1,0,0}
-    std::array<int,5> pml_type_array; 
+    std::array<int,5> pml_type_array;
 };
 
 namespace amrex {
@@ -128,7 +128,7 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles);
+         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles, int do_pml_in_domain);
 
     void ComputePMLFactors (amrex::Real dt);
 
@@ -149,25 +149,25 @@ public:
         { return *sigba_cp; }
 
     void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                    const std::array<amrex::MultiFab*,3>& B_cp);
+                    const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain);
     void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                    const std::array<amrex::MultiFab*,3>& E_cp);
+                    const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain);
     void CopyJinPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
     void CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
 
     void ExchangeB (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Bp);
+		    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
     void ExchangeE (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Ep);
+		    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
     void CopyJinPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
     void CopyJinReg (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
 
-    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp);
-    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp);
+    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp, int do_pml_in_domain);
+    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp, int do_pml_in_domain);
 
     void FillBoundary ();
     void FillBoundaryE ();
@@ -205,7 +205,7 @@ private:
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
                                          const amrex::BoxArray& grid_ba, int ncell);
 
-    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
     static void CopyRegInPMLs (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
     static void CopyPMLsInReg (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
