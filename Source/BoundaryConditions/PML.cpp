@@ -144,42 +144,35 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (amrex::grow(grid_box, idim, ncell).intersects(box))
             {
                 direct_faces.push_back(kv.first);
-                amrex::Print()<<"direct_faces"<<std::endl;
             }
             else if (amrex::grow(grid_box, jdim, ncell).intersects(box))
             {
                 side_faces.push_back(kv.first);
-                amrex::Print()<<"side_faces"<<std::endl;
             }
 #if (AMREX_SPACEDIM == 3)
             else if (amrex::grow(grid_box, kdim, ncell).intersects(box))
             {
                 side_faces.push_back(kv.first);
-                amrex::Print()<<"side_faces 2"<<std::endl;
             }
             else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
                                  jdim,ncell).intersects(box))
             {
                 direct_side_edges.push_back(kv.first);
-                amrex::Print()<<"direct_side_edges"<<std::endl;
             }
             else if (amrex::grow(amrex::grow(grid_box,idim,ncell),
                                  kdim,ncell).intersects(box))
             {
                 direct_side_edges.push_back(kv.first);
-                amrex::Print()<<"direct_side_edges 2"<<std::endl;
             }
             else if (amrex::grow(amrex::grow(grid_box,jdim,ncell),
                                  kdim,ncell).intersects(box))
             {
                 side_side_edges.push_back(kv.first);
-                amrex::Print()<<"side_side_edges"<<std::endl;
             }
 #endif
             else
             {
                 corners.push_back(kv.first);
-                amrex::Print()<<"corners"<<std::endl;
             }
         }
 
@@ -371,12 +364,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             amrex::Abort("SigmaBox::SigmaBox(): direct_faces.size() > 1, Box gaps not wide enough?\n");
         }
     }
-    amrex::Print()<<"pml_type = "<<pml_type<<std::endl;
-    amrex::Print()<<"pml_type_array = [";
-    for (int i=0; i<5; i++){
-      amrex::Print()<<pml_type_array[i]<<", ";
-    }
-    amrex::Print()<<"]"<<std::endl;
 }
 
 
@@ -487,9 +474,6 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     }
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
-    // const BoxArray& ba =  MakeBoxArray(*geom, grid_ba_reduced, ncell);
-    //
-    // const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
     const BoxArray& ba = (do_pml_in_domain)? MakeBoxArray(*geom, grid_ba_reduced, ncell) : MakeBoxArray(*geom, grid_ba, ncell);
 
     if (ba.size() == 0) {
@@ -880,7 +864,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
     }
 
     else {
-      
+
         const IntVect& ngr = reg.nGrowVect();
         const IntVect& ngp = pml.nGrowVect();
         const int ncp = pml.nComp();

@@ -332,15 +332,8 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
-            // amrex::Print()<< "== sigba.pml_type_array"<<std::endl;
             const auto& pml_type = sigba[mfi].pml_type_array;
-            // amrex::Print()<<"&pml_type = "<< &pml_type <<std::endl;
-            // amrex::Print()<<"pml_type[0] = "<< pml_type[0] <<std::endl;
-            // amrex::Print()<<"tex.loVect() = "<< tex.loVect() <<std::endl;
-            // amrex::Print()<<"sigba[mfi].sigma[0].m_lo = "<< sigba[mfi].sigma[0].m_lo <<std::endl;
-            // amrex::Print()<<"sigba[mfi].sigma[0].m_loVec() = "<< sigba[mfi].sigma[0].lo <<std::endl;
 
-            // amrex::Print()<<"===== WRPX_PUSH_PML_EVEC ====="<<std::endl;
             WRPX_PUSH_PML_EVEC(
 			     tex.loVect(), tex.hiVect(),
 			     tey.loVect(), tey.hiVect(),
@@ -363,12 +356,11 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
            BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
            BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
            &pml_has_particles,
-           &pml_type, //sigba[mfi].pml_type_array,
-           WRPX_PML_SIGMACOEFF_TO_FORTRAN(sigba[mfi]), //WRPX_PML_SIGMAJ_TO_FORTRAN(
+           &pml_type,
+           WRPX_PML_SIGMACOEFF_TO_FORTRAN(sigba[mfi]),
                              &mu_c2_dt,
 #endif
                              &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
-            // amrex::Print()<<"===== WRPX_PUSH_PML_EVEC FIN ====="<<std::endl;
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(

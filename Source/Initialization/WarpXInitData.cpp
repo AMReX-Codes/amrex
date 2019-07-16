@@ -134,13 +134,13 @@ WarpX::InitPML ()
     if (do_pml)
     {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window, pml_has_particles, do_pml_in_domain)); //pml_has_particles));
+                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window, pml_has_particles, do_pml_in_domain));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
                                    pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning,
-                                   do_moving_window, pml_has_particles, do_pml_in_domain)); //pml_has_particles));
+                                   do_moving_window, pml_has_particles, do_pml_in_domain)); 
         }
     }
 }
