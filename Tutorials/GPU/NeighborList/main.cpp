@@ -86,6 +86,9 @@ void main_main ()
 
 	if (step % num_rebuild == 0)
 	{
+
+	  if (step > 0) pc.RedistributeLocal();
+
 	  pc.fillNeighbors();
 
 	  pc.buildNeighborList(CheckPair());
@@ -95,15 +98,13 @@ void main_main ()
 	  pc.updateNeighbors();
 	}
 
+	min_d = std::min(min_d, pc.minDistance());
+
         if (params.print_neighbor_list) pc.printNeighborList();
 
 	pc.computeForces();
 
 	pc.moveParticles(dt);
-
-	min_d = std::min(min_d, pc.minDistance());
-
-        if (step % num_rebuild == 0) pc.RedistributeLocal();
     }
 
     amrex::Print() << "Min distance is " << min_d << "\n";
