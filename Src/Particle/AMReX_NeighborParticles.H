@@ -423,6 +423,10 @@ protected:
     
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
+
+    bool hasNeighbors() const { return m_has_neighbors; };
+  
+    bool m_has_neighbors = false;
 };
     
 #include "AMReX_NeighborParticlesI.H"
