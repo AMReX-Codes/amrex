@@ -16,13 +16,10 @@ struct TestParams
     int nsteps;
     int num_rebuild;
     int num_ppc;
+    bool print_min_dist;
     bool print_neighbor_list;
     bool write_particles;
-<<<<<<< HEAD
     Real cfl;
-=======
-    Real dt = 0.0001;
->>>>>>> 66655c79c825b66766f95fa84a93fbcfef9d8538
 };
 
 void main_main();
@@ -40,6 +37,7 @@ void get_test_params(TestParams& params)
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("nsteps", params.nsteps);
+    pp.get("print_minimum_distance", params.print_min_dist);
     pp.get("print_neighbor_list", params.print_neighbor_list);
     pp.get("write_particles", params.write_particles);
     pp.get("num_rebuild", params.num_rebuild);
@@ -89,7 +87,7 @@ void main_main ()
 
     for (int step = 0; step < params.nsteps; ++step) {
 
-	dt = pc.computeStepSize(cfl);
+	Real dt = pc.computeStepSize(cfl);
 
         amrex::Print() << "Taking step " << step << ": dt = " << dt << ", n particles: " << pc.TotalNumberOfParticles() << "\n";
 
@@ -107,13 +105,18 @@ void main_main ()
 	  pc.updateNeighbors();
 	}
 
-	min_d = std::min(min_d, pc.minDistance());
+        if (params.print_min_dist) 
+        {
+           pc.printNeighborList();
+	   min_d = std::min(min_d, pc.minDistance());
+	}
 
-        if (params.print_neighbor_list) pc.printNeighborList();
+        if (params.print_neighbor_list) 
+           pc.printNeighborList();
 
 	pc.computeForces();
 
-	pc.moveParticles(params.dt);
+	pc.moveParticles(dt);
     }
 
     amrex::Print() << "Min distance is " << min_d << "\n";
