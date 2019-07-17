@@ -488,7 +488,8 @@ packBuffer ()
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-	  int dst_index = p_copy_plan_dst_indices[i];
+	  int box_offset = p_box_offsets[p_copy_plan_boxes[i]];
+	  int dst_index = box_offset + p_copy_plan_dst_indices[i];
 	  int src_index = p_copy_plan_src_indices[i];
 	  p_snd_buffer[dst_index] = p_ptr[src_index];
 
