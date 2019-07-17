@@ -321,7 +321,11 @@ public:
 
     void computeCopyPlan ();
     
-    void packSendBuffer ();
+    void packBuffer ();
+
+    void unpackBuffer ();
+
+    void setNumNeighbors ();
 
 protected:
 

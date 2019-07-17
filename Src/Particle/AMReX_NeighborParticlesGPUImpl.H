@@ -428,9 +428,9 @@ computeCopyPlan ()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-packSendBuffer ()
+packBuffer ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::packSendBuffer");
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::packBuffer");
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
@@ -438,9 +438,6 @@ packSendBuffer ()
 
     const int lev = 0;
     const auto& geom = this->Geom(lev);
-    const auto dxi = this->Geom(lev).InvCellSizeArray();
-    const auto plo = this->Geom(lev).ProbLoArray();
-    const auto domain = this->Geom(lev).Domain();
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
@@ -450,9 +447,113 @@ packSendBuffer ()
     
     int total_buffer_size = box_offsets[num_boxes-1] + box_counts[num_boxes-1];
 
-    amrex::Print() << "total buffer size " << total_buffer_size << "\n";
+    //    amrex::Print() << "total buffer size " << total_buffer_size << "\n";
 
     snd_buffer.resize(total_buffer_size);    
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& src_tile = plev[index];
+        auto& aos   = src_tile.GetArrayOfStructs();
+        ParticleType* p_ptr = &(aos[0]);
+
+	int num_copies = copy_plan_boxes[gid].size();
+
+	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
+	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
+	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
+	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_snd_buffer = snd_buffer.dataPtr();
+
+	AMREX_FOR_1D ( num_copies, i,
+        {
+	  int box_offset = p_box_offsets[p_copy_plan_boxes[i]];
+	  int dst_index = box_offset + p_copy_plan_dst_indices[i];
+	  int src_index = p_copy_plan_src_indices[i];
+	  p_snd_buffer[dst_index] = p_ptr[src_index];
+
+	  // need to apply periodic here
+	});
+    }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+unpackBuffer ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::unpackBuffer");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& tile = plev[index];
+        auto& aos   = tile.GetArrayOfStructs();
+        ParticleType* p_ptr = &(aos[0]);
+	auto np = tile.numParticles();
+	
+	int num_copies = box_counts[gid];
+
+	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_snd_buffer = snd_buffer.dataPtr();
+
+	AMREX_FOR_1D ( num_copies, i,
+        {
+	  int box_offset = p_box_offsets[gid];	  
+	  int src_index = box_offset + i;
+	  int dst_index = np + i;
+	  p_ptr[dst_index] = p_snd_buffer[src_index];
+	});
+    }    
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+setNumNeighbors()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::setNumNeighbors");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& src_tile = plev[index];
+	src_tile.setNumNeighbors(box_counts[gid]);
+    }
 }
 
 template <int NStructReal, int NStructInt>
