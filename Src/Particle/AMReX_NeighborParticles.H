@@ -433,6 +433,10 @@ protected:
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_boxes;
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_src_indices;
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
+    std::map<int, amrex::Gpu::ManagedDeviceVector<IntVect> > copy_plan_periodic_shift;
+
+    amrex::Gpu::ManagedDeviceVector<int> box_counts;
+    amrex::Gpu::ManagedDeviceVector<int> box_offsets;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
