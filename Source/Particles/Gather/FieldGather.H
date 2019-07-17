@@ -5,19 +5,18 @@
 
 using namespace amrex;
 
-/* \brief Current Deposition for thread thread_num
+/* \brief Field gather for particles handled by thread thread_num
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
- * \param wp           : Pointer to array of particle weights.
- * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
- * \param jx_arr       : Array4 of current density, either full array or tile.
- * \param jy_arr       : Array4 of current density, either full array or tile.
- * \param jz_arr       : Array4 of current density, either full array or tile.
+ * \param Exp, Eyp, Ezp: Pointer to array of electric field on particles.
+ * \param Bxp, Byp, Bzp: Pointer to array of magnetic field on particles.
+ * \param ex_arr ey_arr: Array4 of current density, either full array or tile.
+ * \param ez_arr bx_arr: Array4 of current density, either full array or tile.
+ * \param by_arr bz_arr: Array4 of current density, either full array or tile.
  * \param np_to_gather : Number of particles for which current is deposited.
  * \param dx           : 3D cell size
  * \param xyzmin       : Physical lower bounds of domain.
  * \param lo           : Index lower bounds of domain.
  * \param stagger_shift: 0 if nodal, 0.5 if staggered.
- * /param q            : species charge.
  */
 template <int depos_order, int lower_in_v>
 void doGatherShapeN(const Real * const xp, 
@@ -47,10 +46,9 @@ void doGatherShapeN(const Real * const xp,
     const Real ymin = xyzmin[1];
     const Real zmin = xyzmin[2];
 
-    // Loop over particles and deposit into jx_arr, jy_arr and jz_arr
+    // Loop over particles and gather fields from {e,b}{x,y,z}_arr to {E,B}{xyz}p.
     ParallelFor( np_to_gather,
                  [=] AMREX_GPU_DEVICE (long ip) {
-
                      // --- Compute shape factors
                      // x direction
                      // Get particle position after 1/2 push back in position
