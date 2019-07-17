@@ -1473,6 +1473,7 @@ PhysicalParticleContainer::Evolve (int lev,
 #endif
                     }
                     
+                    // Field gather for particles in gather buffers
                     e_is_nodal = cEx->is_nodal() and cEy->is_nodal() and cEz->is_nodal();
                     FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp, 
                                 cexfab, ceyfab, cezfab,
@@ -2079,6 +2080,19 @@ PhysicalParticleContainer::ContinuousInjection(const RealBox& injection_box)
     AddPlasma(lev, injection_box);
 }
 
+/* \brief Gather fields from FArrayBox exfab, eyfab, ezfab, bxfab, byfab, 
+ * bzfab into arrays of fields on particles Exp, Eyp, Ezp, Bxp, Byp, Bzp.
+ * \param Exp-Bzp: fields on particles.
+ * \param exfab-bzfab: FAB of electric and magnetic fields for particles in pti
+ * \param ngE: number of guard cells for E
+ * \param e_is_nodal: 0 if E is staggered, 1 if E is nodal
+ * \param offset: index of first particle for which fields are gathered
+ * \param np_to_gather: number of particles onto which fields are gathered
+ * \param thread_num: if using OpenMP, thread number
+ * \param lev: level on which particles are located
+ * \param gather_lev: level from which particles gather fields (lev-1) for 
+          particles in buffers.
+ */
 void
 PhysicalParticleContainer::FieldGather(WarpXParIter& pti,
                                        RealVector& Exp,
