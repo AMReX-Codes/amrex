@@ -5,14 +5,14 @@ namespace amrex {
 
 template<typename T, typename L>
 AMREX_FORCE_INLINE
-void launch (T const& n, L&& f) noexcept
+void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     f(n);
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_FORCE_INLINE
-void For (T n, L&& f) noexcept
+void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     for (T i = 0; i < n; ++i) {
         f(i);
@@ -21,7 +21,7 @@ void For (T n, L&& f) noexcept
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_FORCE_INLINE
-void ParallelFor (T n, L&& f) noexcept
+void ParallelFor (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     AMREX_PRAGMA_SIMD
     for (T i = 0; i < n; ++i) {
@@ -31,7 +31,7 @@ void ParallelFor (T n, L&& f) noexcept
 
 template <typename L>
 AMREX_FORCE_INLINE
-void For (Box const& box, L&& f) noexcept
+void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -44,7 +44,7 @@ void For (Box const& box, L&& f) noexcept
 
 template <typename L>
 AMREX_FORCE_INLINE
-void ParallelFor (Box const& box, L&& f) noexcept
+void ParallelFor (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -58,7 +58,7 @@ void ParallelFor (Box const& box, L&& f) noexcept
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_FORCE_INLINE
-void For (Box const& box, T ncomp, L&& f) noexcept
+void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -73,7 +73,7 @@ void For (Box const& box, T ncomp, L&& f) noexcept
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_FORCE_INLINE
-void ParallelFor (Box const& box, T ncomp, L&& f) noexcept
+void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

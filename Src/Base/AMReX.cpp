@@ -157,6 +157,7 @@ amrex::Error (const char* msg)
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
+    assert(0);
 #endif
 #else
     if (system::error_handler) {
