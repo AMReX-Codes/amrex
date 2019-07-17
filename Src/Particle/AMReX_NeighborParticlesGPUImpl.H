@@ -68,14 +68,15 @@ buildNeighborMask()
     {
         m_neighbor_mask_ptr.reset(new iMultiFab(ba, dmap, 1, 0));
         m_neighbor_mask_ptr->setVal(-1);
-        
+
         const Periodicity& periodicity = geom.periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
 
         for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
         {
             int grid = mfi.index();
-            
+	    int num_codes = 0;
+       
             std::set<NeighborTask> neighbor_grids;
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
             {
@@ -108,6 +109,7 @@ buildNeighborMask()
                 amrex::grow(ba[mfi], -m_num_neighbor_cells), m_num_neighbor_cells);
             
             m_grid_map[grid].resize(bl.size());
+	    m_code_offsets[grid].push_back(0);
             for (int i = 0; i < static_cast<int>(bl.size()); ++i)
             {
                 const Box& box = bl[i];
@@ -124,10 +126,26 @@ buildNeighborMask()
                     code.grid_id = isec_grids[isec.first];
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
+		    m_code_array[grid].push_back(code);
+		    ++num_codes;
                 }
+   	        m_code_offsets[grid].push_back(m_code_array[grid].size());
             }
+
+	    // for (int icode = 0; icode < m_code_offsets[grid].size()-1; ++icode)
+	    // {
+	    //   amrex::Print() << "code " << icode << " corresponds to: ";
+	    //   for (int code_index = m_code_offsets[grid][icode]; code_index < m_code_offsets[grid][icode+1]; ++code_index)
+	    //   {
+	    // 	amrex::Print() << m_code_array[grid][code_index].grid_id << " ";
+	    //   }
+	    //   amrex::Print() << "\n";
+	    // }
         }
     }
+
+    BuildMasks();
+    GetNeighborCommTags();
 }
 
 template <int NStructReal, int NStructInt>
@@ -237,6 +255,101 @@ sortParticlesByNeighborDestGPU()
         Cuda::thrust_copy(neighbor_code_end.begin(),
                           neighbor_code_end.end(),
                           m_stop[gid].begin());
+    }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+computeCopyPlan ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeCopyPlan");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    const auto dxi = this->Geom(lev).InvCellSizeArray();
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto domain = this->Geom(lev).Domain();
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();        
+        auto index = std::make_pair(gid, tid);
+
+        const Box& bx = mfi.tilebox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        auto& src_tile = plev[index];
+        auto& aos   = src_tile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+	int num_copies = 0;
+	Gpu::DeviceScalar<int> d_num_copies(num_copies);
+        int* p_num_copies = d_num_copies.dataPtr();
+
+        Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
+        
+        ParticleType* p_ptr = &(aos[0]);
+	auto p_code_array = m_code_array[gid].dataPtr();
+	auto p_code_offsets = m_code_offsets[gid].dataPtr();	
+	AMREX_FOR_1D ( np, i,
+        {
+	    IntVect iv = IntVect(
+                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
+                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
+                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
+                );
+            
+            iv += domain.smallEnd();
+            
+	    int code = mask_arr(iv);
+	    if (code > 0)
+	    {
+	      int start = p_code_offsets[code];
+	      int stop =  p_code_offsets[code+1];	    
+	      Gpu::Atomic::Add(p_num_copies, stop - start); 
+	    }
+	});
+
+	num_copies = d_num_copies.dataValue();
+
+	copy_plan_boxes[gid].resize(num_copies);
+	copy_plan_src_indices[gid].resize(num_copies);
+
+	AMREX_FOR_1D ( np, i,
+        {
+	    IntVect iv = IntVect(
+                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
+                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
+                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
+                );
+            
+            iv += domain.smallEnd();
+            
+	    int code = mask_arr(iv);
+	    if (code > 0)
+	    {
+	      int start = p_code_offsets[code];
+	      int stop =  p_code_offsets[code+1];	    
+	      for (int j = start; j < stop; ++i)
+	      {
+		
+	      }
+	    }
+	});	
+	
+	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
     }
 }
 
