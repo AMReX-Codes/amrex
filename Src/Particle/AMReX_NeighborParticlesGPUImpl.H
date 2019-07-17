@@ -131,16 +131,6 @@ buildNeighborMask()
                 }
    	        m_code_offsets[grid].push_back(m_code_array[grid].size());
             }
-
-	    // for (int icode = 0; icode < m_code_offsets[grid].size()-1; ++icode)
-	    // {
-	    //   amrex::Print() << "code " << icode << " corresponds to: ";
-	    //   for (int code_index = m_code_offsets[grid][icode]; code_index < m_code_offsets[grid][icode+1]; ++code_index)
-	    //   {
-	    // 	amrex::Print() << m_code_array[grid][code_index].grid_id << " ";
-	    //   }
-	    //   amrex::Print() << "\n";
-	    // }
         }
     }
 
@@ -367,9 +357,7 @@ computeHaloParticles ()
 		  ++k;
 		}
 	    }
-	});	
-	
-	//	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
+	});		
     }
 }
 
@@ -447,8 +435,6 @@ packBuffer ()
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
     int total_buffer_size = box_offsets[num_boxes-1] + box_counts[num_boxes-1];
-
-    //    amrex::Print() << "total buffer size " << total_buffer_size << "\n";
 
     snd_buffer.resize(total_buffer_size);    
 
@@ -948,45 +934,6 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
                             buffer_locs[i], copy_sizes[i]*sizeof(ParticleType),
                             cudaMemcpyHostToDevice);
         }
-
-        // for (int i = 0; i < nrcvs; ++i) {
-        //     const int offset = rOffset[i];
-        //     char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
-        //     size_t num_particles;
-        //     int gid, pid;
-        //     buffer += sizeof(size_t);
-
-        //     for (int g = 0; g < num_grids; ++g) {
-        //         cudaMemcpyAsync(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
-        //         buffer += sizeof(size_t);
-        //         cudaMemcpyAsync(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
-        //         buffer += sizeof(int);
-        //         cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
-        //         buffer += sizeof(int);
-
-        //         Gpu::streamSynchronize();
-
-        //         if (num_particles == 0) continue;
-
-        //         AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
-        //         {
-        //             const int tid = 0;
-        //             auto pair_index = std::make_pair(gid, tid);
-        //             auto& ptile = this->GetParticles(lev)[pair_index];
-        //             const int nRParticles = ptile.numRealParticles();
-        //             const int nNParticles = ptile.getNumNeighbors();
-        //             const int new_num_neighbors = nNParticles + num_particles;
-        //             ptile.setNumNeighbors(new_num_neighbors);
-
-        //             //copy structs
-        //             auto& aos = ptile.GetArrayOfStructs();
-        //             cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + nRParticles + nNParticles,
-        //                             buffer, num_particles*sizeof(ParticleType),
-        //                             cudaMemcpyHostToDevice);
-        //             buffer += num_particles*sizeof(ParticleType);
-        //         }
-        //     }
-        // }
     }
 
     if (ParallelDescriptor::UseGpuAwareMpi())
