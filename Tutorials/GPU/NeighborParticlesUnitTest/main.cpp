@@ -12,6 +12,7 @@ using namespace amrex;
 struct TestParams
 {
     IntVect size;
+    int is_periodic;
     int max_grid_size;
     int num_ppc;
     bool write_particles;
@@ -31,6 +32,7 @@ void get_test_params(TestParams& params)
     ParmParse pp;
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
+    pp.get("is_periodic", params.is_periodic);
     pp.get("write_particles", params.write_particles);
     pp.get("num_ppc", params.num_ppc);
 }
@@ -55,7 +57,7 @@ void main_main ()
     int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+        is_per[i] = params.is_periodic;
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
