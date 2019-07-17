@@ -138,7 +138,7 @@ void MDParticleContainer::checkNeighbors()
         amrex::Gpu::DeviceScalar<int> d_mine(mine);
         int* p_mine = d_mine.dataPtr();
 
-        if (gid != 0) return;
+        if (gid != 0) continue;
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
@@ -160,15 +160,15 @@ void MDParticleContainer::checkNeighbors()
 
         mine = d_mine.dataValue();
 
-        amrex::Print() << "FOR GRID " << gid << std::endl;
+        std::cout << "FOR GRID " << gid << std::endl;
         // amrex::Print() << mine << " particles are mine " << std::endl;
         // amrex::Print() << " " << std::endl;
 
         for (int i = 0; i < ngrids; i++)
-           amrex::Print() << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
+          std::cout << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
 
-        amrex::Print() << " " << std::endl;
-        amrex::Print() << " " << std::endl;
+        std::cout << " " << std::endl;
+        std::cout << " " << std::endl;
     }
 }
 
