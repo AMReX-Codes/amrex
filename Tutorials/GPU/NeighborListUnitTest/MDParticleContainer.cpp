@@ -129,16 +129,48 @@ void MDParticleContainer::checkNeighbors()
     amrex::Cuda::ManagedVector<int> d_num_per_grid(ngrids,0);
     int* p_num_per_grid = d_num_per_grid.data();
 
+    // CPU version
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
 
-        int mine = 0;
+        if (gid != 0) continue;
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
 
-        amrex::Gpu::DeviceScalar<int> d_mine(mine);
-        int* p_mine = d_mine.dataPtr();
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numTotalParticles();
 
-        if (gid != 0) return;
+        ParticleType* pstruct = aos().dataPtr();
+
+        for (int i = 0; i < np; i++)
+        {
+            ParticleType& p1 = pstruct[i];
+            Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
+        }
+
+        std::cout << "FOR GRID " << gid << std::endl;
+
+        for (int i = 0; i < ngrids; i++)
+          std::cout << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
+
+        std::cout << " " << std::endl;
+        std::cout << " " << std::endl;
+    }
+
+#if 0
+    // GPU version
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+
+        // int mine = 0;
+
+        // amrex::Gpu::DeviceScalar<int> d_mine(mine);
+        // int* p_mine = d_mine.dataPtr();
+
+        if (gid != 0) continue;
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
@@ -158,18 +190,21 @@ void MDParticleContainer::checkNeighbors()
             Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
         });
 
-        mine = d_mine.dataValue();
+        Gpu::Device::synchronize();
 
-        amrex::Print() << "FOR GRID " << gid << std::endl;
+        // mine = d_mine.dataValue();
+
+        std::cout << "FOR GRID " << gid << std::endl;
         // amrex::Print() << mine << " particles are mine " << std::endl;
         // amrex::Print() << " " << std::endl;
 
         for (int i = 0; i < ngrids; i++)
-           amrex::Print() << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
+          std::cout << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
 
-        amrex::Print() << " " << std::endl;
-        amrex::Print() << " " << std::endl;
+        std::cout << " " << std::endl;
+        std::cout << " " << std::endl;
     }
+#endif
 }
 
 void MDParticleContainer::reset_test_id()
@@ -179,8 +214,6 @@ void MDParticleContainer::reset_test_id()
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
-
-    int ngrids = ParticleBoxArray(0).size();
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
