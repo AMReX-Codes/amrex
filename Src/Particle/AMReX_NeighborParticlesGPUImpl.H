@@ -426,7 +426,7 @@ computeCopyPlan ()
 	int num_copies = copy_plan_boxes[gid].size();
 
 	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
-	auto p_copy_plan_dst_indices = copy_plan_src_indices[gid].dataPtr();
+	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
@@ -504,6 +504,10 @@ packBuffer ()
 	  }
 	});
     }
+    // for (int i = 0; i < snd_buffer.size(); ++i)
+    // {
+    //   amrex::Print() << snd_buffer[i] << "\n";
+    // }
 }
 
 template <int NStructReal, int NStructInt>
