@@ -598,6 +598,11 @@ def convert_cxx(inputs):
                 if "smem(" in entry:
                     smem = entry[len("smem("):-1]
 
+            do_host_version = True
+            for entry in split_line:
+                if "nohost" in entry:
+                    do_host_version = False
+
             # we don't need to reproduce the pragma line in the
             # output, but we need to capture the whole function
             # call that follows
@@ -638,7 +643,9 @@ def convert_cxx(inputs):
 
             hout.write("#else\n")
 
-            hout.write("if (amrex::Gpu::inLaunchRegion()) {\n")
+            if do_host_version:
+                hout.write("if (amrex::Gpu::inLaunchRegion()) {\n")
+
             hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
             if box:
                 hout.write("    amrex::Gpu::Device::box_threads_and_blocks({}, {}numBlocks, {}numThreads);\n".format(box, func_name, func_name))
@@ -656,15 +663,16 @@ def convert_cxx(inputs):
             if 'AMREX_DEBUG' in defines:
                 hout.write("AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());\n")
 
-            # For the host launch, we need to replace certain macros.
-            host_args = args
-            host_args = host_args.replace("AMREX_INT_ANYD", "AMREX_ARLIM_3D")
-            host_args = host_args.replace("AMREX_REAL_ANYD", "AMREX_ZFILL")
-            host_args = host_args.replace("BL_TO_FORTRAN_GPU", "BL_TO_FORTRAN")
+            if do_host_version:
+                # For the host launch, we need to replace certain macros.
+                host_args = args
+                host_args = host_args.replace("AMREX_INT_ANYD", "AMREX_ARLIM_3D")
+                host_args = host_args.replace("AMREX_REAL_ANYD", "AMREX_ZFILL")
+                host_args = host_args.replace("BL_TO_FORTRAN_GPU", "BL_TO_FORTRAN")
 
-            hout.write("} else {\n")
-            hout.write("    {}\n ({});\n".format(func_name, host_args))
-            hout.write("}\n")
+                hout.write("} else {\n")
+                hout.write("    {}\n ({});\n".format(func_name, host_args))
+                hout.write("}\n")
 
             hout.write("#endif\n")
 
