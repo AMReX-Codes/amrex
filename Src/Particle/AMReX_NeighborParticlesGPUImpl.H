@@ -281,10 +281,6 @@ computeHaloParticles ()
     int num_boxes = ba.size();    
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
 
-    box_counts.resize(0);
-    box_counts.resize(num_boxes, 0);
-    box_offsets.resize(num_boxes);
-
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -337,8 +333,6 @@ computeHaloParticles ()
 
 	int num_copies = last_count_host + last_offset_host;
 
-	box_counts[gid] = num_copies;
-
 	copy_plan_boxes[gid].resize(num_copies);
 	copy_plan_src_indices[gid].resize(num_copies);
 	copy_plan_dst_indices[gid].resize(num_copies);
@@ -377,9 +371,6 @@ computeHaloParticles ()
 	
 	//	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
     }
-
-    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-			   box_counts.begin(), box_counts.end(), box_offsets.begin());
 }
 
 template <int NStructReal, int NStructInt>
@@ -403,10 +394,14 @@ computeCopyPlan ()
     auto& dmap = this->ParticleDistributionMap(lev);
 
     int num_boxes = ba.size();
-    Gpu::DeviceVector<unsigned int> dst_box_counts(num_boxes, 0);
-    auto p_dst_box_counts = dst_box_counts.dataPtr();
-
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+
+    box_counts.resize(0);
+    box_counts.resize(num_boxes, 0);
+    box_offsets.resize(num_boxes);
+    auto p_dst_box_counts = box_counts.dataPtr();
+
+    constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -419,10 +414,13 @@ computeCopyPlan ()
 	AMREX_FOR_1D ( num_copies, i,
         {
 	    int dst_box = p_copy_plan_boxes[i];
-	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[dst_box], 1);
-	    p_copy_plan_dst_indices[i] = index;	      
+	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[dst_box], max_unsigned_int);
+	    p_copy_plan_dst_indices[i] = index;
 	});
     }
+
+    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+			   box_counts.begin(), box_counts.end(), box_offsets.begin());
 }
 
 template <int NStructReal, int NStructInt>
@@ -472,8 +470,7 @@ packBuffer ()
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-	  int box_offset = p_box_offsets[p_copy_plan_boxes[i]];
-	  int dst_index = box_offset + p_copy_plan_dst_indices[i];
+	  int dst_index = p_copy_plan_dst_indices[i];
 	  int src_index = p_copy_plan_src_indices[i];
 	  p_snd_buffer[dst_index] = p_ptr[src_index];
 
@@ -500,6 +497,8 @@ unpackBuffer ()
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
+    auto p_dst_box_counts = box_counts.dataPtr();
+
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
