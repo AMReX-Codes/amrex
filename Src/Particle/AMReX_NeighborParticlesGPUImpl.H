@@ -278,7 +278,12 @@ computeHaloParticles ()
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
 
-    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+    int num_boxes = ba.size();    
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+
+    box_counts.resize(0);
+    box_counts.resize(num_boxes, 0);
+    box_offsets.resize(num_boxes);
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -332,12 +337,16 @@ computeHaloParticles ()
 
 	int num_copies = last_count_host + last_offset_host;
 
+	box_counts[gid] = num_copies;
+
 	copy_plan_boxes[gid].resize(num_copies);
 	copy_plan_src_indices[gid].resize(num_copies);
 	copy_plan_dst_indices[gid].resize(num_copies);
+	copy_plan_periodic_shift[gid].resize(num_copies);
 
 	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
 	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
+	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
 
 	AMREX_FOR_1D ( np, i,
         {
@@ -358,8 +367,8 @@ computeHaloParticles ()
 	        for (int j = start; j < stop; ++j)
 	        {
 		  int index = p_offsets[i]+k;
-  		  int dst_box = p_code_array[j].grid_id;
-		  p_copy_plan_boxes[index] = dst_box;
+		  p_copy_plan_boxes[index] = p_code_array[j].grid_id;
+		  p_copy_plan_periodic_shift[index] = p_code_array[j].periodic_shift;
 		  p_copy_plan_src_indices[index] = i;
 		  ++k;
 		}
@@ -368,6 +377,9 @@ computeHaloParticles ()
 	
 	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
     }
+
+    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+			   box_counts.begin(), box_counts.end(), box_offsets.begin());
 }
 
 template <int NStructReal, int NStructInt>
