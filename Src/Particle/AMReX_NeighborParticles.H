@@ -327,6 +327,8 @@ public:
 
     void setNumNeighbors ();
 
+    void clearCopyPlan ();
+
 protected:
 
     void cacheNeighborInfo ();
