@@ -403,15 +403,15 @@ computeCopyPlan ()
     auto& dmap = this->ParticleDistributionMap(lev);
 
     int num_boxes = ba.size();
+    Gpu::DeviceVector<unsigned int> dst_box_counts(num_boxes, 0);
+    auto p_dst_box_counts = dst_box_counts.dataPtr();
+
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
 	int num_copies = copy_plan_boxes[gid].size();
-
-	Gpu::DeviceVector<unsigned int> dst_box_counts(num_boxes, 0);
-	auto p_dst_box_counts = dst_box_counts.dataPtr();
 
 	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
 	auto p_copy_plan_dst_indices = copy_plan_src_indices[gid].dataPtr();
