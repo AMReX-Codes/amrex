@@ -207,7 +207,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               Cuda::ManagedDeviceVector<Real>& xp,
+                                       Cuda::ManagedDeviceVector<Real>& xp,
                                        Cuda::ManagedDeviceVector<Real>& yp,
                                        Cuda::ManagedDeviceVector<Real>& zp,
                                        Cuda::ManagedDeviceVector<Real>& giv,
@@ -218,8 +218,8 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     {
         copy_attribs(pti, xp.dataPtr(), yp.dataPtr(), zp.dataPtr());
     }
-    
-    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+
+    // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     auto& uxp = attribs[PIdx::ux];
     auto& uyp = attribs[PIdx::uy];
@@ -352,9 +352,9 @@ RigidInjectedParticleContainer::Evolve (int lev,
     done_injecting_lev = done_injecting[lev];
 
     PhysicalParticleContainer::Evolve (lev,
-				       Ex, Ey, Ez,
-				       Bx, By, Bz,
-				       jx, jy, jz,
+                                       Ex, Ey, Ez,
+                                       Bx, By, Bz,
+                                       jx, jy, jz,
                                        cjx, cjy, cjz,
                                        rho, crho,
                                        cEx, cEy, cEz,
