@@ -441,8 +441,8 @@ protected:
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
     std::map<int, amrex::Gpu::ManagedDeviceVector<IntVect> > copy_plan_periodic_shift;
 
-    amrex::Gpu::ManagedDeviceVector<int> box_counts;
-    amrex::Gpu::ManagedDeviceVector<int> box_offsets;
+    amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
+    amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
 
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
 
