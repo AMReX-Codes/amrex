@@ -513,17 +513,17 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     if        (WarpX::nox == 1){
         doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
                               uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
-                              jz_arr, offset, np_to_depose, dt, dx,
+                              jz_arr, np_to_depose, dt, dx,
                               xyzmin, lo, stagger_shift, q);
     } else if (WarpX::nox == 2){
         doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
                               uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
-                              jz_arr, offset, np_to_depose, dt, dx,
+                              jz_arr, np_to_depose, dt, dx,
                               xyzmin, lo, stagger_shift, q);
     } else if (WarpX::nox == 3){
         doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
                               uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
-                              jz_arr, offset, np_to_depose, dt, dx,
+                              jz_arr, np_to_depose, dt, dx,
                               xyzmin, lo, stagger_shift, q);
     }
 
