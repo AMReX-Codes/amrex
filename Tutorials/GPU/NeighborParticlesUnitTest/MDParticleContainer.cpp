@@ -126,7 +126,7 @@ void MDParticleContainer::checkNeighbors()
 
     int ngrids = ParticleBoxArray(0).size();
 
-    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
 
@@ -135,7 +135,6 @@ void MDParticleContainer::checkNeighbors()
         amrex::Gpu::DeviceScalar<int> d_mine(mine);
         int* p_mine = d_mine.dataPtr();
 
-        if (gid != 0) return;
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
@@ -154,10 +153,16 @@ void MDParticleContainer::checkNeighbors()
         auto nbor_data = m_neighbor_list[index].data();
         ParticleType* pstruct = aos().dataPtr();
 
-        // now we loop over the neighbor list and compute the forces
-        AMREX_FOR_1D ( np, i,
+        // ON DEVIDE: 
+        // AMREX_FOR_1D ( np, i,
+        // ON HOST:
+        // for (int i = 0; i < np; i++)
+        for (int i = 0; i < np; i++)
         {
             ParticleType& p1 = pstruct[i];
+
+            amrex::Vector<int> nbor_nbors;
+            amrex::Vector<int> full_nbors;
 
             // Loop over all particles
             for (int j = 0; j < np_total; j++)
@@ -175,27 +180,49 @@ void MDParticleContainer::checkNeighbors()
                 Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff; 
 
 		if (r2 <= cutoff_sq)
+		{
                    Gpu::Atomic::Add(&(p_full_count[i]),1);
+                   full_nbors.push_back(p2.id());
+		}
             }
 
-            // Loop over particles in my neighbor list
             for (const auto& p2 : nbor_data.getNeighbors(i))
-            {                
+            {               
                 Gpu::Atomic::Add(&(p_neighbor_count[i]),1);
+                nbor_nbors.push_back(p2.id());
             }
 
-        });
+            std::sort(full_nbors.begin(), full_nbors.end());
+            std::sort(nbor_nbors.begin(), nbor_nbors.end());
 
-        amrex::Print() << "FOR GRID " << gid << std::endl;
+            if (nbor_nbors.size() != full_nbors.size())
+            {
+               amrex::Print() << "Number of neighbors do not match for particle " << i << std::endl;
+               amrex::Print() << "Neighbor list has " << nbor_nbors.size() << " particles " << std::endl;
+               amrex::Print() << "Full N^2 list has " << full_nbors.size() << " particles " << std::endl;
+               amrex::Abort();
+            }
 
-        Gpu::Device::synchronize();
+            // amrex::Print() << "   there are " << nbor_nbors.size() << " " <<
+            //                  full_nbors.size() << " list / full neighbors of particle " << i << std::endl;
+            
+            // Loop over particles in my neighbor list
+            for (int cnt = 0; cnt < nbor_nbors.size(); cnt++)
+            {               
+                // std::cout << "   NBORS " << nbor_nbors[cnt] << " " << full_nbors[cnt] << std::endl;
+                if (nbor_nbors[cnt] != full_nbors[cnt])
+                {
+                     amrex::Print() << "Index of neighbors do not match for particle " << i << std::endl;
+                     amrex::Print() << "Neighbor list neighbor index: " << nbor_nbors[cnt]  << std::endl;
+                     amrex::Print() << "Full N^2 list neighbor index: " << full_nbors[cnt]  << std::endl;
+                     amrex::Abort();
+                }
+            }
 
-        for (int i = 0; i < np; i++)
-        {
-           amrex::Print() << "   there are " << d_neighbor_count[i] << " " <<
-                             d_full_count[i] << " list / full neighbors of particle " << i << std::endl;
-        }
-    }
+        } // i
+    } // MFIter
+
+    amrex::Print() << "All the neighbor list particles match!" << std::endl;
 }
 
 void MDParticleContainer::reset_test_id()
