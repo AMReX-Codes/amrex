@@ -1522,8 +1522,8 @@ PhysicalParticleContainer::Evolve (int lev,
                         BL_TO_FORTRAN_ANYD(*cbyfab),
                         BL_TO_FORTRAN_ANYD(*cbzfab),
                         &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                        &lvect_fieldgathe, &WarpX::field_gathering_algo);#
-else
+                        &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
                     e_is_nodal = cEx->is_nodal() and cEy->is_nodal() and cEz->is_nodal();
                     FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp, 
                                 cexfab, ceyfab, cezfab,
