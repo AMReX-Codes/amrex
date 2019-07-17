@@ -261,9 +261,9 @@ sortParticlesByNeighborDestGPU()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-computeCopyPlan ()
+computeHaloParticles ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeCopyPlan");
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeHaloParticles()");
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
@@ -283,7 +283,7 @@ computeCopyPlan ()
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();        
+        int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
         const Box& bx = mfi.tilebox();
@@ -294,12 +294,13 @@ computeCopyPlan ()
         auto& aos   = src_tile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-	int num_copies = 0;
-	Gpu::DeviceScalar<int> d_num_copies(num_copies);
-        int* p_num_copies = d_num_copies.dataPtr();
-
         Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
-        
+
+	Gpu::DeviceVector<int> counts(np, 0);
+	Gpu::DeviceVector<int> offsets(np, 0);
+	auto p_counts = counts.dataPtr();
+	auto p_offsets = offsets.dataPtr();
+
         ParticleType* p_ptr = &(aos[0]);
 	auto p_code_array = m_code_array[gid].dataPtr();
 	auto p_code_offsets = m_code_offsets[gid].dataPtr();	
@@ -317,15 +318,26 @@ computeCopyPlan ()
 	    if (code > 0)
 	    {
 	      int start = p_code_offsets[code];
-	      int stop =  p_code_offsets[code+1];	    
-	      Gpu::Atomic::Add(p_num_copies, stop - start); 
+	      int stop =  p_code_offsets[code+1];
+	      Gpu::Atomic::Add(&p_counts[i], stop-start);
 	    }
 	});
 
-	num_copies = d_num_copies.dataValue();
+	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                               counts.begin(), counts.end(), offsets.begin());
+
+	int last_count_host, last_offset_host;
+	Gpu::dtoh_memcpy(&last_count_host, thrust::raw_pointer_cast(counts.data()) + np - 1, sizeof(int));
+        Gpu::dtoh_memcpy(&last_offset_host, thrust::raw_pointer_cast(offsets.data()) + np - 1, sizeof(int));
+
+	int num_copies = last_count_host + last_offset_host;
 
 	copy_plan_boxes[gid].resize(num_copies);
 	copy_plan_src_indices[gid].resize(num_copies);
+	copy_plan_dst_indices[gid].resize(num_copies);
+
+	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
+	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
 
 	AMREX_FOR_1D ( np, i,
         {
@@ -336,20 +348,68 @@ computeCopyPlan ()
                 );
             
             iv += domain.smallEnd();
-            
+            	   
 	    int code = mask_arr(iv);
 	    if (code > 0)
 	    {
-	      int start = p_code_offsets[code];
-	      int stop =  p_code_offsets[code+1];	    
-	      for (int j = start; j < stop; ++i)
-	      {
-		
-	      }
+	        int k = 0;
+	        int start = p_code_offsets[code];
+	        int stop =  p_code_offsets[code+1];
+	        for (int j = start; j < stop; ++j)
+	        {
+		  int index = p_offsets[i]+k;
+  		  int dst_box = p_code_array[j].grid_id;
+		  p_copy_plan_boxes[index] = dst_box;
+		  p_copy_plan_src_indices[index] = i;
+		  ++k;
+		}
 	    }
 	});	
 	
 	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
+    }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+computeCopyPlan ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeCopyPlan");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    const auto dxi = this->Geom(lev).InvCellSizeArray();
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto domain = this->Geom(lev).Domain();
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+	int num_copies = copy_plan_boxes[gid].size();
+
+	Gpu::DeviceVector<unsigned int> dst_box_counts(num_boxes, 0);
+	auto p_dst_box_counts = dst_box_counts.dataPtr();
+
+	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
+	auto p_copy_plan_dst_indices = copy_plan_src_indices[gid].dataPtr();
+
+	AMREX_FOR_1D ( num_copies, i,
+        {
+	    int dst_box = p_copy_plan_boxes[i];
+	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[dst_box], 1);
+	    p_copy_plan_dst_indices[i] = index;	      
+	});
     }
 }
 
