@@ -439,6 +439,9 @@ packBuffer ()
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto phi = this->Geom(lev).ProbHiArray();
+    const auto is_per = this->Geom(lev).isPeriodicArray();
 
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
@@ -474,7 +477,16 @@ packBuffer ()
 	  int src_index = p_copy_plan_src_indices[i];
 	  p_snd_buffer[dst_index] = p_ptr[src_index];
 
-	  // need to apply periodic here
+	  ParticleType& p = p_snd_buffer[dst_index];
+	  const IntVect& pshift = p_copy_plan_periodic_shift[i];
+	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+	  {
+	    if (not is_per[idim]) continue;
+	    if (pshift[idim] > 0) 
+	      p.pos(idim) += phi[idim] - plo[idim]; 
+	    else if (pshift[idim] < 0)
+	      p.pos(idim) -= phi[idim] - plo[idim];
+	  }
 	});
     }
 }
@@ -522,7 +534,7 @@ unpackBuffer ()
 	  int dst_index = np + i;
 	  p_ptr[dst_index] = p_snd_buffer[src_index];
 	});
-    }    
+    }
 }
 
 template <int NStructReal, int NStructInt>
