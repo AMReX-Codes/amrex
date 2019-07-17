@@ -84,9 +84,9 @@ public:
     /// Performs the field gather operation using the input fields E and B, for all the species
     /// in the MultiParticleContainer. This is the electromagnetic version of the field gather.
     ///
-    void FieldGather (int lev,
-                      const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-                      const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
+    void FieldGatherFortran (int lev,
+                             const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                             const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
 
     ///
     /// This evolves all the particles by one PIC time step, including current deposition, the

@@ -1055,9 +1055,9 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
 #endif // WARPX_DO_ELECTROSTATIC
 
 void
-PhysicalParticleContainer::FieldGather (int lev,
-                                        const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+PhysicalParticleContainer::FieldGatherFortran (int lev,
+                                               const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                               const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 

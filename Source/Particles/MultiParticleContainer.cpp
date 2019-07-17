@@ -239,12 +239,12 @@ MultiParticleContainer::sumParticleCharge (bool local)
 #endif // WARPX_DO_ELECTROSTATIC
 
 void
-MultiParticleContainer::FieldGather (int lev,
-                                     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+MultiParticleContainer::FieldGatherFortran (int lev,
+                                            const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                            const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
     for (auto& pc : allcontainers) {
-        pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
+        pc->FieldGatherFortran(lev, Ex, Ey, Ez, Bx, By, Bz);
     }
 }
 
