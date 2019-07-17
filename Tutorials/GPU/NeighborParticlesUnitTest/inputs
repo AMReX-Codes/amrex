@@ -1,0 +1,8 @@
+
+size = (24, 24, 24)
+
+max_grid_size = 8
+
+write_particles = false
+
+num_ppc = 1
