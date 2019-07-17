@@ -1748,7 +1748,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                   Real dt)
 {
 
-    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+    // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     // Extract pointers to the different particle quantities
     Real* AMREX_RESTRICT x = xp.dataPtr();
@@ -1883,16 +1883,39 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
-            warpx_particle_pusher_momenta(&np,
-                                          m_xp[thread_num].dataPtr(),
-                                          m_yp[thread_num].dataPtr(),
-                                          m_zp[thread_num].dataPtr(),
-                                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                          m_giv[thread_num].dataPtr(),
-                                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                                          &this->charge, &this->mass, &dt,
-                                          &WarpX::particle_pusher_algo);
+            // This wraps the momentum advance so that inheritors can modify the call.
+            // Extract pointers to the different particle quantities
+            Real* AMREX_RESTRICT gi = m_giv[thread_num].dataPtr();
+            Real* AMREX_RESTRICT uxpp = uxp.dataPtr();
+            Real* AMREX_RESTRICT uypp = uyp.dataPtr();
+            Real* AMREX_RESTRICT uzpp = uzp.dataPtr();
+            Real* AMREX_RESTRICT Expp = Exp.dataPtr();
+            Real* AMREX_RESTRICT Eypp = Eyp.dataPtr();
+            Real* AMREX_RESTRICT Ezpp = Ezp.dataPtr();
+            Real* AMREX_RESTRICT Bxpp = Bxp.dataPtr();
+            Real* AMREX_RESTRICT Bypp = Byp.dataPtr();
+            Real* AMREX_RESTRICT Bzpp = Bzp.dataPtr();
+
+            // Loop over the particles and update their momentum
+            const Real q = this->charge;
+            const Real m = this-> mass;
+            if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumBoris( uxpp[i], uypp[i], uzpp[i], gi[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumVay( uxpp[i], uypp[i], uzpp[i], gi[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else {
+              amrex::Abort("Unknown particle pusher");
+            };
         }
     }
 }
