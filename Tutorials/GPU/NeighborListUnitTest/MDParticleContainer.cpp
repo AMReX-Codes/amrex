@@ -158,6 +158,8 @@ void MDParticleContainer::checkNeighbors()
             Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
         });
 
+        Gpu::Device::synchronize();
+
         // mine = d_mine.dataValue();
 
         std::cout << "FOR GRID " << gid << std::endl;
