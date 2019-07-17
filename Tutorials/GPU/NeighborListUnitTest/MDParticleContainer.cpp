@@ -85,6 +85,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.rdata(PIdx::ax) = 0.0;
                 p.rdata(PIdx::ay) = 0.0;
                 p.rdata(PIdx::az) = 0.0;
+
+                p.idata(0) = mfi.index();
                 
                 host_particles.push_back(p);
             }
@@ -105,157 +107,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     amrex::Print() << "done. \n";
 }
 
-void MDParticleContainer::computeForces()
-{
-    BL_PROFILE("MDParticleContainer::computeForces");
 
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    auto& plev  = GetParticles(lev);
-
-    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto& ptile = plev[index];
-        auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
-
-        auto nbor_data = m_neighbor_list[index].data();
-        ParticleType* pstruct = aos().dataPtr();
-
-       // now we loop over the neighbor list and compute the forces
-        AMREX_FOR_1D ( np, i,
-        {
-            ParticleType& p1 = pstruct[i];
-            p1.rdata(PIdx::ax) = 0.0;
-            p1.rdata(PIdx::ay) = 0.0;
-            p1.rdata(PIdx::az) = 0.0;
-
-            for (const auto& p2 : nbor_data.getNeighbors(i))
-            {                
-                Real dx = p1.pos(0) - p2.pos(0);
-                Real dy = p1.pos(1) - p2.pos(1);
-                Real dz = p1.pos(2) - p2.pos(2);
-                
-                Real r2 = dx*dx + dy*dy + dz*dz;
-                r2 = amrex::max(r2, Params::min_r*Params::min_r);
-
-		if (r2 > Params::cutoff*Params::cutoff) return;
-
-                Real r = sqrt(r2);
-                
-                Real coef = (1.0 - Params::cutoff / r) / r2;
-                p1.rdata(PIdx::ax) += coef * dx;
-                p1.rdata(PIdx::ay) += coef * dy;
-                p1.rdata(PIdx::az) += coef * dz;
-            }
-        });
-    }
-}
-
-Real MDParticleContainer::minDistance()
-{
-    BL_PROFILE("MDParticleContainer::minDistance");
-
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    auto& plev  = GetParticles(lev);
-
-    Real min_d = std::numeric_limits<Real>::max();
-
-    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto& ptile = plev[index];
-        auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
-
-        auto nbor_data = m_neighbor_list[index].data();
-        ParticleType* pstruct = aos().dataPtr();
-
-	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
-	Real* pmin_d = min_d_gpu.dataPtr();
-
-        AMREX_FOR_1D ( np, i,
-        {
-            ParticleType& p1 = pstruct[i];
-
-            for (const auto& p2 : nbor_data.getNeighbors(i))
-            {                	      
-                Real dx = p1.pos(0) - p2.pos(0);
-                Real dy = p1.pos(1) - p2.pos(1);
-                Real dz = p1.pos(2) - p2.pos(2);
-                
-                Real r2 = dx*dx + dy*dy + dz*dz;
-                r2 = amrex::max(r2, Params::min_r*Params::min_r);
-                Real r = sqrt(r2);
-                
-		Gpu::Atomic::Min(pmin_d, r);
-            }
-        });
-
-	Gpu::Device::streamSynchronize();
-
-	min_d = std::min(min_d, min_d_gpu.dataValue());
-    }
-    ParallelDescriptor::ReduceRealMin(min_d, ParallelDescriptor::IOProcessorNumber());
-
-    return min_d;
-}
-
-void MDParticleContainer::moveParticles(const amrex::Real& dt)
-{
-    BL_PROFILE("MDParticleContainer::moveParticles");
-
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto dx = Geom(lev).CellSizeArray();
-    auto& plev  = GetParticles(lev);
-
-    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        
-        auto& ptile = plev[std::make_pair(gid, tid)];
-        auto& aos   = ptile.GetArrayOfStructs();
-        ParticleType* pstruct = &(aos[0]);
-
-        const size_t np = aos.numParticles();
-    
-        // now we move the particles
-        AMREX_FOR_1D ( np, i,
-        {
-            ParticleType& p = pstruct[i];            
-            p.rdata(PIdx::vx) += p.rdata(PIdx::ax) * dt;
-            p.rdata(PIdx::vy) += p.rdata(PIdx::ay) * dt;
-            p.rdata(PIdx::vz) += p.rdata(PIdx::az) * dt;
-
-            p.pos(0) += p.rdata(PIdx::vx) * dt;
-            p.pos(1) += p.rdata(PIdx::vy) * dt;
-            p.pos(2) += p.rdata(PIdx::vz) * dt;
-
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                while ( (p.pos(idim) < plo[idim]) or (p.pos(idim) > phi[idim]) ) {
-                    if ( p.pos(idim) < plo[idim] ) {
-                        p.pos(idim) = 2*plo[idim] - p.pos(idim);
-                    } else {
-                        p.pos(idim) = 2*phi[idim] - p.pos(idim);
-                    }
-                    p.rdata(idim) *= -1; // flip velocity
-                }
-            }
-        });
-    }
-}
 
 void MDParticleContainer::writeParticles(const int n)
 {
@@ -264,29 +116,89 @@ void MDParticleContainer::writeParticles(const int n)
     WriteAsciiFile(pltfile);
 }
 
-
-Real MDParticleContainer::computeStepSize(amrex::Real& cfl)
+void MDParticleContainer::checkNeighbors()
 {
-    BL_PROFILE("MDParticleContainer::computeStepSize");
+    BL_PROFILE("MDParticleContainer::checkNeighbors");
 
-    using ParticleType = MDParticleContainer::ParticleType;
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    auto& plev  = GetParticles(lev);
 
-    Real maxVel = amrex::ReduceMax(*this, 0,
-    [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p) noexcept -> Real
-                              {
-                                 Real u = std::abs(p.rdata(PIdx::vx));
-                                 Real v = std::abs(p.rdata(PIdx::vy));
-                                 Real w = std::abs(p.rdata(PIdx::vz));
-                                 return amrex::max(u,amrex::max(v,w));
-                              });
+    int ngrids = ParticleBoxArray(0).size();
 
-    ParallelDescriptor::ReduceRealMax(maxVel);
-    
-    // This would compute dt based on the grid spacing dx
-    // const int lev = 0;   
-    // const Real* dx = Geom(lev).CellSize();
-    // return cfl*dx[0]/maxVel;
+    amrex::Cuda::ManagedVector<int> d_num_per_grid(ngrids,0);
+    int* p_num_per_grid = d_num_per_grid.data();
 
-    // This computes dt based on the particle cutoff radius
-    return cfl * Params::cutoff /maxVel;
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+
+        int mine = 0;
+
+        amrex::Gpu::DeviceScalar<int> d_mine(mine);
+        int* p_mine = d_mine.dataPtr();
+
+        if (gid != 0) return;
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numTotalParticles();
+
+        ParticleType* pstruct = aos().dataPtr();
+
+        // now we loop over the neighbor list and compute the forces
+        AMREX_FOR_1D ( np, i,
+        {
+            ParticleType& p1 = pstruct[i];
+
+            // Gpu::Atomic::Add(p_mine,1);
+
+            Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
+        });
+
+        mine = d_mine.dataValue();
+
+        amrex::Print() << "FOR GRID " << gid << std::endl;
+        // amrex::Print() << mine << " particles are mine " << std::endl;
+        // amrex::Print() << " " << std::endl;
+
+        for (int i = 0; i < ngrids; i++)
+           amrex::Print() << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
+
+        amrex::Print() << " " << std::endl;
+        amrex::Print() << " " << std::endl;
+    }
+}
+
+void MDParticleContainer::reset_test_id()
+{
+    BL_PROFILE("MDParticleContainer::reset_test_id");
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    auto& plev  = GetParticles(lev);
+
+    int ngrids = ParticleBoxArray(0).size();
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numTotalParticles();
+
+        ParticleType* pstruct = aos().dataPtr();
+
+        AMREX_FOR_1D ( np, i,
+        {
+            ParticleType& p1 = pstruct[i];
+            p1.idata(0) = gid;
+        });
+    }
 }

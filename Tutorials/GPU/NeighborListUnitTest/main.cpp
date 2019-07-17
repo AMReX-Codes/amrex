@@ -13,13 +13,8 @@ struct TestParams
 {
     IntVect size;
     int max_grid_size;
-    int nsteps;
-    int num_rebuild;
     int num_ppc;
-    bool print_min_dist;
-    bool print_neighbor_list;
     bool write_particles;
-    Real cfl;
 };
 
 void main_main();
@@ -36,13 +31,8 @@ void get_test_params(TestParams& params)
     ParmParse pp;
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
-    pp.get("nsteps", params.nsteps);
-    pp.get("print_minimum_distance", params.print_min_dist);
-    pp.get("print_neighbor_list", params.print_neighbor_list);
     pp.get("write_particles", params.write_particles);
-    pp.get("num_rebuild", params.num_rebuild);
     pp.get("num_ppc", params.num_ppc);
-    pp.get("cfl", params.cfl);
 }
 
 void main_main ()
@@ -65,7 +55,7 @@ void main_main ()
     int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 0;
+        is_per[i] = 1;
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
@@ -78,57 +68,35 @@ void main_main ()
     int npc = params.num_ppc;
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
+    amrex::Print() << "About to initialize particles" << std::endl;
+
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    int num_rebuild = params.num_rebuild;
+    amrex::Print() << "Check neighbors after init ..." << std::endl;
+    pc.checkNeighbors();
 
-    Real cfl = params.cfl;
-    
-    Real min_d = std::numeric_limits<Real>::max();
-    Real dt;
+    pc.fillNeighbors();
 
-    {
-    BL_PROFILE("main::time loop()");
-     for (int step = 0; step < params.nsteps; ++step) {
+    amrex::Print() << "Check neighbors after fill ..." << std::endl;
+    pc.checkNeighbors();
 
-	dt = pc.computeStepSize(cfl);
+    pc.updateNeighbors();
 
-        // amrex::Print() << "Taking step " << step << ": dt = " << dt << ", n particles: " << pc.TotalNumberOfParticles() << "\n";
+    amrex::Print() << "Check neighbors after update ..." << std::endl;
+    pc.checkNeighbors();
 
-	if (step % num_rebuild == 0)
-	{
-	  if (step > 0) pc.RedistributeLocal();
+    amrex::Print() << "Now resetting the particle test_id values " << std::endl;
+    pc.reset_test_id();
 
-	  pc.fillNeighbors();
+    amrex::Print() << "Check neighbors after reset ..." << std::endl;
+    pc.checkNeighbors();
 
-	  pc.buildNeighborList(CheckPair());
-	  // cudaDeviceSynchronize();
-	} 
-	else
-	{
-	  pc.updateNeighbors();
-	  // cudaDeviceSynchronize();
-	}
+    amrex::Print() << "Now updateNeighbors again ... " << std::endl;
+    pc.updateNeighbors();
 
-        if (params.print_min_dist) 
-        {
-           pc.printNeighborList();
-	   min_d = std::min(min_d, pc.minDistance());
-	}
-
-        if (params.print_neighbor_list) 
-           pc.printNeighborList();
-
-	pc.computeForces();
-
-	pc.moveParticles(dt);
-	// cudaDeviceSynchronize();
-     }
-    }
-
-    if (params.print_min_dist) 
-        amrex::Print() << "Min distance is " << min_d << "\n";
+    amrex::Print() << "Check neighbors after update ..." << std::endl;
+    pc.checkNeighbors();
 
     if (params.write_particles) 
-        pc.writeParticles(params.nsteps);
+        pc.writeParticles(0);
 }
