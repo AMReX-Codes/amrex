@@ -375,7 +375,7 @@ computeHaloParticles ()
 	    }
 	});	
 	
-	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
+	//	amrex::Print() << gid << " will perform " << num_copies << " copies \n";
     }
 
     thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
@@ -423,6 +423,36 @@ computeCopyPlan ()
 	    p_copy_plan_dst_indices[i] = index;	      
 	});
     }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+packSendBuffer ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::packSendBuffer");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    const auto dxi = this->Geom(lev).InvCellSizeArray();
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto domain = this->Geom(lev).Domain();
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    
+    int total_buffer_size = box_offsets[num_boxes-1] + box_counts[num_boxes-1];
+
+    amrex::Print() << "total buffer size " << total_buffer_size << "\n";
+
+    snd_buffer.resize(total_buffer_size);    
 }
 
 template <int NStructReal, int NStructInt>
