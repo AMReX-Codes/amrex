@@ -1402,9 +1402,36 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
+                BL_PROFILE_VAR_START(blp_pxr_fg);
+#ifdef WARPX_RZ
+                const int ll4symtry          = false;
+                long lvect_fieldgathe = 64;
+                const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+                const int* ixyzmin_grid = box.loVect();
+                warpx_geteb_energy_conserving(
+                    &np_gather,
+                    m_xp[thread_num].dataPtr(),
+                    m_yp[thread_num].dataPtr(),
+                    m_zp[thread_num].dataPtr(),
+                    Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
+                    Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
+                    ixyzmin_grid,
+                    &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
+                    &dx[0], &dx[1], &dx[2],
+                    &WarpX::nox, &WarpX::noy, &WarpX::noz,
+                    BL_TO_FORTRAN_ANYD(*exfab),
+                    BL_TO_FORTRAN_ANYD(*eyfab),
+                    BL_TO_FORTRAN_ANYD(*ezfab),
+                    BL_TO_FORTRAN_ANYD(*bxfab),
+                    BL_TO_FORTRAN_ANYD(*byfab),
+                    BL_TO_FORTRAN_ANYD(*bzfab),
+                    &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
+                    &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
                 FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                             exfab, eyfab, ezfab, bxfab, byfab, bzfab, 
                             Ex.nGrow(), e_is_nodal, 0, np_gather, thread_num, lev, lev);
+#endif
 
                 if (np_gather < np)
                 {
@@ -1474,6 +1501,29 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                     
                     // Field gather for particles in gather buffers
+#ifdef WARPX_RZ
+                    
+                    long ncrse = np - nfine_gather;
+                    warpx_geteb_energy_conserving(
+                        &ncrse,
+                        m_xp[thread_num].dataPtr()+nfine_gather,
+                        m_yp[thread_num].dataPtr()+nfine_gather,
+                        m_zp[thread_num].dataPtr()+nfine_gather,
+                        Exp.dataPtr()+nfine_gather, Eyp.dataPtr()+nfine_gather, Ezp.dataPtr()+nfine_gather,
+                        Bxp.dataPtr()+nfine_gather, Byp.dataPtr()+nfine_gather, Bzp.dataPtr()+nfine_gather,
+                        cixyzmin_grid,
+                        &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
+                        &cdx[0], &cdx[1], &cdx[2],
+                        &WarpX::nox, &WarpX::noy, &WarpX::noz,
+                        BL_TO_FORTRAN_ANYD(*cexfab),
+                        BL_TO_FORTRAN_ANYD(*ceyfab),
+                        BL_TO_FORTRAN_ANYD(*cezfab),
+                        BL_TO_FORTRAN_ANYD(*cbxfab),
+                        BL_TO_FORTRAN_ANYD(*cbyfab),
+                        BL_TO_FORTRAN_ANYD(*cbzfab),
+                        &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
+                        &lvect_fieldgathe, &WarpX::field_gathering_algo);#
+else
                     e_is_nodal = cEx->is_nodal() and cEy->is_nodal() and cEz->is_nodal();
                     FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp, 
                                 cexfab, ceyfab, cezfab,
@@ -1481,6 +1531,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                 cEx->nGrow(), e_is_nodal, 
                                 nfine_gather, np-nfine_gather, 
                                 thread_num, lev, lev-1);
+#endif
                 }
 
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
