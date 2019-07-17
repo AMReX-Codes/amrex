@@ -317,6 +317,8 @@ public:
 
     void buildNeighborMask ();
 
+    void computeHaloParticles ();
+
     void computeCopyPlan ();
     
 protected:
@@ -430,7 +432,8 @@ protected:
 
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_boxes;
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_src_indices;
-    
+    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
+
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
 
