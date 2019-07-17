@@ -56,7 +56,7 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
                  [=] AMREX_GPU_DEVICE (long ip) {
                      // --- Get particle quantities
                      const Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                              + uyp[ip]*uyp[ip]*clightsq
+                                                       + uyp[ip]*uyp[ip]*clightsq
                                                        + uzp[ip]*uzp[ip]*clightsq);
                      const Real wq  = q*wp[ip];
                      const Real vx  = uxp[ip]*gaminv;
