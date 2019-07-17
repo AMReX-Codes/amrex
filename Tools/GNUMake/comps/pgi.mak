@@ -56,6 +56,10 @@ CC  = pgcc
 CXXFLAGS =
 CFLAGS   =
 
+# Allow -gopt to be disabled to work around a compiler bug on P9.
+
+PGI_GOPT ?= TRUE
+
 ifeq ($(DEBUG),TRUE)
 
   # 2016-12-02: pgi 16.10 doesn't appear to like -traceback together with c++11
@@ -65,8 +69,15 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -gopt $(PGI_OPT)
-  CFLAGS   += -gopt $(PGI_OPT)
+  CXXFLAGS += $(PGI_OPT)
+  CFLAGS   += $(PGI_OPT)
+
+  ifeq ($(PGI_GOPT),TRUE)
+
+    CXXFLAGS += -gopt
+    CFLAGS   += -gopt
+
+  endif
 
 endif
 
@@ -108,8 +119,15 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  FFLAGS   += -gopt $(PGI_OPT)
-  F90FLAGS += -gopt $(PGI_OPT)
+  FFLAGS   += $(PGI_OPT)
+  F90FLAGS += $(PGI_OPT)
+
+  ifeq ($(PGI_GOPT),TRUE)
+
+    FFLAGS   += -gopt
+    F90FLAGS += -gopt
+
+  endif
 
 endif
 
