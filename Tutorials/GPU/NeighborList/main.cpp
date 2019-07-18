@@ -114,8 +114,10 @@ void main_main ()
 	pc.moveParticles(dt);
     }
 
+    pc.RedistributeLocal();
+
     if (params.print_min_dist) amrex::Print() << "Min distance is " << min_d << "\n";
-    amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n"
+    amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n";
 
     if (params.write_particles) pc.writeParticles(params.nsteps);
 }
