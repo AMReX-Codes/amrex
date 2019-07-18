@@ -447,6 +447,8 @@ protected:
 
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
+    amrex::Gpu::ManagedDeviceVector<int> box_permutation;
+    amrex::Gpu::ManagedDeviceVector<int> box_proc_ids;
 
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
 

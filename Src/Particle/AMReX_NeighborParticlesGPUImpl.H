@@ -147,6 +147,19 @@ buildNeighborMask()
 
     BuildMasks();
     GetNeighborCommTags();
+
+    int num_boxes = ba.size();
+    box_permutation.resize(num_boxes);
+    box_proc_ids.resize(num_boxes);
+
+    Gpu::thrust_copy(dmap.ProcessorMap().begin(), dmap.ProcessorMap().end(), box_proc_ids.begin());
+
+    thrust::sequence(thrust::device, box_permutation.begin(), box_permutation.end());
+
+    thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+			box_proc_ids.begin(),
+			box_proc_ids.end(),
+			box_permutation.begin());
 }
 
 template <int NStructReal, int NStructInt>
@@ -417,6 +430,7 @@ computeCopyPlan ()
     box_counts.resize(num_boxes, 0);
     box_offsets.resize(num_boxes);
     auto p_dst_box_counts = box_counts.dataPtr();
+    auto p_box_perm = box_permutation.dataPtr();
 
     constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -431,7 +445,7 @@ computeCopyPlan ()
 	AMREX_FOR_1D ( num_copies, i,
         {
 	    int dst_box = p_copy_plan_boxes[i];
-	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[dst_box], max_unsigned_int);
+	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[p_box_perm[dst_box]], max_unsigned_int);
 	    p_copy_plan_dst_indices[i] = index;
 	});
     }
@@ -545,11 +559,12 @@ unpackBuffer ()
 	int num_copies = box_counts[gid];
 
 	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_box_perm = box_permutation.dataPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-	  int box_offset = p_box_offsets[gid];	  
+	  int box_offset = p_box_offsets[p_box_perm[gid]];
 	  int src_index = box_offset + i;
 	  int dst_index = np + i;
 	  p_ptr[dst_index] = p_snd_buffer[src_index];
