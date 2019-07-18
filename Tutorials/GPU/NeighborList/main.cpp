@@ -18,6 +18,7 @@ struct TestParams
     int num_ppc;
     bool print_min_dist;
     bool print_neighbor_list;
+    bool print_num_particles;
     bool write_particles;
     Real cfl;
 };
@@ -43,10 +44,14 @@ void get_test_params(TestParams& params)
     pp.get("num_rebuild", params.num_rebuild);
     pp.get("num_ppc", params.num_ppc);
     pp.get("cfl", params.cfl);
+    pp.get("print_num_particles", params.print_num_particles);
 }
 
 void main_main ()
 {
+
+    amrex::Print() << "Running MD benchmark \n";
+
     TestParams params;
     get_test_params(params);
 
@@ -78,6 +83,9 @@ void main_main ()
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
     pc.InitParticles(nppc, 1.0, 0.0);
+
+    if (params.print_num_particles) 
+      amrex::Print() << "Num particles after init is " << pc.TotalNumberOfParticles() << "\n";
 
     int num_rebuild = params.num_rebuild;
 
@@ -117,7 +125,7 @@ void main_main ()
     pc.RedistributeLocal();
 
     if (params.print_min_dist) amrex::Print() << "Min distance is " << min_d << "\n";
-    amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n";
+    if (params.print_num_particles) amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n";
 
     if (params.write_particles) pc.writeParticles(params.nsteps);
 }

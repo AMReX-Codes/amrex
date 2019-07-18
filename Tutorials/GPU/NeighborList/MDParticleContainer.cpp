@@ -41,8 +41,6 @@ InitParticles(const IntVect& a_num_particles_per_cell,
 {
     BL_PROFILE("MDParticleContainer::InitParticles");
 
-    amrex::Print() << "Generating particles... ";
-
     const int lev = 0;   
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
@@ -99,10 +97,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         Cuda::thrust_copy(host_particles.begin(),
                           host_particles.end(),
                           particle_tile.GetArrayOfStructs().begin() + old_size);        
-    }
-    
-    amrex::Print() << " Number of particles is " << this->TotalNumberOfParticles()<< " \n";
-    amrex::Print() << "done. \n";
+    }    
 }
 
 void MDParticleContainer::computeForces()
