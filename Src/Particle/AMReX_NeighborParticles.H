@@ -329,6 +329,8 @@ public:
 
     void clearCopyPlan ();
 
+    void getBoxRcvCounts ();
+
 protected:
 
     void cacheNeighborInfo ();
