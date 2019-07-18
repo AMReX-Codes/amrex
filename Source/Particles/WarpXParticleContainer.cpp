@@ -6,6 +6,7 @@
 #include <AMReX_AmrParGDB.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <WarpXAlgorithmSelection.H>
 
 // Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
@@ -510,21 +511,40 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Better for memory? worth trying?    
     const Dim3 lo = lbound(tilebox);
 
-    if        (WarpX::nox == 1){
-        doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                              uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
-                              jz_arr, offset, np_to_depose, dt, dx,
-                              xyzmin, lo, stagger_shift, q);
-    } else if (WarpX::nox == 2){
-        doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                              uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
-                              jz_arr, offset, np_to_depose, dt, dx,
-                              xyzmin, lo, stagger_shift, q);
-    } else if (WarpX::nox == 3){
-        doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                              uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
-                              jz_arr, offset, np_to_depose, dt, dx,
-                              xyzmin, lo, stagger_shift, q);
+    if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
+        if        (WarpX::nox == 1){
+            doEsirkepovDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                                           uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                                           jz_arr, offset, np_to_depose, dt, dx,
+                                           xyzmin, lo, q);
+        } else if (WarpX::nox == 2){
+            doEsirkepovDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                                           uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                                           jz_arr, offset, np_to_depose, dt, dx,
+                                           xyzmin, lo, q);
+        } else if (WarpX::nox == 3){
+            doEsirkepovDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                                           uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                                           jz_arr, offset, np_to_depose, dt, dx,
+                                           xyzmin, lo, q);
+        }
+    } else {
+        if        (WarpX::nox == 1){
+            doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                                  uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                                  jz_arr, offset, np_to_depose, dt, dx,
+                                  xyzmin, lo, stagger_shift, q);
+        } else if (WarpX::nox == 2){
+            doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                                  uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                                  jz_arr, offset, np_to_depose, dt, dx,
+                                  xyzmin, lo, stagger_shift, q);
+        } else if (WarpX::nox == 3){
+            doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                                  uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                                  jz_arr, offset, np_to_depose, dt, dx,
+                                  xyzmin, lo, stagger_shift, q);
+        }
     }
 
 #ifndef AMREX_USE_GPU
