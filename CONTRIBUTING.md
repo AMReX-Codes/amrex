@@ -193,3 +193,7 @@ created it). Reviewers will interact with you if they have comments/questions.
 ## Style and conventions
 - For indentation, WarpX uses four spaces (no tabs)
 - The number of characters per line should be <80
+- To define a function , for e.g., myfunction() use a space between the name of the function and the paranthesis - myfunction (). To call the function, the space is not required, i.e., just use myfunction(). The reason this is beneficial is that when we do a 'git grep ' to search for myfunction (), we can clearly see the locations where myfunction () is defined and where myfunction() is called. 
+- Also, using 'git grep "myfunction ()"' searches for files only in the git repo, which is more efficient compared to the 'grep "myfunction ()"' command that searches through all the files in a directory, including plotfiles for example. 
+- It is recommended that style changes are not included in the PR where new code is added. Some text editors may do this automatically and it is suggested that any automatic style changes in the text editor are removed. This is to avoid any errors that may be introduced in a PR just to do style change. 
+
