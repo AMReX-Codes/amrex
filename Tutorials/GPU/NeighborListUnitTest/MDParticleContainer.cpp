@@ -107,7 +107,88 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     amrex::Print() << "done. \n";
 }
 
+Real MDParticleContainer::minDistance()
+{
+    BL_PROFILE("MDParticleContainer::minDistance");
 
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    auto& plev  = GetParticles(lev);
+
+    Real min_d = std::numeric_limits<Real>::max();
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+        auto nbor_data = m_neighbor_list[index].data();
+        ParticleType* pstruct = aos().dataPtr();
+
+	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
+	Real* pmin_d = min_d_gpu.dataPtr();
+
+        AMREX_FOR_1D ( np, i,
+        {
+            ParticleType& p1 = pstruct[i];
+
+            for (const auto& p2 : nbor_data.getNeighbors(i))
+            {                	      
+                Real dx = p1.pos(0) - p2.pos(0);
+                Real dy = p1.pos(1) - p2.pos(1);
+                Real dz = p1.pos(2) - p2.pos(2);
+                
+                Real r2 = dx*dx + dy*dy + dz*dz;
+                r2 = amrex::max(r2, Params::min_r*Params::min_r);
+                Real r = sqrt(r2);
+                
+		Gpu::Atomic::Min(pmin_d, r);
+            }
+        });
+
+	Gpu::Device::streamSynchronize();
+
+	min_d = std::min(min_d, min_d_gpu.dataValue());
+    }
+    ParallelDescriptor::ReduceRealMin(min_d, ParallelDescriptor::IOProcessorNumber());
+
+    return min_d;
+}
+
+void MDParticleContainer::moveParticles(amrex::Real dx)
+{
+    BL_PROFILE("MDParticleContainer::moveParticles");
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    auto& plev  = GetParticles(lev);
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        
+        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* pstruct = &(aos[0]);
+
+        const size_t np = aos.numParticles();
+    
+        // now we move the particles
+        AMREX_FOR_1D ( np, i,
+        {
+            ParticleType& p = pstruct[i];
+            p.pos(0) += dx;
+            p.pos(1) += dx;
+            p.pos(2) += dx;
+        });
+    }
+}
 
 void MDParticleContainer::writeParticles(const int n)
 {
