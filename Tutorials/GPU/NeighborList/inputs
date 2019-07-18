@@ -9,6 +9,8 @@ print_neighbor_list = false
 
 print_minimum_distance = false
 
+print_num_particles = false
+
 write_particles = false
 
 num_rebuild = 25
