@@ -171,6 +171,8 @@ buildNeighborMask()
 	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
 			       proc_box_counts.begin(), proc_box_counts.end(), proc_box_offsets.begin());
  
+	proc_box_offsets.push_back(num_boxes-1);
+
 	// for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
 	// {
 	//   amrex::Print() << proc_box_counts[i] << " ";
@@ -693,7 +695,16 @@ getBoxRcvCounts ()
       }
       amrex::AllPrintToFile("mpi_data") << "\n";
     }
-        
+
+    // We may now have particles that are rightfully owned by another CPU.
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
+
+    long NumSnds = 0;
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc) continue;
+	amrex::Print() << "Proc " << MyProc << " is sending " << box_offsets[proc_box_offsets[i+1]] - box_offsets[proc_box_offsets[i]] << " particles to proc " << i << "\n"; 
+    }
 #endif // MPI
 }
 
