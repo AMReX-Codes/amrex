@@ -143,23 +143,52 @@ buildNeighborMask()
 	// }
 	// amrex::Print() << "\n";
 	}
+    
+	BuildMasks();
+	GetNeighborCommTags();
+
+	int num_boxes = ba.size();
+	box_permutation.resize(num_boxes);
+	box_proc_ids.resize(num_boxes);
+
+	Gpu::thrust_copy(dmap.ProcessorMap().begin(), dmap.ProcessorMap().end(), box_proc_ids.begin());
+	
+	thrust::sequence(thrust::device, box_permutation.begin(), box_permutation.end());
+	
+	thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+			    box_proc_ids.begin(),
+			    box_proc_ids.end(),
+			    box_permutation.begin());
+	
+	
+	proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
+	proc_box_offsets.resize(ParallelDescriptor::NProcs());
+	for (auto& val : dmap.ProcessorMap() )
+        {
+	    proc_box_counts[val]++;
+	} 
+
+	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+			       proc_box_counts.begin(), proc_box_counts.end(), proc_box_offsets.begin());
+ 
+	for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+	{
+	  amrex::Print() << proc_box_counts[i] << " ";
+	}
+	amrex::Print() << "\n";
+
+	for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+	{
+	  amrex::Print() << proc_box_offsets[i] << " ";
+	}
+	amrex::Print() << "\n";
+
+	  // for (int i = 0; i < box_permutation.size(); ++i)
+	  // {
+	  //   amrex::Print() << box_proc_ids[box_permutation[i]] << " ";
+	  // }
+	  // amrex::Print() << "\n";
     }
-
-    BuildMasks();
-    GetNeighborCommTags();
-
-    int num_boxes = ba.size();
-    box_permutation.resize(num_boxes);
-    box_proc_ids.resize(num_boxes);
-
-    Gpu::thrust_copy(dmap.ProcessorMap().begin(), dmap.ProcessorMap().end(), box_proc_ids.begin());
-
-    thrust::sequence(thrust::device, box_permutation.begin(), box_permutation.end());
-
-    thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-			box_proc_ids.begin(),
-			box_proc_ids.end(),
-			box_permutation.begin());
 }
 
 template <int NStructReal, int NStructInt>

@@ -450,6 +450,9 @@ protected:
     amrex::Gpu::ManagedDeviceVector<int> box_permutation;
     amrex::Gpu::ManagedDeviceVector<int> box_proc_ids;
 
+    amrex::Gpu::ManagedDeviceVector<int> proc_box_counts;
+    amrex::Gpu::ManagedDeviceVector<int> proc_box_offsets;
+
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
