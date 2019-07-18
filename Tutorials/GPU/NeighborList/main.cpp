@@ -89,8 +89,6 @@ void main_main ()
 
 	Real dt = pc.computeStepSize(cfl);
 
-        amrex::Print() << "Taking step " << step << ": dt = " << dt << ", n particles: " << pc.TotalNumberOfParticles() << "\n";
-
 	if (step % num_rebuild == 0)
 	{
 
@@ -107,7 +105,6 @@ void main_main ()
 
         if (params.print_min_dist) 
         {
-           pc.printNeighborList();
 	   min_d = std::min(min_d, pc.minDistance());
 	}
 
