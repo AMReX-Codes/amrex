@@ -35,6 +35,10 @@ public:
     void reset_test_id ();    
 
     void checkNeighbors ();    
+
+    amrex::Real minDistance ();
+
+    void moveParticles (amrex::Real dx);
 };
 
 #endif
