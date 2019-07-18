@@ -85,7 +85,8 @@ void main_main ()
     
     Real min_d = std::numeric_limits<Real>::max();
 
-    for (int step = 0; step < params.nsteps; ++step) {
+    for (int step = 0; step < params.nsteps; ++step) 
+    {
 
 	Real dt = pc.computeStepSize(cfl);
 
@@ -93,11 +94,8 @@ void main_main ()
 
 	if (step % num_rebuild == 0)
 	{
-
 	  if (step > 0) pc.RedistributeLocal();
-
 	  pc.fillNeighbors();
-
 	  pc.buildNeighborList(CheckPair());
 	} 
 	else
@@ -106,10 +104,7 @@ void main_main ()
 	}
 
         if (params.print_min_dist) 
-        {
-           pc.printNeighborList();
 	   min_d = std::min(min_d, pc.minDistance());
-	}
 
         if (params.print_neighbor_list) 
            pc.printNeighborList();
@@ -119,7 +114,9 @@ void main_main ()
 	pc.moveParticles(dt);
     }
 
-    amrex::Print() << "Min distance is " << min_d << "\n";
+    if (params.print_min_dist) 
+        amrex::Print() << "Min distance is " << min_d << "\n";
 
-    if (params.write_particles) pc.writeParticles(params.nsteps);
+    if (params.write_particles) 
+        pc.writeParticles(params.nsteps);
 }
