@@ -68,36 +68,44 @@ void main_main ()
     int npc = params.num_ppc;
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
-    amrex::Print() << "About to initialize particles" << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "About to initialize particles" << std::endl;
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    amrex::Print() << "Check neighbors after init ..." << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Check neighbors after init ..." << std::endl;
     pc.checkNeighbors();
 
     pc.fillNeighbors();
 
-    amrex::Print() << "Check neighbors after fill ..." << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Check neighbors after fill ..." << std::endl;
     pc.checkNeighbors();
 
     pc.updateNeighbors();
 
-    amrex::Print() << "Check neighbors after update ..." << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Check neighbors after update ..." << std::endl;
     pc.checkNeighbors();
 
-    amrex::Print() << "Now resetting the particle test_id values " << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Now resetting the particle test_id values " << std::endl;
     pc.reset_test_id();
 
-    amrex::Print() << "Check neighbors after reset ..." << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Check neighbors after reset ..." << std::endl;
     pc.checkNeighbors();
 
-    amrex::Print() << "Now updateNeighbors again ... " << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Now updateNeighbors again ... " << std::endl;
     pc.updateNeighbors();
 
-    amrex::Print() << "Check neighbors after update ..." << std::endl;
+    if (ParallelDescriptor::MyProc() == dm[0])
+        std::cout << "Check neighbors after update ..." << std::endl;
     pc.checkNeighbors();
 
-    amrex::Print() << "Testing neighbor particles after move \n";
+    std::cout << "Testing neighbor particles after move \n";
 
     // so we can call minDistance
     pc.buildNeighborList(CheckPair());
