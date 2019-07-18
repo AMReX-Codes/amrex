@@ -171,17 +171,17 @@ buildNeighborMask()
 	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
 			       proc_box_counts.begin(), proc_box_counts.end(), proc_box_offsets.begin());
  
-	for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
-	{
-	  amrex::Print() << proc_box_counts[i] << " ";
-	}
-	amrex::Print() << "\n";
+	// for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+	// {
+	//   amrex::Print() << proc_box_counts[i] << " ";
+	// }
+	// amrex::Print() << "\n";
 
-	for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
-	{
-	  amrex::Print() << proc_box_offsets[i] << " ";
-	}
-	amrex::Print() << "\n";
+	// for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+	// {
+	//   amrex::Print() << proc_box_offsets[i] << " ";
+	// }
+	// amrex::Print() << "\n";
 
 	  // for (int i = 0; i < box_permutation.size(); ++i)
 	  // {
