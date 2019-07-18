@@ -97,6 +97,31 @@ void main_main ()
     amrex::Print() << "Check neighbors after update ..." << std::endl;
     pc.checkNeighbors();
 
+    amrex::Print() << "Testing neighbor particles after move \n";
+
+    // so we can call minDistance
+    pc.buildNeighborList(CheckPair());
+
+    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+
+    amrex::Print() << "Moving particles and updating neighbors \n";
+    pc.moveParticles(0.1);
+    pc.updateNeighbors();
+
+    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+
+    amrex::Print() << "Moving particles and updating neighbors again \n";
+    pc.moveParticles(0.1);
+    pc.updateNeighbors();
+
+    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+
+    amrex::Print() << "Moving particles and updating neighbors yet again \n";
+    pc.moveParticles(0.1);
+    pc.updateNeighbors();
+
+    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+    
     if (params.write_particles) 
         pc.writeParticles(0);
 }

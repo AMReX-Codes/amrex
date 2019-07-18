@@ -68,14 +68,15 @@ buildNeighborMask()
     {
         m_neighbor_mask_ptr.reset(new iMultiFab(ba, dmap, 1, 0));
         m_neighbor_mask_ptr->setVal(-1);
-        
+
         const Periodicity& periodicity = geom.periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
 
         for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
         {
             int grid = mfi.index();
-            
+	    int num_codes = 0;
+       
             std::set<NeighborTask> neighbor_grids;
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
             {
@@ -108,6 +109,7 @@ buildNeighborMask()
                 amrex::grow(ba[mfi], -m_num_neighbor_cells), m_num_neighbor_cells);
             
             m_grid_map[grid].resize(bl.size());
+	    m_code_offsets[grid].push_back(0);
             for (int i = 0; i < static_cast<int>(bl.size()); ++i)
             {
                 const Box& box = bl[i];
@@ -124,10 +126,27 @@ buildNeighborMask()
                     code.grid_id = isec_grids[isec.first];
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
+		    m_code_array[grid].push_back(code);
+		    ++num_codes;
                 }
+   	        m_code_offsets[grid].push_back(m_code_array[grid].size());
             }
-        }
+        
+	// for (int i = 0; i < m_code_offsets[grid].size()-1; ++i)
+	// {
+	//   int start = m_code_offsets[grid][i];
+	//   int stop  = m_code_offsets[grid][i+1];
+	//   amrex::Print() << "Code " << i << " corresponds to: ";
+	//   for (int j = start; j < stop; ++j)
+	//     amrex::Print() << m_code_array[grid][j].grid_id << " ";
+	//   amrex::Print() << "\n";
+	// }
+	// amrex::Print() << "\n";
+	}
     }
+
+    BuildMasks();
+    GetNeighborCommTags();
 }
 
 template <int NStructReal, int NStructInt>
@@ -243,6 +262,334 @@ sortParticlesByNeighborDestGPU()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
+computeHaloParticles ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeHaloParticles()");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    const auto dxi = this->Geom(lev).InvCellSizeArray();
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto domain = this->Geom(lev).Domain();
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        const Box& bx = mfi.tilebox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        auto& src_tile = plev[index];
+        auto& aos   = src_tile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+        Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
+
+	Gpu::DeviceVector<int> counts(np, 0);
+	Gpu::DeviceVector<int> offsets(np);
+	auto p_counts = counts.dataPtr();
+	auto p_offsets = offsets.dataPtr();
+
+        ParticleType* p_ptr = &(aos[0]);
+	auto p_code_array = m_code_array[gid].dataPtr();
+	auto p_code_offsets = m_code_offsets[gid].dataPtr();	
+	AMREX_FOR_1D ( np, i,
+        {
+	    IntVect iv = IntVect(
+                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
+                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
+                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
+                );
+            
+            iv += domain.smallEnd();
+            
+	    int code = mask_arr(iv);
+	    if (code >= 0)
+	    {
+	      int start = p_code_offsets[code];
+	      int stop =  p_code_offsets[code+1];
+	      Gpu::Atomic::Add(&p_counts[i], stop-start);
+	    }
+	});
+
+	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                               counts.begin(), counts.end(), offsets.begin());
+
+	int last_count_host, last_offset_host;
+	Gpu::dtoh_memcpy(&last_count_host, thrust::raw_pointer_cast(counts.data()) + np - 1, sizeof(int));
+        Gpu::dtoh_memcpy(&last_offset_host, thrust::raw_pointer_cast(offsets.data()) + np - 1, sizeof(int));
+
+	int num_copies = last_count_host + last_offset_host;
+
+	copy_plan_boxes[gid].resize(num_copies);
+	copy_plan_src_indices[gid].resize(num_copies);
+	copy_plan_dst_indices[gid].resize(num_copies);
+	copy_plan_periodic_shift[gid].resize(num_copies);
+
+	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
+	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
+	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
+
+	AMREX_FOR_1D ( np, i,
+        {
+	    IntVect iv = IntVect(
+                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
+                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
+                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
+                );
+            
+            iv += domain.smallEnd();
+            	   
+	    int code = mask_arr(iv);
+	    if (code >= 0)
+	    {
+	        int k = 0;
+	        int start = p_code_offsets[code];
+	        int stop =  p_code_offsets[code+1];
+	        for (int j = start; j < stop; ++j)
+	        {
+		  int index = p_offsets[i]+k;
+		  p_copy_plan_boxes[index] = p_code_array[j].grid_id;
+		  p_copy_plan_periodic_shift[index] = p_code_array[j].periodic_shift;
+		  p_copy_plan_src_indices[index] = i;
+		  ++k;
+		}
+	    }
+	});		
+    }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+clearCopyPlan ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearCopyPlan");
+
+    clearNeighbors();
+
+    box_counts.resize(0);
+    box_offsets.resize(0);
+
+    copy_plan_boxes.clear();
+    copy_plan_src_indices.clear();
+    copy_plan_dst_indices.clear();
+    copy_plan_periodic_shift.clear();
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+computeCopyPlan ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeCopyPlan");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    const auto dxi = this->Geom(lev).InvCellSizeArray();
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto domain = this->Geom(lev).Domain();
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+
+    box_counts.resize(0);
+    box_counts.resize(num_boxes, 0);
+    box_offsets.resize(num_boxes);
+    auto p_dst_box_counts = box_counts.dataPtr();
+
+    constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+	int num_copies = copy_plan_boxes[gid].size();
+
+	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
+	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+
+	AMREX_FOR_1D ( num_copies, i,
+        {
+	    int dst_box = p_copy_plan_boxes[i];
+	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[dst_box], max_unsigned_int);
+	    p_copy_plan_dst_indices[i] = index;
+	});
+    }
+
+    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+			   box_counts.begin(), box_counts.end(), box_offsets.begin());
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+packBuffer ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::packBuffer");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+    const auto plo = this->Geom(lev).ProbLoArray();
+    const auto phi = this->Geom(lev).ProbHiArray();
+    const auto is_per = this->Geom(lev).isPeriodicArray();
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    
+    int total_buffer_size = box_offsets[num_boxes-1] + box_counts[num_boxes-1];
+
+    snd_buffer.resize(total_buffer_size);    
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& src_tile = plev[index];
+        auto& aos   = src_tile.GetArrayOfStructs();
+        ParticleType* p_ptr = &(aos[0]);
+
+	int num_copies = copy_plan_boxes[gid].size();
+
+	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
+	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
+	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
+	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_snd_buffer = snd_buffer.dataPtr();
+
+	AMREX_FOR_1D ( num_copies, i,
+        {
+	  int box_offset = p_box_offsets[p_copy_plan_boxes[i]];
+	  int dst_index = box_offset + p_copy_plan_dst_indices[i];
+	  int src_index = p_copy_plan_src_indices[i];
+	  p_snd_buffer[dst_index] = p_ptr[src_index];
+
+	  ParticleType& p = p_snd_buffer[dst_index];
+	  const IntVect& pshift = p_copy_plan_periodic_shift[i];
+	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+	  {
+	    if (not is_per[idim]) continue;
+	    if (pshift[idim] > 0) 
+	      p.pos(idim) += phi[idim] - plo[idim]; 
+	    else if (pshift[idim] < 0)
+	      p.pos(idim) -= phi[idim] - plo[idim];
+	  }
+	});
+    }
+    // for (int i = 0; i < snd_buffer.size(); ++i)
+    // {
+    //   amrex::Print() << snd_buffer[i] << "\n";
+    // }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+unpackBuffer ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::unpackBuffer");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    
+    auto p_dst_box_counts = box_counts.dataPtr();
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& tile = plev[index];
+        auto& aos   = tile.GetArrayOfStructs();
+        ParticleType* p_ptr = &(aos[0]);
+	auto np = tile.numParticles();
+	
+	int num_copies = box_counts[gid];
+
+	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_snd_buffer = snd_buffer.dataPtr();
+
+	AMREX_FOR_1D ( num_copies, i,
+        {
+	  int box_offset = p_box_offsets[gid];	  
+	  int src_index = box_offset + i;
+	  int dst_index = np + i;
+	  p_ptr[dst_index] = p_snd_buffer[src_index];
+	});
+    }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+setNumNeighbors()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::setNumNeighbors");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+    AMREX_ASSERT(hasNeighbors() == false);
+
+    const int lev = 0;
+    const auto& geom = this->Geom(lev);
+    auto& plev  = this->GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+
+    int num_boxes = ba.size();
+    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& src_tile = plev[index];
+	src_tile.setNumNeighbors(box_counts[gid]);
+    }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
 fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
@@ -250,8 +597,11 @@ fillNeighborsGPU ()
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
     clearNeighbors();
+    clearCopyPlan();
     buildNeighborMask();
-    sortParticlesByNeighborDestGPU();
+    computeHaloParticles();
+    computeCopyPlan();
+    setNumNeighbors();
     updateNeighborsGPU();
 }
 
@@ -264,196 +614,8 @@ updateNeighborsGPU ()
 
     AMREX_ASSERT(this->numLevels() == 1);
 
-    clearNeighbors();
-
-    const int lev = 0;
-    auto& plev  = this->GetParticles(lev);
-    auto& ba = this->ParticleBoxArray(lev);
-    auto& dmap = this->ParticleDistributionMap(lev);
-    
-    if (ba.size() == 1 and (not this->Geom(lev).isAnyPeriodic()) ) return;
-
-    std::map<int, SendBuffer> not_ours;
-    std::map<int, size_t> grid_counts;
-    std::map<int, size_t> num_to_add_local;
-    std::map<int, size_t> num_to_add_remote;
-
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int src_grid = mfi.index();
-        int num_codes = m_grid_map[src_grid].size();
-        for (int i = 1; i < num_codes + 1; ++i)
-        {
-            for (auto dst_code : m_grid_map[src_grid][i-1])
-            {            
-                int dst_grid = dst_code.grid_id;
-                const int dest_proc = dmap[dst_grid];
-                const int num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
-                if ( (dest_proc != ParallelDescriptor::MyProc() ) and (num_to_add > 0) )
-                {
-                    grid_counts[dest_proc] += 1;
-                    num_to_add_remote[dest_proc] += num_to_add*sizeof(ParticleType) + 
-                        sizeof(size_t) + 2*sizeof(int);
-                }
-                else
-                {
-                    num_to_add_local[dst_grid] += num_to_add;
-                }
-            }
-        }
-    }
-
-    for (auto& kv : num_to_add_local)
-    {
-        const int dst_grid = kv.first;
-        const int new_num_neighbors = kv.second;
-        const int dst_tile = 0;
-        auto dst_index = std::make_pair(dst_grid, dst_tile);
-        auto& dst_ptile = plev[dst_index];
-        dst_ptile.setNumNeighbors(new_num_neighbors);
-    }
-
-    for (auto& kv : num_to_add_remote)
-    {
-        not_ours[kv.first].resize(kv.second + sizeof(size_t));
-    }
-    
-    const auto plo = this->Geom(lev).ProbLoArray();
-    const auto phi = this->Geom(lev).ProbHiArray();
-    const auto is_per = this->Geom(lev).isPeriodicArray();
-
-    std::map<int, size_t> offset;
-    std::map<int, size_t> remote_offset;
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int src_grid = mfi.index();
-        int src_tile = mfi.LocalTileIndex();
-        AMREX_ASSERT(src_tile == 0);
-        auto index = std::make_pair(src_grid, src_tile);
-        
-        const Box& bx = mfi.tilebox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-        
-        auto& src_ptile = plev[index];
-        
-        int num_codes = m_grid_map[src_grid].size();
-        for (int i = 1; i < num_codes + 1; ++i)
-        {
-            const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
-            if (num_to_add == 0) continue;
-            for (auto dst_code : m_grid_map[src_grid][i-1])
-            {
-                int dst_grid = dst_code.grid_id;
-                const int dst_tile = 0;
-                auto pair_index = std::make_pair(dst_grid, dst_tile);
-                const int dest_proc = dmap[dst_grid];
-                if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
-                {
-                    auto& dst_ptile = plev[pair_index];
-                    const int nRParticles = dst_ptile.numRealParticles();
-                    const int nNParticles = dst_ptile.getNumNeighbors();
-                    
-                    // copy structs
-                    {
-                        auto& src = src_ptile.GetArrayOfStructs();
-                        auto& dst = dst_ptile.GetArrayOfStructs();
-                        cudaMemcpyAsync(
-                        thrust::raw_pointer_cast(dst().data() + nRParticles + offset[dst_grid]),
-                        thrust::raw_pointer_cast(src().data() + m_start[src_grid][i]),
-                        sizeof(ParticleType)*num_to_add, cudaMemcpyDeviceToDevice);
-                                        
-                        // apply periodic shift so that a naive distance calculation returns
-                        // the shortest distance between real and neighbor particles
-                        if (this->Geom(lev).isAnyPeriodic())
-                        {
-                            auto pstruct = dst().data() + nRParticles + offset[dst_grid];
-                            auto pshift = dst_code.periodic_shift;
-                            AMREX_FOR_1D ( num_to_add, ip,
-                            {
-                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                                {
-                                    if (not is_per[idim]) continue;
-                                    if (pshift[idim] > 0) 
-                                        pstruct[ip].pos(idim) += phi[idim] - plo[idim]; 
-                                    else if (pshift[idim] < 0)
-                                        pstruct[ip].pos(idim) -= phi[idim] - plo[idim];
-                                }
-                            });
-                        }                        
-                    }
-                    offset[dst_grid] += num_to_add;
-                }
-                else { // this is the non-local case
-                    char* dst;
-                    const size_t old_size = remote_offset[dest_proc];
-                    const size_t new_size
-                        = old_size + num_to_add*sizeof(ParticleType) + sizeof(size_t) + 2*sizeof(int);
-                
-                    AMREX_ASSERT(new_size <= not_ours[dest_proc].size());
-
-                    if (old_size == 0)
-                    {
-                        remote_offset[dest_proc] = new_size + sizeof(size_t);
-                        std::memcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
-                                    &grid_counts[dest_proc], sizeof(size_t));
-                        dst = thrust::raw_pointer_cast(
-                            not_ours[dest_proc].data() + old_size + sizeof(size_t));
-                    } else
-                    {
-                        remote_offset[dest_proc] = new_size;
-                        dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
-                    }
-                    
-                    std::memcpy(thrust::raw_pointer_cast(dst), &num_to_add, sizeof(size_t));
-                    dst += sizeof(size_t);
-                    
-                    std::memcpy(thrust::raw_pointer_cast(dst), &dst_grid, sizeof(int));
-                    dst += sizeof(int);
-                    
-                    std::memcpy(thrust::raw_pointer_cast(dst), &dest_proc, sizeof(int));
-                    dst += sizeof(int);
-                    
-                    // pack structs
-                    {
-                        auto& aos = src_ptile.GetArrayOfStructs();
-                        cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                        thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
-                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
-
-                        // apply periodic shift so that a naive distance calculation returns
-                        // the shortest distance between real and neighbor particles
-                        if (this->Geom(lev).isAnyPeriodic())
-                        {
-                            auto pstruct = thrust::raw_pointer_cast(reinterpret_cast<ParticleType*>(dst));
-                            auto pshift = dst_code.periodic_shift;
-                            //                            AMREX_FOR_1D ( num_to_add, ip,
-                            for (int ip = 0; ip < num_to_add; ++ip)
-                            {
-                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                                {
-                                    if (not is_per[idim]) continue;
-                                    if (pshift[idim] > 0) 
-                                        pstruct[ip].pos(idim) += phi[idim] - plo[idim]; 
-                                    else if (pshift[idim] < 0)
-                                        pstruct[ip].pos(idim) -= phi[idim] - plo[idim];
-                                }
-                            }
-                            //                            });
-                        }                        
-                        dst += num_to_add*sizeof(ParticleType);
-                    }
-                }
-            }
-        }
-    }
-    
-    if (ParallelDescriptor::NProcs() == 1) {
-        BL_ASSERT(not_ours.empty());
-    }
-    else {
-        fillNeighborsMPIGPU(not_ours);
-    }
+    packBuffer();
+    unpackBuffer();
 }
 
 template <int NStructReal, int NStructInt>
@@ -621,45 +783,6 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
                             buffer_locs[i], copy_sizes[i]*sizeof(ParticleType),
                             cudaMemcpyHostToDevice);
         }
-
-        // for (int i = 0; i < nrcvs; ++i) {
-        //     const int offset = rOffset[i];
-        //     char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
-        //     size_t num_particles;
-        //     int gid, pid;
-        //     buffer += sizeof(size_t);
-
-        //     for (int g = 0; g < num_grids; ++g) {
-        //         cudaMemcpyAsync(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
-        //         buffer += sizeof(size_t);
-        //         cudaMemcpyAsync(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
-        //         buffer += sizeof(int);
-        //         cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
-        //         buffer += sizeof(int);
-
-        //         Gpu::streamSynchronize();
-
-        //         if (num_particles == 0) continue;
-
-        //         AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
-        //         {
-        //             const int tid = 0;
-        //             auto pair_index = std::make_pair(gid, tid);
-        //             auto& ptile = this->GetParticles(lev)[pair_index];
-        //             const int nRParticles = ptile.numRealParticles();
-        //             const int nNParticles = ptile.getNumNeighbors();
-        //             const int new_num_neighbors = nNParticles + num_particles;
-        //             ptile.setNumNeighbors(new_num_neighbors);
-
-        //             //copy structs
-        //             auto& aos = ptile.GetArrayOfStructs();
-        //             cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + nRParticles + nNParticles,
-        //                             buffer, num_particles*sizeof(ParticleType),
-        //                             cudaMemcpyHostToDevice);
-        //             buffer += num_particles*sizeof(ParticleType);
-        //         }
-        //     }
-        // }
     }
 
     if (ParallelDescriptor::UseGpuAwareMpi())

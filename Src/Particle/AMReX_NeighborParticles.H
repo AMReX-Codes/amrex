@@ -11,6 +11,13 @@
 
 namespace amrex {
 
+  struct NeighborCode
+  {
+      int grid_id;
+      IntVect periodic_shift;
+  };
+
+
 ///
 /// This is a container for particles that undergo short-range interations.
 /// In addition to the normal ParticleContainer methods, each tile contains a "neighbor
@@ -307,7 +314,21 @@ public:
     void setEnableInverse (bool flag) { enable_inverse = flag; }
 
     bool enableInverse () { return enable_inverse; }
+
+    void buildNeighborMask ();
+
+    void computeHaloParticles ();
+
+    void computeCopyPlan ();
     
+    void packBuffer ();
+
+    void unpackBuffer ();
+
+    void setNumNeighbors ();
+
+    void clearCopyPlan ();
+
 protected:
 
     void cacheNeighborInfo ();
@@ -384,13 +405,6 @@ protected:
 #ifdef AMREX_USE_CUDA
     void fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours);
     
-    void buildNeighborMask ();
-
-    struct NeighborCode {
-        int grid_id;
-        IntVect periodic_shift;
-    };
-
     struct NeighborTask {
         int grid_id;
         Box box;
@@ -420,7 +434,20 @@ protected:
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
     std::map<int, amrex::Gpu::HostVector<int> > m_start;
     std::map<int, amrex::Gpu::HostVector<int> > m_stop;
-    
+
+    std::map<int, amrex::Gpu::ManagedDeviceVector<NeighborCode> > m_code_array;
+    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > m_code_offsets;
+
+    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_boxes;
+    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_src_indices;
+    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
+    std::map<int, amrex::Gpu::ManagedDeviceVector<IntVect> > copy_plan_periodic_shift;
+
+    amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
+    amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
+
+    amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
+
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
 

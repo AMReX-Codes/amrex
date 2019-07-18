@@ -18,6 +18,7 @@ struct TestParams
     int num_ppc;
     bool print_min_dist;
     bool print_neighbor_list;
+    bool print_num_particles;
     bool write_particles;
     Real cfl;
 };
@@ -43,10 +44,14 @@ void get_test_params(TestParams& params)
     pp.get("num_rebuild", params.num_rebuild);
     pp.get("num_ppc", params.num_ppc);
     pp.get("cfl", params.cfl);
+    pp.get("print_num_particles", params.print_num_particles);
 }
 
 void main_main ()
 {
+
+    amrex::Print() << "Running MD benchmark \n";
+
     TestParams params;
     get_test_params(params);
 
@@ -79,23 +84,25 @@ void main_main ()
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
+    if (params.print_num_particles) 
+      amrex::Print() << "Num particles after init is " << pc.TotalNumberOfParticles() << "\n";
+
     int num_rebuild = params.num_rebuild;
 
     Real cfl = params.cfl;
     
     Real min_d = std::numeric_limits<Real>::max();
 
-    for (int step = 0; step < params.nsteps; ++step) 
-    {
+    for (int step = 0; step < params.nsteps; ++step) {
 
 	Real dt = pc.computeStepSize(cfl);
-
-        amrex::Print() << "Taking step " << step << ": dt = " << dt << ", n particles: " << pc.TotalNumberOfParticles() << "\n";
 
 	if (step % num_rebuild == 0)
 	{
 	  if (step > 0) pc.RedistributeLocal();
+
 	  pc.fillNeighbors();
+
 	  pc.buildNeighborList(CheckPair());
 	} 
 	else
@@ -114,9 +121,10 @@ void main_main ()
 	pc.moveParticles(dt);
     }
 
-    if (params.print_min_dist) 
-        amrex::Print() << "Min distance is " << min_d << "\n";
+    pc.RedistributeLocal();
 
-    if (params.write_particles) 
-        pc.writeParticles(params.nsteps);
+    if (params.print_min_dist     ) amrex::Print() << "Min distance  is " << min_d << "\n";
+    if (params.print_num_particles) amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n";
+
+    if (params.write_particles) pc.writeParticles(params.nsteps);
 }
