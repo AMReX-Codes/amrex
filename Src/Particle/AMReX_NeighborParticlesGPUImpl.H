@@ -703,8 +703,90 @@ getBoxRcvCounts ()
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-	amrex::Print() << "Proc " << MyProc << " is sending " << box_offsets[proc_box_offsets[i+1]] - box_offsets[proc_box_offsets[i]] << " particles to proc " << i << "\n"; 
+	long npart = box_offsets[proc_box_offsets[i+1]] - box_offsets[proc_box_offsets[i]];
+	long nbytes = npart*sizeof(ParticleType); 
+	Snds[i] = nbytes;
+	NumSnds += nbytes;
     }
+
+    ParallelDescriptor::ReduceLongMax(NumSnds);
+
+    if (NumSnds == 0) return;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+    Vector<int> RcvProc;
+    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += Rcvs[i];
+        }
+    }
+    
+    const int nrcvs = RcvProc.size();
+    Vector<MPI_Status>  stats(nrcvs);
+    Vector<MPI_Request> rreqs(nrcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    rcv_buffer.resize(TotRcvBytes);
+    
+    // Allocate data for rcvs as one big chunk.
+    // char* rcv_buffer;
+    // if (ParallelDescriptor::UseGpuAwareMpi()) 
+    // {
+    //     rcv_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotRcvBytes));
+    // }
+    // else 
+    // {
+    //     rcv_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotRcvBytes));
+    // }
+    
+    // // Post receives.
+    // for (int i = 0; i < nrcvs; ++i) {
+    //     const auto Who    = RcvProc[i];
+    //     const auto offset = rOffset[i];
+    //     const auto Cnt    = Rcvs[Who];
+        
+    //     BL_ASSERT(Cnt > 0);
+    //     BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+    //     BL_ASSERT(Who >= 0 && Who < NProcs);
+        
+    //     rreqs[i] = ParallelDescriptor::Arecv(rcv_buffer + offset,
+    //                                          Cnt, Who, SeqNum).req();
+    // }
+    
+    // // Send.
+    // for (const auto& kv : not_ours) {
+    //     const auto Who = kv.first;
+    //     const auto Cnt = kv.second.size();
+
+    //     BL_ASSERT(Cnt > 0);
+    //     BL_ASSERT(Who >= 0 && Who < NProcs);
+    //     BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        
+    //     ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
+    //                              Cnt, Who, SeqNum);
+    // }
+    
 #endif // MPI
 }
 

@@ -454,6 +454,7 @@ protected:
     amrex::Gpu::ManagedDeviceVector<int> proc_box_offsets;
 
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
+    amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
