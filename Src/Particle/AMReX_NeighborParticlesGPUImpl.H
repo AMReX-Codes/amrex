@@ -621,6 +621,85 @@ updateNeighborsGPU ()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
+getBoxRcvCounts ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::getBoxRcvCounts()");
+
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int lev = 0;
+    const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+    
+    Vector<int> Snds(NProcs, 0), Rcvs(NProcs, 0);
+
+    int num_snds = 0;
+    for (int gid = 0; gid < box_counts.size(); ++gid)
+    {
+      int dst_proc = dmap[gid];
+      if (dst_proc == MyProc) continue;
+      if (box_counts[gid] > 0)
+      {
+	++Snds[dst_proc];
+	++num_snds;
+      }
+    }
+
+    ParallelDescriptor::ReduceIntMax(num_snds);
+
+    if (num_snds == 0) return;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+    // amrex::AllPrintToFile("mpi_data") << "Proc " << MyProc << " is sending \n";
+    // for (int i = 0; i < NProcs; ++i)
+    // {
+    //   amrex::AllPrintToFile("mpi_data") << Snds[i] << " boxes to rank " << i << "\n";
+    // }
+    // amrex::AllPrintToFile("mpi_data") << "\n";
+
+    // amrex::AllPrintToFile("mpi_data") << "and is receiving \n";
+    // for (int i = 0; i < NProcs; ++i)
+    // {
+    //   amrex::AllPrintToFile("mpi_data") << Rcvs[i] << " boxes from rank " << i << "\n";
+    // }
+    // amrex::AllPrintToFile("mpi_data") << "\n";
+
+    Vector<int> RcvProc;
+    for (int i = 0; i < NProcs; ++i)
+    {
+      if (Rcvs[i] > 0) {
+	RcvProc.push_back(i);
+      }
+    }
+    
+    for (int i = 0; i < local_neighbors.size(); ++i)
+    {
+      amrex::AllPrintToFile("mpi_data") << local_neighbors[i] << "\n";
+    }
+    
+#endif // MPI
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
 fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighborsMPIGPU()");
@@ -681,7 +760,7 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     
-    // Allocate data for rcvs as one big chunk.    
+    // Allocate data for rcvs as one big chunk.
     char* rcv_buffer;
     if (ParallelDescriptor::UseGpuAwareMpi()) 
     {
