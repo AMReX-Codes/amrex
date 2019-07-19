@@ -125,6 +125,9 @@ ifeq ($(USE_PSATD),TRUE)
      # Compile with PICSAR's Hybrid-MPI PSATD
      DEFINES += -DWARPX_USE_PSATD_HYBRID
      DEFINES += -DFFTW # PICSAR uses it
+  else
+    # Use cuFFT
+    LIBRARIES += -lcufft
   endif
 endif
 

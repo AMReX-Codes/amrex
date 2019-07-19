@@ -201,6 +201,10 @@ WarpX::WarpX ()
 
     costs.resize(nlevs_max);
 
+#ifdef WARPX_USE_PSATD
+spectral_solver_fp.resize(nlevs_max);
+spectral_solver_cp.resize(nlevs_max);
+#endif
 #ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
@@ -214,9 +218,6 @@ WarpX::WarpX ()
 
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
-
-    spectral_solver_fp.resize(nlevs_max);
-    spectral_solver_cp.resize(nlevs_max);
 
     ba_valid_fp_fft.resize(nlevs_max);
     ba_valid_cp_fft.resize(nlevs_max);
@@ -616,7 +617,7 @@ WarpX::ClearLevel (int lev)
 
     costs[lev].reset();
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
     for (int i = 0; i < 3; ++i) {
         Efield_fp_fft[lev][i].reset();
         Bfield_fp_fft[lev][i].reset();

@@ -599,21 +599,22 @@ private:
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
     void PushPSATD_localFFT (int lev, amrex::Real dt);
+
     bool fft_hybrid_mpi_decomposition = false;
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;
+
+    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
+    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
 #endif
 
 #ifdef WARPX_USE_PSATD_HYBRID
 private:
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
-
-    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
-    amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
 
   // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
