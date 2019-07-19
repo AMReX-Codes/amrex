@@ -331,6 +331,8 @@ public:
 
     void getBoxRcvCounts ();
 
+    void communicateParticles ();
+
 protected:
 
     void cacheNeighborInfo ();
@@ -453,6 +455,10 @@ protected:
     amrex::Gpu::ManagedDeviceVector<int> proc_box_counts;
     amrex::Gpu::ManagedDeviceVector<int> proc_box_offsets;
 
+    amrex::Gpu::ManagedDeviceVector<int> rcv_box_counts;
+    amrex::Gpu::ManagedDeviceVector<int> rcv_box_offsets;
+    amrex::Gpu::ManagedDeviceVector<int> rcv_box_ids;
+   
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
     amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
 
