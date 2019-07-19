@@ -99,7 +99,6 @@ void main_main ()
 
 	if (step % num_rebuild == 0)
 	{
-
 	  if (step > 0) pc.RedistributeLocal();
 
 	  pc.fillNeighbors();
@@ -124,7 +123,7 @@ void main_main ()
 
     pc.RedistributeLocal();
 
-    if (params.print_min_dist) amrex::Print() << "Min distance is " << min_d << "\n";
+    if (params.print_min_dist     ) amrex::Print() << "Min distance  is " << min_d << "\n";
     if (params.print_num_particles) amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n";
 
     if (params.write_particles) pc.writeParticles(params.nsteps);
