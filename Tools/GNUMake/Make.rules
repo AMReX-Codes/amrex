@@ -98,7 +98,7 @@ install_headers: $(amrexIncludeDir)/AMReX_Config.H
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
 	      newf=$(amrexIncludeDir)/$$h; \
-	      perl -pi -e 's/^/#include <AMReX_Config.H>\n/ if $$. == 1' $$newf; \
+              perl -pi -e 'BEGIN{undef $$/;}  s/(^#ifndef.*?\n^#define.*?$$)/$$1\n#include <AMReX_Config.H>/m' $$newf; \
 	    fi; \
 	  done; \
 	done 
