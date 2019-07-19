@@ -231,9 +231,7 @@ int compute_shifted_shape_factor <3> (Real* const sx, Real x_old, int i_new){
  * \param Jx_arr       : Array4 of current density, either full array or tile.
  * \param Jy_arr       : Array4 of current density, either full array or tile.
  * \param Jz_arr       : Array4 of current density, either full array or tile.
- * \param offset       : Index of first particle for which current is deposited
  * \param np_to_depose : Number of particles for which current is deposited.
-                        Particles [offset,offset+np_tp_depose] deposit current.
  * \param dt           : Time step for particle level
  * \param dx           : 3D cell size
  * \param xyzmin       : Physical lower bounds of domain.
@@ -247,7 +245,7 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                                   const amrex::Array4<amrex::Real>& Jx_arr,
                                   const amrex::Array4<amrex::Real>& Jy_arr,
                                   const amrex::Array4<amrex::Real>& Jz_arr,
-                                  const long offset, const long np_to_depose,
+                                  const long np_to_depose,
                                   const amrex::Real dt, const std::array<amrex::Real,3>& dx,
                                   const std::array<Real, 3> xyzmin,
                                   const Dim3 lo,
