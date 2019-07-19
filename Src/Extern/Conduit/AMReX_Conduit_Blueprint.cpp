@@ -193,7 +193,7 @@ void FabToBlueprintFields (const FArrayBox& fab,
                            const Vector<std::string>& varnames,
                            Node &res)
 {
-    // make sure are not asking for more components than exist.
+    // make sure we are not asking for more components than exist.
     BL_ASSERT(varnames.size() <= fab->nComp());
 
     Node &n_fields = res["fields"];
