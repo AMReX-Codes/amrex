@@ -1115,16 +1115,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         AMREX_FOR_1D ( old_np, i,
         {
             index_ptr[i] = i;
-            
-	    IntVect iv = IntVect(
+
+            int grid_id;
+            if (p_ptr[i].id() >= 0) {
+                IntVect iv = IntVect(
                                  AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
                                               floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
                                               floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
-				 );
+                                    );
 
-            iv += domain.smallEnd();
+                iv += domain.smallEnd();
 
-	    int grid_id = mask_arr(iv);
+                grid_id = mask_arr(iv);
+            } else {
+                grid_id = -1;
+            }
 
             grids_ptr[i] = grid_id;
 

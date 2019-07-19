@@ -69,15 +69,19 @@ namespace functors
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
         int operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
+            if (p.id() >= 0) {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
+                                 floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
+                                 floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
+                    );
 
-	    iv += domain.Domain().smallEnd();
+                iv += domain.Domain().smallEnd();
 
-	    return mask_arr(iv); 
+                return mask_arr(iv); 
+            } else {
+                return -1;
+            }
         }
     };
 
@@ -96,15 +100,19 @@ namespace functors
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
         int operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
+            if (p.id() >= 0) {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
+                                 floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
+                                 floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
+                    );
 
-	    iv += domain.Domain().smallEnd();
+                iv += domain.Domain().smallEnd();
 
-	    return mask_arr(iv, 1);
+                return mask_arr(iv, 1);
+            } else {
+                return -1;
+            }
         }
     };
 
@@ -178,15 +186,19 @@ namespace functors
         template <typename Particle>
         AMREX_GPU_HOST_DEVICE
         thrust::tuple<int, int> operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
+            if (p.id() >= 0) {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
+                                 floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
+                                 floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
+                    );
 
-	    iv += domain.Domain().smallEnd();
+                iv += domain.Domain().smallEnd();
 
-	    return thrust::make_tuple(mask_arr(iv, 0), mask_arr(iv, 1));
+                return thrust::make_tuple(mask_arr(iv, 0), mask_arr(iv, 1));
+            } else {
+                return thrust::make_tuple(-1,-1);
+            }
         }
     };
 
