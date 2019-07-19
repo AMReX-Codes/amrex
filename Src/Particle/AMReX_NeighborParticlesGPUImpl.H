@@ -171,7 +171,7 @@ buildNeighborMask()
 	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
 			       proc_box_counts.begin(), proc_box_counts.end(), proc_box_offsets.begin());
  
-	proc_box_offsets.push_back(num_boxes-1);
+	proc_box_offsets.push_back(num_boxes);
 
 	// for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
 	// {
@@ -459,7 +459,7 @@ computeCopyPlan ()
 
     box_counts.resize(0);
     box_counts.resize(num_boxes, 0);
-    box_offsets.resize(num_boxes);
+    box_offsets.resize(num_boxes+1);
     auto p_dst_box_counts = box_counts.dataPtr();
     auto p_box_perm = box_permutation.dataPtr();
 
@@ -482,7 +482,7 @@ computeCopyPlan ()
     }
 
     thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-			   box_counts.begin(), box_counts.end(), box_offsets.begin());
+			   box_counts.begin(), box_counts.end()+1, box_offsets.begin());
 }
 
 template <int NStructReal, int NStructInt>
@@ -622,14 +622,27 @@ setNumNeighbors()
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
+    // local neighbors
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
-        auto& src_tile = plev[index];
-	src_tile.setNumNeighbors(box_counts[gid]);
+        auto&tile = plev[index];
+	tile.setNumNeighbors(box_counts[gid]);
+    }
+
+    // remote neighbors
+    for (int i = 0; i < rcv_box_counts.size(); ++i)
+    {
+        int gid = rcv_box_ids[i];
+        int tid = 0;
+        auto index = std::make_pair(gid, tid);
+
+        auto& tile = plev[index];
+	int nn = tile.getNumNeighbors();
+	tile.setNumNeighbors(nn + rcv_box_counts[i]);	
     }
 }
 
@@ -647,8 +660,10 @@ fillNeighborsGPU ()
     buildNeighborMask();
     computeHaloParticles();
     computeCopyPlan();
+    getBoxRcvCounts();
     setNumNeighbors();
     updateNeighborsGPU();
+    communicateParticles();
 }
 
 template <int NStructReal, int NStructInt>
@@ -664,36 +679,146 @@ updateNeighborsGPU ()
     unpackBuffer();
 }
 
+
+
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 getBoxRcvCounts ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::getBoxRcvCounts()");
-
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
+    
+    // We may now have particles that are rightfully owned by another CPU.
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
-    std::map<int, std::vector<int> > num_boxes_rcv;
+    std::map<int, Vector<int> > snd_data;
+
+    long NumSnds = 0;
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc) continue;
+	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
+	for (int j = 0; j < nboxes; ++j)
+	{
+	  int npart = box_counts[proc_box_offsets[i]+j];
+	  int dst = box_permutation[proc_box_offsets[i]+j];
+	  snd_data[i].push_back(npart);
+	  snd_data[i].push_back(dst);
+	}
+	long nbytes = 2*nboxes*sizeof(int);
+	Snds[i] = nbytes;
+	NumSnds += nbytes;
+    }
+
+    ParallelDescriptor::ReduceLongMax(NumSnds);
+
+    if (NumSnds == 0) return;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+    Vector<int> RcvProc;
+    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes/sizeof(int));
+            TotRcvBytes += Rcvs[i];
+        }
+    }
+    
+    const int nrcvs = RcvProc.size();
+    Vector<MPI_Status>  stats(nrcvs);
+    Vector<MPI_Request> rreqs(nrcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    Gpu::ManagedDeviceVector<int> rcv_data(TotRcvBytes/sizeof(int));
+
+    // Post receives.
+    for (int i = 0; i < nrcvs; ++i) {
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = Rcvs[Who];
+        
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        
+        rreqs[i] = ParallelDescriptor::Arecv((char*) thrust::raw_pointer_cast(&rcv_data[offset]),
+                                             Cnt, Who, SeqNum).req();
+    }
+    
+    // Send.
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc) continue;
+        const auto Who = i;
+        const auto Cnt = Snds[i];
+
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        
+        ParallelDescriptor::Send(
+				 (char*) thrust::raw_pointer_cast(snd_data[i].data()),
+	    Cnt, Who, SeqNum);
+    }
+
+    if (nrcvs > 0) {
+        ParallelDescriptor::Waitall(rreqs, stats);
+	
+	rcv_box_offsets.push_back(0);
+	for (int i = 0; i < rcv_data.size(); i +=2)
+	{
+	  rcv_box_counts.push_back(rcv_data[i]);
+	  rcv_box_ids.push_back(rcv_data[i+1]);
+	  rcv_box_offsets.push_back(rcv_box_counts.back());
+	}	
+    }
+    
+#endif // MPI
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+communicateParticles ()
+{
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::getBoxRcvCounts()");
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int MyProc = ParallelDescriptor::MyProc();
+    
+    std::map<int, std::vector<int> > boxes_rcv;
     for (int i = 0; i < local_neighbors.size(); ++i)
     {
         int proc = local_neighbors[i].proc_id;
 	if (proc == MyProc) continue;
 	int grid = local_neighbors[i].grid_id;
-	num_boxes_rcv[proc].push_back(grid);
-    }
-
-    amrex::AllPrintToFile("mpi_data") << "Process " << MyProc << " is receiving \n \n";
-    for (auto kv : num_boxes_rcv) {
-      amrex::AllPrintToFile("mpi_data") << kv.second.size() << " boxes from " << kv.first << ": ";
-      for (auto val : kv.second)
-      {
-	amrex::AllPrintToFile("mpi_data") << val << " ";
-      }
-      amrex::AllPrintToFile("mpi_data") << "\n";
+	boxes_rcv[proc].push_back(grid);
     }
 
     // We may now have particles that are rightfully owned by another CPU.
@@ -749,44 +874,69 @@ getBoxRcvCounts ()
 
     rcv_buffer.resize(TotRcvBytes);
     
-    // Allocate data for rcvs as one big chunk.
-    // char* rcv_buffer;
-    // if (ParallelDescriptor::UseGpuAwareMpi()) 
-    // {
-    //     rcv_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotRcvBytes));
-    // }
-    // else 
-    // {
-    //     rcv_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotRcvBytes));
-    // }
-    
-    // // Post receives.
-    // for (int i = 0; i < nrcvs; ++i) {
-    //     const auto Who    = RcvProc[i];
-    //     const auto offset = rOffset[i];
-    //     const auto Cnt    = Rcvs[Who];
+    // Post receives.
+    for (int i = 0; i < nrcvs; ++i) {
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = Rcvs[Who];
         
-    //     BL_ASSERT(Cnt > 0);
-    //     BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-    //     BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Who >= 0 && Who < NProcs);
         
-    //     rreqs[i] = ParallelDescriptor::Arecv(rcv_buffer + offset,
-    //                                          Cnt, Who, SeqNum).req();
-    // }
+        rreqs[i] = ParallelDescriptor::Arecv((char*) thrust::raw_pointer_cast(&rcv_buffer[offset]),
+                                             Cnt, Who, SeqNum).req();
+    }
     
-    // // Send.
-    // for (const auto& kv : not_ours) {
-    //     const auto Who = kv.first;
-    //     const auto Cnt = kv.second.size();
+    // Send.
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc) continue;
+        const auto Who = i;
+        const auto Cnt = Snds[i];
 
-    //     BL_ASSERT(Cnt > 0);
-    //     BL_ASSERT(Who >= 0 && Who < NProcs);
-    //     BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-    //     ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
-    //                              Cnt, Who, SeqNum);
-    // }
-    
+        ParallelDescriptor::Send(
+				 (char*) thrust::raw_pointer_cast(&snd_buffer[box_offsets[proc_box_offsets[i]]]),
+	    Cnt, Who, SeqNum);
+    }
+
+    if (nrcvs > 0) {
+        ParallelDescriptor::Waitall(rreqs, stats);
+
+	const int lev = 0;
+	auto& plev  = this->GetParticles(lev);
+
+	auto p_rcv_box_counts = rcv_box_counts.dataPtr();
+	auto p_rcv_box_offsets = rcv_box_offsets.dataPtr();
+	auto p_rcv_box_ids = rcv_box_ids.dataPtr();
+	auto p_rcv_buffer = rcv_buffer.dataPtr();
+
+	for (int i = 0; i < rcv_box_counts.size(); ++i)
+	{
+	  int copy_size = rcv_box_counts[i];
+	  int gid = rcv_box_ids[i];
+	  int tid = 0;
+	  int offset = rcv_box_offsets[i];
+
+	  auto index = std::make_pair(gid, tid);
+	  
+	  auto& tile = plev[index];
+	  auto& aos   = tile.GetArrayOfStructs();
+	  ParticleType* p_ptr = &(aos[0]);
+	  auto np = tile.numParticles();
+
+	  AMREX_FOR_1D ( copy_size, i,
+	  {
+	    int src_index = offset + i;
+	    int dst_index = np + i;
+	    p_ptr[dst_index] = p_rcv_buffer[src_index];
+	  });	 
+	}	
+    }    
 #endif // MPI
 }
 
