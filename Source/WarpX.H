@@ -26,7 +26,6 @@
 #include <NCIGodfreyFilter.H>
 
 #ifdef WARPX_USE_PSATD
-#include <fftw3.h>
 #include <SpectralSolver.H>
 #endif
 
