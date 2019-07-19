@@ -28,6 +28,9 @@
 #ifdef WARPX_USE_PSATD
 #include <SpectralSolver.H>
 #endif
+#ifdef WARPX_USE_PSATD_HYBRID
+#include <FFTData.H>
+#endif
 
 #if defined(BL_USE_SENSEI_INSITU)
 namespace amrex {
@@ -577,7 +580,7 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_slice;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_slice;
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
@@ -589,38 +592,23 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
+#endif
 
-public:
-    // FFTData is a stuct containing a 22 pointers to auxiliary arrays
-    // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
-    struct FFTData
-    {
-        static constexpr int N = 22;
-        void* data[N] = { nullptr };
-
-        ~FFTData () {
-            for (int i = 0; i < N; ++i) { // The memory is allocated with fftw_alloc.
-                fftw_free(data[i]);
-                data[i] = nullptr;
-            }
-        }
-
-        FFTData () = default;
-
-        FFTData (FFTData && rhs) noexcept {
-            for (int i = 0; i < N; ++i) {
-                data[i] = rhs.data[i];
-                rhs.data[i] = nullptr;
-            }
-        }
-
-        FFTData (FFTData const&) = delete;
-        void operator= (FFTData const&) = delete;
-        void operator= (FFTData&&) = delete;
-    };
-
+#ifdef WARPX_USE_PSATD
 private:
+    void EvolvePSATD (int numsteps);
+    void PushPSATD (amrex::Real dt);
+    void PushPSATD_localFFT (int lev, amrex::Real dt);
+    bool fft_hybrid_mpi_decomposition = false;
+    int ngroups_fft = 4;
+    int fftw_plan_measure = 1;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
+#endif
 
+#ifdef WARPX_USE_PSATD_HYBRID
+private:
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
     amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
 
@@ -637,13 +625,6 @@ private:
     amrex::Vector<MPI_Comm> comm_fft;
     amrex::Vector<int>      color_fft;
 
-    bool fft_hybrid_mpi_decomposition = false;
-    int ngroups_fft = 4;
-    int fftw_plan_measure = 1;
-    int nox_fft = 16;
-    int noy_fft = 16;
-    int noz_fft = 16;
-
     void AllocLevelDataFFT (int lev);
     void InitLevelDataFFT (int lev, amrex::Real time);
 
@@ -653,12 +634,7 @@ private:
                                  const amrex::Box& domain);
     void InitFFTDataPlan (int lev);
     void FreeFFT (int lev);
-
-    void EvolvePSATD (int numsteps);
-    void PushPSATD (amrex::Real dt);
-    void PushPSATD_localFFT (int lev, amrex::Real dt);
     void PushPSATD_hybridFFT (int lev, amrex::Real dt);
-
 #endif
 
 #if defined(BL_USE_SENSEI_INSITU)

@@ -1,3 +1,4 @@
+CEXE_headers += FFTData.H
 CEXE_sources += WarpXFFT.cpp
 F90EXE_sources += WarpX_fft.F90
 

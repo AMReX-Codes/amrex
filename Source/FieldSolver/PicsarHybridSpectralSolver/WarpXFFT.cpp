@@ -5,10 +5,10 @@
 
 using namespace amrex;
 
-constexpr int WarpX::FFTData::N;
+constexpr int FFTData::N;
 
 namespace {
-static std::unique_ptr<WarpX::FFTData> nullfftdata; // This for process with nz_fft=0
+static std::unique_ptr<FFTData> nullfftdata; // This for process with nz_fft=0
 
 /** \brief Returns an "owner mask" which 1 for all cells, except
  *  for the duplicated (physical) cells of a nodal grid.
@@ -121,6 +121,8 @@ WarpX::AllocLevelDataFFT (int lev)
 
     static_assert(std::is_standard_layout<FFTData>::value, "FFTData must have standard layout");
     static_assert(sizeof(FFTData) == sizeof(void*)*FFTData::N, "sizeof FFTData is wrong");
+
+
 
     InitFFTComm(lev);
 

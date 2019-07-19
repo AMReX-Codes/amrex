@@ -201,7 +201,7 @@ WarpX::WarpX ()
 
     costs.resize(nlevs_max);
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
     current_fp_fft.resize(nlevs_max);
