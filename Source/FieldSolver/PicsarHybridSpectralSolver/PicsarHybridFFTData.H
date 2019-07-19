@@ -1,5 +1,5 @@
-#ifndef WARPX_FFTDATA_H_
-#define WARPX_FFTDATA_H_
+#ifndef WARPX_PICSAR_HYBRID_FFTDATA_H_
+#define WARPX_PICSAR_HYBRID_FFTDATA_H_
 
 // FFTData is a stuct containing a 22 pointers to auxiliary arrays
 // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
@@ -29,4 +29,4 @@ struct FFTData
     void operator= (FFTData&&) = delete;
 };
 
-#endif // WARPX_FFTDATA_H_
+#endif // WARPX_PICSAR_HYBRID_FFTDATA_H_

@@ -29,7 +29,7 @@
 #include <SpectralSolver.H>
 #endif
 #ifdef WARPX_USE_PSATD_HYBRID
-#include <FFTData.H>
+#include <PicsarHybridFFTData.H>
 #endif
 
 #if defined(BL_USE_SENSEI_INSITU)
