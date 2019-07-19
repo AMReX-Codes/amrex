@@ -511,8 +511,6 @@ WarpX::ReadParameters ()
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
-        // Override value
-        if (fft_hybrid_mpi_decomposition==false) ngroups_fft=ParallelDescriptor::NProcs();
     }
 #endif
 
@@ -568,8 +566,12 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
 
 #ifdef WARPX_USE_PSATD
     if (fft_hybrid_mpi_decomposition){
+#ifndef AMREX_USE_CUDA // Only available on CPU
         AllocLevelDataFFT(lev);
         InitLevelDataFFT(lev, time);
+#else
+    amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
     }
 #endif
 }

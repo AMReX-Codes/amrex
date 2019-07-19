@@ -366,52 +366,8 @@ WarpX::FreeFFT (int lev)
 }
 
 void
-WarpX::PushPSATD (amrex::Real a_dt)
-{
-    for (int lev = 0; lev <= finest_level; ++lev) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
-        if (fft_hybrid_mpi_decomposition){
-            PushPSATD_hybridFFT(lev, a_dt);
-        } else {
-            PushPSATD_localFFT(lev, a_dt);
-        }
-    }
-}
-
-void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
-{
-    auto& solver = *spectral_solver_fp[lev];
-
-    // Perform forward Fourier transform
-    solver.ForwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
-    solver.ForwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
-    solver.ForwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
-    solver.ForwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
-    solver.ForwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
-    solver.ForwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
-    solver.ForwardTransform(*current_fp[lev][0], SpectralFieldIndex::Jx);
-    solver.ForwardTransform(*current_fp[lev][1], SpectralFieldIndex::Jy);
-    solver.ForwardTransform(*current_fp[lev][2], SpectralFieldIndex::Jz);
-    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_old, 0);
-    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_new, 1);
-
-    // Advance fields in spectral space
-    solver.pushSpectralFields();
-
-    // Perform backward Fourier Transform
-    solver.BackwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
-    solver.BackwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
-    solver.BackwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
-    solver.BackwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
-    solver.BackwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
-    solver.BackwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
-}
-
-void
 WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
 {
-#ifndef AMREX_USE_CUDA // Running on CPU ; use PICSAR code for the hybrid FFT
-
     BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
 
@@ -486,8 +442,4 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
-#else // AMREX_USE_CUDA is defined ; running on GPU
-        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
-#endif
-
 }
