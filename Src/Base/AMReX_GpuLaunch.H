@@ -13,6 +13,7 @@
 #include <AMReX_TypeTraits.H>
 #include <cstddef>
 #include <limits>
+#include <algorithm>
 
 #define AMREX_GPU_NCELLS_PER_THREAD 3
 #define AMREX_GPU_Y_STRIDE 1
@@ -53,6 +54,14 @@ namespace amrex {
     class FabArrayBase;
 
 namespace Gpu {
+
+#ifdef AMREX_USE_GPU
+    static constexpr std::size_t numThreadsPerBlockParallelFor () {
+        return AMREX_GPU_MAX_THREADS;
+    }
+#else
+    static constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
+#endif
 
 // ************************************************
 
