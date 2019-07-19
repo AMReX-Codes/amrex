@@ -494,8 +494,6 @@ packBuffer ()
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
-    AMREX_ASSERT(hasNeighbors() == false);
-
     const int lev = 0;
     const auto& geom = this->Geom(lev);
     auto& plev  = this->GetParticles(lev);
@@ -612,6 +610,8 @@ setNumNeighbors()
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
+    clearNeighbors();
+
     AMREX_ASSERT(hasNeighbors() == false);
 
     const int lev = 0;
@@ -634,16 +634,17 @@ setNumNeighbors()
     }
 
     // remote neighbors
-    for (int i = 0; i < rcv_box_counts.size(); ++i)
-    {
-        int gid = rcv_box_ids[i];
-        int tid = 0;
-        auto index = std::make_pair(gid, tid);
+    // for (int i = 0; i < rcv_box_counts.size(); ++i)
+    // {
+    //     int gid = rcv_box_ids[i];
+    //     int tid = 0;
+    //     auto index = std::make_pair(gid, tid);
 
-        auto& tile = plev[index];
-	int nn = tile.getNumNeighbors();
-	tile.setNumNeighbors(nn + rcv_box_counts[i]);	
-    }
+    //     auto& tile = plev[index];
+    // 	int nn = tile.getNumNeighbors();
+    // 	amrex::Print() << "Resizing " << gid << " from " << nn << " to " << nn + rcv_box_counts[i] << "\n";
+    // 	tile.setNumNeighbors(nn + rcv_box_counts[i]);	
+    // }
 }
 
 template <int NStructReal, int NStructInt>
@@ -661,9 +662,7 @@ fillNeighborsGPU ()
     computeHaloParticles();
     computeCopyPlan();
     getBoxRcvCounts();
-    setNumNeighbors();
     updateNeighborsGPU();
-    communicateParticles();
 }
 
 template <int NStructReal, int NStructInt>
@@ -675,8 +674,10 @@ updateNeighborsGPU ()
 
     AMREX_ASSERT(this->numLevels() == 1);
 
+    setNumNeighbors();
     packBuffer();
     unpackBuffer();
+    communicateParticles();
 }
 
 
@@ -792,9 +793,10 @@ getBoxRcvCounts ()
 	for (int i = 0; i < rcv_data.size(); i +=2)
 	{
 	  rcv_box_counts.push_back(rcv_data[i]);
+	  AMREX_ASSERT(MyProc == this->ParticleDistributionMap(0)[rcv_data[i+1]]);
 	  rcv_box_ids.push_back(rcv_data[i+1]);
 	  rcv_box_offsets.push_back(rcv_box_counts.back());
-	}	
+	}
     }
     
 #endif // MPI
@@ -861,7 +863,7 @@ communicateParticles ()
     for (int i = 0; i < NProcs; ++i) {
         if (Rcvs[i] > 0) {
             RcvProc.push_back(i);
-            rOffset.push_back(TotRcvBytes);
+            rOffset.push_back(TotRcvBytes/sizeof(ParticleType));
             TotRcvBytes += Rcvs[i];
         }
     }
@@ -872,7 +874,7 @@ communicateParticles ()
 
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    rcv_buffer.resize(TotRcvBytes);
+    rcv_buffer.resize(TotRcvBytes/sizeof(ParticleType));
     
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
@@ -927,7 +929,10 @@ communicateParticles ()
 	  auto& tile = plev[index];
 	  auto& aos   = tile.GetArrayOfStructs();
 	  ParticleType* p_ptr = &(aos[0]);
-	  auto np = tile.numParticles();
+	  auto np = tile.numTotalParticles();
+
+	  int nn = tile.getNumNeighbors();
+	  tile.setNumNeighbors(nn + rcv_box_counts[i]);	
 
 	  AMREX_FOR_1D ( copy_size, i,
 	  {
