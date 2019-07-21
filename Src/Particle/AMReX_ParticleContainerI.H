@@ -4103,7 +4103,7 @@ AssignCellDensitySingleLevel (int rho_index,
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread 
     // its effect to an adjacent grid by first putting the value into ghost cells of its
-    // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
+    // own grid.  The mf->SumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevel");
