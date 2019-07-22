@@ -1,5 +1,5 @@
-Visualization with yt
-=====================
+Visualization with yt (for plotfiles)
+=====================================
 
 `yt <http://yt-project.org/>`__ is a Python package that can help in analyzing
 and visualizing WarpX data (among other data formats). It is convenient
@@ -18,12 +18,12 @@ or with the `Anaconda distribution <https://anaconda.org/>`__ of python (recomme
 
 ::
 
-    conda install -c atmyers yt
+    conda install -c conda-forge yt
 
 Visualizing the data
 --------------------
 
-Once data ("plot files") has been created by the simulation, open a Jupyter notebook from
+Once data ("plotfiles") has been created by the simulation, open a Jupyter notebook from
 the terminal:
 
 ::
@@ -36,7 +36,13 @@ and load the first plot file:
 ::
 
     import yt
-    ds = yt.load('./plt00000/')
+    ds = yt.load('./diags/plotfiles/plt00000/')
+
+The list of field data and particle data stored can be seen with:
+
+::
+
+    ds.field_list
 
 Field data
 ~~~~~~~~~~
@@ -48,7 +54,19 @@ For instance, in order to plot the field ``Ex`` in a slice orthogonal to ``y`` (
 
 ::
 
-    yt.SlicePlot( ds, 1, 'Ex' )
+    yt.SlicePlot( ds, 1, 'Ex', origin='native' )
+
+.. note::
+
+    `yt.SlicePlot` creates a 2D plot with the same aspect ratio as the physical
+    size of the simulation box. Sometimes this can lead to very elongated plots
+    that are difficult to read. You can modify the aspect ratio with the
+    `aspect` argument ; for instance:
+
+    ::
+
+        yt.SlicePlot( ds, 1, 'Ex', aspect=1./10 )
+
 
 Alternatively, the data can be obtained as a `numpy <http://www.numpy.org/>`__ array.
 

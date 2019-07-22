@@ -24,15 +24,14 @@ First, let us setup your local git repo. Make your own fork of the main
 on the [WarpX Github page](https://github.com/ECP-WarpX/WarpX), press the 
 fork button. Then, you can execute:
 ```
-# These 5 first lines are the same as for a standard WarpX install
+# These 4 first lines are the same as for a standard WarpX install
 mkdir warpx_directory
 cd warpx_directory
-git clone https://bitbucket.org/berkeleylab/picsar.git
-git clone https://github.com/AMReX-Codes/amrex.git
-cd amrex && git checkout development && cd .. # switch to AMReX development branch
+git clone --branch master https://bitbucket.org/berkeleylab/picsar.git
+git clone --branch development https://github.com/AMReX-Codes/amrex.git
 
 # Clone your fork on your local computer. You can get this address on your fork's Github page.
-git clone https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
+git clone --branch dev https://github.com/<myGithubUsername>/ECP-WarpX/WarpX.git
 cd warpx
 # Keep track of the main WarpX repo, to remain up-to-date.
 git remote add upstream https://github.com/ECP-WarpX/WarpX.git
@@ -194,3 +193,7 @@ created it). Reviewers will interact with you if they have comments/questions.
 ## Style and conventions
 - For indentation, WarpX uses four spaces (no tabs)
 - The number of characters per line should be <80
+- To define a function , for e.g., myfunction() use a space between the name of the function and the paranthesis - myfunction (). To call the function, the space is not required, i.e., just use myfunction(). The reason this is beneficial is that when we do a 'git grep ' to search for myfunction (), we can clearly see the locations where myfunction () is defined and where myfunction() is called. 
+- Also, using 'git grep "myfunction ()"' searches for files only in the git repo, which is more efficient compared to the 'grep "myfunction ()"' command that searches through all the files in a directory, including plotfiles for example. 
+- It is recommended that style changes are not included in the PR where new code is added. Some text editors may do this automatically and it is suggested that any automatic style changes in the text editor are removed. This is to avoid any errors that may be introduced in a PR just to do style change. 
+

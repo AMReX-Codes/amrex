@@ -17,7 +17,7 @@ number_sim_particles = 32768
 total_charge = 8.010883097437485e-07
 
 beam_rms_size = 0.25
-electron_beam_divergence = -0.04
+electron_beam_divergence = -0.04*picmi.c
 
 em_order = 3
 

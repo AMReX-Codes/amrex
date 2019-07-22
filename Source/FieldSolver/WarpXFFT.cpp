@@ -56,6 +56,7 @@ BuildFFTOwnerMask (const MultiFab& mf, const Geometry& geom)
         for (const auto& b : bl) {
             fab.setVal(nonowner, b, 0, 1);
         }
+
     }
 
     return mask;
@@ -107,6 +108,8 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
     // the cell that has non-zero mask is the one which is retained.
     mf.setVal(0.0, 0);
     mf.ParallelAdd(mftmp);
+
+
 }
 
 }
@@ -414,22 +417,24 @@ void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
 void
 WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
 {
+#ifndef AMREX_USE_CUDA // Running on CPU ; use PICSAR code for the hybrid FFT
+
     BL_PROFILE_VAR_NS("WarpXFFT::CopyDualGrid", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FftPushEB", blp_push_eb);
 
     auto period_fp = geom[lev].periodicity();
 
     BL_PROFILE_VAR_START(blp_copy);
-    Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
-    Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
-    Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    Bfield_fp_fft[lev][0]->ParallelCopy(*Bfield_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
-    Bfield_fp_fft[lev][1]->ParallelCopy(*Bfield_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
-    Bfield_fp_fft[lev][2]->ParallelCopy(*Bfield_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, 0, 0, period_fp);
-    current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, 0, 0, period_fp);
-    current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, 0, 0, period_fp);
-    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, 0, 0, period_fp);
+    Efield_fp_fft[lev][0]->ParallelCopy(*Efield_fp[lev][0], 0, 0, 1, Efield_fp[lev][0]->nGrow(), 0, period_fp);
+    Efield_fp_fft[lev][1]->ParallelCopy(*Efield_fp[lev][1], 0, 0, 1, Efield_fp[lev][1]->nGrow(), 0, period_fp);
+    Efield_fp_fft[lev][2]->ParallelCopy(*Efield_fp[lev][2], 0, 0, 1, Efield_fp[lev][2]->nGrow(), 0, period_fp);
+    Bfield_fp_fft[lev][0]->ParallelCopy(*Bfield_fp[lev][0], 0, 0, 1, Bfield_fp[lev][0]->nGrow(), 0, period_fp);
+    Bfield_fp_fft[lev][1]->ParallelCopy(*Bfield_fp[lev][1], 0, 0, 1, Bfield_fp[lev][1]->nGrow(), 0, period_fp);
+    Bfield_fp_fft[lev][2]->ParallelCopy(*Bfield_fp[lev][2], 0, 0, 1, Bfield_fp[lev][2]->nGrow(), 0, period_fp);
+    current_fp_fft[lev][0]->ParallelCopy(*current_fp[lev][0], 0, 0, 1, current_fp[lev][0]->nGrow(), 0, period_fp);
+    current_fp_fft[lev][1]->ParallelCopy(*current_fp[lev][1], 0, 0, 1, current_fp[lev][1]->nGrow(), 0, period_fp);
+    current_fp_fft[lev][2]->ParallelCopy(*current_fp[lev][2], 0, 0, 1, current_fp[lev][2]->nGrow(), 0, period_fp);
+    rho_fp_fft[lev]->ParallelCopy(*rho_fp[lev], 0, 0, 2, rho_fp[lev]->nGrow(), 0, period_fp);
     BL_PROFILE_VAR_STOP(blp_copy);
 
     BL_PROFILE_VAR_START(blp_push_eb);
@@ -488,4 +493,8 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     {
         amrex::Abort("WarpX::PushPSATD: TODO");
     }
+#else // AMREX_USE_CUDA is defined ; running on GPU
+        amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
+
 }

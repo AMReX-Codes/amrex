@@ -129,9 +129,7 @@ public:
 
     void Checkpoint (const std::string& dir) const;
 
-    void WritePlotFile( const std::string& dir,
-                        const amrex::Vector<int>& real_flags, 
-                        const amrex::Vector<std::string>& real_names) const;
+    void WritePlotFile (const std::string& dir) const;
     
     void Restart (const std::string& dir);
 
@@ -156,6 +154,10 @@ public:
 
     int nSpecies() const {return nspecies;}
 
+    int nSpeciesBoostedFrameDiags() const {return nspecies_boosted_frame_diags;}
+    int mapSpeciesBoostedFrameDiags(int i) const {return map_species_boosted_frame_diags[i];}
+    int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
+
     int nSpeciesDepositOnMainGrid () const {
         int r = 0;
         for (int i : deposit_on_main_grid) {
@@ -169,17 +171,14 @@ public:
                          const amrex::Real z_old, const amrex::Real z_new,
                          const amrex::Real t_boost, const amrex::Real t_lab, const amrex::Real dt,
                          amrex::Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const;
-    
-    // 
-    // Parameters for the Cherenkov corrector in the FDTD solver.
-    // Both stencils are calculated ar runtime.
-    // 
-    // Number of coefficients for the stencil of the NCI corrector.
-    // The stencil is applied in the z direction only.
-    static constexpr int nstencilz_fdtd_nci_corr=5;
 
-    amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
-    amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
+    // Inject particles during the simulation (for particles entering the 
+    // simulation domain after some iterations, due to flowing plasma and/or
+    // moving window).
+    void ContinuousInjection(const amrex::RealBox& injection_box) const;
+    // Update injection position for continuously-injected species.
+    void UpdateContinuousInjectionPosition(amrex::Real dt) const;
+    int doContinuousInjection() const;
 
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
 
@@ -206,6 +205,13 @@ private:
     std::unique_ptr<PhysicalParticleContainer> pc_tmp;
 
     void ReadParameters ();
+
+    // Number of species dumped in BoostedFrameDiagnostics
+    int nspecies_boosted_frame_diags = 0;
+    // map_species_boosted_frame_diags[i] is the species ID in 
+    // MultiParticleContainer for 0<i<nspecies_boosted_frame_diags
+    std::vector<int> map_species_boosted_frame_diags;
+    int do_boosted_frame_diags = 0;
 
     // runtime parameters
     int nlasers = 0;

@@ -24,10 +24,8 @@ warpx.do_pml = 0
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 3
-algo.charge_deposition = 0
-algo.field_gathering = 1
-algo.particle_pusher = 0
+algo.current_deposition = direct
+algo.field_gathering = standard
 
 interpolation.nox = 1
 interpolation.noy = 1

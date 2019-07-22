@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include "WarpXParser.H"
 
 WarpXParser::WarpXParser (std::string const& func_body)
@@ -12,6 +13,8 @@ WarpXParser::define (std::string const& func_body)
     clear();
 
     m_expression = func_body;
+    m_expression.erase(std::remove(m_expression.begin(),m_expression.end(),'\n'),
+                       m_expression.end());
     std::string f = m_expression + "\n";
 
 #ifdef _OPENMP

@@ -17,6 +17,8 @@
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
+#include <WarpXAlgorithmSelection.H>
+#include <WarpX_FDTD.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -32,12 +34,15 @@ int WarpX::moving_window_dir = -1;
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
 Vector<int> WarpX::boost_direction = {0,0,0};
+int WarpX::do_compute_max_step_from_zmax = 0;
+Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
-long WarpX::current_deposition_algo = 3;
-long WarpX::charge_deposition_algo = 0;
-long WarpX::field_gathering_algo = 1;
-long WarpX::particle_pusher_algo = 0;
-int WarpX::maxwell_fdtd_solver_id = 0;
+long WarpX::use_picsar_deposition = 1;
+long WarpX::current_deposition_algo;
+long WarpX::charge_deposition_algo;
+long WarpX::field_gathering_algo;
+long WarpX::particle_pusher_algo;
+int WarpX::maxwell_fdtd_solver_id;
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
@@ -55,6 +60,7 @@ int WarpX::num_mirrors = 0;
 int  WarpX::sort_int = -1;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
+std::string WarpX::lab_data_directory = "lab_frame_data";
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 bool WarpX::do_boosted_frame_fields = true;
@@ -145,15 +151,17 @@ WarpX::WarpX ()
 
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
-
-    if (do_plasma_injection) {
-        for (int i = 0; i < num_injected_species; ++i) {
-            int ispecies = injected_plasma_species[i];
-            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-            ppc.injected = true;
+    warpx_do_continuous_injection = mypc->doContinuousInjection();
+    if (warpx_do_continuous_injection){
+        if (moving_window_v >= 0){
+            // Inject particles continuously from the right end of the box
+            current_injection_position = geom[0].ProbHi(moving_window_dir);
+        } else {
+            // Inject particles continuously from the left end of the box
+            current_injection_position = geom[0].ProbLo(moving_window_dir);
         }
     }
+    do_boosted_frame_particles = mypc->doBoostedFrameDiags();
 
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
@@ -223,6 +231,11 @@ WarpX::WarpX ()
 #ifdef BL_USE_SENSEI_INSITU
     insitu_bridge = nullptr;
 #endif
+
+    // NCI Godfrey filters can have different stencils
+    // at different levels (the stencil depends on c*dt/dz)
+    nci_godfrey_filter_exeybz.resize(nlevs_max);
+    nci_godfrey_filter_bxbyez.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -271,6 +284,12 @@ WarpX::ReadParameters ()
 
     ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
+    // pp.query returns 1 if argument zmax_plasma_to_compute_max_step is
+    // specified by the user, 0 otherwise.
+    do_compute_max_step_from_zmax =
+        pp.query("zmax_plasma_to_compute_max_step",
+                  zmax_plasma_to_compute_max_step);
+
     pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
@@ -300,26 +319,13 @@ WarpX::ReadParameters ()
 	    moving_window_v *= PhysConst::c;
 	}
 
-	pp.query("do_plasma_injection", do_plasma_injection);
-	if (do_plasma_injection) {
-        pp.get("num_injected_species", num_injected_species);
-        injected_plasma_species.resize(num_injected_species);
-        pp.getarr("injected_plasma_species", injected_plasma_species,
-                  0, num_injected_species);
-        if (moving_window_v >= 0){
-            // Inject particles continuously from the right end of the box
-            current_injection_position = geom[0].ProbHi(moving_window_dir);
-        } else {
-            // Inject particles continuously from the left end of the box
-            current_injection_position = geom[0].ProbLo(moving_window_dir);
-        }
-	}
-
     pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
     if (do_boosted_frame_diagnostic) {
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
+
+        pp.query("lab_data_directory", lab_data_directory);
 
         std::string s;
         pp.get("boost_direction", s);
@@ -331,8 +337,6 @@ WarpX::ReadParameters ()
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
-        pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
-
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                "The moving window should be on if using the boosted frame diagnostic.");
@@ -385,6 +389,10 @@ WarpX::ReadParameters ()
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
+        // Fields to dump into plotfiles
+        pp.query("plot_E_field"      , plot_E_field);
+        pp.query("plot_B_field"      , plot_B_field);
+        pp.query("plot_J_field"      , plot_J_field);
         pp.query("plot_part_per_cell", plot_part_per_cell);
         pp.query("plot_part_per_grid", plot_part_per_grid);
         pp.query("plot_part_per_proc", plot_part_per_proc);
@@ -394,6 +402,7 @@ WarpX::ReadParameters ()
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
@@ -442,39 +451,6 @@ WarpX::ReadParameters ()
             fine_tag_hi = RealVect{hi};
         }
 
-        // select which particle comps to write
-        {
-            pp.queryarr("particle_plot_vars", particle_plot_vars);
-
-            if (particle_plot_vars.size() == 0)
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 1);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 1);
-                }
-            }
-            else
-            {
-                if (WarpX::do_boosted_frame_diagnostic && WarpX::do_boosted_frame_particles)
-                {
-                    particle_plot_flags.resize(PIdx::nattribs + 6, 0);
-                }
-                else
-                {
-                    particle_plot_flags.resize(PIdx::nattribs, 0);
-                }
-
-                for (const auto& var : particle_plot_vars)
-                {
-                    particle_plot_flags[ParticleStringNames::to_index.at(var)] = 1;
-                }
-            }
-        }
-
         pp.query("load_balance_int", load_balance_int);
         pp.query("load_balance_with_sfc", load_balance_with_sfc);
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
@@ -508,29 +484,22 @@ WarpX::ReadParameters ()
     }
 
     {
-	ParmParse pp("algo");
-	pp.query("current_deposition", current_deposition_algo);
-	pp.query("charge_deposition", charge_deposition_algo);
-	pp.query("field_gathering", field_gathering_algo);
-	pp.query("particle_pusher", particle_pusher_algo);
-	std::string s_solver = "";
-	pp.query("maxwell_fdtd_solver", s_solver);
-        std::transform(s_solver.begin(),
-                       s_solver.end(),
-                       s_solver.begin(),
-                       ::tolower);
-	// if maxwell_fdtd_solver is specified, set the value
-	// of maxwell_fdtd_solver_id accordingly.
-        // Otherwise keep the default value maxwell_fdtd_solver_id=0
-        if (s_solver != "") {
-            if (s_solver == "yee") {
-                maxwell_fdtd_solver_id = 0;
-            } else if (s_solver == "ckc") {
-                maxwell_fdtd_solver_id = 1;
-            } else {
-                amrex::Abort("Unknown FDTD Solver type " + s_solver);
-            }
+        ParmParse pp("algo");
+        // If not in RZ mode, read use_picsar_deposition
+        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // of the deposition does not support RZ
+#ifndef WARPX_RZ
+        pp.query("use_picsar_deposition", use_picsar_deposition);
+#endif
+        current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
+        if (!use_picsar_deposition){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( current_deposition_algo >= 2, 
+                "if not use_picsar_deposition, cannot use Esirkepov deposition.");
         }
+        charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
+        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
+        particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
+        maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
     }
 
 #ifdef WARPX_USE_PSATD
@@ -559,6 +528,34 @@ WarpX::ReadParameters ()
         pp.query("config", insitu_config);
         pp.query("pin_mesh", insitu_pin_mesh);
     }
+
+    // for slice generation //
+    {
+       ParmParse pp("slice");
+       amrex::Vector<Real> slice_lo(AMREX_SPACEDIM);
+       amrex::Vector<Real> slice_hi(AMREX_SPACEDIM);
+       Vector<int> slice_crse_ratio(AMREX_SPACEDIM);
+       // set default slice_crse_ratio //
+       for (int idim=0; idim < AMREX_SPACEDIM; ++idim )
+       {
+          slice_crse_ratio[idim] = 1;
+       }
+       pp.queryarr("dom_lo",slice_lo,0,AMREX_SPACEDIM);
+       pp.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
+       pp.queryarr("coarsening_ratio",slice_crse_ratio,0,AMREX_SPACEDIM);
+       pp.query("plot_int",slice_plot_int);
+       slice_realbox.setLo(slice_lo);
+       slice_realbox.setHi(slice_hi);
+       slice_cr_ratio = IntVect(AMREX_D_DECL(1,1,1));
+       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+       {
+          if (slice_crse_ratio[idim] > 1 ) {
+             slice_cr_ratio[idim] = slice_crse_ratio[idim];
+          }
+       }
+
+    }
+
 }
 
 // This is a virtual function.
@@ -662,7 +659,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + NCIGodfreyFilter::stencil_width;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
@@ -913,8 +910,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
-
-
 }
 
 std::array<Real,3>
@@ -989,18 +984,32 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<const MultiFab*, 3>& B,
                     const std::array<Real,3>& dx)
 {
-#ifdef _OPENMP
-#pragma omp parallel
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
-    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(divB, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
-                           dx.data());
+        auto const& Bxfab = B[0]->array(mfi);
+        auto const& Byfab = B[1]->array(mfi);
+        auto const& Bzfab = B[2]->array(mfi);
+        auto const& divBfab = divB.array(mfi);
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
+#ifdef WARPX_RZ
+                              ,rmin
+#endif
+                              );
+        });
     }
 }
 
@@ -1009,18 +1018,32 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<const MultiFab*, 3>& B,
                     const std::array<Real,3>& dx, int ngrow)
 {
-#ifdef _OPENMP
-#pragma omp parallel
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
-    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(divB, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
-        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
-                           dx.data());
+        auto const& Bxfab = B[0]->array(mfi);
+        auto const& Byfab = B[1]->array(mfi);
+        auto const& Bzfab = B[2]->array(mfi);
+        auto const& divBfab = divB.array(mfi);
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
+#ifdef WARPX_RZ
+                              ,rmin
+#endif
+                              );
+        });
     }
 }
 
@@ -1029,18 +1052,32 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<const MultiFab*, 3>& E,
                     const std::array<Real,3>& dx)
 {
-#ifdef _OPENMP
-#pragma omp parallel
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
-    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(divE, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data());
+        auto const& Exfab = E[0]->array(mfi);
+        auto const& Eyfab = E[1]->array(mfi);
+        auto const& Ezfab = E[2]->array(mfi);
+        auto const& divEfab = divE.array(mfi);
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
+#ifdef WARPX_RZ
+                              ,rmin
+#endif
+                              );
+        });
     }
 }
 
@@ -1049,25 +1086,38 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<const MultiFab*, 3>& E,
                     const std::array<Real,3>& dx, int ngrow)
 {
-#ifdef _OPENMP
-#pragma omp parallel
+    Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
+
+#ifdef WARPX_RZ
+    const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
-    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(divE, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.growntilebox(ngrow);
-        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
-                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
-                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
-                           dx.data());
+        auto const& Exfab = E[0]->array(mfi);
+        auto const& Eyfab = E[1]->array(mfi);
+        auto const& Ezfab = E[2]->array(mfi);
+        auto const& divEfab = divE.array(mfi);
+
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
+#ifdef WARPX_RZ
+                              ,rmin
+#endif
+                              );
+        });
     }
 }
 
 void
 WarpX::BuildBufferMasks ()
 {
-    int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
     for (int lev = 1; lev <= maxLevel(); ++lev)
     {
         for (int ipass = 0; ipass < 2; ++ipass)

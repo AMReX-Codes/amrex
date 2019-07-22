@@ -5,7 +5,8 @@ CEXE_sources += FieldIO.cpp
 CEXE_headers += FieldIO.H
 CEXE_headers += BoostedFrameDiagnostic.H
 CEXE_headers += ElectrostaticIO.cpp
-F90EXE_sources += BoostedFrame_module.F90
+CEXE_headers += SliceDiagnostic.H
+CEXE_sources += SliceDiagnostic.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics

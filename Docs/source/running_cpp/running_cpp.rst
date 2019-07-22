@@ -8,3 +8,4 @@ Running WarpX as an executable
    examples
    parameters
    profiling
+   parallelization

@@ -8,6 +8,7 @@
  */
 class PsatdAlgorithm : public SpectralBaseAlgorithm
 {
+
     public:
         PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
                          const amrex::DistributionMapping& dm,
@@ -19,6 +20,10 @@ class PsatdAlgorithm : public SpectralBaseAlgorithm
         virtual int getRequiredNumberOfFields() const override final {
             return SpectralFieldIndex::n_fields;
         }
+        
+        void InitializeSpectralCoefficients(const SpectralKSpace& spectral_kspace,
+                                    const amrex::DistributionMapping& dm,
+                                    const amrex::Real dt);
 
     private:
         SpectralCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;

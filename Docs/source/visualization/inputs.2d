@@ -45,9 +45,6 @@ interpolation.noz = 3
 particles.nspecies = 3
 particles.species_names = plasma_e beam driver
 particles.use_fdtd_nci_corr = 1
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 0
 
 driver.charge = -q_e
 driver.mass = m_e
@@ -82,6 +79,7 @@ plasma_e.momentum_distribution_type = "constant"
 plasma_e.ux = 0.0
 plasma_e.uy = 0.0
 plasma_e.uz = 0.0
+plasma_e.do_continuous_injection = 1
 
 beam.charge = -q_e
 beam.mass = m_e
