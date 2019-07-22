@@ -30,6 +30,9 @@ public:
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
 
+    AmrMesh (AmrMesh&& rhs) = default;
+    AmrMesh& operator= (AmrMesh&& rhs) = default;
+
     virtual ~AmrMesh ();
 
     int Verbose () const noexcept { return verbose; }
