@@ -10,6 +10,7 @@
 // Import low-level single-particle kernels
 #include <GetAndSetPosition.H>
 #include <UpdatePosition.H>
+#include <CurrentDeposition.H>
 
 using namespace amrex;
 
@@ -279,7 +280,7 @@ WarpXParticleContainer::AddNParticles (int lev,
     Redistribute();
 }
 
-/* \brief Current Deposition for thread thread_num
+/* \brief Current Deposition for thread thread_num using PICSAR
  * \param pti         : Particle iterator
  * \param wp          : Array of particle weights
  * \param uxp uyp uzp : Array of particle
@@ -292,16 +293,15 @@ WarpXParticleContainer::AddNParticles (int lev,
  * \param lev         : Level of box that contains particles
  * \param depos_lev   : Level on which particles deposit (if buffers are used)
  * \param dt          : Time step for particle level
- * \param ngJ         : Number of ghosts cells (of lev)
  */
 void
-WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
-                                       RealVector& wp, RealVector& uxp,
-                                       RealVector& uyp, RealVector& uzp,
-                                       MultiFab* jx, MultiFab* jy, MultiFab* jz,
-                                       const long offset, const long np_to_depose,
-                                       int thread_num, int lev, int depos_lev,
-                                       Real dt)
+WarpXParticleContainer::DepositCurrentFortran(WarpXParIter& pti,
+                                              RealVector& wp, RealVector& uxp,
+                                              RealVector& uyp, RealVector& uzp,
+                                              MultiFab* jx, MultiFab* jy, MultiFab* jz,
+                                              const long offset, const long np_to_depose,
+                                              int thread_num, int lev, int depos_lev,
+                                              Real dt)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
                                      (depos_lev==(lev  )),
@@ -402,6 +402,130 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         &xyzmin[0], &dx[0]);
 #endif
     BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+#ifndef AMREX_USE_GPU
+    BL_PROFILE_VAR_START(blp_accumulate);
+    // CPU, tiling: atomicAdd local_jx into jx
+    // (same for jx and jz)
+    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
+    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
+    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+    BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
+}
+
+/* \brief Current Deposition for thread thread_num
+ * \param pti         : Particle iterator
+ * \param wp          : Array of particle weights
+ * \param uxp uyp uzp : Array of particle
+ * \param jx jy jz    : Full array of current density
+ * \param offset      : Index of first particle for which current is deposited
+ * \param np_to_depose: Number of particles for which current is deposited.
+                        Particles [offset,offset+np_tp_depose] deposit current
+ * \param thread_num  : Thread number (if tiling)
+ * \param lev         : Level of box that contains particles
+ * \param depos_lev   : Level on which particles deposit (if buffers are used)
+ * \param dt          : Time step for particle level
+ */
+void
+WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
+                                       RealVector& wp, RealVector& uxp,
+                                       RealVector& uyp, RealVector& uzp,
+                                       MultiFab* jx, MultiFab* jy, MultiFab* jz,
+                                       const long offset, const long np_to_depose,
+                                       int thread_num, int lev, int depos_lev,
+                                       Real dt)
+{    
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
+                                     (depos_lev==(lev  )),
+                                     "Deposition buffers only work for lev-1");
+    // If no particles, do not do anything
+    if (np_to_depose == 0) return;
+
+    const long ngJ = jx->nGrow();
+    const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
+    int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
+    Real q = this->charge;
+    const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
+
+    BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
+
+    // Get tile box where current is deposited.
+    // The tile box is different when depositing in the buffers (depos_lev<lev)
+    // or when depositing inside the level (depos_lev=lev)
+    Box tilebox;
+    if (lev == depos_lev) {
+        tilebox = pti.tilebox();
+    } else {
+        const IntVect& ref_ratio = WarpX::RefRatio(depos_lev);
+        tilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
+    }
+    
+    // Staggered tile boxes (different in each direction)
+    Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
+    Box tby = convert(tilebox, WarpX::jy_nodal_flag);
+    Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
+    tilebox.grow(ngJ);
+
+#ifdef AMREX_USE_GPU
+    // No tiling on GPU: jx_ptr points to the full
+    // jx array (same for jy_ptr and jz_ptr).
+    Array4<Real> const& jx_arr = jx->array(pti);
+    Array4<Real> const& jy_arr = jy->array(pti);
+    Array4<Real> const& jz_arr = jz->array(pti);
+#else
+    // Tiling is on: jx_ptr points to local_jx[thread_num]
+    // (same for jy_ptr and jz_ptr)
+    tbx.grow(ngJ);
+    tby.grow(ngJ);
+    tbz.grow(ngJ);
+
+    local_jx[thread_num].resize(tbx);
+    local_jy[thread_num].resize(tby);
+    local_jz[thread_num].resize(tbz);
+
+    // local_jx[thread_num] is set to zero
+    local_jx[thread_num].setVal(0.0);
+    local_jy[thread_num].setVal(0.0);
+    local_jz[thread_num].setVal(0.0);
+
+    Array4<Real> const& jx_arr = local_jx[thread_num].array();
+    Array4<Real> const& jy_arr = local_jy[thread_num].array();
+    Array4<Real> const& jz_arr = local_jz[thread_num].array();
+#endif
+    // GPU, no tiling: deposit directly in jx
+    // CPU, tiling: deposit into local_jx
+    // (same for jx and jz)
+
+    Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
+    Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
+    Real* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
+
+    // Lower corner of tile box physical domain
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
+    // xyzmin is built on pti.tilebox(), so it does 
+    // not include staggering, so the stagger_shift has to be done by hand.
+    // Alternatively, we could define xyzminx from tbx (and the same for 3 
+    // directions and for jx, jy, jz). This way, sx0 would not be needed.
+    // Better for memory? worth trying?    
+    const Dim3 lo = lbound(tilebox);
+
+    if        (WarpX::nox == 1){
+        doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                              uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                              jz_arr, offset, np_to_depose, dt, dx,
+                              xyzmin, lo, stagger_shift, q);
+    } else if (WarpX::nox == 2){
+        doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                              uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                              jz_arr, offset, np_to_depose, dt, dx,
+                              xyzmin, lo, stagger_shift, q);
+    } else if (WarpX::nox == 3){
+        doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
+                              uyp.dataPtr(), uzp.dataPtr(), jx_arr, jy_arr, 
+                              jz_arr, offset, np_to_depose, dt, dx,
+                              xyzmin, lo, stagger_shift, q);
+    }
 
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
@@ -932,3 +1056,5 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
     if (pld.m_lev == lev-1){
     }
 }
+
+

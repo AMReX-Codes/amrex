@@ -755,7 +755,6 @@ WarpX::WriteSlicePlotFile () const
     // writing plotfile //
     const std::string& slice_plotfilename = amrex::Concatenate(slice_plot_file,istep[0]);
     amrex::Print() << " Writing slice plotfile " << slice_plotfilename << "\n";
-    const int ngrow = 0;
 
     Vector<std::string> rfs;
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();

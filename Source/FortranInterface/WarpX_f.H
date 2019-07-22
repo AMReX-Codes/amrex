@@ -75,12 +75,6 @@ extern "C"
 {
 #endif
 
-    void warpx_copy_attribs(const long* np,
-                            const amrex_real* xp, const amrex_real* yp, const amrex_real* zp,
-                            const amrex_real* uxp, const amrex_real* uyp, const amrex_real* uzp,
-                            amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
-                            amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
-
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,

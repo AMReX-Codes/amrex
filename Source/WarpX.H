@@ -81,6 +81,7 @@ public:
     static amrex::Vector<amrex::Real> B_external;
 
     // Algorithms
+    static long use_picsar_deposition;
     static long current_deposition_algo;
     static long charge_deposition_algo;
     static long field_gathering_algo;
@@ -656,7 +657,8 @@ private:
 
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
-    void PushPSATD (int lev, amrex::Real dt);
+    void PushPSATD_localFFT (int lev, amrex::Real dt);
+    void PushPSATD_hybridFFT (int lev, amrex::Real dt);
 
 #endif
 
