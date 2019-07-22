@@ -181,15 +181,15 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
 // Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shifted_shape_factor(Real* const sx, Real x_old, int i_new) {return 0;};
+int compute_shifted_shape_factor (Real* const sx, const Real x_old, const int i_new) {return 0;};
 
 // Compute shape factor for order 1.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shifted_shape_factor <1> (Real* const sx, Real x_old, int i_new){
-    int i = (int) x_old;
-    int i_shift = i - i_new;
-    Real xint = x_old - i;
+int compute_shifted_shape_factor <1> (Real* const sx, const Real x_old, const int i_new){
+    const int i = (int) x_old;
+    const int i_shift = i - i_new;
+    const Real xint = x_old - i;
     sx[1+i_shift] = 1.0 - xint;
     sx[2+i_shift] = xint;
     return i;
@@ -198,10 +198,10 @@ int compute_shifted_shape_factor <1> (Real* const sx, Real x_old, int i_new){
 // Compute shape factor for order 2.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shifted_shape_factor <2> (Real* const sx, Real x_old, int i_new){
-    int i = (int) (x_old+0.5);
-    int i_shift = i - (i_new + 1);
-    Real xint = x_old - i;
+int compute_shifted_shape_factor <2> (Real* const sx, const Real x_old, const int i_new){
+    const int i = (int) (x_old+0.5);
+    const int i_shift = i - (i_new + 1);
+    const Real xint = x_old - i;
     sx[1+i_shift] = 0.5*(0.5-xint)*(0.5-xint);
     sx[2+i_shift] = 0.75-xint*xint;
     sx[3+i_shift] = 0.5*(0.5+xint)*(0.5+xint);
@@ -212,10 +212,10 @@ int compute_shifted_shape_factor <2> (Real* const sx, Real x_old, int i_new){
 // Compute shape factor for order 3.
 template <>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shifted_shape_factor <3> (Real* const sx, Real x_old, int i_new){
-    int i = (int) x_old;
-    int i_shift = i - (i_new + 1);
-    Real xint = x_old - i;
+int compute_shifted_shape_factor <3> (Real* const sx, const Real x_old, const int i_new){
+    const int i = (int) x_old;
+    const int i_shift = i - (i_new + 1);
+    const Real xint = x_old - i;
     sx[1+i_shift] = 1.0/6.0*(1.0-xint)*(1.0-xint)*(1.0-xint);
     sx[2+i_shift] = 2.0/3.0-xint*xint*(1-xint/2.0);
     sx[3+i_shift] = 2.0/3.0-(1-xint)*(1-xint)*(1.0-0.5*(1-xint));
@@ -432,7 +432,7 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
 
                      for (int k=dkl; k<=depos_order+2-dku; k++) {
                          for (int i=dil; i<=depos_order+2-diu; i++) {
-                             Real sdyj = wq*uyp[ip]*gaminv*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
+                             const Real sdyj = wq*uyp[ip]*gaminv*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
                                          (0.5*sz_new[k] + 1./3.*(sz_old[k] - sz_new[k]))*(sx_old[i] - sx_new[i]));
                              amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdyj);
                          }
