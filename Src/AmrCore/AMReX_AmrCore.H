@@ -37,6 +37,9 @@ public:
              Vector<IntVect> const& ref_ratios,
              Array<int,AMREX_SPACEDIM> const& is_per);
 
+    AmrCore (AmrCore&& rhs) = default;
+    AmrCore& operator= (AmrCore&& rhs) = default;
+
     AmrCore (const AmrCore& rhs) = delete;
     AmrCore& operator= (const AmrCore& rhs) = delete;
 
