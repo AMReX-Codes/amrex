@@ -372,7 +372,8 @@ namespace
     *        random seed generation. 
     */
     __device__ curandState_t *glo_RandStates;
-    amrex::Gpu::DeviceVector<curandState_t> dev_RandStates_Seed;
+    curandState_t* dev_RandStates_Seed;
+    int nstates;
 #endif
 
 }
@@ -397,6 +398,15 @@ amrex::InitRandom (unsigned long seed, int nprocs)
     }
 #else
     generators[0].seed(seed);
+#endif
+
+#ifdef AMREX_USE_CUDA
+    if (dev_RandStates_Seed != nullptr)
+    {
+        cudaFree(dev_RandStates_Seed);
+        dev_RandStates_Seed = nullptr;    
+    }
+    nstates = 0;
 #endif
 }
 
@@ -543,7 +553,7 @@ void
 amrex::CheckSeedArraySizeAndResize (int N)
 {
 #ifdef AMREX_USE_CUDA
-  if ( dev_RandStates_Seed.size() < N) {
+  if ( nstates < N) {
      ResizeRandomSeed(N);
   }
 #endif
@@ -555,25 +565,34 @@ amrex::ResizeRandomSeed (int N)
 
 #ifdef AMREX_USE_CUDA  
 
-  int Nbuffer = N * 2;
+    if (N <= nstates) return;
 
-  int PrevSize = dev_RandStates_Seed.size();
+    int PrevSize = nstates;
+    int SizeDiff = N - PrevSize;
 
-  const int MyProc = amrex::ParallelDescriptor::MyProc();
-  int SizeDiff = Nbuffer - PrevSize;
+    curandState_t * new_data;
+    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t))); 
+    if (dev_RandStates_Seed != nullptr) {
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_data, dev_RandStates_Seed, 
+                                        PrevSize*sizeof(curandState_t), 
+                                        cudaMemcpyDeviceToDevice));
+        AMREX_CUDA_SAFE_CALL(cudaFree(dev_RandStates_Seed));
+    }
+    
+    dev_RandStates_Seed = new_data;
+    
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_RandStates,
+                                            &dev_RandStates_Seed,
+                                            sizeof(curandState_t *)));
 
-  dev_RandStates_Seed.resize(Nbuffer);
-  curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
-  cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
-
-  AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
-  {
-     unsigned long seed = MyProc*1234567UL + 12345UL ;
-     int seqstart = idx + 10 * idx ; 
-     int loc = idx + PrevSize;
-     curand_init(seed, seqstart, 0, &glo_RandStates[loc]);
-  }); 
-
+    const int MyProc = amrex::ParallelDescriptor::MyProc();
+    AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
+    {
+        unsigned long seed = MyProc*1234567UL + 12345UL ;
+        int seqstart = idx + 10 * idx ; 
+        int loc = idx + PrevSize;
+        curand_init(seed, seqstart, 0, &glo_RandStates[loc]);
+    }); 
 #endif
 
 }
@@ -582,8 +601,12 @@ void
 amrex::DeallocateRandomSeedDevArray()
 {
 #ifdef AMREX_USE_CUDA  
-  dev_RandStates_Seed.resize(0);
-  dev_RandStates_Seed.shrink_to_fit();
+    if (dev_RandStates_Seed != nullptr)
+    {
+        cudaFree(dev_RandStates_Seed);
+        dev_RandStates_Seed = nullptr;    
+    }
+    int nstates = 0;
 #endif
 }
 
