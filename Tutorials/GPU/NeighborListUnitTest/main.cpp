@@ -9,6 +9,15 @@
 
 using namespace amrex;
 
+template <typename T, typename S> 
+std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v) 
+{ 
+    os << "("; 
+    os << v.first << ", " 
+       << v.second << ")"; 
+    return os; 
+} 
+
 struct TestParams
 {
     IntVect size;
@@ -107,28 +116,28 @@ void main_main ()
 
     std::cout << "Testing neighbor particles after move \n";
 
-    // so we can call minDistance
+    // so we can call minAndMaxDistance
     pc.buildNeighborList(CheckPair());
 
-    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
 
-    amrex::Print() << "Moving particles and updating neighbors \n";
+    std::cout << "Moving particles and updating neighbors \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
 
-    amrex::Print() << "Moving particles and updating neighbors again \n";
+    std::cout << "Moving particles and updating neighbors again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
 
-    amrex::Print() << "Moving particles and updating neighbors yet again \n";
+    std::cout << "Moving particles and updating neighbors yet again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
     
     if (params.write_particles) 
         pc.writeParticles(0);
