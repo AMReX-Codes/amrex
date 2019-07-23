@@ -48,13 +48,13 @@ SMPIARGS=
 # However, if not using CUDA-aware MPI (off by default), useful to 
 PAMI_DISABLE_IPC=1
 
-# SMPIARGS+= --smpiargs="gpu"
+# SMPIARGS+=" --smpiargs="-gpu""
 # Allows CUDA-aware MPI functionality.
 # Only needed if amrex.use_gpu_aware_mpi=1.
 # Requires using one resource set per node.
 # RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
 
-SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
+SMPIARGS+=" --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks""
 # Turns off CUDA hooks required for CUDA-aware MPI. 
 # RECOMMENDED ON.
 # May eliminate intermittent finalize bug that prevents obtaining profiling data.
