@@ -78,40 +78,40 @@ void main_main ()
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "About to initialize particles" << std::endl;
+        std::cout << "About to initialize particles \n";
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Check neighbors after init ..." << std::endl;
+        std::cout << "Check neighbors after init ... \n";
     pc.checkNeighbors();
 
     pc.fillNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Check neighbors after fill ..." << std::endl;
+        std::cout << "Check neighbors after fill ... \n";
     pc.checkNeighbors();
 
     pc.updateNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Check neighbors after update ..." << std::endl;
+        std::cout << "Check neighbors after update ... \n";
     pc.checkNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Now resetting the particle test_id values " << std::endl;
+        std::cout << "Now resetting the particle test_id values  \n";
     pc.reset_test_id();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Check neighbors after reset ..." << std::endl;
+        std::cout << "Check neighbors after reset ... \n";
     pc.checkNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Now updateNeighbors again ... " << std::endl;
+        std::cout << "Now updateNeighbors again ...  \n";
     pc.updateNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        std::cout << "Check neighbors after update ..." << std::endl;
+        std::cout << "Check neighbors after update ... \n";
     pc.checkNeighbors();
 
     std::cout << "Testing neighbor particles after move \n";
@@ -119,25 +119,25 @@ void main_main ()
     // so we can call minAndMaxDistance
     pc.buildNeighborList(CheckPair());
 
-    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
 
     std::cout << "Moving particles and updating neighbors \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
 
     std::cout << "Moving particles and updating neighbors again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
 
     std::cout << "Moving particles and updating neighbors yet again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be 1 \n"; 
+    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
     
     if (params.write_particles) 
         pc.writeParticles(0);
