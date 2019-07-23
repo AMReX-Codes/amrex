@@ -3,12 +3,12 @@
 
 using namespace amrex;
 
-// Compute shape factor and return index of leftmost cell where 
+// Compute shape factor and return index of leftmost cell where
 // particle writes.
 // Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shape_factor(Real* const sx, Real xint) {return 0;};
+int compute_shape_factor(Real* const sx, Real xint);
 
 // Compute shape factor for order 1.
 template <>
@@ -176,12 +176,12 @@ void doDepositionShapeN(const Real * const xp, const Real * const yp, const Real
         );
 }
 
-// Compute shape factor and return index of leftmost cell where 
+// Compute shape factor and return index of leftmost cell where
 // particle writes.
 // Specialized templates are defined below for orders 1, 2 and 3.
 template <int depos_order>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int compute_shifted_shape_factor (Real* const sx, const Real x_old, const int i_new) {return 0;};
+int compute_shifted_shape_factor (Real* const sx, const Real x_old, const int i_new);
 
 // Compute shape factor for order 1.
 template <>
