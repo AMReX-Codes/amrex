@@ -111,20 +111,23 @@ endif
    
 
 ifeq ($(USE_PSATD),TRUE)
-  FFTW_HOME ?= NOT_SET
-  ifneq ($(FFTW_HOME),NOT_SET)
-    VPATH_LOCATIONS += $(FFTW_HOME)/include
-    INCLUDE_LOCATIONS += $(FFTW_HOME)/include
-    LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
-  endif
   USERSuffix := $(USERSuffix).PSATD
   DEFINES += -DWARPX_USE_PSATD
-  ifeq ($(USE_CUDA),TRUE)
-    DEFINES += -DFFTW -DCUDA_FFT=1 # PICSAR uses it
-    LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads -lcufft
+  ifeq ($(USE_CUDA),FALSE) # Running on CPU
+     # Use FFTW
+     LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads
+     FFTW_HOME ?= NOT_SET
+     ifneq ($(FFTW_HOME),NOT_SET)
+       VPATH_LOCATIONS += $(FFTW_HOME)/include
+       INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+       LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+     endif
+     # Compile with PICSAR's Hybrid-MPI PSATD
+     DEFINES += -DWARPX_USE_PSATD_HYBRID
+     DEFINES += -DFFTW # PICSAR uses it
   else
-    DEFINES += -DFFTW # PICSAR uses it
-    LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads
+    # Use cuFFT
+    LIBRARIES += -lcufft
   endif
 endif
 
