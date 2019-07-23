@@ -22,4 +22,4 @@ script:
     # Run the tests on the current commit
     - export WARPX_TEST_COMMIT=$TRAVIS_COMMIT
     # Run the script that prepares the test environment and runs the tests
-    - travis_wait 30 ./run_test.sh
+    - ./run_test.sh
