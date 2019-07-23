@@ -449,7 +449,8 @@ protected:
 
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
-    amrex::Gpu::ManagedDeviceVector<int> box_permutation;
+    amrex::Gpu::ManagedDeviceVector<int> bucket_to_gid;
+    amrex::Gpu::ManagedDeviceVector<int> gid_to_bucket;
     amrex::Gpu::ManagedDeviceVector<int> box_proc_ids;
 
     amrex::Gpu::ManagedDeviceVector<int> proc_box_counts;
