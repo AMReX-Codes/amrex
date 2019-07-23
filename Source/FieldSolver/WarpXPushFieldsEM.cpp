@@ -6,6 +6,7 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX_K.H>
+#include <WarpX_PML_kernels.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -147,18 +148,36 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
-            WRPX_PUSH_PML_BVEC(
-			     tbx.loVect(), tbx.hiVect(),
-			     tby.loVect(), tby.hiVect(),
-			     tbz.loVect(), tbz.hiVect(),
-			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                             &dtsdx, &dtsdy, &dtsdz,
-			     &WarpX::maxwell_fdtd_solver_id);
+            // adding to move f90 to cpp PML_PORT //
+            auto const& pml_Bxfab = pml_B[0]->array(mfi);
+            auto const& pml_Byfab = pml_B[1]->array(mfi);
+            auto const& pml_Bzfab = pml_B[2]->array(mfi);
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
+            if (WarpX::maxwell_fdtd_solver_id == 0) {
+               amrex::ParallelFor(tbx,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_bx_yee(i,j,k,pml_Bxfab,pml_Eyfab,pml_Ezfab,
+                                        dtsdy,dtsdz);
+               });
+               amrex::ParallelFor(tby,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_by_yee(i,j,k,pml_Byfab,pml_Exfab,pml_Ezfab,
+                                         dtsdx,dtsdz);
+               });
+               amrex::ParallelFor(tbz,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_bz_yee(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
+                                        dtsdx,dtsdy);
+               });
+            } else if (WarpX::maxwell_fdtd_solver_id == 1) {
+              amrex::Print() << " CKC solver not implemented for CPP run\n";
+            }
+
         }
     }
 }
@@ -328,30 +347,58 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
-            WRPX_PUSH_PML_EVEC(
-			     tex.loVect(), tex.hiVect(),
-			     tey.loVect(), tey.hiVect(),
-			     tez.loVect(), tez.hiVect(),
-			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                             &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
+            auto const& pml_Bxfab = pml_B[0]->array(mfi);
+            auto const& pml_Byfab = pml_B[1]->array(mfi);
+            auto const& pml_Bzfab = pml_B[2]->array(mfi);
+
+            if (WarpX::maxwell_fdtd_solver_id == 0) {
+               amrex::ParallelFor(tex,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_ex_yee(i,j,k,pml_Exfab,pml_Byfab,pml_Bzfab,
+                                         dtsdy_c2,dtsdz_c2);
+               });
+               amrex::ParallelFor(tey,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_ey_yee(i,j,k,pml_Eyfab,pml_Bxfab,pml_Bzfab,
+                                         dtsdx_c2,dtsdz_c2);
+               });
+               amrex::ParallelFor(tez,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_ez_yee(i,j,k,pml_Ezfab,pml_Bxfab,pml_Byfab,
+                                         dtsdx_c2,dtsdy_c2);
+               });
+            }
+            else if (WarpX::maxwell_fdtd_solver_id == 1)
+            {
+              amrex::Print() << " CKC solver not implemented for CPP run\n";
+            }
 
             if (pml_F)
             {
-                WRPX_PUSH_PML_EVEC_F(
-				   tex.loVect(), tex.hiVect(),
-				   tey.loVect(), tey.hiVect(),
-				   tez.loVect(), tez.hiVect(),
-				   BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-				   BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                                   &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
-				   &WarpX::maxwell_fdtd_solver_id);
+
+               auto const& pml_F_fab = pml_F->array(mfi);
+               amrex::ParallelFor(tex,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_ex_f_yee(i,j,k,pml_Exfab,pml_F_fab,dtsdx_c2);
+               });
+               amrex::ParallelFor(tey,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_ey_f_yee(i,j,k,pml_Eyfab,pml_F_fab,dtsdy_c2);
+               });
+               amrex::ParallelFor(tez,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_ez_f_yee(i,j,k,pml_Ezfab,pml_F_fab,dtsdz_c2);
+               });
+                
             }
         }
     }
@@ -426,12 +473,21 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
         for ( MFIter mfi(*pml_F, TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.tilebox();
-            WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
-			  BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
-			  BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
-			  BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
-			  BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-			  &dtsdx[0], &dtsdx[1], &dtsdx[2]);
+
+
+            auto const& pml_F_fab = pml_F->array(mfi);
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
+
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                warpx_push_pml_F(i, j, k, pml_F_fab, pml_Exfab,
+                                pml_Eyfab, pml_Ezfab,
+                                dtsdx[0], dtsdx[1], dtsdx[2]);
+            });
+
         }
     }
 }
