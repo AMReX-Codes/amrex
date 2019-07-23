@@ -204,9 +204,9 @@ void MDParticleContainer::writeParticles(const int n)
     WriteAsciiFile(pltfile);
 }
 
-void MDParticleContainer::checkNeighbors()
+void MDParticleContainer::checkNeighborParticles()
 {
-    BL_PROFILE("MDParticleContainer::checkNeighbors");
+    BL_PROFILE("MDParticleContainer::checkNeighborParticles");
 
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -291,6 +291,115 @@ void MDParticleContainer::checkNeighbors()
         amrex::AllPrint() << " \n";
     }
 #endif
+}
+
+void MDParticleContainer::checkNeighborList()
+{
+    BL_PROFILE("MDParticleContainer::checkNeighborList");
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    auto& plev  = GetParticles(lev);
+
+    int ngrids = ParticleBoxArray(0).size();
+
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+
+        int mine = 0;
+
+        amrex::Gpu::DeviceScalar<int> d_mine(mine);
+        int* p_mine = d_mine.dataPtr();
+
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+
+        const size_t np       = aos.numParticles();
+        const size_t np_total = aos.numTotalParticles();
+
+        amrex::Cuda::ManagedVector<int> d_neighbor_count(np,0);
+        int* p_neighbor_count = d_neighbor_count.data();
+
+        amrex::Cuda::ManagedVector<int> d_full_count(np,0);
+        int* p_full_count = d_full_count.data();
+
+        auto nbor_data = m_neighbor_list[index].data();
+        ParticleType* pstruct = aos().dataPtr();
+
+        // ON DEVIDE: 
+        // AMREX_FOR_1D ( np, i,
+        // ON HOST:
+        // for (int i = 0; i < np; i++)
+        for (int i = 0; i < np; i++)
+        {
+            ParticleType& p1 = pstruct[i];
+
+            amrex::Vector<int> nbor_nbors;
+            amrex::Vector<int> full_nbors;
+
+            // Loop over all particles
+            for (int j = 0; j < np_total; j++)
+            {
+                // Don't be your own neighbor.
+                if ( i == j ) continue;
+
+                ParticleType& p2 = pstruct[j];
+                Real dx = p1.pos(0) - p2.pos(0);
+                Real dy = p1.pos(1) - p2.pos(1);
+                Real dz = p1.pos(2) - p2.pos(2);
+                
+                Real r2 = dx*dx + dy*dy + dz*dz;
+
+                Real cutoff_sq = 25.0*Params::cutoff*Params::cutoff; 
+
+		if (r2 <= cutoff_sq)
+		{
+                   Gpu::Atomic::Add(&(p_full_count[i]),1);
+                   full_nbors.push_back(p2.id());
+		}
+            }
+
+            for (const auto& p2 : nbor_data.getNeighbors(i))
+            {               
+                Gpu::Atomic::Add(&(p_neighbor_count[i]),1);
+                nbor_nbors.push_back(p2.id());
+            }
+
+            std::sort(full_nbors.begin(), full_nbors.end());
+            std::sort(nbor_nbors.begin(), nbor_nbors.end());
+
+            if (nbor_nbors.size() != full_nbors.size())
+            {
+               amrex::Print() << "Number of neighbors do not match for particle " << i << std::endl;
+               amrex::Print() << "Neighbor list has " << nbor_nbors.size() << " particles " << std::endl;
+               amrex::Print() << "Full N^2 list has " << full_nbors.size() << " particles " << std::endl;
+               amrex::Abort();
+            }
+
+            // amrex::Print() << "   there are " << nbor_nbors.size() << " " <<
+            //                  full_nbors.size() << " list / full neighbors of particle " << i << std::endl;
+            
+            // Loop over particles in my neighbor list
+            for (int cnt = 0; cnt < nbor_nbors.size(); cnt++)
+            {               
+                // std::cout << "   NBORS " << nbor_nbors[cnt] << " " << full_nbors[cnt] << std::endl;
+                if (nbor_nbors[cnt] != full_nbors[cnt])
+                {
+                     amrex::Print() << "Index of neighbors do not match for particle " << i << std::endl;
+                     amrex::Print() << "Neighbor list neighbor index: " << nbor_nbors[cnt]  << std::endl;
+                     amrex::Print() << "Full N^2 list neighbor index: " << full_nbors[cnt]  << std::endl;
+                     amrex::Abort();
+                }
+            }
+
+        } // i
+    } // MFIter
+
+    amrex::Print() << "All the neighbor list particles match!" << std::endl;
 }
 
 void MDParticleContainer::reset_test_id()

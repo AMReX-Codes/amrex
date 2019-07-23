@@ -1,4 +1,3 @@
-
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
@@ -7,15 +6,18 @@
 
 #include "MDParticleContainer.H"
 
-namespace amrex {
-template <typename T, typename S> 
-std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v) 
-{ 
-    os << "("; 
-    os << v.first << ", " 
-       << v.second << ")"; 
-    return os; 
-} 
+#include <string>
+
+namespace amrex
+{
+    template <typename T, typename S> 
+    std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v) 
+    { 
+        os << "("; 
+        os << v.first << ", " 
+           << v.second << ")"; 
+        return os; 
+    } 
 }
 
 using namespace amrex;
@@ -25,32 +27,40 @@ struct TestParams
     IntVect size;
     int max_grid_size;
     int num_ppc;
-    bool write_particles;
+    int is_periodic;
 };
 
-void main_main();
+void testNeighborParticles();
+
+void testNeighborList();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    main_main();
+
+    amrex::Print() << "Running neighbor particles test \n";
+    testNeighborParticles();
+
+    amrex::Print() << "Running neighbor list test \n";
+    testNeighborList();
+
     amrex::Finalize();
 }
 
-void get_test_params(TestParams& params)
+void get_test_params(TestParams& params, const std::string& prefix)
 {
-    ParmParse pp;
+    ParmParse pp(prefix);
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
-    pp.get("write_particles", params.write_particles);
     pp.get("num_ppc", params.num_ppc);
+    pp.get("is_periodic", params.is_periodic);
 }
 
-void main_main ()
+void testNeighborParticles ()
 {
-    BL_PROFILE("main::main()");
+    BL_PROFILE("testNeighborParticles");
     TestParams params;
-    get_test_params(params);
+    get_test_params(params, "nbor_parts");
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -66,7 +76,7 @@ void main_main ()
     int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+        is_per[i] = params.is_periodic;
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
@@ -86,19 +96,19 @@ void main_main ()
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Check neighbors after init ... \n";
-    pc.checkNeighbors();
+    pc.checkNeighborParticles();
 
     pc.fillNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Check neighbors after fill ... \n";
-    pc.checkNeighbors();
+    pc.checkNeighborParticles();
 
     pc.updateNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Check neighbors after update ... \n";
-    pc.checkNeighbors();
+    pc.checkNeighborParticles();
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Now resetting the particle test_id values  \n";
@@ -106,7 +116,7 @@ void main_main ()
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Check neighbors after reset ... \n";
-    pc.checkNeighbors();
+    pc.checkNeighborParticles();
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Now updateNeighbors again ...  \n";
@@ -114,7 +124,7 @@ void main_main ()
 
     if (ParallelDescriptor::MyProc() == dm[0])
         amrex::Print() << "Check neighbors after update ... \n";
-    pc.checkNeighbors();
+    pc.checkNeighborParticles();
 
     ParallelDescriptor::Barrier();
 
@@ -141,8 +151,48 @@ void main_main ()
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";     
+}
+
+void testNeighborList ()
+{
+    BL_PROFILE("main::main()");
+    TestParams params;
+    get_test_params(params, "nbor_list");
+
+    RealBox real_box;
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, params.size[n]);
+    }
+
+    IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(params.size[0]-1,params.size[1]-1,params.size[2]-1));
+    const Box domain(domain_lo, domain_hi);
+
+    int coord = 0;
+    int is_per[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        is_per[i] = params.is_periodic;
+    Geometry geom(domain, &real_box, coord, is_per);
     
-    if (params.write_particles) 
-        pc.writeParticles(0);
+    BoxArray ba(domain);
+    ba.maxSize(params.max_grid_size);
+    DistributionMapping dm(ba);
+
+    const int ncells = 1;
+    MDParticleContainer pc(geom, dm, ba, ncells);
+
+    int npc = params.num_ppc;
+    IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
+
+    amrex::Print() << "About to initialize particles" << std::endl;
+
+    pc.InitParticles(nppc, 1.0, 0.0);
+    pc.fillNeighbors();
+
+    pc.buildNeighborList(CheckPair());
+
+    pc.checkNeighborList();
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -P GEN128
+#BSUB -P CFD122
 #BSUB -W 2:00
 #BSUB -nnodes 1
 #BSUB -J MFIX

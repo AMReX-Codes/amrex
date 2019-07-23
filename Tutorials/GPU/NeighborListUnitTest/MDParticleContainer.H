@@ -34,7 +34,9 @@ public:
 
     void reset_test_id ();    
 
-    void checkNeighbors ();    
+    void checkNeighborParticles ();    
+
+    void checkNeighborList ();
 
     std::pair<amrex::Real, amrex::Real>  minAndMaxDistance ();
 
