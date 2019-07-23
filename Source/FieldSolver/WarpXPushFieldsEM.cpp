@@ -41,8 +41,8 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
 {
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
-    Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];
-    Real dxinv = 1./dx[0];
+    const Real dtsdx = a_dt/dx[0], dtsdy = a_dt/dx[1], dtsdz = a_dt/dx[2];
+    const Real dxinv = 1./dx[0];
 
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
     if (patch_type == PatchType::fine)
@@ -224,10 +224,10 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * a_dt;
     const Real c2dt = (PhysConst::c*PhysConst::c) * a_dt;
 
-    int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
+    const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
-    Real dtsdx_c2 = c2dt/dx[0], dtsdy_c2 = c2dt/dx[1], dtsdz_c2 = c2dt/dx[2];
-    Real dxinv = 1./dx[0];
+    const Real dtsdx_c2 = c2dt/dx[0], dtsdy_c2 = c2dt/dx[1], dtsdz_c2 = c2dt/dx[2];
+    const Real dxinv = 1./dx[0];
 
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz, *F;
     if (patch_type == PatchType::fine)
@@ -462,7 +462,7 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
 
     static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
 
-    int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
+    const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const auto& dx = WarpX::CellSize(patch_level);
     const std::array<Real,3> dtsdx {a_dt/dx[0], a_dt/dx[1], a_dt/dx[2]};
 

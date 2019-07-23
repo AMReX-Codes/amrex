@@ -45,8 +45,8 @@ void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
 #elif defined WARPX_DIM_2D
     Bz(i,j,0) += - dtsdx * (Ey(i+1,j,0) - Ey(i,j,0));
 #elif defined WARPX_DIM_RZ
-    Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
-    Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
+    const Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
+    const Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
     Bz(i,j,0) += - dtsdx * (ru*Ey(i+1,j,0) - rd*Ey(i,j,0));
 #endif
 }
@@ -103,8 +103,8 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
                  - mu_c2_dt  * Jz(i,j,0);
 #elif defined WARPX_DIM_RZ
     if (i != 0 || rmin != 0.) {
-        Real ru = 1. + 0.5/(rmin*dxinv + i);
-        Real rd = 1. - 0.5/(rmin*dxinv + i);
+        const Real ru = 1. + 0.5/(rmin*dxinv + i);
+        const Real rd = 1. - 0.5/(rmin*dxinv + i);
         Ez(i,j,0) += + dtsdx_c2 * (ru*By(i,j,0) - rd*By(i-1,j,0))
                      - mu_c2_dt  * Jz(i,j,0);
     } else {
@@ -153,11 +153,11 @@ static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
     // Cole-Karkkainen-Cowan push
     // computes coefficients according to Cowan - PRST-AB 16, 041303 (2013)
 #if defined WARPX_DIM_3D
-    Real delta = std::max( { dtsdx,dtsdy,dtsdz } );
-    Real rx = (dtsdx/delta)*(dtsdx/delta);
-    Real ry = (dtsdy/delta)*(dtsdy/delta);
-    Real rz = (dtsdz/delta)*(dtsdz/delta);
-    Real beta = 0.125*(1. - rx*ry*rz/(ry*rz + rz*rx + rx*ry));
+    const Real delta = std::max( { dtsdx,dtsdy,dtsdz } );
+    const Real rx = (dtsdx/delta)*(dtsdx/delta);
+    const Real ry = (dtsdy/delta)*(dtsdy/delta);
+    const Real rz = (dtsdz/delta)*(dtsdz/delta);
+    const Real beta = 0.125*(1. - rx*ry*rz/(ry*rz + rz*rx + rx*ry));
     betaxy = ry*beta;
     betaxz = rz*beta;
     betayx = rx*beta;
@@ -184,9 +184,9 @@ static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
     gammay *= dtsdy;
     gammaz *= dtsdz;
 #elif defined WARPX_DIM_2D
-    Real delta = std::max(dtsdx,dtsdz);
-    Real rx = (dtsdx/delta)*(dtsdx/delta);
-    Real rz = (dtsdz/delta)*(dtsdz/delta);
+    const Real delta = std::max(dtsdx,dtsdz);
+    const Real rx = (dtsdx/delta)*(dtsdx/delta);
+    const Real rz = (dtsdz/delta)*(dtsdz/delta);
     betaxz = 0.125*rz;
     betazx = 0.125*rx;
     alphax = 1. - 2.*betaxz;
@@ -386,8 +386,8 @@ void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
     divB(i,j,0,dcomp) = (Bx(i+1,j  ,0) - Bx(i,j,0))*dxinv
                +        (Bz(i  ,j+1,0) - Bz(i,j,0))*dzinv;
 #elif defined WARPX_DIM_RZ
-    Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
-    Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
+    const Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
+    const Real rd = 1. - 0.5/(rmin*dxinv + i + 0.5);
     divB(i,j,0,dcomp) = (ru*Bx(i+1,j,0) - rd*Bx(i,j,0))*dxinv
                        + (Bz(i,j+1,0) - Bz(i,j,0))*dzinv;
 #endif
@@ -417,8 +417,8 @@ void warpx_computedive(int i, int j, int k, int dcomp, Array4<Real> const& divE,
         divE(i,j,0,dcomp) = 4.*Ex(i,j,0)*dxinv
                             + (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
     } else {
-        Real ru = 1. + 0.5/(rmin*dxinv + i);
-        Real rd = 1. - 0.5/(rmin*dxinv + i);
+        const Real ru = 1. + 0.5/(rmin*dxinv + i);
+        const Real rd = 1. - 0.5/(rmin*dxinv + i);
         divE(i,j,0,dcomp) = (ru*Ex(i,j,0) - rd*Ex(i-1,j,0))*dxinv
                            + (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
     }
