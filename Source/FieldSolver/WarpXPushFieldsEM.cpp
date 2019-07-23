@@ -16,6 +16,54 @@
 
 using namespace amrex;
 
+#ifdef WARPX_USE_PSATD
+
+void
+WarpX::PushPSATD (amrex::Real a_dt)
+{
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
+        if (fft_hybrid_mpi_decomposition){
+#ifndef AMREX_USE_CUDA // Only available on CPU
+            PushPSATD_hybridFFT(lev, a_dt);
+#endif
+        } else {
+            PushPSATD_localFFT(lev, a_dt);
+        }
+    }
+}
+
+void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
+{
+    auto& solver = *spectral_solver_fp[lev];
+
+    // Perform forward Fourier transform
+    solver.ForwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
+    solver.ForwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
+    solver.ForwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
+    solver.ForwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
+    solver.ForwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
+    solver.ForwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
+    solver.ForwardTransform(*current_fp[lev][0], SpectralFieldIndex::Jx);
+    solver.ForwardTransform(*current_fp[lev][1], SpectralFieldIndex::Jy);
+    solver.ForwardTransform(*current_fp[lev][2], SpectralFieldIndex::Jz);
+    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_old, 0);
+    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_new, 1);
+
+    // Advance fields in spectral space
+    solver.pushSpectralFields();
+
+    // Perform backward Fourier Transform
+    solver.BackwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
+    solver.BackwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
+    solver.BackwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
+    solver.BackwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
+    solver.BackwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
+    solver.BackwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
+}
+
+#endif
+
 void
 WarpX::EvolveB (Real a_dt)
 {

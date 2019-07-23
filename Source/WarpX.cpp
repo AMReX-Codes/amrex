@@ -202,6 +202,10 @@ WarpX::WarpX ()
     costs.resize(nlevs_max);
 
 #ifdef WARPX_USE_PSATD
+    spectral_solver_fp.resize(nlevs_max);
+    spectral_solver_cp.resize(nlevs_max);
+#endif
+#ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
     current_fp_fft.resize(nlevs_max);
@@ -214,9 +218,6 @@ WarpX::WarpX ()
 
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
-
-    spectral_solver_fp.resize(nlevs_max);
-    spectral_solver_cp.resize(nlevs_max);
 
     ba_valid_fp_fft.resize(nlevs_max);
     ba_valid_cp_fft.resize(nlevs_max);
@@ -507,8 +508,6 @@ WarpX::ReadParameters ()
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
-        // Override value
-        if (fft_hybrid_mpi_decomposition==false) ngroups_fft=ParallelDescriptor::NProcs();
     }
 #endif
 
@@ -564,8 +563,12 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
 
 #ifdef WARPX_USE_PSATD
     if (fft_hybrid_mpi_decomposition){
+#ifdef WARPX_USE_PSATD_HYBRID
         AllocLevelDataFFT(lev);
         InitLevelDataFFT(lev, time);
+#else
+    amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
     }
 #endif
 }
@@ -610,7 +613,7 @@ WarpX::ClearLevel (int lev)
 
     costs[lev].reset();
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
     for (int i = 0; i < 3; ++i) {
         Efield_fp_fft[lev][i].reset();
         Bfield_fp_fft[lev][i].reset();
