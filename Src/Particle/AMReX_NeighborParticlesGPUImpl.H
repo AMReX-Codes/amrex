@@ -175,8 +175,8 @@ buildNeighborMask()
 	    proc_box_counts[val]++;
 	} 
 
-	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-			       proc_box_counts.begin(), proc_box_counts.end(), proc_box_offsets.begin());
+        amrex::Gpu::exclusive_scan(proc_box_counts.begin(), proc_box_counts.end(),
+                                   proc_box_offsets.begin());
  
 	proc_box_offsets.push_back(num_boxes);
     }
@@ -248,8 +248,7 @@ computeHaloParticles ()
 	    }
 	});
 
-	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                               counts.begin(), counts.end()+1, offsets.begin());
+        amrex::Gpu::exclusive_scan(counts.begin(), counts.end() + 1, offsets.begin());
 
 	int num_copies;
         Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
@@ -357,8 +356,7 @@ computeCopyPlan ()
 	});
     }
 
-    thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-			   box_counts.begin(), box_counts.end()+1, box_offsets.begin());
+    amrex::Gpu::exclusive_scan(box_counts.begin(), box_counts.end()+1, box_offsets.begin());
 }
 
 template <int NStructReal, int NStructInt>
