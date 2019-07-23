@@ -506,7 +506,7 @@ packBuffer ()
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
-    int total_buffer_size = box_offsets[num_boxes-1] + box_counts[num_boxes-1];
+    int total_buffer_size = box_offsets[num_boxes];
 
     snd_buffer.resize(total_buffer_size);    
 
@@ -527,11 +527,12 @@ packBuffer ()
 	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
 	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
 	auto p_box_offsets = box_offsets.dataPtr();
+        auto p_box_perm = box_permutation.dataPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-	  int box_offset = p_box_offsets[p_copy_plan_boxes[i]];
+	  int box_offset = p_box_offsets[p_box_perm[p_copy_plan_boxes[i]]];
 	  int dst_index = box_offset + p_copy_plan_dst_indices[i];
 	  int src_index = p_copy_plan_src_indices[i];
 	  p_snd_buffer[dst_index] = p_ptr[src_index];
@@ -582,22 +583,26 @@ unpackBuffer ()
 
         auto& tile = plev[index];
         auto& aos   = tile.GetArrayOfStructs();
-        ParticleType* p_ptr = &(aos[0]);
-	auto np = tile.numParticles();
+	auto np = tile.numTotalParticles();
 	
-	int num_copies = box_counts[gid];
+	int num_copies = box_counts[box_permutation[gid]];
 
 	auto p_box_offsets = box_offsets.dataPtr();
 	auto p_box_perm = box_permutation.dataPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
-	AMREX_FOR_1D ( num_copies, i,
+        int nn = tile.getNumNeighbors();
+        tile.setNumNeighbors(nn + num_copies);	
+
+        ParticleType* p_ptr = aos().dataPtr();
+
+        AMREX_FOR_1D ( num_copies, i,
         {
 	  int box_offset = p_box_offsets[p_box_perm[gid]];
 	  int src_index = box_offset + i;
 	  int dst_index = np + i;
 	  p_ptr[dst_index] = p_snd_buffer[src_index];
-	});
+        });        
     }
 }
 
@@ -630,7 +635,7 @@ setNumNeighbors()
         auto index = std::make_pair(gid, tid);
 
         auto&tile = plev[index];
-	tile.setNumNeighbors(box_counts[gid]);
+	tile.setNumNeighbors(box_counts[box_permutation[gid]]);
     }
 
     // remote neighbors
@@ -674,7 +679,7 @@ updateNeighborsGPU ()
 
     AMREX_ASSERT(this->numLevels() == 1);
 
-    setNumNeighbors();
+    clearNeighbors();
     packBuffer();
     unpackBuffer();
     communicateParticles();
@@ -706,7 +711,7 @@ getBoxRcvCounts ()
 	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
 	for (int j = 0; j < nboxes; ++j)
 	{
-	  int npart = box_counts[proc_box_offsets[i]+j];
+	  int npart = box_counts[box_permutation[proc_box_offsets[i]+j]];
 	  int dst = box_permutation[proc_box_offsets[i]+j];
 	  snd_data[i].push_back(npart);
 	  snd_data[i].push_back(dst);
@@ -928,11 +933,14 @@ communicateParticles ()
 	  
 	  auto& tile = plev[index];
 	  auto& aos   = tile.GetArrayOfStructs();
-	  ParticleType* p_ptr = &(aos[0]);
 	  auto np = tile.numTotalParticles();
+
+	  AMREX_ALWAYS_ASSERT(MyProc == this->ParticleDistributionMap(0)[gid]);
 
 	  int nn = tile.getNumNeighbors();
 	  tile.setNumNeighbors(nn + rcv_box_counts[i]);	
+
+	  ParticleType* p_ptr = &(aos[0]);
 
 	  AMREX_FOR_1D ( copy_size, i,
 	  {
