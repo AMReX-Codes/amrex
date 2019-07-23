@@ -285,8 +285,6 @@ public:
     
     void printNeighborListGPU ();
     
-    void sortParticlesByNeighborDestGPU ();
-    
     void fillNeighborsGPU ();
     
     void updateNeighborsGPU ();
@@ -324,8 +322,6 @@ public:
     void packBuffer ();
 
     void unpackBuffer ();
-
-    void setNumNeighbors ();
 
     void clearCopyPlan ();
 
@@ -407,7 +403,6 @@ protected:
     static bool enable_inverse;
 
 #ifdef AMREX_USE_CUDA
-    void fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours);
     
     struct NeighborTask {
         int grid_id;

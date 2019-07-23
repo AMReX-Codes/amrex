@@ -183,116 +183,6 @@ buildNeighborMask()
 }
 
 template <int NStructReal, int NStructInt>
-void 
-NeighborParticleContainer<NStructReal, NStructInt>::
-sortParticlesByNeighborDestGPU()
-{
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::sortParticlesByNeighborDestGPU");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
-    AMREX_ASSERT(hasNeighbors() == false);
-
-    const int lev = 0;
-    const auto& geom = this->Geom(lev);
-    const auto dxi = this->Geom(lev).InvCellSizeArray();
-    const auto plo = this->Geom(lev).ProbLoArray();
-    const auto domain = this->Geom(lev).Domain();
-    auto& plev  = this->GetParticles(lev);
-    auto& ba = this->ParticleBoxArray(lev);
-    auto& dmap = this->ParticleDistributionMap(lev);
-
-    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
-
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();        
-        auto index = std::make_pair(gid, tid);
-
-        const Box& bx = mfi.tilebox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
-
-        auto& src_tile = plev[index];
-        auto& aos   = src_tile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
-
-        Gpu::ManagedDeviceVector<int> neighbor_codes(np);
-        int* pcodes = neighbor_codes.dataPtr();
-
-        Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
-        
-        ParticleType* p_ptr = &(aos[0]);
-        AMREX_FOR_1D ( np, i,
-        {
-	    IntVect iv = IntVect(
-                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
-                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
-                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
-                );
-            
-            iv += domain.smallEnd();
-            
-	    int code = mask_arr(iv);
-            
-            pcodes[i] = code;
-        });
-
-        Gpu::ManagedDeviceVector<int> index_sequence_tmp(np);
-        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
-
-        ParticleVector aos_r(np);
-        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                            neighbor_codes.begin(),
-                            neighbor_codes.end(),
-                            index_sequence_tmp.begin());
-
-        //
-        // Reorder the particle data 
-        //
-        {
-	    // reorder structs
-	    aos_r.resize(np);
-            thrust::gather(thrust::device,
-                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
-                           aos().begin(), aos_r.begin());
-            aos().swap(aos_r);
-        }
-
-        int num_codes = m_grid_map[gid].size();
-        Gpu::ManagedDeviceVector<int> neighbor_code_begin(num_codes + 1);
-        Gpu::ManagedDeviceVector<int> neighbor_code_end  (num_codes + 1);
-        
-        thrust::counting_iterator<int> search_begin(-1);
-        thrust::lower_bound(thrust::device,
-                            neighbor_codes.begin(),
-                            neighbor_codes.end(),
-                            search_begin,
-                            search_begin + num_codes + 1,
-                            neighbor_code_begin.begin());
-        
-        thrust::upper_bound(thrust::device,
-                            neighbor_codes.begin(),
-                            neighbor_codes.end(),
-                            search_begin,
-                            search_begin + num_codes + 1,
-                            neighbor_code_end.begin());
-        
-        m_start[gid].resize(num_codes + 1);
-        m_stop[gid].resize(num_codes + 1);
-        
-        Cuda::thrust_copy(neighbor_code_begin.begin(),
-                          neighbor_code_begin.end(),
-                          m_start[gid].begin());
-        
-        Cuda::thrust_copy(neighbor_code_end.begin(),
-                          neighbor_code_end.end(),
-                          m_stop[gid].begin());
-    }
-}
-
-template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 computeHaloParticles ()
@@ -598,39 +488,6 @@ unpackBuffer ()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-setNumNeighbors()
-{
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::setNumNeighbors");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
-    clearNeighbors();
-
-    AMREX_ASSERT(hasNeighbors() == false);
-
-    const int lev = 0;
-    const auto& geom = this->Geom(lev);
-    auto& plev  = this->GetParticles(lev);
-    auto& ba = this->ParticleBoxArray(lev);
-
-    int num_boxes = ba.size();
-    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
-    
-    // local neighbors
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto&tile = plev[index];
-	tile.setNumNeighbors(box_counts[gid_to_bucket[gid]]);
-    }
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
 fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
@@ -658,7 +515,7 @@ updateNeighborsGPU ()
     clearNeighbors();
     packBuffer();
     unpackBuffer();
-    //    communicateParticles();
+    communicateParticles();
 }
 
 
@@ -688,6 +545,7 @@ getBoxRcvCounts ()
 	{
 	  int dst = bucket_to_gid[proc_box_offsets[i]+j];
 	  int npart = box_counts[proc_box_offsets[i]+j];
+          if (dst == 0) amrex::AllPrintToFile("snds") << "Sending " << npart << " partices to grid " << dst << "\n";
 	  snd_data[i].push_back(npart);
 	  snd_data[i].push_back(dst);
 	}
@@ -921,6 +779,12 @@ communicateParticles ()
 	  int nn = tile.getNumNeighbors();
 	  tile.setNumNeighbors(nn + rcv_box_counts[i]);	
 
+          if (gid == 0) {
+              for (int ip = 0; ip < copy_size; ++ip)
+                  amrex::AllPrintToFile("rcvs") << rcv_buffer[offset+ip] << "\n";
+          }
+
+
 	  ParticleType* p_ptr = &(aos[0]);
 	  AMREX_FOR_1D ( copy_size, ip,
 	  {
@@ -931,183 +795,6 @@ communicateParticles ()
 	}	
     }    
 #endif // MPI
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
-fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
-{
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighborsMPIGPU()");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
-#ifdef BL_USE_MPI
-    const int NProcs = ParallelDescriptor::NProcs();
-    const int lev = 0;
-    
-    // We may now have particles that are rightfully owned by another CPU.
-    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
-
-    long NumSnds = 0;
-
-    for (const auto& kv : not_ours)
-    {
-        const size_t nbytes = kv.second.size();
-        Snds[kv.first] = nbytes;
-        NumSnds += nbytes;
-    }
-    
-    ParallelDescriptor::ReduceLongMax(NumSnds);
-
-    if (NumSnds == 0) return;
-
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
-    
-    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 Rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    
-    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
-    
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
-
-    Vector<int> RcvProc;
-    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
-    
-    std::size_t TotRcvBytes = 0;
-    for (int i = 0; i < NProcs; ++i) {
-        if (Rcvs[i] > 0) {
-            RcvProc.push_back(i);
-            rOffset.push_back(TotRcvBytes);
-            TotRcvBytes += Rcvs[i];
-        }
-    }
-    
-    const int nrcvs = RcvProc.size();
-    Vector<MPI_Status>  stats(nrcvs);
-    Vector<MPI_Request> rreqs(nrcvs);
-
-    const int SeqNum = ParallelDescriptor::SeqNum();
-    
-    // Allocate data for rcvs as one big chunk.
-    char* rcv_buffer;
-    if (ParallelDescriptor::UseGpuAwareMpi()) 
-    {
-        rcv_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotRcvBytes));
-    }
-    else 
-    {
-        rcv_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotRcvBytes));
-    }
-    
-    // Post receives.
-    for (int i = 0; i < nrcvs; ++i) {
-        const auto Who    = RcvProc[i];
-        const auto offset = rOffset[i];
-        const auto Cnt    = Rcvs[Who];
-        
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        
-        rreqs[i] = ParallelDescriptor::Arecv(rcv_buffer + offset,
-                                             Cnt, Who, SeqNum).req();
-    }
-    
-    // Send.
-    for (const auto& kv : not_ours) {
-        const auto Who = kv.first;
-        const auto Cnt = kv.second.size();
-
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        
-        ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
-                                 Cnt, Who, SeqNum);
-    }
-
-    if (nrcvs > 0) {
-        ParallelDescriptor::Waitall(rreqs, stats);
-
-        std::map<int, size_t> new_sizes;
-        std::vector<int> grid_ids;
-        std::vector<size_t> start_indices;
-        std::vector<size_t> copy_sizes;
-        std::vector<char*> buffer_locs;
-        size_t num_grids;
-
-        for (int i = 0; i < nrcvs; ++i) {
-            const int offset = rOffset[i];
-            char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
-            size_t num_particles;
-            int gid, pid;
-            std::memcpy(&num_grids, buffer, sizeof(size_t));
-            buffer += sizeof(size_t);
-
-            for (int g = 0; g < num_grids; ++g) {
-                std::memcpy(&num_particles, buffer, sizeof(size_t));
-                buffer += sizeof(size_t);
-                std::memcpy(&gid, buffer, sizeof(int));
-                buffer += sizeof(int);
-                std::memcpy(&pid, buffer, sizeof(int));
-                buffer += sizeof(int);
-
-                const int tid = 0;
-                auto pair_index = std::make_pair(gid, tid);
-                auto& ptile = this->GetParticles(lev)[pair_index];
-                const int nRParticles = ptile.numRealParticles();                
-                const int nNParticles = ptile.getNumNeighbors();
-                const int new_num_neighbors = nNParticles + num_particles;
-
-                new_sizes[gid] = new_num_neighbors;
-
-                start_indices.push_back(nRParticles + nNParticles);
-                copy_sizes.push_back(new_num_neighbors);
-                grid_ids.push_back(gid);
-                buffer_locs.push_back(buffer);
-
-                buffer += num_particles*sizeof(ParticleType);
-            }
-        }
-
-        for (auto& kv : new_sizes)
-        {
-            const int tid = 0;
-            const int gid = kv.first;
-            auto pair_index = std::make_pair(gid, tid);
-            auto& ptile = this->GetParticles(lev)[pair_index];
-            ptile.setNumNeighbors(kv.second);
-        }
-
-        for (int i = 0; i < static_cast<int>(start_indices.size()); ++i)
-        {
-            Gpu::Device::setStreamIndex(i);
-            const int tid = 0;
-            auto pair_index = std::make_pair(grid_ids[i], tid);
-            auto& ptile = this->GetParticles(lev)[pair_index];
-            auto& aos = ptile.GetArrayOfStructs();
-            cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + start_indices[i],
-                            buffer_locs[i], copy_sizes[i]*sizeof(ParticleType),
-                            cudaMemcpyHostToDevice);
-        }
-    }
-
-    if (ParallelDescriptor::UseGpuAwareMpi())
-    {
-        amrex::The_Device_Arena()->free(rcv_buffer);
-    } else {
-        amrex::The_Pinned_Arena()->free(rcv_buffer);
-    }
-
-#endif // MPI    
 }
 
 template <int NStructReal, int NStructInt>
