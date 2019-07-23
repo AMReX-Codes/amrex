@@ -36,7 +36,7 @@ public:
 
     void checkNeighbors ();    
 
-    amrex::Real minDistance ();
+    std::pair<amrex::Real, amrex::Real>  minAndMaxDistance ();
 
     void moveParticles (amrex::Real dx);
 };
