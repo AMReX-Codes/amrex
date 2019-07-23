@@ -419,6 +419,12 @@ public:
 		     const MultiFab& y, int ycomp,
 		     int num_comp, int nghost, bool local = false);
 
+    /**
+    * \brief Returns the dot product of a MultiFab with itself.
+    */
+    static Real Dot (const MultiFab& x, int xcomp,
+		     int num_comp, int nghost, bool local = false);
+
     static Real Dot (const iMultiFab& mask,
                      const MultiFab& x, int xcomp,
 		     const MultiFab& y, int ycomp,

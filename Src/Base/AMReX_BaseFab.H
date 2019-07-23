@@ -1498,6 +1498,14 @@ public:
     AMREX_GPU_HOST_DEVICE
     T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
+    //! Int wrapper for dot.
+    AMREX_GPU_HOST_DEVICE
+    T dot (const Box& bx, int destcomp, int numcomp) const noexcept;
+
+    //! Dot product
+    AMREX_GPU_HOST_DEVICE
+    T dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
+
     //! Dot product of two Fabs with mask
     AMREX_GPU_HOST_DEVICE
     T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
@@ -4145,6 +4153,40 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
                 T const * const AMREX_RESTRICT spr = &(sp(0,j,k,n));
                 for (int i = 0; i < len.x; ++i) {
                     r += dpr[i] * spr[i];
+                }
+            }
+        }
+    }
+
+    return r;
+}
+
+template <class T>
+T
+BaseFab<T>::dot (const Box& bx, int destcomp, int numcomp) const noexcept
+{
+    return dot(bx, DestComp{destcomp}, NumComps{numcomp});
+}
+
+
+template <class T>
+T
+BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
+{
+    AMREX_ASSERT(dcomp.i >= 0 && dcomp.i+ncomp.n <= this->nvar);
+
+    T r = 0;
+
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  =     view(lo, dcomp.i);
+
+    for (int n = 0; n < ncomp.n; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                T const * const AMREX_RESTRICT dpr = &(dp(0,j,k,n));
+                for (int i = 0; i < len.x; ++i) {
+                    r += dpr[i] * dpr[i];
                 }
             }
         }
