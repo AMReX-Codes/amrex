@@ -150,8 +150,8 @@ buildNeighborMask()
 	int num_boxes = ba.size();
 	bucket_to_gid.resize(num_boxes);
         gid_to_bucket.resize(num_boxes);
-	box_proc_ids.resize(num_boxes);
 
+        Gpu::DeviceVector<int> box_proc_ids(num_boxes);
 	Gpu::thrust_copy(dmap.ProcessorMap().begin(), dmap.ProcessorMap().end(), box_proc_ids.begin());
 
 	thrust::sequence(thrust::device, bucket_to_gid.begin(), bucket_to_gid.end());
@@ -167,8 +167,6 @@ buildNeighborMask()
 	{
             gid_to_b_ptr[b_to_gid_ptr[i]] = i;
         });	 
-
-
 
 	proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
 	proc_box_offsets.resize(ParallelDescriptor::NProcs());
@@ -660,7 +658,7 @@ updateNeighborsGPU ()
     clearNeighbors();
     packBuffer();
     unpackBuffer();
-    communicateParticles();
+    //    communicateParticles();
 }
 
 
@@ -789,7 +787,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>::
 communicateParticles ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::getBoxRcvCounts()");
+    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::communicateParticles()");
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
 #ifdef BL_USE_MPI
