@@ -238,13 +238,13 @@ void MDParticleContainer::checkNeighbors()
             Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
         }
 
-        std::cout << "FOR GRID " << gid << std::endl;
+        amrex::AllPrint() << "FOR GRID " << gid << "\n";;
 
         for (int i = 0; i < ngrids; i++)
-          std::cout << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
+          amrex::AllPrint() << "   there are " << d_num_per_grid[i] << " with grid id " << i << "\n";;
 
-        std::cout << " " << std::endl;
-        std::cout << " " << std::endl;
+        amrex::AllPrint() << " \n";
+        amrex::AllPrint() << " \n";
     }
 
 #if 0
@@ -282,15 +282,13 @@ void MDParticleContainer::checkNeighbors()
 
         // mine = d_mine.dataValue();
 
-        std::cout << "FOR GRID " << gid << std::endl;
-        // amrex::Print() << mine << " particles are mine " << std::endl;
-        // amrex::Print() << " " << std::endl;
+        amrex::AllPrint() << "FOR GRID " << gid << "\n";;
 
         for (int i = 0; i < ngrids; i++)
-          std::cout << "   there are " << d_num_per_grid[i] << " with grid id " << i << std::endl;
+          amrex::AllPrint() << "   there are " << d_num_per_grid[i] << " with grid id " << i << "\n";;
 
-        std::cout << " " << std::endl;
-        std::cout << " " << std::endl;
+        amrex::AllPrint() << " \n";
+        amrex::AllPrint() << " \n";
     }
 #endif
 }

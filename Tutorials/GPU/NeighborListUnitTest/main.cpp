@@ -116,6 +116,8 @@ void main_main ()
         amrex::Print() << "Check neighbors after update ... \n";
     pc.checkNeighbors();
 
+    ParallelDescriptor::Barrier();
+
     amrex::Print() << "Testing neighbor particles after move \n";
 
     // so we can call minAndMaxDistance
