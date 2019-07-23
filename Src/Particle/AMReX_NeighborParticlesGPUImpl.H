@@ -545,7 +545,6 @@ getBoxRcvCounts ()
 	{
 	  int dst = bucket_to_gid[proc_box_offsets[i]+j];
 	  int npart = box_counts[proc_box_offsets[i]+j];
-          if (dst == 0) amrex::AllPrintToFile("snds") << "Sending " << npart << " partices to grid " << dst << "\n";
 	  snd_data[i].push_back(npart);
 	  snd_data[i].push_back(dst);
 	}
@@ -575,7 +574,7 @@ getBoxRcvCounts ()
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     Vector<int> RcvProc;
-    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    Vector<std::size_t> rOffset;
     
     std::size_t TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
@@ -619,9 +618,8 @@ getBoxRcvCounts ()
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Send(
-				 (char*) thrust::raw_pointer_cast(snd_data[i].data()),
-	    Cnt, Who, SeqNum);
+        ParallelDescriptor::Send((char*) thrust::raw_pointer_cast(snd_data[i].data()),
+                                 Cnt, Who, SeqNum);
     }
 
     if (nrcvs > 0) {
@@ -633,7 +631,7 @@ getBoxRcvCounts ()
 	  rcv_box_counts.push_back(rcv_data[i]);
 	  AMREX_ASSERT(MyProc == this->ParticleDistributionMap(0)[rcv_data[i+1]]);
 	  rcv_box_ids.push_back(rcv_data[i+1]);
-	  rcv_box_offsets.push_back(rcv_box_counts.back());
+	  rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
 	}
     }
     
@@ -699,7 +697,7 @@ communicateParticles ()
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     Vector<int> RcvProc;
-    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    Vector<std::size_t> rOffset;
     
     std::size_t TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
@@ -778,12 +776,6 @@ communicateParticles ()
 
 	  int nn = tile.getNumNeighbors();
 	  tile.setNumNeighbors(nn + rcv_box_counts[i]);	
-
-          if (gid == 0) {
-              for (int ip = 0; ip < copy_size; ++ip)
-                  amrex::AllPrintToFile("rcvs") << rcv_buffer[offset+ip] << "\n";
-          }
-
 
 	  ParticleType* p_ptr = &(aos[0]);
 	  AMREX_FOR_1D ( copy_size, ip,
