@@ -711,8 +711,8 @@ getBoxRcvCounts ()
 	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
 	for (int j = 0; j < nboxes; ++j)
 	{
-	  int npart = box_counts[box_permutation[proc_box_offsets[i]+j]];
 	  int dst = box_permutation[proc_box_offsets[i]+j];
+	  int npart = box_counts[dst];
 	  snd_data[i].push_back(npart);
 	  snd_data[i].push_back(dst);
 	}
@@ -835,8 +835,13 @@ communicateParticles ()
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-	long npart = box_offsets[proc_box_offsets[i+1]] - box_offsets[proc_box_offsets[i]];
-	long nbytes = npart*sizeof(ParticleType); 
+	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
+        long nbytes = 0;
+	for (int j = 0; j < nboxes; ++j)
+        {
+            int dst = box_permutation[proc_box_offsets[i]+j];
+            nbytes += box_counts[dst]*sizeof(ParticleType); 
+        }
 	Snds[i] = nbytes;
 	NumSnds += nbytes;
     }
@@ -906,8 +911,10 @@ communicateParticles ()
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
+        const auto snd_offset = box_offsets[box_permutation[proc_box_offsets[i]]];
+
         ParallelDescriptor::Send(
-				 (char*) thrust::raw_pointer_cast(&snd_buffer[box_offsets[proc_box_offsets[i]]]),
+	    (char*) thrust::raw_pointer_cast(&snd_buffer[snd_offset]),
 	    Cnt, Who, SeqNum);
     }
 
