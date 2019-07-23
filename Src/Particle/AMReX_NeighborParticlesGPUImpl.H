@@ -148,19 +148,28 @@ buildNeighborMask()
 	GetNeighborCommTags();
 
 	int num_boxes = ba.size();
-	box_permutation.resize(num_boxes);
+	bucket_to_gid.resize(num_boxes);
+        gid_to_bucket.resize(num_boxes);
 	box_proc_ids.resize(num_boxes);
 
 	Gpu::thrust_copy(dmap.ProcessorMap().begin(), dmap.ProcessorMap().end(), box_proc_ids.begin());
-	
-	thrust::sequence(thrust::device, box_permutation.begin(), box_permutation.end());
+
+	thrust::sequence(thrust::device, bucket_to_gid.begin(), bucket_to_gid.end());
 	
 	thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
 			    box_proc_ids.begin(),
 			    box_proc_ids.end(),
-			    box_permutation.begin());
-	
-	
+			    bucket_to_gid.begin());
+
+        auto b_to_gid_ptr = bucket_to_gid.dataPtr();
+        auto gid_to_b_ptr = gid_to_bucket.dataPtr();
+        AMREX_FOR_1D ( num_boxes, i,
+	{
+            gid_to_b_ptr[b_to_gid_ptr[i]] = i;
+        });	 
+
+
+
 	proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
 	proc_box_offsets.resize(ParallelDescriptor::NProcs());
 	for (auto& val : dmap.ProcessorMap() )
@@ -172,24 +181,6 @@ buildNeighborMask()
 			       proc_box_counts.begin(), proc_box_counts.end(), proc_box_offsets.begin());
  
 	proc_box_offsets.push_back(num_boxes);
-
-	// for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
-	// {
-	//   amrex::Print() << proc_box_counts[i] << " ";
-	// }
-	// amrex::Print() << "\n";
-
-	// for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
-	// {
-	//   amrex::Print() << proc_box_offsets[i] << " ";
-	// }
-	// amrex::Print() << "\n";
-
-	  // for (int i = 0; i < box_permutation.size(); ++i)
-	  // {
-	  //   amrex::Print() << box_proc_ids[box_permutation[i]] << " ";
-	  // }
-	  // amrex::Print() << "\n";
     }
 }
 
@@ -461,7 +452,7 @@ computeCopyPlan ()
     box_counts.resize(num_boxes, 0);
     box_offsets.resize(num_boxes+1);
     auto p_dst_box_counts = box_counts.dataPtr();
-    auto p_box_perm = box_permutation.dataPtr();
+    auto p_box_perm = gid_to_bucket.dataPtr();
 
     constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -527,7 +518,7 @@ packBuffer ()
 	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
 	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
 	auto p_box_offsets = box_offsets.dataPtr();
-        auto p_box_perm = box_permutation.dataPtr();
+        auto p_box_perm = gid_to_bucket.dataPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
@@ -585,10 +576,10 @@ unpackBuffer ()
         auto& aos   = tile.GetArrayOfStructs();
 	auto np = tile.numTotalParticles();
 	
-	int num_copies = box_counts[box_permutation[gid]];
+	int num_copies = box_counts[gid_to_bucket[gid]];
 
 	auto p_box_offsets = box_offsets.dataPtr();
-	auto p_box_perm = box_permutation.dataPtr();
+	auto p_box_perm = gid_to_bucket.dataPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
         int nn = tile.getNumNeighbors();
@@ -635,21 +626,8 @@ setNumNeighbors()
         auto index = std::make_pair(gid, tid);
 
         auto&tile = plev[index];
-	tile.setNumNeighbors(box_counts[box_permutation[gid]]);
+	tile.setNumNeighbors(box_counts[gid_to_bucket[gid]]);
     }
-
-    // remote neighbors
-    // for (int i = 0; i < rcv_box_counts.size(); ++i)
-    // {
-    //     int gid = rcv_box_ids[i];
-    //     int tid = 0;
-    //     auto index = std::make_pair(gid, tid);
-
-    //     auto& tile = plev[index];
-    // 	int nn = tile.getNumNeighbors();
-    // 	amrex::Print() << "Resizing " << gid << " from " << nn << " to " << nn + rcv_box_counts[i] << "\n";
-    // 	tile.setNumNeighbors(nn + rcv_box_counts[i]);	
-    // }
 }
 
 template <int NStructReal, int NStructInt>
@@ -700,10 +678,9 @@ getBoxRcvCounts ()
     const int MyProc = ParallelDescriptor::MyProc();
     
     // We may now have particles that are rightfully owned by another CPU.
-    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // number of particles per snd / recieve
 
     std::map<int, Vector<int> > snd_data;
-
     long NumSnds = 0;
     for (int i = 0; i < NProcs; ++i)
     {
@@ -711,8 +688,8 @@ getBoxRcvCounts ()
 	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
 	for (int j = 0; j < nboxes; ++j)
 	{
-	  int dst = box_permutation[proc_box_offsets[i]+j];
-	  int npart = box_counts[dst];
+	  int dst = bucket_to_gid[proc_box_offsets[i]+j];
+	  int npart = box_counts[proc_box_offsets[i]+j];
 	  snd_data[i].push_back(npart);
 	  snd_data[i].push_back(dst);
 	}
@@ -839,8 +816,7 @@ communicateParticles ()
         long nbytes = 0;
 	for (int j = 0; j < nboxes; ++j)
         {
-            int dst = box_permutation[proc_box_offsets[i]+j];
-            nbytes += box_counts[dst]*sizeof(ParticleType); 
+            nbytes += box_counts[proc_box_offsets[i]+j]*sizeof(ParticleType); 
         }
 	Snds[i] = nbytes;
 	NumSnds += nbytes;
@@ -911,7 +887,7 @@ communicateParticles ()
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        const auto snd_offset = box_offsets[box_permutation[proc_box_offsets[i]]];
+        const auto snd_offset = box_offsets[proc_box_offsets[i]];
 
         ParallelDescriptor::Send(
 	    (char*) thrust::raw_pointer_cast(&snd_buffer[snd_offset]),
@@ -948,11 +924,10 @@ communicateParticles ()
 	  tile.setNumNeighbors(nn + rcv_box_counts[i]);	
 
 	  ParticleType* p_ptr = &(aos[0]);
-
-	  AMREX_FOR_1D ( copy_size, i,
+	  AMREX_FOR_1D ( copy_size, ip,
 	  {
-	    int src_index = offset + i;
-	    int dst_index = np + i;
+	    int src_index = offset + ip;
+	    int dst_index = np + ip;
 	    p_ptr[dst_index] = p_rcv_buffer[src_index];
 	  });	 
 	}	
