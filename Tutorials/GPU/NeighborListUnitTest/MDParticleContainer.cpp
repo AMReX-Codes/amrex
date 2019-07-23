@@ -107,15 +107,16 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     amrex::Print() << "done. \n";
 }
 
-Real MDParticleContainer::minDistance()
+std::pair<Real, Real> MDParticleContainer::minAndMaxDistance()
 {
-    BL_PROFILE("MDParticleContainer::minDistance");
+    BL_PROFILE("MDParticleContainer::minAndMaxDistance");
 
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     auto& plev  = GetParticles(lev);
 
     Real min_d = std::numeric_limits<Real>::max();
+    Real max_d = std::numeric_limits<Real>::min();
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -131,7 +132,10 @@ Real MDParticleContainer::minDistance()
         ParticleType* pstruct = aos().dataPtr();
 
 	Gpu::DeviceScalar<Real> min_d_gpu(min_d);
+	Gpu::DeviceScalar<Real> max_d_gpu(max_d);
+
 	Real* pmin_d = min_d_gpu.dataPtr();
+	Real* pmax_d = max_d_gpu.dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
@@ -148,16 +152,19 @@ Real MDParticleContainer::minDistance()
                 Real r = sqrt(r2);
                 
 		Gpu::Atomic::Min(pmin_d, r);
+		Gpu::Atomic::Max(pmax_d, r);
             }
         });
 
-	Gpu::Device::streamSynchronize();
+        //	Gpu::Device::streamSynchronize();
 
 	min_d = std::min(min_d, min_d_gpu.dataValue());
+	max_d = std::max(max_d, max_d_gpu.dataValue());
     }
     ParallelDescriptor::ReduceRealMin(min_d, ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax(max_d, ParallelDescriptor::IOProcessorNumber());
 
-    return min_d;
+    return std::make_pair(min_d, max_d);
 }
 
 void MDParticleContainer::moveParticles(amrex::Real dx)
