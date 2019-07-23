@@ -7,8 +7,7 @@
 
 #include "MDParticleContainer.H"
 
-using namespace amrex;
-
+namespace amrex {
 template <typename T, typename S> 
 std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v) 
 { 
@@ -17,6 +16,9 @@ std::ostream& operator<<(std::ostream& os, const std::pair<T, S>& v)
        << v.second << ")"; 
     return os; 
 } 
+}
+
+using namespace amrex;
 
 struct TestParams
 {
@@ -137,7 +139,7 @@ void main_main ()
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    std::cout << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
     
     if (params.write_particles) 
         pc.writeParticles(0);
