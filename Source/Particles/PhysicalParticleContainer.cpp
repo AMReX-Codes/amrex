@@ -1428,36 +1428,6 @@ PhysicalParticleContainer::Evolve (int lev,
                     &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
-										// auto& attribs = pti.GetAttribs();
-										//
-		                // Real* AMREX_RESTRICT zzp = m_zp[thread_num].dataPtr();
-		                // Real* AMREX_RESTRICT exp = attribs[PIdx::Ex].dataPtr();
-		                // Real* AMREX_RESTRICT eyp = attribs[PIdx::Ey].dataPtr();
-		                // Real* AMREX_RESTRICT ezp = attribs[PIdx::Ez].dataPtr();
-		                // Real* AMREX_RESTRICT bxp = attribs[PIdx::Bx].dataPtr();
-		                // Real* AMREX_RESTRICT byp = attribs[PIdx::By].dataPtr();
-		                // Real* AMREX_RESTRICT bzp = attribs[PIdx::Bz].dataPtr();
-										//
-		                // const long np = pti.numParticles();
-										// const std::array<Real,3>& xyzmax_grid = WarpX::UpperCorner(box, lev);
-										//
-										// // amrex::Print()<<"dx = "<<dx[0]<<", "<<dx[1]<<", "<<dx[2]<<std::endl;
-										// // amrex::Print()<<"xyzmax_grid = "<<xyzmax_grid[0]<<", "<<xyzmax_grid[1]<<", "<<xyzmax_grid[2]<<std::endl;
-										//
-		                // ParallelFor( np_gather,
-		                //              [=] AMREX_GPU_DEVICE (long i) {
-		                //                  if (zzp[i] > xyzmax_grid[2] - 50 * dx[2]){ //zzp[i] > xyzmin_grid[2] - 10 * dx[2]
-		                //                      exp[i] = 0.;
-		                //                      eyp[i] = 0.;
-		                //                      ezp[i] = 0.;
-		                //                      bxp[i] = 0.;
-		                //                      byp[i] = 0.;
-		                //                      bzp[i] = 0.;
-		                //                  }
-		                //              }
-		                //     );
-
-
                 if (np_gather < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);

@@ -635,13 +635,6 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     BoxArray ba(bl);
     ba.removeOverlap(false);
 
-    amrex::Print()<<">> PRINT PML BOXES <<"<< std::endl;
-    const BoxList& bl2 = BoxList(ba);
-    amrex::Print()<<"["<<std::endl;
-    for (const Box& b : bl2) {
-        amrex::Print()<<"["<<b.smallEnd()[0]<<", "<<b.smallEnd()[1]<<", "<<b.bigEnd()[0]<<", "<<b.bigEnd()[1]<<"],"<<std::endl;
-    }
-    amrex::Print()<<"]"<<std::endl;
     return ba;
 }
 
@@ -861,20 +854,15 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
-            // amrex::Print()<<">>   PML EXCHANGE   <<"<<std::endl;
             for (MFIter mfi(pml); mfi.isValid(); ++mfi)
             {
                 const FArrayBox& src = totpmlmf[mfi];
                 FArrayBox& dst = pml[mfi];
                 Box test = mfi.validbox();
-                // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
-                // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
-                // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
                 const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
 
                 for (const Box& bx : bl)
                 {
-                    // amrex::Print()<<"bx = ["<<bx.smallEnd()[0]<<", "<<bx.smallEnd()[1]<<", "<<bx.bigEnd()[0]<<", "<<bx.bigEnd()[1]<<"]"<<std::endl;
                     dst.copy(src, bx, 0, bx, 0, 1);
                 }
             }
