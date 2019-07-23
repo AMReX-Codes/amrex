@@ -222,7 +222,7 @@ computeHaloParticles ()
         Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
 
 	Gpu::DeviceVector<int> counts(np, 0);
-	Gpu::DeviceVector<int> offsets(np);
+	Gpu::DeviceVector<int> offsets(np + 1);
 	auto p_counts = counts.dataPtr();
 	auto p_offsets = offsets.dataPtr();
 
@@ -249,13 +249,10 @@ computeHaloParticles ()
 	});
 
 	thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                               counts.begin(), counts.end(), offsets.begin());
+                               counts.begin(), counts.end()+1, offsets.begin());
 
-	int last_count_host, last_offset_host;
-	Gpu::dtoh_memcpy(&last_count_host, thrust::raw_pointer_cast(counts.data()) + np - 1, sizeof(int));
-        Gpu::dtoh_memcpy(&last_offset_host, thrust::raw_pointer_cast(offsets.data()) + np - 1, sizeof(int));
-
-	int num_copies = last_count_host + last_offset_host;
+	int num_copies;
+        Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
 
 	copy_plan_boxes[gid].resize(num_copies);
 	copy_plan_src_indices[gid].resize(num_copies);
