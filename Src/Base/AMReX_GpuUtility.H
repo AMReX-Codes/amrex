@@ -365,7 +365,6 @@ namespace Gpu {
             return old;
 #endif
         }
-
     } // namespace Atomic
 
     template <class T>
