@@ -239,11 +239,11 @@ void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const>
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
 {
 #if (AMREX_SPACEDIM == 1)
-    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5; 
+    amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
     
     int i = std::floor(lx);
     
-    amrex::Real xint = lx - i; 
+    amrex::Real xint = lx - i;
     
     amrex::Real sx[] = {1.-xint, xint};
 

@@ -63,4 +63,3 @@ StreamIter::operator++ () noexcept
 #endif
 
 }}
-
