@@ -464,8 +464,8 @@ int get_state(int tid)
     {
       continue;  //traps locked threads in loop
     }
-  return i
-
+  return i;
+}
 
 
 AMREX_GPU_HOST_DEVICE double
