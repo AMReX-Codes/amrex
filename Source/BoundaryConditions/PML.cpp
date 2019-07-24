@@ -634,6 +634,13 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 
     BoxArray ba(bl);
     ba.removeOverlap(false);
+    // amrex::Print()<< "####### PML BOXES #######" <<std::endl;
+    // amrex::Print()<<"["<<std::endl;
+    // const BoxList& bl2 = BoxList(ba);
+    // for (const Box& b : bl2) {
+    //     amrex::Print()<<"["<<b.smallEnd()[0]<<", "<<b.smallEnd()[1]<<", "<<b.bigEnd()[0]<<", "<<b.bigEnd()[1]<<"],"<<std::endl;
+    // }
+    // amrex::Print()<<"]"<<std::endl;
 
     return ba;
 }
@@ -845,26 +852,47 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
 
         if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
         {
-            MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
+            MultiFab::Copy(tmpregmf, reg, 0, 0, 1, IntVect(0)); //ngr);
+            MultiFab::Copy(totpmlmf, pml, 0, 0, ncp, ngp);
+
             tmpregmf.setVal(0.0, 1, ncp-1, 0);
             // totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, IntVect(0), ngp, period);
             tmpregmf.ParallelCopy(totpmlmf,0, 0, ncp, IntVect(0), IntVect(0), period);
             // totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, ngr, ngp, period);
-            totpmlmf.ParallelCopy(tmpregmf,0, 0, ncp, ngr, IntVect(0), period);
+            totpmlmf.ParallelCopy(tmpregmf,0, 0, ncp, IntVect(0), ngp, period);
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
+            // amrex::Print()<<"####### EXCHANGE INFORMATIONS GHOST CELLS PML #######"<<std::endl;
+            Box domain0 = geom.Domain();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if ( ! geom.isPeriodic(idim) ) {
+                    domain0.grow(idim, -20); //-ncell
+                }
+            }
+            // amrex::Print()<<"domain0 = ["<<domain0.smallEnd()[0]<<", "<<domain0.smallEnd()[1]<<", "<<domain0.bigEnd()[0]<<", "<<domain0.bigEnd()[1]<<"]"<<std::endl;
             for (MFIter mfi(pml); mfi.isValid(); ++mfi)
             {
                 const FArrayBox& src = totpmlmf[mfi];
                 FArrayBox& dst = pml[mfi];
                 Box test = mfi.validbox();
-                const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-
+                // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
+                // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
+                // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
+                // const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+                const BoxList& bl = BoxList(amrex::intersect(BoxArray(domain0), dst.box(),0));
+                // amrex::Print()<<BoxList(dst.box())<<std::endl;
+                // amrex::Print()<<BoxList(domain0)<<std::endl;
+                // amrex::Print()<<bl<<std::endl;
+                // amrex::Print()<<">>> EXCHANGE BOXES <<<<<" <<std::endl;
+                // amrex::Print()<<"[" <<std::endl;
                 for (const Box& bx : bl)
                 {
-                    dst.copy(src, bx, 0, bx, 0, 1);
+                    // dst.copy(src, bx, 0, bx, 0, 1);
+                    dst.copy(src, bx, 0, bx, 0, ncp);
+                    // amrex::Print()<<"["<<bx.smallEnd()[0]<<", "<<bx.smallEnd()[1]<<", "<<bx.bigEnd()[0]<<", "<<bx.bigEnd()[1]<<"],"<<std::endl;
                 }
+                // amrex::Print()<<"]" <<std::endl;
             }
         }
     }
@@ -892,15 +920,24 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+            // amrex::Print()<<"####### EXCHANGE INFORMATIONS GHOST CELLS PML #######"<<std::endl;
             for (MFIter mfi(reg); mfi.isValid(); ++mfi)
             {
                 const FArrayBox& src = tmpregmf[mfi];
                 FArrayBox& dst = reg[mfi];
+                Box test = mfi.validbox();
+                // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
+                // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
+                // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
                 const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+                // amrex::Print()<<">>> EXCHANGE BOXES <<<<<" <<std::endl;
+                // amrex::Print()<<"[" <<std::endl;
                 for (const Box& bx : bl)
                 {
                     dst.copy(src, bx, 0, bx, 0, 1);
+                    // amrex::Print()<<"["<<bx.smallEnd()[0]<<", "<<bx.smallEnd()[1]<<", "<<bx.bigEnd()[0]<<", "<<bx.bigEnd()[1]<<"],"<<std::endl;
                 }
+                // amrex::Print()<<"]" <<std::endl;
             }
         }
 
