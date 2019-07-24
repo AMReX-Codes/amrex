@@ -48,7 +48,7 @@ electrons.uz_th = .01
 electrons.zmin = 19.520e-6
 electrons.zmax = 25.47931e-6
 electrons.profile = parse_density_function
-electrons.density_function(x,y,z) = "(z<zp)*nc*exp((z-zc)/lgrad)+(z>zp)*(z<zp2)*2.*nc+(z>zp2)*nc*exp(-(z-zc2)/lgrad)"
+electrons.density_function(x,y,z) = "(z<zp)*nc*exp((z-zc)/lgrad)+(z>=zp)*(z<=zp2)*2.*nc+(z>zp2)*nc*exp(-(z-zc2)/lgrad)"
 
 ions.charge = q_e
 ions.mass = m_p
@@ -60,7 +60,7 @@ ions.uz_th = 0.
 ions.zmin = 19.520e-6
 ions.zmax = 25.47931e-6
 ions.profile = parse_density_function
-ions.density_function(x,y,z) = "(z<zp)*nc*exp((z-zc)/lgrad)+(z>zp)*(z<zp2)*2.*nc+(z>zp2)*nc*exp(-(z-zc2)/lgrad)"
+ions.density_function(x,y,z) = "(z<zp)*nc*exp((z-zc)/lgrad)+(z>=zp)*(z<=zp2)*2.*nc+(z>zp2)*nc*exp(-(z-zc2)/lgrad)"
 
 #################################
 ############# LASER #############
