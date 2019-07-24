@@ -606,7 +606,6 @@ amrex::DeallocateRandomSeedDevArray()
         cudaFree(dev_RandStates_Seed);
         dev_RandStates_Seed = nullptr;    
     }
-    int nstates = 0;
 #endif
 }
 
