@@ -489,10 +489,12 @@ private:
     // PML
     int do_pml = 1;
     int pml_ncell = 10;
-    int pml_delta = 10;
+    int pml_delta = 5;
     int pml_has_particles = 0;
     int do_pml_j_damping = 0;
     int do_pml_in_domain = 0;
+    amrex::IntVect do_pml_Lo;
+    amrex::IntVect do_pml_Hi;
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();

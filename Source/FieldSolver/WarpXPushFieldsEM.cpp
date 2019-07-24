@@ -315,7 +315,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
     if (do_pml && pml[lev]->ok())
     {
-        if (F) pml[lev]->ExchangeF(patch_type, F, do_pml_in_domain);
+        if (F) pml[lev]->ExchangeF(patch_type, F, do_pml_in_domain, pml_ncell);
 
         const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();

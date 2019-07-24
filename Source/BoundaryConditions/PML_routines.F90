@@ -1170,7 +1170,7 @@ contains
 
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)
+          jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)  
        end do
     end do
 

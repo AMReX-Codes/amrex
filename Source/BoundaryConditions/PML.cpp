@@ -708,53 +708,53 @@ PML::GetF_cp ()
 
 void
 PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain)
+                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain, int ncell)
 {
-  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain);
-  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain);
+  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain, ncell);
+  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain, ncell);
 }
 
 void
 PML::ExchangeB (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain)
+                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain, int ncell)
 {
     if (patch_type == PatchType::fine && pml_B_fp[0] && Bp[0])
     {
-        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain);
-        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain);
-        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain);
+        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain, ncell);
     }
     else if (patch_type == PatchType::coarse && pml_B_cp[0] && Bp[0])
     {
-        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain);
-        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain);
-        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain, ncell);
     }
 }
 
 void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain)
+                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain, int ncell)
 {
-    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain);
-    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain);
+    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain, ncell);
+    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain, ncell);
 }
 
 void
 PML::ExchangeE (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain)
+                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain, int ncell)
 {
     if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
     {
-        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain);
-        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain);
-        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain);
+        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain, ncell);
     }
     else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
     {
-        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain);
-        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain);
-        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain, ncell);
     }
 }
 
@@ -811,29 +811,32 @@ PML::CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
 }
 
 void
-PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain)
+PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain, int ncell)
 {
-    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain);
-    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain);
+    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain, ncell);
+    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain, ncell);
 }
 
 void
-PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain)
+PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain, int ncell)
 {
     if (patch_type == PatchType::fine && pml_F_fp && Fp) {
-        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain);
+        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain, ncell);
     } else if (patch_type == PatchType::coarse && pml_F_cp && Fp) {
-        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain, ncell);
     }
 }
 
 
 void
-PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in_domain)
+PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in_domain, int ncell)
 {
     if (do_pml_in_domain){
         const IntVect& ngr = reg.nGrowVect();
         const IntVect& ngp = pml.nGrowVect();
+        // amrex::Print()<< "##### PML EXCHANGE #####"<<std::endl;
+        // amrex::Print()<< ngr <<std::endl;
+        // amrex::Print()<< ngp <<std::endl;
         const int ncp = pml.nComp();
         const auto& period = geom.periodicity();
 
@@ -867,7 +870,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
             Box domain0 = geom.Domain();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 if ( ! geom.isPeriodic(idim) ) {
-                    domain0.grow(idim, -20); //-ncell
+                    domain0.grow(idim, -ncell); //-ncell
                 }
             }
             // amrex::Print()<<"domain0 = ["<<domain0.smallEnd()[0]<<", "<<domain0.smallEnd()[1]<<", "<<domain0.bigEnd()[0]<<", "<<domain0.bigEnd()[1]<<"]"<<std::endl;

@@ -384,6 +384,21 @@ WarpX::ReadParameters ()
         pp.query("do_pml_j_damping", do_pml_j_damping);
         pp.query("do_pml_in_domain", do_pml_in_domain);
 
+        Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Lo", parse_do_pml_Lo);
+        do_pml_Lo[0] = parse_do_pml_Lo[0];
+        do_pml_Lo[1] = parse_do_pml_Lo[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Lo[2] = parse_do_pml_Lo[2];
+#endif
+        Vector<int> parse_do_pml_Hi(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Hi", parse_do_pml_Hi);
+        do_pml_Hi[0] = parse_do_pml_Hi[0];
+        do_pml_Hi[1] = parse_do_pml_Hi[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Hi[2] = parse_do_pml_Hi[2];
+#endif
+
         if ( (do_pml_j_damping==1)&&(do_pml_in_domain==0) ){
           amrex::Abort("J-damping can only be done when PML are inside simulation domain (do_pml_in_domain=1)");
         }
