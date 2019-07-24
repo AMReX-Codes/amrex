@@ -8,13 +8,13 @@ struct PIdx
 {
     enum {
         vx = 0,
-        vy, vz, ax, ay, az,
+        vy, vz, ax, ay, az, 
         ncomps
     };
 };
 
 class MDParticleContainer
-    : public amrex::NeighborParticleContainer<PIdx::ncomps, 0>
+    : public amrex::NeighborParticleContainer<PIdx::ncomps, 1>
 {
 
 public:
@@ -23,22 +23,24 @@ public:
                          const amrex::DistributionMapping & a_dmap,
                          const amrex::BoxArray            & a_ba,
                          int                                a_numcells)
-        : NeighborParticleContainer<PIdx::ncomps, 0>(a_geom, a_dmap, a_ba, a_numcells)
+        : NeighborParticleContainer<PIdx::ncomps, 1>(a_geom, a_dmap, a_ba, a_numcells)
     {}
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell,
                         const amrex::Real     a_thermal_momentum_std,
                         const amrex::Real     a_thermal_momentum_mean);
 
-    void computeForces ();
-
-    amrex::Real minDistance ();
-
-    void moveParticles (const amrex::Real& dt);
-
     void writeParticles (const int n);    
 
-    amrex::Real computeStepSize(amrex::Real& cfl);
+    void reset_test_id ();    
+
+    void checkNeighborParticles ();    
+
+    void checkNeighborList ();
+
+    std::pair<amrex::Real, amrex::Real>  minAndMaxDistance ();
+
+    void moveParticles (amrex::Real dx);
 };
 
 #endif

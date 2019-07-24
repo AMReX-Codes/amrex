@@ -383,7 +383,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
       const auto& ptile = kv.second;
       
       if (only_valid) {
-	for (int k = 0; k < ptile.GetArrayOfStructs().size(); ++k) {
+	for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
 	  const ParticleType& p = ptile.GetArrayOfStructs()[k];
 	  if (p.m_idata.id > 0) ++nparticles[gid];
 	}
@@ -408,7 +408,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;	
             if (only_valid) {
-                for (int k = 0; k < ptile.GetArrayOfStructs().size(); ++k) {
+                for (int k = 0; k < ptile.GetArrayOfStructs().numParticles(); ++k) {
                     const ParticleType& p = ptile.GetArrayOfStructs()[k];
                     if (p.m_idata.id > 0) ++nparticles;
                 }
@@ -3795,8 +3795,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-	    for (int k = 0; k < aos.size(); ++k) {
-	        const ParticleType& p = aos[k];
+	    auto np = aos.numParticles();
+	    Gpu::HostVector<ParticleType> host_aos(np);
+	    Gpu::thrust_copy(aos.begin(), aos.end(), host_aos.begin());
+	    for (int k = 0; k < np; ++k) {
+	        const ParticleType& p = host_aos[k];
                 if (p.m_idata.id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
@@ -3867,8 +3870,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
                 const auto& aos = kv.second.GetArrayOfStructs();
                 const auto& soa = kv.second.GetStructOfArrays();
 
-		for (int index = 0; index < aos.size(); ++index) {
-		    const ParticleType* it = &aos[index];
+		auto np = aos.numParticles();
+		Gpu::HostVector<ParticleType> host_aos(np);
+		Gpu::thrust_copy(aos.begin(), aos.end(), host_aos.begin());
+
+		for (int index = 0; index < np; ++index) {
+		    const ParticleType* it = &host_aos[index];
 		    if (it->m_idata.id > 0) {
 
                         // write out the particle struct first... 
@@ -4101,7 +4108,7 @@ AssignCellDensitySingleLevel (int rho_index,
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread 
     // its effect to an adjacent grid by first putting the value into ghost cells of its
-    // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
+    // own grid.  The mf->SumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevel");
