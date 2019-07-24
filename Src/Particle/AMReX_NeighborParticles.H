@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Particles.H>
+#include <AMReX_ParticleBufferMap.H>
 
 #ifdef AMREX_USE_CUDA
 #include <AMReX_NeighborList.H>
@@ -444,11 +445,8 @@ protected:
 
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
-    amrex::Gpu::ManagedDeviceVector<int> bucket_to_gid;
-    amrex::Gpu::ManagedDeviceVector<int> gid_to_bucket;
 
-    amrex::Gpu::ManagedDeviceVector<int> proc_box_counts;
-    amrex::Gpu::ManagedDeviceVector<int> proc_box_offsets;
+    ParticleBufferMap m_buffer_map;
 
     amrex::Gpu::ManagedDeviceVector<int> rcv_box_counts;
     amrex::Gpu::ManagedDeviceVector<int> rcv_box_offsets;
