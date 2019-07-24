@@ -10,25 +10,26 @@
  * \param ex_arr ey_arr: Array4 of current density, either full array or tile.
  * \param ez_arr bx_arr: Array4 of current density, either full array or tile.
  * \param by_arr bz_arr: Array4 of current density, either full array or tile.
- * \param np_to_gather : Number of particles for which current is deposited.
+ * \param np_to_gather : Number of particles for which field is gathered.
  * \param dx           : 3D cell size
  * \param xyzmin       : Physical lower bounds of domain.
  * \param lo           : Index lower bounds of domain.
  * \param stagger_shift: 0 if nodal, 0.5 if staggered.
  */
 template <int depos_order, int lower_in_v>
-void doGatherShapeN(const amrex::Real * const xp, 
-                    const amrex::Real * const yp, 
+void doGatherShapeN(const amrex::Real * const xp,
+                    const amrex::Real * const yp,
                     const amrex::Real * const zp,
-                    amrex::Real * const Exp, amrex::Real * const Eyp, amrex::Real * const Ezp,
-                    amrex::Real * const Bxp, amrex::Real * const Byp, amrex::Real * const Bzp,
-                    const amrex::Array4<const amrex::Real>& ex_arr, 
-                    const amrex::Array4<const amrex::Real>& ey_arr, 
+                    amrex::Real * const Exp, amrex::Real * const Eyp,
+                    amrex::Real * const Ezp, amrex::Real * const Bxp,
+                    amrex::Real * const Byp, amrex::Real * const Bzp,
+                    const amrex::Array4<const amrex::Real>& ex_arr,
+                    const amrex::Array4<const amrex::Real>& ey_arr,
                     const amrex::Array4<const amrex::Real>& ez_arr,
-                    const amrex::Array4<const amrex::Real>& bx_arr, 
-                    const amrex::Array4<const amrex::Real>& by_arr, 
+                    const amrex::Array4<const amrex::Real>& bx_arr,
+                    const amrex::Array4<const amrex::Real>& by_arr,
                     const amrex::Array4<const amrex::Real>& bz_arr,
-                    const long np_to_gather, 
+                    const long np_to_gather,
                     const std::array<amrex::Real, 3>& dx,
                     const std::array<amrex::Real, 3> xyzmin,
                     const amrex::Dim3 lo,
@@ -79,20 +80,27 @@ void doGatherShapeN(const amrex::Real * const xp,
             const int l0 = compute_shape_factor<depos_order - lower_in_v>(
                 sz0, zmid-stagger_shift);
 
-            // Deposit current into jx_arr, jy_arr and jz_arr
+            // Set fields on particle to zero
             Exp[ip] = 0;
             Eyp[ip] = 0;
             Ezp[ip] = 0;
             Bxp[ip] = 0;
             Byp[ip] = 0;
             Bzp[ip] = 0;
+            // Each field is gathered in a separate block of 
+            // AMREX_SPACEDIM nested loops because the deposition
+            // order can differ for each component of each field
+            // when lower_in_v is set to 1
 #if (AMREX_SPACEDIM == 2)
+            // Gather field on particle Eyp[i] from field on grid ey_arr
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     Eyp[ip] += sx[ix]*sz[iz]*
                         ey_arr(lo.x+j+ix, lo.y+l+iz, 0);
                 }
             }
+            // Gather field on particle Exp[i] from field on grid ex_arr
+            // Gather field on particle Bzp[i] from field on grid bz_arr
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order-lower_in_v; ix++){
                     Exp[ip] += sx0[ix]*sz[iz]*
@@ -101,6 +109,8 @@ void doGatherShapeN(const amrex::Real * const xp,
                         bz_arr(lo.x+j0+ix, lo.y+l +iz, 0);
                 }
             }
+            // Gather field on particle Ezp[i] from field on grid ez_arr
+            // Gather field on particle Bxp[i] from field on grid bx_arr
             for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     Ezp[ip] += sx[ix]*sz0[iz]*
@@ -109,6 +119,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                         bx_arr(lo.x+j+ix, lo.y+l0 +iz, 0);
                 }
             }
+            // Gather field on particle Byp[i] from field on grid by_arr
             for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                 for (int ix=0; ix<=depos_order-lower_in_v; ix++){
                     Byp[ip] += sx0[ix]*sz0[iz]*
@@ -116,6 +127,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                 }
             }
 #else // (AMREX_SPACEDIM == 3)
+            // Gather field on particle Exp[i] from field on grid ex_arr
             for (int iz=0; iz<=depos_order; iz++){
                 for (int iy=0; iy<=depos_order; iy++){
                     for (int ix=0; ix<=depos_order-lower_in_v; ix++){
@@ -124,6 +136,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                     }
                 }
             }
+            // Gather field on particle Eyp[i] from field on grid ey_arr
             for (int iz=0; iz<=depos_order; iz++){
                 for (int iy=0; iy<=depos_order-lower_in_v; iy++){
                     for (int ix=0; ix<=depos_order; ix++){
@@ -132,6 +145,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                     }
                 }
             }
+            // Gather field on particle Ezp[i] from field on grid ez_arr
             for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                 for (int iy=0; iy<=depos_order; iy++){
                     for (int ix=0; ix<=depos_order; ix++){
@@ -140,7 +154,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                     }
                 }
             }
-
+            // Gather field on particle Bzp[i] from field on grid bz_arr
             for (int iz=0; iz<=depos_order; iz++){
                 for (int iy=0; iy<=depos_order-lower_in_v; iy++){
                     for (int ix=0; ix<=depos_order-lower_in_v; ix++){
@@ -149,6 +163,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                     }
                 }
             }
+            // Gather field on particle Byp[i] from field on grid by_arr
             for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                 for (int iy=0; iy<=depos_order; iy++){
                     for (int ix=0; ix<=depos_order-lower_in_v; ix++){
@@ -157,6 +172,7 @@ void doGatherShapeN(const amrex::Real * const xp,
                     }
                 }
             }
+            // Gather field on particle Bxp[i] from field on grid bx_arr
             for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                 for (int iy=0; iy<=depos_order-lower_in_v; iy++){
                     for (int ix=0; ix<=depos_order; ix++){
