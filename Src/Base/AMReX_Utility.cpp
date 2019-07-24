@@ -455,6 +455,19 @@ amrex::RandomNormal (double mean, double stddev)
     return rand;
 }
 
+
+AMREX_GPU_DEVICE
+int get_state(int tid)
+{
+  int i = tid % glo_size;
+  while (amrex::Gpu::Atomic::CAS(&glo_mutex[i],0,1))
+    {
+      continue;  //traps locked threads in loop
+    }
+  return i
+
+
+
 AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
@@ -467,7 +480,10 @@ amrex::Random ()
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    int i = get_state(tid);
     rand = curand_uniform_double(&glo_RandStates[tid]); 
+    amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
 
 #else
 
@@ -483,55 +499,6 @@ amrex::Random ()
 
     return rand;
 }
-
-
-
-AMREX_GPU_DEVICE int
-get_state(int tid)
-{
-
-  int i =tid % glo_size;
-  while (amrex::Gpu::Atomic::CAS(&glo_mutex[i], 0, 1))
-    {
-      continue;
-    }
-  return i;
-
-}
- 
-
-AMREX_GPU_HOST_DEVICE double
-amrex::gpusafe_Random ()
-{
-  double rand;
-  
-#ifdef __CUDA_ARCH__
-
-  
-  int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
-
-  int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
-    + (threadIdx.z * (blockDim.x * blockDim.y))
-    + (threadIdx.y * blockDim.x) + threadIdx.x ;
-  
-  int i = get_state(tid);
-  rand = curand_uniform_double(&glo_RandStates[i]);
-  amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0); // free state
- #else
-
-#ifdef _OPENMP
-  int tid = omp_get_thread_num();
-#else
-  int tid = 0;
-#endif
-  std::uniform_real_distribution<double> distribution(0.0, 1.0);
-  rand = distribution(generators[tid]);
-#endif
-  return rand;
-}
-
-
-
 
 
 unsigned long
