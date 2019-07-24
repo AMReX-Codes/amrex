@@ -1018,6 +1018,41 @@ SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NA
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::RedistributeOptimized (int lev_min, int lev_max, int nGrow, int local)
+{
+#ifdef AMREX_USE_CUDA
+
+    // sanity checks
+    AMREX_ASSERT(local);
+    AMREX_ASSERT(lev_min == 0);
+    AMREX_ASSERT(lev_max == 0);
+    AMREX_ASSERT(nGrow == 0);
+    AMREX_ASSERT(do_tiling == false);
+
+    BL_PROFILE("ParticleContainer::RedistributeGPU()");
+
+    if (local > 0) BuildRedistributeMask(0, local);
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const BoxArray& ba   = ParticleBoxArray(lev);
+    const DistributionMapping& dmap = ParticleDistributionMap(lev);
+    auto& plev       = m_particles[lev];
+    const auto plo   = Geom(lev).ProbLoArray();
+    const auto dxi   = Geom(lev).InvCellSizeArray();
+    const Box domain = Geom(lev).Domain();
+
+    
+
+#endif    
+}
+
+//
+// The GPU implementation of Redistribute
+//
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_CUDA
@@ -2075,45 +2110,47 @@ BuildRedistributeMask (int lev, int nghost) const {
         redistribute_mask_nghost < nghost ||
         ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
         ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
-        {
-            const Geometry& geom = this->Geom(lev);
-            const BoxArray& ba = this->ParticleBoxArray(lev);
-            const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+    {
+        const Geometry& geom = this->Geom(lev);
+        const BoxArray& ba = this->ParticleBoxArray(lev);
+        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+        
+        redistribute_mask_nghost = nghost;
+        redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
+        redistribute_mask_ptr->setVal(-1, nghost);
 
-            redistribute_mask_nghost = nghost;
-            redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
-            redistribute_mask_ptr->setVal(-1, nghost);
-            
+        auto tile_size = this->do_tiling ? this->tile_size : IntVect::TheZeroVector();            
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(*redistribute_mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-                 mfi.isValid(); ++mfi) {
-                const Box& box = mfi.tilebox();
-                const int grid_id = mfi.index();
-                const int tile_id = mfi.LocalTileIndex();
-                redistribute_mask_ptr->setVal(grid_id, box, 0, 1);
-                redistribute_mask_ptr->setVal(tile_id, box, 1, 1);
-            }
+        for (MFIter mfi(*redistribute_mask_ptr, tile_size); mfi.isValid(); ++mfi)
+        {
+            const Box& box = mfi.tilebox();
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            redistribute_mask_ptr->setVal(grid_id, box, 0, 1);
+            redistribute_mask_ptr->setVal(tile_id, box, 1, 1);
+        }
+        
+        redistribute_mask_ptr->FillBoundary(geom.periodicity());
             
-            redistribute_mask_ptr->FillBoundary(geom.periodicity());
-            
-            neighbor_procs.clear();
-            for (MFIter mfi(*redistribute_mask_ptr, this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-                 mfi.isValid(); ++mfi) {
-                const Box& box = mfi.growntilebox();
-                for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
-                    const int grid = (*redistribute_mask_ptr)[mfi](iv, 0);
-                    if (grid >= 0) {
-                        const int proc = this->ParticleDistributionMap(lev)[grid];
-                        if (proc != ParallelDescriptor::MyProc())  
-                            neighbor_procs.push_back(proc);
-                    }
+        neighbor_procs.clear();
+        for (MFIter mfi(*redistribute_mask_ptr, tile_size); mfi.isValid(); ++mfi) 
+        {
+            const Box& box = mfi.growntilebox();
+            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv))
+            {
+                const int grid = (*redistribute_mask_ptr)[mfi](iv, 0);
+                if (grid >= 0)
+                {
+                    const int proc = this->ParticleDistributionMap(lev)[grid];
+                    if (proc != ParallelDescriptor::MyProc())  
+                        neighbor_procs.push_back(proc);
                 }
             }
-            
-            RemoveDuplicates(neighbor_procs);
-        }
+        }                    
+        RemoveDuplicates(neighbor_procs);
+    }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
