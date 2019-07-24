@@ -14,11 +14,14 @@ class ParticleBufferMap {
     BoxArray m_ba;
     DistributionMapping m_dm;
     
-    Gpu::ManagedDeviceVector<int> m_bucket_to_gid;
-    Gpu::ManagedDeviceVector<int> m_gid_to_bucket;
+    Vector<int> m_bucket_to_gid;
+    Vector<int> m_gid_to_bucket;
 
-    Gpu::ManagedDeviceVector<int> m_proc_box_counts;
-    Gpu::ManagedDeviceVector<int> m_proc_box_offsets;
+    Vector<int> m_proc_box_counts;
+    Vector<int> m_proc_box_offsets;
+
+    Gpu::DeviceVector<int> d_bucket_to_gid;
+    Gpu::DeviceVector<int> d_gid_to_bucket;    
     
 public:
     ParticleBufferMap ()
@@ -49,14 +52,14 @@ public:
     const int* bucketToGridPtr () const
     {
         AMREX_ASSERT(m_defined);       
-        return m_bucket_to_gid.dataPtr();
+        return d_bucket_to_gid.dataPtr();
     }
 
     AMREX_INLINE
     const int* gridToBucketPtr () const
     {
         AMREX_ASSERT(m_defined);
-        return m_gid_to_bucket.dataPtr();
+        return d_gid_to_bucket.dataPtr();
     }
 
     AMREX_INLINE
