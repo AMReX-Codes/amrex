@@ -740,6 +740,8 @@ public:
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
+    void RedistributeOptimized (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
     bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;

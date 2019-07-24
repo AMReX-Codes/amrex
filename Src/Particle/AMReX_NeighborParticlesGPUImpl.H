@@ -135,39 +135,7 @@ buildNeighborMask()
     
 	BuildMasks();
 	GetNeighborCommTags();
-
-	int num_boxes = ba.size();
-	bucket_to_gid.resize(num_boxes);
-        gid_to_bucket.resize(num_boxes);
-
-        Gpu::DeviceVector<int> box_proc_ids(num_boxes);
-	Gpu::thrust_copy(dmap.ProcessorMap().begin(), dmap.ProcessorMap().end(), box_proc_ids.begin());
-
-	thrust::sequence(thrust::device, bucket_to_gid.begin(), bucket_to_gid.end());
-	
-	thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-			    box_proc_ids.begin(),
-			    box_proc_ids.end(),
-			    bucket_to_gid.begin());
-
-        auto b_to_gid_ptr = bucket_to_gid.dataPtr();
-        auto gid_to_b_ptr = gid_to_bucket.dataPtr();
-        AMREX_FOR_1D ( num_boxes, i,
-	{
-            gid_to_b_ptr[b_to_gid_ptr[i]] = i;
-        });	 
-
-	proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
-	proc_box_offsets.resize(ParallelDescriptor::NProcs());
-	for (auto& val : dmap.ProcessorMap() )
-        {
-	    proc_box_counts[val]++;
-	} 
-
-        amrex::Gpu::exclusive_scan(proc_box_counts.begin(), proc_box_counts.end(),
-                                   proc_box_offsets.begin());
- 
-	proc_box_offsets.push_back(num_boxes);
+        m_buffer_map.define(ba, dmap);
     }
 }
 
@@ -325,7 +293,7 @@ computeCopyPlan ()
     box_counts.resize(num_boxes, 0);
     box_offsets.resize(num_boxes+1);
     auto p_dst_box_counts = box_counts.dataPtr();
-    auto p_box_perm = gid_to_bucket.dataPtr();
+    auto p_box_perm = m_buffer_map.gridToBucketPtr();
 
     constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -390,7 +358,7 @@ packBuffer ()
 	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
 	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
 	auto p_box_offsets = box_offsets.dataPtr();
-        auto p_box_perm = gid_to_bucket.dataPtr();
+        auto p_box_perm = m_buffer_map.gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
@@ -447,11 +415,11 @@ unpackBuffer ()
         auto& tile = plev[index];
         auto& aos   = tile.GetArrayOfStructs();
 	auto np = tile.numTotalParticles();
-	
-	int num_copies = box_counts[gid_to_bucket[gid]];
+
+	int num_copies = box_counts[m_buffer_map.gridToBucket(gid)];
 
 	auto p_box_offsets = box_offsets.dataPtr();
-	auto p_box_perm = gid_to_bucket.dataPtr();
+	auto p_box_perm = m_buffer_map.gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
         int nn = tile.getNumNeighbors();
@@ -524,13 +492,14 @@ getBoxRcvCounts ()
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
-	for (int j = 0; j < nboxes; ++j)
+        auto box_buffer_indices = m_buffer_map.allBucketsOnProc(i);
+        int nboxes = box_buffer_indices.size();
+        for (auto bucket : box_buffer_indices)
 	{
-	  int dst = bucket_to_gid[proc_box_offsets[i]+j];
-	  int npart = box_counts[proc_box_offsets[i]+j];
-	  snd_data[i].push_back(npart);
-	  snd_data[i].push_back(dst);
+            int dst = m_buffer_map.bucketToGrid(bucket);
+            int npart = box_counts[bucket];
+            snd_data[i].push_back(npart);
+            snd_data[i].push_back(dst);
 	}
 	long nbytes = 2*nboxes*sizeof(int);
 	Snds[i] = nbytes;
@@ -650,11 +619,12 @@ communicateParticles ()
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-	long nboxes = proc_box_offsets[i+1] - proc_box_offsets[i];
+        auto box_buffer_indices = m_buffer_map.allBucketsOnProc(i);
+        int nboxes = box_buffer_indices.size();
         long nbytes = 0;
-	for (int j = 0; j < nboxes; ++j)
+        for (auto bucket : box_buffer_indices)
         {
-            nbytes += box_counts[proc_box_offsets[i]+j]*sizeof(ParticleType); 
+            nbytes += box_counts[bucket]*sizeof(ParticleType); 
         }
 	Snds[i] = nbytes;
 	NumSnds += nbytes;
@@ -725,7 +695,8 @@ communicateParticles ()
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        const auto snd_offset = box_offsets[proc_box_offsets[i]];
+        int bucket = m_buffer_map.firstBucketOnProc(i);
+        const auto snd_offset = box_offsets[bucket];
 
         ParallelDescriptor::Send(
 	    (char*) thrust::raw_pointer_cast(&snd_buffer[snd_offset]),
