@@ -453,20 +453,20 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
-            const Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+            const Real* const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
             Real* const AMREX_RESTRICT gi = m_giv[thread_num].dataPtr();
             Real* const AMREX_RESTRICT uxpp = uxp.dataPtr();
             Real* const AMREX_RESTRICT uypp = uyp.dataPtr();
             Real* const AMREX_RESTRICT uzpp = uzp.dataPtr();
-            const Real* AMREX_RESTRICT uxp_savep = uxp_save.dataPtr();
-            const Real* AMREX_RESTRICT uyp_savep = uyp_save.dataPtr();
-            const Real* AMREX_RESTRICT uzp_savep = uzp_save.dataPtr();
-            const Real* AMREX_RESTRICT Expp = Exp.dataPtr();
-            const Real* AMREX_RESTRICT Eypp = Eyp.dataPtr();
-            const Real* AMREX_RESTRICT Ezpp = Ezp.dataPtr();
-            const Real* AMREX_RESTRICT Bxpp = Bxp.dataPtr();
-            const Real* AMREX_RESTRICT Bypp = Byp.dataPtr();
-            const Real* AMREX_RESTRICT Bzpp = Bzp.dataPtr();
+            const Real* const AMREX_RESTRICT uxp_savep = uxp_save.dataPtr();
+            const Real* const AMREX_RESTRICT uyp_savep = uyp_save.dataPtr();
+            const Real* const AMREX_RESTRICT uzp_savep = uzp_save.dataPtr();
+            const Real* const AMREX_RESTRICT Expp = Exp.dataPtr();
+            const Real* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
+            const Real* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
+            const Real* const AMREX_RESTRICT Bxpp = Bxp.dataPtr();
+            const Real* const AMREX_RESTRICT Bypp = Byp.dataPtr();
+            const Real* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
 
             // Loop over the particles and update their momentum
             const Real q = this->charge;

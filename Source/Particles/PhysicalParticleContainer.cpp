@@ -1758,12 +1758,12 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-    const Real* AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
-    const Real* AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
-    const Real* AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
-    const Real* AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
-    const Real* AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
-    const Real* AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
+    const Real* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
+    const Real* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
+    const Real* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
+    const Real* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
+    const Real* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
+    const Real* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
@@ -1885,12 +1885,12 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-            const Real* AMREX_RESTRICT Expp = Exp.dataPtr();
-            const Real* AMREX_RESTRICT Eypp = Eyp.dataPtr();
-            const Real* AMREX_RESTRICT Ezpp = Ezp.dataPtr();
-            const Real* AMREX_RESTRICT Bxpp = Bxp.dataPtr();
-            const Real* AMREX_RESTRICT Bypp = Byp.dataPtr();
-            const Real* AMREX_RESTRICT Bzpp = Bzp.dataPtr();
+            const Real* const AMREX_RESTRICT Expp = Exp.dataPtr();
+            const Real* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
+            const Real* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
+            const Real* const AMREX_RESTRICT Bxpp = Bxp.dataPtr();
+            const Real* const AMREX_RESTRICT Bypp = Byp.dataPtr();
+            const Real* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
 
             // Loop over the particles and update their momentum
             const Real q = this->charge;
