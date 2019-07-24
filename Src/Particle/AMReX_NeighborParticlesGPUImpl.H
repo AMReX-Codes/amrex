@@ -130,18 +130,7 @@ buildNeighborMask()
 		    ++num_codes;
                 }
    	        m_code_offsets[grid].push_back(m_code_array[grid].size());
-            }
-        
-	// for (int i = 0; i < m_code_offsets[grid].size()-1; ++i)
-	// {
-	//   int start = m_code_offsets[grid][i];
-	//   int stop  = m_code_offsets[grid][i+1];
-	//   amrex::Print() << "Code " << i << " corresponds to: ";
-	//   for (int j = start; j < stop; ++j)
-	//     amrex::Print() << m_code_array[grid][j].grid_id << " ";
-	//   amrex::Print() << "\n";
-	// }
-	// amrex::Print() << "\n";
+            }        
 	}
     
 	BuildMasks();
