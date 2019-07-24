@@ -20,7 +20,6 @@
 #include <AMReX_Utility.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_Print.H>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
@@ -35,9 +34,6 @@
 #include <sys/time.h>
 #include <sys/param.h>
 #include <unistd.h>
-
-
-
 
 
 using std::ostringstream;
@@ -375,14 +371,9 @@ namespace
     *        reduce the computational cost of dynamic memory allocation and 
     *        random seed generation. 
     */
-
     __device__ curandState_t *glo_RandStates;
     curandState_t* dev_RandStates_Seed;
-    __device__ int *glo_mutex;
-    int * dev_mutex;
-    __device__ int glo_size;
     int nstates;
-
 #endif
 
 }
@@ -455,19 +446,6 @@ amrex::RandomNormal (double mean, double stddev)
     return rand;
 }
 
-
-AMREX_GPU_DEVICE
-int get_state(int tid)
-{
-  int i = tid % glo_size;
-  while (amrex::Gpu::Atomic::CAS(&glo_mutex[i],0,1))
-    {
-      continue;  //traps locked threads in loop
-    }
-  return i
-
-
-
 AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
@@ -481,9 +459,8 @@ amrex::Random ()
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
-    int i = get_state(tid);
     rand = curand_uniform_double(&glo_RandStates[tid]); 
-    amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
+
 
 #else
 
@@ -494,7 +471,7 @@ amrex::Random ()
 #endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     rand = distribution(generators[tid]);
-    
+
 #endif
 
     return rand;
@@ -594,39 +571,19 @@ amrex::ResizeRandomSeed (int N)
     int SizeDiff = N - PrevSize;
 
     curandState_t * new_data;
-    int * new_mutex;
-    int * new_size;
-    
-    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t)));
-    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_mutex, N*sizeof(int)));
-
+    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t))); 
     if (dev_RandStates_Seed != nullptr) {
-
         AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_data, dev_RandStates_Seed, 
                                         PrevSize*sizeof(curandState_t), 
                                         cudaMemcpyDeviceToDevice));
-	AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_mutex, dev_mutex,
-					PrevSize*sizeof(int),
-					cudaMemcpyDeviceToDevice));
-
         AMREX_CUDA_SAFE_CALL(cudaFree(dev_RandStates_Seed));
-	AMREX_CUDA_SAFE_CALL(cudaFree(dev_mutex));
     }
-	  
+    
     dev_RandStates_Seed = new_data;
-    dev_mutex = new_mutex;
-    int temp_size = N;
-
+    
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_RandStates,
                                             &dev_RandStates_Seed,
                                             sizeof(curandState_t *)));
-    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_mutex,
-					    &dev_mutex,
-					    sizeof(int *)));
-     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_size, 
-					    &temp_size,
-					    sizeof(int)));
-
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
@@ -636,7 +593,6 @@ amrex::ResizeRandomSeed (int N)
         int loc = idx + PrevSize;
         curand_init(seed, seqstart, 0, &glo_RandStates[loc]);
     }); 
-
 #endif
 
 }
