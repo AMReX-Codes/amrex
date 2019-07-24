@@ -46,7 +46,7 @@ void doGatherShapeN(const amrex::Real * const xp,
 
     // Loop over particles and gather fields from
     // {e,b}{x,y,z}_arr to {E,B}{xyz}p.
-    ParallelFor(
+    amrex::ParallelFor(
         np_to_gather,
         [=] AMREX_GPU_DEVICE (long ip) {
             // --- Compute shape factors

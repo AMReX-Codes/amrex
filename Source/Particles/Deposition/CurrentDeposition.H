@@ -31,7 +31,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Array4<amrex::Real>& jz_arr,
                         const long np_to_depose, const amrex::Real dt,
                         const std::array<amrex::Real,3>& dx,
-                        const std::array<Real, 3> xyzmin,
+                        const std::array<amrex::Real, 3> xyzmin,
                         const amrex::Dim3 lo,
                         const amrex::Real stagger_shift, 
                         const amrex::Real q)
@@ -191,7 +191,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
     const amrex::Real clightsq = 1.0/PhysConst::c/PhysConst::c;
 
     // Loop over particles and deposit into Jx_arr, Jy_arr and Jz_arr
-    ParallelFor( 
+    amrex::ParallelFor( 
         np_to_depose,
         [=] AMREX_GPU_DEVICE (long ip) {
 
