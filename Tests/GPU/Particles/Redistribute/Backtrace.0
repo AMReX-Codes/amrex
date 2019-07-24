@@ -1,0 +1,43 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: /global/u1/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/./main3d.pgi.TPROF.ACC.CUDA.ex() [0x537036]
+    print_backtrace_info
+../../../..//Src/Base/AMReX_BLBackTrace.cpp:167
+
+ 1: /global/u1/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/./main3d.pgi.TPROF.ACC.CUDA.ex() [0x538389]
+    handler
+../../../..//Src/Base/AMReX_BLBackTrace.cpp:71
+
+ 2: /global/u1/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/./main3d.pgi.TPROF.ACC.CUDA.ex() [0x43f0d9]
+    Abort
+../../../..//Src/Base/AMReX.cpp:202
+
+ 3: /global/u1/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/./main3d.pgi.TPROF.ACC.CUDA.ex() [0x449041]
+    sgetval<amrex::IntVect> inlined at ../../../..//Src/Base/AMReX_ParmParse.cpp:1625 in _ZNK5amrex9ParmParse3getEPKcRNS_7IntVectEi
+../../../..//Src/Base/AMReX_ParmParse.cpp:734
+_ZNK5amrex9ParmParse3getEPKcRNS_7IntVectEi
+../../../..//Src/Base/AMReX_ParmParse.cpp:1625
+
+ 4: /global/u1/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/./main3d.pgi.TPROF.ACC.CUDA.ex() [0x4093aa]
+    main
+/global/homes/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/main.cpp:103
+
+ 5: /lib64/libc.so.6(__libc_start_main+0xf5) [0x2aaac1e7d725]
+    __libc_start_main
+??:0
+
+ 6: /global/u1/c/chrisdeg/codes/amrex/Tests/GPU/Particles/Redistribute/./main3d.pgi.TPROF.ACC.CUDA.ex() [0x40bd29]
+    _start
+../sysdeps/x86_64/start.S:121
+
+
+===== TinyProfilers ======
+

@@ -78,7 +78,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  if (AMREX_SPACEDIM >= 2) {
 	    auto umacarry = (*fab[1]).array();
 	    p_umacarry = &(umacarry);
-	  }
+~& pmap = GetParticles~	  }
 	  //If this is true, we need the z component
 	  if (AMREX_SPACEDIM >= 3) {
 	    auto umacarrz = (*fab[2]).array();
