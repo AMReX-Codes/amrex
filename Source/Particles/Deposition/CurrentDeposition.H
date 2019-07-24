@@ -251,27 +251,34 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                                   const Dim3 lo,
                                   const amrex::Real q)
 {
+    const Real dxi = 1.0/dx[0];
+    const Real dtsdx0 = dt*dxi;
+    const Real xmin = xyzmin[0];
+#if (AMREX_SPACEDIM == 3)
+    const Real dyi = 1.0/dx[1];
+    const Real dtsdy0 = dt*dyi;
+    const Real ymin = xyzmin[1];
+#endif
+    const Real dzi = 1.0/dx[2];
+    const Real dtsdz0 = dt*dzi;
+    const Real zmin = xyzmin[2];
 
 #if (AMREX_SPACEDIM == 3)
-
-    const Real dxi = 1.0/dx[0];
-    const Real dyi = 1.0/dx[1];
-    const Real dzi = 1.0/dx[2];
-    const Real dtsdx0 = dt*dxi;
-    const Real dtsdy0 = dt*dyi;
-    const Real dtsdz0 = dt*dzi;
     const Real invdtdx = 1.0/(dt*dx[1]*dx[2]);
     const Real invdtdy = 1.0/(dt*dx[0]*dx[2]);
     const Real invdtdz = 1.0/(dt*dx[0]*dx[1]);
+#elif (AMREX_SPACEDIM == 2)
+    const Real invdtdx = 1.0/(dt*dx[2]);
+    const Real invdtdz = 1.0/(dt*dx[0]);
+    const Real invvol = 1.0/(dx[0]*dx[2]);
+#endif
 
-    const Real xmin = xyzmin[0];
-    const Real ymin = xyzmin[1];
-    const Real zmin = xyzmin[2];
     const Real clightsq = 1.0/PhysConst::c/PhysConst::c;
 
     // Loop over particles and deposit into Jx_arr, Jy_arr and Jz_arr
     ParallelFor( np_to_depose,
                  [=] AMREX_GPU_DEVICE (long ip) {
+
                      // --- Get particle quantities
                      const Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                            + uyp[ip]*uyp[ip]*clightsq
@@ -280,17 +287,19 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                      // wqx, wqy wqz are particle current in each direction
                      const Real wq = q*wp[ip];
                      const Real wqx = wq*invdtdx;
+#if (AMREX_SPACEDIM == 3)
                      const Real wqy = wq*invdtdy;
+#endif
                      const Real wqz = wq*invdtdz;
 
-                     // computes current position in grid units
+                     // computes current and old position in grid units
                      const Real x_new = (xp[ip] - xmin)*dxi;
-                     const Real y_new = (yp[ip] - ymin)*dyi;
-                     const Real z_new = (zp[ip] - zmin)*dzi;
-
-                     // computes old position in grid units
                      const Real x_old = x_new - dtsdx0*uxp[ip]*gaminv;
+#if (AMREX_SPACEDIM == 3)        
+                     const Real y_new = (yp[ip] - ymin)*dyi;
                      const Real y_old = y_new - dtsdy0*uyp[ip]*gaminv;
+#endif
+                     const Real z_new = (zp[ip] - zmin)*dzi;
                      const Real z_old = z_new - dtsdz0*uzp[ip]*gaminv;
 
                      // Shape factor arrays
@@ -298,33 +307,40 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                      // to possibly hold the factor for the old particle
                      // which can be at a different grid location.
                      Real AMREX_RESTRICT sx_new[depos_order + 3] = {0.};
-                     Real AMREX_RESTRICT sy_new[depos_order + 3] = {0.};
-                     Real AMREX_RESTRICT sz_new[depos_order + 3] = {0.};
                      Real AMREX_RESTRICT sx_old[depos_order + 3] = {0.};
+#if (AMREX_SPACEDIM == 3)
+                     Real AMREX_RESTRICT sy_new[depos_order + 3] = {0.};
                      Real AMREX_RESTRICT sy_old[depos_order + 3] = {0.};
+#endif
+                     Real AMREX_RESTRICT sz_new[depos_order + 3] = {0.};
                      Real AMREX_RESTRICT sz_old[depos_order + 3] = {0.};
 
                      // --- Compute shape factors
                      // Compute shape factors for position as they are now and at old positions
                      // [ijk]_new: leftmost grid point that the particle touches
                      const int i_new = compute_shape_factor<depos_order>(sx_new+1, x_new);
-                     const int j_new = compute_shape_factor<depos_order>(sy_new+1, y_new);
-                     const int k_new = compute_shape_factor<depos_order>(sz_new+1, z_new);
-
                      const int i_old = compute_shifted_shape_factor<depos_order>(sx_old, x_old, i_new);
+#if (AMREX_SPACEDIM == 3)
+                     const int j_new = compute_shape_factor<depos_order>(sy_new+1, y_new);
                      const int j_old = compute_shifted_shape_factor<depos_order>(sy_old, y_old, j_new);
+#endif 
+                     const int k_new = compute_shape_factor<depos_order>(sz_new+1, z_new);
                      const int k_old = compute_shifted_shape_factor<depos_order>(sz_old, z_old, k_new);
 
                      // computes min/max positions of current contributions
                      int dil = 1, diu = 1;
                      if (i_old < i_new) dil = 0;
                      if (i_old > i_new) diu = 0;
+#if (AMREX_SPACEDIM == 3)
                      int djl = 1, dju = 1;
                      if (j_old < j_new) djl = 0;
                      if (j_old > j_new) dju = 0;
+#endif
                      int dkl = 1, dku = 1;
                      if (k_old < k_new) dkl = 0;
                      if (k_old > k_new) dku = 0;
+
+#if (AMREX_SPACEDIM == 3)
 
                      for (int k=dkl; k<=depos_order+2-dku; k++) {
                          for (int j=djl; j<=depos_order+2-dju; j++) {
@@ -336,7 +352,6 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                              }
                          }
                      }
-
                      for (int k=dkl; k<=depos_order+2-dku; k++) {
                          for (int i=dil; i<=depos_order+2-diu; i++) {
                              Real sdyj = 0.;
@@ -347,7 +362,6 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                              }
                          }
                      }
-
                      for (int j=djl; j<=depos_order+2-dju; j++) {
                          for (int i=dil; i<=depos_order+2-diu; i++) {
                              Real sdzk = 0.;
@@ -358,97 +372,36 @@ void doEsirkepovDepositionShapeN (const Real * const xp, const Real * const yp, 
                              }
                          }
                      }
-                 }
-        );
 
 #elif (AMREX_SPACEDIM == 2)
 
-    const Real dxi = 1.0/dx[0];
-    const Real dzi = 1.0/dx[2];
-    const Real dtsdx0 = dt*dxi;
-    const Real dtsdz0 = dt*dzi;
-    const Real invdtdx = 1.0/(dt*dx[2]);
-    const Real invdtdz = 1.0/(dt*dx[0]);
-    const Real invvol = 1.0/(dx[0]*dx[2]);
+                    for (int k=dkl; k<=depos_order+2-dku; k++) {
+                        Real sdxi = 0.;
+                        for (int i=dil; i<=depos_order+1-diu; i++) {
+                            sdxi += wqx*(sx_old[i] - sx_new[i])*(sz_new[k] + 0.5*(sz_old[k] - sz_new[k]));
+                            amrex::Gpu::Atomic::Add( &Jx_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdxi);
+                        }
+                    }
+                    for (int k=dkl; k<=depos_order+2-dku; k++) {
+                        for (int i=dil; i<=depos_order+2-diu; i++) {
+                            const Real sdyj = wq*uyp[ip]*gaminv*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
+                                        (0.5*sz_new[k] + 1./3.*(sz_old[k] - sz_new[k]))*(sx_old[i] - sx_new[i]));
+                            amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdyj);
+                        }
+                    }
+                    for (int i=dil; i<=depos_order+2-diu; i++) {
+                        Real sdzk = 0.;
+                        for (int k=dkl; k<=depos_order+1-dku; k++) {
+                            sdzk += wqz*(sz_old[k] - sz_new[k])*(sx_new[i] + 0.5*(sx_old[i] - sx_new[i]));
+                            amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdzk);
+                        }
+                    }
 
-    const Real xmin = xyzmin[0];
-    const Real zmin = xyzmin[2];
-    const Real clightsq = 1.0/PhysConst::c/PhysConst::c;
-
-    // Loop over particles and deposit into Jx_arr, Jy_arr and Jz_arr
-    ParallelFor( np_to_depose,
-                 [=] AMREX_GPU_DEVICE (long ip) {
-                     // --- Get particle quantities
-                     const Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                           + uyp[ip]*uyp[ip]*clightsq
-                                                           + uzp[ip]*uzp[ip]*clightsq);
-
-                     // wqx, wqy wqz are particle current in each direction
-                     const Real wq = q*wp[ip];
-                     const Real wqx = wq*invdtdx;
-                     const Real wqz = wq*invdtdz;
-
-                     // computes current position in grid units
-                     const Real x_new = (xp[ip] - xmin)*dxi;
-                     const Real z_new = (zp[ip] - zmin)*dzi;
-
-                     // computes old position in grid units
-                     const Real x_old = x_new - dtsdx0*uxp[ip]*gaminv;
-                     const Real z_old = z_new - dtsdz0*uzp[ip]*gaminv;
-
-                     // Shape factor arrays
-                     // Note that there are extra values above and below
-                     // to possibly hold the factor for the old particle
-                     // which can be at a different grid location.
-                     Real AMREX_RESTRICT sx_new[depos_order + 3] = {0.};
-                     Real AMREX_RESTRICT sz_new[depos_order + 3] = {0.};
-                     Real AMREX_RESTRICT sx_old[depos_order + 3] = {0.};
-                     Real AMREX_RESTRICT sz_old[depos_order + 3] = {0.};
-
-                     // --- Compute shape factors
-                     // Compute shape factors for position as they are now and at old positions
-                     // [ik]_new: leftmost grid point that the particle touches
-                     const int i_new = compute_shape_factor<depos_order>(sx_new+1, x_new);
-                     const int k_new = compute_shape_factor<depos_order>(sz_new+1, z_new);
-
-                     const int i_old = compute_shifted_shape_factor<depos_order>(sx_old, x_old, i_new);
-                     const int k_old = compute_shifted_shape_factor<depos_order>(sz_old, z_old, k_new);
-
-                     // computes min/max positions of current contributions
-                     int dil = 1, diu = 1;
-                     if (i_old < i_new) dil = 0;
-                     if (i_old > i_new) diu = 0;
-                     int dkl = 1, dku = 1;
-                     if (k_old < k_new) dkl = 0;
-                     if (k_old > k_new) dku = 0;
-
-                     for (int k=dkl; k<=depos_order+2-dku; k++) {
-                         Real sdxi = 0.;
-                         for (int i=dil; i<=depos_order+1-diu; i++) {
-                             sdxi += wqx*(sx_old[i] - sx_new[i])*(sz_new[k] + 0.5*(sz_old[k] - sz_new[k]));
-                             amrex::Gpu::Atomic::Add( &Jx_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdxi);
-                         }
-                     }
-
-                     for (int k=dkl; k<=depos_order+2-dku; k++) {
-                         for (int i=dil; i<=depos_order+2-diu; i++) {
-                             const Real sdyj = wq*uyp[ip]*gaminv*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
-                                         (0.5*sz_new[k] + 1./3.*(sz_old[k] - sz_new[k]))*(sx_old[i] - sx_new[i]));
-                             amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdyj);
-                         }
-                     }
-
-                     for (int i=dil; i<=depos_order+2-diu; i++) {
-                         Real sdzk = 0.;
-                         for (int k=dkl; k<=depos_order+1-dku; k++) {
-                             sdzk += wqz*(sz_old[k] - sz_new[k])*(sx_new[i] + 0.5*(sx_old[i] - sx_new[i]));
-                             amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdzk);
-                         }
-                     }
+#endif
                  }
         );
 
-#endif
+
 
 }
 
