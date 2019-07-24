@@ -650,7 +650,7 @@ Vector<MultiFab> LSCoreBase::PlotFileMF () const {
 
         amrex::average_node_to_cellcenter(r[i], 0, level_set[i], 0, 1);
     }
-    return std::move(r);
+    return r;
 }
 
 

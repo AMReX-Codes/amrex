@@ -13,7 +13,7 @@ void mlpoisson_adotx (int i, int j, int k, Array4<Real> const& y,
         +      dhz * (x(i,j,k-1) - 2.0*x(i,j,k) + x(i,j,k+1));
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
                        Array4<Real const> const& sol, Real dxinv) noexcept
 {
@@ -30,7 +30,7 @@ void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
                            Array4<Real const> const& sol, Real dxinv, int xlen) noexcept
 {
@@ -47,7 +47,7 @@ void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_y (Box const& box, Array4<Real> const& fy,
                        Array4<Real const> const& sol, Real dyinv) noexcept
 {
@@ -64,7 +64,7 @@ void mlpoisson_flux_y (Box const& box, Array4<Real> const& fy,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_yface (Box const& box, Array4<Real> const& fy,
                            Array4<Real const> const& sol, Real dyinv, int ylen) noexcept
 {
@@ -85,7 +85,7 @@ void mlpoisson_flux_yface (Box const& box, Array4<Real> const& fy,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_z (Box const& box, Array4<Real> const& fz,
                        Array4<Real const> const& sol, Real dzinv) noexcept
 {
@@ -102,7 +102,7 @@ void mlpoisson_flux_z (Box const& box, Array4<Real> const& fz,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_zface (Box const& box, Array4<Real> const& fz,
                            Array4<Real const> const& sol, Real dzinv, int zlen) noexcept
 {
@@ -126,7 +126,7 @@ void mlpoisson_flux_zface (Box const& box, Array4<Real> const& fz,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi,
                      Array4<Real const> const& rhs,
                      Real dhx, Real dhy, Real dhz,

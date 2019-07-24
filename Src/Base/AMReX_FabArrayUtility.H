@@ -232,7 +232,8 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f) {
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f) {
+ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f)
+{
     using value_type = typename FAB::value_type;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;

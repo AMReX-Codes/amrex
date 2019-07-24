@@ -38,20 +38,20 @@ struct EBPlane
         : cent{cx,cy,cz}, norm{nx,ny,nz}
         {}
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (Real x, Real y, Real z) const noexcept
     {
         return (x-cent[0])*norm[0] + (y-cent[1])*norm[1] + (z-cent[2])*norm[2];
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (GpuArray<Real,3> const& p) const noexcept
     {
         return (p[0]-cent[0])*norm[0] + (p[1]-cent[1])*norm[1]
             +  (p[2]-cent[2])*norm[2];
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real grad (int d) const noexcept
     {
         return norm[d];
@@ -68,7 +68,7 @@ struct QuadratureRule
     GpuArray<Node,256> nodes;
 
     template<typename F>
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real
     operator() (const F& f) const noexcept
     {
@@ -80,7 +80,7 @@ struct QuadratureRule
     }
 
     template<typename F>
-    AMREX_GPU_HOST AMREX_INLINE
+    AMREX_GPU_HOST AMREX_FORCE_INLINE
     Real
     eval (const F& f) const noexcept
     {
@@ -93,7 +93,7 @@ struct QuadratureRule
 
     // evalIntegrand records quadrature nodes when it is invoked by
     // ImplicitIntegral
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void
     evalIntegrand (const GpuArray<Real,3>& x_, Real w_) noexcept
     {
@@ -108,7 +108,7 @@ struct QuadratureRule
 namespace detail
 {
     template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void swap (T& a, T& b) noexcept {
         T c(a); a=b; b=c;
     }
@@ -119,7 +119,7 @@ namespace detail
     // Defined Surfaces and Volumes in Hyperrectangles, SIAM
     // J. Sci. Comput., Vol. 37, No. 2, pp. A993-A1019,
     // http://dx.doi.org/10.1137/140966290].
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void
     determineSigns (bool positiveAbove, int sign, int& bottomSign, int& topSign) noexcept
     {
@@ -157,10 +157,10 @@ struct PsiCode
 {
     unsigned char bits = 0;
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE constexpr
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     PsiCode () noexcept {}
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     PsiCode (const GpuArray<int,N>& sides, int sign) noexcept
     {
         static_assert(N <= 3, "algoim::PsiCode: N must be <= 3");
@@ -180,7 +180,7 @@ struct PsiCode
     }
 
     // Modify an existing code by restriction in a particular dimension.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     PsiCode (const PsiCode& i, int dim, int side, int sign) noexcept
         : bits(i.bits)
     {
@@ -197,13 +197,13 @@ struct PsiCode
         }
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int side (int dim) const noexcept
     {
         return bits & (1 << dim);
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int sign () const noexcept
     {
         return (bits & (1 << N)) ? 0 : ((bits & (1 << (N+1))) ? 1 : -1);
@@ -535,7 +535,7 @@ struct ImplicitIntegral<0,N,Phi,F>
                       int) noexcept {}
 };
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE inline
 QuadratureRule
 quadGen (EBPlane const& phi) noexcept
 {
@@ -547,7 +547,7 @@ quadGen (EBPlane const& phi) noexcept
     return q;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void set_regular (int i, int j, int k, Array4<Real> const& intg) noexcept
 {
     constexpr Real twelfth = 1./12.;

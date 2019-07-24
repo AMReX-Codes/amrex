@@ -80,6 +80,21 @@ namespace ParallelDescriptor
 	MPI_Request        m_req;
 	mutable MPI_Status m_stat;
     };
+
+#ifdef BL_USE_MPI
+    void MPI_Error(const char* file, int line, const char* msg, int rc);
+
+#define BL_MPI_REQUIRE(x)						\
+do									\
+{									\
+  if ( int l_status_ = (x) )						\
+    {									\
+        amrex::ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_); \
+    }									\
+}									\
+while ( false )
+#endif
+
     /**
     * \brief Perform any needed parallel initialization.  This MUST be the
     * first routine in this class called from within a program.
@@ -189,11 +204,26 @@ namespace ParallelDescriptor
     inline int MinTag () noexcept { return m_MinTag; }
     inline int MaxTag () noexcept { return m_MaxTag; }
 
+    extern MPI_Comm m_comm;
+    inline MPI_Comm Communicator () noexcept { return m_comm; }
+
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
     NProcs () noexcept
     {
         return ParallelContext::NProcsAll();
+    }
+
+    inline int
+    NProcs (MPI_Comm comm) noexcept
+    {
+#ifdef BL_USE_MPI
+        int s;
+        BL_MPI_REQUIRE(MPI_Comm_size(comm, &s));
+        return s;
+#else
+        return 1;
+#endif
     }
     /**
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
@@ -214,6 +244,19 @@ namespace ParallelDescriptor
     {
          return MyProc() == IOProcessorNumber();
     }
+
+    inline int
+    IOProcessorNumber (MPI_Comm comm) noexcept
+    {
+        return (comm == ParallelDescriptor::Communicator()) ? ioProcessor : 0;
+    }
+
+    inline bool
+    IOProcessor (MPI_Comm comm) noexcept
+    {
+        return MyProc(comm) == IOProcessorNumber(comm);
+    }
+
     //
     inline int
     TeamSize () noexcept
@@ -343,8 +386,6 @@ namespace ParallelDescriptor
 	    f(i);
 	}
     }
-    extern MPI_Comm m_comm;
-    inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     void Barrier (const std::string& message = Unnamed);
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
@@ -510,8 +551,6 @@ namespace ParallelDescriptor
     void Waitany  (Vector<MPI_Request>& reqs, int &index, MPI_Status& status);
     void Waitsome (Vector<MPI_Request>&, int&, Vector<int>&, Vector<MPI_Status>&);
 
-    void MPI_Error(const char* file, int line, const char* msg, int rc);
-
     void ReadAndBcastFile(const std::string &filename, Vector<char> &charBuf,
                           bool bExitOnError = true,
 			  const MPI_Comm &comm = Communicator() );
@@ -526,16 +565,6 @@ namespace ParallelDescriptor
 #endif
 }
 }
-
-#define BL_MPI_REQUIRE(x)						\
-do									\
-{									\
-  if ( int l_status_ = (x) )						\
-    {									\
-        amrex::ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_); \
-    }									\
-}									\
-while ( false )
 
 namespace amrex {
 

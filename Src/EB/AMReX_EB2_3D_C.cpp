@@ -3,7 +3,7 @@
 namespace amrex { namespace EB2 {
 
 namespace {
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
                   Real& Sx2, Real& Sy2, Real& Sxy,
                   Real axm, Real axp, Real aym, Real ayp,

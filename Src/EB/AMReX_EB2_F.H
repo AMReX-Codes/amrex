@@ -7,30 +7,6 @@
 extern "C" {
 #endif
 
-#if (AMREX_SPACEDIM == 3)
-
-    void amrex_eb2_build_cells (const int* lo, const int* hi,
-                                void* cell, const int* clo, const int* chi,
-                                void* fx, const int* fxlo, const int* fxhi,
-                                void* fy, const int* fylo, const int* fyhi,
-                                void* fz, const int* fzlo, const int* fzhi,
-                                amrex_real* apx, const int* axlo, const int* axhi,
-                                amrex_real* apy, const int* aylo, const int* ayhi,
-                                amrex_real* apz, const int* azlo, const int* azhi,
-                                const amrex_real* fcx, const int* cxlo, const int* cxhi,
-                                const amrex_real* fcy, const int* cylo, const int* cyhi,
-                                const amrex_real* fcz, const int* czlo, const int* czhi,
-                                amrex_real* M2x, const int* mxlo, const int* mxhi,
-                                amrex_real* M2y, const int* mylo, const int* myhi,
-                                amrex_real* M2z, const int* mzlo, const int* mzhi,
-                                amrex_real* vfrac, const int* vlo, const int* vhi,
-                                amrex_real* vcent, const int* tlo, const int* thi,
-                                amrex_real* barea, const int* alo, const int* ahi,
-                                amrex_real* bcent, const int* blo, const int* bhi,
-                                amrex_real* bnorm, const int* mlo, const int* mhi);
-
-#endif
-
     void amrex_eb2_coarsen_from_fine (const int* lo, const int* hi,
                                       const int* xlo, const int* xhi,
                                       const int* ylo, const int* yhi,

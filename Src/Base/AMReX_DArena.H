@@ -41,6 +41,7 @@ private:
     std::array<std::unordered_set<std::ptrdiff_t>, m_max_max_order+1> m_free;
     // map: allocated pointer offset relative to baseptr -> order
     std::unordered_map<std::ptrdiff_t,int> m_used;
+    std::unordered_map<void*,std::size_t> m_system;
     char* m_baseptr;
     std::size_t m_max_size;
     std::size_t m_block_size;

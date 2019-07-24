@@ -13,6 +13,7 @@
 #include <AMReX_TypeTraits.H>
 #include <cstddef>
 #include <limits>
+#include <algorithm>
 
 #define AMREX_GPU_NCELLS_PER_THREAD 3
 #define AMREX_GPU_Y_STRIDE 1
@@ -40,11 +41,11 @@ namespace amrex {
 // CPU variation
 
     template<class L>
-    void launch_host (L&& f0) noexcept { std::forward<L>(f0)(); }
+    void launch_host (L&& f0) noexcept { f0(); }
     
     template<class L, class... Lambdas>
     void launch_host (L&& f0, Lambdas&&... fs) noexcept {
-        std::forward<L>(f0)();
+        f0();
         launch_host(std::forward<Lambdas>(fs)...);
     }
 
@@ -53,6 +54,14 @@ namespace amrex {
     class FabArrayBase;
 
 namespace Gpu {
+
+#ifdef AMREX_USE_GPU
+    static constexpr std::size_t numThreadsPerBlockParallelFor () {
+        return AMREX_GPU_MAX_THREADS;
+    }
+#else
+    static constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
+#endif
 
 // ************************************************
 
