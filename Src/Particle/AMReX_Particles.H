@@ -41,6 +41,7 @@
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Functors.H>
 #include <AMReX_ParticleUtil.H>
+#include <AMReX_ParticleBufferMap.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -832,6 +833,9 @@ protected:
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
     mutable amrex::Vector<int> neighbor_procs;
 
+    void defineBufferMap () const;
+    mutable ParticleBufferMap m_buffer_map;
+    const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
 
     //! The member data.
     int         m_verbose;
