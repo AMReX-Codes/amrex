@@ -253,9 +253,10 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         // This only approximates what should be happening. The particles
         // should by advanced a fraction of a time step instead.
         // Scaling the fields is much easier and may be good enough.
+        const Real v_boost = WarpX::beta_boost*PhysConst::c;
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-            const Real dtscale = dt - (zinject_plane_lev_previous - z[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
+            const Real dtscale = dt - (zinject_plane_lev_previous - z[i])/(vzbeam_ave_boosted + v_boost);
             if (0. < dtscale && dtscale < dt) {
                 Exp[i] *= dtscale;
                 Eyp[i] *= dtscale;
@@ -316,7 +317,6 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                 else {
                     z[i] = z_save[i] + dt*uz[i]*gi[i];
                 }
-                done_injecting_temp[tid] = 0;
             }
         }
         );
@@ -340,13 +340,13 @@ RigidInjectedParticleContainer::Evolve (int lev,
     zinject_plane_levels[lev] -= dt*WarpX::beta_boost*PhysConst::c;
     zinject_plane_lev = zinject_plane_levels[lev];
 
-    // Setup check of whether more particles need to be injected
-#ifdef _OPENMP
-    const int nthreads = omp_get_max_threads();
-#else
-    const int nthreads = 1;
-#endif
-    done_injecting_temp.assign(nthreads, 1); // We do not use bool because vector<bool> is special.
+    // Set the done injecting flag whan the inject plane moves out of the
+    // simulation domain.
+    // It is much easier to do this check, rather than checking if all of the
+    // particles have crossed the inject plane.
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+    done_injecting[lev] = (zinject_plane_levels[lev] < plo[2] || zinject_plane_levels[lev] > phi[2]);
     done_injecting_lev = done_injecting[lev];
 
     PhysicalParticleContainer::Evolve (lev,
@@ -358,10 +358,6 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
                                        t, dt);
-
-    // Check if all done_injecting_temp are still true.
-    done_injecting[lev] = std::all_of(done_injecting_temp.begin(), done_injecting_temp.end(),
-                                      [](int i) -> bool { return i; });
 }
 
 void
@@ -496,12 +492,16 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             // Undo the push for particles not injected yet.
             // It is assumed that PushP will only be called on the first and last steps
             // and that no particles will cross zinject_plane.
+            const Real* const AMREX_RESTRICT ux_save = uxp_save.dataPtr();
+            const Real* const AMREX_RESTRICT uy_save = uyp_save.dataPtr();
+            const Real* const AMREX_RESTRICT uz_save = uzp_save.dataPtr();
+            const Real zz = zinject_plane_levels[lev];
             amrex::ParallelFor( pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
-                if (zp[i] <= zinject_plane_levels[lev]) {
-                    uxpp[i] = uxp_save[i];
-                    uypp[i] = uyp_save[i];
-                    uzpp[i] = uzp_save[i];
+                if (zp[i] <= zz) {
+                    uxpp[i] = ux_save[i];
+                    uypp[i] = uy_save[i];
+                    uzpp[i] = uz_save[i];
                 }
             }
             );
