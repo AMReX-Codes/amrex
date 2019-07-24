@@ -2171,11 +2171,13 @@ PhysicalParticleContainer::FieldGather(WarpXParIter& pti,
     
     // If no particles, do not do anything
     if (np_to_gather == 0) return;
-    
+    // Get cell size on gather_lev
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
+    // Set staggering shift depending on e_is_nodal
     const Real stagger_shift = e_is_nodal ? 0.0 : 0.5;
     
-    // Get box =from which field is gathered.
+    // Get box from which field is gathered.
+    // If not gathering from the finest level, the box is coarsened.
     Box box;
     if (lev == gather_lev) {
         box = pti.tilebox();
@@ -2184,6 +2186,7 @@ PhysicalParticleContainer::FieldGather(WarpXParIter& pti,
         box = amrex::coarsen(pti.tilebox(),ref_ratio);
     }
     
+    // Add guard cells to the box.
     box.grow(ngE);
     
     const Array4<const Real>& ex_arr = exfab->array();
@@ -2202,55 +2205,57 @@ PhysicalParticleContainer::FieldGather(WarpXParIter& pti,
     
     const Dim3 lo = lbound(box);
     
+    // Depending on l_lower_in_v and WarpX::nox, call
+    // different versions of template function doGatherShapeN
     if (WarpX::l_lower_order_in_v){
         if        (WarpX::nox == 1){
-            doGatherShapeN<1,1>(xp, yp, zp, 
-                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset, 
+            doGatherShapeN<1,1>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
-                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset, 
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr, 
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
                                 xyzmin, lo, stagger_shift);
         } else if (WarpX::nox == 2){
-            doGatherShapeN<2,1>(xp, yp, zp, 
-                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset, 
+            doGatherShapeN<2,1>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
-                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset, 
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr, 
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
                                 xyzmin, lo, stagger_shift);
         } else if (WarpX::nox == 3){
-            doGatherShapeN<3,1>(xp, yp, zp, 
-                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset, 
+            doGatherShapeN<3,1>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
-                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset, 
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr, 
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
                                 xyzmin, lo, stagger_shift);
         }
     } else {
         if        (WarpX::nox == 1){
-            doGatherShapeN<1,0>(xp, yp, zp, 
-                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset, 
+            doGatherShapeN<1,0>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
-                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset, 
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr, 
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
                                 xyzmin, lo, stagger_shift);
         } else if (WarpX::nox == 2){
-            doGatherShapeN<2,0>(xp, yp, zp, 
-                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset, 
+            doGatherShapeN<2,0>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
-                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset, 
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr, 
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
                                 xyzmin, lo, stagger_shift);
         } else if (WarpX::nox == 3){
-            doGatherShapeN<3,0>(xp, yp, zp, 
-                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset, 
+            doGatherShapeN<3,0>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
                                 Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
-                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset, 
-                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr, 
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
                                 xyzmin, lo, stagger_shift);
         }
