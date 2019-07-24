@@ -7,8 +7,6 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IntVect.H>
 
-
-
 namespace amrex {
 
 namespace
@@ -78,15 +76,7 @@ struct Particle
 
     static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
 
-    static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab,
-		      const int* idx, Real* val, int cnt);
-
-  //static void amrex_interpolate_CIC_2 (const Particle<Nreal, NInt>& p,
-  //				       const amrex::GeometryData & geomdata,
-  //				       const amrex::Array4<const double> &  uccarr,
-  //				       int& idx,
-  //				       amrex::Real& val,
-  //				       int comp);
+    static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
     static const std::string& Version ();
 
@@ -227,7 +217,7 @@ Particle<NReal, NInt>::CIC_Fracs (const Real* frac, Real* fracs)
     // HHL
     fracs[4] = frac[0] * frac[1] * (1-frac[2]);
 
-   // LHL
+    // LHL
     fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
 
     // LLL
@@ -583,8 +573,8 @@ Particle<NReal, NInt>::InterpDoit (const FArrayBox& fab,
 template <int NReal, int NInt>
 Real
 Particle<NReal, NInt>::InterpDoit (const FArrayBox& fab,
-				   const Real*      fracs, //ecell
-				   const IntVect*   cells,    //efrac
+			      const Real*      fracs,
+			      const IntVect*   cells,
 			      int              comp)
 {
     BL_PROFILE("Particle<NReal, NInt>::InterpDoit(ffcc)");
