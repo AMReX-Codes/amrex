@@ -47,14 +47,11 @@ namespace detail
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborMask()
+buildNeighborMask ()
 {    
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::buildNeighborMask");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-    
+    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);    
     m_neighbor_mask_initialized = true;
-
     const int lev = 0;
     const Geometry& geom = this->Geom(lev);
     const BoxArray& ba = this->ParticleBoxArray(lev);
@@ -131,11 +128,7 @@ buildNeighborMask()
                 }
    	        m_code_offsets[grid].push_back(m_code_array[grid].size());
             }        
-	}
-    
-	BuildMasks();
-	GetNeighborCommTags();
-        m_buffer_map.define(ba, dmap);
+	}    
     }
 }
 
@@ -293,7 +286,7 @@ computeCopyPlan ()
     box_counts.resize(num_boxes, 0);
     box_offsets.resize(num_boxes+1);
     auto p_dst_box_counts = box_counts.dataPtr();
-    auto p_box_perm = m_buffer_map.gridToBucketPtr();
+    auto p_box_perm = this->BufferMap().gridToBucketPtr();
 
     constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -358,7 +351,7 @@ packBuffer ()
 	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
 	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
 	auto p_box_offsets = box_offsets.dataPtr();
-        auto p_box_perm = m_buffer_map.gridToBucketPtr();
+        auto p_box_perm = this->BufferMap().gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
@@ -380,10 +373,6 @@ packBuffer ()
 	  }
 	});
     }
-    // for (int i = 0; i < snd_buffer.size(); ++i)
-    // {
-    //   amrex::Print() << snd_buffer[i] << "\n";
-    // }
 }
 
 template <int NStructReal, int NStructInt>
@@ -416,10 +405,10 @@ unpackBuffer ()
         auto& aos   = tile.GetArrayOfStructs();
 	auto np = tile.numTotalParticles();
 
-	int num_copies = box_counts[m_buffer_map.gridToBucket(gid)];
+	int num_copies = box_counts[this->BufferMap().gridToBucket(gid)];
 
 	auto p_box_offsets = box_offsets.dataPtr();
-	auto p_box_perm = m_buffer_map.gridToBucketPtr();
+	auto p_box_perm = this->BufferMap().gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
         int nn = tile.getNumNeighbors();
@@ -449,6 +438,7 @@ fillNeighborsGPU ()
     clearNeighbors();
     clearCopyPlan();
     buildNeighborMask();
+    this->defineBufferMap();
     computeHaloParticles();
     computeCopyPlan();
     getBoxRcvCounts();
@@ -492,11 +482,11 @@ getBoxRcvCounts ()
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-        auto box_buffer_indices = m_buffer_map.allBucketsOnProc(i);
+        auto box_buffer_indices = this->BufferMap().allBucketsOnProc(i);
         int nboxes = box_buffer_indices.size();
         for (auto bucket : box_buffer_indices)
 	{
-            int dst = m_buffer_map.bucketToGrid(bucket);
+            int dst = this->BufferMap().bucketToGrid(bucket);
             int npart = box_counts[bucket];
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
@@ -603,15 +593,6 @@ communicateParticles ()
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     
-    std::map<int, std::vector<int> > boxes_rcv;
-    for (int i = 0; i < local_neighbors.size(); ++i)
-    {
-        int proc = local_neighbors[i].proc_id;
-	if (proc == MyProc) continue;
-	int grid = local_neighbors[i].grid_id;
-	boxes_rcv[proc].push_back(grid);
-    }
-
     // We may now have particles that are rightfully owned by another CPU.
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
@@ -619,7 +600,7 @@ communicateParticles ()
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
-        auto box_buffer_indices = m_buffer_map.allBucketsOnProc(i);
+        auto box_buffer_indices = this->BufferMap().allBucketsOnProc(i);
         int nboxes = box_buffer_indices.size();
         long nbytes = 0;
         for (auto bucket : box_buffer_indices)
@@ -695,7 +676,7 @@ communicateParticles ()
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        int bucket = m_buffer_map.firstBucketOnProc(i);
+        int bucket = this->BufferMap().firstBucketOnProc(i);
         const auto snd_offset = box_offsets[bucket];
 
         ParallelDescriptor::Send(
