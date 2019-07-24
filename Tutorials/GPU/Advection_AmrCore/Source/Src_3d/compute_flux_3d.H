@@ -9,7 +9,7 @@
 using namespace amrex;
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_x(int i, int j, int k,
             Array4<Real> const& phi,
             Array4<Real> const& vx,
@@ -23,7 +23,7 @@ void flux_x(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_y(int i, int j, int k,
             Array4<Real> const& phi,
             Array4<Real> const& vy,
@@ -37,7 +37,7 @@ void flux_y(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_z(int i, int j, int k,
             Array4<Real> const& phi,
             Array4<Real> const& vz,
@@ -51,7 +51,7 @@ void flux_z(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_xy(int i, int j, int k, 
              AMREX_D_DECL(Array4<Real> const& vx, 
                           Array4<Real> const& vy,
@@ -68,7 +68,7 @@ void flux_xy(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_xz(int i, int j, int k,
              AMREX_D_DECL(Array4<Real> const& vx, 
                           Array4<Real> const& vy,
@@ -85,7 +85,7 @@ void flux_xz(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_yx(int i, int j, int k,
              AMREX_D_DECL(Array4<Real> const& vx, 
                           Array4<Real> const& vy,
@@ -102,7 +102,7 @@ void flux_yx(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_yz(int i, int j, int k,
              AMREX_D_DECL(Array4<Real> const& vx, 
                           Array4<Real> const& vy,
@@ -119,7 +119,7 @@ void flux_yz(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_zx(int i, int j, int k,
              AMREX_D_DECL(Array4<Real> const& vx, 
                           Array4<Real> const& vy,
@@ -136,7 +136,7 @@ void flux_zx(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void flux_zy(int i, int j, int k,
              AMREX_D_DECL(Array4<Real> const& vx, 
                           Array4<Real> const& vy,
@@ -153,7 +153,7 @@ void flux_zy(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void combine_flux_x(int i, int j, int k,
                     AMREX_D_DECL(Array4<Real> const& vx, 
                                  Array4<Real> const& vy,
@@ -174,7 +174,7 @@ void combine_flux_x(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void combine_flux_y(int i, int j, int k,
                     AMREX_D_DECL(Array4<Real> const& vx, 
                                  Array4<Real> const& vy,
@@ -195,7 +195,7 @@ void combine_flux_y(int i, int j, int k,
 }
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void combine_flux_z(int i, int j, int k,
                     AMREX_D_DECL(Array4<Real> const& vx, 
                                  Array4<Real> const& vy,

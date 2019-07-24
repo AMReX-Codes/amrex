@@ -191,6 +191,7 @@ struct DataAllocator {
 
 struct DataDeleter {
     Arena* m_arena = nullptr;
+    DataDeleter () noexcept : m_arena(nullptr) {}
     DataDeleter (Arena* ar) noexcept : m_arena(ar) {}
     Arena* arena () const noexcept { return (m_arena) ? m_arena : The_Arena(); }
     void operator() (void* pt) const noexcept { arena()->free(pt); }
@@ -407,42 +408,42 @@ public:
     void prefetchToDevice () const noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     Array4<T const> array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (int n = 0) const noexcept
     {
         return view(this->domain.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (int n = 0) noexcept
     {
         return view(this->domain.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const IntVect& iv, int n = 0) const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
@@ -455,7 +456,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const IntVect& iv, int n = 0) noexcept
     {
 #if (AMREX_SPACEDIM == 1)
@@ -468,21 +469,21 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const Box& subbox, int n = 0) const noexcept
     {
         return view(subbox.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const Box& subbox, int n = 0) noexcept
     {
         return view(subbox.loVect3d(),n);
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const GpuArray<int,3>& slo, int n = 0) const noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -511,7 +512,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const GpuArray<int,3>& slo, int n = 0) noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -540,7 +541,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T const> view (const Dim3& slo, int n = 0) const noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -569,7 +570,7 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
+    AMREX_FORCE_INLINE
     FabView<T> view (const Dim3& slo, int n = 0) noexcept
     {
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
@@ -1497,6 +1498,14 @@ public:
     AMREX_GPU_HOST_DEVICE
     T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
+    //! Int wrapper for dot.
+    AMREX_GPU_HOST_DEVICE
+    T dot (const Box& bx, int destcomp, int numcomp) const noexcept;
+
+    //! Dot product
+    AMREX_GPU_HOST_DEVICE
+    T dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
+
     //! Dot product of two Fabs with mask
     AMREX_GPU_HOST_DEVICE
     T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
@@ -1715,7 +1724,7 @@ BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 T*
 BaseFab<T>::dataPtr (const IntVect& p, int n) noexcept
 {
@@ -1728,7 +1737,7 @@ BaseFab<T>::dataPtr (const IntVect& p, int n) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 const T*
 BaseFab<T>::dataPtr (const IntVect& p, int n) const noexcept
 {
@@ -1765,7 +1774,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 T&
 BaseFab<T>::operator() (const IntVect& p, int n) noexcept
 {
@@ -1778,7 +1787,7 @@ BaseFab<T>::operator() (const IntVect& p, int n) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 T&
 BaseFab<T>::operator() (const IntVect& p) noexcept
 {
@@ -1789,7 +1798,7 @@ BaseFab<T>::operator() (const IntVect& p) noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 const T&
 BaseFab<T>::operator() (const IntVect& p, int n) const noexcept
 {
@@ -1802,7 +1811,7 @@ BaseFab<T>::operator() (const IntVect& p, int n) const noexcept
 }
 
 template <class T>
-inline
+AMREX_FORCE_INLINE
 const T&
 BaseFab<T>::operator() (const IntVect& p) const noexcept
 {
@@ -4144,6 +4153,40 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
                 T const * const AMREX_RESTRICT spr = &(sp(0,j,k,n));
                 for (int i = 0; i < len.x; ++i) {
                     r += dpr[i] * spr[i];
+                }
+            }
+        }
+    }
+
+    return r;
+}
+
+template <class T>
+T
+BaseFab<T>::dot (const Box& bx, int destcomp, int numcomp) const noexcept
+{
+    return dot(bx, DestComp{destcomp}, NumComps{numcomp});
+}
+
+
+template <class T>
+T
+BaseFab<T>::dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept
+{
+    AMREX_ASSERT(dcomp.i >= 0 && dcomp.i+ncomp.n <= this->nvar);
+
+    T r = 0;
+
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  =     view(lo, dcomp.i);
+
+    for (int n = 0; n < ncomp.n; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                T const * const AMREX_RESTRICT dpr = &(dp(0,j,k,n));
+                for (int i = 0; i < len.x; ++i) {
+                    r += dpr[i] * dpr[i];
                 }
             }
         }

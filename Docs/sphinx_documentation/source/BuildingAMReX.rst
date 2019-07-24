@@ -70,7 +70,7 @@ alternatively, in tcsh one can set
     setenv AMREX_HOME /path/to/amrex
 
 Note: when setting ``AMREX_HOME`` in the ``GNUmakefile``, be aware that ``~`` does
-not expand, so ``AMREX_HOME=~/amrex/`` will yield an error. 
+not expand, so ``AMREX_HOME=~/amrex/`` will yield an error.
 
 One must set the ``COMP`` variable to choose a compiler. Currently the list of
 supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
@@ -363,12 +363,12 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+   
    | CMAKE_Fortran_FLAGS          |  User-defined Fortran flags                     |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |   
+   | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | DIM                          |  Dimension of AMReX build                       | 3           | 1, 2, 3         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | USE_XSDK_DEFAULTS            |  Use XSDK defaults settings                     | NO          | YES, NO         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_DP                    |  Build with double-precision reals              | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PIC                   |  Build Position Independent Code                | NO          | YES, NO         |
@@ -385,7 +385,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | CUDA_MAXREGCOUNT             |  Limits the number of CUDA registers available  | 255         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |    
+   | ENABLE_CUDA_FASTMATH         |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -513,7 +513,7 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
    | Flags_Fortran         |  Fortran flags preset (interface)               |
    +-----------------------+-------------------------------------------------+
    | Flags_FPE             |  Floating Point Exception flags (interface)     |
-   +-----------------------+-------------------------------------------------+   
+   +-----------------------+-------------------------------------------------+
 .. raw:: latex
 
    \end{center}
@@ -531,7 +531,7 @@ Your CMake project can check which component is included in the AMReX library vi
 
     find_package(AMReX REQUIRED <components-list>)
 
-    
+
 The keyword ``REQUIRED`` in the snippet above will cause a fatal error if AMReX is not found, or
 if it is found but the components listed in ``<components-list>`` are not include in the installation.
 A list of AMReX component names and related configure options are shown in the table below.
@@ -543,13 +543,13 @@ A list of AMReX component names and related configure options are shown in the t
 
 .. _tab:cmakecomponents:
 
-.. table:: AMReX components.   
+.. table:: AMReX components.
 
    +------------------------------+-----------------+
    | Option                       | Component       |
    +==============================+=================+
    | DIM                          | 1D, 2D, 3D      |
-   +------------------------------+-----------------+   
+   +------------------------------+-----------------+
    | ENABLE_DP                    | DP              |
    +------------------------------+-----------------+
    | ENABLE_PIC                   | PIC             |
@@ -566,7 +566,7 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | ENABLE_AMRDATA               | AMRDATA         |
    +------------------------------+-----------------+
-   | ENABLE_EB                    | EB              |   
+   | ENABLE_EB                    | EB              |
    +------------------------------+-----------------+
    | ENABLE_PARTICLES             | PARTICLES       |
    +------------------------------+-----------------+
@@ -603,7 +603,7 @@ A list of AMReX component names and related configure options are shown in the t
 
 .. raw:: latex
 
-   \end{center}   
+   \end{center}
    
 As an example, consider the following CMake code:
 
@@ -625,12 +625,12 @@ to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the av
    It will fail if
    it cannot find any, or if the available one was not built with 3D and Embedded Boudary support.
    If AMReX is found, it will then link AMReX to target ``Foo`` and use the AMReX flags preset
-   to compile ``Foo``'s C++ sources.    
+   to compile ``Foo``'s C++ sources.
 
 
 You can tell CMake to look for the AMReX library in non-standard paths by setting the environmental variable
 ``AMReX_ROOT`` to point to the AMReX installation directory or by adding
-``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.  
+``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.
 More details on ``find_package`` can be found 
 `here <https://cmake.org/cmake/help/v3.14/command/find_package.html>`_.
 

@@ -8,7 +8,7 @@
 
 namespace amrex {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_x (int side, Box const& box, int blen,
                          Array4<Real> const& phi,
                          Array4<int const> const& mask,
@@ -72,7 +72,7 @@ void mllinop_apply_bc_x (int side, Box const& box, int blen,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_y (int side, Box const& box, int blen,
                          Array4<Real> const& phi,
                          Array4<int const> const& mask,
@@ -136,7 +136,7 @@ void mllinop_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_apply_bc_z (int side, Box const& box, int blen,
                          Array4<Real> const& phi,
                          Array4<int const> const& mask,
@@ -200,7 +200,7 @@ void mllinop_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
                                   Array4<Real> const& f,
                                   Array4<int const> const& mask,
@@ -250,7 +250,7 @@ void mllinop_comp_interp_coef0_x (int side, Box const& box, int blen,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
                                   Array4<Real> const& f,
                                   Array4<int const> const& mask,
@@ -300,7 +300,7 @@ void mllinop_comp_interp_coef0_y (int side, Box const& box, int blen,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
                                   Array4<Real> const& f,
                                   Array4<int const> const& mask,

@@ -3,7 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void actual_init_poisson (int i, int j, int k,
                           amrex::Array4<amrex::Real> const& rhs,
                           amrex::Array4<amrex::Real> const& exact,
@@ -24,7 +24,7 @@ void actual_init_poisson (int i, int j, int k,
                  -fac * (std::sin(fpi*x) * std::sin(fpi*y) * std::sin(fpi*z));
 }
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void actual_init_bcoef (int i, int j, int k,
                         amrex::Array4<amrex::Real> const& beta,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
@@ -52,7 +52,7 @@ void actual_init_bcoef (int i, int j, int k,
     beta(i,j,k) = (sigma-1.)/2.*std::tanh(theta*(r-0.25)) + (sigma+1.)/2.;
 }
 
-AMREX_GPU_DEVICE AMREX_INLINE
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void actual_init_abeclap (int i, int j, int k,
                           amrex::Array4<amrex::Real      > const& rhs,
                           amrex::Array4<amrex::Real      > const& exact,

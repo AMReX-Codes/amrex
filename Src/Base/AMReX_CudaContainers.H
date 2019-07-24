@@ -307,11 +307,32 @@ public:
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
 #ifdef AMREX_USE_CUDA
-        return thrust::inclusive_scan(begin, end, result);
+        return thrust::inclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                      begin, end, result);
 #else
         return std::partial_sum(begin, end, result);
 #endif
-    }   
+    }
+
+    template<class InIter, class OutIter>
+    OutIter exclusive_scan(InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_CUDA
+        return thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                      begin, end, result);
+#else
+        if (begin == end) return result;
+        
+        typename std::iterator_traits<InIter>::value_type sum = *begin;
+        *result++ = sum - *begin;
+        
+        while (++begin != end) {
+            sum = std::move(sum) + *begin;
+            *result++ = sum - *begin;
+        }
+        return ++result;
+#endif
+    }
 }
 
 

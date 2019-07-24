@@ -165,7 +165,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    int preSeqNum;
+    int preSeqNum = -1;
     if (!FAB::preAllocatable()) {
         preSeqNum = ParallelDescriptor::SeqNum();
     }

@@ -23,7 +23,7 @@ long at (T const& b, long offset) noexcept { return offset; }
 
 //! Box version
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE long size (Box const& b) noexcept
+AMREX_FORCE_INLINE long size (Box const& b) noexcept
 {
 #ifdef AMREX_DEVICE_COMPILE
     return b.numPts();
@@ -33,7 +33,7 @@ AMREX_INLINE long size (Box const& b) noexcept
 }
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE Box at (Box const& b, long offset) noexcept
+AMREX_FORCE_INLINE Box at (Box const& b, long offset) noexcept
 {
 #ifdef AMREX_DEVICE_COMPILE
     auto len = b.length3d();

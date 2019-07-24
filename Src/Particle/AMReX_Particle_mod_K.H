@@ -6,7 +6,7 @@
 #include <cmath>
 
 template <typename P>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rho,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
@@ -100,7 +100,7 @@ void amrex_deposit_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rh
 }
 
 template <typename P>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Real> const& rho,
                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
@@ -233,7 +233,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
 }
 
 template <typename P>
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void amrex_interpolate_cic (P const& p, int nc, amrex::Array4<amrex::Real const> const& acc,
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)

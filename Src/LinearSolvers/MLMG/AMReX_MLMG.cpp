@@ -1320,7 +1320,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 void
 MLMG::prepareForNSolve ()
 {
-    ns_linop = std::move(linop.makeNLinOp(nsolve_grid_size));
+    ns_linop = linop.makeNLinOp(nsolve_grid_size);
 
     const int ncomp = linop.getNComp();
     int nghost = 0;

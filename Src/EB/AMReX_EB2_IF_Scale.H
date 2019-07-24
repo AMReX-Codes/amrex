@@ -17,15 +17,19 @@ public:
 
     ScaleIF (F&& a_f, const RealArray& a_scalefactor)
         : m_f(std::move(a_f)),
-          m_sfinv{AMREX_D_DECL(1.0/a_scalefactor[0],
-                               1.0/a_scalefactor[1],
-                               1.0/a_scalefactor[2])}
+#if (AMREX_SPACEDIM == 3)
+          m_sfinv{1.0/a_scalefactor[0], 1.0/a_scalefactor[1], 1.0/a_scalefactor[2]}
+#else
+          m_sfinv{1.0/a_scalefactor[0], 1.0/a_scalefactor[1], 0.0}
+#endif
         {}
     ScaleIF (F const& a_f, const RealArray& a_scalefactor)
         : m_f(a_f),
-          m_sfinv{AMREX_D_DECL(1.0/a_scalefactor[0],
-                               1.0/a_scalefactor[1],
-                               1.0/a_scalefactor[2])}
+#if (AMREX_SPACEDIM == 3)
+          m_sfinv{1.0/a_scalefactor[0], 1.0/a_scalefactor[1], 1.0/a_scalefactor[2]}
+#else
+          m_sfinv{1.0/a_scalefactor[0], 1.0/a_scalefactor[1], 0.0}
+#endif
         {}
 
     ~ScaleIF () {}
