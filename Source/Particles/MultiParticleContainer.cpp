@@ -331,7 +331,7 @@ MultiParticleContainer::RedistributeLocal (const int num_ghost)
 }
 
 Vector<long>
-MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
+MultiParticleContainer::NumberOfParticlesInGrid (int lev) const
 {
     const bool only_valid=true, only_local=true;
     Vector<long> r = allcontainers[0]->NumberOfParticlesInGrid(lev,only_valid,only_local);
