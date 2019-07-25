@@ -37,9 +37,6 @@
 #include <unistd.h>
 
 
-
-
-
 using std::ostringstream;
 
 
@@ -382,7 +379,6 @@ namespace
     int * dev_mutex;
     __device__ int glo_size;
     int nstates;
-
 #endif
 
 }
@@ -451,7 +447,6 @@ amrex::RandomNormal (double mean, double stddev)
     rand = distribution(generators[tid]);
 
 #endif
-
     return rand;
 }
 
@@ -499,7 +494,6 @@ amrex::Random ()
 
     return rand;
 }
-
 
 unsigned long
 amrex::Random_int(unsigned long n)
@@ -612,7 +606,7 @@ amrex::ResizeRandomSeed (int N)
         AMREX_CUDA_SAFE_CALL(cudaFree(dev_RandStates_Seed));
 	AMREX_CUDA_SAFE_CALL(cudaFree(dev_mutex));
     }
-	  
+  
     dev_RandStates_Seed = new_data;
     dev_mutex = new_mutex;
     int temp_size = N;
