@@ -24,7 +24,7 @@ void RandomNumGen ()
     int N = 1E5;
 
 #ifdef AMREX_USE_CUDA    
-    amrex::InitRandSeedOnDevice(N);
+    amrex::InitRandSeedOnDevice(N);  // This will set the number of RNGs
     amrex::Print() << amrex::Gpu::Device::deviceId() << "\n";
     amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
 
