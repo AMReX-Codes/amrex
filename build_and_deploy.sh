@@ -47,10 +47,10 @@ make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 
 # Start ssh-agent
-openssl aes-256-cbc -K $encrypted_6602cdd8f9c9_key -iv $encrypted_6602cdd8f9c9_iv -in ../id_rsa_travis.enc -out ../id_rsa_travis -d
-chmod 600 ../id_rsa_travis
+openssl aes-256-cbc -K $encrypted_6602cdd8f9c9_key -iv $encrypted_6602cdd8f9c9_iv -in ./id_rsa_travis.enc -out ./id_rsa_travis -d
+chmod 600 ./id_rsa_travis
 eval `ssh-agent -s`
-ssh-add ../id_rsa_travis
+ssh-add ./id_rsa_travis
 
 # clone document
 DOC_SSH_REPO="git@github.com:AMReX-Codes/AMReX-Codes.github.io.git"
