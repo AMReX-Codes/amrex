@@ -21,101 +21,39 @@ int main (int argc, char* argv[])
 
 void RandomNumGen ()
 {
-    int N = 1E5;
+    int Nstates = 100;
+    int Ndraw = 1000;
 
 #ifdef AMREX_USE_CUDA    
-    amrex::InitRandSeedOnDevice(N);  // This will set the number of RNGs
-    amrex::Print() << amrex::Gpu::Device::deviceId() << "\n";
+    amrex::InitRandSeedOnDevice(Nstates);  // This will set the number of RNGs
+
+    amrex::Print() << "Generating random numbers using GPU ";
+    amrex::Print() << amrex::Gpu::Device::deviceId() << " on rank ";
     amrex::Print() << amrex::ParallelDescriptor::MyProc() << "\n";
-
-    Gpu::DeviceVector<double> d_xpos(N);
-    Gpu::DeviceVector<double> d_ypos(N);
-    Gpu::DeviceVector<double> d_zpos(N);
-
-    double *dxpos = d_xpos.dataPtr();    
-    double *dypos = d_ypos.dataPtr();    
-    double *dzpos = d_zpos.dataPtr();    
 #else
     amrex::InitRandom(1024UL,1);
 #endif
- 
-    amrex::Vector<double> hx(N);
-    amrex::Vector<double> hy(N);
-    amrex::Vector<double> hz(N);
-    double *hxpos = hx.dataPtr();    
-    double *hypos = hy.dataPtr();    
-    double *hzpos = hz.dataPtr();    
 
+    Gpu::DeviceVector<Real> x(Ndraw);
+    Gpu::DeviceVector<Real> y(Ndraw);
+    Gpu::DeviceVector<Real> z(Ndraw);
 
-    int timesteps = 10; // just for example
-    for (int i=0; i<timesteps; i++)
+    auto x_ptr = x.dataPtr();
+    auto y_ptr = y.dataPtr();
+    auto z_ptr = z.dataPtr(); 
+    AMREX_PARALLEL_FOR_1D (Ndraw, idx,
     {
+        x_ptr[idx] = amrex::Random();
+        y_ptr[idx] = amrex::Random();
+        z_ptr[idx] = amrex::Random();
+    });
 
-        // an instance of growing vector //        
-        if ( i == 0){
-           int N2 = N + 1000;
-           N  = N2;
- 	}
-
-        // an instance of growing vector //        
-        if ( i == 1){
-           int N2 = N + 1.2E5;
-           N  = N2;
- 	}
-          
-#ifdef AMREX_USE_CUDA    
-        if ( d_xpos.size() < N){
-           CheckSeedArraySizeAndResize(N);
-           d_xpos.resize(N);
-           d_ypos.resize(N);
-           d_zpos.resize(N);
-           dxpos = d_xpos.dataPtr();
-           dypos = d_ypos.dataPtr();
-           dzpos = d_zpos.dataPtr();
-        }
-#endif
-        if ( hx.size() < N){
-           hx.resize(N);
-           hy.resize(N);
-           hz.resize(N);
-           hxpos = hx.dataPtr();
-           hypos = hy.dataPtr();
-           hzpos = hz.dataPtr();
-        }
-        
-        
-        AMREX_PARALLEL_FOR_1D (N, idx,
-        {
-#ifdef AMREX_USE_CUDA    
-           dxpos[idx] = amrex::Random();
-           dypos[idx] = amrex::Random();
-           dzpos[idx] = amrex::Random();
-#else
-           hx[idx] = amrex::Random();
-           hy[idx] = amrex::Random();
-           hz[idx] = amrex::Random();
-#endif
-        });
-   
-#ifdef AMREX_USE_CUDA    
-        cudaMemcpy(hxpos,dxpos,sizeof(double)*N,cudaMemcpyDeviceToHost);
-        cudaMemcpy(hypos,dypos,sizeof(double)*N,cudaMemcpyDeviceToHost);
-        cudaMemcpy(hzpos,dzpos,sizeof(double)*N,cudaMemcpyDeviceToHost);
-#endif
-
-        for (int i = 0; i < N; i++ )
-        {
-           amrex::Print() << i << " " << hx[i]  << " " << hy[i] << " " << hz[i]<< "\n";
-        }
-     
-
+    Gpu::Device::synchronize();
+    
+    for (int i = 0; i < Ndraw; i++ )
+    {
+        amrex::Print() << i << " " << x[i]  << " " << y[i] << " " << z[i]<< "\n";
     }
-    hx.resize(0);
-    hy.resize(0);
-    hz.resize(0);
-    hx.shrink_to_fit();
-    hy.shrink_to_fit();
-    hz.shrink_to_fit();
 }
 
 
