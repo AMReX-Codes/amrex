@@ -256,8 +256,6 @@ namespace amrex
     */
     void ResizeRandomSeed(int N);
 
-    //    void CheckSeedArraySizeAndResize (int N);
-
     void DeallocateRandomSeedDevArray();
 
     class expect;
