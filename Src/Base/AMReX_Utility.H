@@ -251,13 +251,12 @@ namespace amrex
     */
     void InitRandSeedOnDevice(int N); 
    
-
     /**
     * \brief Resize seed array and copy address to global symbol 
     */
     void ResizeRandomSeed(int N);
 
-    void CheckSeedArraySizeAndResize (int N);
+    //    void CheckSeedArraySizeAndResize (int N);
 
     void DeallocateRandomSeedDevArray();
 
