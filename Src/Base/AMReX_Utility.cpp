@@ -451,6 +451,7 @@ amrex::RandomNormal (double mean, double stddev)
 }
 
 
+#ifdef __CUDA_ARCH__
 AMREX_GPU_DEVICE
 int get_state(int tid)
 {
@@ -461,7 +462,7 @@ int get_state(int tid)
     }
   return i;
 }
-
+#endif
 
 AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
