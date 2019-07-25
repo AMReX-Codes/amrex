@@ -461,15 +461,24 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles, int do_pml_in_domain)
+          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window,
+          int pml_has_particles, int do_pml_in_domain,
+          const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi) // = amrex::IntVect::TheUnitVector()
     : m_geom(geom),
       m_cgeom(cgeom)
 {
 
     Box domain0 = geom->Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if ( ! geom->isPeriodic(idim) ) {
-            domain0.grow(idim, -ncell);
+        if ( ! geom->isPeriodic(idim)) {
+            // domain0.grow(idim, -ncell);
+            if (do_pml_Lo[idim]){
+                domain0.growLo(idim, -ncell);
+            }
+            if (do_pml_Hi[idim]){
+                domain0.growHi(idim, -ncell);
+            }
+
         }
     }
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
@@ -534,7 +543,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
-        const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0));
+        const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0)); // domain to change ? This domain was built for a fine grid: the reduced domain is only valid for the fine level...
         // const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba_reduced, ncell);
         const BoxArray& cba = (do_pml_in_domain) ? MakeBoxArray(*cgeom, grid_cba_reduced, ncell) :  MakeBoxArray(*cgeom, grid_cba, ncell);
 
@@ -579,12 +588,19 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 }
 
 BoxArray
-PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
+PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell,
+                   const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     Box domain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
-            domain.grow(idim, ncell);
+            // domain.grow(idim, ncell);
+            if (do_pml_Lo[idim]){
+                domain.growLo(idim, ncell);
+            }
+            if (do_pml_Hi[idim]){
+                domain.growHi(idim, ncell);
+            }
         }
     }
 
@@ -829,7 +845,8 @@ PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain, int nc
 
 
 void
-PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in_domain, int ncell)
+PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     if (do_pml_in_domain){
         const IntVect& ngr = reg.nGrowVect();
@@ -870,7 +887,13 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
             Box domain0 = geom.Domain();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 if ( ! geom.isPeriodic(idim) ) {
-                    domain0.grow(idim, -ncell); //-ncell
+                    // domain0.grow(idim, -ncell);
+                    if (do_pml_Lo[idim]){
+                        domain0.growLo(idim, -ncell);
+                    }
+                    if (do_pml_Hi[idim]){
+                        domain0.growHi(idim, -ncell);
+                    }
                 }
             }
             // amrex::Print()<<"domain0 = ["<<domain0.smallEnd()[0]<<", "<<domain0.smallEnd()[1]<<", "<<domain0.bigEnd()[0]<<", "<<domain0.bigEnd()[1]<<"]"<<std::endl;

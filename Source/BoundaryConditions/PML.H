@@ -128,7 +128,10 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window, int pml_has_particles, int do_pml_in_domain);
+         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window,
+         int pml_has_particles, int do_pml_in_domain,
+         const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
+         const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 
     void ComputePMLFactors (amrex::Real dt);
 
@@ -203,9 +206,13 @@ private:
     std::unique_ptr<MultiSigmaBox> sigba_cp;
 
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
-                                         const amrex::BoxArray& grid_ba, int ncell);
+                                         const amrex::BoxArray& grid_ba, int ncell,
+                                         const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
+                                         const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 
-    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain, int ncell);
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain, int ncell,
+                          const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
+                          const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
     static void CopyRegInPMLs (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
     static void CopyPMLsInReg (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
