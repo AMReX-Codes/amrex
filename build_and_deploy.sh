@@ -81,7 +81,7 @@ fi
 
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
-git add -r docs_html tutorials_html docs_xml
+git add docs_html tutorials_html docs_xml
 git commit -m "Deploy to GitHub Pages: ${SHA}" || true
 
 git push $DOC_SSH_REPO || true
