@@ -10,8 +10,6 @@ using namespace amrex;
 
 class MCNodalLinOp : public MLNodeLinOp
 {
-public:	
-	const static int ncomp = 2;
 
 public :
 	MCNodalLinOp () {}
@@ -26,7 +24,8 @@ public :
 		     const LPInfo& a_info = LPInfo(),
 		     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-	void setCoeff(const Array<Array<Real,ncomp>,ncomp> a_coeff) {coeff = a_coeff;}
+	void setNComp(int a_ncomp) {ncomp = a_ncomp;}
+	void setCoeff(const Vector<Real> a_coeff) {coeff = a_coeff;}
 	
 
 protected:
@@ -75,8 +74,9 @@ private:
 	bool m_masks_built = false;
 
 	
-	Array<Array<Real,ncomp>,ncomp> coeff;
-
+	Vector<Real> coeff;
+	int ncomp = 2;
+	
 protected:
 	bool m_diagonal_computed = false;
 	amrex::Vector<amrex::Vector<std::unique_ptr<amrex::MultiFab> > > m_diag;

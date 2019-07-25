@@ -2,6 +2,7 @@
 #include <AMReX_MLNodeLinOp.H>
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_SPACE.H>
 #include "MCNodalLinOp.H"
 
 using namespace amrex;
@@ -21,25 +22,19 @@ void MCNodalLinOp::Fapply (int amrlev, int mglev, MultiFab& a_out,const MultiFab
 		bx.grow(1);        // Expand to cover first layer of ghost nodes
 		bx = bx & domain;  // Take intersection of box and the problem domain
 			
-		amrex::Array4<const amrex::Real> const& in = a_in.array(mfi);
-		amrex::Array4<amrex::Real> const& out      = a_out.array(mfi);
+		amrex::Array4<const amrex::Real> const& in  = a_in.array(mfi);
+		amrex::Array4<amrex::Real>       const& out = a_out.array(mfi);
 
 		for (int n = 0; n < getNComp(); n++)
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
-
-//				out(i,j,k,n) = 0.0;
-//				for (int m = 0; m < getNComp(); m++)
-//				{ 
-//					out(i,j,k,n) += coeff[n][m] *
-//					( - (in(i-1,j,k,m) - 2.0 * in(i,j,k,m) + in(i+1,j,k,m)) / DX[0] / DX[0]
-//					  - (in(i,j-1,k,m) - 2.0 * in(i,j,k,m) + in(i,j+1,k,m)) / DX[1] / DX[1]
-//					  - (in(i,j,k-1,m) - 2.0 * in(i,j,k,m) + in(i,j,k+1,m)) / DX[2] / DX[2]) ;
-//				}
-
-				out(i,j,k,n) = 
-				 - (in(i-1,j,k,n) - 2.0 * in(i,j,k,n) + in(i+1,j,k,n)) / DX[0] / DX[0]
-				 - (in(i,j-1,k,n) - 2.0 * in(i,j,k,n) + in(i,j+1,k,n)) / DX[1] / DX[1]
-				 - (in(i,j,k-1,n) - 2.0 * in(i,j,k,n) + in(i,j,k+1,n)) / DX[2] / DX[2] ;
+				out(i,j,k,n) = 0.0;
+				for (int m = 0; m < getNComp(); m++)
+				{ 
+					out(i,j,k,n) += coeff[ncomp*n + m] *
+					( AMREX_D_TERM(- (in(i-1,j,k,m) - 2.0 * in(i,j,k,m) + in(i+1,j,k,m)) / DX[0] / DX[0],
+					  			   - (in(i,j-1,k,m) - 2.0 * in(i,j,k,m) + in(i,j+1,k,m)) / DX[1] / DX[1],
+					  			   - (in(i,j,k-1,m) - 2.0 * in(i,j,k,m) + in(i,j,k+1,m)) / DX[2] / DX[2])) ;
+				}
 
 			});
 	}
@@ -62,10 +57,10 @@ void MCNodalLinOp::Diag (int amrlev, int mglev, MultiFab& a_diag)
 
 		for (int n = 0; n < getNComp(); n++)
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
-				diag(i,j,k,n) = 
-					( + 2.0 / DX[0] / DX[0]
-					  + 2.0 / DX[1] / DX[1]
-					  + 2.0 / DX[2] / DX[2] );
+				diag(i,j,k,n) = coeff[ncomp*n + n] *
+					( AMREX_D_TERM(+ 2.0 / DX[0] / DX[0],
+					  			   + 2.0 / DX[1] / DX[1],
+					  			   + 2.0 / DX[2] / DX[2]) );
 			});
 	}
 }
@@ -139,7 +134,6 @@ void MCNodalLinOp::Fsmooth (int amrlev, int mglev, amrex::MultiFab& a_x, const a
 			for (int n = 0; n < getNComp(); n++)
 				amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
 					x(i,j,k,n) = (1.-omega)*x(i,j,k,n) + omega*(b(i,j,k,n) - Rx(i,j,k,n))/diag(i,j,k,n);					
-					//x(i,j,k,n) = b(i,j,k,n);
 				});
 		}
 	}
