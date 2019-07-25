@@ -610,7 +610,7 @@ amrex::ResizeRandomSeed (int N)
   
     dev_RandStates_Seed = new_data;
     dev_mutex = new_mutex;
-    int temp_size = N;
+    nstates = N;
 
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_RandStates,
                                             &dev_RandStates_Seed,
@@ -619,7 +619,7 @@ amrex::ResizeRandomSeed (int N)
 					    &dev_mutex,
 					    sizeof(int *)));
      AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_size, 
-					    &temp_size,
+					    &nstates,
 					    sizeof(int)));
 
 
