@@ -566,16 +566,6 @@ amrex::InitRandSeedOnDevice (int N)
   ResizeRandomSeed(N);
 }
 
-// void 
-// amrex::CheckSeedArraySizeAndResize (int N)
-// {
-// #ifdef AMREX_USE_CUDA
-//   if ( nstates < N) {
-//      ResizeRandomSeed(N);
-//   }
-// #endif
-// }
-
 void 
 amrex::ResizeRandomSeed (int N)
 {
