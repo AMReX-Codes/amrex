@@ -367,14 +367,15 @@ namespace
     amrex::Vector<std::mt19937> generators;
 
 #ifdef AMREX_USE_CUDA
+
+    AMREX_GPU_DEVICE_MANAGED int nstates;
+
     AMREX_GPU_DEVICE curandState_t* states_d_ptr;
     curandState_t* states_h_ptr;
 
     AMREX_GPU_DEVICE int* locks_d_ptr;
     int* locks_h_ptr;
 
-    AMREX_GPU_DEVICE int nstates_d;
-    int nstates;
 #endif
 
 }
@@ -420,7 +421,7 @@ void amrex::ResetRandomSeed(unsigned long seed)
 AMREX_GPU_DEVICE
 int get_state(int tid)
 {
-  int i = tid % nstates_d;
+  int i = tid % nstates;
   while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
   {
       continue;  //traps locked threads in loop
@@ -577,8 +578,8 @@ amrex::ResizeRandomSeed (int N)
     int PrevSize = nstates;
     int SizeDiff = N - PrevSize;
 
-    curandState_t * new_data;
-    int * new_mutex;
+    curandState_t* new_data;
+    int* new_mutex;
     
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t)));
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_mutex, N*sizeof(int)));
@@ -606,10 +607,6 @@ amrex::ResizeRandomSeed (int N)
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(locks_d_ptr,
 					    &locks_h_ptr,
 					    sizeof(int *)));
-     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(nstates_d, 
-					    &nstates,
-					    sizeof(int)));
-
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
