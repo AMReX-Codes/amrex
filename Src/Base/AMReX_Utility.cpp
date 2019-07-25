@@ -434,8 +434,9 @@ amrex::RandomNormal (double mean, double stddev)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
-    rand = stddev * curand_normal_double(&glo_RandStates[tid]) + mean; 
-
+    int i = get_state(tid);
+    rand = stddev * curand_normal_double(&glo_RandStates[i]) + mean; 
+    free_state(i);
 #else
 
 #ifdef _OPENMP
@@ -485,7 +486,7 @@ amrex::Random ()
 
     int i = get_state(tid);
     rand = curand_uniform_double(&glo_RandStates[i]); 
-    free_state(t);
+    free_state(i);
 
 #else
 
