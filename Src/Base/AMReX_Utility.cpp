@@ -367,12 +367,6 @@ namespace
     amrex::Vector<std::mt19937> generators;
 
 #ifdef AMREX_USE_CUDA
-    /**
-    * \brief The random seed array is allocated with an extra buffer space to 
-    *        reduce the computational cost of dynamic memory allocation and 
-    *        random seed generation. 
-    */
-
     __device__ curandState_t *glo_RandStates;
     curandState_t* dev_RandStates_Seed;
     __device__ int *glo_mutex;
@@ -420,6 +414,25 @@ void amrex::ResetRandomSeed(unsigned long seed)
     InitRandom(seed);
 }
 
+#ifdef __CUDA_ARCH__
+AMREX_GPU_DEVICE
+int get_state(int tid)
+{
+  int i = tid % glo_size;
+  while (amrex::Gpu::Atomic::CAS(&glo_mutex[i],0,1))
+  {
+      continue;  //traps locked threads in loop
+  }
+  return i;
+}
+
+AMREX_GPU_DEVICE
+void free_state(int i)
+{
+    amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
+}
+#endif
+
 AMREX_GPU_HOST_DEVICE double
 amrex::RandomNormal (double mean, double stddev)
 {
@@ -451,33 +464,11 @@ amrex::RandomNormal (double mean, double stddev)
     return rand;
 }
 
-
-#ifdef __CUDA_ARCH__
-AMREX_GPU_DEVICE
-int get_state(int tid)
-{
-  int i = tid % glo_size;
-  while (amrex::Gpu::Atomic::CAS(&glo_mutex[i],0,1))
-    {
-      continue;  //traps locked threads in loop
-    }
-  return i;
-}
-
-AMREX_GPU_DEVICE
-void free_state(int i)
-{
-    amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
-}
-#endif
-
 AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
     double rand;
-
 #ifdef __CUDA_ARCH__
-
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -597,7 +588,6 @@ amrex::ResizeRandomSeed (int N)
 
     curandState_t * new_data;
     int * new_mutex;
-    int * new_size;
     
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t)));
     AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_mutex, N*sizeof(int)));
