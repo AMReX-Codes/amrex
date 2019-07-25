@@ -119,6 +119,8 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
 
+    amrex::Print()<<box<<std::endl;
+
     pml_type = "";
     pml_type_array = {3, 3, 3, 3, 3};
 
@@ -187,6 +189,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 #endif
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillLo"<<std::endl;
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "crn-++"; // for 2d only use the two first components
@@ -210,6 +213,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 #endif
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillHi"<<std::endl;
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "crn+++"; // for 2d only use the two first components
@@ -237,6 +241,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& grid_box = grids[gid];
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
             if (overlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillZero"<<std::endl;
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
                 if (idim==0){
                     pml_type="sed33--";
@@ -255,6 +260,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
             Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (looverlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillLo"<<std::endl;
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "sed03-+"; // for 2d only use the two first components
@@ -283,6 +289,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (hioverlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillHi"<<std::endl;
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "sed03++"; // for 2d only use the two first components
@@ -323,6 +330,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
 #endif
             if (overlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillZero"<<std::endl;
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
@@ -336,6 +344,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& lobox = amrex::adjCellLo(grid_box, idim, ncell);
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillLo"<<std::endl;
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 pml_type = "df0-";
                 pml_type_array[0] = 0;
@@ -347,6 +356,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
+                amrex::Print()<<"["<<idim<<"] FillHi"<<std::endl;
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 pml_type = "df0+";
                 pml_type_array[0] = 0;
@@ -364,6 +374,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             amrex::Abort("SigmaBox::SigmaBox(): direct_faces.size() > 1, Box gaps not wide enough?\n");
         }
     }
+    amrex::Print()<<pml_type<<std::endl;
 }
 
 
@@ -483,7 +494,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     }
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
-    const BoxArray& ba = (do_pml_in_domain)? MakeBoxArray(*geom, grid_ba_reduced, ncell) : MakeBoxArray(*geom, grid_ba, ncell);
+    const BoxArray& ba = (do_pml_in_domain)? MakeBoxArray(*geom, grid_ba_reduced, ncell, do_pml_Lo, do_pml_Hi) : MakeBoxArray(*geom, grid_ba, ncell, do_pml_Lo, do_pml_Hi);
 
     if (ba.size() == 0) {
         m_ok = false;
@@ -545,7 +556,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         grid_cba.coarsen(ref_ratio);
         const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0)); // domain to change ? This domain was built for a fine grid: the reduced domain is only valid for the fine level...
         // const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba_reduced, ncell);
-        const BoxArray& cba = (do_pml_in_domain) ? MakeBoxArray(*cgeom, grid_cba_reduced, ncell) :  MakeBoxArray(*cgeom, grid_cba, ncell);
+        const BoxArray& cba = (do_pml_in_domain) ? MakeBoxArray(*cgeom, grid_cba_reduced, ncell, do_pml_Lo, do_pml_Hi) :  MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_Lo, do_pml_Hi);
 
         DistributionMapping cdm{cba};
 
@@ -592,6 +603,9 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                    const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     Box domain = geom.Domain();
+    amrex::Print()<<domain<<std::endl;
+    amrex::Print()<<do_pml_Lo<<std::endl;
+    amrex::Print()<<do_pml_Hi<<std::endl;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
             // domain.grow(idim, ncell);
@@ -603,7 +617,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             }
         }
     }
-
+    amrex::Print()<<domain<<std::endl;
     BoxList bl;
     for (int i = 0, N = grid_ba.size(); i < N; ++i)
     {
@@ -650,13 +664,13 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 
     BoxArray ba(bl);
     ba.removeOverlap(false);
-    // amrex::Print()<< "####### PML BOXES #######" <<std::endl;
-    // amrex::Print()<<"["<<std::endl;
-    // const BoxList& bl2 = BoxList(ba);
-    // for (const Box& b : bl2) {
-    //     amrex::Print()<<"["<<b.smallEnd()[0]<<", "<<b.smallEnd()[1]<<", "<<b.bigEnd()[0]<<", "<<b.bigEnd()[1]<<"],"<<std::endl;
-    // }
-    // amrex::Print()<<"]"<<std::endl;
+    amrex::Print()<< "####### PML BOXES #######" <<std::endl;
+    amrex::Print()<<"["<<std::endl;
+    const BoxList& bl2 = BoxList(ba);
+    for (const Box& b : bl2) {
+        amrex::Print()<<"["<<b.smallEnd()[0]<<", "<<b.smallEnd()[1]<<", "<<b.bigEnd()[0]<<", "<<b.bigEnd()[1]<<"],"<<std::endl;
+    }
+    amrex::Print()<<"]"<<std::endl;
 
     return ba;
 }
