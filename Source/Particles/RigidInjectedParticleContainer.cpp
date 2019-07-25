@@ -254,9 +254,11 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         // should by advanced a fraction of a time step instead.
         // Scaling the fields is much easier and may be good enough.
         const Real v_boost = WarpX::beta_boost*PhysConst::c;
+        const Real z_plane_previous = zinject_plane_lev_previous;
+        const Real vz_ave_boosted = vzbeam_ave_boosted;
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-            const Real dtscale = dt - (zinject_plane_lev_previous - z[i])/(vzbeam_ave_boosted + v_boost);
+            const Real dtscale = dt - (z_plane_previous - z[i])/(vz_ave_boosted + v_boost);
             if (0. < dtscale && dtscale < dt) {
                 Exp[i] *= dtscale;
                 Eyp[i] *= dtscale;
@@ -272,11 +274,6 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     PhysicalParticleContainer::PushPX(pti, xp, yp, zp, giv, dt);
 
     if (!done_injecting_lev) {
-#ifdef _OPENMP
-        const int tid = omp_get_thread_num();
-#else
-        const int tid = 0;
-#endif
 
         Real* AMREX_RESTRICT x_save;
         Real* AMREX_RESTRICT y_save;
@@ -302,17 +299,21 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
+        const Real z_plane_lev = zinject_plane_lev;
+        const Real vz_ave_boosted = vzbeam_ave_boosted;
+        const bool rigid = rigid_advance;
+        const Real inv_csq = 1./(PhysConst::c*PhysConst::c);
         amrex::ParallelFor( pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-            if (z[i] <= zinject_plane_lev) {
+            if (z[i] <= z_plane_lev) {
                 ux[i] = ux_save[i];
                 uy[i] = uy_save[i];
                 uz[i] = uz_save[i];
-                gi[i] = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])/(PhysConst::c*PhysConst::c));
+                gi[i] = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_csq);
                 x[i] = x_save[i];
                 y[i] = y_save[i];
-                if (rigid_advance) {
-                    z[i] = z_save[i] + dt*vzbeam_ave_boosted;
+                if (rigid) {
+                    z[i] = z_save[i] + dt*vz_ave_boosted;
                 }
                 else {
                     z[i] = z_save[i] + dt*uz[i]*gi[i];
