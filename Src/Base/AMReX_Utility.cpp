@@ -462,6 +462,12 @@ int get_state(int tid)
     }
   return i;
 }
+
+AMREX_GPU_DEVICE
+void free_state(int i)
+{
+    amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
+}
 #endif
 
 AMREX_GPU_HOST_DEVICE double
@@ -479,7 +485,7 @@ amrex::Random ()
 
     int i = get_state(tid);
     rand = curand_uniform_double(&glo_RandStates[i]); 
-    amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
+    free_state(t);
 
 #else
 
