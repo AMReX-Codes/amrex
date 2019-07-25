@@ -10,6 +10,7 @@ using namespace amrex;
 
 int main (int argc, char* argv[])
 {
+    Initialize(argc, argv);
     
     struct {
         int nlevels = 3;
@@ -40,18 +41,16 @@ int main (int argc, char* argv[])
         pp.query("consolidation",mlmg.consolidation);
     }
     
-    //struct {
-    //    //Vector coeff;
-    //} operator;
-    //{
-    //    ParmParse pp("operator");
-    //    //pp.queryarr("operator",operator.coeff);
-    //}
-    
-    int nlevels = 3, nnodes = 32;
+    struct {
+        int ncomp=1;
+        Vector<Real> coeff = {1.0};
+    } op;
+    {
+        ParmParse pp("op");
+        pp.query("ncomp",op.ncomp);
+        pp.queryarr("coeff",op.coeff);
+    }
 
-
-    Initialize(argc, argv);
     
     Vector<Geometry> geom;
   	Vector<BoxArray> cgrids, ngrids;
@@ -93,14 +92,13 @@ int main (int argc, char* argv[])
 		ngrids[ilev].convert(IntVect::TheNodeVector());
 	}
 
- 	int ncomp = 2;
     int nghost = 2;
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
  	{
  		dmap   [ilev].define(cgrids[ilev]);
- 		solution[ilev].define(ngrids[ilev], dmap[ilev], ncomp, nghost); 
+ 		solution[ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost); 
         solution[ilev].setVal(0.0);
- 		rhs     [ilev].define(ngrids[ilev], dmap[ilev], ncomp, nghost);
+ 		rhs     [ilev].define(ngrids[ilev], dmap[ilev], op.ncomp, nghost);
         rhs     [ilev].setVal(0.0);
            
 	    Box domain(geom[ilev].Domain());
@@ -115,14 +113,13 @@ int main (int argc, char* argv[])
 		
 	   		Array4<Real> const& SOL  = solution[ilev].array(mfi);
     		Array4<Real> const& RHS  = rhs[ilev].array(mfi);
-    		for (int n = 0; n < ncomp; n++)
+    		for (int n = 0; n < op.ncomp; n++)
     			ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
                     Real x1 = i*DX[0], x2 = j*DX[1], x3 = k*DX[2];
 
-                    //if (n==0) 
-                    RHS(i,j,k,n) = x1*(1.0 - x1) * x2 * (1.0 - x2) * x3 * (1.0 - x3);
-                    //else RHS(i,j,k,n) = 0.0;
+                    if (n==0) RHS(i,j,k,n) = x1*(1.0 - x1) * x2 * (1.0 - x2) * x3 * (1.0 - x3);
+                    else RHS(i,j,k,n) = 0.0;
     			});         
  	    }
     }
@@ -132,9 +129,9 @@ int main (int argc, char* argv[])
     //info.setAgglomeration(mlmg.agglomeration);
     //info.setConsolidation(mlmg.consolidation);
     MCNodalLinOp linop;
+    linop.setNComp(op.ncomp);
+    linop.setCoeff(op.coeff);
     linop.define(geom,cgrids,dmap,info);
-    linop.setCoeff({{{1.0, 0.0},
-                     {0.0, 1.0}}});
 
     MLMG solver(linop);
     solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
