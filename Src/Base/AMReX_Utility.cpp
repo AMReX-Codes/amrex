@@ -478,7 +478,7 @@ amrex::Random ()
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
     int i = get_state(tid);
-    rand = curand_uniform_double(&glo_RandStates[tid]); 
+    rand = curand_uniform_double(&glo_RandStates[i]); 
     amrex::Gpu::Atomic::CAS(&glo_mutex[i],1,0);
 
 #else
