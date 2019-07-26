@@ -172,17 +172,6 @@ void MCNodalLinOp::normalize (int amrlev, int mglev, MultiFab& a_x) const
 	}
 }
 
-MCNodalLinOp::MCNodalLinOp (const Vector<Geometry>& a_geom,
-		    const Vector<BoxArray>& a_grids,
-		    const Vector<DistributionMapping>& a_dmap,
-		    const LPInfo& a_info,
-		    const Vector<FabFactory<FArrayBox> const*>& a_factory)
-{
-	BL_PROFILE("MCNodalLinOp::Operator()");
-
-	define(a_geom, a_grids, a_dmap, a_info, a_factory);
-}
-
  MCNodalLinOp::~MCNodalLinOp () {}
 
 void MCNodalLinOp::define (const Vector<Geometry>& a_geom,
@@ -395,6 +384,7 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 
 	amrex::Box cdomain = m_geom[amrlev][cmglev].Domain();
 	cdomain.convert(amrex::IntVect::TheNodeVector());
+	cdomain.grow(-1);
 
 	bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
 	MultiFab cfine;
@@ -407,13 +397,11 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 
 	for (MFIter mfi(*pcrse, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-		const Box& bx = mfi.tilebox();
+		Box bx = mfi.tilebox();
+		bx = bx & cdomain;
 
 		amrex::Array4<const amrex::Real> const& fdata = fine.array(mfi);
 		amrex::Array4<amrex::Real> const& cdata       = pcrse->array(mfi);
-
-		const Dim3 lo= amrex::lbound(cdomain), hi = amrex::ubound(cdomain);
-
 
 		for (int n = 0; n < crse.nComp(); n++)
 		{
@@ -421,36 +409,6 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 			// i,j,k == fine coordinates
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int I, int J, int K) {
 					int i=2*I, j=2*J, k=2*K;
-
-					if ((I == lo.x || I == hi.x) &&
-					    (J == lo.y || J == hi.y) &&
-					    (K == lo.z || K == hi.z)) // Corner
-						cdata(I,J,K,n) = fdata(i,j,k,n);
-					else if ((J == lo.y || J == hi.y) &&
-						 (K == lo.z || K == hi.z)) // X edge
-						cdata(I,J,K,n) = 0.25*fdata(i-1,j,k,n) + 0.5*fdata(i,j,k,n) + 0.25*fdata(i+1,j,k,n);
-					else if ((K == lo.z || K == hi.z) &&
-						 (I == lo.x || I == hi.x)) // Y edge
-						cdata(I,J,K,n) = 0.25*fdata(i,j-1,k,n) + 0.5*fdata(i,j,k,n) + 0.25*fdata(i,j+1,k,n);
-					else if ((I == lo.x || I == hi.x) &&
-						 (J == lo.y || J == hi.y)) // Z edge
-						cdata(I,J,K,n) = 0.25*fdata(i,j,k-1,n) + 0.5*fdata(i,j,k,n) + 0.25*fdata(i,j,k+1,n);
-					else if (I == lo.x || I == hi.x) // X face
-						cdata(I,J,K,n) =
-							(+     fdata(i,j-1,k-1,n) + 2.0*fdata(i,j,k-1,n) +     fdata(i,j+1,k-1,n)
-							 + 2.0*fdata(i,j-1,k  ,n) + 4.0*fdata(i,j,k  ,n) + 2.0*fdata(i,j+1,k  ,n) 
-							 +     fdata(i,j-1,k+1,n) + 2.0*fdata(i,j,k+1,n) +     fdata(i,j+1,k+1,n))/16.0;
-					else if (J == lo.y || J == hi.y) // Y face
-						cdata(I,J,K,n) =
-							(+     fdata(i-1,j,k-1,n) + 2.0*fdata(i-1,j,k,n) +     fdata(i-1,j,k+1,n)
-							 + 2.0*fdata(i  ,j,k-1,n) + 4.0*fdata(i  ,j,k,n) + 2.0*fdata(i  ,j,k+1,n) 
-							 +     fdata(i+1,j,k-1,n) + 2.0*fdata(i+1,j,k,n) +     fdata(i+1,j,k+1,n))/16.0;
-					else if (K == lo.z || K == hi.z) // Z face
-						cdata(I,J,K,n) =
-							(+     fdata(i-1,j-1,k,n) + 2.0*fdata(i,j-1,k,n) +     fdata(i+1,j-1,k,n)
-							 + 2.0*fdata(i-1,j  ,k,n) + 4.0*fdata(i,j  ,k,n) + 2.0*fdata(i+1,j  ,k,n) 
-							 +     fdata(i-1,j+1,k,n) + 2.0*fdata(i,j+1,k,n) +     fdata(i+1,j+1,k,n))/16.0;
-					else // Interior
 						cdata(I,J,K,n) =
 							(fdata(i-1,j-1,k-1,n) + fdata(i-1,j-1,k+1,n) + fdata(i-1,j+1,k-1,n) + fdata(i-1,j+1,k+1,n) +
 							 fdata(i+1,j-1,k-1,n) + fdata(i+1,j-1,k+1,n) + fdata(i+1,j+1,k-1,n) + fdata(i+1,j+1,k+1,n)) / 64.0
