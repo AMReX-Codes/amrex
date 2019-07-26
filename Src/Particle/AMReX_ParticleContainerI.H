@@ -1110,7 +1110,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     ParticleCopyPlan plan;
-    plan.build(this, op);
+    plan.build(*this, op);
 
     Gpu::DeviceVector<ParticleType> snd_buffer;
     Gpu::DeviceVector<ParticleType> rcv_buffer;
