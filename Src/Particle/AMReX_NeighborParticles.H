@@ -325,8 +325,6 @@ public:
 
     void clearCopyPlan ();
 
-    void getBoxRcvCounts ();
-
     void communicateParticles ();
 
 protected:

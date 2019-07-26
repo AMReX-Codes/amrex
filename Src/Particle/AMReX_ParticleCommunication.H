@@ -75,9 +75,15 @@ struct ParticleCopyPlan
         }
 
         amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end()+1, m_box_offsets.begin());
+
+        buildMPI(pc.BufferMap());
     }
 
     void clear();
+
+private:
+    
+    void buildMPI (const ParticleBufferMap& map);
 };
 
 } // namespace amrex
