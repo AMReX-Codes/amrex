@@ -368,6 +368,7 @@ namespace
 
 #ifdef AMREX_USE_CUDA
 
+    // This seems to be a good default value on NVIDIA V100 GPUs
     constexpr int cuda_nstates_default = 1e5;
 
     AMREX_GPU_DEVICE_MANAGED int cuda_nstates = 0;
