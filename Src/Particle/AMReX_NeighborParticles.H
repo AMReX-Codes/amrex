@@ -431,23 +431,13 @@ protected:
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
-    std::map<int, amrex::Gpu::HostVector<int> > m_start;
-    std::map<int, amrex::Gpu::HostVector<int> > m_stop;
 
     std::map<int, amrex::Gpu::ManagedDeviceVector<NeighborCode> > m_code_array;
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > m_code_offsets;
 
     ParticleCopyOp neighbor_copy_op;
+    ParticleCopyPlan neighbor_copy_plan;
 
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
-
-    amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
-    amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
-
-    amrex::Gpu::ManagedDeviceVector<int> rcv_box_counts;
-    amrex::Gpu::ManagedDeviceVector<int> rcv_box_offsets;
-    amrex::Gpu::ManagedDeviceVector<int> rcv_box_ids;
-   
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
     amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
 

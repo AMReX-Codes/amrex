@@ -198,8 +198,9 @@ computeHaloParticles ()
 
 	neighbor_copy_op.m_boxes[gid].resize(num_copies);
 	neighbor_copy_op.m_src_indices[gid].resize(num_copies);
-	copy_plan_dst_indices[gid].resize(num_copies);
 	neighbor_copy_op.m_periodic_shift[gid].resize(num_copies);
+
+	neighbor_copy_plan.m_dst_indices[gid].resize(num_copies);
 
 	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
 	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
@@ -240,14 +241,9 @@ NeighborParticleContainer<NStructReal, NStructInt>::
 clearCopyPlan ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearCopyPlan");
-
     clearNeighbors();
-
-    box_counts.resize(0);
-    box_offsets.resize(0);
-
     neighbor_copy_op.clear();
-    copy_plan_dst_indices.clear();
+    neighbor_copy_plan.clear();
 }
 
 template <int NStructReal, int NStructInt>
@@ -269,10 +265,10 @@ computeCopyPlan ()
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
 
-    box_counts.resize(0);
-    box_counts.resize(num_boxes, 0);
-    box_offsets.resize(num_boxes+1);
-    auto p_dst_box_counts = box_counts.dataPtr();
+    neighbor_copy_plan.m_box_counts.resize(0);
+    neighbor_copy_plan.m_box_counts.resize(num_boxes, 0);
+    neighbor_copy_plan.m_box_offsets.resize(num_boxes+1);
+    auto p_dst_box_counts = neighbor_copy_plan.m_box_counts.dataPtr();
     auto p_box_perm = this->BufferMap().gridToBucketPtr();
 
     constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
@@ -283,7 +279,7 @@ computeCopyPlan ()
 	int num_copies = neighbor_copy_op.m_boxes[gid].size();
 
 	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
-	auto p_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+	auto p_dst_indices = neighbor_copy_plan.m_dst_indices[gid].dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
@@ -293,7 +289,9 @@ computeCopyPlan ()
 	});
     }
 
-    amrex::Gpu::exclusive_scan(box_counts.begin(), box_counts.end()+1, box_offsets.begin());
+    amrex::Gpu::exclusive_scan(neighbor_copy_plan.m_box_counts.begin(), 
+                               neighbor_copy_plan.m_box_counts.end()+1, 
+                               neighbor_copy_plan.m_box_offsets.begin());
 }
 
 template <int NStructReal, int NStructInt>
@@ -317,7 +315,7 @@ packBuffer ()
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
-    int total_buffer_size = box_offsets[num_boxes];
+    int total_buffer_size = neighbor_copy_plan.m_box_offsets[num_boxes];
 
     snd_buffer.resize(total_buffer_size);    
 
@@ -335,9 +333,9 @@ packBuffer ()
 
 	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
 	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
-	auto p_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+	auto p_dst_indices = neighbor_copy_plan.m_dst_indices[gid].dataPtr();
 	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[gid].dataPtr();
-	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_box_offsets = neighbor_copy_plan.m_box_offsets.dataPtr();
         auto p_box_perm = this->BufferMap().gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
@@ -381,7 +379,7 @@ unpackBuffer ()
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
     // local unpack
-    auto p_dst_box_counts = box_counts.dataPtr();
+    auto p_dst_box_counts = neighbor_copy_plan.m_box_counts.dataPtr();
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -392,9 +390,9 @@ unpackBuffer ()
         auto& aos   = tile.GetArrayOfStructs();
 	auto np = tile.numTotalParticles();
 
-	int num_copies = box_counts[this->BufferMap().gridToBucket(gid)];
+	int num_copies = neighbor_copy_plan.m_box_counts[this->BufferMap().gridToBucket(gid)];
 
-	auto p_box_offsets = box_offsets.dataPtr();
+	auto p_box_offsets = neighbor_copy_plan.m_box_offsets.dataPtr();
 	auto p_box_perm = this->BufferMap().gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
@@ -474,7 +472,7 @@ getBoxRcvCounts ()
         for (auto bucket : box_buffer_indices)
 	{
             int dst = this->BufferMap().bucketToGrid(bucket);
-            int npart = box_counts[bucket];
+            int npart = neighbor_copy_plan.m_box_counts[bucket];
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
 	}
@@ -555,13 +553,13 @@ getBoxRcvCounts ()
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
 	
-	rcv_box_offsets.push_back(0);
+	neighbor_copy_plan.m_rcv_box_offsets.push_back(0);
 	for (int i = 0; i < rcv_data.size(); i +=2)
 	{
-	  rcv_box_counts.push_back(rcv_data[i]);
-	  AMREX_ASSERT(MyProc == this->ParticleDistributionMap(0)[rcv_data[i+1]]);
-	  rcv_box_ids.push_back(rcv_data[i+1]);
-	  rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
+	  neighbor_copy_plan.m_rcv_box_counts.push_back(rcv_data[i]);
+	  AMREX_ASSERT(MyProc == this->ParticleDistributionMap(0)[neighbor_copy_plan.m_rcv_data[i+1]]);
+	  neighbor_copy_plan.m_rcv_box_ids.push_back(rcv_data[i+1]);
+	  neighbor_copy_plan.m_rcv_box_offsets.push_back(neighbor_copy_plan.m_rcv_box_offsets.back() + neighbor_copy_plan.m_rcv_box_counts.back());
 	}
     }
     
@@ -592,7 +590,7 @@ communicateParticles ()
         long nbytes = 0;
         for (auto bucket : box_buffer_indices)
         {
-            nbytes += box_counts[bucket]*sizeof(ParticleType); 
+            nbytes += neighbor_copy_plan.m_box_counts[bucket]*sizeof(ParticleType); 
         }
 	Snds[i] = nbytes;
 	NumSnds += nbytes;
@@ -664,7 +662,7 @@ communicateParticles ()
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         int bucket = this->BufferMap().firstBucketOnProc(i);
-        const auto snd_offset = box_offsets[bucket];
+        const auto snd_offset = neighbor_copy_plan.m_box_offsets[bucket];
 
         ParallelDescriptor::Send(
 	    (char*) thrust::raw_pointer_cast(&snd_buffer[snd_offset]),
@@ -677,17 +675,17 @@ communicateParticles ()
 	const int lev = 0;
 	auto& plev  = this->GetParticles(lev);
 
-	auto p_rcv_box_counts = rcv_box_counts.dataPtr();
-	auto p_rcv_box_offsets = rcv_box_offsets.dataPtr();
-	auto p_rcv_box_ids = rcv_box_ids.dataPtr();
+	auto p_rcv_box_counts = neighbor_copy_plan.m_rcv_box_counts.dataPtr();
+	auto p_rcv_box_offsets = neighbor_copy_plan.m_rcv_box_offsets.dataPtr();
+	auto p_rcv_box_ids = neighbor_copy_plan.m_rcv_box_ids.dataPtr();
 	auto p_rcv_buffer = rcv_buffer.dataPtr();
 
-	for (int i = 0; i < rcv_box_counts.size(); ++i)
+	for (int i = 0; i < neighbor_copy_plan.m_rcv_box_counts.size(); ++i)
 	{
-	  int copy_size = rcv_box_counts[i];
-	  int gid = rcv_box_ids[i];
+	  int copy_size = neighbor_copy_plan.m_rcv_box_counts[i];
+	  int gid = neighbor_copy_plan.m_rcv_box_ids[i];
 	  int tid = 0;
-	  int offset = rcv_box_offsets[i];
+	  int offset = neighbor_copy_plan.m_rcv_box_offsets[i];
 
 	  auto index = std::make_pair(gid, tid);
 	  
@@ -698,7 +696,7 @@ communicateParticles ()
 	  AMREX_ALWAYS_ASSERT(MyProc == this->ParticleDistributionMap(0)[gid]);
 
 	  int nn = tile.getNumNeighbors();
-	  tile.setNumNeighbors(nn + rcv_box_counts[i]);	
+	  tile.setNumNeighbors(nn + neighbor_copy_plan.m_rcv_box_counts[i]);	
 
 	  ParticleType* p_ptr = &(aos[0]);
 	  AMREX_FOR_1D ( copy_size, ip,
