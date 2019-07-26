@@ -23,13 +23,15 @@ int main (int argc, char* argv[])
     }
     
     struct {
-        int verbose = 2;
-        int cg_verbose = 0;
-        int max_iter = 100;
-        int max_fmg_iter = 0 ;
-        int linop_maxorder = 2;
-        int agglomeration = 1 ;
-        int consolidation = 1 ;
+        int verbose = -1;
+        int cg_verbose = -1;
+        int max_iter = -1;
+        int fixed_iter = -1;
+        int max_fmg_iter = -1;
+        int linop_maxorder = -1;
+        int agglomeration = -1;
+        int consolidation = -1;
+        int max_coarsening_level = -1 ;
     } mlmg;
     {
         ParmParse pp("mlmg");
@@ -39,6 +41,8 @@ int main (int argc, char* argv[])
         pp.query("max_fmg_iter",mlmg.max_fmg_iter);
         pp.query("agglomeration",mlmg.agglomeration);
         pp.query("consolidation",mlmg.consolidation);
+        pp.query("max_coarsening_level",mlmg.max_coarsening_level);
+        pp.query("fixed_iter",mlmg.fixed_iter);
     }
     
     struct {
@@ -126,8 +130,10 @@ int main (int argc, char* argv[])
          
 
     LPInfo info;
-    //info.setAgglomeration(mlmg.agglomeration);
-    //info.setConsolidation(mlmg.consolidation);
+    if (mlmg.agglomeration >= 0)        info.setAgglomeration(mlmg.agglomeration);
+    if (mlmg.consolidation >= 0)        info.setConsolidation(mlmg.consolidation);
+    if (mlmg.max_coarsening_level >= 0) info.setMaxCoarseningLevel(mlmg.max_coarsening_level);
+    
     MCNodalLinOp linop;
     linop.setNComp(op.ncomp);
     linop.setCoeff(op.coeff);
@@ -135,11 +141,11 @@ int main (int argc, char* argv[])
 
     MLMG solver(linop);
     solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
-    solver.setVerbose(mlmg.verbose);
-    solver.setCGVerbose(mlmg.cg_verbose);
-    solver.setMaxIter(mlmg.max_iter);
-    solver.setMaxFmgIter(mlmg.max_fmg_iter);
-    
+    if (mlmg.verbose >= 0)     solver.setVerbose(mlmg.verbose);
+    if (mlmg.cg_verbose >= 0)  solver.setCGVerbose(mlmg.cg_verbose);
+    if (mlmg.fixed_iter >= 0)  solver.setFixedIter(mlmg.fixed_iter);
+    if (mlmg.max_iter >= 0)    solver.setMaxIter(mlmg.max_iter);
+    if (mlmg.max_fmg_iter >= 0)solver.setMaxFmgIter(mlmg.max_fmg_iter);
     
 
     Real tol_rel = 1E-8, tol_abs = 1E-8;

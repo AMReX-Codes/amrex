@@ -13,11 +13,6 @@ class MCNodalLinOp : public MLNodeLinOp
 
 public :
 	MCNodalLinOp () {}
-	MCNodalLinOp (const amrex::Vector<amrex::Geometry>& a_geom,
-		  const amrex::Vector<amrex::BoxArray>& a_grids,
-		  const Vector<DistributionMapping>& a_dmap,
-		  const LPInfo& a_info = LPInfo(),
-		  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 	virtual ~MCNodalLinOp ();
 	void define (const Vector<Geometry>& a_geom, const Vector<BoxArray>& a_grids,
 		     const Vector<DistributionMapping>& a_dmap,
@@ -74,8 +69,8 @@ private:
 	bool m_masks_built = false;
 
 	
-	Vector<Real> coeff;
-	int ncomp = 2;
+	int ncomp = 1;
+	Vector<Real> coeff = {1.0};
 	
 protected:
 	bool m_diagonal_computed = false;
