@@ -31,13 +31,13 @@ public:
                            amrex::Real t, amrex::Real dt) override;
 #endif // WARPX_DO_ELECTROSTATIC
     
-    virtual void FieldGatherFortran (int lev,
-                                     const amrex::MultiFab& Ex,
-                                     const amrex::MultiFab& Ey,
-                                     const amrex::MultiFab& Ez,
-                                     const amrex::MultiFab& Bx,
-                                     const amrex::MultiFab& By,
-                                     const amrex::MultiFab& Bz) final;
+    virtual void FieldGather (int lev,
+                              const amrex::MultiFab& Ex,
+                              const amrex::MultiFab& Ey,
+                              const amrex::MultiFab& Ez,
+                              const amrex::MultiFab& Bx,
+                              const amrex::MultiFab& By,
+                              const amrex::MultiFab& Bz) final;
 
     void FieldGather (WarpXParIter& pti,
                       RealVector& Exp,

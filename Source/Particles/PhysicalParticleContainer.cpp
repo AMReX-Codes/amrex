@@ -1055,9 +1055,9 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
 #endif // WARPX_DO_ELECTROSTATIC
 
 void
-PhysicalParticleContainer::FieldGatherFortran (int lev,
-                                               const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                               const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+PhysicalParticleContainer::FieldGather (int lev,
+                                        const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
@@ -1066,11 +1066,14 @@ PhysicalParticleContainer::FieldGatherFortran (int lev,
     MultiFab* cost = WarpX::getCosts(lev);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel 
 #endif
     {
-        Cuda::ManagedDeviceVector<Real> xp, yp, zp;
-
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             Real wt = amrex::second();
@@ -1106,7 +1109,7 @@ PhysicalParticleContainer::FieldGatherFortran (int lev,
             //
             // copy data from particle container to temp arrays
             //
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
             const int* ixyzmin = box.loVect();
@@ -1116,6 +1119,7 @@ PhysicalParticleContainer::FieldGatherFortran (int lev,
             //
             const int ll4symtry          = false;
             long lvect_fieldgathe = 64;
+#ifdef WARPX_RZ
             warpx_geteb_energy_conserving(
                 &np,
                 xp.dataPtr(),
@@ -1135,6 +1139,12 @@ PhysicalParticleContainer::FieldGatherFortran (int lev,
                 BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
+                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+#endif
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
