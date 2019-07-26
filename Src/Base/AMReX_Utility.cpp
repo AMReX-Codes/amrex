@@ -368,7 +368,10 @@ namespace
 
 #ifdef AMREX_USE_CUDA
 
-    AMREX_GPU_DEVICE_MANAGED int nstates;
+    // This seems to be a good default value on NVIDIA V100 GPUs
+    constexpr int cuda_nstates_default = 1e5;
+
+    AMREX_GPU_DEVICE_MANAGED int cuda_nstates = 0;
 
     AMREX_GPU_DEVICE curandState_t* states_d_ptr;
     curandState_t* states_h_ptr = nullptr;
@@ -403,19 +406,8 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 #endif
 
 #ifdef AMREX_USE_CUDA
-    if (states_h_ptr != nullptr)
-    {
-        cudaFree(states_h_ptr);
-        states_h_ptr = nullptr;    
-    }
-
-    if (locks_h_ptr != nullptr)
-    {
-        cudaFree(locks_h_ptr);
-        locks_h_ptr = nullptr;    
-    }
-
-    nstates = 0;
+    DeallocateRandomSeedDevArray();
+    ResizeRandomSeed(cuda_nstates_default);
 #endif
 }
 
@@ -428,7 +420,7 @@ void amrex::ResetRandomSeed(unsigned long seed)
 AMREX_GPU_DEVICE
 int get_state(int tid)
 {
-  int i = tid % nstates;
+  int i = tid % cuda_nstates;
   while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
   {
       continue;  //traps locked threads in loop
@@ -567,13 +559,6 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
 }
 
-
-void 
-amrex::InitRandSeedOnDevice (int N)
-{
-  ResizeRandomSeed(N);
-}
-
 void 
 amrex::ResizeRandomSeed (int N)
 {
@@ -581,9 +566,9 @@ amrex::ResizeRandomSeed (int N)
 
 #ifdef AMREX_USE_CUDA  
 
-    if (N <= nstates) return;
+    if (N <= cuda_nstates) return;
 
-    int PrevSize = nstates;
+    int PrevSize = cuda_nstates;
     int SizeDiff = N - PrevSize;
 
     curandState_t* new_data;
@@ -609,7 +594,7 @@ amrex::ResizeRandomSeed (int N)
   
     states_h_ptr = new_data;
     locks_h_ptr = new_mutex;
-    nstates = N;
+    cuda_nstates = N;
 
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(states_d_ptr,
                                             &states_h_ptr,
@@ -646,6 +631,7 @@ amrex::DeallocateRandomSeedDevArray()
         cudaFree(locks_h_ptr);
         locks_h_ptr = nullptr;
     }
+    cuda_nstates = 0;
 #endif
 }
 
