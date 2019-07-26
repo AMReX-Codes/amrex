@@ -247,48 +247,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>::
 computeCopyPlan ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeCopyPlan");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-    AMREX_ASSERT(hasNeighbors() == false);
-
-    const int lev = 0;
-    const auto& geom = this->Geom(lev);
-    auto& plev  = this->GetParticles(lev);
-    auto& ba = this->ParticleBoxArray(lev);
-    auto& dmap = this->ParticleDistributionMap(lev);
-
-    int num_boxes = ba.size();
-    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
-
-    neighbor_copy_plan.m_box_counts.resize(0);
-    neighbor_copy_plan.m_box_counts.resize(num_boxes, 0);
-    neighbor_copy_plan.m_box_offsets.resize(num_boxes+1);
-    auto p_dst_box_counts = neighbor_copy_plan.m_box_counts.dataPtr();
-    auto p_box_perm = this->BufferMap().gridToBucketPtr();
-
-    constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
-
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-	int num_copies = neighbor_copy_op.m_boxes[gid].size();
-        neighbor_copy_plan.m_dst_indices[gid].resize(num_copies);
-
-	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
-	auto p_dst_indices = neighbor_copy_plan.m_dst_indices[gid].dataPtr();
-
-	AMREX_FOR_1D ( num_copies, i,
-        {
-	    int dst_box = p_boxes[i];
-	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[p_box_perm[dst_box]], max_unsigned_int);
-	    p_dst_indices[i] = index;
-	});
-    }
-
-    amrex::Gpu::exclusive_scan(neighbor_copy_plan.m_box_counts.begin(), 
-                               neighbor_copy_plan.m_box_counts.end()+1, 
-                               neighbor_copy_plan.m_box_offsets.begin());
+    neighbor_copy_plan.build(*this, neighbor_copy_op);
 }
 
 template <int NStructReal, int NStructInt>
