@@ -1,13 +1,13 @@
 # For mesh
-mesh.nlevels = 1
-mesh.nnodes = 16
+mesh.nlevels = 3
+mesh.nnodes = 32
 
 # For MLMG
-mlmg.fixed_iter = 1
+#mlmg.fixed_iter = 100
 #mlmg.max_fmg_iter = 0
 mlmg.verbose = 4
-mlmg.cg_verbose = 10
-mlmg.max_coarsening_level = 1
+mlmg.cg_verbose = 0
+#mlmg.max_coarsening_level = 4
 #mlmg.max_iter = 100
 #mlmg.max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
 #mlmg.agglomeration = 1    # Do agglomeration on AMR Level 0?
