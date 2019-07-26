@@ -200,6 +200,12 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpuStream())); )
 }
 
+#ifdef AMREX_USE_GPU
+void callbackAdded ();
+void resetNumCallbacks ();
+int getNumCallbacks ();
+#endif
+
 }}
 
 #endif

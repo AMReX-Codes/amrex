@@ -81,6 +81,7 @@ else
 
 endif
 
+# The logic here should be consistent with what's in nvcc.mak
 ifeq ($(shell expr $(gcc_major_version) \>= 5), 1)
   CXXFLAGS += -std=c++14
 else ifeq ($(shell expr $(gcc_major_version) \>= 4), 1)

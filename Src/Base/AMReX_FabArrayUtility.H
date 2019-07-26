@@ -34,7 +34,8 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -105,7 +106,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -178,7 +180,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
             const auto& arr2 = fa2.array(mfi);
             const auto& arr3 = fa2.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -249,7 +252,8 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -325,7 +329,8 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -401,7 +406,8 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -477,7 +483,8 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
                                    Gpu::gpuStream()>>>(
@@ -551,7 +558,8 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(
@@ -622,7 +630,8 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(
@@ -691,7 +700,8 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(
@@ -762,7 +772,8 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
 
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
+            constexpr int n_per_thread = 32; // give each thread more works.
+            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
 
             amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
                                    Gpu::gpuStream()>>>(

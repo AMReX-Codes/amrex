@@ -20,197 +20,170 @@ using namespace amrex;
 int main (int argc, char* argv[])
 {
     std::cout << "**********************************\n";
+
     amrex::Initialize(argc, argv);
     {
-    amrex::Print() << "amrex::Initialize complete." << "\n";
+        int n_cell, max_grid_size, nsteps, plot_int;
+        Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
-    // ===================================
-    // Simple cuda action to make sure all tests have cuda.
-    // Allows nvprof to return data.
-    int devices = 0;
-#ifdef AMREX_USE_CUDA
-    cudaGetDeviceCount(&devices);
-#endif
-    amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
-    amrex::Print() << "**********************************\n"; 
-    // ===================================
+        {
+            ParmParse pp;
 
-    // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = amrex::second();
+            pp.get("n_cell",n_cell);
+            pp.get("max_grid_size",max_grid_size);
+            pp.queryarr("is_periodic", is_periodic);
 
-    // AMREX_SPACEDIM: number of dimensions
-    int n_cell, max_grid_size, nsteps, plot_int;
-    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
+            plot_int = -1;
+            pp.query("plot_int",plot_int);
 
-    // inputs parameters
-    {
-        // ParmParse is way of reading inputs from the inputs file
-        ParmParse pp;
+            nsteps = 10;
+            pp.query("nsteps",nsteps);
+        }
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
+        // make BoxArray, Geometry & DistributionMapping
+        BoxArray ba;
+        Geometry geom;
+        {
+            IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+            IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+            Box domain(dom_lo, dom_hi);
+            ba.define(domain);
+            ba.maxSize(max_grid_size);
 
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
+            RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                             {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be written
-        plot_int = -1;
-        pp.query("plot_int",plot_int);
+            geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        }
 
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
-        nsteps = 10;
-        pp.query("nsteps",nsteps);
+        int Nghost = 1;
+        int Ncomp  = 1;
+        DistributionMapping dm(ba);
 
-        pp.queryarr("is_periodic", is_periodic);
+        amrex::Print() << std::endl << std::endl;
+
+        {
+            BL_PROFILE("GPU Tests");
+            Gpu::LaunchSafeGuard lsg(true);
+            amrex::Print() << "GPU Tests" << std::endl;
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+
+            x.setVal(1701.4);
+            y.setVal(74.656);
+
+            x.setVal(2.0);
+            Real selfdot_begin = amrex::second();
+            double selfdot = MultiFab::Dot(x, 0, Ncomp, 0);
+            Real selfdot_end = amrex::second();
+
+            Real sum_begin = amrex::second();
+            double sum = x.sum(); 
+            Real sum_end = amrex::second();
+
+            Real dot_begin = amrex::second();
+            double dot = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
+            Real dot_end = amrex::second();
+
+            Real norm0_begin = amrex::second();
+            double norm0 = x.norm0(); 
+            Real norm0_end = amrex::second();
+
+            Real norm1_begin = amrex::second();
+            double norm1 = x.norm1(); 
+            Real norm1_end = amrex::second();
+
+            Real norm2_begin = amrex::second();
+            double norm2 = x.norm2(); 
+            Real norm2_end = amrex::second();
+
+            amrex::Print() << "Self Dot: " << selfdot << ". " << selfdot_end - selfdot_begin << " secs." << std::endl;
+            amrex::Print() << "Sum: " << sum << ". " << sum_end - sum_begin << " secs." << std::endl;
+            amrex::Print() << "Dot: " << dot << ". " << dot_end - dot_begin << " secs." << std::endl;
+            amrex::Print() << "Norm0: " << norm0 << ". " << norm0_end - norm0_begin << " secs." << std::endl;
+            amrex::Print() << "Norm1: " << norm1 << ". " << norm1_end - norm1_begin << " secs." << std::endl;
+            amrex::Print() << "Norm2: " << norm2 << ". " << norm2_end - norm2_begin << " secs." << std::endl;
+        }
+
+        amrex::Print() << std::endl << std::endl;
+
+        {
+            BL_PROFILE("GPU Tests B");
+            Gpu::LaunchSafeGuard lsg(true);
+            amrex::Print() << "GPU Tests 2" << std::endl;
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+
+            x.setVal(1701.4);
+            y.setVal(74.656);
+
+            Real sum_begin = amrex::second();
+            double sum = x.sum(); 
+            Real sum_end = amrex::second();
+
+            Real dot_begin = amrex::second();
+            double dot = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
+            Real dot_end = amrex::second();
+
+            Real norm0_begin = amrex::second();
+            double norm0 = x.norm0(); 
+            Real norm0_end = amrex::second();
+
+            Real norm1_begin = amrex::second();
+            double norm1 = x.norm1(); 
+            Real norm1_end = amrex::second();
+
+            Real norm2_begin = amrex::second();
+            double norm2 = x.norm2(); 
+            Real norm2_end = amrex::second();
+
+            amrex::Print() << "Sum: " << sum << ". " << sum_end - sum_begin << " secs." << std::endl;
+            amrex::Print() << "Dot: " << dot << ". " << dot_end - dot_begin << " secs." << std::endl;
+            amrex::Print() << "Norm0: " << norm0 << ". " << norm0_end - norm0_begin << " secs." << std::endl;
+            amrex::Print() << "Norm1: " << norm1 << ". " << norm1_end - norm1_begin << " secs." << std::endl;
+            amrex::Print() << "Norm2: " << norm2 << ". " << norm2_end - norm2_begin << " secs." << std::endl;
+        }
+
+        amrex::Print() << std::endl << std::endl;
+
+        {
+            BL_PROFILE("CPU Tests");
+            Gpu::LaunchSafeGuard lsg(false);
+            amrex::Print() << "CPU Tests" << std::endl;
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+
+            x.setVal(1701.4);
+            y.setVal(74.656);
+
+            Real sum_begin = amrex::second();
+            double sum = x.sum(); 
+            Real sum_end = amrex::second();
+
+            Real dot_begin = amrex::second();
+            double dot = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
+            Real dot_end = amrex::second();
+
+            Real norm0_begin = amrex::second();
+            double norm0 = x.norm0(); 
+            Real norm0_end = amrex::second();
+
+            Real norm1_begin = amrex::second();
+            double norm1 = x.norm1(); 
+            Real norm1_end = amrex::second();
+
+            Real norm2_begin = amrex::second();
+            double norm2 = x.norm2(); 
+            Real norm2_end = amrex::second();
+
+            amrex::Print() << "Sum: " << sum << ". " << sum_end - sum_begin << " secs." << std::endl;
+            amrex::Print() << "Dot: " << dot << ". " << dot_end - dot_begin << " secs." << std::endl;
+            amrex::Print() << "Norm0: " << norm0 << ". " << norm0_end - norm0_begin << " secs." << std::endl;
+            amrex::Print() << "Norm1: " << norm1 << ". " << norm1_end - norm1_begin << " secs." << std::endl;
+            amrex::Print() << "Norm2: " << norm2 << ". " << norm2_end - norm2_begin << " secs." << std::endl;
+        }
+
+
     }
-
-    // make BoxArray and Geometry
-    BoxArray ba;
-    Geometry geom;
-    {
-        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
-        Box domain(dom_lo, dom_hi);
-
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        ba.maxSize(max_grid_size);
-
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    }
-
-    // Nghost = number of ghost cells for each array 
-    int Nghost = 1;
-    
-    // Ncomp = number of components for each array
-    int Ncomp  = 1;
-  
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
-
-    Gpu::setLaunchRegion(true);
-
-    Real cells = 0;
-    {
-       MultiFab x(ba, dm, Ncomp, Nghost);
-       MultiFab y(ba, dm, Ncomp, Nghost);
-
-       Real x_val = 1.0;
-       Real y_val = 1.0;
-
-       x.setVal(x_val);
-       y.setVal(y_val);
-
-       Real strt_time = amrex::second();
-       cells = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = amrex::second();
-
-       amrex::Print() << "Total number of cells: " << cells << "." << std::endl;
-       amrex::Print() << " calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
-    }
-
-    {
-       MultiFab x(ba, dm, Ncomp, Nghost);
-       MultiFab y(ba, dm, Ncomp, Nghost);
-
-       Real x_val = 2.0;
-       Real y_val = 4.0;
-
-       x.setVal(x_val);
-       y.setVal(y_val);
-
-       Real strt_time = amrex::second();
-       Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = amrex::second();
- 
-       amrex::Print() << "GPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
-       amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
-       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
-    }
-
-    Gpu::setLaunchRegion(false);
-    {
-       MultiFab x(ba, dm, Ncomp, Nghost);
-       MultiFab y(ba, dm, Ncomp, Nghost);
-
-       Real x_val = 2.0;
-       Real y_val = 4.0;
-
-       x.setVal(x_val);
-       y.setVal(y_val);
-
-       Real strt_time = amrex::second();
-       Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = amrex::second();
- 
-       amrex::Print() << "CPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
-       amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
-       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
-    }
-
-    Gpu::setLaunchRegion(true);
-    {
-       MultiFab x(ba, dm, Ncomp, Nghost);
-       x.setVal(0.0);
-
-       for (int k = 0; k < 10; k++)
-           for (int j = 0; j < 10; j++)
-               for (int i = 0; i < 10; i++)
-               {
-                   IntVect iv(i,j,k);
-                   x[0](iv) = 0.01*(i-5) + 0.1*(j-5) + (k-5);
-               }
-
-       Real min_val = 0.01*(-5) + 0.1*(-5) + -5;
-       Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
-
-       Real strt_time = amrex::second();
-       Real min = x.min(0, Nghost); 
-       Real max = x.max(0, Nghost); 
-       Real end_time = amrex::second();
- 
-       amrex::Print() << "GPU, expected min/max: " << min_val << "/" << max_val << std::endl;
-       amrex::Print() << "Calculatd min/max: " << min << "/" << max << std::endl;
-       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
-    }
-
-    Gpu::setLaunchRegion(false);
-    {
-       MultiFab x(ba, dm, Ncomp, Nghost);
-       x.setVal(0.0);
-
-       for (int k = 0; k < 10; k++)
-           for (int j = 0; j < 10; j++)
-               for (int i = 0; i < 10; i++)
-               {
-                   IntVect iv(i,j,k);
-                   x[0](iv) = 0.01*(i-5) + 0.1*(j-5) + (k-5);
-               }
-
-       Real min_val = 0.01*(-5) + 0.1*(-5) + -5;
-       Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
-
-       Real strt_time = amrex::second();
-       Real min = x.min(0, Nghost); 
-       Real max = x.max(0, Nghost); 
-       Real end_time = amrex::second();
- 
-       amrex::Print() << "CPU, expected min/max: " << min_val << "/" << max_val << std::endl;
-       amrex::Print() << "Calculatd min/max: " << min << "/" << max << std::endl;
-       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
-    }
-
-
-    amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
-    }
-
     amrex::Finalize();
 }
