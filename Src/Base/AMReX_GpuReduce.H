@@ -411,6 +411,32 @@ void blockReduceOr (T* data, T& r) noexcept
     if (tid == 0) r = data[0];
 }
 
+template <int warpSize, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T warpReduceSum (T x) noexcept
+{
+    for (int offset = warpSize/2; offset > 0; offset /= 2) {
+        x += __shfl_down_sync(0xffffffff, x, offset);
+    }
+    return x;
+}
+
+template <int warpSize, typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+T blockReduceSum (T x) noexcept
+{
+    Gpu::SharedMemory<T> gsm;
+    T* shared = gsm.dataPtr();
+    int lane = threadIdx.x % warpSize;
+    int wid = threadIdx.x / warpSize;
+    x = warpReduceSum<warpSize,T>(x);
+    if (lane == 0) shared[wid] = x;
+    __syncthreads();
+    x = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0;
+    if (wid == 0) x = warpReduceSum<warpSize,T>(x);
+    return x;
+}
+
 #endif
 }
 }
