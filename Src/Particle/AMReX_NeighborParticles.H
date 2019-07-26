@@ -317,14 +317,6 @@ public:
 
     void computeHaloParticles ();
 
-    void computeCopyPlan ();
-    
-    void packBuffer ();
-
-    void unpackBuffer ();
-
-    void clearCopyPlan ();
-
     void communicateParticles ();
 
 protected:
