@@ -140,7 +140,6 @@ computeHaloParticles ()
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeHaloParticles()");
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
     AMREX_ASSERT(hasNeighbors() == false);
 
     const int lev = 0;
@@ -150,20 +149,14 @@ computeHaloParticles ()
     const auto domain = this->Geom(lev).Domain();
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
-    auto& dmap = this->ParticleDistributionMap(lev);
 
-    int num_boxes = ba.size();
-    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
-
-        const Box& bx = mfi.tilebox();
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
 
         auto& src_tile = plev[index];
         auto& aos   = src_tile.GetArrayOfStructs();
@@ -267,14 +260,10 @@ computeCopyPlan ()
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::computeCopyPlan");
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
     AMREX_ASSERT(hasNeighbors() == false);
 
     const int lev = 0;
     const auto& geom = this->Geom(lev);
-    const auto dxi = this->Geom(lev).InvCellSizeArray();
-    const auto plo = this->Geom(lev).ProbLoArray();
-    const auto domain = this->Geom(lev).Domain();
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
