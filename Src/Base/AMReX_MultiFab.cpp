@@ -1210,15 +1210,12 @@ MultiFab::SumBoundary (const Periodicity& period)
 std::unique_ptr<MultiFab>
 MultiFab::OverlapMask (const Periodicity& period) const
 {
-    //TODO GPU????
-
     BL_PROFILE("MultiFab::OverlapMask()");
 
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
     std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
-    p->setVal(0.0);
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
@@ -1230,14 +1227,24 @@ MultiFab::OverlapMask (const Periodicity& period) const
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
-            FArrayBox& fab = (*p)[mfi];
-            const Box& bx = fab.box();
+            const Box& bx = (*p)[mfi].box();
+            auto arr = p->array(mfi); 
+
+            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            {
+                arr(i,j,k) = 0.0;
+            });
+
             for (const auto& iv : pshifts)
             {
-                ba.intersections(bx+iv, isects);                    
+                ba.intersections(bx+iv, isects);
                 for (const auto& is : isects)
                 {
-                    fab.plus(1.0, is.second-iv);
+                    Box ibx = is.second-iv;
+                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    {
+                        arr(i,j,k) += 1.0;
+                    });
                 }
             }
         }
@@ -1245,6 +1252,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     
     return p;
 }
+
 
 std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const
