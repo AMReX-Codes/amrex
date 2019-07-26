@@ -13,6 +13,8 @@ USE_OMP_OFFLOAD = FALSE
 USE_MPI   = FALSE
 USE_OMP   = FALSE
 
+TINY_PROFILE = TRUE
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
