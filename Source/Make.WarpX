@@ -97,16 +97,24 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
 endif
 
 ifeq ($(USE_OPENPMD), TRUE)
-   OPENPMD_LIB_PATH ?= NOT_SET
-   ifneq ($(OPENPMD_LIB_PATH),NOT_SET)
-     LIBRARY_LOCATIONS += $(OPENPMD_LIB_PATH)
+   # try pkg-config query
+   ifeq (0, $(shell pkg-config "openPMD >= 0.9.0"; echo $$?))
+       CXXFLAGS += $(shell pkg-config --cflags openPMD)
+       LDFLAGS += $(shell pkg-config --libs openPMD)
+       LDFLAGS += -Wl,-rpath,$(shell pkg-config --variable=libdir openPMD)
+   # fallback to manual settings
+   else
+       OPENPMD_LIB_PATH ?= NOT_SET
+       ifneq ($(OPENPMD_LIB_PATH),NOT_SET)
+         LIBRARY_LOCATIONS += $(OPENPMD_LIB_PATH)
+       endif
+       OPENPMD_INCLUDE_PATH ?= NOT_SET
+       ifneq ($(OPENPMD_INCLUDE_PATH),NOT_SET)
+         INCLUDE_LOCATIONS += $(OPENPMD_INCLUDE_PATH)
+       endif
+       LIBRARIES += -lopenPMD
    endif
-   OPENPMD_INCLUDE_PATH ?= NOT_SET
-   ifneq ($(OPENPMD_INCLUDE_PATH),NOT_SET)
-     INCLUDE_LOCATIONS += $(OPENPMD_INCLUDE_PATH)
-   endif
-   DEFINES += -DWARPX_USE_OPENPMD -DopenPMD_HAVE_MPI=1
-   LIBRARIES += -lopenPMD -lhdf5
+   DEFINES += -DWARPX_USE_OPENPMD
 endif
    
 
