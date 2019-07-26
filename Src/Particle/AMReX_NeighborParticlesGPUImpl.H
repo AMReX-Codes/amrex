@@ -237,7 +237,6 @@ NeighborParticleContainer<NStructReal, NStructInt>::
 clearCopyPlan ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearCopyPlan");
-    clearNeighbors();
     neighbor_copy_op.clear();
     neighbor_copy_plan.clear();
 }
@@ -376,7 +375,6 @@ fillNeighborsGPU ()
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
-    clearNeighbors();
     clearCopyPlan();
     buildNeighborMask();
     this->defineBufferMap();
