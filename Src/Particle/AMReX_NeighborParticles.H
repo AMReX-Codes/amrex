@@ -315,9 +315,7 @@ public:
 
     void buildNeighborMask ();
 
-    void computeHaloParticles ();
-
-    void communicateParticles ();
+    void buildNeighborCopyOp ();
 
 protected:
 
