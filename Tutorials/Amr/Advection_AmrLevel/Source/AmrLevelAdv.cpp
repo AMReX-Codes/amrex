@@ -122,7 +122,7 @@ AmrLevelAdv::variableSetUp ()
     
     BCRec bc(lo_bc, hi_bc);
 
-    desc_lst.setComponent(Phi_Type, 0, "Phi", bc, 
+    desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
 			  StateDescriptor::BndryFunc(nullfill));
 }
 

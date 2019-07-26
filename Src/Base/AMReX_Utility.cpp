@@ -20,6 +20,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Print.H>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
@@ -366,14 +367,15 @@ namespace
     amrex::Vector<std::mt19937> generators;
 
 #ifdef AMREX_USE_CUDA
-    /**
-    * \brief The random seed array is allocated with an extra buffer space to 
-    *        reduce the computational cost of dynamic memory allocation and 
-    *        random seed generation. 
-    */
-    __device__ curandState_t *glo_RandStates;
-    curandState_t* dev_RandStates_Seed;
-    int nstates;
+
+    AMREX_GPU_DEVICE_MANAGED int nstates;
+
+    AMREX_GPU_DEVICE curandState_t* states_d_ptr;
+    curandState_t* states_h_ptr = nullptr;
+
+    AMREX_GPU_DEVICE int* locks_d_ptr;
+    int* locks_h_ptr = nullptr;
+
 #endif
 
 }
@@ -401,11 +403,18 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 #endif
 
 #ifdef AMREX_USE_CUDA
-    if (dev_RandStates_Seed != nullptr)
+    if (states_h_ptr != nullptr)
     {
-        cudaFree(dev_RandStates_Seed);
-        dev_RandStates_Seed = nullptr;    
+        cudaFree(states_h_ptr);
+        states_h_ptr = nullptr;    
     }
+
+    if (locks_h_ptr != nullptr)
+    {
+        cudaFree(locks_h_ptr);
+        locks_h_ptr = nullptr;    
+    }
+
     nstates = 0;
 #endif
 }
@@ -414,6 +423,25 @@ void amrex::ResetRandomSeed(unsigned long seed)
 {
     InitRandom(seed);
 }
+
+#ifdef __CUDA_ARCH__
+AMREX_GPU_DEVICE
+int get_state(int tid)
+{
+  int i = tid % nstates;
+  while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
+  {
+      continue;  //traps locked threads in loop
+  }
+  return i;
+}
+
+AMREX_GPU_DEVICE
+void free_state(int i)
+{
+    amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],1,0);
+}
+#endif
 
 AMREX_GPU_HOST_DEVICE double
 amrex::RandomNormal (double mean, double stddev)
@@ -429,8 +457,9 @@ amrex::RandomNormal (double mean, double stddev)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
-    rand = stddev * curand_normal_double(&glo_RandStates[tid]) + mean; 
-
+    int i = get_state(tid);
+    rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean; 
+    free_state(i);
 #else
 
 #ifdef _OPENMP
@@ -442,7 +471,6 @@ amrex::RandomNormal (double mean, double stddev)
     rand = distribution(generators[tid]);
 
 #endif
-
     return rand;
 }
 
@@ -450,18 +478,16 @@ AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
     double rand;
-
 #ifdef __CUDA_ARCH__
-
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
-    rand = curand_uniform_double(&glo_RandStates[tid]); 
-
-
+    int i = get_state(tid);
+    rand = curand_uniform_double(&states_d_ptr[i]); 
+    free_state(i);
 #else
 
 #ifdef _OPENMP
@@ -471,12 +497,11 @@ amrex::Random ()
 #endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     rand = distribution(generators[tid]);
-
+    
 #endif
 
     return rand;
 }
-
 
 unsigned long
 amrex::Random_int(unsigned long n)
@@ -550,18 +575,9 @@ amrex::InitRandSeedOnDevice (int N)
 }
 
 void 
-amrex::CheckSeedArraySizeAndResize (int N)
-{
-#ifdef AMREX_USE_CUDA
-  if ( nstates < N) {
-     ResizeRandomSeed(N);
-  }
-#endif
-}
-
-void 
 amrex::ResizeRandomSeed (int N)
 {
+    BL_PROFILE("ResizeRandomSeed");
 
 #ifdef AMREX_USE_CUDA  
 
@@ -570,20 +586,37 @@ amrex::ResizeRandomSeed (int N)
     int PrevSize = nstates;
     int SizeDiff = N - PrevSize;
 
-    curandState_t * new_data;
-    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t))); 
-    if (dev_RandStates_Seed != nullptr) {
-        AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_data, dev_RandStates_Seed, 
+    curandState_t* new_data;
+    int* new_mutex;
+    
+    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_data, N*sizeof(curandState_t)));
+    AMREX_CUDA_SAFE_CALL(cudaMalloc(&new_mutex, N*sizeof(int)));
+
+    if (states_h_ptr != nullptr) {
+
+        AMREX_ASSERT(locks_h_ptr != nullptr);
+
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_data, states_h_ptr, 
                                         PrevSize*sizeof(curandState_t), 
                                         cudaMemcpyDeviceToDevice));
-        AMREX_CUDA_SAFE_CALL(cudaFree(dev_RandStates_Seed));
+	AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_mutex, locks_h_ptr,
+					PrevSize*sizeof(int),
+					cudaMemcpyDeviceToDevice));
+
+        AMREX_CUDA_SAFE_CALL(cudaFree(states_h_ptr));
+	AMREX_CUDA_SAFE_CALL(cudaFree(locks_h_ptr));
     }
-    
-    dev_RandStates_Seed = new_data;
-    
-    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(glo_RandStates,
-                                            &dev_RandStates_Seed,
+  
+    states_h_ptr = new_data;
+    locks_h_ptr = new_mutex;
+    nstates = N;
+
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(states_d_ptr,
+                                            &states_h_ptr,
                                             sizeof(curandState_t *)));
+    AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbol(locks_d_ptr,
+					    &locks_h_ptr,
+					    sizeof(int *)));
 
     const int MyProc = amrex::ParallelDescriptor::MyProc();
     AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
@@ -591,22 +624,28 @@ amrex::ResizeRandomSeed (int N)
         unsigned long seed = MyProc*1234567UL + 12345UL ;
         int seqstart = idx + 10 * idx ; 
         int loc = idx + PrevSize;
-        curand_init(seed, seqstart, 0, &glo_RandStates[loc]);
+        locks_d_ptr[loc] = 0;
+        curand_init(seed, seqstart, 0, &states_d_ptr[loc]);
     }); 
-#endif
 
+#endif
 }
 
 void 
 amrex::DeallocateRandomSeedDevArray()
 {
 #ifdef AMREX_USE_CUDA  
-    if (dev_RandStates_Seed != nullptr)
+    if (states_h_ptr != nullptr)
     {
-        cudaFree(dev_RandStates_Seed);
-        dev_RandStates_Seed = nullptr;    
+        cudaFree(states_h_ptr);
+        states_h_ptr = nullptr;    
     }
-    int nstates = 0;
+
+    if (locks_h_ptr != nullptr)
+    {
+        cudaFree(locks_h_ptr);
+        locks_h_ptr = nullptr;
+    }
 #endif
 }
 
