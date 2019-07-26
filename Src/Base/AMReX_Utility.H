@@ -249,14 +249,14 @@ namespace amrex
     *  The pseusorandom sequence currently implemented is obtained 
     *  from the XORWOW and MRG32k3a generator
     */
-    void InitRandSeedOnDevice(int N); 
+    void InitRandSeedOnDevice (int N); 
    
     /**
     * \brief Resize seed array and copy address to global symbol 
     */
-    void ResizeRandomSeed(int N);
+    void ResizeRandomSeed (int N);
 
-    void DeallocateRandomSeedDevArray();
+    void DeallocateRandomSeedDevArray ();
 
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);
