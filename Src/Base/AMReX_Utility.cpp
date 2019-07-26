@@ -371,10 +371,10 @@ namespace
     AMREX_GPU_DEVICE_MANAGED int nstates;
 
     AMREX_GPU_DEVICE curandState_t* states_d_ptr;
-    curandState_t* states_h_ptr;
+    curandState_t* states_h_ptr = nullptr;
 
     AMREX_GPU_DEVICE int* locks_d_ptr;
-    int* locks_h_ptr;
+    int* locks_h_ptr = nullptr;
 
 #endif
 
@@ -408,6 +408,13 @@ amrex::InitRandom (unsigned long seed, int nprocs)
         cudaFree(states_h_ptr);
         states_h_ptr = nullptr;    
     }
+
+    if (locks_h_ptr != nullptr)
+    {
+        cudaFree(locks_h_ptr);
+        locks_h_ptr = nullptr;    
+    }
+
     nstates = 0;
 #endif
 }
@@ -587,6 +594,8 @@ amrex::ResizeRandomSeed (int N)
 
     if (states_h_ptr != nullptr) {
 
+        AMREX_ASSERT(locks_h_ptr != nullptr);
+
         AMREX_CUDA_SAFE_CALL(cudaMemcpy(new_data, states_h_ptr, 
                                         PrevSize*sizeof(curandState_t), 
                                         cudaMemcpyDeviceToDevice));
@@ -615,6 +624,7 @@ amrex::ResizeRandomSeed (int N)
         unsigned long seed = MyProc*1234567UL + 12345UL ;
         int seqstart = idx + 10 * idx ; 
         int loc = idx + PrevSize;
+        locks_d_ptr[loc] = 0;
         curand_init(seed, seqstart, 0, &states_d_ptr[loc]);
     }); 
 
@@ -629,6 +639,12 @@ amrex::DeallocateRandomSeedDevArray()
     {
         cudaFree(states_h_ptr);
         states_h_ptr = nullptr;    
+    }
+
+    if (locks_h_ptr != nullptr)
+    {
+        cudaFree(locks_h_ptr);
+        locks_h_ptr = nullptr;
     }
 #endif
 }
