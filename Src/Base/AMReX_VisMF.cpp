@@ -2198,8 +2198,8 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
     Vector<int64_t> localdata(n_local_nums);
 
 #if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ == 9) && (__CUDACC_VER_MINOR__ == 2)
-    constexpr Real value_max = std::numeric_limits<value_type>::max();
-    constexpr Real value_min = std::numeric_limits<value_type>::lowest();
+    constexpr Real value_max = std::numeric_limits<Real>::max();
+    constexpr Real value_min = std::numeric_limits<Real>::lowest();
 #endif
 
     int64_t total_bytes = 0;
@@ -2228,19 +2228,19 @@ VisMF::WriteAsync (const FabArray<FArrayBox>& mf, const std::string& mf_name)
         const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/Gpu::Device::warp_size);
         amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(Real), 0>>>(
         [=] AMREX_GPU_DEVICE () noexcept {
-            Gpu::SharedMemory<value_type> gsm;
-                value_type* block_r = gsm.dataPtr();
-                value_type* sdata = block_r + 1;
+            Gpu::SharedMemory<Real> gsm;
+                Real* block_r = gsm.dataPtr();
+                Real* sdata = block_r + 1;
 
                 const FAB fab(arr,bx.ixType());
 
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                value_type tmin = std::numeric_limits<value_type>::max();
+                Real tmin = std::numeric_limits<Real>::max();
 #else
-                value_type tmin = value_max;
+                Real tmin = value_max;
 #endif
                 for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmin = f(tbx, fab);
+                    Real local_tmin = f(tbx, fab);
                     tmin = amrex::min(tmin, local_tmin);
                 }
                 sdata[threadIdx.x] = tmin;
