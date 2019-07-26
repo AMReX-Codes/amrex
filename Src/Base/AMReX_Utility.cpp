@@ -618,10 +618,7 @@ amrex::ResizeRandomSeed (int N)
         curand_init(seed, seqstart, 0, &states_d_ptr[loc]);
     }); 
 
-    Gpu::Device::synchronize();
-
 #endif
-
 }
 
 void 
