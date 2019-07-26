@@ -181,8 +181,7 @@ void mac_interpolate (const P& p,
 	  ecelly = j;
 	  
 	  //fracs
-	  efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] \ 
-	           -floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
+	  efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - std::floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
 	  efracy = yint;
 	}
       
@@ -194,8 +193,7 @@ void mac_interpolate (const P& p,
 	
 	  //fracs
 	  efracx = xint;
-	  efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] \ 
-	           - floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
+	  efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - std::floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
 	}
 
       //The fraction must be between zero and one. 
@@ -250,8 +248,7 @@ void mac_interpolate (const P& p,
 	  ecellz = k;
 
           //fracs
-          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] \ 
-	           - floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
+          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - std::floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
           efracy = yint;
 	  efracz = zint;
         }
@@ -265,8 +262,7 @@ void mac_interpolate (const P& p,
 
           //fracs
           efracx = xint;
-          efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] \ 
-	           - floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
+          efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - std::floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
 	  ecellz = zint;
 	}
 
@@ -280,12 +276,8 @@ void mac_interpolate (const P& p,
           //fracs
           efracx = xint;
 	  efracy = yint;
-          efracz = p.m_rdata.pos[2]-plo[2]*dxi[2] \
-	           - floor((p.m_rdata.pos[2]-plo[2])*dxi[2]);
+          efracz = p.m_rdata.pos[2]-plo[2]*dxi[2] - std::floor((p.m_rdata.pos[2]-plo[2])*dxi[2]);
         }
-
-
-
       
       // The fraction must be between 0 and 1.
       if (efracx > 1) efracx =1;
@@ -295,11 +287,9 @@ void mac_interpolate (const P& p,
       if (efracy < 0) efracy =0;
       if (efracz < 0) efracz =0;
 
-
       amrex::Real sx[] = {1.-efracx, efracx};
       amrex::Real sy[] = {1.-efracy, efracy};
       amrex::Real sz[] = {1.-efracz, efracz};
-
       
       val[d] = 0.0;
       for (int kk = 0; kk <=1; ++kk)
