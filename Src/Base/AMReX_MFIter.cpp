@@ -207,6 +207,7 @@ MFIter::~MFIter ()
 #ifdef AMREX_USE_GPU
     AMREX_GPU_ERROR_CHECK();
     Gpu::Device::resetStreamIndex();
+    Gpu::resetNumCallbacks();
 #endif
 }
 
@@ -300,6 +301,7 @@ MFIter::Initialize ()
 
 #ifdef AMREX_USE_GPU
 	Gpu::Device::setStreamIndex(currentIndex);
+        Gpu::resetNumCallbacks();
 #endif
 
 	typ = fabArray.boxArray().ixType();
@@ -487,7 +489,11 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (use_gpu) {
-            Gpu::Device::setStreamIndex(currentIndex);
+            if (Gpu::getNumCallbacks() > 0) {
+                Gpu::Device::setStreamIndex(currentIndex%2);
+            } else {
+                Gpu::Device::setStreamIndex(currentIndex);
+            }
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
 //            Gpu::synchronize();
