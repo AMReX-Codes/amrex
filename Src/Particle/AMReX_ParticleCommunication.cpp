@@ -136,3 +136,4 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     }
 #endif // MPI
 }
+

@@ -234,152 +234,18 @@ computeHaloParticles ()
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-clearCopyPlan ()
-{
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::clearCopyPlan");
-    neighbor_copy_op.clear();
-    neighbor_copy_plan.clear();
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
-computeCopyPlan ()
-{
-    neighbor_copy_plan.build(*this, neighbor_copy_op);
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
-packBuffer ()
-{
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::packBuffer");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
-    const int lev = 0;
-    const auto& geom = this->Geom(lev);
-    auto& plev  = this->GetParticles(lev);
-    auto& ba = this->ParticleBoxArray(lev);
-    auto& dmap = this->ParticleDistributionMap(lev);
-    const auto plo = this->Geom(lev).ProbLoArray();
-    const auto phi = this->Geom(lev).ProbHiArray();
-    const auto is_per = this->Geom(lev).isPeriodicArray();
-
-    int num_boxes = ba.size();
-    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
-    
-    int total_buffer_size = neighbor_copy_plan.m_box_offsets[num_boxes];
-
-    snd_buffer.resize(total_buffer_size);    
-
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto& src_tile = plev[index];
-        auto& aos   = src_tile.GetArrayOfStructs();
-        ParticleType* p_ptr = &(aos[0]);
-
-	int num_copies = neighbor_copy_op.m_boxes[gid].size();
-
-	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
-	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
-	auto p_dst_indices = neighbor_copy_plan.m_dst_indices[gid].dataPtr();
-	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[gid].dataPtr();
-	auto p_box_offsets = neighbor_copy_plan.m_box_offsets.dataPtr();
-        auto p_box_perm = this->BufferMap().gridToBucketPtr();
-	auto p_snd_buffer = snd_buffer.dataPtr();
-
-	AMREX_FOR_1D ( num_copies, i,
-        {
-	  int box_offset = p_box_offsets[p_box_perm[p_boxes[i]]];
-	  int dst_index = box_offset + p_dst_indices[i];
-	  int src_index = p_src_indices[i];
-	  p_snd_buffer[dst_index] = p_ptr[src_index];
-
-	  ParticleType& p = p_snd_buffer[dst_index];
-	  const IntVect& pshift = p_periodic_shift[i];
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	  {
-	    if (not is_per[idim]) continue;
-	    if (pshift[idim] > 0) 
-	      p.pos(idim) += phi[idim] - plo[idim]; 
-	    else if (pshift[idim] < 0)
-	      p.pos(idim) -= phi[idim] - plo[idim];
-	  }
-	});
-    }
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
-unpackBuffer ()
-{
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::unpackBuffer");
-
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
-
-    const int lev = 0;
-    const auto& geom = this->Geom(lev);
-    auto& plev  = this->GetParticles(lev);
-    auto& ba = this->ParticleBoxArray(lev);
-    auto& dmap = this->ParticleDistributionMap(lev);
-
-    int num_boxes = ba.size();
-    if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
-    
-    // local unpack
-    auto p_dst_box_counts = neighbor_copy_plan.m_box_counts.dataPtr();
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto& tile = plev[index];
-        auto& aos   = tile.GetArrayOfStructs();
-	auto np = tile.numTotalParticles();
-
-	int num_copies = neighbor_copy_plan.m_box_counts[this->BufferMap().gridToBucket(gid)];
-
-	auto p_box_offsets = neighbor_copy_plan.m_box_offsets.dataPtr();
-	auto p_box_perm = this->BufferMap().gridToBucketPtr();
-	auto p_snd_buffer = snd_buffer.dataPtr();
-
-        int nn = tile.getNumNeighbors();
-        tile.setNumNeighbors(nn + num_copies);	
-
-        ParticleType* p_ptr = aos().dataPtr();
-
-        AMREX_FOR_1D ( num_copies, i,
-        {
-	  int box_offset = p_box_offsets[p_box_perm[gid]];
-	  int src_index = box_offset + i;
-	  int dst_index = np + i;
-	  p_ptr[dst_index] = p_snd_buffer[src_index];
-        });
-    }    
-}
-
-template <int NStructReal, int NStructInt>
-void
-NeighborParticleContainer<NStructReal, NStructInt>::
 fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt>::fillNeighbors");
 
-    AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
+    AMREX_ASSERT(this->numLevels() == 1);
 
-    clearCopyPlan();
+    neighbor_copy_op.clear();
+    neighbor_copy_plan.clear();
     buildNeighborMask();
     this->defineBufferMap();
     computeHaloParticles();
-    computeCopyPlan();
+    neighbor_copy_plan.build(*this, neighbor_copy_op);
     updateNeighborsGPU();
 }
 
@@ -393,8 +259,8 @@ updateNeighborsGPU ()
     AMREX_ASSERT(this->numLevels() == 1);
 
     clearNeighbors();
-    packBuffer();
-    unpackBuffer();
+    packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
+    unpackBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
     communicateParticles();
 }
 
