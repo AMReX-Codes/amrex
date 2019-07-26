@@ -437,10 +437,9 @@ protected:
     std::map<int, amrex::Gpu::ManagedDeviceVector<NeighborCode> > m_code_array;
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > m_code_offsets;
 
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_boxes;
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_src_indices;
+    ParticleCopyOp neighbor_copy_op;
+
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
-    std::map<int, amrex::Gpu::ManagedDeviceVector<IntVect> > copy_plan_periodic_shift;
 
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
     amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;

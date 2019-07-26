@@ -42,6 +42,7 @@
 #include <AMReX_Functors.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_ParticleBufferMap.H>
+#include <AMReX_ParticleCommunication.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>

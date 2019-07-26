@@ -196,14 +196,14 @@ computeHaloParticles ()
 	int num_copies;
         Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
 
-	copy_plan_boxes[gid].resize(num_copies);
-	copy_plan_src_indices[gid].resize(num_copies);
+	neighbor_copy_op.m_boxes[gid].resize(num_copies);
+	neighbor_copy_op.m_src_indices[gid].resize(num_copies);
 	copy_plan_dst_indices[gid].resize(num_copies);
-	copy_plan_periodic_shift[gid].resize(num_copies);
+	neighbor_copy_op.m_periodic_shift[gid].resize(num_copies);
 
-	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
-	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
-	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
+	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
+	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
+	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[gid].dataPtr();
 
 	AMREX_FOR_1D ( np, i,
         {
@@ -224,9 +224,9 @@ computeHaloParticles ()
 	        for (int j = start; j < stop; ++j)
 	        {
 		  int index = p_offsets[i]+k;
-		  p_copy_plan_boxes[index] = p_code_array[j].grid_id;
-		  p_copy_plan_periodic_shift[index] = p_code_array[j].periodic_shift;
-		  p_copy_plan_src_indices[index] = i;
+		  p_boxes[index] = p_code_array[j].grid_id;
+		  p_periodic_shift[index] = p_code_array[j].periodic_shift;
+		  p_src_indices[index] = i;
 		  ++k;
 		}
 	    }
@@ -246,10 +246,8 @@ clearCopyPlan ()
     box_counts.resize(0);
     box_offsets.resize(0);
 
-    copy_plan_boxes.clear();
-    copy_plan_src_indices.clear();
+    neighbor_copy_op.clear();
     copy_plan_dst_indices.clear();
-    copy_plan_periodic_shift.clear();
 }
 
 template <int NStructReal, int NStructInt>
@@ -282,16 +280,16 @@ computeCopyPlan ()
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
-	int num_copies = copy_plan_boxes[gid].size();
+	int num_copies = neighbor_copy_op.m_boxes[gid].size();
 
-	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
-	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
+	auto p_dst_indices = copy_plan_dst_indices[gid].dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-	    int dst_box = p_copy_plan_boxes[i];
+	    int dst_box = p_boxes[i];
 	    int index = Gpu::Atomic::Inc(&p_dst_box_counts[p_box_perm[dst_box]], max_unsigned_int);
-	    p_copy_plan_dst_indices[i] = index;
+	    p_dst_indices[i] = index;
 	});
     }
 
@@ -333,25 +331,25 @@ packBuffer ()
         auto& aos   = src_tile.GetArrayOfStructs();
         ParticleType* p_ptr = &(aos[0]);
 
-	int num_copies = copy_plan_boxes[gid].size();
+	int num_copies = neighbor_copy_op.m_boxes[gid].size();
 
-	auto p_copy_plan_boxes = copy_plan_boxes[gid].dataPtr();
-	auto p_copy_plan_src_indices = copy_plan_src_indices[gid].dataPtr();
-	auto p_copy_plan_dst_indices = copy_plan_dst_indices[gid].dataPtr();
-	auto p_copy_plan_periodic_shift = copy_plan_periodic_shift[gid].dataPtr();
+	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
+	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
+	auto p_dst_indices = copy_plan_dst_indices[gid].dataPtr();
+	auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[gid].dataPtr();
 	auto p_box_offsets = box_offsets.dataPtr();
         auto p_box_perm = this->BufferMap().gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-	  int box_offset = p_box_offsets[p_box_perm[p_copy_plan_boxes[i]]];
-	  int dst_index = box_offset + p_copy_plan_dst_indices[i];
-	  int src_index = p_copy_plan_src_indices[i];
+	  int box_offset = p_box_offsets[p_box_perm[p_boxes[i]]];
+	  int dst_index = box_offset + p_dst_indices[i];
+	  int src_index = p_src_indices[i];
 	  p_snd_buffer[dst_index] = p_ptr[src_index];
 
 	  ParticleType& p = p_snd_buffer[dst_index];
-	  const IntVect& pshift = p_copy_plan_periodic_shift[i];
+	  const IntVect& pshift = p_periodic_shift[i];
 	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	  {
 	    if (not is_per[idim]) continue;
@@ -382,8 +380,8 @@ unpackBuffer ()
     int num_boxes = ba.size();
     if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
     
+    // local unpack
     auto p_dst_box_counts = box_counts.dataPtr();
-
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -411,8 +409,8 @@ unpackBuffer ()
 	  int src_index = box_offset + i;
 	  int dst_index = np + i;
 	  p_ptr[dst_index] = p_snd_buffer[src_index];
-        });        
-    }
+        });
+    }    
 }
 
 template <int NStructReal, int NStructInt>

@@ -36,4 +36,6 @@ target_sources( amrex
    AMReX_KDTree_${DIM}d.F90
    AMReX_ParticleBufferMap.H
    AMReX_ParticleBufferMap.cpp
+   AMReX_ParticleCommunication.H
+   AMReX_ParticleCommunication.cpp
    )
