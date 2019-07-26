@@ -1170,7 +1170,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
-    BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_ppc_pp);
+    BL_PROFILE_VAR_NS("PPC::ParticlePush", blp_ppc_pp);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
     
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
