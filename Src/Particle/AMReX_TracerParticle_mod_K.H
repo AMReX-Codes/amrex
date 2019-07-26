@@ -113,7 +113,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mac_interpolate (const P& p,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
 		      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-		      amrex::GpuArray<amrex::Array4<const double>*,AMREX_SPACEDIM> const& p_uccarr,
+		      amrex::GpuArray<amrex::Array4<const double>,AMREX_SPACEDIM> const& p_uccarr,
 		      amrex::Real * val)
 {
 
@@ -148,7 +148,7 @@ void mac_interpolate (const P& p,
       val[d] = 0.0;
       for (int ii = 0; ii <= 1; ++ii)
 	{
-	  val[d] += (*(p_uccarr[d]))(ecellx+ii, 0 0,0)*sx[ii];
+	  val[d] += (p_uccarr[d])(ecellx+ii, 0 0,0)*sx[ii];
 	}		
     }
 
@@ -213,7 +213,7 @@ void mac_interpolate (const P& p,
       {
 	for (int ii = 0; ii <= 1; ++ii)
 	  {
-	    val[d] += (*(p_uccarr[d]))(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
+	    val[d] += (p_uccarr[d])(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
 	  }
       }
     
@@ -308,7 +308,7 @@ void mac_interpolate (const P& p,
 	    {
 	      for (int ii = 0; ii <= 1; ++ii)
 		{
-		  val[d] += (*(p_uccarr[d]))(ecellx+ii, ecelly+jj, ecellz+kk ,0)*sx[ii]*sy[jj]*sz[kk];
+		  val[d] += (p_uccarr[d])(ecellx+ii, ecelly+jj, ecellz+kk ,0)*sx[ii]*sy[jj]*sz[kk];
 		}
 	    }
 	}
