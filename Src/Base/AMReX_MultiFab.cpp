@@ -1220,7 +1220,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
