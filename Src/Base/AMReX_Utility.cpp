@@ -570,6 +570,7 @@ amrex::InitRandSeedOnDevice (int N)
 void 
 amrex::ResizeRandomSeed (int N)
 {
+    BL_PROFILE("ResizeRandomSeed");
 
 #ifdef AMREX_USE_CUDA  
 
@@ -616,6 +617,8 @@ amrex::ResizeRandomSeed (int N)
         int loc = idx + PrevSize;
         curand_init(seed, seqstart, 0, &states_d_ptr[loc]);
     }); 
+
+    Gpu::Device::synchronize();
 
 #endif
 
