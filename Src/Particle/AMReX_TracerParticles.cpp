@@ -68,27 +68,9 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 							  &((*umac_pointer[1])[grid]),
 							  &((*umac_pointer[2])[grid])) };
 	  
-
-	  auto umacarrx = (*fab[0]).array();
-	  amrex::Array4<const double> * p_umacarrx = &(umacarrx);
-	  amrex::Array4<const double> * p_umacarry;
-	  amrex::Array4<const double> * p_umacarrz;
-
-	  //If this is true, we need the y component 
-	  if (AMREX_SPACEDIM >= 2) {
-	    auto umacarry = (*fab[1]).array();
-	    p_umacarry = &(umacarry);
-	  }
-	  //If this is true, we need the z component
-	  if (AMREX_SPACEDIM >= 3) {
-	    auto umacarrz = (*fab[2]).array();
-	    p_umacarrz = &(umacarrz);
-	  }
-
 	  //array of these pointers to pass to the GPU
-	  amrex::GpuArray<amrex::Array4<const double>* , AMREX_SPACEDIM>
-	    const umacarr {AMREX_D_DECL(p_umacarrx, p_umacarry, p_umacarrz )};
-	
+	  amrex::GpuArray<amrex::Array4<const double> , AMREX_SPACEDIM>
+	    const umacarr {AMREX_D_DECL((*fab[0]).array(), (*fab[1]).array(), (*fab[2]).array() )};
 							   
 
 #ifdef _OPENMP
