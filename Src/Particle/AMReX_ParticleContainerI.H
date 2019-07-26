@@ -1032,6 +1032,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
 
     if (local > 0) BuildRedistributeMask(0, local);
+    this->defineBufferMap();
 
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -1040,10 +1041,94 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     auto& plev       = m_particles[lev];
     const auto plo   = Geom(lev).ProbLoArray();
     const auto dxi   = Geom(lev).InvCellSizeArray();
+    const auto phi = Geom(lev).ProbHiArray();
+    const auto is_per = Geom(lev).isPeriodicArray();
+
     const Box domain = Geom(lev).Domain();
 
-    
+    if ( (ba.size() == 1) and geom.isAllPeriodic() )
+    {
+        EnforcePeriodicGPU();
+        AMREX_ASSERT(OK());
+        return;
+    }
 
+    ParticleCopyOp op;
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& src_tile = plev[index];
+        auto& aos   = src_tile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+	op.resize(gid, np);
+
+	auto p_boxes = op.m_boxes[gid].dataPtr();
+	auto p_src_indices = op.m_src_indices[gid].dataPtr();
+	auto p_periodic_shift = op.m_periodic_shift[gid].dataPtr();
+        Array4<const int> const& mask_arr = redistribute_mask_ptr->array(mfi);
+        ParticleType* p_ptr = &(aos[0]);
+
+	AMREX_FOR_1D ( np, i,
+        {
+            auto& p = p_ptr[i];
+            int grid_id;
+            if (p.id() >= 0)
+            {
+                IntVect iv = IntVect(
+                    AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                                 floor((p.pos(1)-plo[1])*dxi[1]),
+                                 floor((p.pos(2)-plo[2])*dxi[2]))
+                    );
+            
+                iv += domain.smallEnd();
+                
+                grid_id = mask_arr(iv);
+            }
+            else
+            {
+                grid_id=-1;
+            }
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                if (not is_per[idim]) continue;
+                if (p.pos(idim) > phi[idim]) { 
+                    p.pos(idim) -= (phi[idim] - plo[idim]); 
+                } else if (p.pos(idim) < plo[idim]) {
+                    p.pos(idim) += (phi[idim] - plo[idim]);
+                }
+            }
+
+            p_boxes[i] = grid_id;
+            p_periodic_shift[i] = IntVect(0,0,0); // already handled this
+            p_src_indices[i] = i;
+	});
+    }
+
+    ParticleCopyPlan plan;
+    plan.build(this, op);
+
+    Gpu::DeviceVector<ParticleType> snd_buffer;
+    Gpu::DeviceVector<ParticleType> rcv_buffer;
+    packBuffer(*this, op, plan, snd_buffer);
+
+    // clear particles from container
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& tile = plev[index];
+        tile.resize(0);
+    }    
+
+    unpackBuffer(*this, op, plan, snd_buffer, RedistributeUnpackPolicy());
+    communicateParticles(*this, op, plan, snd_buffer, rcv_buffer, RedistributeUnpackPolicy());
 #endif    
 }
 

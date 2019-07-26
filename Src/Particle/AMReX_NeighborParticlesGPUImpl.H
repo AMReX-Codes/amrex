@@ -263,8 +263,8 @@ updateNeighborsGPU ()
 
     clearNeighbors();
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
-    unpackBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
-    communicateParticles(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer, rcv_buffer);
+    unpackBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
+    communicateParticles(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer, rcv_buffer, NeighborUnpackPolicy());
 }
 
 template <int NStructReal, int NStructInt>
