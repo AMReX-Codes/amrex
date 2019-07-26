@@ -11,6 +11,35 @@
 
 namespace amrex {
 
+struct NeighborUnpackPolicy
+{
+    template <class PTile> 
+    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    {
+        for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
+        {
+            int offset = tiles[i]->numTotalParticles();
+            int nn = tiles[i]->getNumNeighbors();
+            tiles[i]->setNumNeighbors(nn + sizes[i]);
+            offsets.push_back(offset);
+        }
+    }
+};
+
+struct RedistributeUnpackPolicy
+{
+    template <class PTile> 
+    void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
+    {        
+        for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
+        {
+            int offset = tiles[i]->numParticles();
+            tiles[i]->resize(offset + sizes[i]);
+            offsets.push_back(offset);
+        }
+    }
+};
+
 struct ParticleCopyOp 
 {
     std::map<int, Gpu::ManagedDeviceVector<int> > m_boxes;
@@ -147,19 +176,40 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     }
 }
 
-template <class PC, class Buffer>
-void unpackBuffer (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer)
+template <class PC, class Buffer, class UnpackPolicy>
+void unpackBuffer (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
 {
     BL_PROFILE("amrex::packBuffer");
 
     AMREX_ASSERT(pc.numLevels() == 1);
+
+    using PTile = typename PC::ParticleTileType;
 
     const int lev = 0;
     auto& plev  = pc.GetParticles(lev);
 
     if (pc.ParticleBoxArray(lev).size() == 1 and (not pc.Geom(lev).isAnyPeriodic()) ) return;
     
+    // count how many particles we have to add to each tile
+    std::vector<int> sizes;
+    std::vector<PTile*> tiles;
+    for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+        auto& tile = plev[index];
+	int num_copies = plan.m_box_counts[pc.BufferMap().gridToBucket(gid)];
+        sizes.push_back(num_copies);
+        tiles.push_back(&tile);
+    }
+
+    // resize the tiles and compute offsets
+    std::vector<int> offsets;
+    policy.resizeTiles(tiles, sizes, offsets);
+
     // local unpack
+    int uindex = 0;
     auto p_dst_box_counts = plan.m_box_counts.dataPtr();
     for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -169,36 +219,35 @@ void unpackBuffer (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& pla
 
         auto& tile = plev[index];
         auto& aos   = tile.GetArrayOfStructs();
-	auto np = tile.numTotalParticles();
-
-	int num_copies = plan.m_box_counts[pc.BufferMap().gridToBucket(gid)];
 
 	auto p_box_offsets = plan.m_box_offsets.dataPtr();
 	auto p_box_perm = pc.BufferMap().gridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
-        int nn = tile.getNumNeighbors();
-        tile.setNumNeighbors(nn + num_copies);	
-
+        int offset = offsets[uindex];
+        int size = sizes[uindex];
+        ++uindex;
+        
         auto p_ptr = aos().dataPtr();
-        AMREX_FOR_1D ( num_copies, i,
+        AMREX_FOR_1D ( size, i,
         {
             int box_offset = p_box_offsets[p_box_perm[gid]];
             int src_index = box_offset + i;
-            int dst_index = np + i;
+            int dst_index = offset + i;
             p_ptr[dst_index] = p_snd_buffer[src_index];
         });
     }    
 }
 
-template <class PC, class Buffer>
-void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
+template <class PC, class Buffer, class UnpackPolicy>
+void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer, const UnpackPolicy& policy)
 {
     BL_PROFILE("amrex::communicateParticles");
     
     AMREX_ASSERT(pc.numLevels() == 1);
 
     using ParticleType = typename PC::ParticleType;
+    using PTile = typename PC::ParticleTileType;
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -306,9 +355,24 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
 	auto p_rcv_box_ids = plan.m_rcv_box_ids.dataPtr();
 	auto p_rcv_buffer = rcv_buffer.dataPtr();
 
+        std::vector<int> sizes;
+        std::vector<PTile*> tiles;
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{
-	  int copy_size = plan.m_rcv_box_counts[i];
+            int copy_size = plan.m_rcv_box_counts[i];
+            int gid = plan.m_rcv_box_ids[i];
+            int tid = 0;
+            auto index = std::make_pair(gid, tid);         
+            auto& tile = plev[index];
+            sizes.push_back(copy_size);
+            tiles.push_back(&tile);
+        }
+
+        std::vector<int> offsets;
+        policy.resizeTiles(tiles, sizes, offsets);
+        int uindex;
+	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
+	{
 	  int gid = plan.m_rcv_box_ids[i];
 	  int tid = 0;
 	  int offset = plan.m_rcv_box_offsets[i];
@@ -317,19 +381,19 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
 	  
 	  auto& tile = plev[index];
 	  auto& aos   = tile.GetArrayOfStructs();
-	  auto np = tile.numTotalParticles();
 
 	  AMREX_ALWAYS_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
 
-	  int nn = tile.getNumNeighbors();
-	  tile.setNumNeighbors(nn + plan.m_rcv_box_counts[i]);	
+          int dst_offset = offsets[uindex];
+          int size = sizes[uindex];
+          ++uindex;
 
 	  auto p_ptr = &(aos[0]);
-	  AMREX_FOR_1D ( copy_size, ip,
+	  AMREX_FOR_1D ( size, ip,
 	  {
-	    int src_index = offset + ip;
-	    int dst_index = np + ip;
-	    p_ptr[dst_index] = p_rcv_buffer[src_index];
+              int src_index = offset + ip;
+              int dst_index = dst_offset + ip;
+              p_ptr[dst_index] = p_rcv_buffer[src_index];
 	  });	 
 	}	
     }    
