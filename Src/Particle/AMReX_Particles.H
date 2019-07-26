@@ -773,6 +773,8 @@ public:
         communicate_int_comp.push_back(communicate);
         SetParticleSize();
     }
+
+    const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
     
 protected:
 
@@ -836,7 +838,6 @@ protected:
 
     void defineBufferMap () const;
     mutable ParticleBufferMap m_buffer_map;
-    const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
 
     //! The member data.
     int         m_verbose;

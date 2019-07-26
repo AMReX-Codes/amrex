@@ -16,11 +16,6 @@ void ParticleCopyOp::resize (const int gid, const int size)
     m_periodic_shift[gid].resize(size);
 }
 
-void ParticleCopyPlan::build ()
-{
-    
-}
-
 void ParticleCopyPlan::clear ()
 {
     m_dst_indices.clear();
