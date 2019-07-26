@@ -1170,7 +1170,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
-    BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
+    BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_ppc_pp);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
     
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -1527,10 +1527,10 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Particle Push
                 //
-                BL_PROFILE_VAR_START(blp_pxr_pp);
+                BL_PROFILE_VAR_START(blp_ppc_pp);
                 PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], 
                        m_giv[thread_num], dt);
-                BL_PROFILE_VAR_STOP(blp_pxr_pp);
+                BL_PROFILE_VAR_STOP(blp_ppc_pp);
 
                 //
                 // Current Deposition
