@@ -1122,9 +1122,9 @@ PhysicalParticleContainer::FieldGather (int lev,
 #ifdef WARPX_RZ
             warpx_geteb_energy_conserving(
                 &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
+                m_xp[thread_num].dataPtr(),
+                m_yp[thread_num].dataPtr(),
+                m_zp[thread_num].dataPtr(),
                 Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
                 Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                 ixyzmin,
