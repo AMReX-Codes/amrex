@@ -9,6 +9,13 @@ void ParticleCopyOp::clear ()
     m_periodic_shift.clear();
 }
 
+void ParticleCopyOp::resize (const int gid, const int size)
+{
+    m_boxes[gid].resize(size);
+    m_src_indices[gid].resize(size);
+    m_periodic_shift[gid].resize(size);
+}
+
 void ParticleCopyPlan::build ()
 {
     

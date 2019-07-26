@@ -16,6 +16,10 @@ struct ParticleCopyOp
     std::map<int, Gpu::ManagedDeviceVector<IntVect> > m_periodic_shift;
 
     void clear ();
+
+    void resize (const int gid, const int size);
+
+    int numCopies (const int gid) const { return m_boxes.at(gid).size(); }
 };
 
 struct ParticleCopyPlan 

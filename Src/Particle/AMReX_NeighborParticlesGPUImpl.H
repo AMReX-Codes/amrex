@@ -196,11 +196,7 @@ computeHaloParticles ()
 	int num_copies;
         Gpu::dtoh_memcpy(&num_copies, thrust::raw_pointer_cast(offsets.data())+np, sizeof(int));
 
-	neighbor_copy_op.m_boxes[gid].resize(num_copies);
-	neighbor_copy_op.m_src_indices[gid].resize(num_copies);
-	neighbor_copy_op.m_periodic_shift[gid].resize(num_copies);
-
-	neighbor_copy_plan.m_dst_indices[gid].resize(num_copies);
+	neighbor_copy_op.resize(gid, num_copies);
 
 	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
 	auto p_src_indices = neighbor_copy_op.m_src_indices[gid].dataPtr();
@@ -277,6 +273,7 @@ computeCopyPlan ()
     {
         int gid = mfi.index();
 	int num_copies = neighbor_copy_op.m_boxes[gid].size();
+        neighbor_copy_plan.m_dst_indices[gid].resize(num_copies);
 
 	auto p_boxes = neighbor_copy_op.m_boxes[gid].dataPtr();
 	auto p_dst_indices = neighbor_copy_plan.m_dst_indices[gid].dataPtr();
