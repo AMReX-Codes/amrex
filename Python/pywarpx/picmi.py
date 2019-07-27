@@ -7,13 +7,15 @@ import pywarpx
 codename = 'warpx'
 picmistandard.register_codename(codename)
 
-# --- Values from WarpXConst.H
-c = 299792458.
-ep0 = 8.854187817e-12
-mu0 = 1.2566370614359173e-06
-q_e = 1.602176462e-19
-m_e = 9.10938291e-31
-m_p = 1.6726231e-27
+class constants:
+    # --- Put the constants in their own namespace
+    # --- Values from WarpXConst.H
+    c = 299792458.
+    ep0 = 8.854187817e-12
+    mu0 = 1.2566370614359173e-06
+    q_e = 1.602176462e-19
+    m_e = 9.10938291e-31
+    m_p = 1.6726231e-27
 
 
 class Species(picmistandard.PICMI_Species):
@@ -75,9 +77,9 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
         # --- Calculate the total charge. Note that charge might be a string instead of a number.
         charge = species.charge
         if charge == 'q_e' or charge == '+q_e':
-            charge = q_e
+            charge = constants.q_e
         elif charge == '-q_e':
-            charge = -q_e
+            charge = -constants.q_e
         species.q_tot = self.n_physical_particles*charge
 
         # --- These need to be defined even though they are not used
@@ -97,22 +99,22 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
         # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.velocity_divergence, 0.)):
             species.momentum_distribution_type = "radial_expansion"
-            species.u_over_r = self.velocity_divergence[0]/c
-            #species.u_over_y = self.velocity_divergence[1]/c
-            #species.u_over_z = self.velocity_divergence[2]/c
+            species.u_over_r = self.velocity_divergence[0]/constants.c
+            #species.u_over_y = self.velocity_divergence[1]/constants.c
+            #species.u_over_z = self.velocity_divergence[2]/constants.c
         elif np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.centroid_velocity[0]/c
-            species.uy_m = self.centroid_velocity[1]/c
-            species.uz_m = self.centroid_velocity[2]/c
-            species.ux_th = self.rms_velocity[0]/c
-            species.uy_th = self.rms_velocity[1]/c
-            species.uz_th = self.rms_velocity[2]/c
+            species.ux_m = self.centroid_velocity[0]/constants.c
+            species.uy_m = self.centroid_velocity[1]/constants.c
+            species.uz_m = self.centroid_velocity[2]/constants.c
+            species.ux_th = self.rms_velocity[0]/constants.c
+            species.uy_th = self.rms_velocity[1]/constants.c
+            species.uz_th = self.rms_velocity[2]/constants.c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.centroid_velocity[0]/c
-            species.uy = self.centroid_velocity[1]/c
-            species.uz = self.centroid_velocity[2]/c
+            species.ux = self.centroid_velocity[0]/constants.c
+            species.uy = self.centroid_velocity[1]/constants.c
+            species.uz = self.centroid_velocity[2]/constants.c
 
 
 class UniformDistribution(picmistandard.PICMI_UniformDistribution):
@@ -143,17 +145,17 @@ class UniformDistribution(picmistandard.PICMI_UniformDistribution):
         # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.directed_velocity[0]/c
-            species.uy_m = self.directed_velocity[1]/c
-            species.uz_m = self.directed_velocity[2]/c
-            species.ux_th = self.rms_velocity[0]/c
-            species.uy_th = self.rms_velocity[1]/c
-            species.uz_th = self.rms_velocity[2]/c
+            species.ux_m = self.directed_velocity[0]/constants.c
+            species.uy_m = self.directed_velocity[1]/constants.c
+            species.uz_m = self.directed_velocity[2]/constants.c
+            species.ux_th = self.rms_velocity[0]/constants.c
+            species.uy_th = self.rms_velocity[1]/constants.c
+            species.uz_th = self.rms_velocity[2]/constants.c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.directed_velocity[0]/c
-            species.uy = self.directed_velocity[1]/c
-            species.uz = self.directed_velocity[2]/c
+            species.ux = self.directed_velocity[0]/constants.c
+            species.uy = self.directed_velocity[1]/constants.c
+            species.uz = self.directed_velocity[2]/constants.c
 
         if self.fill_in:
             species.do_continuous_injection = 1
@@ -190,17 +192,17 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.directed_velocity[0]/c
-            species.uy_m = self.directed_velocity[1]/c
-            species.uz_m = self.directed_velocity[2]/c
-            species.ux_th = self.rms_velocity[0]/c
-            species.uy_th = self.rms_velocity[1]/c
-            species.uz_th = self.rms_velocity[2]/c
+            species.ux_m = self.directed_velocity[0]/constants.c
+            species.uy_m = self.directed_velocity[1]/constants.c
+            species.uz_m = self.directed_velocity[2]/constants.c
+            species.ux_th = self.rms_velocity[0]/constants.c
+            species.uy_th = self.rms_velocity[1]/constants.c
+            species.uz_th = self.rms_velocity[2]/constants.c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.directed_velocity[0]/c
-            species.uy = self.directed_velocity[1]/c
-            species.uz = self.directed_velocity[2]/c
+            species.ux = self.directed_velocity[0]/constants.c
+            species.uy = self.directed_velocity[1]/constants.c
+            species.uz = self.directed_velocity[2]/constants.c
 
         if self.fill_in:
             species.do_continuous_injection = 1
@@ -216,7 +218,7 @@ class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
 
         species.injection_style = "singleparticle"
         species.single_particle_pos = [self.x[0], self.y[0], self.z[0]]
-        species.single_particle_vel = [self.ux[0]/c, self.uy[0]/c, self.uz[0]/c]
+        species.single_particle_vel = [self.ux[0]/constants.c, self.uy[0]/constants.c, self.uz[0]/constants.c]
         species.single_particle_weight = self.weight
 
         # --- These need to be defined even though they are not used
@@ -273,7 +275,7 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
                 raise Exception('In cylindrical coordinates, a moving window in r can not be done')
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'z'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -308,10 +310,10 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
             pywarpx.warpx.do_moving_window = 1
             if self.moving_window_velocity[0] != 0.:
                 pywarpx.warpx.moving_window_dir = 'x'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/constants.c  # in units of the speed of light
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'y'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -348,13 +350,13 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
             pywarpx.warpx.do_moving_window = 1
             if self.moving_window_velocity[0] != 0.:
                 pywarpx.warpx.moving_window_dir = 'x'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/constants.c  # in units of the speed of light
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'y'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
             if self.moving_window_velocity[2] != 0.:
                 pywarpx.warpx.moving_window_dir = 'z'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[2]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[2]/constants.c  # in units of the speed of light
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -415,7 +417,7 @@ class LaserAntenna(picmistandard.PICMI_LaserAntenna):
         laser.laser.position = self.position  # This point is on the laser plane
         laser.laser.direction = self.normal_vector  # The plane normal direction
         laser.laser.profile_focal_distance = laser.focal_position[2] - self.position[2]  # Focal distance from the antenna (in meters)
-        laser.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/c  # The time at which the laser reaches its peak (in seconds)
+        laser.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/constants.c  # The time at which the laser reaches its peak (in seconds)
 
 
 class Simulation(picmistandard.PICMI_Simulation):
