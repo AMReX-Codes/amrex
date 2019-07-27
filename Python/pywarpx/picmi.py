@@ -1,8 +1,10 @@
 """Classes following the PICMI standard
 """
+import re
 import picmistandard
 import numpy as np
 import pywarpx
+import periodictable
 
 codename = 'warpx'
 picmistandard.register_codename(codename)
@@ -33,9 +35,26 @@ class Species(picmistandard.PICMI_Species):
         elif self.particle_type == 'anti-proton':
             if self.charge is None: self.charge = '-q_e'
             if self.mass is None: self.mass = 'm_p'
-        elif self.particle_type == 'H' and self.charge_state == 1:
-            if self.charge is None: self.charge = 'q_e'
-            if self.mass is None: self.mass = 'm_p'
+        else:
+            if self.charge is None and self.charge_state is not None:
+                self.charge = self.charge_state*constants.q_e
+            # Match a string of the format '#nXx', with the '#n' optional isotope number.
+            m = re.match('(?P<iso>#[\d+])*(?P<sym>[A-Za-z]+)', self.particle_type)
+            if m is not None:
+                element = periodictable.elements.symbol(m['sym'])
+                if m['iso'] is not None:
+                    element = element[m['iso'][1:]]
+                if self.charge_state is not None:
+                    assert self.charge_state <= element.number, Exception('%s charge state not valid'%self.particle_type)
+                    try:
+                        element = element.ion[self.charge_state]
+                    except ValueError:
+                        # Note that not all valid charge states are defined in elements,
+                        # so this value error can be ignored.
+                        pass
+                self.element = element
+                if self.mass is None:
+                    self.mass = element.mass*periodictable.constants.atomic_mass_constant
 
     def initialize_inputs(self, layout):
         self.species_number = pywarpx.particles.nspecies
