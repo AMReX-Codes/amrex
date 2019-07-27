@@ -387,68 +387,51 @@ WarpX::ReadParameters ()
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
+        /*
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
-        // Fields to dump into plotfiles
-        pp.query("plot_E_field"      , plot_E_field);
-        pp.query("plot_B_field"      , plot_B_field);
-        pp.query("plot_J_field"      , plot_J_field);
-        pp.query("plot_part_per_cell", plot_part_per_cell);
-        pp.query("plot_part_per_grid", plot_part_per_grid);
-        pp.query("plot_part_per_proc", plot_part_per_proc);
-        pp.query("plot_proc_number"  , plot_proc_number);
-        pp.query("plot_dive"         , plot_dive);
-        pp.query("plot_divb"         , plot_divb);
-        pp.query("plot_rho"          , plot_rho);
-        pp.query("plot_F"            , plot_F);
+        */
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
         int do_user_plot_vars;
         do_user_plot_vars = pp.queryarr("fields_to_plot", fields_to_plot);
-        /*
         if (not do_user_plot_vars){
-            nvars_
-            // By default, all particle variables are dumped to plotfiles,
-            // including {x,y,z,ux,uy,uz}old variables when running in a 
-            // boosted frame
-            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
-                plot_flags.resize(PIdx::nattribs + 6, 1);
-            } else {
-                plot_flags.resize(PIdx::nattribs, 1);
-            }
-        } else {
-            // Set plot_flag to 0 for all attribs
-            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
-                plot_flags.resize(PIdx::nattribs + 6, 0);
-            } else {
-                plot_flags.resize(PIdx::nattribs, 0);
-            }
-            // If not none, set plot_flags values to 1 for elements in plot_vars.
-            if (plot_vars[0] != "none"){
-                for (const auto& var : plot_vars){
-                    // Return error if var not in PIdx. 
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
-                        ParticleStringNames::to_index.count(var), 
-                        "plot_vars argument not in ParticleStringNames");
-                    plot_flags[ParticleStringNames::to_index.at(var)] = 1;
-                }
-            }
+            // If not specified, set default values
+            fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
+                              "Bz", "jx", "jy", "jz", 
+                              "part_per_cell"};
         }
-        */
+        // set plot_rho to true of the users requests it, so that
+        // rho is computed at each iteration.
+        if (std::find(fields_to_plot.begin(), fields_to_plot.end(), "rho")
+            != fields_to_plot.end()){
+            plot_rho = true;
+        }
+        // Sanity check if user requests to plot F
+        if (std::find(fields_to_plot.begin(), fields_to_plot.end(), "F")
+            != fields_to_plot.end()){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
+                "plot F only works if warpx.do_dive_cleaning = 1");
+        }
+        // If user requests to plot proc_number for a serial run,
+        // delete proc_number from fields_to_plot
+        if (ParallelDescriptor::NProcs() == 1){
+            fields_to_plot.erase(std::remove(fields_to_plot.begin(), 
+                                             fields_to_plot.end(), 
+                                             "proc_number"), 
+                                 fields_to_plot.end());
+        }
 
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
-              amrex::Abort("plot_coarsening_ratio should be an integer divisor of the blocking factor.");
+              amrex::Abort("plot_coarsening_ratio should be an integer "
+                           "divisor of the blocking factor.");
             }
           }
         }
 
-        if (plot_F){
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
-                "plot_F only works if warpx.do_dive_cleaning = 1");
-        }
         pp.query("plot_finepatch", plot_finepatch);
         if (maxLevel() > 0) {
             pp.query("plot_crsepatch", plot_crsepatch);
