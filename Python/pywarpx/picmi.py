@@ -53,16 +53,18 @@ class Species(picmistandard.PICMI_Species):
         pywarpx.Particles.particles_list.append(self.species)
 
         if self.initial_distribution is not None:
-            self.initial_distribution.initialize_inputs(self.species_number, layout, self.species)
+            self.initial_distribution.initialize_inputs(self.species_number, layout, self.species, self.density_scale)
 
 
 picmistandard.PICMI_MultiSpecies.Species_class = Species
 class MultiSpecies(picmistandard.PICMI_MultiSpecies):
-    pass
+    def initialize_inputs(self, layout):
+        for species in self.species_instances_list:
+            species.initialize_inputs(layout)
 
 
 class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
         species.injection_style = "gaussian_beam"
         species.x_m = self.centroid_position[0]
         species.y_m = self.centroid_position[1]
@@ -81,6 +83,8 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
         elif charge == '-q_e':
             charge = -constants.q_e
         species.q_tot = self.n_physical_particles*charge
+        if density_scale is not None:
+            species.q_tot *= density_scale
 
         # --- These need to be defined even though they are not used
         species.profile = "constant"
@@ -118,7 +122,7 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
 
 
 class UniformDistribution(picmistandard.PICMI_UniformDistribution):
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
 
         if isinstance(layout, GriddedLayout):
             # --- Note that the grid attribute of GriddedLayout is ignored
@@ -141,6 +145,8 @@ class UniformDistribution(picmistandard.PICMI_UniformDistribution):
         # --- Only constant density is supported at this time
         species.profile = "constant"
         species.density = self.density
+        if density_scale is not None:
+            species.density *= density_scale
 
         # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.rms_velocity, 0.)):
@@ -162,7 +168,7 @@ class UniformDistribution(picmistandard.PICMI_UniformDistribution):
 
 
 class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
 
         if isinstance(layout, GriddedLayout):
             # --- Note that the grid attribute of GriddedLayout is ignored
@@ -184,7 +190,10 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
 
         # --- Only constant density is supported at this time
         species.profile = "parse_density_function"
-        species.__setattr__('density_function(x,y,z)', self.density_expression)
+        if density_scale is None:
+            species.__setattr__('density_function(x,y,z)', self.density_expression)
+        else:
+            species.__setattr__('density_function(x,y,z)', "{}*({})".format(density_scale, self.density_expression))
 
         for k,v in self.user_defined_kw.items():
             setattr(pywarpx.my_constants, k, v)
@@ -214,12 +223,14 @@ class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
         if len(x) > 1:
             raise Exception('Only a single particle can be loaded')
 
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
 
         species.injection_style = "singleparticle"
         species.single_particle_pos = [self.x[0], self.y[0], self.z[0]]
         species.single_particle_vel = [self.ux[0]/constants.c, self.uy[0]/constants.c, self.uz[0]/constants.c]
         species.single_particle_weight = self.weight
+        if density_scale is not None:
+            species.single_particle_weight *= density_scale
 
         # --- These need to be defined even though they are not used
         species.profile = "constant"
@@ -238,7 +249,7 @@ class GriddedLayout(picmistandard.PICMI_GriddedLayout):
 class PseudoRandomLayout(picmistandard.PICMI_PseudoRandomLayout):
     def init(self, kw):
         if self.seed is not None:
-            print('Warning: WarpX does not support specifying the random number seed')
+            print('Warning: WarpX does not support specifying the random number seed in PseudoRandomLayout')
 
 
 class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
