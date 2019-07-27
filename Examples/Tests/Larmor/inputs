@@ -22,7 +22,7 @@ amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 warpx.plot_raw_fields = 1
 warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
-warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell dive divb
+warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell divE divB
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
