@@ -403,6 +403,38 @@ WarpX::ReadParameters ()
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+        int do_user_plot_vars;
+        do_user_plot_vars = pp.queryarr("fields_to_plot", fields_to_plot);
+        /*
+        if (not do_user_plot_vars){
+            nvars_
+            // By default, all particle variables are dumped to plotfiles,
+            // including {x,y,z,ux,uy,uz}old variables when running in a 
+            // boosted frame
+            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
+                plot_flags.resize(PIdx::nattribs + 6, 1);
+            } else {
+                plot_flags.resize(PIdx::nattribs, 1);
+            }
+        } else {
+            // Set plot_flag to 0 for all attribs
+            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
+                plot_flags.resize(PIdx::nattribs + 6, 0);
+            } else {
+                plot_flags.resize(PIdx::nattribs, 0);
+            }
+            // If not none, set plot_flags values to 1 for elements in plot_vars.
+            if (plot_vars[0] != "none"){
+                for (const auto& var : plot_vars){
+                    // Return error if var not in PIdx. 
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+                        ParticleStringNames::to_index.count(var), 
+                        "plot_vars argument not in ParticleStringNames");
+                    plot_flags[ParticleStringNames::to_index.at(var)] = 1;
+                }
+            }
+        }
+        */
 
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){

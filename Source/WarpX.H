@@ -551,6 +551,9 @@ private:
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+    amrex::Vector<std::string> fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
+                                                 "Bz", "jx", "jy", "jz", 
+                                                 "part_per_cell"};
     int plot_coarsening_ratio = 1;
 
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
