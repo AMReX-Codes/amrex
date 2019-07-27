@@ -325,8 +325,10 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         // Allocate pointers to the `ncomp` fields that will be added
         mf_avg.push_back( MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
+        // For E, B and J, if at least one component us required, 
+        // build cell-centered temporary MultiFab with 3 comps
         MultiFab mf_tmp_E, mf_tmp_B, mf_tmp_J;
-        // If one component is required for E, build temp array with 3 comps
+        // Build mf_tmp_E is at least one component of E is requested
         if (is_in_vector(fields_to_plot, {"Ex", "Ey", "Ez"} )){
             // Allocate memory for MultiFab with 3 components
             mf_tmp_E = MultiFab(grids[lev], dmap[lev], 3, ngrow);
@@ -347,6 +349,8 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         int dcomp;
         // Go through the different fields in fields_to_plot, pack them into
         // mf_avg[lev] add the corresponding names to `varnames`.
+        // plot_fine_patch and plot_coarse_patch are treated separately
+        // (after this for loop).
         for (dcomp=0; dcomp<fields_to_plot.size(); dcomp++){
             std::string fieldname = fields_to_plot[dcomp];
             if(lev==0) varnames.push_back(fieldname);

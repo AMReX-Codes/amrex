@@ -387,15 +387,10 @@ WarpX::ReadParameters ()
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
-        /*
-        if (ParallelDescriptor::NProcs() == 1) {
-            plot_proc_number = false;
-        }
-        */
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
-        int do_user_plot_vars;
-        do_user_plot_vars = pp.queryarr("fields_to_plot", fields_to_plot);
-        if (not do_user_plot_vars){
+        bool user_fields_to_plot;
+        user_fields_to_plot = pp.queryarr("fields_to_plot", fields_to_plot);
+        if (not user_fields_to_plot){
             // If not specified, set default values
             fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
                               "Bz", "jx", "jy", "jz", 
