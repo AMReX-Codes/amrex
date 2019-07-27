@@ -100,6 +100,34 @@ void ParallelFor (Box const& box, T ncomp, L f, std::size_t shared_mem_bytes=0) 
     For(box,ncomp,f,shared_mem_bytes);
 }
 
+template <typename L1, typename L2, typename ... Ts>
+void ParallelForReduce (Box const& box, GpuTuple<Ts...> const& init_val,
+                        L1 f1, L2 f2, std::size_t shared_mem_bytes=0) noexcept
+{
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    auto ec = Gpu::ExecutionConfig(ncells);
+    ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
+    std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
+    amrex::launch_global<<<ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream()>>>(
+    [=] AMREX_GPU_DEVICE () noexcept {
+        auto r = init_val;
+        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+             icell < ncells; icell += stride) {
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            f1(i,j,k,r);
+        }
+        f2(r);
+    });
+    AMREX_GPU_ERROR_CHECK();
+}
+
 }
 
 #endif
