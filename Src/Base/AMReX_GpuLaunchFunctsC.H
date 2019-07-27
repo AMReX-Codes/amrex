@@ -87,6 +87,22 @@ void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0
     }
 }
 
+template <typename L1, typename L2, typename ... Ts>
+void ParallelForReduce (Box const& box, GpuTuple<Ts...> const& init_val,
+                        L1 f1, L2 f2, std::size_t shared_mem_bytes=0) noexcept
+{
+    auto r = init_val;
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f1(i,j,k,r);
+    }}}
+    f2(r);
+}
+
 }
 
 #endif
