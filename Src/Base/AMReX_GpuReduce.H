@@ -9,10 +9,9 @@
 // Reduce functions based on _shfl_down_sync
 //
 
-namespace amrex {
+namespace amrex { namespace Gpu {
 
 #ifdef AMREX_USE_GPU
-namespace Gpu {
 
 template <int warpSize, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -94,8 +93,6 @@ T blockReduceMax (T x) noexcept
     return x;
 }
 
-}
-
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void ReduceSum (T * dest, T source) noexcept
@@ -147,7 +144,7 @@ void ReduceMax (T * dest, T source) noexcept
 }
 
 #endif
-}
+}}
 
 namespace amrex {
 namespace Gpu {
