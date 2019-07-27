@@ -32,7 +32,7 @@ void RandomNumGen ()
     pp.get("num_draw", Ndraw);    
 
 #ifdef AMREX_USE_CUDA    
-    amrex::InitRandSeedOnDevice(Nstates);  // This will set the number of RNGs
+    //    amrex::InitRandSeedOnDevice(Nstates);  // This will set the number of RNGs
 
     amrex::Print() << "Generating random numbers using GPU ";
     amrex::Print() << amrex::Gpu::Device::deviceId() << " on rank ";
