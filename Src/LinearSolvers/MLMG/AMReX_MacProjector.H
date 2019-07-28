@@ -39,7 +39,6 @@ public:
     void setBottomToleranceAbs (Real t) noexcept { m_bottom_abstol = t; }
     void setMaxIter (int v) noexcept { m_maxiter = v; }
     void setCGMaxIter (int v) noexcept { m_cg_maxiter = v; }
-    void setMaxCoarseningLevel (int v) noexcept { m_max_coarsening_level = v; }
 
     void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in) noexcept
      { bottom_solver_type = bottom_solver_type_in;}
