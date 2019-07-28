@@ -17,7 +17,14 @@ public:
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
+                  const LPInfo& a_lpinfo,  
                   const Vector<MultiFab const*>& a_divu = {});
+
+    MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                  const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+                  const Vector<Geometry>& a_geom,
+                  const Vector<MultiFab const*>& a_divu = {})
+     : MacProjector(a_umac, a_beta, a_geom, LPInfo(), a_divu) {};
 
     void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                       const Array<LinOpBCType,AMREX_SPACEDIM>& hibc);
