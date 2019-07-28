@@ -3,7 +3,8 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
-#include <AMReX_Utility.H>
+#include <AMReX_GpuUtility.H>
+#include <AMReX_Functional.H>
 
 //
 // Reduce functions based on _shfl_down_sync
