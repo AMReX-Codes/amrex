@@ -89,8 +89,8 @@ void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void ParallelForReduce (Box const& box, N ncomp, T const& init_val,
-                        L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void FabReduce (Box const& box, N ncomp, T const& init_val,
+                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
 {
     auto r = init_val;
     const auto lo = amrex::lbound(box);
@@ -107,8 +107,8 @@ void ParallelForReduce (Box const& box, N ncomp, T const& init_val,
 }
 
 template <typename T, typename L1, typename L2>
-void ParallelForReduce (Box const& box, T const& init_val,
-                        L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void FabReduce (Box const& box, T const& init_val,
+                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
 {
     auto r = init_val;
     const auto lo = amrex::lbound(box);
@@ -124,8 +124,8 @@ void ParallelForReduce (Box const& box, T const& init_val,
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void ParallelForReduce (N n, T const& init_val,
-                        L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void VecReduce (N n, T const& init_val,
+                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
 {
     auto r = init_val;
     AMREX_PRAGMA_SIMD
@@ -133,6 +133,33 @@ void ParallelForReduce (N n, T const& init_val,
         f1(i,&r);
     }
     f2(r);
+}
+
+namespace Reduce {
+
+template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, U const* v, T init_val, BOP bop)
+{
+    T sum = init_val;
+    T* dp = &sum;
+    amrex::VecReduce(n, init_val,
+    [=] (N i, T* r) noexcept
+    {
+        *r = bop(*r, v[i]);
+    },
+    [=] (T r) noexcept
+    {
+        Gpu::ReduceSum(dp, r);
+    });
+    return sum;
+}
+
+template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, T const* v, T init_val = 0)
+{
+    return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
+}
+
 }
 
 }

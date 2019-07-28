@@ -6,6 +6,8 @@
 #include <AMReX_GpuError.H>
 #include <AMReX_GpuRange.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuMemory.H>
+#include <AMReX_GpuReduce.H>
 #include <AMReX_Tuple.H>
 #include <AMReX_Box.H>
 #include <AMReX_Loop.H>

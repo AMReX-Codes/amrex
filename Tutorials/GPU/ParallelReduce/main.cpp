@@ -70,7 +70,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("ParallelReduce3Int");
+        BL_PROFILE("FabReduceTuple");
 
         Vector<Real> hv{               0.0, // initial value for sum
                 std::numeric_limits<Real>::max(),             // min
@@ -87,12 +87,12 @@ void main_main ()
             const Box& bx = mfi.validbox();
             auto const& fab = mf.array(mfi);
             auto const& ifab = imf.array(mfi);
-            typedef GpuTuple<Real,Real,Real,int> Real3Int;
-            amrex::ParallelForReduce
+            typedef GpuTuple<Real,Real,Real,int> ReduceTuple;
+            amrex::FabReduce
                 (bx, // Box
-                 Real3Int{hv[0],hv[1],hv[2], isum}, // initial values
+                 ReduceTuple{hv[0],hv[1],hv[2], isum}, // initial values
             // First lambda works on each cell
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, Real3Int* r)  noexcept
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, ReduceTuple* r)  noexcept
             {
                 Real x = fab(i,j,k);
                 Real& r0 = amrex::get<0>(*r);
@@ -105,7 +105,7 @@ void main_main ()
             },
             // Second lambda does reduce and stores the result in global memory
             // Reduce must be done with Gpu::Reduce[Sum|Min|Max].
-            [=] AMREX_GPU_DEVICE (Real3Int const& r) noexcept
+            [=] AMREX_GPU_DEVICE (ReduceTuple const& r) noexcept
             {
                 Gpu::ReduceSum(dp  , amrex::get<0>(r));
                 Gpu::ReduceMin(dp+1, amrex::get<1>(r));
@@ -128,7 +128,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("ParallelReduce-sum");
+        BL_PROFILE("FabReduce-sum");
         Real hv = 0.0;
         Gpu::DeviceScalar<Real> dv(hv);
         Real* dp = dv.dataPtr();
@@ -137,7 +137,7 @@ void main_main ()
         {
             const Box& bx = mfi.validbox();
             auto const& fab = mf.array(mfi);
-            amrex::ParallelForReduce
+            amrex::FabReduce
                 (bx, // Box
                  hv, // initial values
             // First lambda works on each cell
@@ -160,7 +160,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("ParallelReduce-min");
+        BL_PROFILE("FabReduce-min");
         Real hv = std::numeric_limits<Real>::max();
         Gpu::DeviceScalar<Real> dv(hv);
         Real* dp = dv.dataPtr();
@@ -169,7 +169,7 @@ void main_main ()
         {
             const Box& bx = mfi.validbox();
             auto const& fab = mf.array(mfi);
-            amrex::ParallelForReduce
+            amrex::FabReduce
                 (bx, // Box
                  hv, // initial values
             // First lambda works on each cell
@@ -192,7 +192,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("ParallelReduce-max");
+        BL_PROFILE("FabReduce-max");
         Real hv = std::numeric_limits<Real>::lowest();
         Gpu::DeviceScalar<Real> dv(hv);
         Real* dp = dv.dataPtr();
@@ -201,7 +201,7 @@ void main_main ()
         {
             const Box& bx = mfi.validbox();
             auto const& fab = mf.array(mfi);
-            amrex::ParallelForReduce
+            amrex::FabReduce
                 (bx, // Box
                  hv, // initial values
             // First lambda works on each cell
@@ -224,7 +224,7 @@ void main_main ()
     }
 
     {
-        BL_PROFILE("ParallelReduce-isum");
+        BL_PROFILE("FabReduce-isum");
         int hv = 0;
         Gpu::DeviceScalar<int> dv(hv);
         int* dp = dv.dataPtr();
@@ -233,7 +233,7 @@ void main_main ()
         {
             const Box& bx = mfi.validbox();
             auto const& ifab = imf.array(mfi);
-            amrex::ParallelForReduce
+            amrex::FabReduce
                 (bx, // Box
                  hv, // initial values
             // First lambda works on each cell
@@ -263,11 +263,11 @@ void main_main ()
     });
 
     {
-        BL_PROFILE("ParallelForReduce-1d");
+        BL_PROFILE("VecReduce");
         Gpu::DeviceScalar<Real> ds(0.0);
         Real* dp = ds.dataPtr();
-        amrex::ParallelForReduce(N, // int
-                                 0.0, // initial value
+        amrex::VecReduce(N, // int
+                         0.0, // initial value
         // First lambda works on each element
         [=] AMREX_GPU_DEVICE (int i, Real* r) noexcept
         {
@@ -282,4 +282,20 @@ void main_main ()
         // We could do MPI reduce if it is needed.
         amrex::Print().SetPrecision(17) << "1-norm: " << ds.dataValue() << "\n";
     }
+
+    {
+        BL_PROFILE("Reduce::Sum");
+        Real r = Reduce::Sum(N, pvec);
+        amrex::Print().SetPrecision(17) << "Reduce::Sum " << r << "\n";
+    }
+
+#ifdef AMREX_USE_GPU
+    {
+        BL_PROFILE("ThrustReduceSum");
+        Real r = thrust::reduce(vec.begin(), vec.end(), 0.0, thrust::plus<Real>());
+        amrex::Print().SetPrecision(17) << "thrust::reduce sum " << r << "\n";
+    }
+#endif
+
+
 }

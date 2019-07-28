@@ -101,8 +101,8 @@ void ParallelFor (Box const& box, T ncomp, L f, std::size_t shared_mem_bytes=0) 
 }
 
 template <typename T, typename L1, typename L2>
-void ParallelForReduce (Box const& box, T const& init_val,
-                        L1 f1, L2 f2, std::size_t shared_mem_bytes=0) noexcept
+void FabReduce (Box const& box, T const& init_val,
+                L1 f1, L2 f2, std::size_t shared_mem_bytes=0) noexcept
 {
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
@@ -130,8 +130,8 @@ void ParallelForReduce (Box const& box, T const& init_val,
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void ParallelForReduce (Box const& box, N ncomp, T const& init_val,
-                        L1 f1, L2 f2, std::size_t shared_mem_bytes=0) noexcept
+void FabReduce (Box const& box, N ncomp, T const& init_val,
+                L1 f1, L2 f2, std::size_t shared_mem_bytes=0) noexcept
 {
     int ncells = box.numPts();
     const auto lo  = amrex::lbound(box);
@@ -161,8 +161,8 @@ void ParallelForReduce (Box const& box, N ncomp, T const& init_val,
 
 template <typename N, typename T, typename L1, typename L2,
           typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void ParallelForReduce (N n, T const& init_val,
-                        L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
+void VecReduce (N n, T const& init_val,
+                L1&& f1, L2&& f2, std::size_t shared_mem_bytes=0) noexcept
 {
     auto ec = Gpu::ExecutionConfig(n);
     ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
@@ -177,6 +177,34 @@ void ParallelForReduce (N n, T const& init_val,
         f2(r);
     });
     AMREX_GPU_ERROR_CHECK();
+
+}
+
+namespace Reduce {
+
+template <typename N, typename T, typename U, typename BOP, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, U const* v, T init_val, BOP bop)
+{
+    Gpu::LaunchSafeGuard lsg(true);
+    Gpu::DeviceScalar<T> ds(init_val);
+    T* dp = ds.dataPtr();
+    amrex::VecReduce(n, init_val,
+    [=] AMREX_GPU_DEVICE (N i, T* r) noexcept
+    {
+        *r = bop(*r, v[i]);
+    },
+    [=] AMREX_GPU_DEVICE (T r) noexcept
+    {
+        Gpu::ReduceSum(dp, r);
+    });
+    return ds.dataValue();
+}
+
+template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
+T Sum (N n, T const* v, T init_val = 0)
+{
+    return Reduce::Sum(n, v, init_val, amrex::Plus<T>());
+}
 
 }
 
