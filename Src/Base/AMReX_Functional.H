@@ -14,6 +14,24 @@ struct Plus
     }
 };
 
+template <typename T>
+struct Less
+{
+    constexpr T operator()(const T &lhs, const T &rhs) const
+    {
+        return (lhs < rhs) ? lhs : rhs;
+    }
+};
+
+template <typename T>
+struct Greater
+{
+    constexpr T operator()(const T &lhs, const T &rhs) const
+    {
+        return (lhs > rhs) ? lhs : rhs;
+    }
+};
+
 }
 
 #endif

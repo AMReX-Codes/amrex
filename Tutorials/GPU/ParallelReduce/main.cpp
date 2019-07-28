@@ -289,6 +289,25 @@ void main_main ()
         amrex::Print().SetPrecision(17) << "Reduce::Sum " << r << "\n";
     }
 
+    {
+        BL_PROFILE("Reduce::Min");
+        Real r = Reduce::Min(N, pvec);
+        amrex::Print().SetPrecision(17) << "Reduce::Min " << r << "\n";
+    }
+
+    {
+        BL_PROFILE("Reduce::Max");
+        Real r = Reduce::Max(N, pvec);
+        amrex::Print().SetPrecision(17) << "Reduce::Max " << r << "\n";
+    }
+
+    {
+        BL_PROFILE("Reduce::MinMax");
+        std::pair<Real,Real> r = Reduce::MinMax(N, pvec);
+        amrex::Print().SetPrecision(17) << "Reduce::MinMax " << r.first
+                                        << ", " << r.second << "\n";
+    }
+
 #ifdef AMREX_USE_GPU
     {
         BL_PROFILE("ThrustReduceSum");
