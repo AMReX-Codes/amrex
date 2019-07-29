@@ -143,6 +143,8 @@ struct TestParams
     int max_grid_size;
     int num_ppc;
     int is_periodic;
+    IntVect move_dir;
+    int do_random;
 };
 
 void testRedistribute();
@@ -164,6 +166,8 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("num_ppc", params.num_ppc);
     pp.get("is_periodic", params.is_periodic);
+    pp.get("move_dir", params.move_dir);
+    pp.get("do_random", params.do_random);    
 }
 
 void testRedistribute ()
@@ -203,13 +207,10 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
-    IntVect move_dir(1, 1, 1);
-    int do_random = 0;
-
     const int nsteps = 10;
     for (int i = 0; i < nsteps; ++i)
     {
-        pc.moveParticles(move_dir, do_random);
+        pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
         AMREX_ALWAYS_ASSERT(pc.OK());
     }
