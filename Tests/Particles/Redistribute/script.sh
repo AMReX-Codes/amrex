@@ -39,4 +39,4 @@ ${JSRUN} --smpiargs="-gpu" ${EXE} inputs
 # 5. Run under nvprof and collect metrics for all kernels -- much slower!
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} inputs
 
-cp ../MFIX*.${LSB_JOBID} .
+cp ../RedistributeTest*.${LSB_JOBID} .
