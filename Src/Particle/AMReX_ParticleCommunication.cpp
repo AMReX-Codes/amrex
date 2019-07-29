@@ -38,6 +38,8 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0); // number of particles per snd / receive
 
+    Gpu::HostVector<int> box_counts(m_box_counts.size());
+    Gpu::thrust_copy(m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
     std::map<int, Vector<int> > snd_data;
     long NumSnds = 0;
     for (int i = 0; i < NProcs; ++i)
@@ -48,7 +50,7 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         for (auto bucket : box_buffer_indices)
 	{
             int dst = map.bucketToGrid(bucket);
-            int npart = m_box_counts[bucket];
+            int npart = box_counts[bucket];
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
 	}
@@ -93,7 +95,7 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
     const int SeqNum = ParallelDescriptor::SeqNum();
-    Gpu::ManagedDeviceVector<int> rcv_data(TotRcvBytes/sizeof(int));
+    Gpu::HostVector<int> rcv_data(TotRcvBytes/sizeof(int));
 
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
@@ -125,14 +127,27 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
 	
-	m_rcv_box_offsets.push_back(0);
+        Gpu::HostVector<int> rcv_box_offsets;
+        Gpu::HostVector<int> rcv_box_counts;
+        Gpu::HostVector<int> rcv_box_ids;        
+	rcv_box_offsets.push_back(0);
 	for (int i = 0; i < rcv_data.size(); i +=2)
 	{
-	  m_rcv_box_counts.push_back(rcv_data[i]);
-	  AMREX_ASSERT(MyProc == map.dm[m_rcv_data[i+1]]);
-	  m_rcv_box_ids.push_back(rcv_data[i+1]);
-	  m_rcv_box_offsets.push_back(m_rcv_box_offsets.back() + m_rcv_box_counts.back());
+	  rcv_box_counts.push_back(rcv_data[i]);
+	  AMREX_ASSERT(MyProc == map.dm[rcv_data[i+1]]);
+	  rcv_box_ids.push_back(rcv_data[i+1]);
+	  rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
 	}
+
+        m_rcv_box_counts.resize(rcv_box_counts.size());
+        Gpu::thrust_copy(rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
+
+        m_rcv_box_offsets.resize(rcv_box_offsets.size());
+        Gpu::thrust_copy(rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
+
+        m_rcv_box_ids.resize(rcv_box_ids.size());
+        Gpu::thrust_copy(rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
+
     }
 #endif // MPI
 }
