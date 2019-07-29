@@ -2,5 +2,6 @@ redistribute.size = (24, 24, 24)
 redistribute.max_grid_size = 8
 redistribute.is_periodic = 1
 redistribute.num_ppc = 1
-
+redistribute.move_dir = (1, 1, 1)
+redistribute.do_random = 1
 
