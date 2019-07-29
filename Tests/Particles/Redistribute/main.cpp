@@ -95,7 +95,7 @@ public:
         }
     }
 
-    void moveParticles ()
+    void moveParticles (const IntVect& move_dir, int do_random)
     {
         BL_PROFILE("TestParticleContainer::moveParticles");
 
@@ -107,22 +107,32 @@ public:
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();
-            
+            int tid = mfi.LocalTileIndex();            
             auto& ptile = plev[std::make_pair(gid, tid)];
             auto& aos   = ptile.GetArrayOfStructs();
-            ParticleType* pstruct = &(aos[0]);
-            
+            ParticleType* pstruct = &(aos[0]);            
             const size_t np = aos.numParticles();
-            
-            // now we move the particles
-            AMREX_FOR_1D ( np, i,
+
+            if (do_random == 0)
             {
-                ParticleType& p = pstruct[i];
-                p.pos(0) += dx[0];
-                p.pos(1) += dx[1];
-                p.pos(2) += dx[2];
-            });
+                AMREX_FOR_1D ( np, i,
+                {
+                    ParticleType& p = pstruct[i];
+                    p.pos(0) += move_dir[0]*dx[0];
+                    p.pos(1) += move_dir[1]*dx[1];
+                    p.pos(2) += move_dir[2]*dx[2];
+                });
+            }
+            else
+            {
+                AMREX_FOR_1D ( np, i,
+                {
+                    ParticleType& p = pstruct[i];
+                    p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
+                    p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
+                    p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
+                });               
+            }            
         }
     }
 };
@@ -193,10 +203,13 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
+    IntVect move_dir(1, 1, 1);
+    int do_random = 0;
+
     const int nsteps = 10;
     for (int i = 0; i < nsteps; ++i)
     {
-        pc.moveParticles();
+        pc.moveParticles(move_dir, do_random);
         pc.RedistributeLocal();
         AMREX_ALWAYS_ASSERT(pc.OK());
     }
