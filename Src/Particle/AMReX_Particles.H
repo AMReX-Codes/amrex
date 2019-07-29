@@ -852,7 +852,7 @@ protected:
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     long nparticlesPrePost;
-    Vector<long> nParticlesAtLevelPrePost;      //!< ---- [level]
+    Vector<long> nParticlesAtLevelPrePost;          //!< ---- [level]
     mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
     mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
     mutable Vector<Vector<long>> wherePrePost;      //!< ---- [level]
@@ -878,6 +878,13 @@ protected:
     Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
 
     std::map<int, SendBuffer> m_not_ours;
+
+    ParticleCopyOp redistribute_copy_op;
+    ParticleCopyPlan redistribute_copy_plan;
+    Gpu::DeviceVector<ParticleType> redistribute_snd_buffer;
+    Gpu::DeviceVector<ParticleType> redistribute_rcv_buffer;
+
+
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }

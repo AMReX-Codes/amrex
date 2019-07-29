@@ -1052,7 +1052,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const auto is_per = Geom(lev).isPeriodicArray();
     const Box domain = Geom(lev).Domain();
 
-    ParticleCopyOp op;
+    ParticleCopyOp& op = redistribute_copy_op;
+    op.clear();
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -1108,11 +1109,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	});
     }
 
-    ParticleCopyPlan plan;
+    auto& plan = redistribute_copy_plan;
+    plan.clear();
     plan.build(*this, op);
 
-    Gpu::DeviceVector<ParticleType> snd_buffer;
-    Gpu::DeviceVector<ParticleType> rcv_buffer;
+    auto& snd_buffer = redistribute_snd_buffer;
+    auto& rcv_buffer = redistribute_rcv_buffer;
+
     packBuffer(*this, op, plan, snd_buffer);
 
     // clear particles from container
@@ -1121,7 +1124,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
-
         auto& tile = plev[index];
         tile.resize(0);
     }    
