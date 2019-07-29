@@ -430,15 +430,6 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                           overlap_realbox.lo(1),
                           overlap_realbox.lo(2))};
 
-#ifdef WARPX_RZ
-        {
-#else
-        if (plasma_injector->useRandom()) {
-#endif
-            amrex::Gpu::streamSynchronize();
-            amrex::CheckSeedArraySizeAndResize(max_new_particles);
-        }
-    
         std::size_t shared_mem_bytes = plasma_injector->sharedMemoryNeeded();
         int lrrfac = rrfac;
 

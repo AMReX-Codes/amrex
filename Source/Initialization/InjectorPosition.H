@@ -72,8 +72,6 @@ struct InjectorPosition
 
     std::size_t sharedMemoryNeeded () const noexcept { return 0; }
 
-    bool useRandom () const noexcept;
-
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getPositionUnitBox (int i_part, int ref_fac=1) const noexcept

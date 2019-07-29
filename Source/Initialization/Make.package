@@ -4,7 +4,6 @@ CEXE_sources += PlasmaInjector.cpp
 CEXE_headers += PlasmaInjector.H
 
 CEXE_headers += InjectorPosition.H
-CEXE_sources += InjectorPosition.cpp
 
 CEXE_headers += InjectorDensity.H
 CEXE_sources += InjectorDensity.cpp

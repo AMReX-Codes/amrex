@@ -71,11 +71,6 @@ public:
     InjectorDensity*  getInjectorDensity ();
     InjectorMomentum* getInjectorMomentum ();
 
-    bool useRandom () const noexcept {
-        return inj_pos->useRandom() or inj_rho->useRandom()
-            or inj_mom->useRandom();
-    }
-
     std::size_t
     sharedMemoryNeeded () const noexcept {
         return amrex::max(inj_pos->sharedMemoryNeeded(),

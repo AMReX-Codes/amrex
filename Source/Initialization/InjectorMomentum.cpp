@@ -35,16 +35,3 @@ InjectorMomentum::sharedMemoryNeeded () const noexcept
     }
 }
 
-bool
-InjectorMomentum::useRandom () const noexcept
-{
-    switch (type)
-    {
-    case Type::gaussian:
-    {
-        return true;
-    }
-    default:
-        return false;
-    }
-}

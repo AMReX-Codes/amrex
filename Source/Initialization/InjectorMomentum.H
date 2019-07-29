@@ -123,8 +123,6 @@ struct InjectorMomentum
 
     std::size_t sharedMemoryNeeded () const noexcept;
 
-    bool useRandom () const noexcept;
-
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
