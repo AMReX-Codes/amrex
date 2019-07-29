@@ -182,7 +182,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 template <class PC, class Buffer, class UnpackPolicy>
 void unpackBuffer (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
 {
-    BL_PROFILE("amrex::packBuffer");
+    BL_PROFILE("amrex::unpackBuffer");
 
     AMREX_ASSERT(pc.numLevels() == 1);
 
