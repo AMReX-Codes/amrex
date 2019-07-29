@@ -2,9 +2,9 @@
 #BSUB -P CFD122
 #BSUB -W 2:00
 #BSUB -nnodes 1
-#BSUB -J MFIX
-#BSUB -o MFIXo.%J
-#BSUB -e MFIXe.%J
+#BSUB -J NeighborParticles
+#BSUB -o NeighborParticleso.%J
+#BSUB -e NeighborParticlese.%J
 
 module load gcc
 module load cuda
@@ -39,4 +39,4 @@ ${JSRUN} --smpiargs="-gpu" ${EXE} inputs
 # 5. Run under nvprof and collect metrics for all kernels -- much slower!
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} inputs
 
-cp ../MFIX*.${LSB_JOBID} .
+cp ../NeighborParticles*.${LSB_JOBID} .
