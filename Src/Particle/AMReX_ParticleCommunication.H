@@ -98,6 +98,7 @@ struct ParticleCopyPlan
             AMREX_FOR_1D ( num_copies, i,
             {
                 int dst_box = p_boxes[i];
+                if (dst_box < 0) continue;
                 int index = Gpu::Atomic::Inc(&p_dst_box_counts[p_box_perm[dst_box]], max_unsigned_int);
                 p_dst_indices[i] = index;
             });
@@ -157,21 +158,23 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
 	AMREX_FOR_1D ( num_copies, i,
         {
-            int box_offset = p_box_offsets[p_box_perm[p_boxes[i]]];
+            int dst_box = p_boxes[i];
+            if (dst_box < 0) continue;
+            int box_offset = p_box_offsets[p_box_perm[dst_box]];
             int dst_index = box_offset + p_dst_indices[i];
             int src_index = p_src_indices[i];
             p_snd_buffer[dst_index] = p_ptr[src_index];
             
-          auto& p = p_snd_buffer[dst_index];
-	  const IntVect& pshift = p_periodic_shift[i];
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-          {
-              if (not is_per[idim]) continue;
-              if (pshift[idim] > 0) 
-                  p.pos(idim) += phi[idim] - plo[idim]; 
-              else if (pshift[idim] < 0)
-                  p.pos(idim) -= phi[idim] - plo[idim];
-	  }
+            auto& p = p_snd_buffer[dst_index];
+            const IntVect& pshift = p_periodic_shift[i];
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                if (not is_per[idim]) continue;
+                if (pshift[idim] > 0) 
+                    p.pos(idim) += phi[idim] - plo[idim]; 
+                else if (pshift[idim] < 0)
+                    p.pos(idim) -= phi[idim] - plo[idim];
+            }
 	});
     }
 }
