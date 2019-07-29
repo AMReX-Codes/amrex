@@ -1037,21 +1037,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     const BoxArray& ba   = ParticleBoxArray(lev);
-    const DistributionMapping& dmap = ParticleDistributionMap(lev);
-    auto& plev       = m_particles[lev];
-    const auto plo   = Geom(lev).ProbLoArray();
-    const auto dxi   = Geom(lev).InvCellSizeArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto is_per = Geom(lev).isPeriodicArray();
-
-    const Box domain = Geom(lev).Domain();
-
     if ( (ba.size() == 1) and geom.isAllPeriodic() )
     {
         EnforcePeriodicGPU();
         AMREX_ASSERT(OK());
         return;
     }
+
+    const DistributionMapping& dmap = ParticleDistributionMap(lev);
+    auto& plev       = m_particles[lev];
+    const auto plo   = Geom(lev).ProbLoArray();
+    const auto dxi   = Geom(lev).InvCellSizeArray();
+    const auto phi = Geom(lev).ProbHiArray();
+    const auto is_per = Geom(lev).isPeriodicArray();
+    const Box domain = Geom(lev).Domain();
 
     ParticleCopyOp op;
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
