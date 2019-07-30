@@ -1053,7 +1053,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const Box domain = Geom(lev).Domain();
 
     ParticleCopyOp& op = redistribute_copy_op;
-    op.clear();
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -1065,6 +1064,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const size_t np = aos.numParticles();
 
 	op.resize(gid, np);
+    }
+
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+
+        auto& src_tile = plev[index];
+        auto& aos   = src_tile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
 
 	auto p_boxes = op.m_boxes[gid].dataPtr();
 	auto p_src_indices = op.m_src_indices[gid].dataPtr();
@@ -1090,7 +1100,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
             else
             {
-                grid_id=-1;
+                grid_id = -1;
             }
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -1110,7 +1120,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     auto& plan = redistribute_copy_plan;
-    plan.clear();
     plan.build(*this, op);
 
     auto& snd_buffer = redistribute_snd_buffer;
