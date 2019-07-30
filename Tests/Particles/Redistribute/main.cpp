@@ -44,6 +44,7 @@ public:
         const int nGrow = 0;
         const int local = 1;
         RedistributeOptimized(lev_min, lev_max, nGrow, local);
+        //Redistribute(lev_min, lev_max, nGrow, local);
     }
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
@@ -128,6 +129,7 @@ public:
                 AMREX_FOR_1D ( np, i,
                 {
                     ParticleType& p = pstruct[i];
+
                     p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
                     p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
                     p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
@@ -145,6 +147,7 @@ struct TestParams
     int is_periodic;
     IntVect move_dir;
     int do_random;
+    int nsteps;
 };
 
 void testRedistribute();
@@ -168,6 +171,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("is_periodic", params.is_periodic);
     pp.get("move_dir", params.move_dir);
     pp.get("do_random", params.do_random);    
+    pp.get("nsteps", params.nsteps);
 }
 
 void testRedistribute ()
@@ -207,8 +211,7 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
-    const int nsteps = 10;
-    for (int i = 0; i < nsteps; ++i)
+    for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
