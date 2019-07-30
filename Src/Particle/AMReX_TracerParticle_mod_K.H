@@ -33,13 +33,13 @@ void cic_interpolate (const P& p,
 
     amrex::Real sx[] = {1.-xint, xint}; 
 
-    for int d=0; d < AMREX_SPACEDIM; ++d)
-      {
-      for (int ii = 0; ii<=1; ++ii)
+    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    {
+        for (int ii = 0; ii<=1; ++ii)
 	{
-        val[d] += sx[ii]*uccarr(i+ii,0,0,d)
-	}
-      }
+            val[d] += sx[ii]*uccarr(i+ii,0,0,d)
+        }
+    }
 
   
 #elif (AMREX_SPACEDIM == 2)
