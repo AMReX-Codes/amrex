@@ -16,7 +16,6 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
-
 void main_main ()
 {
     int ncell = 512;
@@ -86,11 +85,11 @@ void main_main ()
             {
                 Real x =  fab(i,j,k);
                 int ix = ifab(i,j,k);
-                return ReduceTuple{x,x,x,ix};
+                return {x,x,x,ix};
             });
         }
 
-        ReduceTuple hv = reduce_data.hostValue();
+        ReduceTuple hv = reduce_data.value();
         // MPI reduce
         ParallelDescriptor::ReduceRealSum(amrex::get<0>(hv));
         ParallelDescriptor::ReduceRealMin(amrex::get<1>(hv));
@@ -116,11 +115,11 @@ void main_main ()
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return ReduceTuple{fab(i,j,k)};
+                return fab(i,j,k);
             });
         }
 
-        Real hv = amrex::get<0>(reduce_data.hostValue());
+        Real hv = amrex::get<0>(reduce_data.value());
         // MPI reduce
         ParallelDescriptor::ReduceRealSum(hv);
         amrex::Print().SetPrecision(17) << "sum: " << hv << "\n";
@@ -140,11 +139,11 @@ void main_main ()
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return ReduceTuple{fab(i,j,k)};
+                return fab(i,j,k);
             });
         }
 
-        Real hv = amrex::get<0>(reduce_data.hostValue());
+        Real hv = amrex::get<0>(reduce_data.value());
         // MPI reduce
         ParallelDescriptor::ReduceRealMin(hv);
         amrex::Print().SetPrecision(17) << "min: " << hv << "\n";
@@ -152,31 +151,23 @@ void main_main ()
 
     {
         BL_PROFILE("FabReduce-max");
-        Real hv = std::numeric_limits<Real>::lowest();
-        Gpu::DeviceScalar<Real> dv(hv);
-        Real* dp = dv.dataPtr();
+
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<Real> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.validbox();
             auto const& fab = mf.array(mfi);
-            amrex::FabReduce
-                (bx, // Box
-                 hv, // initial values
-            // First lambda works on each cell
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, Real* r)  noexcept
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                *r = amrex::max(fab(i,j,k), *r);
-            },
-            // Second lambda does reduce and stores the result in global memory
-            // Reduce must be done with Gpu::Reduce[Sum|Min|Max].
-            [=] AMREX_GPU_DEVICE (Real r) noexcept
-            {
-                Gpu::ReduceMax(dp, r);
+                return fab(i,j,k);
             });
         }
 
-        hv = dv.dataValue();
+        Real hv = amrex::get<0>(reduce_data.value());
         // MPI reduce
         ParallelDescriptor::ReduceRealMax(hv);
         amrex::Print().SetPrecision(17) << "max: " << hv << "\n";
@@ -184,31 +175,23 @@ void main_main ()
 
     {
         BL_PROFILE("FabReduce-isum");
-        int hv = 0;
-        Gpu::DeviceScalar<int> dv(hv);
-        int* dp = dv.dataPtr();
+
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(imf); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.validbox();
             auto const& ifab = imf.array(mfi);
-            amrex::FabReduce
-                (bx, // Box
-                 hv, // initial values
-            // First lambda works on each cell
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, int* r)  noexcept
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                *r += ifab(i,j,k);
-            },
-            // Second lambda does reduce and stores the result in global memory
-            // Reduce must be done with Gpu::Reduce[Sum|Min|Max].
-            [=] AMREX_GPU_DEVICE (int r) noexcept
-            {
-                Gpu::ReduceSum(dp, r);
+                return ifab(i,j,k);
             });
         }
 
-        hv = dv.dataValue();
+        int hv = amrex::get<0>(reduce_data.value());
         // MPI reduce
         ParallelDescriptor::ReduceIntSum(hv);
         amrex::Print() << "isum: " << hv << "\n";
@@ -223,23 +206,20 @@ void main_main ()
 
     {
         BL_PROFILE("VecReduce");
-        Gpu::DeviceScalar<Real> ds(0.0);
-        Real* dp = ds.dataPtr();
-        amrex::VecReduce(N, // int
-                         0.0, // initial value
-        // First lambda works on each element
-        [=] AMREX_GPU_DEVICE (int i, Real* r) noexcept
+
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<Real> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        reduce_op.eval(N, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
         {
-            *r += std::abs(pvec[i]);
-        },
-        // Second lambda does reduce and stores the result in global memory
-        // Reduce must be done with Gpu::Reduce[Sum|Min|Max].
-        [=] AMREX_GPU_DEVICE (Real r) noexcept
-        {
-            Gpu::ReduceSum(dp, r);
+            return std::abs(pvec[i]);
         });
+
+        Real hv = amrex::get<0>(reduce_data.value());
         // We could do MPI reduce if it is needed.
-        amrex::Print().SetPrecision(17) << "1-norm: " << ds.dataValue() << "\n";
+        amrex::Print().SetPrecision(17) << "1-norm: " << hv << "\n";
     }
 
     {
