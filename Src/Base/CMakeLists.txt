@@ -33,6 +33,7 @@ target_sources( amrex
    AMReX_Functional.H
    AMReX_Utility.H
    AMReX_Utility.cpp
+   AMReX_Reduce.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
