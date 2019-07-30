@@ -72,7 +72,8 @@ void main_main ()
         BL_PROFILE("FabReduceTuple");
 
         ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax, ReduceOpSum> reduce_op;
-        ReduceData<Real, Real, Real, int> reduce_data(reduce_op);
+        ReduceData<Real, Real, Real, long> reduce_data(reduce_op);
+        // For iMultiFab::sum, we use long to avoid overflow.
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -84,7 +85,7 @@ void main_main ()
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 Real x =  fab(i,j,k);
-                int ix = ifab(i,j,k);
+                long ix = static_cast<long>(ifab(i,j,k));
                 return {x,x,x,ix};
             });
         }
@@ -94,7 +95,7 @@ void main_main ()
         ParallelDescriptor::ReduceRealSum(amrex::get<0>(hv));
         ParallelDescriptor::ReduceRealMin(amrex::get<1>(hv));
         ParallelDescriptor::ReduceRealMax(amrex::get<2>(hv));
-        ParallelDescriptor::ReduceIntSum (amrex::get<3>(hv));
+        ParallelDescriptor::ReduceLongSum(amrex::get<3>(hv));
         amrex::Print().SetPrecision(17) << "sum: "  << get<0>(hv) << "\n"
                                         << "min: "  << get<1>(hv) << "\n"
                                         << "max: "  << get<2>(hv) << "\n"
@@ -177,7 +178,7 @@ void main_main ()
         BL_PROFILE("FabReduce-isum");
 
         ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<int> reduce_data(reduce_op);
+        ReduceData<long> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(imf); mfi.isValid(); ++mfi)
@@ -187,13 +188,13 @@ void main_main ()
             reduce_op.eval(bx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                return ifab(i,j,k);
+                return static_cast<long>(ifab(i,j,k));
             });
         }
 
-        int hv = amrex::get<0>(reduce_data.value());
+        long hv = amrex::get<0>(reduce_data.value());
         // MPI reduce
-        ParallelDescriptor::ReduceIntSum(hv);
+        ParallelDescriptor::ReduceLongSum(hv);
         amrex::Print() << "isum: " << hv << "\n";
     }
 
