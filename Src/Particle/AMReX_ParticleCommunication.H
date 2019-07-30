@@ -31,12 +31,20 @@ struct RedistributeUnpackPolicy
     template <class PTile> 
     void resizeTiles(std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {        
-        for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
+        int N = static_cast<int>(sizes.size());
+
+        std::map<PTile*, int> tile_sizes;
+        for(int i = 0; i < N; ++i)
+            tile_sizes[tiles[i]] = tiles[i]->numParticles();
+
+        for(int i = 0; i < N; ++i)
         {
-            int offset = tiles[i]->numParticles();
-            tiles[i]->resize(offset + sizes[i]);
-            offsets.push_back(offset);
+            offsets.push_back(tile_sizes[tiles[i]]);
+            tile_sizes[tiles[i]] += sizes[i];
         }
+
+        for (auto& kv : tile_sizes)
+            kv.first->resize(kv.second);
     }
 };
 
@@ -85,12 +93,18 @@ struct ParticleCopyPlan
         auto p_box_perm = pc.BufferMap().gridToBucketPtr();
         
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
-        
+
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             int gid = mfi.index();
             int num_copies = op.numCopies(gid);
             m_dst_indices[gid].resize(num_copies);
+        }
+        
+        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int num_copies = op.numCopies(gid);
             
             auto p_boxes = op.m_boxes.at(gid).dataPtr();
             auto p_dst_indices = m_dst_indices[gid].dataPtr();
