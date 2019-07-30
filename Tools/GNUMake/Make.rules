@@ -98,7 +98,7 @@ install_headers: $(amrexIncludeDir)/AMReX_Config.H
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
 	      newf=$(amrexIncludeDir)/$$h; \
-	      perl -pi -e 's/^/#include <AMReX_Config.H>\n/ if $$. == 1' $$newf; \
+              perl -pi -e 'BEGIN{undef $$/;}  s/(^#ifndef.*?\n^#define.*?$$)/$$1\n#include <AMReX_Config.H>/m' $$newf; \
 	    fi; \
 	  done; \
 	done 
@@ -377,7 +377,8 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \
-	     --num_workers "16"
+	     --num_workers "16" \
+             --device_suffix "$(GPU_PRAGMA_DEVICE_SUFFIX)"
 endif
 
 #

@@ -4,8 +4,13 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 if (ENABLE_MPI)
    find_package(MPI REQUIRED C CXX)
    target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX) 
-endif ()  
+endif ()
 
+# We need threads 
+set( THREADS_PREFER_PTHREAD_FLAG on)
+find_package(Threads REQUIRED)
+target_link_libraries(amrex PUBLIC Threads::Threads)
+ 
 target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------

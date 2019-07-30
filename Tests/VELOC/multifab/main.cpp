@@ -5,8 +5,11 @@
 #include <AMReX_BLProfiler.H>
 
 #include <thread>
+#include <future>
 
+#ifdef AMREX_USE_VELOC
 #include <veloc.h>
+#endif
 
 using namespace amrex;
 
@@ -16,6 +19,7 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
+#ifdef AMREX_USE_VELOC
     std::string veloc_cfg("veloc.cfg");
     {
         ParmParse pp("veloc");
@@ -24,14 +28,18 @@ int main (int argc, char* argv[])
     const auto veloc_status = VELOC_Init(ParallelDescriptor::Communicator(),
                                          veloc_cfg.c_str());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(veloc_status == VELOC_SUCCESS, "VELOC_Init failed");
+#endif
 
     main_main();
 
+#ifdef AMREX_USE_VELOC
     VELOC_Finalize(0); // no clean up
+#endif
 
     amrex::Finalize();
 }
 
+#ifdef AMREX_USE_VELOC
 template <class T>
 struct VeloCDeleter {
     void operator() (Vector<std::unique_ptr<T,DataDeleter> > ptrs) {
@@ -149,6 +157,7 @@ MultiFab ReadVeloC (std::string const& mf_name, int step)
 
     return mf;
 }
+#endif
 
 void main_main ()
 {
@@ -190,21 +199,68 @@ void main_main ()
             amrex::dtoh_memcpy(mfcpu, mf);
         }
 
-        { // Write VisMF data
-            amrex::UtilCreateDirectoryDestructive("vismfdata");
-            amrex::prefetchToHost(mf);
-            VisMF::Write(mf, "vismfdata/mf");
-            amrex::prefetchToDevice(mf);
+        amrex::UtilCreateDirectoryDestructive("vismfdata");
+
+        const int nwork = 50;
+
+        {
+            BL_PROFILE_REGION("vismf-orig");
+            VisMF::Write(mf, "vismfdata/mf1");
+            {
+                BL_PROFILE_VAR("vismf-orig-work", blp2);
+                for (int i = 0; i < nwork; ++i) {
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                }
+            }
         }
 
-        auto t = WriteVeloC(mf, check_file.c_str(), 0);
+        WriteAsyncStatus status;
+        {
+            BL_PROFILE_REGION("vismf-async-overlap");
+            auto wrt_future = VisMF::WriteAsync(mf, "vismfdata/mf2");
+            {
+                BL_PROFILE_VAR("vismf-async-work", blp2);
+                for (int i = 0; i < nwork; ++i) {
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                }
+            }
+            {
+                BL_PROFILE_VAR("vismf-async-wait", blp3);
+                wrt_future.wait();
+                status = wrt_future.get();
+            }
+        }
+        for (int ip = 0; ip < ParallelDescriptor::NProcs(); ++ip) {
+            if (ip == ParallelDescriptor::MyProc()) {
+                amrex::AllPrint() << "Proc. " << ip << ": " << status << std::endl;
+            }
+            ParallelDescriptor::Barrier();
+        }
 
-        amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+#ifdef AMREX_USE_VELOC
+        {
+            BL_PROFILE_REGION("VeloCTotal");
+            auto t = WriteVeloC(mf, check_file.c_str(), 0);
 
-        t.join();
+            {
+                BL_PROFILE_VAR("VeloC-work", blp2);
+                for (int i = 0; i < nwork; ++i) {
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                    amrex::Print() << "mf min = " << mf.min(0) << ",  max = " << mf.max(0) << "\n";
+                }
+            }
+            {
+                BL_PROFILE_VAR("VeloCWait", blp3);
+                t.join();
+            }
+        }
+#endif
     }
     else
     {
+#ifdef AMREX_USE_VELOC
         MultiFab mf_veloc = ReadVeloC(check_file, restart_step);
         amrex::prefetchToDevice(mf_veloc);
 
@@ -218,6 +274,7 @@ void main_main ()
         amrex::Print() << "diff min = " << dmin << ", max = " << dmax << "\n";
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dmin == 0.0 and dmax == 0.0,
                                          "Restart failed.");
+#endif
     }
 }
 

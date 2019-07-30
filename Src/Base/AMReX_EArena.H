@@ -90,7 +90,7 @@ protected:
         };
     };
 
-    std::vector<void*> m_alloc;
+    std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     using FreeList = std::set<Node,Node::CompareSize>;
     FreeList m_freelist;

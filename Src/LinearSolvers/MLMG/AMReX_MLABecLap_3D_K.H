@@ -3,7 +3,7 @@
 
 namespace amrex {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
                       Array4<Real const> const& x,
                       Array4<Real const> const& a,
@@ -38,7 +38,7 @@ void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
                           Array4<Real const> const& a,
                           Array4<Real const> const& bX,
@@ -69,7 +69,7 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
                        Array4<Real const> const& bx, Real fac, int ncomp) noexcept
 {
@@ -88,7 +88,7 @@ void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
                            Array4<Real const> const& bx, Real fac, int xlen, int ncomp) noexcept
 {
@@ -107,7 +107,7 @@ void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real c
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
                        Array4<Real const> const& by, Real fac, int ncomp) noexcept
 {
@@ -126,7 +126,7 @@ void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
                            Array4<Real const> const& by, Real fac, int ylen, int ncomp) noexcept
 {
@@ -149,7 +149,7 @@ void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real c
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
                        Array4<Real const> const& bz, Real fac, int ncomp) noexcept
 {
@@ -168,7 +168,7 @@ void mlabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlabeclap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
                            Array4<Real const> const& bz, Real fac, int zlen, int ncomp) noexcept
 {
@@ -194,7 +194,7 @@ void mlabeclap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real c
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void abec_gsrb (Box const& box, Array4<Real> const& phi,
                 Array4<Real const> const& rhs, Real alpha,
                 Real dhx, Real dhy, Real dhz, Array4<Real const> const& a,

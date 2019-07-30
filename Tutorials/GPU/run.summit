@@ -27,10 +27,12 @@ set -x
 #         21 CPUs per socket (42 total)
 #         4  Hardware Threads per CPU (168 total)
 #
-# On Summit: Recommended initial configuration:
+# On Summit: Recommended initial configurations:
 #             one GPU per MPI rank,
-#             one resource set per socket.
-#             (-r2 -c21 -g3 -a3)
+#             one resource set per socket
+#             (-r2 -c21 -g3 -a3 --bind=packed:7)
+#             or one resource set per GPU
+#             (-r6  -c7 -g1 -a1 --bind=packed:7)
 # =====================
  
 omp=1
@@ -48,13 +50,13 @@ SMPIARGS=
 # However, if not using CUDA-aware MPI (off by default), useful to 
 PAMI_DISABLE_IPC=1
 
-# SMPIARGS+= --smpiargs="gpu"
+# SMPIARGS+=" --smpiargs="-gpu""
 # Allows CUDA-aware MPI functionality.
 # Only needed if amrex.use_gpu_aware_mpi=1.
 # Requires using one resource set per node.
 # RECOMMENDED OFF. ONLY ADD IF YOU REQUIRE IT.
 
-SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
+SMPIARGS+=" --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks""
 # Turns off CUDA hooks required for CUDA-aware MPI. 
 # RECOMMENDED ON.
 # May eliminate intermittent finalize bug that prevents obtaining profiling data.
@@ -63,6 +65,17 @@ SMPIARGS+= --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks":
 # Turn on MPS. Needed when running multiple MPI ranks per GPU. 
 # For standard runs, this is not needed. 
 
+# Profiler flags
+# =====================
+# --openmp-profiling off
+# Needed when using nvprof with cuda/10.1.105 on summit: 
+# https://www.olcf.ornl.gov/for-users/system-user-guides/summit/summit-user-guide/#known-issues
+
+# --device-buffer-size <size in MBs> (recommended initial value: 64)
+# Reserves memory for storing profiling data for non-CDP operations for each buffer on a
+#       context. The default value is 8MB. 
+# Ensures sufficient memory so that profiling information written to stdout is reported
+#       in cases wher HBM is over-subscribed (large memory problems).
 
 # Example run lines
 # =====================

@@ -17,7 +17,14 @@ public:
     MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                   const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                   const Vector<Geometry>& a_geom,
+                  const LPInfo& a_lpinfo,  
                   const Vector<MultiFab const*>& a_divu = {});
+
+    MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
+                  const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
+                  const Vector<Geometry>& a_geom,
+                  const Vector<MultiFab const*>& a_divu = {})
+     : MacProjector(a_umac, a_beta, a_geom, LPInfo(), a_divu) {};
 
     void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                       const Array<LinOpBCType,AMREX_SPACEDIM>& hibc);
@@ -32,7 +39,6 @@ public:
     void setBottomToleranceAbs (Real t) noexcept { m_bottom_abstol = t; }
     void setMaxIter (int v) noexcept { m_maxiter = v; }
     void setCGMaxIter (int v) noexcept { m_cg_maxiter = v; }
-    void setMaxCoarseningLevel (int v) noexcept { m_max_coarsening_level = v; }
 
     void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in) noexcept
      { bottom_solver_type = bottom_solver_type_in;}

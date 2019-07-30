@@ -11,6 +11,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Gpu.H>
 
+#include <sys/mman.h>
+
 namespace amrex {
 
 namespace {
@@ -86,12 +88,15 @@ Arena::allocate_system (std::size_t nbytes)
     }
     return p;
 #else
-    return std::malloc(nbytes);
+    void* p = std::malloc(nbytes);
+    if (p && arena_info.device_use_hostalloc) mlock(p, nbytes);
+    if (p == nullptr) amrex::Abort("Sorry, malloc failed");
+    return p;
 #endif
 }
 
 void
-Arena::deallocate_system (void* p)
+Arena::deallocate_system (void* p, std::size_t nbytes)
 {
 #ifdef AMREX_USE_GPU
     if (arena_info.device_use_hostalloc)
@@ -105,6 +110,7 @@ Arena::deallocate_system (void* p)
                           AMREX_CUDA_SAFE_CALL(cudaFree(p)););
     }
 #else
+    if (p && arena_info.device_use_hostalloc) munlock(p, nbytes);
     std::free(p);
 #endif
 }
@@ -166,13 +172,7 @@ Arena::Initialize ()
     the_managed_arena = new BArena;
 #endif
 
-#if defined(AMREX_USE_GPU)
-//    const std::size_t hunk_size = 64 * 1024;
-//    the_pinned_arena = new CArena(hunk_size);
     the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc());
-#else
-    the_pinned_arena = new BArena;
-#endif
 
     std::size_t N = 1024UL*1024UL*8UL;
 

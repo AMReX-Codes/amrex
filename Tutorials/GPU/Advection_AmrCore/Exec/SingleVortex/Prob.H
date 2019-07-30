@@ -10,7 +10,7 @@
 using namespace amrex;
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void
 initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
 {

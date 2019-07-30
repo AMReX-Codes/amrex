@@ -5,7 +5,7 @@
 
 namespace amrex {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real> const& vel,
                             Array4<int const> const& mxlo,
@@ -108,7 +108,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
                               Array4<Real const> const& vel,
                               Array4<Real const> const& etax,
@@ -135,7 +135,7 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                               Array4<Real const> const& vel,
                               Array4<Real const> const& etay,
@@ -162,7 +162,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                            Array4<Real const> const& fx,
                            Array4<Real const> const& fy,
