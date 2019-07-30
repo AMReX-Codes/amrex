@@ -177,4 +177,10 @@ private:
     static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 
+#ifdef WARPX_USE_PSATD
+void PushPMLPSATDSinglePatch( SpectralSolver& solver,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_E,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_B );
+#endif
+
 #endif
