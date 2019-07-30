@@ -14,13 +14,10 @@ Adv::advance (Real time,
 	int  iteration,
 	int  ncycle)
 {
-    if(isMasterThread())
-    {
 	for (int k = 0; k < NUM_STATE_TYPE; k++) {
 	    state[k].allocOldData();
 	    state[k].swapTimeLevels(dt);
 	}
-    }
 
     MultiFab& S_new = get_new_data(State_Type);
 
@@ -37,13 +34,10 @@ Adv::advance (Real time,
 
     int finest_level = parent->finestLevel();
 
-    if(isMasterThread())
-    {
 	if (do_reflux && level < finest_level) {
 	    fine = &getFluxReg(level+1);
 	    fine->setVal(0.0);
 	}
-    }
 
     if (do_reflux && level > 0) {
 	current = &getFluxReg(level);
@@ -67,18 +61,17 @@ Adv::advance (Real time,
 	Adv& upperLevel = getLevel(level+1);
 	upperAFPI = upperLevel.SborderFPI;
     }
-    FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
-#pragma omp parallel
+#pragma omp parallel default(shared)
 {
-    for (RGIter rgi(SborderFPI, upperAFPI, *(Sborder), NUM_GROW, prev_time, State_Type, 0, NUM_STATE, iteration); rgi.isValid(); ++rgi){
+    FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+    for (RGIter rgi(SborderFPI, upperAFPI, *(Sborder), NUM_GROW, state[State_Type].prevTime(), State_Type, 0, NUM_STATE, iteration); rgi.isValid(); ++rgi){
 	int f = rgi.currentRegion;
 	int fid = S_new.IndexArray()[f];
 	int fis = Sborder->IndexArray()[f];
 	const FArrayBox& statein = (*(Sborder))[fis];
 	FArrayBox& stateout      =   S_new[fid];
 	MFIter mfi(S_new, true);
-
 
 	const Box& bx = rgi.tilebox();
 	rgi.sync_workers();
@@ -114,7 +107,6 @@ Adv::advance (Real time,
 }
     if (do_reflux) {
 	if (fine) {
-	    if(isMasterThread())
 		for (int i = 0; i < BL_SPACEDIM ; i++)
 		    fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
 	}
