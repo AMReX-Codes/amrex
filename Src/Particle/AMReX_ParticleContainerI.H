@@ -1052,7 +1052,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const auto is_per = Geom(lev).isPeriodicArray();
     const Box domain = Geom(lev).Domain();
 
-    ParticleCopyOp& op = redistribute_copy_op;
+    auto& op = redistribute_copy_op;
+    std::map<int, int> new_sizes;
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -1060,48 +1061,55 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         auto index = std::make_pair(gid, tid);
 
         auto& src_tile = plev[index];
-        auto& aos   = src_tile.GetArrayOfStructs();
+        auto& aos = src_tile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
+        
+        m_grids_tmp.resize(np);
+        m_index_sequence_tmp.resize(np);
 
-	op.resize(gid, np);
-    }
+        thrust::sequence(thrust::device,
+                         m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
+        
+        thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
+                          functors::assignParticleGrid(geom.data(),
+                                                       (*redistribute_mask_ptr)[mfi].box(),
+                                                       redistribute_mask_ptr->array(mfi)));
+        
+        auto mid = thrust::partition(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                     m_index_sequence_tmp.begin(),
+                                     m_index_sequence_tmp.end(), 
+                                     m_grids_tmp.begin(), 
+                                     functors::grid_is(gid));
+        
+        int num_move = thrust::distance(mid, m_index_sequence_tmp.end());
+        int num_stay = np - num_move;
+        new_sizes[gid] = num_stay;
+	op.resize(gid, num_move);
 
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
+        {
+            m_aos_r.resize(np);
+            thrust::gather(thrust::device,
+                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                           aos().begin(), m_aos_r.begin());
+            
+            m_grids_r.resize(np);
+            thrust::gather(thrust::device,
+                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                           m_grids_tmp.begin(), m_grids_r.begin());
+            
+            aos().swap(m_aos_r);
+            m_grids_tmp.swap(m_grids_r);
+        }
 
-        auto& src_tile = plev[index];
-        auto& aos   = src_tile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
-
+        auto p_grid_ids = m_grids_tmp.dataPtr();
 	auto p_boxes = op.m_boxes[gid].dataPtr();
 	auto p_src_indices = op.m_src_indices[gid].dataPtr();
 	auto p_periodic_shift = op.m_periodic_shift[gid].dataPtr();
-        Array4<const int> const& mask_arr = redistribute_mask_ptr->array(mfi);
         ParticleType* p_ptr = &(aos[0]);
 
-	AMREX_FOR_1D ( np, i,
+	AMREX_FOR_1D ( num_move, i,
         {
-            auto& p = p_ptr[i];
-            int grid_id;
-            if (p.id() >= 0)
-            {
-                IntVect iv = IntVect(
-                    AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
-                                 floor((p.pos(1)-plo[1])*dxi[1]),
-                                 floor((p.pos(2)-plo[2])*dxi[2]))
-                    );
-            
-                iv += domain.smallEnd();
-                
-                grid_id = mask_arr(iv);
-            }
-            else
-            {
-                grid_id = -1;
-            }
+            auto& p = p_ptr[num_stay + i];
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -1113,9 +1121,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
             }
 
-            p_boxes[i] = grid_id;
+            p_boxes[i] = p_grid_ids[num_stay+i];
             p_periodic_shift[i] = IntVect(0,0,0); // already handled this
-            p_src_indices[i] = i;
+            p_src_indices[i] = num_stay+i;
 	});
     }
 
@@ -1134,7 +1142,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
         auto& tile = plev[index];
-        tile.resize(0);
+        tile.resize(new_sizes[gid]);
     }    
 
     unpackBuffer(*this, op, plan, snd_buffer, RedistributeUnpackPolicy());
