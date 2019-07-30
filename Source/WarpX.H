@@ -152,12 +152,12 @@ public:
     BilinearFilter bilinear_filter;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
-    
+
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
-    
+
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
@@ -499,7 +499,7 @@ private:
     int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
-    
+
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
@@ -594,9 +594,6 @@ private:
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 #endif
 
-int nox_fft = 16;
-int noy_fft = 16;
-int noz_fft = 16;  
 #ifdef WARPX_USE_PSATD
 private:
     void EvolvePSATD (int numsteps);
@@ -606,6 +603,10 @@ private:
     bool fft_hybrid_mpi_decomposition = false;
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
+
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
 #endif

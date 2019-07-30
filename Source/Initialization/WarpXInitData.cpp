@@ -1,6 +1,4 @@
 
-#include <numeric>
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 
@@ -134,15 +132,19 @@ WarpX::InitPML ()
     if (do_pml)
     {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, dt[0],
-                             nox_fft, noy_fft, noz_fft, do_nodal,
+                             pml_ncell, pml_delta, 0,
+#ifdef WARPX_USE_PSATD
+                             dt[0], nox_fft, noy_fft, noz_fft, do_nodal,
+#endif
                              do_dive_cleaning, do_moving_window));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
-                                   pml_ncell, pml_delta, refRatio(lev-1)[0], dt[lev],
-                                   nox_fft, noy_fft, noz_fft, do_nodal,
+                                   pml_ncell, pml_delta, refRatio(lev-1)[0],
+#ifdef WARPX_USE_PSATD
+                                   dt[lev], nox_fft, noy_fft, noz_fft, do_nodal,
+#endif
                                    do_dive_cleaning, do_moving_window));
         }
     }
@@ -325,7 +327,7 @@ WarpX::InitLevelData (int lev, Real time)
 void
 WarpX::InitLevelDataFFT (int lev, Real time)
 {
- 
+
     Efield_fp_fft[lev][0]->setVal(0.0);
     Efield_fp_fft[lev][1]->setVal(0.0);
     Efield_fp_fft[lev][2]->setVal(0.0);
