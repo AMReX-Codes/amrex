@@ -20,50 +20,8 @@ PMLPsatdAlgorithm::PMLPsatdAlgorithm(
     C_coef = SpectralCoefficients(ba, dm, 1, 0);
     S_ck_coef = SpectralCoefficients(ba, dm, 1, 0);
 
-    // Fill them with the right values:
-    // Loop over boxes and allocate the corresponding coefficients
-    // for each box owned by the local MPI proc
-    for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
-
-        const Box& bx = ba[mfi];
-
-        // Extract pointers for the k vectors
-        const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
-#if (AMREX_SPACEDIM==3)
-        const Real* modified_ky = modified_ky_vec[mfi].dataPtr();
-#endif
-        const Real* modified_kz = modified_kz_vec[mfi].dataPtr();
-        // Extract arrays for the coefficients
-        Array4<Real> C = C_coef[mfi].array();
-        Array4<Real> S_ck = S_ck_coef[mfi].array();
-
-        // Loop over indices within one box
-        ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-        {
-            // Calculate norm of vector
-            const Real k_norm = std::sqrt(
-                std::pow(modified_kx[i], 2) +
-#if (AMREX_SPACEDIM==3)
-                std::pow(modified_ky[j], 2) +
-                std::pow(modified_kz[k], 2));
-#else
-                std::pow(modified_kz[j], 2));
-#endif
-
-            // Calculate coefficients
-            constexpr Real c = PhysConst::c;
-            constexpr Real ep0 = PhysConst::ep0;
-            if (k_norm != 0){
-                C(i,j,k) = std::cos(c*k_norm*dt);
-                S_ck(i,j,k) = std::sin(c*k_norm*dt)/(c*k_norm);
-            } else { // Handle k_norm = 0, by using the analytical limit
-                C(i,j,k) = 1.;
-                S_ck(i,j,k) = dt;
-            }
-        });
-    }
-};
+    InitializeSpectralCoefficients(spectral_kspace, dm, dt);
+}
 
 /* Advance the E and B field in spectral space (stored in `f`)
  * over one time step */
@@ -115,7 +73,7 @@ PMLPsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Real kz = modified_kz_arr[j];
 #endif
             constexpr Real c2 = PhysConst::c*PhysConst::c;
-            constexpr Complex I = Complex{0,1};
+            const Complex I = Complex{0,1};
             const Real C = C_arr(i,j,k);
             const Real S_ck = S_ck_arr(i,j,k);
 
@@ -133,6 +91,56 @@ PMLPsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             fields(i,j,k,Idx::Byx) = C*fields(i,j,k,Idx::Byx) + S_ck*I*kx*Ez_old;
             fields(i,j,k,Idx::Bzx) = C*fields(i,j,k,Idx::Bzx) - S_ck*I*kx*Ey_old;
             fields(i,j,k,Idx::Bzy) = C*fields(i,j,k,Idx::Bzy) + S_ck*I*ky*Ex_old;
+        });
+    }
+};
+
+void PMLPsatdAlgorithm::InitializeSpectralCoefficients (
+    const SpectralKSpace& spectral_kspace,
+    const amrex::DistributionMapping& dm,
+    const amrex::Real dt)
+{
+    const BoxArray& ba = spectral_kspace.spectralspace_ba;
+    // Fill them with the right values:
+    // Loop over boxes and allocate the corresponding coefficients
+    // for each box owned by the local MPI proc
+    for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
+
+        const Box& bx = ba[mfi];
+
+        // Extract pointers for the k vectors
+        const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
+#if (AMREX_SPACEDIM==3)
+        const Real* modified_ky = modified_ky_vec[mfi].dataPtr();
+#endif
+        const Real* modified_kz = modified_kz_vec[mfi].dataPtr();
+        // Extract arrays for the coefficients
+        Array4<Real> C = C_coef[mfi].array();
+        Array4<Real> S_ck = S_ck_coef[mfi].array();
+
+        // Loop over indices within one box
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            // Calculate norm of vector
+            const Real k_norm = std::sqrt(
+                std::pow(modified_kx[i], 2) +
+#if (AMREX_SPACEDIM==3)
+                std::pow(modified_ky[j], 2) +
+                std::pow(modified_kz[k], 2));
+#else
+                std::pow(modified_kz[j], 2));
+#endif
+
+            // Calculate coefficients
+            constexpr Real c = PhysConst::c;
+            if (k_norm != 0){
+                C(i,j,k) = std::cos(c*k_norm*dt);
+                S_ck(i,j,k) = std::sin(c*k_norm*dt)/(c*k_norm);
+            } else { // Handle k_norm = 0, by using the analytical limit
+                C(i,j,k) = 1.;
+                S_ck(i,j,k) = dt;
+            }
         });
     }
 };

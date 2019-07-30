@@ -14,6 +14,12 @@ class PMLPsatdAlgorithm : public SpectralBaseAlgorithm
                          const int norder_x, const int norder_y,
                          const int norder_z, const bool nodal,
                          const amrex::Real dt);
+
+        void InitializeSpectralCoefficients(
+	    const SpectralKSpace& spectral_kspace,
+	    const amrex::DistributionMapping& dm, 
+	    const amrex::Real dt);
+
         // Redefine functions from base class
         virtual void pushSpectralFields(SpectralFieldData& f) const override final;
         virtual int getRequiredNumberOfFields() const override final {
@@ -22,6 +28,7 @@ class PMLPsatdAlgorithm : public SpectralBaseAlgorithm
 
     private:
         SpectralCoefficients C_coef, S_ck_coef;
+
 };
 
 #endif // WARPX_PML_PSATD_ALGORITHM_H_
