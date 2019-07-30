@@ -45,7 +45,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T warpReduceMin (T x) noexcept
 {
     for (int offset = warpSize/2; offset > 0; offset /= 2) {
-        Real y = __shfl_down_sync(0xffffffff, x, offset);
+        T y = __shfl_down_sync(0xffffffff, x, offset);
         x = amrex::min(x,y);
     }
     return x;
@@ -72,7 +72,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T warpReduceMax (T x) noexcept
 {
     for (int offset = warpSize/2; offset > 0; offset /= 2) {
-        Real y = __shfl_down_sync(0xffffffff, x, offset);
+        T y = __shfl_down_sync(0xffffffff, x, offset);
         x = amrex::max(x,y);
     }
     return x;
