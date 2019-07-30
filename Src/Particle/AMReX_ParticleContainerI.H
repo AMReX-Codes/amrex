@@ -1030,6 +1030,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
+    BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
     if (local > 0) BuildRedistributeMask(0, local);
     this->defineBufferMap();
@@ -1052,6 +1053,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const auto is_per = Geom(lev).isPeriodicArray();
     const Box domain = Geom(lev).Domain();
 
+    BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
     std::map<int, int> new_sizes;
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -1126,6 +1128,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p_src_indices[i] = num_stay+i;
 	});
     }
+    BL_PROFILE_VAR_STOP(blp_partition);
 
     auto& plan = redistribute_copy_plan;
     plan.build(*this, op);
