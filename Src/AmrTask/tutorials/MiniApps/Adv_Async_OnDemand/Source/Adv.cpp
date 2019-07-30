@@ -159,7 +159,7 @@ Adv::post_timestep (int iteration)
     int finest_level = parent->finestLevel();
 
     if (do_reflux && level < finest_level)
-        reflux();
+	    reflux();
 
     avgDown(iteration);
 }
@@ -225,9 +225,9 @@ Adv::avgDown (int iteration)
     void
 Adv::avgDown (int state_indx, int iteration)
 {
-
     std::vector<RegionGraph*> flattenedGraphArray;
     Perilla::flattenGraphHierarchy(parent->graphArray, flattenedGraphArray);
+
     if(level < parent->finestLevel())
     {
         Adv& fine_lev = getLevel(level+1);
@@ -239,7 +239,7 @@ Adv::avgDown (int state_indx, int iteration)
         const Real time = state[state_indx].curTime();
 
 
-#pragma omp parallel
+#pragma omp parallel default(shared)
 {
         for(RGIter rgi(RG_S_crse, flattenedGraphArray); rgi.isValid(); ++rgi)
         {
@@ -261,15 +261,16 @@ Adv::avgDown (int state_indx, int iteration)
       MultiFab* S_fine = &(get_new_data(state_indx));
       MultiFab* S_crse = &(crse_lev.get_new_data(state_indx));
 
-#pragma omp parallel
+#pragma omp parallel default(shared)
 {
       for(RGIter rgi(crse_lev.RG_S_fine, flattenedGraphArray, true); rgi.isValid(); ++rgi)
-      {
+        {
           int f = rgi.currentRegion;
           average_down_push(rgi, S_fine, S_crse, crse_lev.crse_S_fine,
                                     crse_lev.RG_S_fine, crse_lev.RG_S_crse,geom,crse_lev.geom,
                                     0,crse_lev.get_new_data(state_indx).nComp(),parent->refRatio(level-1),f);
-      }
+
+        }
 }
     }
 }

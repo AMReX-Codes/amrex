@@ -21,6 +21,10 @@ using namespace perilla;
 	if(isMasterWorkerThread()) WorkerThread::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
     }
 
+    void WorkerThread::syncWorkers(int tid){
+        if(perilla_wid()==tid) WorkerThread::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
+    }
+
     void WorkerThread::syncTeamThreads(){
         WorkerThread::localBarriers[perilla_wid()]->sync(perilla::NUM_THREADS_PER_TEAM);
     }
@@ -34,7 +38,7 @@ using namespace perilla;
     }
 
 
-#ifdef USE_PERILLA_OMP
+#if defined(USE_PERILLA_OMP) | defined(USE_PERILLA_ON_DEMAND) 
     void WorkerThread::syncAllThreads(){
         #pragma omp barrier
     }
@@ -52,7 +56,7 @@ using namespace perilla;
 
     void WorkerThread::syncThreads(){
         syncWorkerThreads();
-        syncWorkers;
+        syncWorkers();
     }
 
     void WorkerThread::syncComputeWorkerThreads(){
@@ -64,7 +68,7 @@ using namespace perilla;
         WorkerThread::localBarriers1[perilla_wid()]->sync(numthreads);
     }
 
-#ifdef USE_PERILLA_OMP 
+#if defined(USE_PERILLA_OMP ) | defined(USE_PERILLA_ON_DEMAND)
     int WorkerThread::perilla_tid(){
         return omp_get_thread_num();
     }
