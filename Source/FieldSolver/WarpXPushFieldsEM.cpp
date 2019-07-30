@@ -34,35 +34,50 @@ WarpX::PushPSATD (amrex::Real a_dt)
     }
 }
 
-void WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
-{
-    auto& solver = *spectral_solver_fp[lev];
+void
+PushPSATDSinglePatch (
+    SpectralSolver& solver,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& Efield,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& Bfield,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& current,
+    std::unique_ptr<amrex::MultiFab>& rho ) {
+
+    using Idx = SpectralFieldIndex;
 
     // Perform forward Fourier transform
-    solver.ForwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
-    solver.ForwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
-    solver.ForwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
-    solver.ForwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
-    solver.ForwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
-    solver.ForwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
-    solver.ForwardTransform(*current_fp[lev][0], SpectralFieldIndex::Jx);
-    solver.ForwardTransform(*current_fp[lev][1], SpectralFieldIndex::Jy);
-    solver.ForwardTransform(*current_fp[lev][2], SpectralFieldIndex::Jz);
-    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_old, 0);
-    solver.ForwardTransform(*rho_fp[lev], SpectralFieldIndex::rho_new, 1);
-
+    solver.ForwardTransform(*Efield[0], Idx::Ex);
+    solver.ForwardTransform(*Efield[1], Idx::Ey);
+    solver.ForwardTransform(*Efield[2], Idx::Ez);
+    solver.ForwardTransform(*Bfield[0], Idx::Bx);
+    solver.ForwardTransform(*Bfield[1], Idx::By);
+    solver.ForwardTransform(*Bfield[2], Idx::Bz);
+    solver.ForwardTransform(*current[0], Idx::Jx);
+    solver.ForwardTransform(*current[1], Idx::Jy);
+    solver.ForwardTransform(*current[2], Idx::Jz);
+    solver.ForwardTransform(*rho, Idx::rho_old, 0);
+    solver.ForwardTransform(*rho, Idx::rho_new, 1);
     // Advance fields in spectral space
     solver.pushSpectralFields();
-
     // Perform backward Fourier Transform
-    solver.BackwardTransform(*Efield_fp[lev][0], SpectralFieldIndex::Ex);
-    solver.BackwardTransform(*Efield_fp[lev][1], SpectralFieldIndex::Ey);
-    solver.BackwardTransform(*Efield_fp[lev][2], SpectralFieldIndex::Ez);
-    solver.BackwardTransform(*Bfield_fp[lev][0], SpectralFieldIndex::Bx);
-    solver.BackwardTransform(*Bfield_fp[lev][1], SpectralFieldIndex::By);
-    solver.BackwardTransform(*Bfield_fp[lev][2], SpectralFieldIndex::Bz);
+    solver.BackwardTransform(*Efield[0], Idx::Ex);
+    solver.BackwardTransform(*Efield[1], Idx::Ey);
+    solver.BackwardTransform(*Efield[2], Idx::Ez);
+    solver.BackwardTransform(*Bfield[0], Idx::Bx);
+    solver.BackwardTransform(*Bfield[1], Idx::By);
+    solver.BackwardTransform(*Bfield[2], Idx::Bz);
 }
 
+void
+WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
+{
+    // Update the fields on the fine and coarse patch
+    PushPSATDSinglePatch( *spectral_solver_fp[lev],
+        Efield_fp[lev], Bfield_fp[lev], current_fp[lev], rho_fp[lev] );
+    if (spectral_solver_cp[lev]) {
+        PushPSATDSinglePatch( *spectral_solver_cp[lev],
+             Efield_cp[lev], Bfield_cp[lev], current_cp[lev], rho_cp[lev] );
+    }
+}
 #endif
 
 void
@@ -559,4 +574,3 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
         }
     }
 }
-
