@@ -16,7 +16,7 @@ zmax = +20.e-6
 
 uniform_plasma = picmi.UniformDistribution(density = 1.e25,
                                            upper_bound = [0., None, None],
-                                           directed_velocity = [0.1*picmi.c, 0., 0.])
+                                           directed_velocity = [0.1*picmi.constants.c, 0., 0.])
 
 electrons = picmi.Species(particle_type='electron', name='electrons', initial_distribution=uniform_plasma)
 
