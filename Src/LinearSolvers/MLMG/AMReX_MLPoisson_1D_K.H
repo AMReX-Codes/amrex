@@ -21,7 +21,7 @@ void mlpoisson_adotx_m (int i, Array4<Real> const& y,
     y(i,0,0) = dhx * (rel*x(i-1,0,0) - (rel+rer)*x(i,0,0) + rer*x(i+1,0,0));
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
                        Array4<Real const> const& sol, Real dxinv) noexcept
 {
@@ -34,7 +34,7 @@ void mlpoisson_flux_x (Box const& box, Array4<Real> const& fx,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_x_m (Box const& box, Array4<Real> const& fx,
                          Array4<Real const> const& sol, Real dxinv,
                          Real dx, Real probxlo) noexcept
@@ -49,7 +49,7 @@ void mlpoisson_flux_x_m (Box const& box, Array4<Real> const& fx,
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
                            Array4<Real const> const& sol, Real dxinv, int xlen) noexcept
 {
@@ -62,7 +62,7 @@ void mlpoisson_flux_xface (Box const& box, Array4<Real> const& fx,
     fx(i,0,0) = dxinv*(sol(i,0,0)-sol(i-1,0,0));
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_flux_xface_m (Box const& box, Array4<Real> const& fx,
                              Array4<Real const> const& sol, Real dxinv, int xlen,
                              Real dx, Real probxlo) noexcept
@@ -78,7 +78,7 @@ void mlpoisson_flux_xface_m (Box const& box, Array4<Real> const& fx,
     fx(i,0,0) = dxinv*re*(sol(i,0,0)-sol(i-1,0,0));
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
                      Real dhx,
                      Array4<Real const> const& f0, Array4<int const> const& m0,
@@ -110,7 +110,7 @@ void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const>
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
                        Real dhx,
                        Array4<Real const> const& f0, Array4<int const> const& m0,
@@ -145,7 +145,7 @@ void mlpoisson_gsrb_m (Box const& box, Array4<Real> const& phi, Array4<Real cons
     }
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
                           Real dhx, Real dx, Real probxlo) noexcept
 {

@@ -77,6 +77,9 @@ set(AMReX_PROFPARSER_FOUND          @ENABLE_PROFPARSER@)
 # 
 # Find dependencies if needed
 #
+set( THREADS_PREFER_PTHREAD_FLAG on)
+find_dependency(Threads REQUIRED)
+
 if (@ENABLE_MPI@)
    set( _mpi_components C CXX )
    if (@ENABLE_FORTRAN_INTERFACES@)

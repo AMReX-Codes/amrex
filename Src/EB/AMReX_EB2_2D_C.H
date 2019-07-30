@@ -3,7 +3,7 @@
 
 namespace amrex { namespace EB2 {
 
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void
 amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
                        Array4<Real const> const& s,

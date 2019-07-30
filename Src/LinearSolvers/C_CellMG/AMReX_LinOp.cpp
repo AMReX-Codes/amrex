@@ -401,6 +401,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     }
     else
     {
+        cdir = -100;
         amrex::Error("LinOp::makeCoeffients: Bad index type");
     }
 

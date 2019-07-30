@@ -52,6 +52,24 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 }
 
 Real
+MultiFab::Dot (const MultiFab& x, int xcomp,
+	       int numcomp, int nghost, bool local)
+{
+    BL_ASSERT(x.nGrow() >= nghost); 
+
+    Real sm = amrex::ReduceSum(x, nghost,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab) -> Real
+    {
+        return xfab.dot(bx,xcomp,numcomp);
+    });
+
+    if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+
+    return sm;
+}
+
+
+Real
 MultiFab::Dot (const iMultiFab& mask,
                const MultiFab& x, int xcomp,
 	       const MultiFab& y, int ycomp,
@@ -930,11 +948,7 @@ MultiFab::norm2 (int comp) const
 {
     BL_ASSERT(ixType().cellCentered());
 
-    // Dot expects two MultiFabs. Make a copy to avoid aliasing.
-    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
-    MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
-
-    Real nm2 = MultiFab::Dot(*this, comp, tmpmf, 0, 1, 0);
+    Real nm2 = MultiFab::Dot(*this, comp, 1, 0);
     nm2 = std::sqrt(nm2);
     return nm2;
 }
@@ -1196,34 +1210,41 @@ MultiFab::SumBoundary (const Periodicity& period)
 std::unique_ptr<MultiFab>
 MultiFab::OverlapMask (const Periodicity& period) const
 {
-    //TODO GPU????
-
     BL_PROFILE("MultiFab::OverlapMask()");
 
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
     std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
-    p->setVal(0.0);
 
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
-            FArrayBox& fab = (*p)[mfi];
-            const Box& bx = fab.box();
+            const Box& bx = (*p)[mfi].box();
+            auto arr = p->array(mfi); 
+
+            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            {
+                arr(i,j,k) = 0.0;
+            });
+
             for (const auto& iv : pshifts)
             {
-                ba.intersections(bx+iv, isects);                    
+                ba.intersections(bx+iv, isects);
                 for (const auto& is : isects)
                 {
-                    fab.plus(1.0, is.second-iv);
+                    Box ibx = is.second-iv;
+                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    {
+                        arr(i,j,k) += 1.0;
+                    });
                 }
             }
         }
@@ -1231,6 +1252,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     
     return p;
 }
+
 
 std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const

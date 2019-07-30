@@ -11,6 +11,7 @@ namespace amrex {
 MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_umac,
                             const Vector<Array<MultiFab const*,AMREX_SPACEDIM> >& a_beta,
                             const Vector<Geometry>& a_geom,
+                            const LPInfo& a_lpinfo,
                             const Vector<MultiFab const*>& a_divu)
     : m_umac(a_umac),
       m_geom(a_geom)
@@ -47,9 +48,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        LPInfo                       info;
-        info.setMaxCoarseningLevel(m_max_coarsening_level);
-        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, info, m_eb_factory));
+        m_eb_abeclap.reset(new MLEBABecLap(a_geom, ba, dm, a_lpinfo, m_eb_factory));
         m_linop = m_eb_abeclap.get();
 
         m_eb_abeclap->setScalars(0.0, 1.0);
@@ -71,9 +70,7 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
             }
         }
 
-        LPInfo                       info;
-        info.setMaxCoarseningLevel(m_max_coarsening_level);
-        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, info));
+        m_abeclap.reset(new MLABecLaplacian(a_geom, ba, dm, a_lpinfo));
         m_linop = m_abeclap.get();
 
         m_abeclap->setScalars(0.0, 1.0);

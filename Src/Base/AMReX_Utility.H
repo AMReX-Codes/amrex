@@ -249,17 +249,14 @@ namespace amrex
     *  The pseusorandom sequence currently implemented is obtained 
     *  from the XORWOW and MRG32k3a generator
     */
-    void InitRandSeedOnDevice(int N); 
+    void InitRandSeedOnDevice (int N); 
    
-
     /**
     * \brief Resize seed array and copy address to global symbol 
     */
-    void ResizeRandomSeed(int N);
+    void ResizeRandomSeed (int N);
 
-    void CheckSeedArraySizeAndResize (int N);
-
-    void DeallocateRandomSeedDevArray();
+    void DeallocateRandomSeedDevArray ();
 
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);
@@ -320,6 +317,7 @@ namespace amrex
     void BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm);
 
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
+
     void USleep(double sleepsec);
 
 

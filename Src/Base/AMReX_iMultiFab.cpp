@@ -555,7 +555,6 @@ iMultiFab::negate (const Box& region,
 std::unique_ptr<iMultiFab>
 OwnerMask (FabArrayBase const& mf, const Periodicity& period)
 {
-    //TODO GPU????
     BL_PROFILE("OwnerMask()");
 
     const BoxArray& ba = mf.boxArray();
@@ -566,30 +565,38 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
 
     std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0, MFInfo(),
                                                DefaultFabFactory<IArrayBox>())};
-    p->setVal(owner);
-
     const std::vector<IntVect>& pshifts = period.shiftIntVect();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
-            IArrayBox& fab = (*p)[mfi];
-            const Box& bx = fab.box();
-            const int i = mfi.index();
+            const Box& bx = (*p)[mfi].box();
+            auto arr = p->array(mfi);
+            const int idx = mfi.index();
+
+            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            {
+                arr(i,j,k) = owner;
+            });
+
             for (const auto& iv : pshifts)
             {
                 ba.intersections(bx+iv, isects);                    
                 for (const auto& is : isects)
                 {
                     const int oi = is.first;
-                    const Box& obx = is.second;
-                    if ((oi < i) || (oi == i && iv < IntVect::TheZeroVector())) {
-                        fab.setVal(nonowner, obx-iv, 0, 1);
+                    const Box& obx = is.second-iv;
+                    if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector())) 
+                    {
+                        AMREX_HOST_DEVICE_FOR_3D(obx, i, j, k,
+                        {
+                            arr(i,j,k) = nonowner;
+                        });
                     }
                 }
             }

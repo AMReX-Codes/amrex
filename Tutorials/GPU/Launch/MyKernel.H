@@ -4,7 +4,7 @@
 #include <AMReX_FArrayBox.H>
 
 AMREX_GPU_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 void plusone_cudacpp (amrex::Box const& bx, amrex::FArrayBox& fab)
 {
     auto data = fab.array();   // array inside FArrayBox

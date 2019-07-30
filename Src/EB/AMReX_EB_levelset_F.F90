@@ -199,6 +199,7 @@ contains
     end subroutine amrex_eb_fill_levelset_loc
 
 
+
     pure subroutine amrex_eb_fill_levelset_bcs( phi,      philo, phihi, &
                                                 valid,    vlo,   vhi,   &
                                                 periodic, domlo, domhi, &
@@ -365,6 +366,11 @@ contains
       !    eb_norm, eb_cent: EB normal and center (LATER: of the nearest EB facet)
       !    eb_min_pt, c_vec: projected point on EB facet (c_vec: onto facet edge)
       real(c_real), dimension(3) :: inv_dx, eb_norm, eb_cent, eb_min_pt, c_vec
+      !    min_pt_valid: set to true if the eb_min_pt is in the same cell as eb_cent
+      logical :: min_pt_valid
+      !    *_shift: loop counters for checking off-by-epsilon error when comparing eb_cent and projected point
+      integer :: i_shift, j_shift, k_shift
+
 
       inv_dx(:)  = 1.d0 / dx_eb(:)
 
@@ -397,9 +403,24 @@ contains
       vi_cent(:) = floor( eb_cent(:) * inv_dx)
       vi_pt(:)   = floor( eb_min_pt(:) * inv_dx);
 
+      min_pt_valid = .false.
+      if ( all( vi_pt == vi_cent ) ) then
+          min_pt_valid = .true.
+      else ! rounding error might give false negatives
+      do k_shift = -1, 1
+         do j_shift = -1, 1
+            do i_shift = -1, 1
+               vi_pt(:) = floor( (eb_min_pt(:) + (/i_shift, j_shift, k_shift /)*1d-6*dx_eb ) * inv_dx);
+               if ( all( vi_pt == vi_cent ) ) min_pt_valid = .true.
+            end do
+         end do
+      end do
+      end if
+
+
       ! If projects onto nearest EB facet, then return projected distance
       ! Alternatively: find the nearest point on the EB edge
-      if ( all( vi_pt == vi_cent ) ) then
+      if ( min_pt_valid ) then
          ! this is a signed distance function
          min_dist   = dist_proj
          proj_valid = .true.
@@ -505,6 +526,7 @@ contains
         end do
 
     end subroutine amrex_eb_validate_levelset
+
 
 
     pure subroutine amrex_eb_validate_levelset_bcs( phi,      phlo,  phhi,  &
@@ -835,6 +857,8 @@ contains
 
     end subroutine amrex_eb_update_levelset_union
 
+
+
     pure subroutine amrex_eb_update_levelset_union_bcs( v_in,     vilo,  vihi,   &
                                                         ls_in,    lslo,  lshi,   &
                                                         valid,    vlo,   vhi,    &
@@ -1000,7 +1024,7 @@ contains
     !!   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set
     !!   value being negative (i.e. phi < 0), and 0 otherwise. For all ghost cells outside the domain
     !!
-!----------------------------------------------------------------------------------------------------------------
+    !----------------------------------------------------------------------------------------------------------------
 
 
     pure subroutine amrex_eb_fill_valid_bcs( valid, vlo, vhi, periodic, domlo, domhi ) &
