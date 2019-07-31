@@ -1148,8 +1148,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         tile.resize(new_sizes[gid]);
     }    
 
-    unpackBuffer(*this, op, plan, snd_buffer, RedistributeUnpackPolicy());
-    communicateParticles(*this, op, plan, snd_buffer, rcv_buffer, RedistributeUnpackPolicy());
+    communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
+    unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
+    communicateParticlesFinish(*this, plan, snd_buffer, rcv_buffer, RedistributeUnpackPolicy());
 #endif    
 }
 
