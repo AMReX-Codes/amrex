@@ -33,13 +33,13 @@ void cic_interpolate (const P& p,
 
     amrex::Real sx[] = {1.-xint, xint}; 
 
-    for int d=0; d < AMREX_SPACEDIM; ++d)
-      {
-      for (int ii = 0; ii<=1; ++ii)
+    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    {
+        for (int ii = 0; ii<=1; ++ii)
 	{
-        val[d] += sx[ii]*uccarr(i+ii,0,0,d)
-	}
-      }
+            val[d] += sx[ii]*uccarr(i+ii,0,0,d);
+        }
+    }
 
   
 #elif (AMREX_SPACEDIM == 2)
@@ -133,12 +133,12 @@ void mac_interpolate (const P& p,
   
 
       if (d==0)
-        {
+      {
           //cells
           ecellx = i +1;
           //fracs
-          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - floor((p.m_rdata.pos[0]-plo[0])*dxi[0])
-        }
+          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
+      }
 
       if (efracx > 1) efracx =1;
       if (efracx < 0) efracx =0;
@@ -147,18 +147,15 @@ void mac_interpolate (const P& p,
       
       val[d] = 0.0;
       for (int ii = 0; ii <= 1; ++ii)
-	{
-	  val[d] += (p_uccarr[d])(ecellx+ii, 0 0,0)*sx[ii];
-	}		
+      {
+          val[d] += (p_uccarr[d])(ecellx+ii, 0, 0,0)*sx[ii];
+      }		
     }
-
-
-
-    
+      
 #elif (AMREX_SPACEDIM == 2)
   
   for (int d=0; d < AMREX_SPACEDIM; ++d)
-    {
+  {
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len 
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
 
@@ -216,7 +213,6 @@ void mac_interpolate (const P& p,
       }
     
     }
-
 
 #elif (AMREX_SPACEDIM == 3)
 
