@@ -144,7 +144,7 @@ struct InjectorDensity
 
     std::size_t sharedMemoryNeeded () const noexcept;
 
-    // call getPositionUnitBox from the object stored in the union
+    // call getDensity from the object stored in the union
     // (the union is called Object, and the instance is called object).
     AMREX_GPU_HOST_DEVICE
     amrex::Real

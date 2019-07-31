@@ -21,6 +21,7 @@ InjectorMomentum::~InjectorMomentum ()
     }
 }
 
+// Compute the amount of memory needed in GPU Shared Memory.
 std::size_t
 InjectorMomentum::sharedMemoryNeeded () const noexcept
 {
@@ -28,6 +29,8 @@ InjectorMomentum::sharedMemoryNeeded () const noexcept
     {
     case Type::parser:
     {
+        // For parser injector, the 3D position of each particle
+        // is stored in shared memory.
         return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3;
     }
     default:
