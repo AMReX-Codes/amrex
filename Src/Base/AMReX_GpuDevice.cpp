@@ -328,7 +328,7 @@ Device::initialize_gpu ()
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
 
-    gpu_stream = gpu_streams[0];
+    gpu_stream = 0;
 
     ParmParse pp("device");
 
