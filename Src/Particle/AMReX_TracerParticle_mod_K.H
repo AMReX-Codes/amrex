@@ -118,194 +118,82 @@ void mac_interpolate (const P& p,
 {
 
 #if (AMREX_SPACEDIM == 1)
-  
-  for (int d=0; d < AMREX_SPACEDIM; ++d)
+    for (int d=0; d < AMREX_SPACEDIM; ++d)
     {
-      amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len
-  
-      int i = std::floor(lx); //cell
-  
-      amrex::Real xint = lx - i; //frac
-  
-      int ecellx = i;
-  
-      Real efracx = xint;
-  
-
-      if (d==0)
-      {
-          //cells
-          ecellx = i +1;
-          //fracs
-          Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
-          efracx = x - floor(x);
-      }
-
-      if (efracx > 1) efracx =1;
-      if (efracx < 0) efracx =0;
+      amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
       
-      amrex::Real sx[] = {1.-efracx, efracx};
+      int i = std::floor(lx);
+      
+      amrex::Real xint = lx - i;
+      
+      amrex::Real sx[] = {1.-xint, xint};
       
       val[d] = 0.0;
       for (int ii = 0; ii <= 1; ++ii)
       {
-          val[d] += (p_uccarr[d])(ecellx+ii, 0, 0,0)*sx[ii];
-      }		
-    }
+          val[d] += (p_uccarr[d])(i+ii, 0)*sx[ii];
+      }      
+  }
       
 #elif (AMREX_SPACEDIM == 2)
+
+  for (int d=0; d < AMREX_SPACEDIM; ++d)
+  {
+      amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
+      amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - (d != 1)*0.5;
+      
+      int i = std::floor(lx);
+      int j = std::floor(ly);
+      
+      amrex::Real xint = lx - i;
+      amrex::Real yint = ly - j;
+      
+      amrex::Real sx[] = {1.-xint, xint};
+      amrex::Real sy[] = {1.-yint, yint};
+      
+      val[d] = 0.0;
+      for (int jj = 0; jj <= 1; ++jj)
+      {
+          for (int ii = 0; ii <= 1; ++ii)
+          {
+              val[d] += (p_uccarr[d])(i+ii, j+jj, 0)*sx[ii]*sy[jj];
+          }
+      }
+  }
+
+
+#elif (AMREX_SPACEDIM == 3)
   
   for (int d=0; d < AMREX_SPACEDIM; ++d)
   {
-      amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len 
-      amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
-
-      int i = std::floor(lx); //cell
-      int j = std::floor(ly);
-  
-      amrex::Real xint = lx - i; //frac
-      amrex::Real yint = ly - j;
-      int ecellx = i;
-      int ecelly = j;
-      Real efracx = xint;
-      Real efracy = yint; 
-
-      // This is a MAC grid, so in the x direction, y/z will be CC, 
-      // but x will be on faces, adding 1 extra index
-      if (d==0)
-	{
-	  //cells 
-	  ecellx = i +1;
-	  ecelly = j;
-	  
-	  //fracs
-          Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
-          efracx = x - floor(x);
-	  efracy = yint;
-	}
+      amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - (d != 0)*0.5;
+      amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - (d != 1)*0.5;
+      amrex::Real lz = (p.m_rdata.pos[2]-plo[2])*dxi[2] - (d != 2)*0.5;
       
-      else if (d==1)
-	{
-	  //cells
-	  ecellx = i;
-	  ecelly = j +1;
-	
-	  //fracs
-	  efracx = xint;
-          Real y = (p.m_rdata.pos[1]-plo[1])*dxi[1];
-          efracy = y - floor(y);
-	}
-
-      //The fraction must be between zero and one. 
-      if (efracx > 1) efracx =1;
-      if (efracy > 1) efracy =1;
-      if (efracx < 0) efracx =0;
-      if (efracy < 0) efracy =0;
-      
-      
-      amrex::Real sx[] = {1.-efracx, efracx};
-      amrex::Real sy[] = {1.-efracy, efracy};
-      
-    val[d] = 0.0;
-    for (int jj = 0; jj <= 1; ++jj)
-      {
-	for (int ii = 0; ii <= 1; ++ii)
-	  {
-	    val[d] += (p_uccarr[d])(ecellx+ii, ecelly+jj, 0,0)*sx[ii]*sy[jj];
-	  }
-      }
-    
-    }
-
-#elif (AMREX_SPACEDIM == 3)
-
-  for (int d=0; d < AMREX_SPACEDIM; ++d)
-    {
-      amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len                                                               
-      amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
-      amrex::Real lz = (p.m_rdata.pos[2]-plo[2])*dxi[2] - 0.5;
-
-      
-      int i = std::floor(lx); //cell                                                                                               
+      int i = std::floor(lx);
       int j = std::floor(ly);
       int k = std::floor(lz);
       
-      amrex::Real xint = lx - i; //frac                                                                                            
+      amrex::Real xint = lx - i;
       amrex::Real yint = ly - j;
       amrex::Real zint = lz - k;
       
-      int  ecellx, ecelly, ecellz;
-      Real efracx, efracy, efracz;
-
-      // This is a MAC grid, so in the x direction, y/z will be CC, 
-      // but x will be on faces, adding 1 extra index 
-      if (d==0)
-        {
-          //cells
-          ecellx = i +1;
-          ecelly = j;
-	  ecellz = k;
-
-          //fracs
-          Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
-          efracx = x - floor(x);
-          efracy = yint;
-	  efracz = zint;
-        }
-
-      else if (d==1)
-        {
-          //cells
-          ecellx = i;
-          ecelly = j +1;
-	  ecellz = k;
-
-          //fracs
-          efracx = xint;
-          Real y = (p.m_rdata.pos[1]-plo[1])*dxi[1];
-          efracy = y - floor(y);
-	  ecellz = zint;
-	}
-
-      else if (d==2)
-        {
-          //cells
-          ecellx = i;
-          ecelly = j;
-          ecellz = k+1;
-
-          //fracs
-          efracx = xint;
-	  efracy = yint;
-          Real z = (p.m_rdata.pos[2]-plo[2])*dxi[2];
-          efracz = z - floor(z);
-        }
-      
-      // The fraction must be between 0 and 1.
-      if (efracx > 1) efracx =1;
-      if (efracy > 1) efracy =1;
-      if (efracz > 1) efracz =1;
-      if (efracx < 0) efracx =0;
-      if (efracy < 0) efracy =0;
-      if (efracz < 0) efracz =0;
-
-      amrex::Real sx[] = {1.-efracx, efracx};
-      amrex::Real sy[] = {1.-efracy, efracy};
-      amrex::Real sz[] = {1.-efracz, efracz};
+      amrex::Real sx[] = {1.-xint, xint};
+      amrex::Real sy[] = {1.-yint, yint};
+      amrex::Real sz[] = {1.-zint, zint};
       
       val[d] = 0.0;
       for (int kk = 0; kk <=1; ++kk)
-	{
+      {
 	  for (int jj = 0; jj <= 1; ++jj)
-	    {
+          {
 	      for (int ii = 0; ii <= 1; ++ii)
-		{
-		  val[d] += (p_uccarr[d])(ecellx+ii, ecelly+jj, ecellz+kk ,0)*sx[ii]*sy[jj]*sz[kk];
-		}
-	    }
-	}
-      
-    } 
+              {
+		  val[d] += (p_uccarr[d])(i+ii, j+jj, k+kk ,0)*sx[ii]*sy[jj]*sz[kk];
+              }
+          }
+      }      
+  }
 #endif
 }
 }
