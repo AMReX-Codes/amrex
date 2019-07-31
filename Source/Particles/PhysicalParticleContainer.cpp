@@ -1124,9 +1124,9 @@ PhysicalParticleContainer::FieldGather (int lev,
             //
             // Field Gather
             //
-            const int ll4symtry          = false;
-            long lvect_fieldgathe = 64;
 #ifdef WARPX_RZ
+            const int ll4symtry = false;
+            long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
                 m_xp[thread_num].dataPtr(),
@@ -1421,7 +1421,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 BL_PROFILE_VAR_START(blp_pxr_fg);
 #ifdef WARPX_RZ
-                const int ll4symtry          = false;
+                const int ll4symtry = false;
                 long lvect_fieldgathe = 64;
                 const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
                 const int* ixyzmin_grid = box.loVect();

@@ -52,33 +52,33 @@ void doGatherShapeN(const amrex::Real * const xp,
         [=] AMREX_GPU_DEVICE (long ip) {
             // --- Compute shape factors
             // x direction
-            // Get particle position after 1/2 push back in position
-            const amrex::Real xmid = (xp[ip]-xmin)*dxi;
+            // Get particle position
+            const amrex::Real x = (xp[ip]-xmin)*dxi;
             // Compute shape factors for node-centered quantities
             amrex::Real AMREX_RESTRICT sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that particle touches
-            const int j  = compute_shape_factor<depos_order>(sx, xmid);
+            const int j  = compute_shape_factor<depos_order>(sx, x);
             // Compute shape factors for cell-centered quantities
             amrex::Real AMREX_RESTRICT sx0[depos_order + 1 - lower_in_v];
             // j0: leftmost grid point (cell-centered) that particle touches
             const int j0 = compute_shape_factor<depos_order - lower_in_v>(
-                sx0, xmid-stagger_shift);
+                sx0, x-stagger_shift);
 #if (AMREX_SPACEDIM == 3)
             // y direction
-            const amrex::Real ymid= (yp[ip]-ymin)*dyi;
+            const amrex::Real y = (yp[ip]-ymin)*dyi;
             amrex::Real AMREX_RESTRICT sy [depos_order + 1];
-            const int k  = compute_shape_factor<depos_order>(sy,  ymid);
+            const int k  = compute_shape_factor<depos_order>(sy, y);
             amrex::Real AMREX_RESTRICT sy0[depos_order + 1 - lower_in_v];
             const int k0 = compute_shape_factor<depos_order-lower_in_v>(
-                sy0, ymid-stagger_shift);
+                sy0, y-stagger_shift);
 #endif
             // z direction
-            const amrex::Real zmid= (zp[ip]-zmin)*dzi;
+            const amrex::Real z = (zp[ip]-zmin)*dzi;
             amrex::Real AMREX_RESTRICT sz [depos_order + 1];
-            const int l  = compute_shape_factor<depos_order>(sz,  zmid);
+            const int l  = compute_shape_factor<depos_order>(sz, z);
             amrex::Real AMREX_RESTRICT sz0[depos_order + 1 - lower_in_v];
             const int l0 = compute_shape_factor<depos_order - lower_in_v>(
-                sz0, zmid-stagger_shift);
+                sz0, z-stagger_shift);
 
             // Set fields on particle to zero
             Exp[ip] = 0;
