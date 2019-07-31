@@ -338,8 +338,7 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv((char*) thrust::raw_pointer_cast(&rcv_buffer[offset]),
-                                             Cnt, Who, SeqNum).req();
+        rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     // Send.
@@ -356,9 +355,7 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
         int bucket = pc.BufferMap().firstBucketOnProc(i);
         const auto snd_offset = plan.m_box_offsets[bucket];
 
-        ParallelDescriptor::Send(
-	    (char*) thrust::raw_pointer_cast(&snd_buffer[snd_offset]),
-	    Cnt, Who, SeqNum);
+        ParallelDescriptor::Send( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
     }
 
     if (nrcvs > 0) {
