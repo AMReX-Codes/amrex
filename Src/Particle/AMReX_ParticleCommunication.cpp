@@ -38,7 +38,10 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     
     Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0); // number of bytes per snd / receive
     
+    m_snd_num_particles.resize(0);
     m_snd_num_particles.resize(NProcs, 0);
+
+    m_rcv_num_particles.resize(0);
     m_rcv_num_particles.resize(NProcs, 0);
 
     Gpu::HostVector<int> box_counts(m_box_counts.size());
