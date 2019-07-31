@@ -130,14 +130,14 @@ void mac_interpolate (const P& p,
       int ecellx = i;
   
       Real efracx = xint;
-  
 
       if (d==0)
         {
           //cells
           ecellx = i +1;
           //fracs
-          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - floor((p.m_rdata.pos[0]-plo[0])*dxi[0])
+          Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
+          efracx = x - floor(x);
         }
 
       if (efracx > 1) efracx =1;
@@ -151,8 +151,6 @@ void mac_interpolate (const P& p,
 	  val[d] += (p_uccarr[d])(ecellx+ii, 0 0,0)*sx[ii];
 	}		
     }
-
-
 
     
 #elif (AMREX_SPACEDIM == 2)
@@ -181,7 +179,8 @@ void mac_interpolate (const P& p,
 	  ecelly = j;
 	  
 	  //fracs
-	  efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - std::floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
+          Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
+          efracx = x - floor(x);
 	  efracy = yint;
 	}
       
@@ -193,7 +192,8 @@ void mac_interpolate (const P& p,
 	
 	  //fracs
 	  efracx = xint;
-	  efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - std::floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
+          Real y = (p.m_rdata.pos[1]-plo[1])*dxi[1];
+          efracy = y - floor(y);
 	}
 
       //The fraction must be between zero and one. 
@@ -225,7 +225,6 @@ void mac_interpolate (const P& p,
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len                                                               
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
       amrex::Real lz = (p.m_rdata.pos[2]-plo[2])*dxi[2] - 0.5;
-
       
       int i = std::floor(lx); //cell                                                                                               
       int j = std::floor(ly);
@@ -248,7 +247,8 @@ void mac_interpolate (const P& p,
 	  ecellz = k;
 
           //fracs
-          efracx = p.m_rdata.pos[0]-plo[0]*dxi[0] - std::floor((p.m_rdata.pos[0]-plo[0])*dxi[0]);
+          Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
+          efracx = x - floor(x);
           efracy = yint;
 	  efracz = zint;
         }
@@ -262,7 +262,8 @@ void mac_interpolate (const P& p,
 
           //fracs
           efracx = xint;
-          efracy = p.m_rdata.pos[1]-plo[1]*dxi[1] - std::floor((p.m_rdata.pos[1]-plo[1])*dxi[1]);
+          Real y = (p.m_rdata.pos[1]-plo[1])*dxi[1];
+          efracy = y - floor(y);
 	  ecellz = zint;
 	}
 
@@ -276,16 +277,17 @@ void mac_interpolate (const P& p,
           //fracs
           efracx = xint;
 	  efracy = yint;
-          efracz = p.m_rdata.pos[2]-plo[2]*dxi[2] - std::floor((p.m_rdata.pos[2]-plo[2])*dxi[2]);
+          Real z = (p.m_rdata.pos[2]-plo[2])*dxi[2];
+          efracz = z - floor(z);
         }
       
       // The fraction must be between 0 and 1.
-      if (efracx > 1) efracx =1;
-      if (efracy > 1) efracy =1;
-      if (efracz > 1) efracz =1;
-      if (efracx < 0) efracx =0;
-      if (efracy < 0) efracy =0;
-      if (efracz < 0) efracz =0;
+      if (efracx > 1) amrex::Abort("efracx > 1 in mac_interpolate for AdvectWithUmac");
+      if (efracy > 1) amrex::Abort("efracy > 1 in mac_interpolate for AdvectWithUmac");
+      if (efracz > 1) amrex::Abort("efracz > 1 in mac_interpolate for AdvectWithUmac");
+      if (efracx < 0) amrex::Abort("efracx < 0 in mac_interpolate for AdvectWithUmac");
+      if (efracy < 0) amrex::Abort("efracy < 0 in mac_interpolate for AdvectWithUmac");
+      if (efracz < 0) amrex::Abort("efracz < 0 in mac_interpolate for AdvectWithUmac");
 
       amrex::Real sx[] = {1.-efracx, efracx};
       amrex::Real sy[] = {1.-efracy, efracy};
@@ -303,7 +305,7 @@ void mac_interpolate (const P& p,
 	    }
 	}
       
-    } 
+    }
 #endif
 }
 }
