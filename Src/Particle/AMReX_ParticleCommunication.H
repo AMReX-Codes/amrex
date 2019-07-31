@@ -74,8 +74,8 @@ struct ParticleCopyPlan
 
     long m_NumSnds;
     int m_nrcvs;
-    Vector<MPI_Status> m_stats;
-    Vector<MPI_Request> m_rreqs;
+    mutable Vector<MPI_Status> m_stats;
+    mutable Vector<MPI_Request> m_rreqs;
 
     Vector<long> m_snd_num_particles;
     Vector<long> m_rcv_num_particles;
@@ -86,7 +86,6 @@ struct ParticleCopyPlan
         BL_PROFILE("ParticleCopyPlan::build");
         
         AMREX_ASSERT(pc.numLevels() == 1);
-        AMREX_ASSERT(pc.hasNeighbors() == false);
         
         const int lev = 0;
         const auto& geom = pc.Geom(lev);
@@ -202,7 +201,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 }
 
 template <class PC, class Buffer, class UnpackPolicy>
-void unpackBuffer (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
+void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, const UnpackPolicy policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
 
@@ -264,15 +263,14 @@ void unpackBuffer (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& pla
     }    
 }
 
-template <class PC, class Buffer, class UnpackPolicy>
-void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer, const UnpackPolicy& policy)
+template <class PC, class Buffer>
+void communicateParticlesStart (const PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
 {
-    BL_PROFILE("amrex::communicateParticles");
+    BL_PROFILE("amrex::communicateParticlesStart");
     
     AMREX_ASSERT(pc.numLevels() == 1);
 
     using ParticleType = typename PC::ParticleType;
-    using PTile = typename PC::ParticleTileType;
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -290,17 +288,18 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
             TotRcvParticles += plan.m_rcv_num_particles[i];
         }
     }
-    
-    const int nrcvs = RcvProc.size();
-    Vector<MPI_Status>  stats(nrcvs);
-    Vector<MPI_Request> rreqs(nrcvs);
+    rcv_buffer.resize(TotRcvParticles);
 
+    plan.m_stats.resize(0);
+    plan.m_stats.resize(plan.m_nrcvs);
+
+    plan.m_rreqs.resize(0);
+    plan.m_rreqs.resize(plan.m_nrcvs);
+    
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    rcv_buffer.resize(TotRcvParticles);
-    
     // Post receives.
-    for (int i = 0; i < nrcvs; ++i) {
+    for (int i = 0; i < plan.m_nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         const auto Cnt    = plan.m_rcv_num_particles[Who]*sizeof(ParticleType);
@@ -309,7 +308,7 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        plan.m_rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     // Send.
@@ -328,9 +327,22 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
 
         ParallelDescriptor::Send( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
     }
+#endif // MPI
+}
 
-    if (nrcvs > 0) {
-        ParallelDescriptor::Waitall(rreqs, stats);
+template <class PC, class Buffer, class UnpackPolicy>
+void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer, const UnpackPolicy& policy)
+{
+    BL_PROFILE("amrex::communicateParticlesFinish");
+    
+    AMREX_ASSERT(pc.numLevels() == 1);
+
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    using PTile = typename PC::ParticleTileType;
+
+    if (plan.m_nrcvs > 0) {
+        ParallelDescriptor::Waitall(plan.m_rreqs, plan.m_stats);
 
 	const int lev = 0;
 	auto& plev  = pc.GetParticles(lev);
@@ -367,7 +379,7 @@ void communicateParticles (PC& pc, const ParticleCopyOp& op, const ParticleCopyP
 	  auto& tile = plev[index];
 	  auto& aos   = tile.GetArrayOfStructs();
 
-	  AMREX_ALWAYS_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
+	  AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
 
           int dst_offset = offsets[uindex];
           int size = sizes[uindex];

@@ -87,6 +87,13 @@ public:
         }
         return buckets;
     }
+
+    AMREX_INLINE
+    int procID(int gid) const 
+    { 
+        AMREX_ASSERT(m_defined);
+        return m_dm[gid]; 
+    }
 };
 
 } // namespace amrex

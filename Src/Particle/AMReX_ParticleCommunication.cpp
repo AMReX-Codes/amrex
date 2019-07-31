@@ -101,7 +101,11 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     }
     
     m_nrcvs = RcvProc.size();
+
+    m_stats.resize(0);
     m_stats.resize(m_nrcvs);
+
+    m_rreqs.resize(0);
     m_rreqs.resize(m_nrcvs);
     const int SeqNum = ParallelDescriptor::SeqNum();
     Gpu::HostVector<int> rcv_data(TotRcvBytes/sizeof(int));
@@ -140,10 +144,10 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         Gpu::HostVector<int> rcv_box_counts;
         Gpu::HostVector<int> rcv_box_ids;        
         rcv_box_offsets.push_back(0);
-        for (int i = 0; i < rcv_data.size(); i +=2)
+        for (int i = 0; i < rcv_data.size(); i+=2)
         {
             rcv_box_counts.push_back(rcv_data[i]);
-            AMREX_ASSERT(MyProc == map.dm[rcv_data[i+1]]);
+            AMREX_ASSERT(MyProc == map.procID(rcv_data[i+1]));
             rcv_box_ids.push_back(rcv_data[i+1]);
             rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
         }
