@@ -499,9 +499,7 @@ WarpX::ReadParameters ()
         // If not in RZ mode, read use_picsar_deposition
         // In RZ mode, use_picsar_deposition is on, as the C++ version 
         // of the deposition does not support RZ
-#ifndef WARPX_RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
-#endif
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
