@@ -36,12 +36,15 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     
-    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0); // number of particles per snd / receive
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0); // number of bytes per snd / receive
+    
+    m_snd_num_particles.resize(NProcs, 0);
+    m_rcv_num_particles.resize(NProcs, 0);
 
     Gpu::HostVector<int> box_counts(m_box_counts.size());
     Gpu::thrust_copy(m_box_counts.begin(), m_box_counts.end(), box_counts.begin());
     std::map<int, Vector<int> > snd_data;
-    long NumSnds = 0;
+    m_NumSnds = 0;
     for (int i = 0; i < NProcs; ++i)
     {
         if (i == MyProc) continue;
@@ -51,17 +54,18 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
 	{
             int dst = map.bucketToGrid(bucket);
             int npart = box_counts[bucket];
+            m_snd_num_particles[i] += npart;
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
 	}
 	long nbytes = 2*nboxes*sizeof(int);
 	Snds[i] = nbytes;
-	NumSnds += nbytes;
+	m_NumSnds += nbytes;
     }
 
-    ParallelDescriptor::ReduceLongMax(NumSnds);
+    ParallelDescriptor::ReduceLongMax(m_NumSnds);
 
-    if (NumSnds == 0) return;
+    if (m_NumSnds == 0) return;
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
@@ -83,21 +87,24 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
     Vector<std::size_t> rOffset;
     
     std::size_t TotRcvBytes = 0;
-    for (int i = 0; i < NProcs; ++i) {
-        if (Rcvs[i] > 0) {
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (Rcvs[i] > 0)
+        {
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvBytes/sizeof(int));
             TotRcvBytes += Rcvs[i];
         }
     }
     
-    const int nrcvs = RcvProc.size();
-    Vector<MPI_Status>  stats(nrcvs);
-    Vector<MPI_Request> rreqs(nrcvs);
+    m_nrcvs = RcvProc.size();
+    m_stats.resize(m_nrcvs);
+    m_rreqs.resize(m_nrcvs);
     const int SeqNum = ParallelDescriptor::SeqNum();
     Gpu::HostVector<int> rcv_data(TotRcvBytes/sizeof(int));
 
-    for (int i = 0; i < nrcvs; ++i) {
+    for (int i = 0; i < m_nrcvs; ++i)
+    {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         const auto Cnt    = Rcvs[Who];
@@ -106,7 +113,7 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        m_rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     for (int i = 0; i < NProcs; ++i)
@@ -122,31 +129,44 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         ParallelDescriptor::Send((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
 
-    if (nrcvs > 0) {
-        ParallelDescriptor::Waitall(rreqs, stats);
-	
+    if (m_nrcvs > 0)
+    {
+        ParallelDescriptor::Waitall(m_rreqs, m_stats);
+
         Gpu::HostVector<int> rcv_box_offsets;
         Gpu::HostVector<int> rcv_box_counts;
         Gpu::HostVector<int> rcv_box_ids;        
-	rcv_box_offsets.push_back(0);
-	for (int i = 0; i < rcv_data.size(); i +=2)
-	{
-	  rcv_box_counts.push_back(rcv_data[i]);
-	  AMREX_ASSERT(MyProc == map.dm[rcv_data[i+1]]);
-	  rcv_box_ids.push_back(rcv_data[i+1]);
-	  rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
-	}
-
+        rcv_box_offsets.push_back(0);
+        for (int i = 0; i < rcv_data.size(); i +=2)
+        {
+            rcv_box_counts.push_back(rcv_data[i]);
+            AMREX_ASSERT(MyProc == map.dm[rcv_data[i+1]]);
+            rcv_box_ids.push_back(rcv_data[i+1]);
+            rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
+        }
+        
         m_rcv_box_counts.resize(rcv_box_counts.size());
         Gpu::thrust_copy(rcv_box_counts.begin(), rcv_box_counts.end(), m_rcv_box_counts.begin());
-
+        
         m_rcv_box_offsets.resize(rcv_box_offsets.size());
         Gpu::thrust_copy(rcv_box_offsets.begin(), rcv_box_offsets.end(), m_rcv_box_offsets.begin());
-
+        
         m_rcv_box_ids.resize(rcv_box_ids.size());
         Gpu::thrust_copy(rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
-
+    }
+    
+    for (int j = 0; j < m_nrcvs; ++j)
+    {
+        const auto Who    = RcvProc[j];
+        const auto offset = rOffset[j];
+        const auto Cnt    = Rcvs[Who]/sizeof(int);
+        
+        long nparticles = 0;
+        for (int i = offset; i < offset + Cnt; i +=2)
+        {
+            nparticles += rcv_data[i];
+        }
+        m_rcv_num_particles[Who] = nparticles;
     }
 #endif // MPI
 }
-
