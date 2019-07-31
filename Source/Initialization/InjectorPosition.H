@@ -5,6 +5,8 @@
 #include <AMReX_Dim3.H>
 #include <AMReX_Utility.H>
 
+// struct whose getPositionUnitBox returns x, y and z for a particle with
+// random distribution inside a unit cell.
 struct InjectorPositionRandom
 {
     AMREX_GPU_HOST_DEVICE
@@ -15,10 +17,16 @@ struct InjectorPositionRandom
     }
 };
 
+// struct whose getPositionUnitBox returns x, y and z for a particle with
+// regular distribution inside a unit cell.
 struct InjectorPositionRegular
 {
     InjectorPositionRegular (amrex::Dim3 const& a_ppc) noexcept : ppc(a_ppc) {}
 
+    // i_part: particle number within the cell, required to evenly space
+    // particles within the cell.
+    // ref_fac: the number of particles evenly-spaced within a cell 
+    // is a_ppc*(ref_fac**AMREX_SPACEDIM).
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getPositionUnitBox (int i_part, int ref_fac=1) const noexcept
@@ -39,9 +47,20 @@ private:
     amrex::Dim3 ppc;
 };
 
+// Base struct for position injector. 
+// InjectorPosition contains a union (called Object) that holds any one 
+// instance of: 
+// - InjectorPositionRandom : to generate random distribution;
+// - InjectorPositionRegular: to generate regular distribution.
+// The choice is made at runtime, depending in the constructor called.
+// This mimics virtual functions, except the struct is stored in managed memory
+// and member functions are made __host__ __device__ to run on CPU and GPU.
+// This struct inherits from amrex::Gpu::Managed to provide new and delete
+// operators in managed memory when running on GPU. Nothing special on CPU.
 struct InjectorPosition
     : public amrex::Gpu::Managed
 {
+    // This constructor stores a InjectorPositionRandom in union object.
     InjectorPosition (InjectorPositionRandom* t,
                       amrex::Real a_xmin, amrex::Real a_xmax,
                       amrex::Real a_ymin, amrex::Real a_ymax,
@@ -53,6 +72,7 @@ struct InjectorPosition
           zmin(a_zmin), zmax(a_zmax)
     { }
 
+    // This constructor stores a InjectorPositionRegular in union object.
     InjectorPosition (InjectorPositionRegular* t,
                       amrex::Real a_xmin, amrex::Real a_xmax,
                       amrex::Real a_ymin, amrex::Real a_ymax,
@@ -65,6 +85,8 @@ struct InjectorPosition
           zmin(a_zmin), zmax(a_zmax)
     { }
 
+    // Explicitly prevent the compiler from generating copy constructors
+    // and copy assignment operators.
     InjectorPosition (InjectorPosition const&) = delete;
     InjectorPosition (InjectorPosition&&) = delete;
     void operator= (InjectorPosition const&) = delete;
@@ -72,6 +94,8 @@ struct InjectorPosition
 
     std::size_t sharedMemoryNeeded () const noexcept { return 0; }
 
+    // call getPositionUnitBox from the object stored in the union
+    // (the union is called Object, and the instance is called object).
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getPositionUnitBox (int i_part, int ref_fac=1) const noexcept
@@ -89,6 +113,7 @@ struct InjectorPosition
         };
     }
 
+    // bool: whether position specified is within bounds.
     AMREX_GPU_HOST_DEVICE
     bool
     insideBounds (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
@@ -102,6 +127,8 @@ private:
     enum struct Type { random, regular };
     Type type;
 
+    // An instance of union Object constructs and stores any one of
+    // the objects declared (random or regular).
     union Object {
         Object (InjectorPositionRandom*) noexcept : random() {}
         Object (InjectorPositionRegular*, amrex::Dim3 const& a_ppc) noexcept
