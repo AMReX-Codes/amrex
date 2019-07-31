@@ -33,13 +33,13 @@ void cic_interpolate (const P& p,
 
     amrex::Real sx[] = {1.-xint, xint}; 
 
-    for int d=0; d < AMREX_SPACEDIM; ++d)
-      {
-      for (int ii = 0; ii<=1; ++ii)
+    for (int d=0; d < AMREX_SPACEDIM; ++d)
+    {
+        for (int ii = 0; ii<=1; ++ii)
 	{
-        val[d] += sx[ii]*uccarr(i+ii,0,0,d)
-	}
-      }
+            val[d] += sx[ii]*uccarr(i+ii,0,0,d);
+        }
+    }
 
   
 #elif (AMREX_SPACEDIM == 2)
@@ -130,15 +130,16 @@ void mac_interpolate (const P& p,
       int ecellx = i;
   
       Real efracx = xint;
+  
 
       if (d==0)
-        {
+      {
           //cells
           ecellx = i +1;
           //fracs
           Real x = (p.m_rdata.pos[0]-plo[0])*dxi[0];
           efracx = x - floor(x);
-        }
+      }
 
       if (efracx > 1) efracx =1;
       if (efracx < 0) efracx =0;
@@ -147,16 +148,15 @@ void mac_interpolate (const P& p,
       
       val[d] = 0.0;
       for (int ii = 0; ii <= 1; ++ii)
-	{
-	  val[d] += (p_uccarr[d])(ecellx+ii, 0 0,0)*sx[ii];
-	}		
+      {
+          val[d] += (p_uccarr[d])(ecellx+ii, 0, 0,0)*sx[ii];
+      }		
     }
-
-    
+      
 #elif (AMREX_SPACEDIM == 2)
   
   for (int d=0; d < AMREX_SPACEDIM; ++d)
-    {
+  {
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len 
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
 
@@ -217,7 +217,6 @@ void mac_interpolate (const P& p,
     
     }
 
-
 #elif (AMREX_SPACEDIM == 3)
 
   for (int d=0; d < AMREX_SPACEDIM; ++d)
@@ -225,6 +224,7 @@ void mac_interpolate (const P& p,
       amrex::Real lx = (p.m_rdata.pos[0]-plo[0])*dxi[0] - 0.5; //len                                                               
       amrex::Real ly = (p.m_rdata.pos[1]-plo[1])*dxi[1] - 0.5;
       amrex::Real lz = (p.m_rdata.pos[2]-plo[2])*dxi[2] - 0.5;
+
       
       int i = std::floor(lx); //cell                                                                                               
       int j = std::floor(ly);
@@ -282,12 +282,12 @@ void mac_interpolate (const P& p,
         }
       
       // The fraction must be between 0 and 1.
-      if (efracx > 1) amrex::Abort("efracx > 1 in mac_interpolate for AdvectWithUmac");
-      if (efracy > 1) amrex::Abort("efracy > 1 in mac_interpolate for AdvectWithUmac");
-      if (efracz > 1) amrex::Abort("efracz > 1 in mac_interpolate for AdvectWithUmac");
-      if (efracx < 0) amrex::Abort("efracx < 0 in mac_interpolate for AdvectWithUmac");
-      if (efracy < 0) amrex::Abort("efracy < 0 in mac_interpolate for AdvectWithUmac");
-      if (efracz < 0) amrex::Abort("efracz < 0 in mac_interpolate for AdvectWithUmac");
+      if (efracx > 1) efracx =1;
+      if (efracy > 1) efracy =1;
+      if (efracz > 1) efracz =1;
+      if (efracx < 0) efracx =0;
+      if (efracy < 0) efracy =0;
+      if (efracz < 0) efracz =0;
 
       amrex::Real sx[] = {1.-efracx, efracx};
       amrex::Real sy[] = {1.-efracy, efracy};
@@ -305,7 +305,7 @@ void mac_interpolate (const P& p,
 	    }
 	}
       
-    }
+    } 
 #endif
 }
 }
