@@ -393,7 +393,7 @@ WarpX::ReadParameters ()
         if (not user_fields_to_plot){
             // If not specified, set default values
             fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
-                              "Bz", "jx", "jy", "jz", 
+                              "Bz", "jx", "jy", "jz",
                               "part_per_cell"};
         }
         // set plot_rho to true of the users requests it, so that
@@ -411,9 +411,9 @@ WarpX::ReadParameters ()
         // If user requests to plot proc_number for a serial run,
         // delete proc_number from fields_to_plot
         if (ParallelDescriptor::NProcs() == 1){
-            fields_to_plot.erase(std::remove(fields_to_plot.begin(), 
-                                             fields_to_plot.end(), 
-                                             "proc_number"), 
+            fields_to_plot.erase(std::remove(fields_to_plot.begin(),
+                                             fields_to_plot.end(),
+                                             "proc_number"),
                                  fields_to_plot.end());
         }
 
@@ -497,7 +497,7 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("algo");
         // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // In RZ mode, use_picsar_deposition is on, as the C++ version
         // of the deposition does not support RZ
 #ifndef WARPX_RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
@@ -875,6 +875,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         {
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
+        }
+        if (fft_hybrid_mpi_decomposition == false){
+            // Allocate and initialize the spectral solver
+            std::array<Real,3> cdx = CellSize(lev-1);
+    #if (AMREX_SPACEDIM == 3)
+            RealVect cdx_vect(cdx[0], cdx[1], cdx[2]);
+    #elif (AMREX_SPACEDIM == 2)
+            RealVect cdx_vect(cdx[0], cdx[2]);
+    #endif
+            // Get the cell-centered box, with guard cells
+            BoxArray realspace_ba = cba;  // Copy box
+            realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+            // Define spectral solver
+            spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
+                nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
         }
 #endif
     }
