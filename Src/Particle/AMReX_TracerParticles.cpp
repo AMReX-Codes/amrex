@@ -30,7 +30,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     
     Vector<std::unique_ptr<MultiFab> > raii_umac(AMREX_SPACEDIM);
     Vector<MultiFab*> umac_pointer(AMREX_SPACEDIM);
-    // We assume that if umac[0]'s boxArray matches then the others will too...
     if (OnSameGrids(lev, umac[0]))
     {
         for (int i = 0; i < AMREX_SPACEDIM; i++) {
@@ -57,63 +56,51 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         auto& pmap = GetParticles(lev);
-
 	for (auto& kv : pmap)
 	{
-	  int grid    = kv.first.first;
-	  auto& aos  = kv.second.GetArrayOfStructs();
-	  const int n = aos.size();
-	  auto p_pbox = aos().data();
-	  const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
-							  &((*umac_pointer[1])[grid]),
-							  &((*umac_pointer[2])[grid])) };
+            int grid    = kv.first.first;
+            auto& aos  = kv.second.GetArrayOfStructs();
+            const int n = aos.size();
+            auto p_pbox = aos().data();
+            const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
+                                                                  &((*umac_pointer[1])[grid]),
+                                                                  &((*umac_pointer[2])[grid])) };
 	  
-	  //array of these pointers to pass to the GPU
-	  amrex::GpuArray<amrex::Array4<const double> , AMREX_SPACEDIM>
-	    const umacarr {AMREX_D_DECL((*fab[0]).array(), (*fab[1]).array(), (*fab[2]).array() )};
-							   
-
+            //array of these pointers to pass to the GPU
+            amrex::GpuArray<amrex::Array4<const Real>, AMREX_SPACEDIM>
+            const umacarr {AMREX_D_DECL((*fab[0]).array(),
+                                        (*fab[1]).array(),
+                                        (*fab[2]).array() )};
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-
-
-	amrex::ParallelFor(n,   
-	     [=] AMREX_GPU_DEVICE (int i)      
-	 {
-					
-	 ParticleType& p = p_pbox[i];
-	 if (p.m_idata.id <= 0) {}
-	 else
-	   {
-         Real v[AMREX_SPACEDIM];
-         mac_interpolate(p, plo, dxi, umacarr, v);         
-
-		if (ipass == 0)
+            amrex::ParallelFor(n,   
+                               [=] AMREX_GPU_DEVICE (int i)      
+            {					
+                ParticleType& p = p_pbox[i];
+                if (p.m_idata.id <= 0) continue;
+                Real v[AMREX_SPACEDIM];
+                mac_interpolate(p, plo, dxi, umacarr, v);
+                if (ipass == 0)
                 {
-		  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
-		    {
-		      // Save old position for all dimensions and vel & predict location at dt/2.    
-		      p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];     
-                      p.m_rdata.pos[dim] += 0.5*dt*v[dim];   		 
-		    }
-    		  
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    {
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];     
+                        p.m_rdata.pos[dim] += 0.5*dt*v[dim];   		 
+                    }    		  
                 }
                 else
                 {
-		  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
-		    {
-		      // Update to final time using the orig position and the vel at dt/2.
-		      p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
-                      // Save the velocity for use in Timestamp().                                 
-		      p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
-		    }
-		}
-	 }
-	 });
-      }
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    {
+                        p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
+                    }
+                }
+            });
+        }
     }
-
+    
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
@@ -140,7 +127,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     BL_ASSERT(Ucc.nGrow() > 0);
     BL_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
-
     BL_ASSERT(!Ucc.contains_nan());
 
     const Real          strttime = amrex::second();
@@ -153,51 +139,46 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         auto& pmap = GetParticles(lev);
-	for (auto& kv : pmap) {
-	  int grid = kv.first.first;
-	  auto& aos           = kv.second.GetArrayOfStructs();
-	  const int n          = aos.size();
-	  const FArrayBox& fab = Ucc[grid];
-	  const auto uccarr = fab.array();
-	  auto  p_pbox = aos().data();
+	for (auto& kv : pmap)
+        {
+            int grid             = kv.first.first;
+            auto& aos            = kv.second.GetArrayOfStructs();
+            const int n          = aos.size();
+            const FArrayBox& fab = Ucc[grid];
+            const auto uccarr = fab.array();
+            auto  p_pbox = aos().data();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-          amrex::ParallelFor(n,
-	  [=] AMREX_GPU_DEVICE (int i)
+            amrex::ParallelFor(n,
+                               [=] AMREX_GPU_DEVICE (int i)
             {
-
-	      ParticleType& p  = p_pbox[i];
-	      if (p.m_idata.id <= 0) {}
-	      else{
-	      Real v[AMREX_SPACEDIM];
-
-              cic_interpolate(p, plo, dxi, uccarr, v);
-
-               if (ipass == 0)
+                ParticleType& p  = p_pbox[i];
+                if (p.m_idata.id <= 0) continue;
+                Real v[AMREX_SPACEDIM];
+                
+                cic_interpolate(p, plo, dxi, uccarr, v);
+                
+                if (ipass == 0)
                 {
-                  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                      // Save old position for all dimensions and vel & predict location at dt/2. 
-                      p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];
-                      p.m_rdata.pos[dim] += 0.5*dt*v[dim];
-                    }
-
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = p.m_rdata.pos[dim];
+                        p.m_rdata.pos[dim] += 0.5*dt*v[dim];
+                    }                  
                 }
                 else
                 {
-                  for (int dim=0; dim < AMREX_SPACEDIM; dim++)
+                    for (int dim=0; dim < AMREX_SPACEDIM; dim++)
                     {
-                      // Update to final time using the orig position and the vel at dt/2.
-                      p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
-                      // Save the velocity for use in Timestamp().
-                      p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
+                        p.m_rdata.pos[dim]  = p.m_rdata.arr[AMREX_SPACEDIM+dim] + dt*v[dim];
+                        p.m_rdata.arr[AMREX_SPACEDIM+dim] = v[dim];
                     }
                 }
-	      }
             });
         }
     }
+    
     if (m_verbose > 1)
     {
         Real stoptime = amrex::second() - strttime;
