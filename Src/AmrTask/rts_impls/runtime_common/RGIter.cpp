@@ -33,16 +33,21 @@ namespace amrex{
 	tg = perilla::wid();
 	ntid = perilla::wtid();
 #ifdef USE_PERILLA_ON_DEMAND
+	if(tid==0)Perilla::syncProcesses();
+        Perilla::numTeamsFinished=0;
+	#pragma omp barrier
         if(perilla::isCommunicationThread())
         {
             while(true){
                 Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
+		    /*perilla::syncWorkers(ntid);
 		    if(tg==0){
    		       graphArray.clear();
 		       Perilla::numTeamsFinished=0;
 		    }
+		    perilla::syncWorkers(ntid);*/
                     break;
                 }
             }
@@ -80,17 +85,22 @@ namespace amrex{
 	ntid = perilla::wtid();
 
 #ifdef USE_PERILLA_ON_DEMAND
+        if(tid==0)Perilla::syncProcesses();
+        Perilla::numTeamsFinished=0;
+        #pragma omp barrier
         if(perilla::isCommunicationThread())
         {
-            Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, graphArray);
+            //Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, graphArray);
             while(true){
                 Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
+		    perilla::syncWorkers(ntid);
 		    if(tg==0){
 		        graphArray.clear();
-		        Perilla::numTeamsFinished=0;
+		        //Perilla::numTeamsFinished=0;
 		    }
+		    perilla::syncWorkers(ntid);
                     break;
                 }
             }
@@ -118,6 +128,10 @@ namespace amrex{
 	tg = perilla::wid();
 	ntid = perilla::wtid();
 #ifdef USE_PERILLA_ON_DEMAND
+        if(tid==0)Perilla::syncProcesses();
+        Perilla::numTeamsFinished=0;
+        #pragma omp barrier
+
         if(perilla::isCommunicationThread())
         {
             std::vector<RegionGraph*> flattenedGraphArray;
@@ -126,8 +140,10 @@ namespace amrex{
                 Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
+		    /*perilla::syncWorkers(ntid);
 		    flattenedGraphArray.clear();
 		    if(tg==0) Perilla::numTeamsFinished=0;
+		    perilla::syncWorkers(ntid);*/
                     break;
                 }
             }
@@ -254,6 +270,9 @@ namespace amrex{
         tid = perilla::tid();
         tg = perilla::wid();
         ntid= perilla::wtid();
+        if(tid==0)Perilla::syncProcesses();
+        Perilla::numTeamsFinished=0;
+	#pragma omp barrier
 
         if(perilla::isCommunicationThread())
         {
@@ -264,14 +283,14 @@ namespace amrex{
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
                 {
 		    flattenedGraphArray.clear();
-		    if(tg==0)Perilla::numTeamsFinished=0;
                     break;
                 }
             }
         }else
 {
 
-        AsyncFillPatchIterator::initialSend(m_level_afpi, m_upper_level_afpi, boxGrow, time, index, scomp, ncomp, iteration);
+        AsyncFillPatchIterator::initialSend(afpi, upper_afpi, bG, tm, ind, 0, nc, itr);
+        //AsyncFillPatchIterator::initialSend(m_level_afpi, m_upper_level_afpi, boxGrow, time, index, scomp, ncomp, iteration);
 
         itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
         if(perilla::isMasterWorkerThread())
@@ -294,7 +313,7 @@ namespace amrex{
                     m_level_afpi[iteration-1]->Receive(this,*_dest,boxGrow,time,index,scomp,ncomp,f,true);
                     m_level_afpi[iteration-1]->destGraph->setFireableRegion(f);
                     if(m_level_afpi[iteration-1]->destGraph->worker[tg]->unfireableRegionQueue->queueSize(true) !=0 &&
-                            m_level_afpi[iteration-1]->destGraph->worker[tg]->fireableRegionQueue->queueSize(true) < 8)
+                            m_level_afpi[iteration-1]->destGraph->worker[tg]->fireableRegionQueue->queueSize(true) < 2)
                         continue;
                 }
 
@@ -323,7 +342,6 @@ namespace amrex{
             init();
         }
 }
-
     }
 
 #endif
