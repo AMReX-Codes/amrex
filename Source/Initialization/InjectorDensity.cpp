@@ -31,7 +31,7 @@ InjectorDensity::sharedMemoryNeeded () const noexcept
     {
     case Type::parser:
     {
-        return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double);
+        return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3;
     }
     default:
         return 0;
