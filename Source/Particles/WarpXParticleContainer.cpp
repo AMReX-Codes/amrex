@@ -549,9 +549,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     }
 
 #ifdef WARPX_DIM_RZ
-    ApplyInverseVolumeScalingToCurrentDensity (jx_arr, jy_arr, jz_arr,
-                                               tbx, tby, tbz,
-                                               xyzmin[0], lo.x, dx[0], ngJ);
+    ApplyInverseVolumeScalingToCurrentDensity(jx_arr, jy_arr, jz_arr,
+                                              tbx, tby, tbz,
+                                              xyzmin[0], lo.x, dx[0], ngJ);
 #endif
 
 #ifndef AMREX_USE_GPU
