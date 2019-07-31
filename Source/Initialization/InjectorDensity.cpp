@@ -24,6 +24,7 @@ InjectorDensity::~InjectorDensity ()
     }
 }
 
+// Compute the amount of memory needed in GPU Shared Memory.
 std::size_t
 InjectorDensity::sharedMemoryNeeded () const noexcept
 {
@@ -31,7 +32,9 @@ InjectorDensity::sharedMemoryNeeded () const noexcept
     {
     case Type::parser:
     {
-        return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double);
+        // For parser injector, the 3D position of each particle
+        // is stored in shared memory.
+        return amrex::Gpu::numThreadsPerBlockParallelFor() * sizeof(double) * 3;
     }
     default:
         return 0;
@@ -45,6 +48,8 @@ InjectorDensityPredefined::InjectorDensityPredefined (
     ParmParse pp(a_species_name);
 
     std::vector<amrex::Real> v;
+    // Read parameters for the predefined plasma profile, 
+    // and store them in managed memory
     pp.getarr("predefined_profile_params", v);
     p = static_cast<amrex::Real*>
         (amrex::The_Managed_Arena()->alloc(sizeof(amrex::Real)*v.size()));
@@ -52,6 +57,7 @@ InjectorDensityPredefined::InjectorDensityPredefined (
         p[i] = v[i];
     }
 
+    // Parse predefined profile name, and update member variable profile.
     std::string which_profile_s;
     pp.query("predefined_profile_name", which_profile_s);
     std::transform(which_profile_s.begin(), which_profile_s.end(),

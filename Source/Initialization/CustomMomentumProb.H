@@ -8,10 +8,13 @@
 
 // An example of Custom Momentum Profile
 
+// struct whose getDensity returns momentum at a given position computed from
+// a custom function.
 struct InjectorMomentumCustom
 {
     InjectorMomentumCustom (std::string const& /*a_species_name*/) {}
 
+    // Return momentum at given position (illustration: momentum=0).
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
     getMomentum (amrex::Real, amrex::Real, amrex::Real) const noexcept

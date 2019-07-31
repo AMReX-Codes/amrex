@@ -7,6 +7,7 @@
 #include <CustomDensityProb.H>
 #include <WarpXConst.H>
 
+// struct whose getDensity returns constant density.
 struct InjectorDensityConstant
 {
     InjectorDensityConstant (amrex::Real a_rho) noexcept : m_rho(a_rho) {}
@@ -22,6 +23,7 @@ private:
     amrex::Real m_rho;
 };
 
+// struct whose getDensity returns local density computed from parser.
 struct InjectorDensityParser
 {
     InjectorDensityParser (WarpXParser const& a_parser) noexcept
@@ -34,9 +36,11 @@ struct InjectorDensityParser
         return m_parser(x,y,z);
     }
 
+    // InjectorDensityParser constructs this GpuParser from WarpXParser.
     GpuParser m_parser;
 };
 
+// struct whose getDensity returns local density computed from predefined profile.
 struct InjectorDensityPredefined
 {
     InjectorDensityPredefined (std::string const& a_species_name) noexcept;
@@ -47,6 +51,8 @@ struct InjectorDensityPredefined
     amrex::Real
     getDensity (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
+        // Choices for profile are:
+        // - parabolic_channel
         switch (profile)
         {
         case Profile::parabolic_channel:
@@ -88,29 +94,47 @@ private:
     amrex::Real* p;
 };
 
+// Base struct for density injector. 
+// InjectorDensity contains a union (called Object) that holds any one 
+// instance of: 
+// - InjectorDensityConstant  : to generate constant density;
+// - InjectorDensityParser    : to generate density from parser;
+// - InjectorDensityCustom    : to generate density from custom profile;
+// - InjectorDensityPredefined: to generate density from predefined profile;
+// The choice is made at runtime, depending in the constructor called.
+// This mimics virtual functions, except the struct is stored in managed memory
+// and member functions are made __host__ __device__ to run on CPU and GPU.
+// This struct inherits from amrex::Gpu::Managed to provide new and delete
+// operators in managed memory when running on GPU. Nothing special on CPU.
 struct InjectorDensity
     : public amrex::Gpu::Managed
 {
+    // This constructor stores a InjectorDensityConstant in union object.
     InjectorDensity (InjectorDensityConstant* t, amrex::Real a_rho)
         : type(Type::constant),
           object(t,a_rho)
     { }
 
+    // This constructor stores a InjectorDensityParser in union object.
     InjectorDensity (InjectorDensityParser* t, WarpXParser const& a_parser)
         : type(Type::parser),
           object(t,a_parser)
     { }
 
+    // This constructor stores a InjectorDensityCustom in union object.
     InjectorDensity (InjectorDensityCustom* t, std::string const& a_species_name)
         : type(Type::custom),
           object(t,a_species_name)
     { }
 
+    // This constructor stores a InjectorDensityPredefined in union object.
     InjectorDensity (InjectorDensityPredefined* t, std::string const& a_species_name)
         : type(Type::predefined),
           object(t,a_species_name)
     { }
 
+    // Explicitly prevent the compiler from generating copy constructors
+    // and copy assignment operators.
     InjectorDensity (InjectorDensity const&) = delete;
     InjectorDensity (InjectorDensity&&) = delete;
     void operator= (InjectorDensity const&) = delete;
@@ -120,6 +144,8 @@ struct InjectorDensity
 
     std::size_t sharedMemoryNeeded () const noexcept;
 
+    // call getDensity from the object stored in the union
+    // (the union is called Object, and the instance is called object).
     AMREX_GPU_HOST_DEVICE
     amrex::Real
     getDensity (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
@@ -154,6 +180,8 @@ private:
     enum struct Type { constant, custom, predefined, parser };
     Type type;
 
+    // An instance of union Object constructs and stores any one of
+    // the objects declared (constant or parser or custom or predefined).
     union Object {
         Object (InjectorDensityConstant*, amrex::Real a_rho) noexcept
             : constant(a_rho) {}
