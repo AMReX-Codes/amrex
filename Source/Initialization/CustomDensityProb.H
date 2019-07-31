@@ -8,11 +8,15 @@
 
 // An example of Custom Density Profile
 
+// struct whose getDensity returns density at a given position computed from
+// a custom function, with runtime input parameters.
 struct InjectorDensityCustom
 {
     InjectorDensityCustom (std::string const& species_name)
         : p(nullptr)
     {
+        // Read parameters for custom density profile from file, and
+        // store them in managed memory.
         amrex::ParmParse pp(species_name);
         std::vector<amrex::Real> v;
         pp.getarr("custom_profile_params", v);
@@ -23,6 +27,8 @@ struct InjectorDensityCustom
         }
     }
 
+    // Return density at given position, using user-defined parameters 
+    // stored in p.
     AMREX_GPU_HOST_DEVICE
     amrex::Real
     getDensity (amrex::Real, amrex::Real, amrex::Real) const noexcept
