@@ -23,7 +23,7 @@ t = ds.current_time.to_ndarray().mean() # in order to extract a single scalar
 data = ds.covering_grid( 0, ds.domain_left_edge, ds.domain_dimensions )
 
 # Check the J fields
-assert np.allclose( data['jz'].to_ndarray(), 0, atol=2.e-2 )
+assert np.allclose( data['jz'].to_ndarray(), 0, atol=0.1 )
 assert np.all( data['jy'].to_ndarray() == 0. )
 # Check the Jx field, which oscillates at wp
 j_predicted = -n0*e*c*ux*np.cos( wp*t*39.5/40 ) # 40 timesteps / j at half-timestep
@@ -32,17 +32,17 @@ assert np.allclose( jx[:32,:,0], j_predicted, rtol=0.1 )
 assert np.allclose( jx[32:,:,0], 0, atol=1.e-2 )
 
 # Check the E fields
-assert np.allclose( data['Ez'].to_ndarray(), 0, atol=5.e-5 )
+assert np.allclose( data['Ez'].to_ndarray(), 0, atol=1.e-4 )
 assert np.all( data['Ey'].to_ndarray() == 0. )
 # Check the Ex field, which oscillates at wp
 E_predicted = m_e * wp * ux * c / e * np.sin(wp*t)
 Ex = data['Ex'].to_ndarray()
 assert np.allclose( Ex[:32,:,0], E_predicted, rtol=0.1 )
-assert np.allclose( Ex[32:,:,0], 0, atol=1.e-5 )
+assert np.allclose( Ex[32:,:,0], 0, atol=1.e-4 )
 
 # Check the B fields
 assert np.all( data['Bx'].to_ndarray() == 0. )
-assert np.allclose( data['By'].to_ndarray(), 0, atol=1.e-12 )
+assert np.allclose( data['By'].to_ndarray(), 0, rtol=2. )
 assert np.all( data['Bz'].to_ndarray() == 0. )
 
 # Save an image to be displayed on the website

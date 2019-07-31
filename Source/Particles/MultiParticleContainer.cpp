@@ -240,8 +240,9 @@ MultiParticleContainer::sumParticleCharge (bool local)
 
 void
 MultiParticleContainer::FieldGather (int lev,
-                                     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+                                     const MultiFab& Ex, const MultiFab& Ey,
+                                     const MultiFab& Ez, const MultiFab& Bx,
+                                     const MultiFab& By, const MultiFab& Bz)
 {
     for (auto& pc : allcontainers) {
         pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
@@ -331,7 +332,7 @@ MultiParticleContainer::RedistributeLocal (const int num_ghost)
 }
 
 Vector<long>
-MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
+MultiParticleContainer::NumberOfParticlesInGrid (int lev) const
 {
     const bool only_valid=true, only_local=true;
     Vector<long> r = allcontainers[0]->NumberOfParticlesInGrid(lev,only_valid,only_local);

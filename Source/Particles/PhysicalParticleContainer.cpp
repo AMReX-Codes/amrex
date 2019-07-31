@@ -6,6 +6,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
+#include <FieldGather.H>
 
 #include <WarpXAlgorithmSelection.H>
 
@@ -1072,11 +1073,14 @@ PhysicalParticleContainer::FieldGather (int lev,
     MultiFab* cost = WarpX::getCosts(lev);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel 
 #endif
     {
-        Cuda::ManagedDeviceVector<Real> xp, yp, zp;
-
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             Real wt = amrex::second();
@@ -1112,7 +1116,7 @@ PhysicalParticleContainer::FieldGather (int lev,
             //
             // copy data from particle container to temp arrays
             //
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
             const int* ixyzmin = box.loVect();
@@ -1120,13 +1124,14 @@ PhysicalParticleContainer::FieldGather (int lev,
             //
             // Field Gather
             //
-            const int ll4symtry          = false;
+#ifdef WARPX_RZ
+            const int ll4symtry = false;
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
+                m_xp[thread_num].dataPtr(),
+                m_yp[thread_num].dataPtr(),
+                m_zp[thread_num].dataPtr(),
                 Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
                 Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                 ixyzmin,
@@ -1141,6 +1146,12 @@ PhysicalParticleContainer::FieldGather (int lev,
                 BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
+                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+#endif
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1401,19 +1412,19 @@ PhysicalParticleContainer::Evolve (int lev,
             
             if (! do_not_push)
             {
+                const long np_gather = (cEx) ? nfine_gather : np;
+
+                int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+
                 //
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
-                const int ll4symtry          = false;
+                BL_PROFILE_VAR_START(blp_pxr_fg);
+#ifdef WARPX_RZ
+                const int ll4symtry = false;
                 long lvect_fieldgathe = 64;
-
                 const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
                 const int* ixyzmin_grid = box.loVect();
-                
-                const long np_gather = (cEx) ? nfine_gather : np;
-
-                BL_PROFILE_VAR_START(blp_pxr_fg);
-
                 warpx_geteb_energy_conserving(
                     &np_gather,
                     m_xp[thread_num].dataPtr(),
@@ -1433,6 +1444,11 @@ PhysicalParticleContainer::Evolve (int lev,
                     BL_TO_FORTRAN_ANYD(*bzfab),
                     &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
+                FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                            exfab, eyfab, ezfab, bxfab, byfab, bzfab, 
+                            Ex.nGrow(), e_is_nodal, 0, np_gather, thread_num, lev, lev);
+#endif
 
                 if (np_gather < np)
                 {
@@ -1441,13 +1457,14 @@ PhysicalParticleContainer::Evolve (int lev,
                     const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
                     const int* cixyzmin_grid = cbox.loVect();
 
-                    const FArrayBox* cexfab = &(*cEx)[pti];
-                    const FArrayBox* ceyfab = &(*cEy)[pti];
-                    const FArrayBox* cezfab = &(*cEz)[pti];
-                    const FArrayBox* cbxfab = &(*cBx)[pti];
-                    const FArrayBox* cbyfab = &(*cBy)[pti];
-                    const FArrayBox* cbzfab = &(*cBz)[pti];
-
+                    // Data on the grid
+                    FArrayBox const* cexfab = &(*cEx)[pti];
+                    FArrayBox const* ceyfab = &(*cEy)[pti];
+                    FArrayBox const* cezfab = &(*cEz)[pti];
+                    FArrayBox const* cbxfab = &(*cBx)[pti];
+                    FArrayBox const* cbyfab = &(*cBy)[pti];
+                    FArrayBox const* cbzfab = &(*cBz)[pti];
+                    
                     if (WarpX::use_fdtd_nci_corr)
                     {
 #if (AMREX_SPACEDIM == 2)
@@ -1500,6 +1517,9 @@ PhysicalParticleContainer::Evolve (int lev,
 #endif
                     }
                     
+                    // Field gather for particles in gather buffers
+#ifdef WARPX_RZ
+                    
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse,
@@ -1520,6 +1540,15 @@ PhysicalParticleContainer::Evolve (int lev,
                         BL_TO_FORTRAN_ANYD(*cbzfab),
                         &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
+                    e_is_nodal = cEx->is_nodal() and cEy->is_nodal() and cEz->is_nodal();
+                    FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp, 
+                                cexfab, ceyfab, cezfab,
+                                cbxfab, cbyfab, cbzfab,
+                                cEx->nGrow(), e_is_nodal, 
+                                nfine_gather, np-nfine_gather, 
+                                thread_num, lev, lev-1);
+#endif
                 }
 
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
@@ -2153,4 +2182,135 @@ PhysicalParticleContainer::ContinuousInjection(const RealBox& injection_box)
     // Inject plasma on level 0. Paticles will be redistributed.
     const int lev=0;
     AddPlasma(lev, injection_box);
+}
+
+/* \brief Gather fields from FArrayBox exfab, eyfab, ezfab, bxfab, byfab, 
+ * bzfab into arrays of fields on particles Exp, Eyp, Ezp, Bxp, Byp, Bzp.
+ * \param Exp-Bzp: fields on particles.
+ * \param exfab-bzfab: FAB of electric and magnetic fields for particles in pti
+ * \param ngE: number of guard cells for E
+ * \param e_is_nodal: 0 if E is staggered, 1 if E is nodal
+ * \param offset: index of first particle for which fields are gathered
+ * \param np_to_gather: number of particles onto which fields are gathered
+ * \param thread_num: if using OpenMP, thread number
+ * \param lev: level on which particles are located
+ * \param gather_lev: level from which particles gather fields (lev-1) for 
+          particles in buffers.
+ */
+void
+PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
+                                        RealVector& Exp,
+                                        RealVector& Eyp,
+                                        RealVector& Ezp,
+                                        RealVector& Bxp,
+                                        RealVector& Byp,
+                                        RealVector& Bzp,
+                                        FArrayBox const * exfab,
+                                        FArrayBox const * eyfab,
+                                        FArrayBox const * ezfab,
+                                        FArrayBox const * bxfab,
+                                        FArrayBox const * byfab,
+                                        FArrayBox const * bzfab,
+                                        const int ngE, const int e_is_nodal,
+                                        const long offset,
+                                        const long np_to_gather,
+                                        int thread_num,
+                                        int lev,
+                                        int gather_lev)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((gather_lev==(lev-1)) ||
+                                     (gather_lev==(lev  )),
+                                     "Gather buffers only work for lev-1");
+    
+    // If no particles, do not do anything
+    if (np_to_gather == 0) return;
+    // Get cell size on gather_lev
+    const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
+    // Set staggering shift depending on e_is_nodal
+    const Real stagger_shift = e_is_nodal ? 0.0 : 0.5;
+    
+    // Get box from which field is gathered.
+    // If not gathering from the finest level, the box is coarsened.
+    Box box;
+    if (lev == gather_lev) {
+        box = pti.tilebox();
+    } else {
+        const IntVect& ref_ratio = WarpX::RefRatio(gather_lev);
+        box = amrex::coarsen(pti.tilebox(),ref_ratio);
+    }
+    
+    // Add guard cells to the box.
+    box.grow(ngE);
+    
+    const Array4<const Real>& ex_arr = exfab->array();
+    const Array4<const Real>& ey_arr = eyfab->array();
+    const Array4<const Real>& ez_arr = ezfab->array();
+    const Array4<const Real>& bx_arr = bxfab->array();
+    const Array4<const Real>& by_arr = byfab->array();
+    const Array4<const Real>& bz_arr = bzfab->array();
+    
+    const Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
+    const Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
+    const Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
+    
+    // Lower corner of tile box physical domain
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev);
+    
+    const Dim3 lo = lbound(box);
+    
+    // Depending on l_lower_in_v and WarpX::nox, call
+    // different versions of template function doGatherShapeN
+    if (WarpX::l_lower_order_in_v){
+        if        (WarpX::nox == 1){
+            doGatherShapeN<1,1>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
+                                Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                np_to_gather, dx,
+                                xyzmin, lo, stagger_shift);
+        } else if (WarpX::nox == 2){
+            doGatherShapeN<2,1>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
+                                Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                np_to_gather, dx,
+                                xyzmin, lo, stagger_shift);
+        } else if (WarpX::nox == 3){
+            doGatherShapeN<3,1>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
+                                Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                np_to_gather, dx,
+                                xyzmin, lo, stagger_shift);
+        }
+    } else {
+        if        (WarpX::nox == 1){
+            doGatherShapeN<1,0>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
+                                Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                np_to_gather, dx,
+                                xyzmin, lo, stagger_shift);
+        } else if (WarpX::nox == 2){
+            doGatherShapeN<2,0>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
+                                Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                np_to_gather, dx,
+                                xyzmin, lo, stagger_shift);
+        } else if (WarpX::nox == 3){
+            doGatherShapeN<3,0>(xp, yp, zp,
+                                Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
+                                Ezp.dataPtr() + offset, Bxp.dataPtr() + offset,
+                                Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
+                                ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
+                                np_to_gather, dx,
+                                xyzmin, lo, stagger_shift);
+        }
+    }
 }
