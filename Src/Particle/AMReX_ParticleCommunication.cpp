@@ -106,8 +106,7 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv((char*) thrust::raw_pointer_cast(&rcv_data[offset]),
-                                             Cnt, Who, SeqNum).req();
+        rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     for (int i = 0; i < NProcs; ++i)
@@ -120,8 +119,7 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Send((char*) thrust::raw_pointer_cast(snd_data[i].data()),
-                                 Cnt, Who, SeqNum);
+        ParallelDescriptor::Send((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
 
     if (nrcvs > 0) {
