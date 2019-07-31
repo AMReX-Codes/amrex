@@ -536,25 +536,15 @@ private:
     bool dump_plotfiles = true;
     bool dump_openpmd = false;
 #endif
-    bool plot_E_field       = true;
-    bool plot_B_field       = true;
-    bool plot_J_field       = true;
-    bool plot_part_per_cell = true;
-    bool plot_part_per_grid = false;
-    bool plot_part_per_proc = false;
-    bool plot_proc_number   = false;
-    bool plot_dive          = false;
-    bool plot_divb          = false;
     bool plot_rho           = false;
-    bool plot_F             = false;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+    amrex::Vector<std::string> fields_to_plot;
     int plot_coarsening_ratio = 1;
 
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
-//    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;
     amrex::VisMF::Header::Version plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
     amrex::VisMF::Header::Version slice_plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
 
