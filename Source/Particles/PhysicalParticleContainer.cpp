@@ -368,8 +368,13 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
+        // Max number of new particles, if particles are created in the whole
+        // overlap_box. All of them are created, and invalid ones are then 
+        // discaded
         int max_new_particles = overlap_box.numPts() * num_ppc;
 
+        // If refine injection, build pointer dp_cellid that holds pointer to 
+        // array of refined cell IDs.
         Vector<int> cellid_v;
         if (refine_injection and lev == 0)
         {
@@ -391,6 +396,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         amrex::AsyncArray<int> cellid_aa(hp_cellid, cellid_v.size());
         int const* dp_cellid = cellid_aa.data();
 
+        // Update NextID to include particles created in this function
         int pid;
 #pragma omp critical (add_plasma_nextid)
         {
@@ -433,6 +439,10 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         std::size_t shared_mem_bytes = plasma_injector->sharedMemoryNeeded();
         int lrrfac = rrfac;
 
+        // Loop over all new particles and inject them (creates too many 
+        // particles, in particular does not consider xmin, xmax etc.).
+        // The invalid ones are given negative ID and are deleted during the 
+        // next redistribute.
         amrex::For(max_new_particles, [=] AMREX_GPU_DEVICE (int ip) noexcept
         {
             ParticleType& p = pp[ip];
