@@ -338,7 +338,7 @@ void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buf
     AMREX_ASSERT(pc.numLevels() == 1);
 
 #ifdef BL_USE_MPI
-    const int NProcs = ParallelDescriptor::NProcs();
+    const int MyProc = ParallelDescriptor::MyProc();
     using PTile = typename PC::ParticleTileType;
 
     if (plan.m_nrcvs > 0) {
