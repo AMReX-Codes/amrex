@@ -1,5 +1,6 @@
 
 #include <AMReX.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Scan.H>
 
 using namespace amrex;
@@ -15,8 +16,13 @@ int main (int argc, char* argv[])
 
 void main_main ()
 {
+    long N = 256*1024*1024 - 37;
+    {
+        ParmParse pp;
+        pp.query("n", N);
+    }
+
     typedef int T;
-    const T N = 256*1024*1024 - 37;
     Vector<T> h_in(N);
     for (auto& x: h_in) {
         x = static_cast<T>((Random()-0.5)*100.);
@@ -69,7 +75,7 @@ void main_main ()
     }
     amrex::Gpu::dtoh_memcpy(h_exclusive_thrust.data(), d_out, nbytes);
 
-    for (T i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
         if (h_inclusive_thrust[i] != h_inclusive_amrex[i]) {
             amrex::Print() << "i = " << i << ", thrust = " << h_inclusive_thrust[i]
                            << ", amrex = " << h_inclusive_amrex[i] << "\n"; 

@@ -3,6 +3,8 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
+#include <cstdint>
+#include <type_traits>
 
 namespace amrex {
 namespace Scan {
@@ -10,10 +12,79 @@ namespace Scan {
 namespace detail {
 
 template <typename T>
-struct BlockStatus {
+struct alignas(8) STVA
+{
+    char status;
+    T value;
+};
+
+template <typename T, bool SINGLE_WORD> struct BlockStatus {};
+
+template <typename T>
+struct alignas(8) BlockStatus<T, true>
+{
+    STVA<T> stva;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void write (char a_status, T a_value) {
+        static_assert(sizeof(BlockStatus<T,true>) == 8,
+                      "BlockStatus: wrong size");
+        int64_t tmp;
+        auto ptmp = reinterpret_cast<BlockStatus<T,true>*>(&tmp);
+        ptmp->stva.status = a_status;
+        ptmp->stva.value = a_value;
+        auto pthis = reinterpret_cast<int64_t*>(this);
+        *pthis = tmp;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T get_aggregate() const { return stva.value; }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    STVA<T> read () volatile {
+        int64_t tmp = *(reinterpret_cast<int64_t volatile*>(this));
+        auto ptmp = reinterpret_cast<BlockStatus<T,true>*>(&tmp);
+        return { ptmp->stva.status, ptmp->stva.value };
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void set_status (char a_status) { stva.status = a_status; }
+};
+
+template <typename T>
+struct BlockStatus<T, false>
+{
     T aggregate;
     T inclusive;
     char status;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void write (char a_status, T a_value) {
+        if (a_status == 'a') {
+            aggregate = a_value;
+        } else {
+            inclusive = a_value;
+        }
+        __threadfence();
+        status = a_status;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T get_aggregate() const { return aggregate; }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    STVA<T> read () volatile {
+        if (status == 'x') {
+            return {'x', 0};
+        } else if (status == 'a') {
+            return {'a', aggregate};
+        } else {
+            return {'p', inclusive};
+        }
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void set_status (char a_status) { status = a_status; }
 };
 
 enum class Type { inclusive, exclusive };
@@ -30,15 +101,17 @@ void Sum (int n, T const* in, T * out, Type type)
     auto stream = Gpu::gpuStream();
 
     // temporary memory
-    amrex::AsyncArray<BlockStatus<T> > block_status_aa(nblocks);
-    BlockStatus<T>* block_status_p = block_status_aa.data();
+    typedef typename std::conditional<sizeof(BlockStatus<T,true>) <= 8,
+        BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
+    amrex::AsyncArray<BlockStatusT > block_status_aa(nblocks);
+    BlockStatusT* block_status_p = block_status_aa.data();
 
     Gpu::DeviceScalar<unsigned int> virtual_block_id_ds;
     unsigned int* virtual_block_id_p = virtual_block_id_ds.dataPtr();
 
     amrex::ParallelFor(nblocks, [=] AMREX_GPU_DEVICE (int i) noexcept {
-        BlockStatus<T>& block_status = block_status_p[i];
-        block_status.status = 'x';
+        BlockStatusT& block_status = block_status_p[i];
+        block_status.set_status('x');
         if (i == 0) *virtual_block_id_p = 0;
     });
 
@@ -69,7 +142,7 @@ void Sum (int n, T const* in, T * out, Type type)
         // Each block processes [ibegin,iend).
         int ibegin = nelms_per_block * virtual_block_id;
         int iend = amrex::min(ibegin+nelms_per_block, n);
-        BlockStatus<T>& block_status = block_status_p[virtual_block_id];
+        BlockStatusT& block_status = block_status_p[virtual_block_id];
 
         //
         // The overall algorithm is based on "Single-pass Parallel
@@ -133,11 +206,8 @@ void Sum (int n, T const* in, T * out, Type type)
 
         // sum_prev_chunk now holds the sum of the whole block.
         if (threadIdx.x == 0 && gridDim.x > 1) {
-            block_status.aggregate = sum_prev_chunk;
-            if (virtual_block_id == 0) block_status.inclusive = sum_prev_chunk;
-            // TODO: optimize away the memory fence.
-            __threadfence(); // This ensures the status flag is touched after the fence.
-            block_status.status = (virtual_block_id == 0) ? 'p' : 'a';
+            block_status.write((virtual_block_id == 0) ? 'p' : 'a',
+                               sum_prev_chunk);
         }
 
         if (virtual_block_id == 0) {
@@ -151,21 +221,23 @@ void Sum (int n, T const* in, T * out, Type type)
 
             if (threadIdx.x == 0) {
                 exclusive_prefix = 0;
-                volatile BlockStatus<T>* pbs = block_status_p;
+                BlockStatusT* pbs = block_status_p;
                 for (int iblock = virtual_block_id-1; iblock >= 0; --iblock) {
-                    char prev_status;
-                    while ((prev_status = pbs[iblock].status) == 'x') {};
-                    if (prev_status == 'a') {
-                        exclusive_prefix += pbs[iblock].aggregate;
+                    STVA<T> stva{'x', 0};
+                    while(stva.status == 'x') {
+                        stva = pbs[iblock].read();
+                    }
+                    if (stva.status == 'a') {
+                        exclusive_prefix += stva.value;
                     } else {
-                        exclusive_prefix += pbs[iblock].inclusive;
+                        exclusive_prefix += stva.value;
                         break;
                     }
                 }
 
-                block_status.inclusive = block_status.aggregate + exclusive_prefix;
-                __threadfence();
-                block_status.status = 'p';
+                if (virtual_block_id < gridDim.x-1) { // not the last one
+                    block_status.write('p', block_status.get_aggregate() + exclusive_prefix);
+                }
             }
 
             __syncthreads();
