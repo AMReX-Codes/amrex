@@ -231,18 +231,25 @@ void Sum (int n, T const* in, T * out, Type type)
 
                     T x = stva.value;
 
-                    unsigned status_bf = __ballot_sync(0xffffffff, stva.status == 'p');
-                    unsigned int bit_mask = 0x1;
-                    bool stop_lookback = status_bf & bit_mask;
+                    unsigned const status_bf = __ballot_sync(0xffffffff, stva.status == 'p');
+                    bool stop_lookback = status_bf & 0x1u;
                     if (stop_lookback == false) {
-                        for (int i = 1; i < Gpu::Device::warp_size; ++i) {
-                            T s = __shfl_down_sync(0xffffffff, x, i);
-                            if (lane == 0) { x += s; }
-                            bit_mask <<= 1;
-                            if (status_bf & bit_mask) {
-                                stop_lookback = true;
-                                break;
+                        if (status_bf != 0) {
+                            T y = x;
+                            if (lane > 0) x = 0;
+                            unsigned int bit_mask = 0x1u;
+                            for (int i = 1; i < Gpu::Device::warp_size; ++i) {
+                                bit_mask <<= 1;
+                                if (i == lane) x = y;
+                                if (status_bf & bit_mask) {
+                                    stop_lookback = true;
+                                    break;
+                                }
                             }
+                        }
+
+                        for (int i = Gpu::Device::warp_size/2; i > 0; i /= 2) {
+                            x += __shfl_down_sync(0xffffffff, x, i);
                         }
                     }
 
