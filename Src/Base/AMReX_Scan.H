@@ -217,30 +217,48 @@ void Sum (int n, T const* in, T * out, Type type)
                 out[offset] = tmp_out[ichunk];
             }
         } else if (virtual_block_id > 0) {
-            T& exclusive_prefix = shared[0];
 
-            if (threadIdx.x == 0) {
-                exclusive_prefix = 0;
-                BlockStatusT* pbs = block_status_p;
-                for (int iblock = virtual_block_id-1; iblock >= 0; --iblock) {
-                    STVA<T> stva{'x', 0};
-                    while(stva.status == 'x') {
-                        stva = pbs[iblock].read();
+            if (warp == 0) {
+                T exclusive_prefix = 0;
+                BlockStatusT volatile* pbs = block_status_p;
+                for (int iblock0 = virtual_block_id-1; iblock0 >= 0; iblock0 -= Gpu::Device::warp_size)
+                {
+                    int iblock = iblock0-lane;
+                    STVA<T> stva{'p', 0};
+                    do {
+                        if (iblock >= 0) stva = pbs[iblock].read();
+                    } while (__any_sync(0xffffffff,stva.status=='x'));
+
+                    T x = stva.value;
+
+                    unsigned status_bf = __ballot_sync(0xffffffff, stva.status == 'p');
+                    unsigned int bit_mask = 0x1;
+                    bool stop_lookback = status_bf & bit_mask;
+                    if (stop_lookback == false) {
+                        for (int i = 1; i < Gpu::Device::warp_size; ++i) {
+                            T s = __shfl_down_sync(0xffffffff, x, i);
+                            if (lane == 0) { x += s; }
+                            bit_mask <<= 1;
+                            if (status_bf & bit_mask) {
+                                stop_lookback = true;
+                                break;
+                            }
+                        }
                     }
-                    if (stva.status == 'a') {
-                        exclusive_prefix += stva.value;
-                    } else {
-                        exclusive_prefix += stva.value;
-                        break;
-                    }
+
+                    if (lane == 0) { exclusive_prefix += x; }
+                    if (stop_lookback) break;
                 }
 
-                if (virtual_block_id < gridDim.x-1) { // not the last one
+                if (lane == 0) {
                     block_status.write('p', block_status.get_aggregate() + exclusive_prefix);
+                    shared[0] = exclusive_prefix;
                 }
             }
 
             __syncthreads();
+
+            T exclusive_prefix = shared[0];
 
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
                 int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
