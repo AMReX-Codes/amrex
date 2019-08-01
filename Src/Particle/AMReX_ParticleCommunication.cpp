@@ -133,7 +133,7 @@ void ParticleCopyPlan::buildMPI (const ParticleBufferMap& map)
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Send((char*) snd_data[i].data(), Cnt, Who, SeqNum);
+        ParallelDescriptor::Asend((char*) snd_data[i].data(), Cnt, Who, SeqNum);
     }
 
     if (m_nrcvs > 0)

@@ -264,7 +264,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 }
 
 template <class PC, class Buffer>
-void communicateParticlesStart (const PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
+void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer)
 {
     BL_PROFILE("amrex::communicateParticlesStart");
     
@@ -289,6 +289,8 @@ void communicateParticlesStart (const PC& pc, const ParticleCopyPlan& plan, cons
         }
     }
     rcv_buffer.resize(TotRcvParticles);
+
+    plan.m_nrcvs = RcvProc.size();
 
     plan.m_stats.resize(0);
     plan.m_stats.resize(plan.m_nrcvs);
@@ -317,15 +319,15 @@ void communicateParticlesStart (const PC& pc, const ParticleCopyPlan& plan, cons
         if (i == MyProc) continue;
         const auto Who = i;
         const auto Cnt = plan.m_snd_num_particles[i]*sizeof(ParticleType);
+        if (Cnt == 0) continue;
 
-        BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         int bucket = pc.BufferMap().firstBucketOnProc(i);
         const auto snd_offset = plan.m_box_offsets[bucket];
 
-        ParallelDescriptor::Send( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
+        ParallelDescriptor::Asend( (char*) (snd_buffer.dataPtr() + snd_offset), Cnt, Who, SeqNum);
     }
 #endif // MPI
 }
