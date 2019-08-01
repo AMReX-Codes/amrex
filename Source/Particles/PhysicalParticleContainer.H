@@ -107,11 +107,8 @@ public:
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
+
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
-    void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
-#ifdef AMREX_USE_GPU
-    void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
-#endif
 
     void MapParticletoBoostedFrame(amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
 
@@ -140,16 +137,8 @@ protected:
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
 
-    long NumParticlesToAdd (const amrex::Box& overlap_box,
-			    const amrex::RealBox& overlap_realbox,
-			    const amrex::RealBox& tile_real_box,
-			    const amrex::RealBox& particle_real_box);
-  
-    int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
-    std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
-
     // Inject particles during the whole simulation
-    void ContinuousInjection(const amrex::RealBox& injection_box) override;
+    void ContinuousInjection (const amrex::RealBox& injection_box) override;
 
 };
 
