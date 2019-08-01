@@ -93,8 +93,8 @@ template <typename T>
 void Sum (int n, T const* in, T * out, Type type)
 {
     if (n <= 0) return;
-    constexpr int nthreads = 256;
-    constexpr int nchunks = 12;
+    constexpr int nthreads = 4*Gpu::Device::warp_size;
+    constexpr int nchunks = 16;
     constexpr int nelms_per_block = nthreads * nchunks;
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * Gpu::Device::warp_size + sizeof(int);
