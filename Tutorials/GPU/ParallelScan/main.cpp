@@ -15,19 +15,20 @@ int main (int argc, char* argv[])
 
 void main_main ()
 {
-    const int N = 512*1024*1024;
-    Vector<int> h_in(N);
+    typedef int T;
+    const T N = 256*1024*1024 - 37;
+    Vector<T> h_in(N);
     for (auto& x: h_in) {
-        x = static_cast<int>((Random()-0.5)*10.);
+        x = static_cast<T>((Random()-0.5)*100.);
     }
-    Vector<int> h_inclusive_thrust(N);
-    Vector<int> h_inclusive_amrex(N);
-    Vector<int> h_exclusive_thrust(N);
-    Vector<int> h_exclusive_amrex(N);
+    Vector<T> h_inclusive_thrust(N);
+    Vector<T> h_inclusive_amrex(N);
+    Vector<T> h_exclusive_thrust(N);
+    Vector<T> h_exclusive_amrex(N);
 
-    std::size_t nbytes = h_in.size()*sizeof(int);
-    int* d_in = (int*)The_Device_Arena()->alloc(nbytes);
-    int* d_out = (int*)The_Device_Arena()->alloc(nbytes);
+    std::size_t nbytes = h_in.size()*sizeof(T);
+    T* d_in = (T*)The_Device_Arena()->alloc(nbytes);
+    T* d_out = (T*)The_Device_Arena()->alloc(nbytes);
 
     amrex::Gpu::htod_memcpy(d_in, h_in.data(), nbytes);
 
@@ -68,7 +69,7 @@ void main_main ()
     }
     amrex::Gpu::dtoh_memcpy(h_exclusive_thrust.data(), d_out, nbytes);
 
-    for (int i = 0; i < N; ++i) {
+    for (T i = 0; i < N; ++i) {
         if (h_inclusive_thrust[i] != h_inclusive_amrex[i]) {
             amrex::Print() << "i = " << i << ", thrust = " << h_inclusive_thrust[i]
                            << ", amrex = " << h_inclusive_amrex[i] << "\n"; 
