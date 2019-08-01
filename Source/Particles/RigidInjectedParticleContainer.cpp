@@ -459,9 +459,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             Real* const AMREX_RESTRICT uxpp = uxp.dataPtr();
             Real* const AMREX_RESTRICT uypp = uyp.dataPtr();
             Real* const AMREX_RESTRICT uzpp = uzp.dataPtr();
-            const Real* const AMREX_RESTRICT uxp_savep = uxp_save.dataPtr();
-            const Real* const AMREX_RESTRICT uyp_savep = uyp_save.dataPtr();
-            const Real* const AMREX_RESTRICT uzp_savep = uzp_save.dataPtr();
             const Real* const AMREX_RESTRICT Expp = Exp.dataPtr();
             const Real* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
             const Real* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
