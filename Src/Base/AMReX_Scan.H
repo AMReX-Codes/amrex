@@ -18,13 +18,13 @@ struct BlockStatus {
 
 enum class Type { inclusive, exclusive };
 
-template <typename N, typename T>
-void Sum (N n, T const* in, T * out, Type type)
+template <typename T>
+void Sum (int n, T const* in, T * out, Type type)
 {
     if (n <= 0) return;
-    constexpr int nchunks = 2;
-    constexpr int nelms_per_block = AMREX_GPU_MAX_THREADS * nchunks;
-    int nthreads = AMREX_GPU_MAX_THREADS;
+    constexpr int nthreads = 256;
+    constexpr int nchunks = 12;
+    constexpr int nelms_per_block = nthreads * nchunks;
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * Gpu::Device::warp_size + sizeof(int);
     auto stream = Gpu::gpuStream();
@@ -185,12 +185,14 @@ void Sum (N n, T const* in, T * out, Type type)
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 void InclusiveSum (N n, T const* in, T * out)
 {
+    AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
     detail::Sum(n, in, out, detail::Type::inclusive);
 }
 
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 void ExclusiveSum (N n, T const* in, T * out)
 {
+    AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
     detail::Sum(n, in, out, detail::Type::exclusive);
 }
 
