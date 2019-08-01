@@ -55,11 +55,14 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        auto& pmap = GetParticles(lev);
-	for (auto& kv : pmap)
-	{
-            int grid    = kv.first.first;
-            auto& aos  = kv.second.GetArrayOfStructs();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            int grid    = pti.index();
+            auto& ptile = ParticlesAt(lev, pti);
+            auto& aos  = ptile.GetArrayOfStructs();
             const int n = aos.size();
             auto p_pbox = aos().data();
             const FArrayBox* fab[AMREX_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
@@ -71,9 +74,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             const umacarr {AMREX_D_DECL((*fab[0]).array(),
                                         (*fab[1]).array(),
                                         (*fab[2]).array() )};
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
+
             amrex::ParallelFor(n,   
                                [=] AMREX_GPU_DEVICE (int i)      
             {					
@@ -138,18 +139,19 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        auto& pmap = GetParticles(lev);
-	for (auto& kv : pmap)
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            int grid             = kv.first.first;
-            auto& aos            = kv.second.GetArrayOfStructs();
+            int grid    = pti.index();
+            auto& ptile = ParticlesAt(lev, pti);
+            auto& aos  = ptile.GetArrayOfStructs();
             const int n          = aos.size();
             const FArrayBox& fab = Ucc[grid];
             const auto uccarr = fab.array();
             auto  p_pbox = aos().data();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
+
             amrex::ParallelFor(n,
                                [=] AMREX_GPU_DEVICE (int i)
             {
