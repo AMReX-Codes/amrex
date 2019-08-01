@@ -117,6 +117,9 @@ struct ParticleInitType
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIterBase;
 
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+class ParIter;
+    
     /**
      * \brief A distributed container for Particles sorted onto grids and tiles.
 
@@ -154,7 +157,8 @@ public:
     using ParticleVector = typename AoS::ParticleVector;
     using CharVector     = Gpu::ManagedDeviceVector<char>;
     using SendBuffer     = Gpu::PolymorphicDeviceVector<char>;
-
+    using MyParIter        = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    
     ParticleContainer ()
       :
       communicate_real_comp(NArrayReal, true),
