@@ -59,7 +59,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
                                  int required_coarsening_level,
                                  int max_coarsening_level,
                                  int ngrow) 
-                                : IndexSpaceImp(ghost, geom, IntVect(2), required_coarsening_level, max_coarsening_level, ngrow)
+                                : IndexSpaceImp(gshop, geom, IntVect(2), required_coarsening_level, max_coarsening_level, ngrow)
                                  {}
 
 template <typename G>
