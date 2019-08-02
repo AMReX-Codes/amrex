@@ -117,6 +117,10 @@ public:
 #endif
 #endif
 
+#ifdef AMREX_USE_GPU
+    static int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
+#endif
+
 private:
 
     static void initialize_gpu ();
@@ -136,6 +140,7 @@ private:
     static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
 #endif
+    static int max_blocks_per_launch;
 #endif
 };
 
