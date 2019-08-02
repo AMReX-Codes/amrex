@@ -47,7 +47,7 @@ WarpXParIter::SetPosition (const Cuda::ManagedDeviceVector<Real>& x, const Cuda:
 #ifdef WARPX_RZ
     auto& attribs = GetAttribs();
     auto& theta = attribs[PIdx::theta];
-    Cuda::DeviceVector<Real> r(x.size());
+    Cuda::ManagedDeviceVector<Real> r(x.size());
     for (unsigned int i=0 ; i < x.size() ; i++) {
         theta[i] = std::atan2(y[i], x[i]);
         r[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
