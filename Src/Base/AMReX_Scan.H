@@ -12,7 +12,7 @@ namespace Scan {
 namespace detail {
 
 template <typename T>
-struct alignas(8) STVA
+struct STVA
 {
     char status;
     T value;
@@ -21,34 +21,10 @@ struct alignas(8) STVA
 template <typename T, bool SINGLE_WORD> struct BlockStatus {};
 
 template <typename T>
-struct alignas(8) BlockStatus<T, true>
+struct BlockStatus<T, true>
 {
-    STVA<T> stva;
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void write (char a_status, T a_value) {
-        static_assert(sizeof(BlockStatus<T,true>) == 8,
-                      "BlockStatus: wrong size");
-        int64_t tmp;
-        auto ptmp = reinterpret_cast<BlockStatus<T,true>*>(&tmp);
-        ptmp->stva.status = a_status;
-        ptmp->stva.value = a_value;
-        auto pthis = reinterpret_cast<int64_t*>(this);
-        *pthis = tmp;
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T get_aggregate() const { return stva.value; }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    STVA<T> read () volatile {
-        int64_t tmp = *(reinterpret_cast<int64_t volatile*>(this));
-        auto ptmp = reinterpret_cast<BlockStatus<T,true>*>(&tmp);
-        return { ptmp->stva.status, ptmp->stva.value };
-    }
-
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void set_status (char a_status) { stva.status = a_status; }
+    uint64_t d;
+    // Unfortunately, there are no reliable ways to force nvcc to do 64-bit load/store
 };
 
 template <typename T>
@@ -100,8 +76,9 @@ void Sum (int n, T const* in, T * out, Type type)
     std::size_t sm = sizeof(T) * Gpu::Device::warp_size + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    typedef typename std::conditional<sizeof(BlockStatus<T,true>) <= 8,
-        BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
+//    typedef typename std::conditional<sizeof(STVA<T>) <= 8,
+//        BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
+    typedef BlockStatus<T,false> BlockStatusT;
 
     // temporary memory
 #if 0
@@ -231,9 +208,12 @@ void Sum (int n, T const* in, T * out, Type type)
                 {
                     int iblock = iblock0-lane;
                     STVA<T> stva{'p', 0};
-                    do {
-                        if (iblock >= 0) stva = pbs[iblock].read();
-                    } while (__any_sync(0xffffffff,stva.status=='x'));
+                    if (iblock >= 0) {
+                        do {
+                            stva = pbs[iblock].read();
+                        } while (stva.status == 'x');
+
+                    }
 
                     T x = stva.value;
 
