@@ -320,6 +320,8 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     Real gamma_boost = WarpX::gamma_boost;
     Real beta_boost = WarpX::beta_boost;
     Real t = WarpX::GetInstance().gett_new(lev);
+    Real density_min = plasma_injector->density_min;
+    Real density_max = plasma_injector->density_max;
 
 #ifdef WARPX_RZ
     bool radially_weighted = plasma_injector->radially_weighted;
@@ -519,6 +521,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 }
                 u = inj_mom->getMomentum(x, y, z);
                 dens = inj_rho->getDensity(x, y, z);
+                // Remove particle if density below threshold
+                if ( (dens < density_min) || (dens > density_max) ){
+                    p.id() = -1;
+                    return;
+                }
             } else {
                 // Boosted-frame simulation
                 // Since the user provides the density distribution
@@ -546,6 +553,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 }
                 // call `getDensity` with lab-frame parameters
                 dens = inj_rho->getDensity(x, y, z0_lab);
+                // Remove particle if density below threshold
+                if ( (dens < density_min) || (dens > density_max) ){
+                    p.id() = -1;
+                    return;
+                }
                 // At this point u and dens are the lab-frame quantities
                 // => Perform Lorentz transform
                 dens = gamma_boost * dens * ( 1.0 - beta_boost*betaz_lab );

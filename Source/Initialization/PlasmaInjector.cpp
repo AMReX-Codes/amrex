@@ -81,6 +81,9 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
 
+    pp.query("density_min", density_min);
+    pp.query("density_max", density_max);
+
     // parse charge and mass
     std::string charge_s;
     pp.get("charge", charge_s);
