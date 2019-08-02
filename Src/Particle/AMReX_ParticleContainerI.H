@@ -2565,7 +2565,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
 
     BuildRedistributeMask(0, 1);
 
-    thrust::device_vector<int> grid_indices;
+    Gpu::DeviceVector<int> grid_indices;
 
     long total_np = 0;
     long total_wrong = 0;
@@ -2589,7 +2589,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
                                          (*redistribute_mask_ptr)[mfi].box(),
                                          redistribute_mask_ptr->array(mfi)));
 
-        int count = thrust::count_if(grid_indices.begin(),
+        int count = thrust::count_if(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                     grid_indices.begin(),
                                      grid_indices.end(),
                                      functors::grid_is_not(i));
 
