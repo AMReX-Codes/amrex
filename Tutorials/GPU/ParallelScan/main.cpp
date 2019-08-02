@@ -65,6 +65,7 @@ void main_main ()
         BL_PROFILE("thrust::inclusive_scan");
         thrust::inclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                d_in, d_in+N, d_out);
+        Gpu::synchronize();
     }
     amrex::Gpu::dtoh_memcpy(h_inclusive_thrust.data(), d_out, nbytes);
 
@@ -72,6 +73,7 @@ void main_main ()
         BL_PROFILE("thrust::exclusive_scan");
         thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                d_in, d_in+N, d_out);
+        Gpu::synchronize();
     }
     amrex::Gpu::dtoh_memcpy(h_exclusive_thrust.data(), d_out, nbytes);
 
