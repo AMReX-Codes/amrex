@@ -330,19 +330,19 @@ WarpX::OneStep_nosub (Real cur_time)
     EvolveF(0.5*dt[0], DtType::SecondHalf);
 
 
-    if (do_pml && pml_has_particles){
-        for (int lev = 0; lev <= finest_level; ++lev)
-        {
-            if (pml[lev]->ok()){
-                pml[lev]->CopyJinReg({ current_fp[lev][0].get(),
-                                      current_fp[lev][1].get(),
-                                      current_fp[lev][2].get() },
-                                    { current_cp[lev][0].get(),
-                                      current_cp[lev][1].get(),
-                                      current_cp[lev][2].get() });
-            }
-        }
-    }
+    // if (do_pml && pml_has_particles){
+    //     for (int lev = 0; lev <= finest_level; ++lev)
+    //     {
+    //         if (pml[lev]->ok()){
+    //             pml[lev]->CopyJinReg({ current_fp[lev][0].get(),
+    //                                   current_fp[lev][1].get(),
+    //                                   current_fp[lev][2].get() },
+    //                                 { current_cp[lev][0].get(),
+    //                                   current_cp[lev][1].get(),
+    //                                   current_cp[lev][2].get() });
+    //         }
+    //     }
+    // }
 
     EvolveB(0.5*dt[0]); // We now have B^{n+1}
     if (do_pml) {

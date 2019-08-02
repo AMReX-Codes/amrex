@@ -738,53 +738,57 @@ PML::GetF_cp ()
 
 void
 PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain, int ncell)
+                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
-  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain, ncell);
-  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain, ncell);
+  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
 }
 
 void
 PML::ExchangeB (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain, int ncell)
+                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     if (patch_type == PatchType::fine && pml_B_fp[0] && Bp[0])
     {
-        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain, ncell);
-        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain, ncell);
-        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
     }
     else if (patch_type == PatchType::coarse && pml_B_cp[0] && Bp[0])
     {
-        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain, ncell);
-        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain, ncell);
-        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
     }
 }
 
 void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain, int ncell)
+                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
-    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain, ncell);
-    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain, ncell);
+    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
 }
 
 void
 PML::ExchangeE (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain, int ncell)
+                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
     {
-        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain, ncell);
-        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain, ncell);
-        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
     }
     else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
     {
-        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain, ncell);
-        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain, ncell);
-        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
     }
 }
 
@@ -841,19 +845,21 @@ PML::CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
 }
 
 void
-PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain, int ncell)
+PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
-    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain, ncell);
-    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain, ncell);
+    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
 }
 
 void
-PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain, int ncell)
+PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     if (patch_type == PatchType::fine && pml_F_fp && Fp) {
-        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain, ncell);
+        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
     } else if (patch_type == PatchType::coarse && pml_F_cp && Fp) {
-        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain, ncell);
+        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
     }
 }
 
@@ -881,8 +887,18 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
             MultiFab::Add(totpmlmf,pml,2,0,1,0);
         }
         totpmlmf.setVal(0.0, 1, ncp-1, 0);
-        // reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period); //old
-        reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), IntVect(0), period); //new
+        // reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period); //old - not really working
+        reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), IntVect(0), period); //new - works better
+
+        // amrex::Print()<<"##### BOXES EXCHANGE PML #####"<<std::endl;
+        // for (MFIter mfi(pml); mfi.isValid(); ++mfi)
+        // {
+        //     amrex::Print()<<pml[mfi].box()<<std::endl;
+        // }
+
+        // for (const Box& bx : BoxList(pml.boxArray())){
+        //     amrex::Print()<<bx<<std::endl;
+        // }
 
         if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
         {
@@ -890,50 +906,53 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
             MultiFab::Copy(totpmlmf, pml, 0, 0, ncp, ngp);
 
             tmpregmf.setVal(0.0, 1, ncp-1, 0);
-            // totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, IntVect(0), ngp, period);
+            // ce qui foncitonne a peu pres pour le moment
             tmpregmf.ParallelCopy(totpmlmf,0, 0, ncp, IntVect(0), IntVect(0), period);
-            // totpmlmf.ParallelCopy(tmpregmf,0, 0, 1, ngr, ngp, period);
             totpmlmf.ParallelCopy(tmpregmf,0, 0, ncp, IntVect(0), ngp, period);
+
+            MultiFab::Copy(pml, totpmlmf, 0, 0, ncp, ngp); //test
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
-            // amrex::Print()<<"####### EXCHANGE INFORMATIONS GHOST CELLS PML #######"<<std::endl;
-            Box domain0 = geom.Domain();
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if ( ! geom.isPeriodic(idim) ) {
-                    // domain0.grow(idim, -ncell);
-                    if (do_pml_Lo[idim]){
-                        domain0.growLo(idim, -ncell);
-                    }
-                    if (do_pml_Hi[idim]){
-                        domain0.growHi(idim, -ncell);
-                    }
-                }
-            }
-            // amrex::Print()<<"domain0 = ["<<domain0.smallEnd()[0]<<", "<<domain0.smallEnd()[1]<<", "<<domain0.bigEnd()[0]<<", "<<domain0.bigEnd()[1]<<"]"<<std::endl;
-            for (MFIter mfi(pml); mfi.isValid(); ++mfi)
-            {
-                const FArrayBox& src = totpmlmf[mfi];
-                FArrayBox& dst = pml[mfi];
-                Box test = mfi.validbox();
-                // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
-                // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
-                // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
-                // const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-                const BoxList& bl = BoxList(amrex::intersect(BoxArray(domain0), dst.box(),0));
-                // amrex::Print()<<BoxList(dst.box())<<std::endl;
-                // amrex::Print()<<BoxList(domain0)<<std::endl;
-                // amrex::Print()<<bl<<std::endl;
-                // amrex::Print()<<">>> EXCHANGE BOXES <<<<<" <<std::endl;
-                // amrex::Print()<<"[" <<std::endl;
-                for (const Box& bx : bl)
-                {
-                    // dst.copy(src, bx, 0, bx, 0, 1);
-                    dst.copy(src, bx, 0, bx, 0, ncp);
-                    // amrex::Print()<<"["<<bx.smallEnd()[0]<<", "<<bx.smallEnd()[1]<<", "<<bx.bigEnd()[0]<<", "<<bx.bigEnd()[1]<<"],"<<std::endl;
-                }
-                // amrex::Print()<<"]" <<std::endl;
-            }
+            // // amrex::Print()<<"####### EXCHANGE INFORMATIONS GHOST CELLS PML #######"<<std::endl;
+            // Box domain0 = geom.Domain();
+            // for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            //     if ( ! geom.isPeriodic(idim) ) {
+            //         // domain0.grow(idim, -ncell);
+            //         if (do_pml_Lo[idim]){
+            //             domain0.growLo(idim, -ncell);
+            //         }
+            //         if (do_pml_Hi[idim]){
+            //             domain0.growHi(idim, -ncell);
+            //         }
+            //
+            //     }
+            // }
+            // // amrex::Print()<<"domain0 = "<<domain0<<std::endl;
+            // for (MFIter mfi(pml); mfi.isValid(); ++mfi)
+            // {
+            //     const FArrayBox& src = totpmlmf[mfi];
+            //     FArrayBox& dst = pml[mfi];
+            //     Box test = mfi.validbox();
+            //     // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
+            //     // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
+            //     // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
+            //     // const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+            //     // const BoxList& bl = BoxList(amrex::intersect(BoxArray(domain0), dst.box(),0));
+            //     const BoxList& bl = BoxList(amrex::intersect(BoxArray(dst.box()), domain0,0));
+            //     // amrex::Print()<<BoxList(dst.box())<<std::endl;
+            //     // amrex::Print()<<BoxList(domain0)<<std::endl;
+            //     // amrex::Print()<<bl<<std::endl;
+            //     // amrex::Print()<<">>> EXCHANGE BOXES <<<<<" <<std::endl;
+            //     // amrex::Print()<<"[" <<std::endl;
+            //     for (const Box& bx : bl)
+            //     {
+            //         // dst.copy(src, bx, 0, bx, 0, 1);
+            //         dst.copy(src, bx, 0, bx, 0, ncp);
+            //         // amrex::Print()<<bx<<std::endl;
+            //     }
+            //     // amrex::Print()<<"]" <<std::endl;
+            // }
         }
     }
 
@@ -1002,7 +1021,6 @@ PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
   const auto& period = geom.periodicity();
 
   pml.ParallelCopy(reg, 0, 0, 1, ngr, ngp, period);
-
 }
 
 void

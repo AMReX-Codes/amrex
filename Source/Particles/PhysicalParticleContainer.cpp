@@ -1518,6 +1518,31 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
 
+								// auto& attribs = pti.GetAttribs();
+								//
+                // Real* AMREX_RESTRICT zzp = m_zp[thread_num].dataPtr();
+                // Real* AMREX_RESTRICT exp = attribs[PIdx::Ex].dataPtr();
+                // Real* AMREX_RESTRICT eyp = attribs[PIdx::Ey].dataPtr();
+                // Real* AMREX_RESTRICT ezp = attribs[PIdx::Ez].dataPtr();
+                // Real* AMREX_RESTRICT bxp = attribs[PIdx::Bx].dataPtr();
+                // Real* AMREX_RESTRICT byp = attribs[PIdx::By].dataPtr();
+                // Real* AMREX_RESTRICT bzp = attribs[PIdx::Bz].dataPtr();
+								// // const std::array<Real,3>& xyzmax_grid = WarpX::UpperCorner(box, lev);
+								//
+                // const long np = pti.numParticles();
+								//
+                // ParallelFor( np_gather,
+                //              [=] AMREX_GPU_DEVICE (long i) {
+                //                  if (zzp[i] < xyzmin_grid[1] + 20 * dx[1]){ //xyzmin_grid[2] + 10 * dx[2]
+                //                      exp[i] = 0.;
+                //                      eyp[i] = 0.;
+                //                      ezp[i] = 0.;
+                //                      bxp[i] = 0.;
+                //                      byp[i] = 0.;
+                //                      bzp[i] = 0.;
+                //                  }
+                //              }
+                //     );
                 //
                 // Particle Push
                 //
