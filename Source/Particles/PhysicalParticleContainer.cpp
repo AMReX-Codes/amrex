@@ -522,10 +522,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 u = inj_mom->getMomentum(x, y, z);
                 dens = inj_rho->getDensity(x, y, z);
                 // Remove particle if density below threshold
-                if ( (dens < density_min) || (dens > density_max) ){
+                if ( dens < density_min ){
                     p.id() = -1;
                     return;
                 }
+                // Cut density if above threshold
+                dens = amrex::min(dens, density_max);
             } else {
                 // Boosted-frame simulation
                 // Since the user provides the density distribution
@@ -554,10 +556,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 // call `getDensity` with lab-frame parameters
                 dens = inj_rho->getDensity(x, y, z0_lab);
                 // Remove particle if density below threshold
-                if ( (dens < density_min) || (dens > density_max) ){
+                if ( dens < density_min ){
                     p.id() = -1;
                     return;
                 }
+                // Cut density if above threshold
+                dens = amrex::min(dens, density_max);
                 // At this point u and dens are the lab-frame quantities
                 // => Perform Lorentz transform
                 dens = gamma_boost * dens * ( 1.0 - beta_boost*betaz_lab );
