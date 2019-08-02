@@ -79,6 +79,8 @@ struct ParticleCopyPlan
 
     Vector<long> m_snd_num_particles;
     Vector<long> m_rcv_num_particles;
+
+    Vector<int> m_neighbor_procs;
         
     template <class PC>
     void build (const PC& pc, const ParticleCopyOp& op)
@@ -89,7 +91,9 @@ struct ParticleCopyPlan
         
         const int lev = 0;
         const auto& geom = pc.Geom(lev);
-        
+                
+        m_neighbor_procs.assign(pc.NeighborProcs().begin(), pc.NeighborProcs().end());
+
         int num_boxes = pc.ParticleBoxArray(lev).size();
         if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
         
@@ -135,6 +139,28 @@ struct ParticleCopyPlan
 private:
     
     void buildMPI (const ParticleBufferMap& map);
+
+    //
+    // Snds - a Vector with the number of bytes that is process will send to each proc.
+    // Rcvs - a Vector that, after calling this method, will contain the
+    //        number of bytes this process will reveive from each proc.
+    //
+    void doHandShake (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+
+    //
+    // In the local version of this method, each proc knows which other
+    // procs it could possibly receive messages from, meaning we can do
+    // this purely with point-to-point communication.
+    //
+    void doHandShakeLocal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+    
+    //
+    // In the global version, we don't know who we'll receive from, so we
+    // need to do some collective communication first.
+    //
+    void doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const;
+
+    bool m_local = true;
 };
 
 template <class PC, class Buffer>

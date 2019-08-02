@@ -779,8 +779,15 @@ public:
     }
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
+
+    virtual const Vector<int>& NeighborProcs() const 
+    {
+        return neighbor_procs;
+    };
     
 protected:
+
+    mutable amrex::Vector<int> neighbor_procs;
 
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
@@ -838,7 +845,6 @@ protected:
     void BuildRedistributeMask(int lev, int nghost=1) const;
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
-    mutable amrex::Vector<int> neighbor_procs;
 
     void defineBufferMap () const;
     mutable ParticleBufferMap m_buffer_map;

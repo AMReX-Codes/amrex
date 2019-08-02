@@ -124,11 +124,13 @@ buildNeighborMask ()
                     code.periodic_shift = isec_pshifts[isec.first];
                     m_grid_map[grid][i].push_back(code);
 		    m_code_array[grid].push_back(code);
+                    neighbor_procs.push_back(dmap[code.grid_id]);
 		    ++num_codes;
                 }
    	        m_code_offsets[grid].push_back(m_code_array[grid].size());
             }        
-	}    
+	}
+        RemoveDuplicates(neighbor_procs);
     }
 }
 
