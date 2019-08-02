@@ -317,6 +317,8 @@ public:
 
     void buildNeighborCopyOp ();
 
+    const Vector<int>& NeighborProcs () const { return neighbor_procs; };
+
 protected:
 
     void cacheNeighborInfo ();

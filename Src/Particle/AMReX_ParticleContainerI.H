@@ -2255,7 +2255,7 @@ BuildRedistributeMask (int lev, int nghost) const
         }
         
         redistribute_mask_ptr->FillBoundary(geom.periodicity());
-            
+
         neighbor_procs.clear();
         for (MFIter mfi(*redistribute_mask_ptr, tile_size); mfi.isValid(); ++mfi) 
         {
@@ -2270,7 +2270,7 @@ BuildRedistributeMask (int lev, int nghost) const
                         neighbor_procs.push_back(proc);
                 }
             }
-        }                    
+        }
         RemoveDuplicates(neighbor_procs);
     }
 }
