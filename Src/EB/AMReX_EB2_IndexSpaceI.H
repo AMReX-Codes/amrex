@@ -1,6 +1,6 @@
 
 template <typename G>
-IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
+IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom, const IntVect& refine_ratio,
                                  int required_coarsening_level,
                                  int max_coarsening_level,
                                  int ngrow)
@@ -23,7 +23,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
     {
-        bool coarsenable = m_geom.back().Domain().coarsenable(2,2);
+        bool coarsenable = m_geom.back().Domain().coarsenable(refine_ratio,2);
         if (!coarsenable) {
             if (ilev <= required_coarsening_level) {
                 amrex::Abort("IndexSpaceImp: domain is not coarsenable at level "+std::to_string(ilev));
@@ -34,8 +34,8 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
 
         int ng = (ilev > required_coarsening_level) ? 0 : m_ngrow.back()/2;
 
-        Box cdomain = amrex::coarsen(m_geom.back().Domain(),2);
-        Geometry cgeom = amrex::coarsen(m_geom.back(),2);
+        Box cdomain = amrex::coarsen(m_geom.back().Domain(), refine_ratio);
+        Geometry cgeom = amrex::coarsen(m_geom.back(), refine_ratio);
         m_gslevel.emplace_back(this, ilev, EB2::max_grid_size, ng, cgeom, m_gslevel[ilev-1]);
         if (!m_gslevel.back().isOK()) {
             m_gslevel.pop_back();
@@ -53,6 +53,14 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
     m_impfunc.reset(new F(gshop.GetImpFunc()));
 }
 
+
+template <typename G>
+IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
+                                 int required_coarsening_level,
+                                 int max_coarsening_level,
+                                 int ngrow) 
+                                : IndexSpaceImp(ghost, geom, IntVect(2), required_coarsening_level, max_coarsening_level, ngrow)
+                                 {}
 
 template <typename G>
 const Level&

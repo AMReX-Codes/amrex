@@ -58,6 +58,10 @@ class IndexSpaceImp
 {
 public:
 
+    IndexSpaceImp (const G& gshop, const Geometry& geom, const IntVect& refine_ratio,
+                   int required_coarsening_level, int max_coarsening_level,
+                   int ngrow);
+
     IndexSpaceImp (const G& gshop, const Geometry& geom,
                    int required_coarsening_level, int max_coarsening_level,
                    int ngrow);
@@ -78,7 +82,6 @@ public:
     using F = typename G::FunctionType;
 
 private:
-
     Vector<GShopLevel<G> > m_gslevel;
     Vector<Geometry> m_geom;
     Vector<Box> m_domain;
@@ -87,6 +90,19 @@ private:
 };
 
 #include <AMReX_EB2_IndexSpaceI.H>
+
+template <typename G>
+void
+Build (const G& gshop, const Geometry& geom, const IntVect& refine_ratio,
+       int required_coarsening_level, int max_coarsening_level,
+       int ngrow = 4)
+{
+    BL_PROFILE("EB2::Initialize()");
+    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, refine_ratio,
+                                          required_coarsening_level,
+                                          max_coarsening_level,
+                                          ngrow));
+}
 
 template <typename G>
 void
