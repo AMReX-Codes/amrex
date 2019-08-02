@@ -94,20 +94,26 @@ void Sum (int n, T const* in, T * out, Type type)
 {
     if (n <= 0) return;
     constexpr int nthreads = 4*Gpu::Device::warp_size;
-    constexpr int nchunks = 16;
+    constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * Gpu::Device::warp_size + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    // temporary memory
     typedef typename std::conditional<sizeof(BlockStatus<T,true>) <= 8,
         BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
+
+    // temporary memory
+#if 0
     amrex::AsyncArray<BlockStatusT > block_status_aa(nblocks);
     BlockStatusT* block_status_p = block_status_aa.data();
 
     Gpu::DeviceScalar<unsigned int> virtual_block_id_ds;
     unsigned int* virtual_block_id_p = virtual_block_id_ds.dataPtr();
+#endif
+
+    auto block_status_p = (BlockStatusT*)(The_Device_Arena()->alloc(sizeof(BlockStatusT)*(nblocks+1)));
+    auto virtual_block_id_p = (unsigned int*)(block_status_p+nblocks);
 
     amrex::ParallelFor(nblocks, [=] AMREX_GPU_DEVICE (int i) noexcept {
         BlockStatusT& block_status = block_status_p[i];
@@ -124,19 +130,19 @@ void Sum (int n, T const* in, T * out, Type type)
 
         amrex::Gpu::SharedMemory<T> gsm;
         T* shared = gsm.dataPtr();
-        int& virtual_block_id = *((int*)(shared+Gpu::Device::warp_size));
 
         // First of all, get block virtual id.  We must do this to
         // avoid deadlock because CUDA may launch blocks in any order.
         // Anywhere in this function, we should not use blockIdx.
+        int virtual_block_id = 0;
         if (gridDim.x > 1) {
+            int& virtual_block_id_shared = *((int*)(shared+Gpu::Device::warp_size));
             if (threadIdx.x == 0) {
                 unsigned int bid = Gpu::Atomic::Inc(virtual_block_id_p, gridDim.x);
-                virtual_block_id = bid;
+                virtual_block_id_shared = bid;
             }
             __syncthreads();
-        } else {
-            virtual_block_id = 0;
+            virtual_block_id = virtual_block_id_shared;
         }
 
         // Each block processes [ibegin,iend).
@@ -273,6 +279,9 @@ void Sum (int n, T const* in, T * out, Type type)
             }
         }
     });
+
+    Gpu::streamSynchronize();
+    The_Device_Arena()->free(block_status_p);
 
     AMREX_GPU_ERROR_CHECK();
 }
