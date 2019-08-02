@@ -481,6 +481,13 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  Efield_cax[lev][0].get(), Efield_cax[lev][1].get(), Efield_cax[lev][2].get(),
                  Bfield_cax[lev][0].get(), Bfield_cax[lev][1].get(), Bfield_cax[lev][2].get(),
                  cur_time, dt[lev]);
+#ifdef WARPX_DIM_RZ
+    // This is called after all particles have deposited their current.
+    ApplyInverseVolumeScalingToCurrentDensity(current_fp[lev][0].get(), current_fp[lev][1].get(), current_fp[lev][2].get(), lev);
+    if (current_buf[lev][0].get()) {
+        ApplyInverseVolumeScalingToCurrentDensity(current_buf[lev][0].get(), current_buf[lev][1].get(), current_buf[lev][2].get(), lev-1);
+    }
+#endif
 }
 
 void

@@ -178,6 +178,13 @@ public:
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
 
+#ifdef WARPX_DIM_RZ
+    void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
+                                                   amrex::MultiFab* Jy,
+                                                   amrex::MultiFab* Jz,
+                                                   int lev);
+#endif
+
     void DampPML ();
     void DampPML (int lev);
     void DampPML (int lev, PatchType patch_type);

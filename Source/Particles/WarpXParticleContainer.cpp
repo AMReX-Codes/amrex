@@ -504,7 +504,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
     // xyzmin is built on pti.tilebox(), so it does 
     // not include staggering, so the stagger_shift has to be done by hand.
     // Alternatively, we could define xyzminx from tbx (and the same for 3 
@@ -547,12 +547,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   xyzmin, lo, stagger_shift, q);
         }
     }
-
-#ifdef WARPX_DIM_RZ
-    ApplyInverseVolumeScalingToCurrentDensity(jx_arr, jy_arr, jz_arr,
-                                              tbx, tby, tbz,
-                                              xyzmin[0], lo.x, dx[0], ngJ);
-#endif
 
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
