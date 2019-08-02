@@ -23,8 +23,45 @@ template <typename T, bool SINGLE_WORD> struct BlockStatus {};
 template <typename T>
 struct BlockStatus<T, true>
 {
-    uint64_t d;
-    // Unfortunately, there are no reliable ways to force nvcc to do 64-bit load/store
+    template<typename U>
+    union Data {
+        STVA<U> s;
+        uint64_t i;
+        void operator=(Data<U> const&) = delete;
+        void operator=(Data<U> &&) = delete;
+    };
+    Data<T> d;
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void write (char a_status, T a_value) {
+        volatile uint64_t tmp;
+        reinterpret_cast<STVA<T> volatile&>(tmp).status = a_status;
+        reinterpret_cast<STVA<T> volatile&>(tmp).value  = a_value;
+        d.i = tmp;
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T get_aggregate() const { return d.s.value; }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    STVA<T> read () volatile {
+        volatile uint64_t tmp = d.i;
+        return {reinterpret_cast<STVA<T> volatile&>(tmp).status,
+                reinterpret_cast<STVA<T> volatile&>(tmp).value };
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void set_status (char a_status) { d.s.status = a_status; }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    STVA<T> wait () volatile {
+        STVA<T> r;
+        do {
+            __threadfence_block();
+            r = read();
+        } while (r.status == 'x');
+        return r;
+    }
 };
 
 template <typename T>
@@ -61,6 +98,15 @@ struct BlockStatus<T, false>
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void set_status (char a_status) { status = a_status; }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    STVA<T> wait () volatile {
+        STVA<T> r;
+        do {
+            r = read();
+            __threadfence();
+        } while (r.status == 'x');
+    }
 };
 
 enum class Type { inclusive, exclusive };
@@ -69,16 +115,16 @@ template <typename T>
 void Sum (int n, T const* in, T * out, Type type)
 {
     if (n <= 0) return;
-    constexpr int nthreads = 4*Gpu::Device::warp_size;
+    constexpr int nwarps_per_block = 4;
+    constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
-    std::size_t sm = sizeof(T) * Gpu::Device::warp_size + sizeof(int);
+    std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-//    typedef typename std::conditional<sizeof(STVA<T>) <= 8,
-//        BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
-    typedef BlockStatus<T,false> BlockStatusT;
+    typedef typename std::conditional<sizeof(STVA<T>) <= 8,
+        BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
 
     // temporary memory
 #if 0
@@ -107,13 +153,14 @@ void Sum (int n, T const* in, T * out, Type type)
 
         amrex::Gpu::SharedMemory<T> gsm;
         T* shared = gsm.dataPtr();
+        T* shared2 = shared + Gpu::Device::warp_size;
 
         // First of all, get block virtual id.  We must do this to
         // avoid deadlock because CUDA may launch blocks in any order.
         // Anywhere in this function, we should not use blockIdx.
         int virtual_block_id = 0;
         if (gridDim.x > 1) {
-            int& virtual_block_id_shared = *((int*)(shared+Gpu::Device::warp_size));
+            int& virtual_block_id_shared = *((int*)(shared2+nwarps));
             if (threadIdx.x == 0) {
                 unsigned int bid = Gpu::Atomic::Inc(virtual_block_id_p, gridDim.x);
                 virtual_block_id_shared = bid;
@@ -171,7 +218,7 @@ void Sum (int n, T const* in, T * out, Type type)
                     if (lane >= i) y += s;
                 }
 
-                shared[lane] = y;
+                shared2[lane] = y;
             }
 
             __syncthreads();
@@ -181,10 +228,10 @@ void Sum (int n, T const* in, T * out, Type type)
             // Also note x still holds the inclusive sum within the
             // warp.  Given these two, we can compute the inclusive
             // sum within this chunk.
-            T sum_prev_warp = (warp == 0) ? 0 : shared[warp-1];
+            T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             tmp_out[ichunk] = sum_prev_warp + sum_prev_chunk +
                 ((type == Type::inclusive) ? x : x-x0);
-            sum_prev_chunk += shared[nwarps-1];
+            sum_prev_chunk += shared2[nwarps-1];
         }
 
         // sum_prev_chunk now holds the sum of the whole block.
@@ -209,10 +256,7 @@ void Sum (int n, T const* in, T * out, Type type)
                     int iblock = iblock0-lane;
                     STVA<T> stva{'p', 0};
                     if (iblock >= 0) {
-                        do {
-                            stva = pbs[iblock].read();
-                        } while (stva.status == 'x');
-
+                        stva = pbs[iblock].wait();
                     }
 
                     T x = stva.value;
