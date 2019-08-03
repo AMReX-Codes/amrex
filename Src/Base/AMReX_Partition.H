@@ -3,19 +3,20 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Scan.H>
+#include <algorithm>
 
 namespace amrex {
 
 #ifdef AMREX_USE_GPU
+// The return value is the total number of trues.
 template <typename T, typename F>
-void Partition (Gpu::DeviceVector<T>& v, F && f)
+int Partition (Gpu::DeviceVector<T>& v, F && f)
 {
     int n = v.size();
     Gpu::DeviceVector<T> v2(n);
     T const* AMREX_RESTRICT pv = v.dataPtr();
     T * AMREX_RESTRICT pv2 = v2.dataPtr();
-    Scan::PrefixSum<int>
-        (n,
+    int tot = Scan::PrefixSum<int> (n,
          [=] AMREX_GPU_DEVICE (int i) -> int
          {
              return f(pv[i]);
@@ -39,6 +40,7 @@ void Partition (Gpu::DeviceVector<T>& v, F && f)
          },
          Scan::Type::exclusive);
     v.swap(v2);
+    return tot;
 }
 #endif
 

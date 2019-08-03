@@ -117,9 +117,9 @@ struct BlockStatus<T, false>
 enum class Type { inclusive, exclusive };
 
 template <typename T, typename FIN, typename FOUT>
-void PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
+T PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 {
-    if (n <= 0) return;
+    if (n <= 0) return 0;
     constexpr int nwarps_per_block = 4;
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
@@ -140,13 +140,23 @@ void PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
     unsigned int* virtual_block_id_p = virtual_block_id_ds.dataPtr();
 #endif
 
-    auto block_status_p = (BlockStatusT*)(The_Device_Arena()->alloc(sizeof(BlockStatusT)*(nblocks+1)));
-    auto virtual_block_id_p = (unsigned int*)(block_status_p+nblocks);
+    std::size_t nbytes_blockstatus = Arena::align(sizeof(BlockStatusT)*nblocks);
+    std::size_t nbytes_blockid = Arena::align(sizeof(unsigned int));
+    std::size_t nbytes_totalsum = Arena::align(sizeof(T));
+    auto dp = (char*)(The_Device_Arena()->alloc(  nbytes_blockstatus
+                                                + nbytes_blockid
+                                                + nbytes_totalsum));
+    BlockStatusT* AMREX_RESTRICT block_status_p = (BlockStatusT*)dp;
+    unsigned int* AMREX_RESTRICT virtual_block_id_p = (unsigned int*)(dp + nbytes_blockstatus);
+    T* AMREX_RESTRICT totalsum_p = (T*)(dp + nbytes_blockstatus + nbytes_blockid);
 
     amrex::ParallelFor(nblocks, [=] AMREX_GPU_DEVICE (int i) noexcept {
         BlockStatusT& block_status = block_status_p[i];
         block_status.set_status('x');
-        if (i == 0) *virtual_block_id_p = 0;
+        if (i == 0) {
+            *virtual_block_id_p = 0;
+            *totalsum_p = 0;
+        }
     });
 
     amrex::launch_global<<<nblocks, nthreads, sm, stream>>>(
@@ -196,6 +206,9 @@ void PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
             offset += threadIdx.x;
             T x0 = (offset < iend) ? fin(offset) : 0;
+            if  (type == Type::exclusive && offset == n-1) {
+                *totalsum_p += x0;
+            }
             T x = x0;
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
@@ -250,6 +263,9 @@ void PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
                 int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
                 if (offset >= iend) break;
                 fout(offset, tmp_out[ichunk]);
+                if (offset == n-1) {
+                    *totalsum_p += tmp_out[ichunk];
+                }
             }
         } else if (virtual_block_id > 0) {
 
@@ -304,32 +320,43 @@ void PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
                 int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
-                if (offset < iend) fout(offset, tmp_out[ichunk] + exclusive_prefix);
+                if (offset >= iend) break;
+                T t = tmp_out[ichunk] + exclusive_prefix;
+                fout(offset, t);
+                if (offset == n-1) {
+                    *totalsum_p += t;
+                }
             }
         }
     });
 
-    Gpu::streamSynchronize();
-    The_Device_Arena()->free(block_status_p);
+    T totalsum;
+    Gpu::dtoh_memcpy(&totalsum, totalsum_p, sizeof(T));
+
+    The_Device_Arena()->free(dp);
 
     AMREX_GPU_ERROR_CHECK();
+
+    return totalsum;
 }
 
+// The return value is the total sum.
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void InclusiveSum (N n, T const* in, T * out)
+T InclusiveSum (N n, T const* in, T * out)
 {
     AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
-    PrefixSum<T>(n,
+    return PrefixSum<T>(n,
                  [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
                  [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                  Type::inclusive);
 }
 
+// The return value is the total sum.
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
-void ExclusiveSum (N n, T const* in, T * out)
+T ExclusiveSum (N n, T const* in, T * out)
 {
     AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
-    PrefixSum<T>(n,
+    return PrefixSum<T>(n,
                  [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
                  [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                  Type::exclusive);
