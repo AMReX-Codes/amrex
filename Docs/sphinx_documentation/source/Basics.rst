@@ -321,7 +321,7 @@ In this case, we can replace a section of code like
 .. highlight:: c++
 
 ::
-    void Initialize (MPI_Comm mpi_comm,
+
     int main (int argc, char* argv[])
     {
     amrex::Initialize(argc, argv);
@@ -332,6 +332,7 @@ by a section of code like
 .. highlight:: c++
 
 ::
+
     int main (int argc, char* argv[])
     {
     int argc_to_initialize = 2;
@@ -345,6 +346,7 @@ So, for example, if we had the command line as follows:
 .. highlight:: c++
 
 ::
+
     main2d*.exe inputs -tao_monitor
 
 then AMReX will parse the inputs file but will ignore the "-tao_monitor"
