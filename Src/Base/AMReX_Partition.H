@@ -42,6 +42,41 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
     v.swap(v2);
     return tot;
 }
+
+template <typename T, typename F>
+int StablePartition (Gpu::DeviceVector<T>& v, F && f)
+{
+    int n = Partition(v, std::forward<F>(f));
+    int n2 = static_cast<int>(v.size()) - n;
+    if (n2 > 1) {
+        int npairs = n2/2;
+        T* p = v.dataPtr() + n;
+        amrex::ParallelFor(npairs, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            std::swap(p[i], p[n2-1-i]);
+        });
+        Gpu::synchronize();
+    }
+    return n;
+}
+
+#else
+
+// The return value is the total number of trues.
+template <typename T, typename F>
+int Partition (Gpu::DeviceVector<T>& v, F && f)
+{
+    auto it = std::partition(v.begin(), v.end(), f);
+    return static_cast<int>(std::distance(b.begin(), it));
+}
+
+template <typename T, typename F>
+int StablePartition (Gpu::DeviceVector<T>& v, F && f)
+{
+    auto it = std::stable_partition(v.begin(), v.end(), f);
+    return static_cast<int>(std::distance(b.begin(), it));
+}
+
 #endif
 
 }
