@@ -321,22 +321,22 @@ In this case, we can replace a section of code like
 .. highlight:: c++
 
 ::
-int main (int argc, char* argv[])
-{
-amrex::Initialize(argc, argv);
-.....
+    void Initialize (MPI_Comm mpi_comm,
+    int main (int argc, char* argv[])
+    {
+    amrex::Initialize(argc, argv);
+    .....
 
 by a section of code like
 
 .. highlight:: c++
 
 ::
-
-int main (int argc, char* argv[])
-{
-int argc_to_initialize = 2;
-amrex::Initialize(argc_to_initialize, argv);
-.....
+    int main (int argc, char* argv[])
+    {
+    int argc_to_initialize = 2;
+    amrex::Initialize(argc_to_initialize, argv);
+    .....
 
 which tells the AMReX code to only read the first two arguments 
 (the first one being the name of the executable). 
@@ -345,7 +345,7 @@ So, for example, if we had the command line as follows:
 .. highlight:: c++
 
 ::
-main2d*.exe inputs -tao_monitor
+    main2d*.exe inputs -tao_monitor
 
 then AMReX will parse the inputs file but will ignore the "-tao_monitor"
 
