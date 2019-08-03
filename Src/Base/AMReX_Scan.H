@@ -108,6 +108,7 @@ struct BlockStatus<T, false>
             r = read();
             __threadfence();
         } while (r.status == 'x');
+        return r;
     }
 };
 
