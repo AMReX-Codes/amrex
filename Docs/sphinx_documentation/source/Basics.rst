@@ -309,6 +309,46 @@ inserted by the compiler) do not function properly after
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.
 
+Sharing the Command Line
+------------------------
+
+In some cases we want AMReX to only read part of the command line -- this happens, for example, when we
+are going to use AMReX in cooperation with another code package and that code also takes command-line 
+arguments.
+
+In this case, we can replace a section of code like
+
+.. highlight:: c++
+
+::
+int main (int argc, char* argv[])
+{
+amrex::Initialize(argc, argv);
+.....
+
+by a section of code like
+
+.. highlight:: c++
+
+::
+
+int main (int argc, char* argv[])
+{
+int argc_to_initialize = 2;
+amrex::Initialize(argc_to_initialize, argv);
+.....
+
+which tells the AMReX code to only read the first two arguments 
+(the first one being the name of the executable). 
+So, for example, if we had the command line as follows:
+
+.. highlight:: c++
+
+::
+main2d*.exe inputs -tao_monitor
+
+then AMReX will parse the inputs file but will ignore the "-tao_monitor"
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
