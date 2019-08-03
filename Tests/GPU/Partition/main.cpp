@@ -140,11 +140,17 @@ void TestPartition ()
         });
     }
 
-    Gpu::DeviceVector<int> x2(size);
-    Gpu::dtod_memcpy(x2.dataPtr(), x.dataPtr(), sizeof(int)*size);
+    Vector<int> x_host(size);
+    Gpu::dtoh_memcpy(x_host.dataPtr(), x.dataPtr(), sizeof(int)*size);
 
-    Gpu::DeviceVector<int> x3(size);
-    Gpu::dtod_memcpy(x3.dataPtr(), x.dataPtr(), sizeof(int)*size);
+    Gpu::DeviceVector<int> x_amrex(size);
+    Gpu::dtod_memcpy(x_amrex.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
+    Gpu::DeviceVector<int> x_amrex_stable(size);
+    Gpu::dtod_memcpy(x_amrex_stable.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
+    Gpu::DeviceVector<int> x_thrust(size);
+    Gpu::dtod_memcpy(x_thrust.dataPtr(), x.dataPtr(), sizeof(int)*size);
 
     Vector<int> hx(size);
     Gpu::dtoh_memcpy(hx.dataPtr(), x.dataPtr(), sizeof(int)*size);
@@ -153,31 +159,39 @@ void TestPartition ()
 
     {
         BL_PROFILE("CurrentPartition");
-        CurrentPartition(x, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
+        CurrentPartition(x, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
         Gpu::synchronize();
     }
 
     int neven2;
     {
         BL_PROFILE("amrex::Partition");
-        neven2 = amrex::Partition(x2, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
+        neven2 = amrex::Partition(x_amrex, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
+        Gpu::synchronize();
+    }
+
+    {
+        BL_PROFILE("amrex::StablePartition");
+        amrex::StablePartition(x_amrex_stable, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
         Gpu::synchronize();
     }
 
     {
         BL_PROFILE("thrust::Partition");
-        ThrustPartition(x3, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
+        ThrustPartition(x_thrust, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
         Gpu::synchronize();
     }
 
     {
         // verification
         Vector<int> h(size);
-        Vector<int> h2(size);
-        Vector<int> h3(size);
+        Vector<int> h_amrex(size);
+        Vector<int> h_amrex_stable(size);
+        Vector<int> h_thrust(size);
         Gpu::dtoh_memcpy(h.dataPtr(), x.dataPtr(), sizeof(int)*size);
-        Gpu::dtoh_memcpy(h2.dataPtr(), x2.dataPtr(), sizeof(int)*size);
-        Gpu::dtoh_memcpy(h3.dataPtr(), x3.dataPtr(), sizeof(int)*size);
+        Gpu::dtoh_memcpy(h_amrex.dataPtr(), x_amrex.dataPtr(), sizeof(int)*size);
+        Gpu::dtoh_memcpy(h_amrex_stable.dataPtr(), x_amrex_stable.dataPtr(), sizeof(int)*size);
+        Gpu::dtoh_memcpy(h_thrust.dataPtr(), x_thrust.dataPtr(), sizeof(int)*size);
 
         bool prev = (h[0] % 2 == 0);
         int numevens = prev;
@@ -196,10 +210,10 @@ void TestPartition ()
             amrex::Abort("CurrentPartition or amrex::Partition failed");
         }
 
-        prev = (h2[0] % 2 == 0);
+        prev = (h_amrex[0] % 2 == 0);
         numevens = prev;
         for (int i = 1; i < size; ++i) {
-            bool current = (h2[i] % 2 == 0);
+            bool current = (h_amrex[i] % 2 == 0);
             numevens += current;
             if (current != prev && current == true) {
                 amrex::Abort("amrex::Partition failed");
@@ -211,18 +225,27 @@ void TestPartition ()
             amrex::Abort("amrex::Partition failed");
         }
 
+        Vector<int> x_host_stable = x_host;
+        std::stable_partition(x_host_stable.begin(), x_host_stable.end(),
+                              [] (int i) -> int { return i % 2 == 0; });
+        for (int i = 0; i < size; ++i) {
+            if (x_host_stable[i] != h_amrex_stable[i]) {
+                amrex::Abort("amrex::StablePartition failed");
+            }
+        }
+
 #if 0
         amrex::Print() << "--------------------------\n";
         for (int i = 0; i < size; ++i) {
-            amrex::Print() << "xxxxx " << hx[i] << ", " << h[i] << ", " << h2[i] << ", " << h3[i] << "\n";
+            amrex::Print() << "xxxxx " << hx[i] << ", " << h[i] << ", " << h_amrex[i] << ", " << h_thrust[i] << "\n";
         }
         amrex::Print() << "--------------------------\n";
 #endif
 
 #if 0
-        prev = (h3[0] % 2 == 0);
+        prev = (h_thrust[0] % 2 == 0);
         for (int i = 1; i < size; ++i) {
-            bool current = (h3[i] % 2 == 0);
+            bool current = (h_thrust[i] % 2 == 0);
             if (current != prev && current == true) {
                 amrex::Abort("thrust::Partition failed");
             }
