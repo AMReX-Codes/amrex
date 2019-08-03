@@ -42,7 +42,9 @@ void doGatherShapeN(const amrex::Real * const xp,
 #endif
 
     const amrex::Real xmin = xyzmin[0];
+#if (AMREX_SPACEDIM == 3)
     const amrex::Real ymin = xyzmin[1];
+#endif
     const amrex::Real zmin = xyzmin[2];
 
     // Loop over particles and gather fields from
@@ -53,7 +55,11 @@ void doGatherShapeN(const amrex::Real * const xp,
             // --- Compute shape factors
             // x direction
             // Get particle position
+#ifdef WARPX_DIM_RZ
+            const amrex::Real x = (std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]) - xmin)*dxi;
+#else
             const amrex::Real x = (xp[ip]-xmin)*dxi;
+#endif
             // Compute shape factors for node-centered quantities
             amrex::Real AMREX_RESTRICT sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that particle touches
@@ -126,6 +132,18 @@ void doGatherShapeN(const amrex::Real * const xp,
                         by_arr(lo.x+j0+ix, lo.y+l0+iz, 0);
                 }
             }
+
+#ifdef WARPX_DIM_RZ
+            // Convert Exp and Eyp (which are actually Erp and Ethetap) to Ex and Ey
+            const amrex::Real theta = std::atan2(yp[ip], xp[ip]);
+            const amrex::Real Exp_save = Exp[ip];
+            Exp[ip] = std::cos(theta)*Exp[ip] - std::sin(theta)*Eyp[ip];
+            Eyp[ip] = std::cos(theta)*Eyp[ip] + std::sin(theta)*Exp_save;
+            const amrex::Real Bxp_save = Bxp[ip];
+            Bxp[ip] = std::cos(theta)*Bxp[ip] - std::sin(theta)*Byp[ip];
+            Byp[ip] = std::cos(theta)*Byp[ip] + std::sin(theta)*Bxp_save;
+#endif
+
 #else // (AMREX_SPACEDIM == 3)
             // Gather field on particle Exp[i] from field on grid ex_arr
             for (int iz=0; iz<=depos_order; iz++){
