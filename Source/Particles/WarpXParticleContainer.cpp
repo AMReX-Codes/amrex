@@ -394,14 +394,6 @@ WarpXParticleContainer::DepositCurrentFortran(WarpXParIter& pti,
         &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
         &lvect,&WarpX::current_deposition_algo);
 
-#ifdef WARPX_RZ
-    // Rescale current in r-z mode
-    warpx_current_deposition_rz_volume_scaling(
-        jx_ptr, &ngJ, jxntot.getVect(),
-        jy_ptr, &ngJ, jyntot.getVect(),
-        jz_ptr, &ngJ, jzntot.getVect(),
-        &xyzmin[0], &dx[0]);
-#endif
     BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 #ifndef AMREX_USE_GPU

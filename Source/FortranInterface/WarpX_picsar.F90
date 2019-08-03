@@ -10,7 +10,6 @@
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2drz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jrjtjz_generic_rz
 #define WRPX_PXR_RZ_VOLUME_SCALING_RHO    apply_rz_volume_scaling_rho
-#define WRPX_PXR_RZ_VOLUME_SCALING_J      apply_rz_volume_scaling_j
 
 #else
 
@@ -354,54 +353,5 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 #endif
 
   end subroutine warpx_current_deposition
-
-  ! _________________________________________________________________
-  !>
-  !> @brief
-  !> Applies the inverse volume scaling for RZ current deposition
-  !>
-  !> @details
-  !> The scaling is done for single mode only
-  !
-  !> @param[inout] jx,jy,jz current arrays
-  !> @param[in] jx_ntot,jy_ntot,jz_ntot vectors with total number of
-  !>            cells (including guard cells) along each axis for each current
-  !> @param[in] jx_ng,jy_ng,jz_ng vectors with number of guard cells along each
-  !>            axis for each current
-  !> @param[in] rmin tile grid minimum radius
-  !> @param[in] dr radial space discretization steps
-  !>
-  subroutine warpx_current_deposition_rz_volume_scaling( &
-    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot, &
-    rmin,dr) &
-    bind(C, name="warpx_current_deposition_rz_volume_scaling")
-
-    integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
-    integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
-    real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
-    real(amrex_real), intent(IN) :: rmin, dr
-
-#ifdef WARPX_RZ
-    integer(c_long) :: type_rz_depose = 1
-#endif
-    ! Compute the number of valid cells and guard cells
-    integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
-                       jx_nguards(AMREX_SPACEDIM), jy_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)
-    jx_nvalid = jx_ntot - 2*jx_ng
-    jy_nvalid = jy_ntot - 2*jy_ng
-    jz_nvalid = jz_ntot - 2*jz_ng
-    jx_nguards = jx_ng
-    jy_nguards = jy_ng
-    jz_nguards = jz_ng
-
-#ifdef WARPX_RZ
-    CALL WRPX_PXR_RZ_VOLUME_SCALING_J(   &
-                 jx,jx_nguards,jx_nvalid, &
-                 jy,jy_nguards,jy_nvalid, &
-                 jz,jz_nguards,jz_nvalid, &
-                 rmin,dr,type_rz_depose)
-#endif
-
-  end subroutine warpx_current_deposition_rz_volume_scaling
 
 end module warpx_to_pxr_module
