@@ -1647,6 +1647,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const int ll4symtry          = false;
             long lvect_fieldgathe = 64;
 
+#ifdef WARPX_RZ
             warpx_geteb_energy_conserving(
                 &np,
                 m_xp[thread_num].dataPtr(),
@@ -1666,6 +1667,12 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
+                int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+                FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                            &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
+                            Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+#endif
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
