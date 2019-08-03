@@ -3,6 +3,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_CudaContainers.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Partition.H>
 
 #include <thrust/tuple.h>
 #include <thrust/gather.h>
@@ -27,14 +28,16 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     TestPartition();
+    {
+        BL_PROFILE_REGION("TEST");
+        TestPartition();
+    }
     amrex::Finalize();
 }
 
 template <typename T, typename F>
 int ThrustPartition (Gpu::DeviceVector<T>& x, F f)
 {
-    BL_PROFILE("ThrustPartition");
-
     std::size_t N = x.size();
     Gpu::DeviceVector<int> index(N);
     Gpu::DeviceVector<int> output(N);
@@ -52,10 +55,8 @@ int ThrustPartition (Gpu::DeviceVector<T>& x, F f)
 }
 
 template <typename T, typename F>
-int Partition (Gpu::DeviceVector<T>& x, F f)
+int CurrentPartition (Gpu::DeviceVector<T>& x, F f)
 {
-    BL_PROFILE("Partition");
-    
     std::size_t N = x.size();
     Gpu::DeviceVector<int> lo(N);
     Gpu::DeviceVector<int> hi(N);
@@ -130,7 +131,7 @@ void TestPartition ()
 
     Gpu::DeviceVector<int> x(size);
     {
-        BL_PROFILE_REGION("Generate");
+        BL_PROFILE("Generate");
 
         auto x_ptr = x.dataPtr();
         AMREX_PARALLEL_FOR_1D (size, idx,
@@ -138,15 +139,118 @@ void TestPartition ()
             x_ptr[idx] = std::ceil(amrex::Random() * (upper - lower + 1)) + lower - 1;
         });
     }
-    Gpu::Device::synchronize();
 
-    Partition(x, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
+    Vector<int> x_host(size);
+    Gpu::dtoh_memcpy(x_host.dataPtr(), x.dataPtr(), sizeof(int)*size);
 
-    //    ThrustPartition(x, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
-    
-    // for (int i = 0; i < size; i++ )
-    // {
-    //     amrex::Print() << x[i] << " ";
-    // }
-    // amrex::Print() << "\n";
+    Gpu::DeviceVector<int> x_amrex(size);
+    Gpu::dtod_memcpy(x_amrex.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
+    Gpu::DeviceVector<int> x_amrex_stable(size);
+    Gpu::dtod_memcpy(x_amrex_stable.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
+    Gpu::DeviceVector<int> x_thrust(size);
+    Gpu::dtod_memcpy(x_thrust.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
+    Vector<int> hx(size);
+    Gpu::dtoh_memcpy(hx.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
+    Gpu::synchronize();
+
+    {
+        BL_PROFILE("CurrentPartition");
+        CurrentPartition(x, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
+        Gpu::synchronize();
+    }
+
+    int neven2;
+    {
+        BL_PROFILE("amrex::Partition");
+        neven2 = amrex::Partition(x_amrex, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
+        Gpu::synchronize();
+    }
+
+    {
+        BL_PROFILE("amrex::StablePartition");
+        amrex::StablePartition(x_amrex_stable, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
+        Gpu::synchronize();
+    }
+
+    {
+        BL_PROFILE("thrust::Partition");
+        ThrustPartition(x_thrust, [=] AMREX_GPU_DEVICE (int i) -> int {return i % 2 == 0;});
+        Gpu::synchronize();
+    }
+
+    {
+        // verification
+        Vector<int> h(size);
+        Vector<int> h_amrex(size);
+        Vector<int> h_amrex_stable(size);
+        Vector<int> h_thrust(size);
+        Gpu::dtoh_memcpy(h.dataPtr(), x.dataPtr(), sizeof(int)*size);
+        Gpu::dtoh_memcpy(h_amrex.dataPtr(), x_amrex.dataPtr(), sizeof(int)*size);
+        Gpu::dtoh_memcpy(h_amrex_stable.dataPtr(), x_amrex_stable.dataPtr(), sizeof(int)*size);
+        Gpu::dtoh_memcpy(h_thrust.dataPtr(), x_thrust.dataPtr(), sizeof(int)*size);
+
+        bool prev = (h[0] % 2 == 0);
+        int numevens = prev;
+        for (int i = 1; i < size; ++i) {
+            bool current = (h[i] % 2 == 0);
+            numevens += current;
+            if (current != prev && current == true) {
+                amrex::Abort("CurrentPartition failed");
+            }
+            prev = current;
+        }
+
+        if (numevens != neven2) {
+            amrex::Print() << "CurrentPartition: # of evens = " << numevens << "\n"
+                           << "amrex::Partition: # of evens = " << neven2 << "\n";
+            amrex::Abort("CurrentPartition or amrex::Partition failed");
+        }
+
+        prev = (h_amrex[0] % 2 == 0);
+        numevens = prev;
+        for (int i = 1; i < size; ++i) {
+            bool current = (h_amrex[i] % 2 == 0);
+            numevens += current;
+            if (current != prev && current == true) {
+                amrex::Abort("amrex::Partition failed");
+            }
+            prev = current;
+        }
+
+        if (numevens != neven2) {
+            amrex::Abort("amrex::Partition failed");
+        }
+
+        Vector<int> x_host_stable = x_host;
+        std::stable_partition(x_host_stable.begin(), x_host_stable.end(),
+                              [] (int i) -> int { return i % 2 == 0; });
+        for (int i = 0; i < size; ++i) {
+            if (x_host_stable[i] != h_amrex_stable[i]) {
+                amrex::Abort("amrex::StablePartition failed");
+            }
+        }
+
+#if 0
+        amrex::Print() << "--------------------------\n";
+        for (int i = 0; i < size; ++i) {
+            amrex::Print() << "xxxxx " << hx[i] << ", " << h[i] << ", " << h_amrex[i] << ", " << h_thrust[i] << "\n";
+        }
+        amrex::Print() << "--------------------------\n";
+#endif
+
+#if 0
+        prev = (h_thrust[0] % 2 == 0);
+        for (int i = 1; i < size; ++i) {
+            bool current = (h_thrust[i] % 2 == 0);
+            if (current != prev && current == true) {
+                amrex::Abort("thrust::Partition failed");
+            }
+            prev = current;
+        }
+#endif
+    }
 }
