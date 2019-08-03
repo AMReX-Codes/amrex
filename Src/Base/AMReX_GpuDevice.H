@@ -190,6 +190,14 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 }
 
 inline void
+dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpy(p_h, p_d, sz, hipMemcpyDeviceToDevice));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToDevice)); )
+}
+
+inline void
 htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
     AMREX_HIP_OR_CUDA(
@@ -203,6 +211,14 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpuStream()));,
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpuStream())); )
+}
+
+inline void
+dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToDevice, gpuStream()));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToDevice, gpuStream())); )
 }
 
 #ifdef AMREX_USE_GPU
