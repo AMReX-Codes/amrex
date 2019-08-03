@@ -146,6 +146,9 @@ void TestPartition ()
     Gpu::DeviceVector<int> x3(size);
     Gpu::dtod_memcpy(x3.dataPtr(), x.dataPtr(), sizeof(int)*size);
 
+    Vector<int> hx(size);
+    Gpu::dtoh_memcpy(hx.dataPtr(), x.dataPtr(), sizeof(int)*size);
+
     Gpu::synchronize();
 
     {
@@ -154,9 +157,10 @@ void TestPartition ()
         Gpu::synchronize();
     }
 
+    int neven2;
     {
         BL_PROFILE("amrex::Partition");
-        amrex::Partition(x2, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
+        neven2 = amrex::Partition(x2, [=] AMREX_GPU_DEVICE (int i) {return i % 2 == 0;});
         Gpu::synchronize();
     }
 
@@ -176,22 +180,44 @@ void TestPartition ()
         Gpu::dtoh_memcpy(h3.dataPtr(), x3.dataPtr(), sizeof(int)*size);
 
         bool prev = (h[0] % 2 == 0);
+        int numevens = prev;
         for (int i = 1; i < size; ++i) {
             bool current = (h[i] % 2 == 0);
+            numevens += current;
             if (current != prev && current == true) {
                 amrex::Abort("CurrentPartition failed");
             }
             prev = current;
         }
 
+        if (numevens != neven2) {
+            amrex::Print() << "CurrentPartition: # of evens = " << numevens << "\n"
+                           << "amrex::Partition: # of evens = " << neven2 << "\n";
+            amrex::Abort("CurrentPartition or amrex::Partition failed");
+        }
+
         prev = (h2[0] % 2 == 0);
+        numevens = prev;
         for (int i = 1; i < size; ++i) {
             bool current = (h2[i] % 2 == 0);
+            numevens += current;
             if (current != prev && current == true) {
                 amrex::Abort("amrex::Partition failed");
             }
             prev = current;
         }
+
+        if (numevens != neven2) {
+            amrex::Abort("amrex::Partition failed");
+        }
+
+#if 0
+        amrex::Print() << "--------------------------\n";
+        for (int i = 0; i < size; ++i) {
+            amrex::Print() << "xxxxx " << hx[i] << ", " << h[i] << ", " << h2[i] << ", " << h3[i] << "\n";
+        }
+        amrex::Print() << "--------------------------\n";
+#endif
 
 #if 0
         prev = (h3[0] % 2 == 0);
