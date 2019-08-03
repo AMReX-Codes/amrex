@@ -1641,13 +1641,13 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
+#ifdef WARPX_RZ
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
             const int* ixyzmin_grid = box.loVect();
 
             const int ll4symtry          = false;
             long lvect_fieldgathe = 64;
 
-#ifdef WARPX_RZ
             warpx_geteb_energy_conserving(
                 &np,
                 m_xp[thread_num].dataPtr(),
