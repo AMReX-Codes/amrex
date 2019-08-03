@@ -190,13 +190,19 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE double Random (); // [0,1)
 
     /**
-    * \brief Generate a psuedo-random int using C++11's mt19937.
-    *
-    *  Generates one pseudorandom unsigned long integer which is
+    * \brief Generates one pseudorandom unsigned long integer which is
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
+    * The CPU version of this function uses C++11's mt19937.
+    * The GPU version uses CURAND's XORWOW generator.
     */
-    unsigned long Random_int(unsigned long n); // [0,n-1]
+#ifdef __CUDA_ARCH__    
+    AMREX_GPU_DEVICE
+    unsigned int Random_int(unsigned int n); // [0,n-1]
+#else
+    AMREX_GPU_HOST
+    unsigned long Random_int(unsigned long n); // [0,n-1]    
+#endif
 
     /** \brief Set the seed of the random number generator.
     *
