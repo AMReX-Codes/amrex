@@ -115,8 +115,8 @@ struct BlockStatus<T, false>
 
 enum class Type { inclusive, exclusive };
 
-template <typename T>
-void Sum (int n, T const* in, T * out, Type type)
+template <typename T, typename FIN, typename FOUT>
+void PrefixSum (int n, FIN && fin, FOUT && fout, Type type)
 {
     if (n <= 0) return;
     constexpr int nwarps_per_block = 4;
@@ -194,7 +194,7 @@ void Sum (int n, T const* in, T * out, Type type)
             if (offset >= iend) break;
 
             offset += threadIdx.x;
-            T x0 = (offset < iend) ? in[offset] : 0; 
+            T x0 = (offset < iend) ? fin(offset) : 0;
             T x = x0;
             // Scan within a warp
             for (int i = 1; i <= Gpu::Device::warp_size; i *= 2) {
@@ -248,7 +248,7 @@ void Sum (int n, T const* in, T * out, Type type)
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
                 int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
                 if (offset >= iend) break;
-                out[offset] = tmp_out[ichunk];
+                fout(offset, tmp_out[ichunk]);
             }
         } else if (virtual_block_id > 0) {
 
@@ -303,7 +303,7 @@ void Sum (int n, T const* in, T * out, Type type)
 
             for (int ichunk = 0; ichunk < nchunks; ++ichunk) {
                 int offset = ibegin + ichunk*blockDim.x + threadIdx.x;
-                if (offset < iend) out[offset] = tmp_out[ichunk] + exclusive_prefix;
+                if (offset < iend) fout(offset, tmp_out[ichunk] + exclusive_prefix);
             }
         }
     });
@@ -318,14 +318,20 @@ template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<
 void InclusiveSum (N n, T const* in, T * out)
 {
     AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
-    detail::Sum(n, in, out, detail::Type::inclusive);
+    PrefixSum<T>(n,
+                 [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
+                 [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
+                 Type::inclusive);
 }
 
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 void ExclusiveSum (N n, T const* in, T * out)
 {
     AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
-    detail::Sum(n, in, out, detail::Type::exclusive);
+    PrefixSum<T>(n,
+                 [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
+                 [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
+                 Type::exclusive);
 }
 
 #endif

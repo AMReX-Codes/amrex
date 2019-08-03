@@ -2,6 +2,7 @@
 #define AMREX_PARTITION_H_
 
 #include <AMReX_Gpu.H>
+#include <AMReX_Scan.H>
 
 namespace amrex {
 
