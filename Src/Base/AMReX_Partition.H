@@ -7,7 +7,7 @@ namespace amrex {
 
 #ifdef AMREX_USE_GPU
 template <typename T, typename F>
-int Parition (Gpu::DeviceDevice<T> x, F && f)
+int Partition (Gpu::DeviceVector<T> x, F && f)
 {
     return 0;
 }
