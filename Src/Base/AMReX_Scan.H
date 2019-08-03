@@ -9,6 +9,8 @@
 namespace amrex {
 namespace Scan {
 
+#ifdef AMREX_USE_GPU
+
 namespace detail {
 
 template <typename T>
@@ -109,6 +111,8 @@ struct BlockStatus<T, false>
     }
 };
 
+}
+
 enum class Type { inclusive, exclusive };
 
 template <typename T>
@@ -123,8 +127,8 @@ void Sum (int n, T const* in, T * out, Type type)
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
 
-    typedef typename std::conditional<sizeof(STVA<T>) <= 8,
-        BlockStatus<T,true>, BlockStatus<T,false> >::type BlockStatusT;
+    typedef typename std::conditional<sizeof(detail::STVA<T>) <= 8,
+        detail::BlockStatus<T,true>, detail::BlockStatus<T,false> >::type BlockStatusT;
 
     // temporary memory
 #if 0
@@ -254,7 +258,7 @@ void Sum (int n, T const* in, T * out, Type type)
                 for (int iblock0 = virtual_block_id-1; iblock0 >= 0; iblock0 -= Gpu::Device::warp_size)
                 {
                     int iblock = iblock0-lane;
-                    STVA<T> stva{'p', 0};
+                    detail::STVA<T> stva{'p', 0};
                     if (iblock >= 0) {
                         stva = pbs[iblock].wait();
                     }
@@ -310,8 +314,6 @@ void Sum (int n, T const* in, T * out, Type type)
     AMREX_GPU_ERROR_CHECK();
 }
 
-}
-
 template <typename N, typename T, typename M=amrex::EnableIf_t<std::is_integral<N>::value> >
 void InclusiveSum (N n, T const* in, T * out)
 {
@@ -325,6 +327,8 @@ void ExclusiveSum (N n, T const* in, T * out)
     AMREX_ALWAYS_ASSERT(static_cast<long>(n) < static_cast<long>(std::numeric_limits<int>::max()));
     detail::Sum(n, in, out, detail::Type::exclusive);
 }
+
+#endif
 
 }}
 

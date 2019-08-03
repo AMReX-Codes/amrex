@@ -35,6 +35,7 @@ target_sources( amrex
    AMReX_Utility.cpp
    AMReX_Reduce.H
    AMReX_Scan.H
+   AMReX_Partition.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
