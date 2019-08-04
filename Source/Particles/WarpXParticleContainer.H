@@ -272,7 +272,10 @@ public:
 
     int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }    
 
-    virtual void setIonizationProduct(int i_product) {};
+    virtual void setIonizationProduct (int i_product) {};
+
+    virtual int doFieldIonization (
+        const int lev) { return 0; };
 
 protected:
 

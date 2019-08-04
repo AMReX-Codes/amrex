@@ -215,7 +215,7 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
         auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-            particle_tile.push_back_real(particle_comps["xold"], x);
+             particle_tile.push_back_real(particle_comps["xold"], x);
             particle_tile.push_back_real(particle_comps["yold"], y);
             particle_tile.push_back_real(particle_comps["zold"], z);
                 
@@ -591,7 +591,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             }
 
             if (do_field_ionization) {
-                pi[ip] = 2.; // species_ionization_level;
+                pi[ip] = species_ionization_level;
             }
 
             u.x *= PhysConst::c;
@@ -2105,4 +2105,21 @@ void PhysicalParticleContainer::InitIonizationModule()
     adk_power.resize(ion_atomic_number);
     adk_prefactor.resize(ion_atomic_number);
     adk_exp_prefactor.resize(ion_atomic_number);
+    for (int i=0; i<ion_atomic_number; ++i){
+        Real n_eff = (i+1) * std::sqrt(UH/ionization_energies[i]);
+        Real C2 = std::pow(2,2*n_eff)/(n_eff*tgamma(n_eff+l_eff+1)*tgamma(n_eff-l_eff));
+        adk_power[i] = -(2*n_eff - 1);
+        Real dt = 1.;
+        Real Uion = ionization_energies[i];
+        adk_prefactor[i] = dt * wa * C2 * ( Uion/(2*UH) ) 
+            * std::pow(std::pow(2*(Uion/UH),3./2)*Ea,2*n_eff - 1);
+        adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
+    }
+}
+
+int
+PhysicalParticleContainer::doFieldIonization(const int lev)
+{
+    Print()<<"in PhysicalParticleContainer::doFieldIonization\n";
+    return 0;
 }

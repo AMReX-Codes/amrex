@@ -108,6 +108,8 @@ public:
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
+
+    virtual int doFieldIonization (const int lev) override;
     
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);

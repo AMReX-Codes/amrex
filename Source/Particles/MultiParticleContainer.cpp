@@ -3,6 +3,9 @@
 #include <string>
 #include <math.h>
 
+#include <AMReX_Particles.H>  
+#include <AMReX_AmrCore.H>
+#include <AMReX_Gpu.H>
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
@@ -508,7 +511,155 @@ MultiParticleContainer::getSpeciesID(std::string product_str)
     return i_product;
 }
 
-
 void
 MultiParticleContainer::doFieldIonization()
-{}
+{
+    /*
+      amrex::Gpu::SharedMemory<unsigned short int> grid_ids;
+      amrex::Gpu::SharedMemory<unsigned short int> tile_ids;
+      amrex::Gpu::SharedMemory<bool> is_ionized;
+    */
+
+    for (auto& pc : allcontainers){
+        if (!pc->do_field_ionization){ continue; }
+        const Real * const AMREX_RESTRICT p_ionization_energies = pc->ionization_energies.dataPtr();
+        const Real * const AMREX_RESTRICT p_adk_prefactor = pc->adk_prefactor.dataPtr();
+        const Real * const AMREX_RESTRICT p_adk_exp_prefactor = pc->adk_exp_prefactor.dataPtr();
+        const Real * const AMREX_RESTRICT p_adk_power = pc->adk_power.dataPtr();
+        for (int lev = 0; lev <= pc->finestLevel(); ++lev){
+
+#ifdef _OPENMP
+            // First touch all tiles in the map in serial
+            for (MFIter mfi = pc->MakeMFIter(lev); mfi.isValid(); ++mfi) {
+                const int grid_id = mfi.index();
+                const int tile_id = mfi.LocalTileIndex();
+                pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
+                    pc->DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                }
+            }
+#endif
+            MFItInfo info;
+            if (pc->do_tiling && Gpu::notInLaunchRegion()) {
+                info.EnableTiling(pc->tile_size);
+            }
+#ifdef _OPENMP
+            info.SetDynamic(true);
+#pragma omp parallel
+#endif
+            for (MFIter mfi = pc->MakeMFIter(lev, info); mfi.isValid(); ++mfi)
+            {
+                const int grid_id = mfi.index();
+                const int tile_id = mfi.LocalTileIndex();
+                auto& particle_tile = pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                auto& soa = particle_tile.GetStructOfArrays();
+                const int np = particle_tile.GetArrayOfStructs().size();
+                if (np == 0) break;
+                amrex::Gpu::ManagedVector<int> is_ionized;
+                // const int np_lev = pc->NumberOfParticlesAtLevel(lev);
+                is_ionized.resize(np);
+                int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
+                const Real * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
+                const Real * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
+                const Real * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
+                const Real * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
+                const Real * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
+                const Real * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
+                const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
+                const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
+                const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
+                Real * const AMREX_RESTRICT ilev_real = soa.GetRealData(pc->particle_comps["ionization_level"]).data();
+                Real c = PhysConst::c;
+                Real c2_inv = 1./c/c;
+
+                ParallelFor( 
+                    np,
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        Real random_draw = Random();
+                        Real ga = std::sqrt(1. +
+                                            (ux[i]*ux[i] + 
+                                             uy[i]*uy[i] + 
+                                             uz[i]*uz[i]) * c2_inv);
+                        Real E = std::sqrt(
+                            - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
+                            + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
+                            + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
+                            + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
+                            );
+                        int ilev = (int) round(ilev_real[i]);
+                        // int ilev = static_cast<int>(round(ilev_real[i]));
+                        Real p;
+                        Real w_dtau;
+                        Print()<<p_ionization_energies[0]<<" IE \n";
+                        if (E<1.e-100*(p_ionization_energies[0])){
+                            p = 0.;
+                        } else {
+                            w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
+                                std::pow(E,p_adk_power[ilev]) * 
+                                std::exp( p_adk_exp_prefactor[ilev]/E );
+                            p = 1. - std::exp( - w_dtau );
+                        }
+                        p_is_ionized[i] = 0;
+                        if (random_draw < p){
+                            ilev_real[i] += 1.;
+                            p_is_ionized[i] = 1;
+                        }
+                    }
+                ); // ParallelFor
+
+                amrex::Gpu::ManagedVector<int> is_ionized_cumsum_vector;
+                is_ionized_cumsum_vector.resize(np);
+                int np_ionized = p_is_ionized[0];
+                for(int i=1; i<np; ++i){
+                    np_ionized += p_is_ionized[i];
+                    is_ionized_cumsum_vector[i] = is_ionized_cumsum_vector[i-1]+p_is_ionized[i-1];
+                }
+                if (np_ionized == 0){
+                    break;
+                }
+
+                auto& prod_pc = allcontainers[pc->ionization_product];
+                auto& prod_particle_tile = prod_pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                const int np_old = prod_particle_tile.GetArrayOfStructs().size();
+                const int np_new = np_old + np_ionized;
+                prod_particle_tile.resize(np_new);
+                auto& prod_soa = prod_particle_tile.GetStructOfArrays();
+
+                GpuArray<Real*,PIdx::nattribs> prod_pa;
+                for (int ia = 0; ia < PIdx::nattribs; ++ia) {
+                    prod_pa[ia] = prod_soa.GetRealData(ia).data() + np_old;
+                }
+                WarpXParticleContainer::ParticleType* prod_pp = prod_particle_tile.GetArrayOfStructs()().data() + np_old;
+                WarpXParticleContainer::ParticleType* pp = particle_tile.GetArrayOfStructs()().data();
+
+                GpuArray<Real*,PIdx::nattribs> pa;
+                for (int ia = 0; ia < PIdx::nattribs; ++ia) {
+                    pa[ia] = soa.GetRealData(ia).data();
+                }
+
+                const int cpuid = ParallelDescriptor::MyProc();
+                int* AMREX_RESTRICT is_ionized_cumsum = is_ionized_cumsum_vector.dataPtr();
+                amrex::For(
+                    np, [=] AMREX_GPU_DEVICE (int ip) noexcept
+                    {
+                        if(is_ionized[ip]){
+                            int i = is_ionized_cumsum[ip];
+                            WarpXParticleContainer::ParticleType& prod_p = prod_pp[i];
+                            WarpXParticleContainer::ParticleType& p = pp[ip];
+                            prod_p.id() = 9999;
+                            prod_p.cpu() = cpuid;
+                            prod_p.pos(0) = p.pos(0);
+                            prod_p.pos(1) = p.pos(1);
+#if (AMREX_SPACEDIM == 3)
+                            prod_p.pos(20 = p.pos(2);
+#endif
+                            for (int ia = 0; ia < PIdx::nattribs; ++ia) {
+                                prod_pa[ia][i] = pa[ia][ip];
+                            }
+                        }
+                    }
+                );
+            } // MFIter
+        }
+    }
+}
