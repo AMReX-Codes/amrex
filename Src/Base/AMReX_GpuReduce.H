@@ -124,7 +124,9 @@ template <typename T>
 AMREX_FORCE_INLINE
 void ReduceSum (T * dest, T source) noexcept
 {
+#ifdef _OPENMP
 #pragma omp atomic
+#endif
     *dest += source;
 }
 
@@ -132,7 +134,9 @@ template <typename T>
 AMREX_FORCE_INLINE
 void ReduceMin (T * dest, T source) noexcept
 {
+#ifdef _OPENMP
 #pragma omp critical (gpureduce_reducemin)
+#endif
     *dest = std::min(*dest, source);
 }
 
@@ -140,7 +144,9 @@ template <typename T>
 AMREX_FORCE_INLINE
 void ReduceMax (T * dest, T source) noexcept
 {
+#ifdef _OPENMP
 #pragma omp critical (gpureduce_reducemax)
+#endif
     *dest = std::max(*dest, source);
 }
 
