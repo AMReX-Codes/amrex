@@ -37,6 +37,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     // for this species.
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
+    pp.query("do_field_ionization", do_field_ionization);
+    if (do_field_ionization){
+        AddRealComp("ionization_level");
+        plot_flags.resize(PIdx::nattribs + 1, 1);
+    }
+
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
@@ -73,6 +79,10 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
     : WarpXParticleContainer(amr_core, 0)
 {
     plasma_injector.reset(new PlasmaInjector());
+    if (do_field_ionization){
+        Print()<<"AddRealComp\n";
+        AddRealComp("ionization_level");
+    }
 }
 
 void PhysicalParticleContainer::InitData()
@@ -196,17 +206,20 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
     attribs[PIdx::uz] = u[2];
     attribs[PIdx::w ] = weight;
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) )
     {
         // need to create old values
         auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-        particle_tile.push_back_real(particle_comps["xold"], x);
-        particle_tile.push_back_real(particle_comps["yold"], y);
-        particle_tile.push_back_real(particle_comps["zold"], z);
+        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        {
+            particle_tile.push_back_real(particle_comps["xold"], x);
+            particle_tile.push_back_real(particle_comps["yold"], y);
+            particle_tile.push_back_real(particle_comps["zold"], z);
                 
-        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
-        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
-        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+            particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+            particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+            particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+        }
     }
     // add particle
     AddOneParticle(0, 0, 0, x, y, z, attribs);
@@ -289,7 +302,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
         GetParticles(lev)[std::make_pair(grid_id, tile_id)];
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags) {
+        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ) {
             DefineAndReturnParticleTile(lev, grid_id, tile_id);
         }
     }
@@ -416,10 +429,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         bool do_boosted = false;
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags) {
-            do_boosted = true;
+        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ) {
             DefineAndReturnParticleTile(lev, grid_id, tile_id);
         }
+        do_boosted = WarpX::do_boosted_frame_diagnostic 
+            && do_boosted_frame_diags;
+
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + max_new_particles;
         particle_tile.resize(new_size);
@@ -439,7 +454,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pb[4] = soa.GetRealData(particle_comps["uyold"]).data() + old_size;
             pb[5] = soa.GetRealData(particle_comps["uzold"]).data() + old_size;
         }
-
+        Real* pi;
+        if (do_field_ionization) {
+            pi = soa.GetRealData(particle_comps[ "ionization_level"]).data() + old_size;
+        }
+        
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
             {AMREX_D_DECL(overlap_realbox.lo(0),
                           overlap_realbox.lo(1),
@@ -566,6 +585,10 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 // => Perform Lorentz transform
                 dens = gamma_boost * dens * ( 1.0 - beta_boost*betaz_lab );
                 u.z = gamma_boost * ( u.z -beta_boost*gamma_lab );
+            }
+
+            if (do_field_ionization) {
+                pi[ip] = 2.; // species_ionization_level;
             }
 
             u.x *= PhysConst::c;
@@ -1351,13 +1374,20 @@ PhysicalParticleContainer::Evolve (int lev,
                                               lev, lev-1, dt);
                     }
                 } else {
+                    Real* AMREX_RESTRICT ion_lev;
+                    if (do_field_ionization){
+                        ion_lev = pti.GetAttribs(particle_comps["ionization_level"]).dataPtr();
+                    } else {
+                        ion_lev = nullptr;
+                    }
+                    
                     // Deposit inside domains
-                    DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                    DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                                    0, np_current, thread_num,
                                    lev, lev, dt);
                     if (has_buffer){
                         // Deposit in buffers
-                        DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                        DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
                                        np_current, np-np_current, thread_num,
                                        lev, lev-1, dt);
                     }

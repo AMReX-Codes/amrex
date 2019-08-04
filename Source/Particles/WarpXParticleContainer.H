@@ -180,6 +180,7 @@ public:
                                 RealVector& uxp,
                                 RealVector& uyp,
                                 RealVector& uzp,
+                                amrex::Real* ion_lev,
                                 amrex::MultiFab* jx,
                                 amrex::MultiFab* jy,
                                 amrex::MultiFab* jz,
@@ -289,6 +290,7 @@ protected:
     // This is currently required because continuous injection does not 
     // support all features allowed by direct injection.
     int do_continuous_injection = 0;
+    int do_field_ionization = 0;
 
     int do_boosted_frame_diags = 1;
 
