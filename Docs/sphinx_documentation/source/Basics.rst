@@ -316,40 +316,14 @@ In some cases we want AMReX to only read part of the command line -- this happen
 are going to use AMReX in cooperation with another code package and that code also takes command-line 
 arguments.
 
-In this case, we can replace a section of code like
-
-.. highlight:: c++
+.. highlight:: console
 
 ::
 
-    int main (int argc, char* argv[])
-    {
-    amrex::Initialize(argc, argv);
-    .....
+    main2d*.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
 
-by a section of code like
-
-.. highlight:: c++
-
-::
-
-    int main (int argc, char* argv[])
-    {
-    int argc_to_initialize = 2;
-    amrex::Initialize(argc_to_initialize, argv);
-    .....
-
-which tells the AMReX code to only read the first two arguments 
-(the first one being the name of the executable). 
-So, for example, if we had the command line as follows:
-
-.. highlight:: c++
-
-::
-
-    main2d*.exe inputs -tao_monitor
-
-then AMReX will parse the inputs file but will ignore the "-tao_monitor"
+then AMReX will parse the inputs file and the optional AMReX's command
+line arguments, but will ignore everything after "--".
 
 .. _sec:basics:amrgrids:
 
