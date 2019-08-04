@@ -2079,7 +2079,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 void PhysicalParticleContainer::InitIonizationModule()
 {
     ParmParse pp(species_name);
-    pp.query("species_ionization_level", species_ionization_level);
+    pp.query("ionization_level", species_ionization_level);
     pp.get("ionization_product", ionization_product_name);
     pp.get("physical_element", physical_element);
     // Add Real component for ionization level

@@ -108,25 +108,7 @@ public:
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
-
-    virtual void copyParticles(int lev) override;
     
-    virtual int doFieldIonization(
-        const int lev, 
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& x_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& y_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& z_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ux_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& uy_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& uz_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ex_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ey_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ez_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& bx_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& by_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& bz_buf,
-        amrex::Cuda::ManagedDeviceVector<amrex::Real>& w_buf) override;
-
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
 
