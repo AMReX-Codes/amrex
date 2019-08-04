@@ -590,7 +590,6 @@ MultiParticleContainer::doFieldIonization()
                         // int ilev = static_cast<int>(round(ilev_real[i]));
                         Real p;
                         Real w_dtau;
-                        Print()<<p_ionization_energies[0]<<" IE \n";
                         if (E<1.e-100*(p_ionization_energies[0])){
                             p = 0.;
                         } else {
