@@ -6,6 +6,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
+#include <IonizationEnergiesTable.H>
 #include <FieldGather.H>
 
 #include <WarpXAlgorithmSelection.H>
@@ -38,10 +39,10 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
     pp.query("do_field_ionization", do_field_ionization);
-    if (do_field_ionization){
-        AddRealComp("ionization_level");
-        plot_flags.resize(PIdx::nattribs + 1, 1);
-    }
+    // If do_field_ionization, read initialization data from input file and
+    // read ionization energies from table.
+    if (do_field_ionization)
+        InitIonizationModule();
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
@@ -79,10 +80,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
     : WarpXParticleContainer(amr_core, 0)
 {
     plasma_injector.reset(new PlasmaInjector());
+/*
     if (do_field_ionization){
         Print()<<"AddRealComp\n";
         AddRealComp("ionization_level");
     }
+*/
 }
 
 void PhysicalParticleContainer::InitData()
@@ -1604,25 +1607,38 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         copy_attribs(pti, x, y, z);
     }
 
+    Real* AMREX_RESTRICT ion_lev = nullptr;
+    if (do_field_ionization){
+        ion_lev = pti.GetAttribs(particle_comps["ionization_level"]).dataPtr();
+    }
+    
     // Loop over the particles and update their momentum
     const Real q = this->charge;
     const Real m = this-> mass;
     if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
-        amrex::ParallelFor( pti.numParticles(),
+        amrex::ParallelFor( 
+            pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
                 UpdateMomentumBoris( ux[i], uy[i], uz[i], gi[i],
-                      Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+                                     Ex[i], Ey[i], Ez[i], Bx[i],
+                                     By[i], Bz[i], qp, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
                       ux[i], uy[i], uz[i], dt );
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
-        amrex::ParallelFor( pti.numParticles(),
+        amrex::ParallelFor(
+            pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
                 UpdateMomentumVay( ux[i], uy[i], uz[i], gi[i],
-                      Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], qp, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
-                      ux[i], uy[i], uz[i], dt );
+                                ux[i], uy[i], uz[i], dt );
             }
         );
     } else {
@@ -2057,4 +2073,36 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 xyzmin, lo, stagger_shift);
         }
     }
+}
+
+
+void PhysicalParticleContainer::InitIonizationModule()
+{
+    ParmParse pp(species_name);
+    pp.query("species_ionization_level", species_ionization_level);
+    pp.get("ionization_product", ionization_product_name);
+    pp.get("physical_element", physical_element);
+    // Add Real component for ionization level
+    AddRealComp("ionization_level");
+    plot_flags.resize(PIdx::nattribs + 1, 1);
+    // Get atomic number and ionization energies from file
+    int ion_element_id = ion_map_ids[physical_element];
+    ion_atomic_number = ion_atomic_numbers[ion_element_id];
+    ionization_energies.resize(ion_atomic_number);
+    int offset = ion_energy_offsets[ion_element_id];
+    for(int i=0; i<ion_atomic_number; i++){
+        ionization_energies[i] = table_ionization_energies[i+offset];
+    }    
+    // Compute ADK prefactors (See Chen, JCP 236 (2013), equation (2))
+    // For now, we assume l=0 and m=0.
+    // The approximate expressions are used, 
+    // without Gamma function
+    Real wa = std::pow(PhysConst::alpha,3) * PhysConst::c / PhysConst::r_e;
+    Real Ea = PhysConst::m_e * PhysConst::c*PhysConst::c /PhysConst::q_e * 
+        std::pow(PhysConst::alpha,4)/PhysConst::r_e;
+    Real UH = table_ionization_energies[0];
+    Real l_eff = std::sqrt(UH/ionization_energies[0]) - 1.;
+    adk_power.resize(ion_atomic_number);
+    adk_prefactor.resize(ion_atomic_number);
+    adk_exp_prefactor.resize(ion_atomic_number);
 }

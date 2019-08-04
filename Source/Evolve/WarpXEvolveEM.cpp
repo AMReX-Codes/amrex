@@ -278,7 +278,7 @@ WarpX::OneStep_nosub (Real cur_time)
 {
     // Loop over species. For each ionizable species, create particles in 
     // product species.
-    // mypc->doFieldIonization();
+    mypc->doFieldIonization();
     // Push particle from x^{n} to x^{n+1}
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}

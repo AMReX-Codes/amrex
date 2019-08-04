@@ -272,6 +272,8 @@ public:
 
     int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }    
 
+    virtual void setIonizationProduct(int i_product) {};
+
 protected:
 
     std::map<std::string, int> particle_comps;
@@ -290,8 +292,18 @@ protected:
     // This is currently required because continuous injection does not 
     // support all features allowed by direct injection.
     int do_continuous_injection = 0;
-    int do_field_ionization = 0;
 
+    int do_field_ionization = 0;
+    int ionization_product;
+    std::string ionization_product_name;
+    int ion_atomic_number;
+    int species_ionization_level = 0;
+    amrex::Gpu::ManagedVector<amrex::Real> ionization_energies;
+    amrex::Gpu::ManagedVector<amrex::Real> adk_power;
+    amrex::Gpu::ManagedVector<amrex::Real> adk_prefactor;
+    amrex::Gpu::ManagedVector<amrex::Real> adk_exp_prefactor;
+    std::string physical_element;
+    
     int do_boosted_frame_diags = 1;
 
     amrex::Vector<amrex::FArrayBox> local_rho;

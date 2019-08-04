@@ -1,10 +1,12 @@
 #include <limits>
 #include <algorithm>
 #include <string>
+#include <math.h>
 
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <WarpXConst.H>
 
 using namespace amrex;
 
@@ -29,6 +31,10 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
 
+    // For each species, get the ID of its product species.
+    // This is used for ionization and pair creation processes.
+    mapSpeciesProduct();
+    
     // Compute the number of species for which lab-frame data is dumped
     // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
     // particle IDs in map_species_lab_diags.
@@ -461,3 +467,48 @@ MultiParticleContainer::doContinuousInjection() const
     }
     return warpx_do_continuous_injection;
 }
+
+/* \brief Get ID of product species of each species.
+ * The users specifies the name of the product species, 
+ * this routine get its ID.
+ */
+void
+MultiParticleContainer::mapSpeciesProduct()
+{
+    for (int i=0; i<nspecies; i++){
+        auto& pc = allcontainers[i];
+        // If species pc has ionization on, find species with name 
+        // pc->ionization_product_name and store its ID into 
+        // pc->ionization_product.
+        if (pc->do_field_ionization){
+            int i_product = getSpeciesID(pc->ionization_product_name);
+            pc->ionization_product = i_product;
+        }
+    }
+}
+
+/* \brief Given a species name, return its ID.
+ */
+int
+MultiParticleContainer::getSpeciesID(std::string product_str)
+{
+    int i_product;
+    bool found = 0;
+    // Loop over species
+    for (int i=0; i<nspecies; i++){
+        // If species name matches, store its ID
+        // into i_product
+        if (species_names[i] == product_str){
+            found = 1;
+            i_product = i;
+        }
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(found != 0,
+                                     "ERROR: could not find ID for species");
+    return i_product;
+}
+
+
+void
+MultiParticleContainer::doFieldIonization()
+{}

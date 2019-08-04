@@ -22,6 +22,10 @@ public:
 
     virtual void InitData () override;
 
+    void InitIonizationLevel ();
+
+    void InitIonizationModule();
+
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
@@ -104,6 +108,24 @@ public:
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
+
+    virtual void copyParticles(int lev) override;
+    
+    virtual int doFieldIonization(
+        const int lev, 
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& x_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& y_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& z_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ux_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& uy_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& uz_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ex_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ey_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& ez_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& bx_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& by_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& bz_buf,
+        amrex::Cuda::ManagedDeviceVector<amrex::Real>& w_buf) override;
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
