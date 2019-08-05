@@ -650,7 +650,7 @@ MultiParticleContainer::doFieldIonization()
                             prod_p.pos(0) = p.pos(0);
                             prod_p.pos(1) = p.pos(1);
 #if (AMREX_SPACEDIM == 3)
-                            prod_p.pos(20 = p.pos(2);
+                            prod_p.pos(2) = p.pos(2);
 #endif
                             for (int ia = 0; ia < PIdx::nattribs; ++ia) {
                                 prod_pa[ia][i] = pa[ia][ip];
