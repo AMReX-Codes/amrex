@@ -56,7 +56,8 @@ void doGatherShapeN(const amrex::Real * const xp,
             // x direction
             // Get particle position
 #ifdef WARPX_DIM_RZ
-            const amrex::Real x = (std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]) - xmin)*dxi;
+            const amrex::Real r = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            const amrex::Real x = (r - xmin)*dxi;
 #else
             const amrex::Real x = (xp[ip]-xmin)*dxi;
 #endif
@@ -134,14 +135,22 @@ void doGatherShapeN(const amrex::Real * const xp,
             }
 
 #ifdef WARPX_DIM_RZ
-            // Convert Exp and Eyp (which are actually Erp and Ethetap) to Ex and Ey
-            const amrex::Real theta = std::atan2(yp[ip], xp[ip]);
+            // Convert Exp and Eyp (which are actually Er and Etheta) to Ex and Ey
+            amrex::Real costheta;
+            amrex::Real sintheta;
+            if (r > 0.) {
+                costheta = xp[ip]/r;
+                sintheta = yp[ip]/r;
+            } else {
+                costheta = 1.;
+                sintheta = 0.;
+            }
             const amrex::Real Exp_save = Exp[ip];
-            Exp[ip] = std::cos(theta)*Exp[ip] - std::sin(theta)*Eyp[ip];
-            Eyp[ip] = std::cos(theta)*Eyp[ip] + std::sin(theta)*Exp_save;
+            Exp[ip] = costheta*Exp[ip] - sintheta*Eyp[ip];
+            Eyp[ip] = costheta*Eyp[ip] + sintheta*Exp_save;
             const amrex::Real Bxp_save = Bxp[ip];
-            Bxp[ip] = std::cos(theta)*Bxp[ip] - std::sin(theta)*Byp[ip];
-            Byp[ip] = std::cos(theta)*Byp[ip] + std::sin(theta)*Bxp_save;
+            Bxp[ip] = costheta*Bxp[ip] - sintheta*Byp[ip];
+            Byp[ip] = costheta*Byp[ip] + sintheta*Bxp_save;
 #endif
 
 #else // (AMREX_SPACEDIM == 3)

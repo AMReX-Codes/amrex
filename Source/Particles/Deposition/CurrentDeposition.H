@@ -227,8 +227,16 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             const amrex::Real z_old = z_new - dtsdz0*uzp[ip]*gaminv;
 
 #if (defined WARPX_DIM_RZ)
-            const amrex::Real theta = std::atan2(yp[ip], xp[ip]);
-            const amrex::Real vy = (-uxp[ip]*std::sin(theta) + uyp[ip]*std::cos(theta))*gaminv;
+            amrex::Real costheta;
+            amrex::Real sintheta;
+            if (r_new > 0.) {
+                costheta = xp[ip]/r_new;
+                sintheta = yp[ip]/r_new;
+            } else {
+                costheta = 1.;
+                sintheta = 0.;
+            }
+            const amrex::Real vy = (-uxp[ip]*sintheta + uyp[ip]*costheta)*gaminv;
 #elif (defined WARPX_DIM_2D)
             const amrex::Real vy = uyp[ip]*gaminv;
 #endif
