@@ -609,8 +609,6 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
         const Real rmin = xyzmin[0];
         const int irmin = lo.x;
 
-        tilebox.grow(ngJ);
-
         // Rescale current in r-z mode since the inverse volume factor was not
         // included in the current deposition.
         amrex::ParallelFor(tbr,
@@ -650,7 +648,6 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
         amrex::ParallelFor(tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            /* if (j == 5) std::cout << "Jz " << i << " " << Jz_arr(i,j,0) << "\n"; */
             // Wrap the current density deposited in the guard cells around
             // to the cells above the axis.
             // Jz is located on the boundary
@@ -663,8 +660,6 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
             if (r == 0.) {
                 // Verboncoeur JCP 164, 421-427 (2001) : corrected volume on axis
                 Jz_arr(i,j,0) /= (MathConst::pi*dr/3.);
-                // Alternative (when order in r is limited one, which is not implemented)
-                // Jz_arr(i,j,0) /= (MathConst::pi*dr/4.);
             } else {
                 Jz_arr(i,j,0) /= (2.*MathConst::pi*r);
             }
