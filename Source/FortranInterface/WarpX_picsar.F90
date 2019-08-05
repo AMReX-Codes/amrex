@@ -4,7 +4,7 @@
 
 #elif (AMREX_SPACEDIM == 2)
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
 
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jrjtjz_generic_rz
 #define WRPX_PXR_RZ_VOLUME_SCALING_RHO    apply_rz_volume_scaling_rho
@@ -138,7 +138,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! Dimension 2
 #elif (AMREX_SPACEDIM==2)
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
   logical(pxr_logical) :: l_2drz = .TRUE._c_long
 #else
   logical(pxr_logical) :: l_2drz = .FALSE._c_long
@@ -175,7 +175,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: rho(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     integer(c_long) :: type_rz_depose = 1
 #endif
 
@@ -184,7 +184,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     rho_nvalid = rho_ntot - 2*rho_ng
     rho_nguards = rho_ng
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     CALL WRPX_PXR_RZ_VOLUME_SCALING_RHO(   &
                  rho,rho_nguards,rho_nvalid, &
                  rmin,dr,type_rz_depose)

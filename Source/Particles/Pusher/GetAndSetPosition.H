@@ -5,7 +5,7 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_REAL.H>
 
-#ifndef WARPX_RZ
+#ifndef WARPX_DIM_RZ
 
 /* \brief Extract the particle's coordinates from the ParticleType struct `p`,
  *        and stores them in the variables `x`, `y`, `z`. */
@@ -42,7 +42,7 @@ void SetPosition(
 #endif
 }
 
-# else // if WARPX_RZ is True
+# elif defined WARPX_DIM_RZ
 
 /* \brief Extract the particle's coordinates from `theta` and the attributes
  *         of the ParticleType struct `p` (which contains the radius),
@@ -71,6 +71,6 @@ void SetCylindricalPositionFromCartesian(
     p.pos(1) = z;
 }
 
-#endif // WARPX_RZ
+#endif // WARPX_DIM_RZ
 
 #endif // WARPX_PARTICLES_PUSHER_GETANDSETPOSITION_H_

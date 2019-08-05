@@ -498,7 +498,7 @@ WarpX::ComputeDt ()
 
     if (maxwell_fdtd_solver_id == 0) {
         // CFL time step Yee solver
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
         // Derived semi-analytically by R. Lehe
         deltat  = cfl * 1./( std::sqrt((1+0.2105)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
 #else

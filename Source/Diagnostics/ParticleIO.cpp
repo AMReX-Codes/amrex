@@ -98,7 +98,7 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             real_names.push_back("By");
             real_names.push_back("Bz");
             
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             real_names.push_back("theta");
 #endif
             

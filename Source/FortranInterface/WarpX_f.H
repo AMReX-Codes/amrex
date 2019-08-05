@@ -62,7 +62,7 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_rz
 #else
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
@@ -314,7 +314,7 @@ extern "C"
                              const BL_FORT_FAB_ARG_ANYD(ey),
                              const BL_FORT_FAB_ARG_ANYD(ez),
                              const amrex::Real* dx
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                              ,const amrex::Real* rmin
 #endif
                              );

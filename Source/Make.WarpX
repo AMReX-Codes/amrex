@@ -141,7 +141,6 @@ endif
 
 ifeq ($(USE_RZ),TRUE)
   USERSuffix := $(USERSuffix).RZ
-  DEFINES += -DWARPX_RZ
 endif
 
 ifeq ($(DO_ELECTROSTATIC),TRUE)

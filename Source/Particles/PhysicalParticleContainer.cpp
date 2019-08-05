@@ -148,7 +148,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             npart /= 4;
         }
         for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 | WARPX_RZ)
+#if ( AMREX_SPACEDIM == 3 | WARPX_DIM_RZ)
             Real weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
@@ -269,7 +269,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
 #endif
 
@@ -323,7 +323,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     Real density_min = plasma_injector->density_min;
     Real density_max = plasma_injector->density_max;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     bool radially_weighted = plasma_injector->radially_weighted;
 #endif
 
@@ -496,11 +496,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #endif
 
             // Save the x and y values to use in the insideBounds checks.
-            // This is needed with WARPX_RZ since x and y are modified.
+            // This is needed with WARPX_DIM_RZ since x and y are modified.
             Real xb = x;
             Real yb = y;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             // Replace the x and y, choosing the angle randomly.
             // These x and y are used to get the momentum and density
             Real theta = 2.*MathConst::pi*amrex::Random();
@@ -574,7 +574,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
             // Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
             Real weight = dens * scale_fac;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             if (radially_weighted) {
                 weight *= 2.*MathConst::pi*xb;
             } else {
@@ -603,7 +603,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             p.pos(1) = y;
             p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             pa[PIdx::theta][ip] = theta;
 #endif
             p.pos(0) = xb;
