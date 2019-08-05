@@ -97,7 +97,7 @@ First, load the appropriate modules:
     module swap PrgEnv-intel PrgEnv-gnu
     module load cmake/3.14.4
     module load cray-hdf5-parallel
-    module load adios/1.13.1 zlib
+    module load adios/1.13.1
     export CRAYPE_LINK_TYPE=dynamic
 
 Then, in the `warpx_directory`, download and build the openPMD API:

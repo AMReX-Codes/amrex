@@ -143,9 +143,16 @@ WriteOpenPMDFields( const std::string& filename,
   auto dataset = openPMD::Dataset(datatype, global_size);
 
   // Create new file and store the time/iteration info
-  auto series = openPMD::Series( filename,
-                                 openPMD::AccessType::CREATE,
-                                 MPI_COMM_WORLD );
+  auto series = [filename](){
+      if( ParallelDescriptor::NProcs() > 1 )
+        return openPMD::Series( filename,
+                                openPMD::AccessType::CREATE,
+                                MPI_COMM_WORLD );
+      else
+          return openPMD::Series( filename,
+                                  openPMD::AccessType::CREATE );
+  }();
+
   auto series_iteration = series.iterations[iteration];
   series_iteration.setTime( time );
 
