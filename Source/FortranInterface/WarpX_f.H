@@ -106,34 +106,6 @@ extern "C"
 			const long* nox, const long* noy,const long* noz,
                         const int* l_nodal, const long* lvect, const long* current_depo_algo);
 
-        // Current deposition finalize for RZ
-        void warpx_current_deposition_rz_volume_scaling(
-			amrex::Real* jx, const long* jx_ng, const int* jx_ntot,
-			amrex::Real* jy, const long* jy_ng, const int* jy_ntot,
-			amrex::Real* jz, const long* jz_ng, const int* jz_ntot,
-			const amrex::Real* rmin,
-			const amrex::Real* dr);
-
-	// Field gathering
-
-	void warpx_geteb_energy_conserving(const long* np,
-			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
-			amrex::Real* exp, amrex::Real* eyp, amrex::Real* ezp,
-                        amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
-                        const int* ixyzmin,
-                        const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
-                        const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
-			const long* nox, const long* noy, const long* noz,
-			const amrex::Real* exg, const int* exg_lo, const int* exg_hi,
-			const amrex::Real* eyg, const int* eyg_lo, const int* eyg_hi,
-			const amrex::Real* ezg, const int* ezg_lo, const int* ezg_hi,
-			const amrex::Real* bxg, const int* bxg_lo, const int* bxg_hi,
-			const amrex::Real* byg, const int* byg_lo, const int* byg_hi,
-			const amrex::Real* bzg, const int* bzg_lo, const int* bzg_hi,
-			const int* ll4symtry, const int* l_lower_order_in_v,
-                        const int* l_nodal, const long* lvect,
-			const long* field_gathe_algo);
-
 	// Particle pusher (velocity and position)
 
 	void warpx_particle_pusher(const long* np,
