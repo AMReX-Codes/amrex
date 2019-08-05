@@ -112,7 +112,7 @@ ifeq ($(USE_OPENPMD), TRUE)
        ifneq ($(OPENPMD_INCLUDE_PATH),NOT_SET)
          INCLUDE_LOCATIONS += $(OPENPMD_INCLUDE_PATH)
        endif
-       LIBRARIES += -lopenPMD
+       libraries += -lopenPMD
    endif
    DEFINES += -DWARPX_USE_OPENPMD
 endif
@@ -123,7 +123,7 @@ ifeq ($(USE_PSATD),TRUE)
   DEFINES += -DWARPX_USE_PSATD
   ifeq ($(USE_CUDA),FALSE) # Running on CPU
      # Use FFTW
-     LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads
+     libraries += -lfftw3_mpi -lfftw3 -lfftw3_threads
      FFTW_HOME ?= NOT_SET
      ifneq ($(FFTW_HOME),NOT_SET)
        VPATH_LOCATIONS += $(FFTW_HOME)/include
@@ -135,7 +135,7 @@ ifeq ($(USE_PSATD),TRUE)
      DEFINES += -DFFTW # PICSAR uses it
   else
     # Use cuFFT
-    LIBRARIES += -lcufft
+    libraries += -lcufft
   endif
 endif
 
@@ -159,7 +159,7 @@ ifeq ($(USE_HDF5),TRUE)
         LIBRARY_LOCATIONS += $(HDF5_HOME)/lib
     endif
     DEFINES += -DWARPX_USE_HDF5
-    LIBRARIES += -lhdf5 -lz
+    libraries += -lhdf5 -lz
 endif     
 
 # job_info support
