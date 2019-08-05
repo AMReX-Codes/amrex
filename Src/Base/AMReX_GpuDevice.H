@@ -100,6 +100,7 @@ public:
     static void box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept;
 
     static std::size_t totalGlobalMem () noexcept { return device_prop.totalGlobalMem; }
+    static std::size_t sharedMemPerBlock () noexcept { return device_prop.sharedMemPerBlock; }
     static int numMultiProcessors () noexcept { return device_prop.multiProcessorCount; }
     static int maxThreadsPerMultiProcessor () noexcept { return device_prop.maxThreadsPerMultiProcessor; }
     static int maxThreadsPerBlock () noexcept { return device_prop.maxThreadsPerBlock; }
