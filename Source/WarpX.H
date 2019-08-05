@@ -511,6 +511,7 @@ private:
     amrex::Real const_dt = 0.5e-11;
 
     int load_balance_int = -1;
+    int load_balance_max_step = std::numeric_limits<int>::max();
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
     int load_balance_with_sfc = 0;
     amrex::Real load_balance_knapsack_factor = 1.24;
