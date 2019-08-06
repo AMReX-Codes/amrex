@@ -45,6 +45,7 @@ Elixir::clear () noexcept
                                                            amrex_elixir_delete, p, 0));,
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_elixir_delete, p, 0)););
+            Gpu::callbackAdded();
         }
     }
     else

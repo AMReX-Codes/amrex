@@ -55,6 +55,14 @@ struct DeviceScalar
 
 #ifdef AMREX_USE_GPU
 
+    DeviceScalar () {
+        if (Gpu::inLaunchRegion()) {
+            dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
+        } else {
+            dp = (T*)(std::malloc(sizeof(T)));
+        }
+    }
+
     explicit DeviceScalar (T init_val) {
         if (Gpu::inLaunchRegion()) {
             dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
@@ -91,6 +99,7 @@ private:
 #else
 
     DeviceScalar (T init_val) : d(init_val) {}
+    DeviceScalar () {}
     ~DeviceScalar () {}
 
     T* dataPtr () { return &d; }

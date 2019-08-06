@@ -28,6 +28,7 @@ namespace perilla{
 	static void setTeamSharedMemory(void* dummy, int tid, int tg);  
 	static void* getTeamSharedMemory(int tg);
         static void syncWorkers();
+        static void syncWorkers(int tid);
         static void syncThreads();
         static void syncComputeThreads();
         static void syncAllComputeThreads();
@@ -52,6 +53,7 @@ namespace perilla{
     //static void setTeamSharedMemory(void* dummy, int tid, int tg){WorkerThread::setTeamSharedMemory(dummy, tid, tg);}
     //static void* getTeamSharedMemory(int tg){WorkerThread::getTeamSharedMemory(tg);}
     static void syncWorkers(){WorkerThread::syncWorkers();}
+    static void syncWorkers(int tid){WorkerThread::syncWorkers(tid);}
     static void syncThreads(){WorkerThread::syncThreads();}
     static void syncComputeThreads(){WorkerThread::syncComputeThreads();}
     static void syncAllComputeThreads(){WorkerThread::syncAllComputeThreads();}

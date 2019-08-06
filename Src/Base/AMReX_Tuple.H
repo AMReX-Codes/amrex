@@ -19,6 +19,8 @@ namespace amrex {
 
 namespace detail {
 
+
+
 template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
@@ -81,11 +83,11 @@ class GpuTuple
 public:
     constexpr GpuTuple () = default;
 
-    explicit constexpr GpuTuple (Ts const&... args)
+    constexpr GpuTuple (Ts const&... args)
         : detail::gpu_tuple_impl<0, Ts...>(args...)
         {}
 
-    explicit constexpr GpuTuple (Ts&&... args)
+    constexpr GpuTuple (Ts&&... args)
         : detail::gpu_tuple_impl<0, Ts...>(std::forward<Ts>(args)...)
         {}
 };

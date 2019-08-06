@@ -30,8 +30,12 @@ target_sources( amrex
    AMReX_ParmParse.cpp
    AMReX_parmparse_fi.cpp
    AMReX_ParmParse.H
+   AMReX_Functional.H
    AMReX_Utility.H
    AMReX_Utility.cpp
+   AMReX_Reduce.H
+   AMReX_Scan.H
+   AMReX_Partition.H
    AMReX_BLassert.H
    AMReX_ArrayLim.H
    AMReX_REAL.H
