@@ -421,6 +421,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
+#ifdef WARPX_RZ
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
             const int* ixyzmin_grid = box.loVect();
 
@@ -446,6 +447,12 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bzfab),
                 &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
+#else
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
+                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+#endif
 
             // Save the position and momenta, making copies
             auto uxp_save = uxp;
@@ -459,9 +466,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             Real* const AMREX_RESTRICT uxpp = uxp.dataPtr();
             Real* const AMREX_RESTRICT uypp = uyp.dataPtr();
             Real* const AMREX_RESTRICT uzpp = uzp.dataPtr();
-            const Real* const AMREX_RESTRICT uxp_savep = uxp_save.dataPtr();
-            const Real* const AMREX_RESTRICT uyp_savep = uyp_save.dataPtr();
-            const Real* const AMREX_RESTRICT uzp_savep = uzp_save.dataPtr();
             const Real* const AMREX_RESTRICT Expp = Exp.dataPtr();
             const Real* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
             const Real* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();

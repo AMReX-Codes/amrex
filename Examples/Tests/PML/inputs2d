@@ -32,8 +32,6 @@ warpx.do_moving_window = 0
 # warpx.moving_window_dir = z
 # warpx.moving_window_v = 1.0 # in units of the speed of light
 
-warpx.maxwell_fdtd_solver = yee
-
 # Laser
 lasers.nlasers      = 1
 lasers.names        = laser1
