@@ -41,8 +41,8 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_field_ionization", do_field_ionization);
     // If do_field_ionization, read initialization data from input file and
     // read ionization energies from table.
-    if (do_field_ionization)
-        InitIonizationModule();
+    //if (do_field_ionization)
+    //    InitIonizationModule();
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
@@ -90,6 +90,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
 
 void PhysicalParticleContainer::InitData()
 {
+    if (do_field_ionization) {InitIonizationModule();}
     AddParticles(0); // Note - add on level 0
     Redistribute();  // We then redistribute
 }
@@ -2078,6 +2079,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 
 void PhysicalParticleContainer::InitIonizationModule()
 {
+    if (!do_field_ionization) return;
     ParmParse pp(species_name);
     pp.query("ionization_level", species_ionization_level);
     pp.get("ionization_product", ionization_product_name);
@@ -2092,16 +2094,22 @@ void PhysicalParticleContainer::InitIonizationModule()
     int offset = ion_energy_offsets[ion_element_id];
     for(int i=0; i<ion_atomic_number; i++){
         ionization_energies[i] = table_ionization_energies[i+offset];
-    }    
+        Print()<<"i "<<i<<" ionization_energies[i] "<<ionization_energies[i]<<'\n';
+    }
     // Compute ADK prefactors (See Chen, JCP 236 (2013), equation (2))
     // For now, we assume l=0 and m=0.
     // The approximate expressions are used, 
     // without Gamma function
+    Print()<<"PhysConst::alpha "<< PhysConst::alpha <<'\n';
+    Print()<<"PhysConst::r_e "<< PhysConst::r_e<<'\n';
     Real wa = std::pow(PhysConst::alpha,3) * PhysConst::c / PhysConst::r_e;
     Real Ea = PhysConst::m_e * PhysConst::c*PhysConst::c /PhysConst::q_e * 
         std::pow(PhysConst::alpha,4)/PhysConst::r_e;
     Real UH = table_ionization_energies[0];
     Real l_eff = std::sqrt(UH/ionization_energies[0]) - 1.;
+
+    const Real dt = WarpX::GetInstance().getdt(0);
+
     adk_power.resize(ion_atomic_number);
     adk_prefactor.resize(ion_atomic_number);
     adk_exp_prefactor.resize(ion_atomic_number);
@@ -2109,11 +2117,13 @@ void PhysicalParticleContainer::InitIonizationModule()
         Real n_eff = (i+1) * std::sqrt(UH/ionization_energies[i]);
         Real C2 = std::pow(2,2*n_eff)/(n_eff*tgamma(n_eff+l_eff+1)*tgamma(n_eff-l_eff));
         adk_power[i] = -(2*n_eff - 1);
-        Real dt = 1.;
         Real Uion = ionization_energies[i];
         adk_prefactor[i] = dt * wa * C2 * ( Uion/(2*UH) ) 
             * std::pow(std::pow(2*(Uion/UH),3./2)*Ea,2*n_eff - 1);
         adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
+        Print()<<"i = "<<i<<" adk_power[i] "<<adk_power[i]<<"\n";
+        Print()<<"i = "<<i<<" adk_exp_prefactor[i] "<<adk_exp_prefactor[i]<<"\n";
+        Print()<<"i = "<<i<<" adk_prefactor[i] "<<adk_prefactor[i]<<"\n";
     }
 }
 

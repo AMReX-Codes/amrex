@@ -34,10 +34,6 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
 
-    // For each species, get the ID of its product species.
-    // This is used for ionization and pair creation processes.
-    mapSpeciesProduct();
-    
     // Compute the number of species for which lab-frame data is dumped
     // nspecies_lab_frame_diags, and map their ID to MultiParticleContainer
     // particle IDs in map_species_lab_diags.
@@ -144,6 +140,9 @@ MultiParticleContainer::InitData ()
         pc->InitData();
     }
     pc_tmp->InitData();
+    // For each species, get the ID of its product species.
+    // This is used for ionization and pair creation processes.
+    mapSpeciesProduct();
 }
 
 
@@ -511,21 +510,23 @@ MultiParticleContainer::getSpeciesID(std::string product_str)
     return i_product;
 }
 
+//void
+//MultiParticleContainer::InitIonizationModule()
+
 void
 MultiParticleContainer::doFieldIonization()
 {
-    /*
-      amrex::Gpu::SharedMemory<unsigned short int> grid_ids;
-      amrex::Gpu::SharedMemory<unsigned short int> tile_ids;
-      amrex::Gpu::SharedMemory<bool> is_ionized;
-    */
-
     for (auto& pc : allcontainers){
+
         if (!pc->do_field_ionization){ continue; }
+
+        auto& prod_pc = allcontainers[pc->ionization_product];
+
         const Real * const AMREX_RESTRICT p_ionization_energies = pc->ionization_energies.dataPtr();
         const Real * const AMREX_RESTRICT p_adk_prefactor = pc->adk_prefactor.dataPtr();
         const Real * const AMREX_RESTRICT p_adk_exp_prefactor = pc->adk_exp_prefactor.dataPtr();
         const Real * const AMREX_RESTRICT p_adk_power = pc->adk_power.dataPtr();
+
         for (int lev = 0; lev <= pc->finestLevel(); ++lev){
 
 #ifdef _OPENMP
@@ -536,6 +537,10 @@ MultiParticleContainer::doFieldIonization()
                 pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
                 if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
                     pc->DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                }
+                prod_pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                if ( (prod_pc->NumRuntimeRealComps()>0) || (prod_pc->NumRuntimeIntComps()>0) ) {
+                    prod_pc->DefineAndReturnParticleTile(lev, grid_id, tile_id);
                 }
             }
 #endif
@@ -575,7 +580,7 @@ MultiParticleContainer::doFieldIonization()
                 ParallelFor( 
                     np,
                     [=] AMREX_GPU_DEVICE (long i) {
-                        Real random_draw = Random();
+                        Real random_draw = amrex::Random();
                         Real ga = std::sqrt(1. +
                                             (ux[i]*ux[i] + 
                                              uy[i]*uy[i] + 
@@ -589,15 +594,14 @@ MultiParticleContainer::doFieldIonization()
                         int ilev = (int) round(ilev_real[i]);
                         // int ilev = static_cast<int>(round(ilev_real[i]));
                         Real p;
-                        Real w_dtau;
-                        if (E<1.e-100*(p_ionization_energies[0])){
-                            p = 0.;
-                        } else {
-                            w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
-                                std::pow(E,p_adk_power[ilev]) * 
-                                std::exp( p_adk_exp_prefactor[ilev]/E );
-                            p = 1. - std::exp( - w_dtau );
-                        }
+                        //if (E<1.e-20*(p_ionization_energies[0])){
+                        //    p = 0.;
+                        //} else {
+                        Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
+                            std::pow(E,p_adk_power[ilev]) * 
+                            std::exp( p_adk_exp_prefactor[ilev]/E );
+                        p = 1. - std::exp( - w_dtau );
+                        //}
                         p_is_ionized[i] = 0;
                         if (random_draw < p){
                             ilev_real[i] += 1.;
@@ -617,7 +621,6 @@ MultiParticleContainer::doFieldIonization()
                     break;
                 }
 
-                auto& prod_pc = allcontainers[pc->ionization_product];
                 auto& prod_particle_tile = prod_pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
                 const int np_old = prod_particle_tile.GetArrayOfStructs().size();
                 const int np_new = np_old + np_ionized;
