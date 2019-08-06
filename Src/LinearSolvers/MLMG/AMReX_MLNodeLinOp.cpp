@@ -1,8 +1,7 @@
 
 #include <AMReX_MLNodeLinOp.H>
 #include <AMReX_MLNodeLap_F.H>
-// BR-TODO remove this when finished
-#include <AMReX_PlotFileUtil.H>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -136,12 +135,7 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     for (int i = 0; i < ncomp; i++) {
         MultiFab::Multiply(tmp, mask, 0, i, 1, nghost);
     }
-    // BR-TODO: remove this when finished
-    //WriteSingleLevelPlotfile ("xdoty_x",x,{{"data"}},Geom(0,NMGLevels(0)-1),0.0,0);
-    //WriteSingleLevelPlotfile ("xdoty_tmp",tmp,{{"data"}},Geom(0,NMGLevels(0)-1),0.0,0);
-    //WriteSingleLevelPlotfile ("xdoty_y",y,{{"data"}},Geom(0,NMGLevels(0)-1),0.0,0);
     Real result = MultiFab::Dot(tmp,0,y,0,ncomp,nghost,true);
-    //std::cout << "RESULT = " << result << std::endl;
     if (!local) {
         ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));
     }

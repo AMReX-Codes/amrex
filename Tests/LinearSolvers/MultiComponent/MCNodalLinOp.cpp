@@ -12,6 +12,7 @@ void MCNodalLinOp::Fapply (int amrlev, int mglev, MultiFab& a_out,const MultiFab
 {
 	BL_PROFILE("MCNodalLinOp::Fapply()");
 
+	a_out.setVal(0.0);
 	amrex::Box domain(m_geom[amrlev][mglev].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 	domain.grow(-1); // Shrink domain so we don't operate on any boundaries
@@ -94,9 +95,8 @@ void MCNodalLinOp::Fsmooth (int amrlev, int mglev, amrex::MultiFab& a_x, const a
 	amrex::Box domain(m_geom[amrlev][mglev].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 	domain.grow(-1); // Shrink domain so we don't operate on any boundaries
-	const Real* DX = m_geom[amrlev][mglev].CellSize();
 
-	int ncomp  = getNComp();
+	//int ncomp  = getNComp();
 	int nghost = getNGrow(); 
 
 	Real omega = 2./3.; // Damping factor (very important!)
@@ -151,28 +151,32 @@ void MCNodalLinOp::normalize (int amrlev, int mglev, MultiFab& a_x) const
 	amrex::Box domain(m_geom[amrlev][mglev].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 
-	int ncomp = getNComp();
+	//int ncomp = getNComp();
 	int nghost = 1; //x.nGrow();
 
-	for (MFIter mfi(a_x, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
+	amrex::MultiFab::Divide(a_x,*m_diag[amrlev][mglev],0,0,ncomp,nghost); // Dx *= diag  (Dx = x*diag)
 
-		Box bx = mfi.tilebox();
-		bx.grow(nghost);
-		bx = bx & domain;
-
-		amrex::Array4<amrex::Real> const& x = a_x.array(mfi);
-		amrex::Array4<const amrex::Real> const& diag = m_diag[amrlev][mglev]->array(mfi);
-
-		for (int n = 0; n < ncomp; n++)
-		{
-			amrex::ParallelFor (bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-					
-					x(i,j,k,n) /= diag(i,j,k,n);
-
-				} );
-		}
-	}
+//	for (MFIter mfi(a_x, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
+//	{
+//
+//		Box bx = mfi.tilebox();
+//		bx.grow(nghost);
+//		bx = bx & domain;
+//
+//		amrex::Array4<amrex::Real> const& x = a_x.array(mfi);
+//		amrex::Array4<const amrex::Real> const& diag = m_diag[amrlev][mglev]->array(mfi);
+//
+//		for (int n = 0; n < ncomp; n++)
+//		{
+//			amrex::ParallelFor (bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+//					
+//					std::cout << "amrlev="<<amrlev<<" mglev="<<mglev<<" (" <<i<<","<<j<<","<<k<<","<<n<<") diag=" << diag(i,j,k,n) << " x = " << x(i,j,k,n) << " ... ";
+//					x(i,j,k,n) /= diag(i,j,k,n);
+//					std::cout << "done" << std::endl;
+//
+//				} );
+//		}
+//	}
 }
 
  MCNodalLinOp::~MCNodalLinOp () {}
@@ -521,7 +525,7 @@ void MCNodalLinOp::realFillBoundary(MultiFab &phi, const Geometry &geom) const
 	{
 		MultiFab & mf = phi;
 		mf.FillBoundary(geom.periodicity());
-		const int ncomp = mf.nComp();
+		//const int ncomp = mf.nComp();
 		const int ng1 = 1;
 		const int ng2 = 2;
 		MultiFab tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
@@ -544,7 +548,7 @@ void MCNodalLinOp::reflux (int crse_amrlev,
 {
 	BL_PROFILE("MCNodalLinOp::reflux()");
 
-	int ncomp = AMREX_SPACEDIM;
+	//int ncomp = getNComp();//AMREX_SPACEDIM;
 
 	amrex::Box cdomain(m_geom[crse_amrlev][0].Domain());
 	cdomain.convert(amrex::IntVect::TheNodeVector());
@@ -652,7 +656,7 @@ MCNodalLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const 
 			    const MultiFab*)
 {
 	const int mglev = 0;
-	const int ncomp = b.nComp();
+	//const int ncomp = b.nComp();
 	apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 2);
 	amrex::Geometry geom = m_geom[amrlev][mglev];
@@ -665,7 +669,7 @@ MCNodalLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiF
 {
 	resid.setVal(0.0);
 	apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
-	int ncomp = b.nComp();
+	//int ncomp = b.nComp();
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, resid.nGrow());
 	amrex::Geometry geom = m_geom[amrlev][mglev];
 	realFillBoundary(resid,geom);

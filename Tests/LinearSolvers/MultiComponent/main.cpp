@@ -1,3 +1,7 @@
+//
+// MultiComponent Linear Solve 
+//
+
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
@@ -10,11 +14,6 @@ using namespace amrex;
 
 int main (int argc, char* argv[])
 {
-    if (argc < 2) 
-    {
-        std::cout << "Missing input file" << std::endl;
-        exit(-1);
-    }
     Initialize(argc, argv);
     
     struct {
