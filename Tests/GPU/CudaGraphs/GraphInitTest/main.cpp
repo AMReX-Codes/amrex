@@ -7,10 +7,7 @@ using namespace amrex;
 // TestLoop
 // Written as a seperate function for easy changes/testing.
 
-__global__ void fillerKernel()
-{
-    printf("Hi.");
-}
+__global__ void fillerKernel() { }
 
 __global__ void initPrototype(long* a, int num)
 {
@@ -55,53 +52,82 @@ void WriteTimers(std::ofstream& file, long Nnodes,
         << instg_2 << " " << rung_2 << " " << graph_2 << std::endl;
 }
 
-void InitGraph(int maxsize, int factor)
+void InitGraph(long* h_ptr, long* d_ptr, int Nnodes, int streams, int warp, int factor)
 {
     BL_PROFILE("InitGraph");
 
-    amrex::Print() << "Instantiating a " << maxsize*100 << " empty node graph." << std::endl;
+    amrex::Print() << "Instantiating a " << Nnodes*streams*factor << " empty node graph." << std::endl;
 
-    cudaGraph_t     graphFull;
+    cudaGraph_t     graph;
     cudaGraphExec_t graphExec;
-    cudaGraphNode_t kernelNode, previousNode;
 
-    long* l = NULL;
-    int n = 0;
-    void *kernelArgs[2] = {(void *) &l, &n};
-
-    cudaKernelNodeParams kernelNodeParams = {0};
-    kernelNodeParams.func = (void *)initPrototype;
-    kernelNodeParams.gridDim = dim3(1, 1, 1);
-    kernelNodeParams.blockDim = dim3(256, 1, 1);
-    kernelNodeParams.sharedMemBytes = 0;
-    kernelNodeParams.kernelParams = (void**)kernelArgs; 
-    kernelNodeParams.extra = NULL;
-
-    AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
-    AMREX_GPU_SAFE_CALL(cudaGraphAddKernelNode(&kernelNode, graphFull, NULL, 0, &kernelNodeParams));
-    for (int i=0; i<maxsize*factor; ++i)
+    for (int n=0; n<(Nnodes*streams*factor); ++n)
     {
-        previousNode = kernelNode;
-        AMREX_GPU_SAFE_CALL(cudaGraphAddKernelNode(&kernelNode, graphFull, &previousNode, 1, &kernelNodeParams));
+        if (n == 0)
+        {
+            Gpu::Device::setStreamIndex(0);
+            cudaStream_t graph_stream = Gpu::gpuStream();
+            cudaEvent_t memcpy_event = {0};
+            AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&memcpy_event, cudaEventDisableTiming));
+
+            AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
+
+//            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_ptr, h_ptr, warp*streams, cudaMemcpyHostToDevice, graph_stream));
+            AMREX_GPU_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
+
+            for (int i=1; i<streams; ++i)
+            {
+                Gpu::Device::setStreamIndex(i);
+                AMREX_GPU_SAFE_CALL(cudaStreamWaitEvent(Gpu::gpuStream(), memcpy_event, 0));
+            }
+
+            AMREX_GPU_SAFE_CALL(cudaEventDestroy(memcpy_event));
+        }
+
+        // ..................
+        Gpu::Device::setStreamIndex(n%streams);
+        const auto ec = Gpu::ExecutionConfig(n);
+        fillerKernel<<<1, 1, 0, Gpu::gpuStream()>>>();
+        // ..................
+
+        if (n == (Nnodes*streams*factor-1))
+        { 
+            Gpu::Device::setStreamIndex(0);
+            cudaStream_t graph_stream = Gpu::gpuStream();
+            cudaEvent_t rejoin_event = {0};
+            AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&rejoin_event, cudaEventDisableTiming));
+
+            for (int i=1; i<streams; ++i)
+            {
+                Gpu::Device::setStreamIndex(i);
+                cudaEventRecord(rejoin_event, Gpu::gpuStream());
+                cudaStreamWaitEvent(graph_stream, rejoin_event, 0);
+            }
+
+            Gpu::Device::resetStreamIndex();
+
+            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(graph_stream, &graph));
+            AMREX_GPU_SAFE_CALL(cudaEventDestroy(rejoin_event));
+        }
     }
 
-    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
-
-    AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
+    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0));
+    AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph));
     AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(graphExec));
 }
 
-
-double Loop(long* ptr, int Nnodes, int streams, int warp, std::string label)
+double Loop(long* h_ptr, long* d_ptr, int Nnodes, int streams, int warp, std::string label)
 {
     BL_PROFILE(label);
     double timer = amrex::second(); 
 
+    Gpu::Device::setStreamIndex(0);
+    cudaMemcpy(d_ptr, h_ptr, streams*warp, cudaMemcpyHostToDevice);
     for (int n=0; n<(Nnodes*streams); ++n)
     {
         Gpu::Device::setStreamIndex(n%streams);
         size_t offset = (n%streams)*warp;
-        TestLoopFunc((ptr+offset), warp);
+        TestLoopFunc((d_ptr+offset), warp);
     }
     Gpu::Device::synchronize();
     Gpu::Device::resetStreamIndex();
@@ -111,7 +137,7 @@ double Loop(long* ptr, int Nnodes, int streams, int warp, std::string label)
     return timer;
 }
 
-void Graph(long* ptr, int Nnodes, int streams, int warp, 
+void Graph(long* h_ptr, long* d_ptr, int Nnodes, int streams, int warp, 
            double& build_time, double& inst_time, double& run_time, double& total_time,
            std::string label)
 {
@@ -121,46 +147,58 @@ void Graph(long* ptr, int Nnodes, int streams, int warp,
     BL_PROFILE_VAR("CREATE: " + label, cgc);
     build_time = amrex::second();
 
-    cudaGraph_t     graph[streams];
+    cudaGraph_t     graph;
     cudaGraphExec_t graphExec;
 
     for (int n=0; n<(Nnodes*streams); ++n)
     {
         if (n == 0)
         {
-            for (int i=0; i<streams; ++i)
+            Gpu::Device::setStreamIndex(0);
+            cudaStream_t graph_stream = Gpu::gpuStream();
+            cudaEvent_t memcpy_event = {0};
+            AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&memcpy_event, cudaEventDisableTiming));
+
+            AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
+
+            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_ptr, h_ptr, warp*streams, cudaMemcpyHostToDevice, graph_stream));
+            AMREX_GPU_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
+
+            for (int i=1; i<streams; ++i)
             {
-                amrex::Gpu::Device::setStreamIndex(i);
-                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Gpu::Device::cudaStream(), cudaStreamCaptureModeGlobal));
+                Gpu::Device::setStreamIndex(i);
+                AMREX_GPU_SAFE_CALL(cudaStreamWaitEvent(Gpu::gpuStream(), memcpy_event, 0));
             }
-        } 
+
+            AMREX_GPU_SAFE_CALL(cudaEventDestroy(memcpy_event));
+        }
+
 
         // ..................
         Gpu::Device::setStreamIndex(n%streams);
         size_t offset = (n%streams)*warp;
-        const auto ec = Gpu::ExecutionConfig(warp);
-        initPrototype<<<ec.numBlocks, ec.numThreads, 0, Gpu::gpuStream()>>>((ptr+offset), warp);
-//        TestLoopFunc((ptr+offset), warp);
+        TestLoopFunc((d_ptr+offset), warp);
         // ..................
 
         if (n == (Nnodes*streams-1))
         { 
-            for (int i=0; i<streams; ++i)
+            Gpu::Device::setStreamIndex(0);
+            cudaStream_t graph_stream = Gpu::gpuStream();
+            cudaEvent_t rejoin_event = {0};
+            AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&rejoin_event, cudaEventDisableTiming));
+
+            for (int i=1; i<streams; ++i)
             {
-                amrex::Gpu::Device::setStreamIndex(i); 
-                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Gpu::Device::cudaStream(), &(graph[i])));
+                Gpu::Device::setStreamIndex(i);
+                cudaEventRecord(rejoin_event, Gpu::gpuStream());
+                cudaStreamWaitEvent(graph_stream, rejoin_event, 0);
             }
-        } 
-    }
 
-    cudaGraph_t     graphFull;
-    cudaGraphNode_t emptyNode, placeholder;
+            Gpu::Device::resetStreamIndex();
 
-    AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
-    AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
-    for (int i=0; i<streams; ++i)
-    {
-        AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
+            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(graph_stream, &graph));
+            AMREX_GPU_SAFE_CALL(cudaEventDestroy(rejoin_event));
+        }
     }
 
     build_time = amrex::second() - build_time;
@@ -168,7 +206,7 @@ void Graph(long* ptr, int Nnodes, int streams, int warp,
     BL_PROFILE_VAR("INSTANTIATE: " + label, cgi);
     inst_time = amrex::second();
 
-    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
+    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0));
 
     inst_time = amrex::second() - inst_time;
     BL_PROFILE_VAR_STOP(cgi);
@@ -185,12 +223,8 @@ void Graph(long* ptr, int Nnodes, int streams, int warp,
     BL_PROFILE_VAR_STOP(cgl);
     BL_PROFILE_VAR("DESTROY: " + label, cgd);
 
-    AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graphFull));
     AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(graphExec));
-    for (int i=0; i<streams; ++i)
-    {
-        AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph[i]));
-    }
+    AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph));
 
     BL_PROFILE_VAR_STOP(cgl);
 
@@ -245,7 +279,7 @@ int main (int argc, char* argv[])
 
         if (init)
         {
-            InitGraph(end_nodes*streams, factor);
+            InitGraph(vec.data(), ptr, end_nodes, streams, warp, factor);
         }
 
         amrex::Print() << "Init Graph = " << init << std::endl;
@@ -277,25 +311,41 @@ int main (int argc, char* argv[])
         {
             amrex::Print() << "Testing " << Nnodes << " per stream." << std::endl;
 
-            loop_1 = Loop(ptr, Nnodes, streams, warp, "Loop 1");
+            loop_1 = Loop(vec.data(), ptr, Nnodes, streams, warp, "Loop 1");
             kidx += Nnodes;
             Check(arr, vec, kidx);
 
-            loop_2 = Loop(ptr, Nnodes, streams, warp, "Loop 2");
+            loop_2 = Loop(vec.data(), ptr, Nnodes, streams, warp, "Loop 2");
             kidx += Nnodes;
             Check(arr, vec, kidx);
 
-            Graph(ptr, Nnodes, streams, warp, 
+            Graph(vec.data(), ptr, Nnodes, streams, warp, 
                   buildg_1, instg_1, rung_1, graph_1,
                   "Graph 1");
             kidx += Nnodes;
             Check(arr, vec, kidx);
 
-            Graph(ptr, Nnodes, streams, warp, 
+            loop_2 = Loop(vec.data(), ptr, Nnodes, streams, warp, "Loop 3");
+            kidx += Nnodes;
+            Check(arr, vec, kidx);
+
+            Graph(vec.data(), ptr, Nnodes, streams, warp, 
                   buildg_2, instg_2, rung_2, graph_2,
                   "Graph 2");
             kidx += Nnodes;
             Check(arr, vec, kidx);
+
+            loop_2 = Loop(vec.data(), ptr, Nnodes, streams, warp, "Loop 4");
+            kidx += Nnodes;
+            Check(arr, vec, kidx);
+
+            Graph(vec.data(), ptr, Nnodes, streams, warp, 
+                  buildg_2, instg_2, rung_2, graph_2,
+                  "Graph 3");
+            kidx += Nnodes;
+            Check(arr, vec, kidx);
+
+            arr.clear();
 
             if (tofile)
             {
