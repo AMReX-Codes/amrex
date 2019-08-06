@@ -10,6 +10,11 @@ using namespace amrex;
 
 int main (int argc, char* argv[])
 {
+    if (argc < 2) 
+    {
+        std::cout << "Missing input file" << std::endl;
+        exit(-1);
+    }
     Initialize(argc, argv);
     
     struct {
@@ -138,9 +143,13 @@ int main (int argc, char* argv[])
     linop.setNComp(op.ncomp);
     linop.setCoeff(op.coeff);
     linop.define(geom,cgrids,dmap,info);
+//    linop.setDomainBC({amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet},
+//                      {amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet});
+//    for (int ilev = 0; ilev < mesh.nlevels; ++ilev) linop.setLevelBC(ilev,&solution[ilev]);
 
     MLMG solver(linop);
     solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
+    //solver.setBottomSolver(amrex::BottomSolver::smoother);
     if (mlmg.verbose >= 0)     solver.setVerbose(mlmg.verbose);
     if (mlmg.cg_verbose >= 0)  solver.setCGVerbose(mlmg.cg_verbose);
     if (mlmg.fixed_iter >= 0)  solver.setFixedIter(mlmg.fixed_iter);
@@ -150,8 +159,6 @@ int main (int argc, char* argv[])
 
     Real tol_rel = 1E-8, tol_abs = 1E-8;
     solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
-
-    //solver.apply(GetVecOfPtrs(solution),GetVecOfPtrs(rhs));
 
     WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
     WriteMLMF ("rhs",GetVecOfConstPtrs(rhs),geom);

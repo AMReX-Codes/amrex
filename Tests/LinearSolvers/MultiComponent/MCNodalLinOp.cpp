@@ -4,6 +4,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_SPACE.H>
 #include "MCNodalLinOp.H"
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -119,9 +120,11 @@ void MCNodalLinOp::Fsmooth (int amrlev, int mglev, amrex::MultiFab& a_x, const a
 		amrex::MultiFab::Subtract(_Rx,_Dx,0,0,ncomp,nghost); // Rx -= Dx  (Rx = Ax - Dx)
 
 
-		for (MFIter mfi(a_x, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
+		//for (MFIter mfi(a_x, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
+		for (MFIter mfi(a_x, false); mfi.isValid(); ++mfi)
 		{
-			Box bx = mfi.tilebox();
+			//Box bx = mfi.tilebox();
+			Box bx = mfi.validbox();
 			bx.grow(1);        // Expand to cover first layer of ghost nodes
 			bx = bx & domain;  // Take intersection of box and the problem domain
 			
@@ -342,6 +345,7 @@ void MCNodalLinOp::buildMasks ()
 						   BL_TO_FORTRAN_BOX(nddomain),
 						   m_lobc.data(), m_hibc.data());
 		}
+		//WriteSingleLevelPlotfile ("bottom_dot_mask",m_bottom_dot_mask,{{"data"}},Geom(0,NMGLevels(0)-1),0.0,0);
 	}
 }
 
@@ -400,6 +404,7 @@ void MCNodalLinOp::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab
 		Box bx = mfi.tilebox();
 		bx = bx & cdomain;
 
+		pcrse->setVal(0.0);
 		amrex::Array4<const amrex::Real> const& fdata = fine.array(mfi);
 		amrex::Array4<amrex::Real> const& cdata       = pcrse->array(mfi);
 
@@ -664,4 +669,8 @@ MCNodalLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiF
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, resid.nGrow());
 	amrex::Geometry geom = m_geom[amrlev][mglev];
 	realFillBoundary(resid,geom);
+    //WriteSingleLevelPlotfile ("resid", resid,{{"data"}},Geom(amrlev,mglev),0.0,0);
+    //WriteSingleLevelPlotfile ("x",     x,{{"data"}},Geom(amrlev,mglev),0.0,0);
+    //WriteSingleLevelPlotfile ("b",     b,{{"data"}},Geom(amrlev,mglev),0.0,0);
+	//amrex::Abort();
 }

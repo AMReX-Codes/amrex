@@ -5,6 +5,8 @@
 #include <AMReX_MLMG_F.H>
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MLABecLaplacian.H>
+// BR-TODO: remove this when finished
+#include <AMReX_PlotFileUtil.H>
 
 #ifdef AMREX_USE_PETSC
 #include <petscksp.h>
@@ -995,9 +997,12 @@ MLMG::bottomSolveWithCG (MultiFab& x, const MultiFab& b, MLCGSolver::Type type)
     cg_solver.setMaxIter(bottom_maxiter);
     if (cf_strategy == CFStrategy::ghostnodes) cg_solver.setNGhost(linop.getNGrow());
 
+    //BR-TODO: remove this when finished
+    //WriteSingleLevelPlotfile ("bottom_b",b,{{"data"}},linop.Geom(0,linop.NMGLevels(0)-1),0.0,0);
     int ret = cg_solver.solve(x, b, bottom_reltol, bottom_abstol);
+    //WriteSingleLevelPlotfile ("bottom_x",x,{{"data"}},linop.Geom(0,linop.NMGLevels(0)-1),0.0,0);
     if (ret != 0 && verbose > 1) {
-        amrex::Print() << "MLMG: Bottom solve failed.\n";
+        amrex::Print() << "MLMG: Bottom solve failed (Exit code " << ret << ")\n";
     }
     return ret;
 }

@@ -11,6 +11,8 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_MLMG.H>
+// BR-TODO remove this when finished
+#include <AMReX_PlotFileUtil.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -164,7 +166,12 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	}
         else
 	{
-            ret = 2; break;
+		// BR-TODO: remove this when finished
+		//std::cout << "rhTv = " << rhTv << std::endl;
+		//WriteSingleLevelPlotfile ("ch_rh",rh,{{"data"}},Lp.Geom(0,Lp.NMGLevels(0)-1),0.0,0);
+		//WriteSingleLevelPlotfile ("ch_v" ,v ,{{"data"}},Lp.Geom(0,Lp.NMGLevels(0)-1),0.0,0);
+		//amrex::Abort();
+            	ret = 2; break;
 	}
         sxay(sol, sol,  alpha, ph, nghost);
         sxay(s,     r, -alpha,  v, nghost);
