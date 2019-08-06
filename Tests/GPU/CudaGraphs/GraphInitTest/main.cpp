@@ -9,15 +9,6 @@ using namespace amrex;
 
 __global__ void fillerKernel() { }
 
-__global__ void initPrototype(long* a, int num)
-{
-    int threadId = blockDim.x*blockIdx.x+threadIdx.x; 
-    if (threadId < num)
-    {
-        *(a+threadId) += 1;
-    }
-}
-
 void TestLoopFunc(long* a, int num)
 {
     amrex::ParallelFor(num,
@@ -52,16 +43,18 @@ void WriteTimers(std::ofstream& file, long Nnodes,
         << instg_2 << " " << rung_2 << " " << graph_2 << std::endl;
 }
 
-void InitGraph(long* h_ptr, long* d_ptr, int Nnodes, int streams, int warp, int factor)
+void InitGraph(int Nnodes)
 {
     BL_PROFILE("InitGraph");
 
-    amrex::Print() << "Instantiating a " << Nnodes*streams*factor << " empty node graph." << std::endl;
+    int streams = 16;
+
+    amrex::Print() << "Instantiating a " << Nnodes << " empty node graph." << std::endl;
 
     cudaGraph_t     graph;
     cudaGraphExec_t graphExec;
 
-    for (int n=0; n<(Nnodes*streams*factor); ++n)
+    for (int n=0; n<(Nnodes); ++n)
     {
         if (n == 0)
         {
@@ -71,8 +64,7 @@ void InitGraph(long* h_ptr, long* d_ptr, int Nnodes, int streams, int warp, int 
             AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&memcpy_event, cudaEventDisableTiming));
 
             AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
-
-//            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_ptr, h_ptr, warp*streams, cudaMemcpyHostToDevice, graph_stream));
+            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(NULL, NULL, 0, cudaMemcpyHostToHost, graph_stream));
             AMREX_GPU_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
 
             for (int i=1; i<streams; ++i)
@@ -86,11 +78,10 @@ void InitGraph(long* h_ptr, long* d_ptr, int Nnodes, int streams, int warp, int 
 
         // ..................
         Gpu::Device::setStreamIndex(n%streams);
-        const auto ec = Gpu::ExecutionConfig(n);
         fillerKernel<<<1, 1, 0, Gpu::gpuStream()>>>();
         // ..................
 
-        if (n == (Nnodes*streams*factor-1))
+        if (n == (Nnodes-1))
         { 
             Gpu::Device::setStreamIndex(0);
             cudaStream_t graph_stream = Gpu::gpuStream();
@@ -279,7 +270,7 @@ int main (int argc, char* argv[])
 
         if (init)
         {
-            InitGraph(vec.data(), ptr, end_nodes, streams, warp, factor);
+            InitGraph(end_nodes*16*10);
         }
 
         amrex::Print() << "Init Graph = " << init << std::endl;
