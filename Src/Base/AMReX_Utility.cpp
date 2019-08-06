@@ -478,10 +478,12 @@ amrex::Random ()
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
-
-    int i = get_state(tid);
-    rand = curand_uniform_double(&states_d_ptr[i]); 
-    free_state(i);
+    if ( tid % blockId == 0)
+      {
+	int i = get_state(blockId);
+	rand = curand_uniform_double(&states_d_ptr[i]); 
+	free_state(i);
+      }
 #else
 
 #ifdef _OPENMP
