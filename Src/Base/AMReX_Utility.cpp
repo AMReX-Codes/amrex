@@ -418,20 +418,35 @@ void amrex::ResetRandomSeed(unsigned long seed)
 
 #ifdef __CUDA_ARCH__
 AMREX_GPU_DEVICE
-int get_state(int tid)
+int amrex::get_state(int tid)
 {
-  int i = tid % cuda_nstates;
-  while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
-  {
-      continue;  //traps locked threads in loop
-  }
-  return i;
+  // block size must evenly divide # of RNG states so we cut off the excess states
+  int bsize = blockDim.x * blockDim.y * blockDim.z;
+  int nstates = cuda_nstates - (cuda_nstates % bsize); 
+  int i = tid % nstates;
+
+  if (tid % bsize == 0)
+    {
+      while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
+	{
+	  continue;  //Trap 1 thread per block
+	}
+    }
+  __syncthreads(); // Other threads will wait here for master to be freed
+  return i;        // This ensures threads move with block - Important for prevolta
 }
 
 AMREX_GPU_DEVICE
-void free_state(int i)
+void amrex::free_state(int tid)
 {
-    amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],1,0);
+  int bsize = blockDim.x * blockDim.y * blockDim.z;
+  int nstates = cuda_nstates - (cuda_nstates % bsize);
+  int i = tid %	nstates;
+  if (tid % bsize == 0)  // we only locked the master thread state. 
+    {
+      amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],1,0);
+    }
+  __syncthreads();
 }
 #endif
 
@@ -448,10 +463,11 @@ amrex::RandomNormal (double mean, double stddev)
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
-
+    
     int i = get_state(tid);
     rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean; 
-    free_state(i);
+    free_state(tid);
+    
 #else
 
 #ifdef _OPENMP
@@ -476,10 +492,10 @@ amrex::Random ()
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
-
     int i = get_state(tid);
     rand = curand_uniform_double(&states_d_ptr[i]); 
-    free_state(i);
+    free_state(tid);
+    
 #else
 
 #ifdef _OPENMP
@@ -513,7 +529,7 @@ amrex::Random_int (unsigned int N)
     do {
         rand = curand(&states_d_ptr[i]); 
     } while (rand > (RAND_M - RAND_M % N));
-    free_state(i);
+    free_state(tid);
 
     return rand % N;
 }
