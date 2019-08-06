@@ -1065,45 +1065,46 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         auto& src_tile = plev[index];
         auto& aos = src_tile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
+        auto mask_arr = redistribute_mask_ptr->array(mfi);
         
-        m_grids_tmp.resize(np);
-        m_index_sequence_tmp.resize(np);
+        m_aos_r.resize(np);
+        int num_stay;
+        {
+            auto particle_stays = [=] AMREX_GPU_DEVICE (const ParticleType& p) -> int
+            {
+                if (p.id() < 0) return 0;                    
+                IntVect iv = IntVect(
+                                     AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                                                  floor((p.pos(1)-plo[1])*dxi[1]),
+                                                  floor((p.pos(2)-plo[2])*dxi[2])));
+                iv += domain.smallEnd();                    
+                int grid_id = mask_arr(iv);
+                return grid_id == gid;                    
+            };
 
-        thrust::sequence(thrust::device,
-                         m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
-        
-        thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
-                          functors::assignParticleGrid(geom.data(),
-                                                       (*redistribute_mask_ptr)[mfi].box(),
-                                                       redistribute_mask_ptr->array(mfi)));
-        
-        auto mid = thrust::partition(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                                     m_index_sequence_tmp.begin(),
-                                     m_index_sequence_tmp.end(), 
-                                     m_grids_tmp.begin(), 
-                                     functors::grid_is(gid));
-        
-        int num_move = thrust::distance(mid, m_index_sequence_tmp.end());
-        int num_stay = np - num_move;
+            ParticleType const* AMREX_RESTRICT pv = aos().dataPtr();
+            ParticleType * AMREX_RESTRICT pv2 = m_aos_r.dataPtr();
+            num_stay = Scan::PrefixSum<int> (np,
+                [=] AMREX_GPU_DEVICE (int i) -> int
+                {
+                    return particle_stays(pv[i]);
+                },
+                [=] AMREX_GPU_DEVICE (int i, int const& s)
+                {
+                    if (particle_stays(pv[i])) {
+                        pv2[s] = pv[i];
+                    } else {
+                        pv2[np-1-(i-s)] = pv[i];
+                    }
+                },
+                                             Scan::Type::exclusive);
+            aos().swap(m_aos_r);
+        }
+
+        int num_move = np - num_stay;
         new_sizes[gid] = num_stay;
 	op.resize(gid, num_move);
 
-        {
-            m_aos_r.resize(np);
-            thrust::gather(thrust::device,
-                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
-                           aos().begin(), m_aos_r.begin());
-            
-            m_grids_r.resize(np);
-            thrust::gather(thrust::device,
-                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
-                           m_grids_tmp.begin(), m_grids_r.begin());
-            
-            aos().swap(m_aos_r);
-            m_grids_tmp.swap(m_grids_r);
-        }
-
-        auto p_grid_ids = m_grids_tmp.dataPtr();
 	auto p_boxes = op.m_boxes[gid].dataPtr();
 	auto p_src_indices = op.m_src_indices[gid].dataPtr();
 	auto p_periodic_shift = op.m_periodic_shift[gid].dataPtr();
@@ -1112,6 +1113,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	AMREX_FOR_1D ( num_move, i,
         {
             auto& p = p_ptr[num_stay + i];
+
+            int grid_id;
+            if (p.id() < 0)
+            {
+                grid_id = -1;
+            }
+            else 
+            {
+                IntVect iv = IntVect(
+                        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                                     floor((p.pos(1)-plo[1])*dxi[1]),
+                                     floor((p.pos(2)-plo[2])*dxi[2])));
+
+                iv += domain.smallEnd();
+
+                grid_id = mask_arr(iv);                
+            }
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -1123,7 +1141,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
             }
 
-            p_boxes[i] = p_grid_ids[num_stay+i];
+            p_boxes[i] = grid_id;
             p_periodic_shift[i] = IntVect(0,0,0); // already handled this
             p_src_indices[i] = num_stay+i;
 	});
