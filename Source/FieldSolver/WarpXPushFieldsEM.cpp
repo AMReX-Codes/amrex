@@ -65,6 +65,11 @@ WarpX::PushPSATD (amrex::Real a_dt)
         } else {
             PushPSATD_localFFT(lev, a_dt);
         }
+
+        // Evolve the fields in the PML boxes
+        if (do_pml && pml[lev]->ok()) {
+            pml[lev]->PushPSATD();
+        }
     }
 }
 
