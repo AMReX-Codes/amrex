@@ -143,9 +143,9 @@ int main (int argc, char* argv[])
     linop.setNComp(op.ncomp);
     linop.setCoeff(op.coeff);
     linop.define(geom,cgrids,dmap,info);
-//    linop.setDomainBC({amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet},
-//                      {amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet});
-//    for (int ilev = 0; ilev < mesh.nlevels; ++ilev) linop.setLevelBC(ilev,&solution[ilev]);
+    linop.setDomainBC({amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet},
+                      {amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet});
+    for (int ilev = 0; ilev < mesh.nlevels; ++ilev) linop.setLevelBC(ilev,&solution[ilev]);
 
     MLMG solver(linop);
     solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
