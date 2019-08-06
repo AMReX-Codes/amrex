@@ -443,9 +443,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         const bool in_pml = true; // Tells spectral solver to use split-PML equations
         const RealVect cdx{AMREX_D_DECL(cgeom->CellSize(0), cgeom->CellSize(1), cgeom->CellSize(2))};
         // Get the cell-centered box, with guard cells
-        BoxArray realspace_ba = cba;  // Copy box
-        realspace_ba.enclosedCells().grow(nge); // cell-centered + guard cells
-        spectral_solver_cp.reset( new SpectralSolver( realspace_ba, cdm,
+        BoxArray realspace_cba = cba;  // Copy box
+        realspace_cba.enclosedCells().grow(nge); // cell-centered + guard cells
+        spectral_solver_cp.reset( new SpectralSolver( realspace_cba, cdm,
             nox_fft, noy_fft, noz_fft, do_nodal, cdx, dt, in_pml ) );
 #endif
     }
