@@ -513,155 +513,217 @@ MultiParticleContainer::getSpeciesID(std::string product_str)
 //void
 //MultiParticleContainer::InitIonizationModule()
 
+namespace
+{
+    static void createIonizedParticles(
+        int lev, const MFIter& mfi, 
+        std::unique_ptr< WarpXParticleContainer>& pc_source,
+        std::unique_ptr< WarpXParticleContainer>& pc_product,
+        const int * const p_is_ionized)
+    {
+
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+
+        // Get source particle data
+        auto& ptile_source = pc_source->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        const int np_source = ptile_source.GetArrayOfStructs().size();
+        // --- source AoS particle data
+        WarpXParticleContainer::ParticleType* particles_source = ptile_source.GetArrayOfStructs()().data();
+        // --- source SoA particle data
+        auto& soa_source = ptile_source.GetStructOfArrays();
+        GpuArray<Real*,PIdx::nattribs> attribs_source;
+        for (int ia = 0; ia < PIdx::nattribs; ++ia) {
+            attribs_source[ia] = soa_source.GetRealData(ia).data();
+        }
+        // --- source runtime attribs
+        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic 
+            && pc_product->DoBoostedFrameDiags();
+        bool do_boosted_source = WarpX::do_boosted_frame_diagnostic 
+            && pc_source->DoBoostedFrameDiags();
+        GpuArray<Real*,6> runtime_attribs_source;
+        // 
+        if        (do_boosted_product && do_boosted_source) {
+            // If boosted frame diagnostics for source species, store them
+            std::map<std::string, int> comps_source = pc_source->getParticleComps();
+            runtime_attribs_source[0] = soa_source.GetRealData(comps_source[ "xold"]).data();
+            runtime_attribs_source[1] = soa_source.GetRealData(comps_source[ "yold"]).data();
+            runtime_attribs_source[2] = soa_source.GetRealData(comps_source[ "zold"]).data();
+            runtime_attribs_source[3] = soa_source.GetRealData(comps_source["uxold"]).data();
+            runtime_attribs_source[4] = soa_source.GetRealData(comps_source["uyold"]).data();
+            runtime_attribs_source[5] = soa_source.GetRealData(comps_source["uzold"]).data();
+        } else if (do_boosted_product && !do_boosted_source){
+            // Otherwise, store current particle momenta.
+            // Positions are copied from AoS data.
+            runtime_attribs_source[3] = soa_source.GetRealData(PIdx::ux).data();
+            runtime_attribs_source[4] = soa_source.GetRealData(PIdx::uy).data();
+            runtime_attribs_source[5] = soa_source.GetRealData(PIdx::uz).data();
+        }
+
+        // Indices of product particle for each ionized source particle.
+        // i_product[i] is the location in product tile of product particle
+        // from source particle i.
+        amrex::Gpu::ManagedVector<int> i_product;
+        i_product.resize(np_source);
+        // 0<i<np_source
+        // 0<i_product<np_ionized
+        int np_ionized = p_is_ionized[0];
+        for(int i=1; i<np_source; ++i){
+            np_ionized += p_is_ionized[i];
+            i_product[i] = i_product[i-1]+p_is_ionized[i-1];
+        }
+        if (np_ionized == 0){
+            return;
+        }
+        int* AMREX_RESTRICT p_i_product = i_product.dataPtr();
+
+        // Get product particle data
+        auto& ptile_product = pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        // old and new (i.e., including ionized particles) number of particles
+        // for product species
+        const int np_product_old = ptile_product.GetArrayOfStructs().size();
+        const int np_product_new = np_product_old + np_ionized;
+        // Allocate extra space in product species for ionized particles.
+        ptile_product.resize(np_product_new);
+        // --- product AoS particle data
+        // First element is the first newly-created product particle
+        WarpXParticleContainer::ParticleType* particles_product = ptile_product.GetArrayOfStructs()().data() + np_product_old;
+        // --- product SoA particle data
+        auto& soa_product = ptile_product.GetStructOfArrays();
+        GpuArray<Real*,PIdx::nattribs> attribs_product;
+        for (int ia = 0; ia < PIdx::nattribs; ++ia) {
+            // First element is the first newly-created product particle
+            attribs_product[ia] = soa_product.GetRealData(ia).data() + np_product_old;
+        }
+        // --- product runtime attribs
+        GpuArray<Real*,6> runtime_attribs_product;
+        if (do_boosted_product) {
+            std::map<std::string, int> comps_product = pc_product->getParticleComps();
+            runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
+            runtime_attribs_product[1] = soa_product.GetRealData(comps_product[ "yold"]).data() + np_product_old;
+            runtime_attribs_product[2] = soa_product.GetRealData(comps_product[ "zold"]).data() + np_product_old;
+            runtime_attribs_product[3] = soa_product.GetRealData(comps_product["uxold"]).data() + np_product_old;
+            runtime_attribs_product[4] = soa_product.GetRealData(comps_product["uyold"]).data() + np_product_old;
+            runtime_attribs_product[5] = soa_product.GetRealData(comps_product["uzold"]).data() + np_product_old;
+        }
+
+        int pid_product;
+#pragma omp critical (doFieldIonization_nextid)
+        {
+            // ID of first newly-created product particle
+            pid_product = pc_product->NextID();
+            // Update NextID to include particles created in this function
+            pc_product->setNextID(pid_product+np_ionized);
+        }
+        const int cpuid = ParallelDescriptor::MyProc();
+
+        // Loop over all source particles. If is_ionized, copy particle data
+        // to corresponding product particle.
+        amrex::For(
+            np_source, [=] AMREX_GPU_DEVICE (int is) noexcept
+            {
+                if(p_is_ionized[is]){
+                    int ip = p_i_product[is];
+                    // is: index of ionized particle in source species
+                    // ip: index of corresponding created particle in product species
+                    WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
+                    WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
+                    // Copy particle from source to product: AoS
+                    p_product.id() = pid_product + ip;
+                    p_product.cpu() = cpuid;
+                    p_product.pos(0) = p_source.pos(0);
+                    p_product.pos(1) = p_source.pos(1);
+#if (AMREX_SPACEDIM == 3)
+                    p_product.pos(2) = p_source.pos(2);
+#endif
+                    // Copy particle from source to product: SoA
+                    for (int ia = 0; ia < PIdx::nattribs; ++ia) {
+                        attribs_product[ia][ip] = attribs_source[ia][is];
+                    }
+                    // Update xold etc. if boosted frame diagnostics required
+                    // for product species. For position, we need a different
+                    // handling depending on do_boosted_source. For momentum,
+                    // runtime_attribs_source[3-5] contains appropriate data.
+                    if (do_boosted_product) {
+                        if (do_boosted_source) {
+                            runtime_attribs_product[0][ip] = runtime_attribs_source[0][ip];
+                            runtime_attribs_product[1][ip] = runtime_attribs_source[1][ip];
+                            runtime_attribs_product[2][ip] = runtime_attribs_source[2][ip];
+                        } else {
+                            runtime_attribs_product[0][ip] = p_source.pos(0);
+                            runtime_attribs_product[1][ip] = p_source.pos(1);
+                            runtime_attribs_product[2][ip] = p_source.pos(2);
+                        }
+                        runtime_attribs_product[3][ip] = runtime_attribs_source[3][ip];
+                        runtime_attribs_product[4][ip] = runtime_attribs_source[4][ip];
+                        runtime_attribs_product[5][ip] = runtime_attribs_source[5][ip];
+                    }
+                }
+            }
+        );
+    }
+}
+
 void
 MultiParticleContainer::doFieldIonization()
 {
-    for (auto& pc : allcontainers){
 
-        if (!pc->do_field_ionization){ continue; }
+    // Loop over all species.
+    // Ionized particles in pc_source create particles in pc_product
+    for (auto& pc_source : allcontainers){
+    
+        // Skip if not ionizable
+        if (!pc_source->do_field_ionization){ continue; }
 
-        auto& prod_pc = allcontainers[pc->ionization_product];
+        // Get product species
+        auto& pc_product = allcontainers[pc_source->ionization_product];
 
-        const Real * const AMREX_RESTRICT p_ionization_energies = pc->ionization_energies.dataPtr();
-        const Real * const AMREX_RESTRICT p_adk_prefactor = pc->adk_prefactor.dataPtr();
-        const Real * const AMREX_RESTRICT p_adk_exp_prefactor = pc->adk_exp_prefactor.dataPtr();
-        const Real * const AMREX_RESTRICT p_adk_power = pc->adk_power.dataPtr();
-
-        for (int lev = 0; lev <= pc->finestLevel(); ++lev){
+        for (int lev = 0; lev <= pc_source->finestLevel(); ++lev){
 
 #ifdef _OPENMP
-            // First touch all tiles in the map in serial
-            for (MFIter mfi = pc->MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            // Touch all tiles of source species in serial if additional arguments 
+            for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
                 const int grid_id = mfi.index();
                 const int tile_id = mfi.LocalTileIndex();
-                pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-                if ( (pc->NumRuntimeRealComps()>0) || (pc->NumRuntimeIntComps()>0) ) {
-                    pc->DefineAndReturnParticleTile(lev, grid_id, tile_id);
-                }
-                prod_pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-                if ( (prod_pc->NumRuntimeRealComps()>0) || (prod_pc->NumRuntimeIntComps()>0) ) {
-                    prod_pc->DefineAndReturnParticleTile(lev, grid_id, tile_id);
+                pc_source->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                if ( (pc_source->NumRuntimeRealComps()>0) || (pc_source->NumRuntimeIntComps()>0) ) {
+                    pc_source->DefineAndReturnParticleTile(lev, grid_id, tile_id);
                 }
             }
 #endif
-            MFItInfo info;
-            if (pc->do_tiling && Gpu::notInLaunchRegion()) {
-                info.EnableTiling(pc->tile_size);
+            // Touch all tiles of product species in serial
+            for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
+                const int grid_id = mfi.index();
+                const int tile_id = mfi.LocalTileIndex();
+                pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                pc_product->DefineAndReturnParticleTile(lev, grid_id, tile_id);
             }
+
+            // Enable tiling
+            MFItInfo info;
+            if (pc_source->do_tiling && Gpu::notInLaunchRegion()) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    pc_product->do_tiling, 
+                    "For ionization, either all or none of the "
+                    "particle species must use tiling.");
+                info.EnableTiling(pc_source->tile_size);
+            }
+
 #ifdef _OPENMP
             info.SetDynamic(true);
 #pragma omp parallel
 #endif
-            for (MFIter mfi = pc->MakeMFIter(lev, info); mfi.isValid(); ++mfi)
+            // Loop over all grids (if not tiling) or grids and tiles (if tiling)
+            for (MFIter mfi = pc_source->MakeMFIter(lev, info); mfi.isValid(); ++mfi)
             {
-                const int grid_id = mfi.index();
-                const int tile_id = mfi.LocalTileIndex();
-                auto& particle_tile = pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-                auto& soa = particle_tile.GetStructOfArrays();
-                const int np = particle_tile.GetArrayOfStructs().size();
-                if (np == 0) break;
+                // Ionization mask: one element per source particles.
+                // 0 if not ionized, 1 if ionized.
                 amrex::Gpu::ManagedVector<int> is_ionized;
-                // const int np_lev = pc->NumberOfParticlesAtLevel(lev);
-                is_ionized.resize(np);
-                int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
-                const Real * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
-                const Real * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
-                const Real * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
-                const Real * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
-                const Real * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
-                const Real * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
-                const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
-                const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
-                const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
-                Real * const AMREX_RESTRICT ilev_real = soa.GetRealData(pc->particle_comps["ionization_level"]).data();
-                Real c = PhysConst::c;
-                Real c2_inv = 1./c/c;
+                pc_source->buildIonizationMask(mfi, lev, is_ionized);
+                const int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
 
-                ParallelFor( 
-                    np,
-                    [=] AMREX_GPU_DEVICE (long i) {
-                        Real random_draw = amrex::Random();
-                        Real ga = std::sqrt(1. +
-                                            (ux[i]*ux[i] + 
-                                             uy[i]*uy[i] + 
-                                             uz[i]*uz[i]) * c2_inv);
-                        Real E = std::sqrt(
-                            - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
-                            + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
-                            + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
-                            + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
-                            );
-                        int ilev = (int) round(ilev_real[i]);
-                        // int ilev = static_cast<int>(round(ilev_real[i]));
-                        Real p;
-                        //if (E<1.e-20*(p_ionization_energies[0])){
-                        //    p = 0.;
-                        //} else {
-                        Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
-                            std::pow(E,p_adk_power[ilev]) * 
-                            std::exp( p_adk_exp_prefactor[ilev]/E );
-                        p = 1. - std::exp( - w_dtau );
-                        //}
-                        p_is_ionized[i] = 0;
-                        if (random_draw < p){
-                            ilev_real[i] += 1.;
-                            p_is_ionized[i] = 1;
-                        }
-                    }
-                ); // ParallelFor
-
-                amrex::Gpu::ManagedVector<int> is_ionized_cumsum_vector;
-                is_ionized_cumsum_vector.resize(np);
-                int np_ionized = p_is_ionized[0];
-                for(int i=1; i<np; ++i){
-                    np_ionized += p_is_ionized[i];
-                    is_ionized_cumsum_vector[i] = is_ionized_cumsum_vector[i-1]+p_is_ionized[i-1];
-                }
-                if (np_ionized == 0){
-                    break;
-                }
-
-                auto& prod_particle_tile = prod_pc->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-                const int np_old = prod_particle_tile.GetArrayOfStructs().size();
-                const int np_new = np_old + np_ionized;
-                prod_particle_tile.resize(np_new);
-                auto& prod_soa = prod_particle_tile.GetStructOfArrays();
-
-                GpuArray<Real*,PIdx::nattribs> prod_pa;
-                for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-                    prod_pa[ia] = prod_soa.GetRealData(ia).data() + np_old;
-                }
-                WarpXParticleContainer::ParticleType* prod_pp = prod_particle_tile.GetArrayOfStructs()().data() + np_old;
-                WarpXParticleContainer::ParticleType* pp = particle_tile.GetArrayOfStructs()().data();
-
-                GpuArray<Real*,PIdx::nattribs> pa;
-                for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-                    pa[ia] = soa.GetRealData(ia).data();
-                }
-
-                const int cpuid = ParallelDescriptor::MyProc();
-                int* AMREX_RESTRICT is_ionized_cumsum = is_ionized_cumsum_vector.dataPtr();
-                amrex::For(
-                    np, [=] AMREX_GPU_DEVICE (int ip) noexcept
-                    {
-                        if(is_ionized[ip]){
-                            int i = is_ionized_cumsum[ip];
-                            WarpXParticleContainer::ParticleType& prod_p = prod_pp[i];
-                            WarpXParticleContainer::ParticleType& p = pp[ip];
-                            prod_p.id() = 9999;
-                            prod_p.cpu() = cpuid;
-                            prod_p.pos(0) = p.pos(0);
-                            prod_p.pos(1) = p.pos(1);
-#if (AMREX_SPACEDIM == 3)
-                            prod_p.pos(2) = p.pos(2);
-#endif
-                            for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-                                prod_pa[ia][i] = pa[ia][ip];
-                            }
-                        }
-                    }
-                );
+                createIonizedParticles(lev, mfi, pc_source, pc_product, p_is_ionized);
             } // MFIter
-        }
-    }
+        } // lev
+    } // pc_source
 }

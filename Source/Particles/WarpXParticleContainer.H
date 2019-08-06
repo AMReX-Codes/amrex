@@ -250,6 +250,8 @@ public:
 
     static int NextID () { return ParticleType::NextID(); }
 
+    void setNextID(int next_id) { ParticleType::NextID(next_id); }
+
     bool do_splitting = false;
 
     // split along axes (0) or diagonals (1)
@@ -276,6 +278,12 @@ public:
 
     virtual int doFieldIonization (
         const int lev) { return 0; };
+
+    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                      amrex::Gpu::ManagedVector<int>& ionization_mask)
+    {};
+
+    std::map<std::string, int> getParticleComps() { return particle_comps;}
 
 protected:
 

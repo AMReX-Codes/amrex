@@ -111,6 +111,9 @@ public:
 
     virtual int doFieldIonization (const int lev) override;
     
+    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                      amrex::Gpu::ManagedVector<int>& ionization_mask) override;
+
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
 

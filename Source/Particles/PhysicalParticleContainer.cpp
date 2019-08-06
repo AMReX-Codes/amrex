@@ -2133,3 +2133,85 @@ PhysicalParticleContainer::doFieldIonization(const int lev)
     Print()<<"in PhysicalParticleContainer::doFieldIonization\n";
     return 0;
 }
+
+/* \brief create mask of ionized particles (1 if ionized, 0 otherwise)
+ * 
+ * \param mfi: tile or grid
+ * \param lev: MR level
+ * \param ionization_mask: Array with as many elements as particles in mfi.
+ * This function initialized the array, and set each element to 1 or 0 
+ * depending on whether the particle is ionized or not.
+ */
+void
+PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const int lev,
+                                               amrex::Gpu::ManagedVector<int>& ionization_mask)
+{
+    // Get pointers to ionization data from pc_source
+    const Real * const AMREX_RESTRICT p_ionization_energies = ionization_energies.dataPtr();
+    const Real * const AMREX_RESTRICT p_adk_prefactor = adk_prefactor.dataPtr();
+    const Real * const AMREX_RESTRICT p_adk_exp_prefactor = adk_exp_prefactor.dataPtr();
+    const Real * const AMREX_RESTRICT p_adk_power = adk_power.dataPtr();
+
+    // Current tile info
+    const int grid_id = mfi.index();
+    const int tile_id = mfi.LocalTileIndex();
+
+    // Get GPU-friendly arrays of particle data
+    auto& ptile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+    // Only need attribs (i.e., SoA data)
+    auto& soa = ptile.GetStructOfArrays();
+    const int np = ptile.GetArrayOfStructs().size();
+
+    // If no particle, nothing to do.
+    if (np == 0) return;
+    // Otherwise, resize ionization_mask, and get poiters to attribs arrays.
+    ionization_mask.resize(np);
+    int * const AMREX_RESTRICT p_ionization_mask = ionization_mask.data();
+    const Real * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
+    const Real * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
+    const Real * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
+    const Real * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
+    const Real * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
+    const Real * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
+    const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
+    const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
+    const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
+    Real* ilev_real = soa.GetRealData(particle_comps["ionization_level"]).data();
+
+    Real c = PhysConst::c;
+    Real c2_inv = 1./c/c;
+
+    // Loop over all particles in grid/tile. If ionized, set mask to 1
+    // and increment ionization level.
+    ParallelFor( 
+        np,
+        [=] AMREX_GPU_DEVICE (long i) {
+            Real random_draw = amrex::Random();
+            // Compute electric field amplitude in the particle's frame of
+            // reference (particularly important when in boosted frame).
+            Real ga = std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]) * c2_inv);
+            Real E = std::sqrt(
+                - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
+                + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
+                + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
+                + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
+                );
+            // Get index of ionization_level
+            int ilev = (int) round(ilev_real[i]);
+            // Compute probability of ionization p
+            Real p;
+            Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
+                std::pow(E,p_adk_power[ilev]) * 
+                std::exp( p_adk_exp_prefactor[ilev]/E );
+            p = 1. - std::exp( - w_dtau );
+            p_ionization_mask[i] = 0;
+
+            if (random_draw < p){
+                // increment particle's ionization level
+                ilev_real[i] += 1.;
+                // update mask
+                p_ionization_mask[i] = 1;
+            }
+        }
+    );
+}
