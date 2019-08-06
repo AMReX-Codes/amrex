@@ -44,6 +44,8 @@ bool Device::graph_per_stream = true;
 Vector<cudaGraph_t> Device::cuda_graphs;
 #endif
 
+int Device::max_blocks_per_launch = 640;
+
 #endif
 
 void
@@ -328,7 +330,7 @@ Device::initialize_gpu ()
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(warp_size == device_prop.warpSize, "Incorrect warp size");
 
-    gpu_stream = gpu_streams[0];
+    gpu_stream = 0;
 
     ParmParse pp("device");
 
@@ -355,6 +357,8 @@ Device::initialize_gpu ()
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
+
+    max_blocks_per_launch = numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
 
 #endif
 }
@@ -867,6 +871,27 @@ Device::freeMemAvailable ()
     return 0;
 #endif
 }
+
+#ifdef AMREX_USE_GPU
+namespace {
+    static int ncallbacks = 0;
+}
+
+void callbackAdded ()
+{
+    ++ncallbacks;
+}
+
+void resetNumCallbacks ()
+{
+    ncallbacks = 0;
+}
+
+int getNumCallbacks ()
+{
+    return ncallbacks;
+}
+#endif
 
 }}
 
