@@ -13,6 +13,7 @@ CEXE_headers += ShapeFactors.H
 
 include $(WARPX_HOME)/Source/Particles/Pusher/Make.package
 include $(WARPX_HOME)/Source/Particles/Deposition/Make.package
+include $(WARPX_HOME)/Source/Particles/Gather/Make.package
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles

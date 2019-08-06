@@ -219,6 +219,14 @@ Particle initialization
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
       user-defined constant, see above.
 
+* ``<species_name>.density_min`` (`float`) optional (default `0.`)
+    Minimum plasma density. No particle is injected where the density is below
+    this value.
+
+* ``<species_name>.density_max`` (`float`) optional (default `infinity`)
+    Maximum plasma density. The density at each point is the minimum between
+    the value given in the profile, and `density_max`.
+
 * ``<species_name>.radially_weighted`` (`bool`) optional (default `true`)
     Whether particle's weight is varied with their radius. This only applies to cylindrical geometry.
     The only valid value is true.
