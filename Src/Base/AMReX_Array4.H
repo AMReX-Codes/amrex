@@ -135,6 +135,16 @@ namespace amrex {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T* dataPtr () const noexcept {
+            return this->p;
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        std::size_t size () const noexcept {
+            return this->nstride * this->ncomp;
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         int nComp () const noexcept { return ncomp; }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
