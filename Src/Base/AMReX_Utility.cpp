@@ -418,9 +418,9 @@ void amrex::ResetRandomSeed(unsigned long seed)
 
 #ifdef __CUDA_ARCH__
 AMREX_GPU_DEVICE
-int get_state(int tid)
+int get_state(int blockId)
 {
-  int i = tid % cuda_nstates;
+  int i = blockId % cuda_nstates;
   while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
   {
       continue;  //traps locked threads in loop
@@ -448,10 +448,12 @@ amrex::RandomNormal (double mean, double stddev)
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
-
-    int i = get_state(tid);
-    rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean; 
-    free_state(i);
+    if ( tid % blockId == 0)
+      {
+	int i = get_state(blockId);
+	rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean; 
+	free_state(i);
+      }
 #else
 
 #ifdef _OPENMP
