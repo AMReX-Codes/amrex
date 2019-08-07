@@ -1176,8 +1176,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
                     const Box& cbox = amrex::coarsen(box,ref_ratio);
-                    const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
-                    const int* cixyzmin_grid = cbox.loVect();
 
                     // Data on the grid
                     FArrayBox const* cexfab = &(*cEx)[pti];
