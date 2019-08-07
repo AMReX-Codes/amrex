@@ -194,7 +194,7 @@ constexpr
 typename GpuTupleElement<I, GpuTuple<Ts...> >::type &&
 get (GpuTuple<Ts...> && tup) noexcept
 {
-    return detail::get_impl<I,Ts...>(tup);
+    return detail::get_impl<I,Ts...>(std::move(tup));
 }
 
 namespace detail {
