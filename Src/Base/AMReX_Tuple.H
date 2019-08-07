@@ -362,9 +362,19 @@ Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<T
 template <typename... Args>
 AMREX_GPU_HOST_DEVICE
 constexpr GpuTuple<Args&...>
-Tie (Args&... args)
+Tie (Args&... args) noexcept
 {
     return GpuTuple<Args&...>(args...);
+}
+
+// ForwardAsTuple
+
+template <typename... Ts>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts&&...>
+ForwardAsTuple (Ts&&... args) noexcept
+{
+    return GpuTuple<Ts&&...>(std::forward<Ts>(args)...);
 }
 
 }
