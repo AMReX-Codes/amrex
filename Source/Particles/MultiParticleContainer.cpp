@@ -537,30 +537,11 @@ namespace
             attribs_source[ia] = soa_source.GetRealData(ia).data();
         }
         // --- source runtime attribs
-        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic 
-            && pc_product->DoBoostedFrameDiags();
-        bool do_boosted_source = WarpX::do_boosted_frame_diagnostic 
-            && pc_source->DoBoostedFrameDiags();
-        GpuArray<Real*,6> runtime_attribs_source;
+        GpuArray<Real*,3> runtime_uold_source;
         // Prepare arrays for boosted frame diagnostics.
-        // If do_boosted_product, need different treatment
-        // depending on do_boosted_source
-        if        (do_boosted_product && do_boosted_source) {
-            // If boosted frame diagnostics for source species, store them
-            std::map<std::string, int> comps_source = pc_source->getParticleComps();
-            runtime_attribs_source[0] = soa_source.GetRealData(comps_source[ "xold"]).data();
-            runtime_attribs_source[1] = soa_source.GetRealData(comps_source[ "yold"]).data();
-            runtime_attribs_source[2] = soa_source.GetRealData(comps_source[ "zold"]).data();
-            runtime_attribs_source[3] = soa_source.GetRealData(comps_source["uxold"]).data();
-            runtime_attribs_source[4] = soa_source.GetRealData(comps_source["uyold"]).data();
-            runtime_attribs_source[5] = soa_source.GetRealData(comps_source["uzold"]).data();
-        } else if (do_boosted_product && !do_boosted_source){
-            // Otherwise, store current particle momenta.
-            // Positions are copied from AoS data.
-            runtime_attribs_source[3] = soa_source.GetRealData(PIdx::ux).data();
-            runtime_attribs_source[4] = soa_source.GetRealData(PIdx::uy).data();
-            runtime_attribs_source[5] = soa_source.GetRealData(PIdx::uz).data();
-        }
+        runtime_uold_source[0] = soa_source.GetRealData(PIdx::ux).data();
+        runtime_uold_source[1] = soa_source.GetRealData(PIdx::uy).data();
+        runtime_uold_source[2] = soa_source.GetRealData(PIdx::uz).data();
 
         // Indices of product particle for each ionized source particle.
         // i_product[i] is the location in product tile of product particle
@@ -599,6 +580,8 @@ namespace
         }
         // --- product runtime attribs
         GpuArray<Real*,6> runtime_attribs_product;
+        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic 
+            && pc_product->DoBoostedFrameDiags();
         if (do_boosted_product) {
             std::map<std::string, int> comps_product = pc_product->getParticleComps();
             runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
@@ -643,22 +626,15 @@ namespace
                         attribs_product[ia][ip] = attribs_source[ia][is];
                     }
                     // Update xold etc. if boosted frame diagnostics required
-                    // for product species. For position, we need a different
-                    // handling depending on do_boosted_source. For momentum,
-                    // runtime_attribs_source[3-5] contains appropriate data.
+                    // for product species. Fill runtime attribs with a copy of 
+                    // current properties (xold = x etc.).
                     if (do_boosted_product) {
-                        if (do_boosted_source) {
-                            runtime_attribs_product[0][ip] = runtime_attribs_source[0][ip];
-                            runtime_attribs_product[1][ip] = runtime_attribs_source[1][ip];
-                            runtime_attribs_product[2][ip] = runtime_attribs_source[2][ip];
-                        } else {
-                            runtime_attribs_product[0][ip] = p_source.pos(0);
-                            runtime_attribs_product[1][ip] = p_source.pos(1);
-                            runtime_attribs_product[2][ip] = p_source.pos(2);
-                        }
-                        runtime_attribs_product[3][ip] = runtime_attribs_source[3][ip];
-                        runtime_attribs_product[4][ip] = runtime_attribs_source[4][ip];
-                        runtime_attribs_product[5][ip] = runtime_attribs_source[5][ip];
+                        runtime_attribs_product[0][ip] = p_source.pos(0);
+                        runtime_attribs_product[1][ip] = p_source.pos(1);
+                        runtime_attribs_product[2][ip] = p_source.pos(2);
+                        runtime_attribs_product[3][ip] = runtime_uold_source[0][ip];
+                        runtime_attribs_product[4][ip] = runtime_uold_source[1][ip];
+                        runtime_attribs_product[5][ip] = runtime_uold_source[2][ip];
                     }
                 }
             }
