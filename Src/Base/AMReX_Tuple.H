@@ -7,7 +7,9 @@
 #include <tuple>
 #include <functional>
 #include <type_traits>
-
+#include <utility>
+#include <AMReX_IndexSequence.H>
+#include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
 
 namespace amrex {
@@ -81,11 +83,11 @@ class GpuTuple
 public:
     constexpr GpuTuple () = default;
 
-    explicit constexpr GpuTuple (Ts const&... args)
+    constexpr GpuTuple (Ts const&... args)
         : detail::gpu_tuple_impl<0, Ts...>(args...)
         {}
 
-    explicit constexpr GpuTuple (Ts&&... args)
+    constexpr GpuTuple (Ts&&... args)
         : detail::gpu_tuple_impl<0, Ts...>(std::forward<Ts>(args)...)
         {}
 };
@@ -165,10 +167,117 @@ namespace detail {
 }
 
 template <typename... Ts>
+AMREX_GPU_HOST_DEVICE
+constexpr
 GpuTuple<Ts...>
 makeTuple (Ts &&... args)
 {
     return GpuTuple<detail::tuple_decay_t<Ts>...>(std::forward<Ts>(args)...);
+}
+
+namespace detail {
+    template <typename...> struct tuple_cat_result {};
+
+    template <typename... Ts>
+    struct tuple_cat_result<GpuTuple<Ts...> >
+    {
+        typedef GpuTuple<Ts...> type;
+    };
+
+    template <typename... T1s, typename... T2s, typename... TPs>
+    struct tuple_cat_result<GpuTuple<T1s...>,GpuTuple<T2s...>,TPs...>
+    {
+        typedef typename tuple_cat_result<GpuTuple<T1s..., T2s...>, TPs...>::type type;
+    };
+
+    template <typename R, typename TP1, typename TP2, std::size_t... N1, std::size_t... N2>
+    AMREX_GPU_HOST_DEVICE constexpr R
+    make_tuple (TP1 && a, TP2 && b,
+                IndexSequence<N1...> const& n1, IndexSequence<N2...> const& n2)
+    {
+        return R(amrex::get<N1>(a)..., amrex::get<N2>(b)...);
+    }
+}
+
+// TupleCat
+
+template <typename TP>
+AMREX_GPU_HOST_DEVICE
+constexpr auto
+TupleCat (TP && a) -> typename detail::tuple_cat_result<detail::tuple_decay_t<TP> >::type
+{
+    typedef typename detail::tuple_cat_result<detail::tuple_decay_t<TP> >::type ReturnType;
+    return ReturnType(std::forward<TP>(a));
+}
+
+template <typename TP1, typename TP2>
+AMREX_GPU_HOST_DEVICE
+constexpr auto
+TupleCat (TP1 && a, TP2 && b) -> typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
+                                                                   detail::tuple_decay_t<TP2> >::type
+{
+    typedef typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
+                                              detail::tuple_decay_t<TP2> >::type ReturnType;
+    return detail::make_tuple<ReturnType>
+        (a, b,
+         makeIndexSequence<GpuTupleSize<typename std::decay<TP1>::type>::value>(),
+         makeIndexSequence<GpuTupleSize<typename std::decay<TP2>::type>::value>());
+}
+
+template <typename TP1, typename TP2, typename... TPs>
+AMREX_GPU_HOST_DEVICE
+constexpr auto
+TupleCat (TP1&& a, TP2&& b, TPs&&... args)
+    -> typename detail::tuple_cat_result<detail::tuple_decay_t<TP1>,
+                                         detail::tuple_decay_t<TP2>,
+                                         detail::tuple_decay_t<TPs>...>::type
+{
+    return TupleCat(TupleCat(std::forward<TP1>(a),std::forward<TP2>(b)),
+                    std::forward<TPs>(args)...);
+}
+
+// Apply
+
+namespace detail {
+
+    template <typename F, typename... Args>
+    AMREX_GPU_HOST_DEVICE
+    auto INVOKE (F&& f, Args&&... args) -> decltype(f(std::forward<Args>(args)...));
+
+    template <typename V, typename F, typename... Args> struct invoke_result {};
+
+    template <typename F, typename... Args>
+    struct invoke_result<decltype(void(INVOKE(std::declval<F>(), std::declval<Args>()...))),
+                         F, Args...>
+    {
+        typedef decltype(INVOKE(std::declval<F>(), std::declval<Args>()...)) type;
+    };
+
+    template <typename F, typename...> struct apply_result {};
+
+    template <typename F, typename... Ts>
+    struct apply_result<F, GpuTuple<Ts...> >
+    {
+        typedef typename invoke_result<void, F, Ts...>::type type;
+    };
+
+    template <typename F, typename TP, std::size_t... N>
+    AMREX_GPU_HOST_DEVICE
+    constexpr auto
+    apply_impl (F&& f, TP&& t, IndexSequence<N...> is)
+        -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
+    {
+        return f(amrex::get<N>(std::forward<TP>(t))...);
+    }
+}
+
+template <typename F, typename TP>
+AMREX_GPU_HOST_DEVICE
+constexpr auto
+Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<TP> >::type
+{
+    return detail::apply_impl(std::forward<F>(f), std::forward<TP>(t),
+                              makeIndexSequence<GpuTupleSize<typename std::decay<TP>::type>::value>());
 }
 
 }

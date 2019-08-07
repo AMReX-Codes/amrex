@@ -396,13 +396,20 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
         else if (argc > 1)
         {
-            if (strchr(argv[1],'='))
-            {
-                ParmParse::Initialize(argc-1,argv+1,0);
+            int ppargc = 1;
+            for (; ppargc < argc; ++ppargc) {
+                if (strcmp(argv[ppargc], "--") == 0) break;
             }
-            else
+            if (ppargc > 1)
             {
-                ParmParse::Initialize(argc-2,argv+2,argv[1]);
+                if (strchr(argv[1],'='))
+                {
+                    ParmParse::Initialize(ppargc-1,argv+1,0);
+                }
+                else
+                {
+                    ParmParse::Initialize(ppargc-2,argv+2,argv[1]);
+                }
             }
         }
     } else {

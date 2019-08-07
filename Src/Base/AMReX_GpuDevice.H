@@ -100,6 +100,7 @@ public:
     static void box_threads_and_blocks (const Box& bx, dim3& numBlocks, dim3& numThreads) noexcept;
 
     static std::size_t totalGlobalMem () noexcept { return device_prop.totalGlobalMem; }
+    static std::size_t sharedMemPerBlock () noexcept { return device_prop.sharedMemPerBlock; }
     static int numMultiProcessors () noexcept { return device_prop.multiProcessorCount; }
     static int maxThreadsPerMultiProcessor () noexcept { return device_prop.maxThreadsPerMultiProcessor; }
     static int maxThreadsPerBlock () noexcept { return device_prop.maxThreadsPerBlock; }
@@ -115,6 +116,10 @@ public:
 #else
     static constexpr int warp_size = 64;
 #endif
+#endif
+
+#ifdef AMREX_USE_GPU
+    static int maxBlocksPerLaunch () noexcept { return max_blocks_per_launch; }
 #endif
 
 private:
@@ -136,6 +141,7 @@ private:
     static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
 #endif
+    static int max_blocks_per_launch;
 #endif
 };
 
@@ -185,6 +191,14 @@ dtoh_memcpy (void* p_h, const void* p_d, const std::size_t sz) noexcept
 }
 
 inline void
+dtod_memcpy (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpy(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpy(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice)); )
+}
+
+inline void
 htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
 {
     AMREX_HIP_OR_CUDA(
@@ -198,6 +212,14 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpuStream()));,
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpuStream())); )
+}
+
+inline void
+dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noexcept
+{
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice, gpuStream()));,
+        AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice, gpuStream())); )
 }
 
 #ifdef AMREX_USE_GPU
