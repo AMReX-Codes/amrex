@@ -47,7 +47,9 @@ void InitGraph(int Nnodes)
 {
     BL_PROFILE("InitGraph");
 
-    amrex::Print() << "Instantiating a " << Nnodes << " empty node graph." << std::endl;
+    int streams = 16;
+
+    amrex::Print() << "Instantiating a " << Nnodes << " node graph." << std::endl;
 
     cudaGraphExec_t graphExec;
 
