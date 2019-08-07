@@ -20,6 +20,28 @@
 namespace amrex {
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+struct ParticleTileData
+{
+    using ParticleType = Particle<NStructReal, NStructInt>;
+
+    long m_size;
+    ParticleType* m_aos;
+    GpuArray<Real*, NArrayReal> m_rdata;
+    GpuArray<int*, NArrayInt> m_idata;    
+};
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+struct ConstParticleTileData
+{
+    using ParticleType = Particle<NStructReal, NStructInt>;
+
+    long m_size;
+    const ParticleType* m_aos;
+    GpuArray<const Real*, NArrayReal> m_rdata;
+    GpuArray<const int* , NArrayInt > m_idata;    
+};
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile
 {
     using ParticleType = Particle<NStructReal, NStructInt>;
@@ -30,6 +52,9 @@ struct ParticleTile
     using SoA = StructOfArrays<NArrayReal, NArrayInt>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
+
+    using ParticleTileDataType = ParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ConstParticleTileDataType = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     ParticleTile()
         : m_defined(false)
@@ -173,6 +198,28 @@ struct ParticleTile
     void push_back_int (int comp, std::size_t npar, int v) {
         auto new_size = m_soa_tile.GetIntData(comp).size() + npar;
         m_soa_tile.GetIntData(comp).resize(new_size, v);
+    }
+
+    ParticleTileDataType getParticleTileData ()
+    {
+        ParticleTileDataType ptd;
+        ptd.m_aos = m_aos_tile().dataPtr();
+        for (int i = 0; i < NArrayReal; ++i)
+            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        for (int i = 0; i < NArrayInt; ++i)
+            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        return ptd;
+    }
+
+    ConstParticleTileDataType getParticleTileData () const
+    {
+        ConstParticleTileDataType ptd;
+        ptd.m_aos = m_aos_tile().dataPtr();
+        for (int i = 0; i < NArrayReal; ++i)
+            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        for (int i = 0; i < NArrayInt; ++i)
+            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        return ptd;
     }
 
 private:
