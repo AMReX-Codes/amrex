@@ -892,9 +892,8 @@ protected:
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
-    Gpu::DeviceVector<ParticleType> redistribute_snd_buffer;
-    Gpu::DeviceVector<ParticleType> redistribute_rcv_buffer;
-
+    Gpu::PolymorphicDeviceVector<ParticleType> redistribute_snd_buffer;
+    Gpu::PolymorphicDeviceVector<ParticleType> redistribute_rcv_buffer;
 
 #endif
 
