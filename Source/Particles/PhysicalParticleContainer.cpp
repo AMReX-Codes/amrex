@@ -80,12 +80,6 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
     : WarpXParticleContainer(amr_core, 0)
 {
     plasma_injector.reset(new PlasmaInjector());
-/*
-    if (do_field_ionization){
-        Print()<<"AddRealComp\n";
-        AddRealComp("ionization_level");
-    }
-*/
 }
 
 void PhysicalParticleContainer::InitData()
@@ -2119,13 +2113,6 @@ void PhysicalParticleContainer::InitIonizationModule()
             * std::pow(std::pow(2*(Uion/UH),3./2)*Ea,2*n_eff - 1);
         adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
     }
-}
-
-int
-PhysicalParticleContainer::doFieldIonization(const int lev)
-{
-    Print()<<"in PhysicalParticleContainer::doFieldIonization\n";
-    return 0;
 }
 
 /* \brief create mask of ionized particles (1 if ionized, 0 otherwise)

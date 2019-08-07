@@ -646,8 +646,6 @@ void
 MultiParticleContainer::doFieldIonization()
 {
 
-    Print()<<"in MultiParticleContainer::doFieldIonization\n";
-
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
     for (auto& pc_source : allcontainers){
@@ -698,16 +696,11 @@ MultiParticleContainer::doFieldIonization()
             {
                 // Ionization mask: one element per source particles.
                 // 0 if not ionized, 1 if ionized.
-                // Print()<<"here 1\n";
                 amrex::Gpu::ManagedVector<int> is_ionized;
-                // Print()<<"here 2\n";
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
-                // Print()<<"here 3\n";
                 const int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
-                // Print()<<"here 4\n";
                 createIonizedParticles(lev, mfi, pc_source, pc_product, p_is_ionized);
-                // Print()<<"here 5\n";
-            } // MFIter
+            }
         } // lev
     } // pc_source
 }

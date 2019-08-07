@@ -108,8 +108,6 @@ public:
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
-
-    virtual int doFieldIonization (const int lev) override;
     
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
                                       amrex::Gpu::ManagedVector<int>& ionization_mask) override;
