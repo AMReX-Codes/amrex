@@ -2228,9 +2228,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 defineBufferMap () const
-{
-    
-    BL_PROFILE("ParticleContainer::BuildRedistributeMask");
+{    
+    BL_PROFILE("ParticleContainer::defineBufferMap");
     const int lev = 0;
     const BoxArray& ba = ParticleBoxArray(lev);
     const DistributionMapping& dm = ParticleDistributionMap(lev);
@@ -2242,8 +2241,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 BuildRedistributeMask (int lev, int nghost) const
-{
-    
+{    
     BL_PROFILE("ParticleContainer::BuildRedistributeMask");
     BL_ASSERT(lev == 0);
 

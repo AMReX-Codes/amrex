@@ -229,5 +229,5 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<long>& Snds, Vector<long>&
 
 void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
-    amrex::Abort("Not implemented");
+    amrex::Abort("Not implemented.");
 }
