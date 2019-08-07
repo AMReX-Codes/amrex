@@ -145,7 +145,8 @@ WarpX::InitPML ()
 #ifdef WARPX_USE_PSATD
                                    dt[lev], nox_fft, noy_fft, noz_fft, do_nodal,
 #endif
-                                   do_dive_cleaning, do_moving_window));
+                                   do_dive_cleaning, do_moving_window,
+                                   do_pml_Lo, do_pml_Hi));
         }
     }
 }
