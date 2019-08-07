@@ -4,4 +4,6 @@ redistribute.is_periodic = 1
 redistribute.num_ppc = 1
 redistribute.move_dir = (1, 1, 1)
 redistribute.do_random = 1
-redistribute.nsteps = 100
+redistribute.nsteps = 300
+
+amrex.use_gpu_aware_mpi = 1
