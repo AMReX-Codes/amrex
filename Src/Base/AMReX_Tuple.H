@@ -8,6 +8,7 @@
 #include <functional>
 #include <type_traits>
 #include <utility>
+#include <AMReX_TypeTraits.H>
 #include <AMReX_IndexSequence.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
@@ -24,14 +25,16 @@ namespace detail {
 template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
-    constexpr gpu_tuple_element () = default;
+    template <typename U=T, amrex::EnableIf_t<std::is_default_constructible<U>::value,int> = 0>
+    constexpr gpu_tuple_element () {}
 
     explicit constexpr gpu_tuple_element (T const& a_value)
         : m_value(a_value)
         {}
 
-    explicit constexpr gpu_tuple_element (T && a_value)
-        : m_value(std::move(a_value))
+    template <typename U, amrex::EnableIf_t<std::is_convertible<U,T>::value,int> = 0>
+    explicit constexpr gpu_tuple_element (U && a_value)
+        : m_value(std::forward<U>(a_value))
         {}
 
     T m_value;
@@ -44,16 +47,18 @@ struct gpu_tuple_impl<I, Head, Tail...>
     : public gpu_tuple_impl<I+1, Tail...>,
       public gpu_tuple_element<I, Head>
 {
-    constexpr gpu_tuple_impl () = default;
+    template<typename U=Head, amrex::EnableIf_t<std::is_default_constructible<U>::value,int> = 0>
+    constexpr gpu_tuple_impl () {}
 
     constexpr gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(a_tail...),
           gpu_tuple_element<I, Head>(a_head)
         {}
 
-    constexpr gpu_tuple_impl (Head&& a_head, Tail &&... a_tail)
-        : gpu_tuple_impl<I+1, Tail...>(std::forward<Tail>(a_tail)...),
-          gpu_tuple_element<I, Head>(std::forward<Head>(a_head))
+    template <typename UH, typename... UT, amrex::EnableIf_t<std::is_convertible<UH,Head>::value,int> = 0>
+    constexpr gpu_tuple_impl (UH&& a_head, UT &&... a_tail)
+        : gpu_tuple_impl<I+1, Tail...>(std::forward<UT>(a_tail)...),
+          gpu_tuple_element<I, Head>(std::forward<UH>(a_head))
         {}
 };
 
@@ -61,14 +66,17 @@ template <std::size_t I, typename Head>
 struct gpu_tuple_impl<I, Head>
     : public gpu_tuple_element<I, Head>
 {
-    constexpr gpu_tuple_impl () = default;
+
+    template<typename U=Head, amrex::EnableIf_t<std::is_default_constructible<U>::value,int> = 0>
+    constexpr gpu_tuple_impl () {}
 
     explicit constexpr gpu_tuple_impl (Head const& a_head)
         : gpu_tuple_element<I, Head>(a_head)
         {}
 
-    explicit constexpr gpu_tuple_impl (Head&& a_head)
-        : gpu_tuple_element<I, Head>(std::forward<Head>(a_head))
+    template <typename U, amrex::EnableIf_t<std::is_convertible<U,Head>::value,int> = 0>
+    explicit constexpr gpu_tuple_impl (U&& a_head)
+        : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
 };
 
@@ -87,8 +95,9 @@ public:
         : detail::gpu_tuple_impl<0, Ts...>(args...)
         {}
 
-    constexpr GpuTuple (Ts&&... args)
-        : detail::gpu_tuple_impl<0, Ts...>(std::forward<Ts>(args)...)
+    template <typename... Us>
+    constexpr GpuTuple (Us&&... args)
+        : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
         {}
 };
 
