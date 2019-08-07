@@ -82,6 +82,12 @@ struct ParticleCopyPlan
 
     Vector<int> m_neighbor_procs;
         
+    Vector<long> m_Snds;
+    Vector<long> m_Rcvs;
+    Vector<int> m_RcvProc;
+    Vector<std::size_t> m_rOffset;
+    Gpu::HostVector<int> m_rcv_data;
+
     template <class PC>
     void build (const PC& pc, const ParticleCopyOp& op)
     {
@@ -131,14 +137,16 @@ struct ParticleCopyPlan
 
         amrex::Gpu::exclusive_scan(m_box_counts.begin(), m_box_counts.end()+1, m_box_offsets.begin());
 
-        buildMPI(pc.BufferMap());
+        buildMPIStart(pc.BufferMap());
     }
 
     void clear();
 
+    void buildMPIFinish (const ParticleBufferMap& map);
+
 private:
     
-    void buildMPI (const ParticleBufferMap& map);
+    void buildMPIStart (const ParticleBufferMap& map);
 
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.

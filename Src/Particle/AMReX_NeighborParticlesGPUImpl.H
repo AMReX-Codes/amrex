@@ -265,6 +265,7 @@ updateNeighborsGPU ()
 
     clearNeighbors();
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
+    neighbor_copy_plan.buildMPIFinish(this->BufferMap());
     communicateParticlesStart(*this, neighbor_copy_plan, snd_buffer, rcv_buffer);
     unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
     communicateParticlesFinish(*this, neighbor_copy_plan, snd_buffer, rcv_buffer, NeighborUnpackPolicy());
