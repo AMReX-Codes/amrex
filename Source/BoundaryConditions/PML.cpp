@@ -258,14 +258,7 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
     {
         for (int i = 0, N = sigma_star[idim].size(); i < N; ++i)
         {
-            if (sigma_star[idim][i] == 0.0)
-            {
-                sigma_star_fac[idim][i] = 1.0;
-            }
-            else
-            {
-                sigma_star_fac[idim][i] = std::exp(-sigma_star[idim][i]*dt);
-            }
+            sigma_star_fac[idim][i] = std::exp(-sigma_star[idim][i]*dt);
         }
     }
 }
@@ -277,14 +270,7 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
     {
         for (int i = 0, N = sigma[idim].size(); i < N; ++i)
         {
-            if (sigma[idim][i] == 0.0)
-            {
-                sigma_fac[idim][i] = 1.0;
-            }
-            else
-            {
-                sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
-            }
+            sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
         }
     }
 }
