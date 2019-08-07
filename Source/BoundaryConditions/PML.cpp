@@ -324,7 +324,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     : m_geom(geom),
       m_cgeom(cgeom)
 {
-    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
+    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell, do_pml_Lo, do_pml_Hi);
     if (ba.size() == 0) {
         m_ok = false;
         return;
@@ -400,7 +400,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
-        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell);
+        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_Lo, do_pml_Hi);
 
         DistributionMapping cdm{cba};
 
@@ -445,7 +445,12 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     Box domain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
-            domain.grow(idim, ncell);
+            if (do_pml_Lo[idim]){
+                domain.growLo(idim, ncell);
+            }
+            if (do_pml_Hi[idim]){
+                domain.growHi(idim, ncell);
+            }
         }
     }
 

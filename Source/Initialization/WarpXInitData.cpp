@@ -136,7 +136,8 @@ WarpX::InitPML ()
 #ifdef WARPX_USE_PSATD
                              dt[0], nox_fft, noy_fft, noz_fft, do_nodal,
 #endif
-                             do_dive_cleaning, do_moving_window));
+                             do_dive_cleaning, do_moving_window,
+                             do_pml_Lo, do_pml_Hi));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
