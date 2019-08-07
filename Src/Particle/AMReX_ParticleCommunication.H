@@ -199,7 +199,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
         auto& src_tile = plev.at(index);
         auto& aos   = src_tile.GetArrayOfStructs();
-        const auto p_ptr = &(aos[0]);
+        const auto ptd = src_tile.getParticleTileData();
 
 	int num_copies = op.numCopies(gid);
 
@@ -218,7 +218,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             int box_offset = p_box_offsets[p_box_perm[dst_box]];
             int dst_index = box_offset + p_dst_indices[i];
             int src_index = p_src_indices[i];
-            p_snd_buffer[dst_index] = p_ptr[src_index];
+            p_snd_buffer[dst_index] = ptd.m_aos[src_index];
             
             auto& p = p_snd_buffer[dst_index];
             const IntVect& pshift = p_periodic_shift[i];
@@ -286,13 +286,13 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         int size = sizes[uindex];
         ++uindex;
         
-        auto p_ptr = aos().dataPtr();
+        auto ptd = tile.getParticleTileData();
         AMREX_FOR_1D ( size, i,
         {
             int box_offset = p_box_offsets[p_box_perm[gid]];
             int src_index = box_offset + i;
             int dst_index = offset + i;
-            p_ptr[dst_index] = p_snd_buffer[src_index];
+            ptd.m_aos[dst_index] = p_snd_buffer[src_index];
         });
     }    
 }
