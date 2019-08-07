@@ -122,7 +122,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
             // Deposit current into jx_arr, jy_arr and jz_arr
-#if (defined WARPX_DIM_2D)
+#if (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(
