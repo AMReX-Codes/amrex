@@ -516,12 +516,11 @@ MultiParticleContainer::getSpeciesID(std::string product_str)
 namespace
 {
     static void createIonizedParticles(
-        int lev, const MFIter& mfi, 
+        int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
         const int * const p_is_ionized)
     {
-        // Print()<<"in createIonizedParticles\n";
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
@@ -530,7 +529,6 @@ namespace
         const int np_source = ptile_source.GetArrayOfStructs().size();
         if (np_source == 0) return;
         // --- source AoS particle data
-        //Print()<<"la 1\n";
         WarpXParticleContainer::ParticleType* particles_source = ptile_source.GetArrayOfStructs()().data();
         // --- source SoA particle data
         auto& soa_source = ptile_source.GetStructOfArrays();
@@ -544,10 +542,10 @@ namespace
         bool do_boosted_source = WarpX::do_boosted_frame_diagnostic 
             && pc_source->DoBoostedFrameDiags();
         GpuArray<Real*,6> runtime_attribs_source;
-        // 
-        //Print()<<"la 2\n";
+        // Prepare arrays for boosted frame diagnostics.
+        // If do_boosted_product, need different treatment
+        // depending on do_boosted_source
         if        (do_boosted_product && do_boosted_source) {
-            //Print()<<"do_boosted_product && do_boosted_source\n";
             // If boosted frame diagnostics for source species, store them
             std::map<std::string, int> comps_source = pc_source->getParticleComps();
             runtime_attribs_source[0] = soa_source.GetRealData(comps_source[ "xold"]).data();
@@ -557,7 +555,6 @@ namespace
             runtime_attribs_source[4] = soa_source.GetRealData(comps_source["uyold"]).data();
             runtime_attribs_source[5] = soa_source.GetRealData(comps_source["uzold"]).data();
         } else if (do_boosted_product && !do_boosted_source){
-            //Print()<<"do_boosted_product && !do_boosted_source\n";
             // Otherwise, store current particle momenta.
             // Positions are copied from AoS data.
             runtime_attribs_source[3] = soa_source.GetRealData(PIdx::ux).data();
@@ -568,27 +565,20 @@ namespace
         // Indices of product particle for each ionized source particle.
         // i_product[i] is the location in product tile of product particle
         // from source particle i.
-        //Print()<<"la 3\n";
         amrex::Gpu::ManagedVector<int> i_product;
         i_product.resize(np_source);
         // 0<i<np_source
         // 0<i_product<np_ionized
-        //Print()<<"np_source "<<np_source<<'\n';
         int np_ionized = p_is_ionized[0];
-        //Print()<<"la 4\n";
         for(int i=1; i<np_source; ++i){
-            //Print()<<i<<'\n';
             np_ionized += p_is_ionized[i];
             i_product[i] = i_product[i-1]+p_is_ionized[i-1];
         }
-        //Print()<<"la 5\n";
         if (np_ionized == 0){
             return;
         }
-        //Print()<<"la 6\n";
         int* AMREX_RESTRICT p_i_product = i_product.dataPtr();
 
-        //Print()<<"la 7\n";
         // Get product particle data
         auto& ptile_product = pc_product->GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         // old and new (i.e., including ionized particles) number of particles
@@ -601,18 +591,15 @@ namespace
         // First element is the first newly-created product particle
         WarpXParticleContainer::ParticleType* particles_product = ptile_product.GetArrayOfStructs()().data() + np_product_old;
         // --- product SoA particle data
-        //Print()<<"la 8\n";
         auto& soa_product = ptile_product.GetStructOfArrays();
         GpuArray<Real*,PIdx::nattribs> attribs_product;
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             // First element is the first newly-created product particle
             attribs_product[ia] = soa_product.GetRealData(ia).data() + np_product_old;
         }
-        //Print()<<"la 9\n";
         // --- product runtime attribs
         GpuArray<Real*,6> runtime_attribs_product;
         if (do_boosted_product) {
-            //Print()<<"do_boosted_product 1\n";
             std::map<std::string, int> comps_product = pc_product->getParticleComps();
             runtime_attribs_product[0] = soa_product.GetRealData(comps_product[ "xold"]).data() + np_product_old;
             runtime_attribs_product[1] = soa_product.GetRealData(comps_product[ "yold"]).data() + np_product_old;
@@ -640,7 +627,7 @@ namespace
                 if(p_is_ionized[is]){
                     int ip = p_i_product[is];
                     // is: index of ionized particle in source species
-                    // ip: index of corresponding created particle in product species
+                    // ip: index of corresponding new particle in product species
                     WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
                     WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
                     // Copy particle from source to product: AoS
@@ -660,23 +647,18 @@ namespace
                     // handling depending on do_boosted_source. For momentum,
                     // runtime_attribs_source[3-5] contains appropriate data.
                     if (do_boosted_product) {
-                        //Print()<<"do_boosted_product\n";
                         if (do_boosted_source) {
-                            //Print()<<"do_boosted_product do_boosted_source\n";
                             runtime_attribs_product[0][ip] = runtime_attribs_source[0][ip];
                             runtime_attribs_product[1][ip] = runtime_attribs_source[1][ip];
                             runtime_attribs_product[2][ip] = runtime_attribs_source[2][ip];
                         } else {
-                            //Print()<<"do_boosted_product NO do_boosted_source\n";                            
                             runtime_attribs_product[0][ip] = p_source.pos(0);
                             runtime_attribs_product[1][ip] = p_source.pos(1);
                             runtime_attribs_product[2][ip] = p_source.pos(2);
                         }
-                        //Print()<<"momenta\n";
                         runtime_attribs_product[3][ip] = runtime_attribs_source[3][ip];
                         runtime_attribs_product[4][ip] = runtime_attribs_source[4][ip];
                         runtime_attribs_product[5][ip] = runtime_attribs_source[5][ip];
-                        //Print()<<"done\n";
                     }
                 }
             }

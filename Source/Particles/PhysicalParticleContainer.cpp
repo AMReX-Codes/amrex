@@ -2094,14 +2094,11 @@ void PhysicalParticleContainer::InitIonizationModule()
     int offset = ion_energy_offsets[ion_element_id];
     for(int i=0; i<ion_atomic_number; i++){
         ionization_energies[i] = table_ionization_energies[i+offset];
-        Print()<<"i "<<i<<" ionization_energies[i] "<<ionization_energies[i]<<'\n';
     }
     // Compute ADK prefactors (See Chen, JCP 236 (2013), equation (2))
     // For now, we assume l=0 and m=0.
     // The approximate expressions are used, 
     // without Gamma function
-    Print()<<"PhysConst::alpha "<< PhysConst::alpha <<'\n';
-    Print()<<"PhysConst::r_e "<< PhysConst::r_e<<'\n';
     Real wa = std::pow(PhysConst::alpha,3) * PhysConst::c / PhysConst::r_e;
     Real Ea = PhysConst::m_e * PhysConst::c*PhysConst::c /PhysConst::q_e * 
         std::pow(PhysConst::alpha,4)/PhysConst::r_e;
@@ -2121,9 +2118,6 @@ void PhysicalParticleContainer::InitIonizationModule()
         adk_prefactor[i] = dt * wa * C2 * ( Uion/(2*UH) ) 
             * std::pow(std::pow(2*(Uion/UH),3./2)*Ea,2*n_eff - 1);
         adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
-        Print()<<"i = "<<i<<" adk_power[i] "<<adk_power[i]<<"\n";
-        Print()<<"i = "<<i<<" adk_exp_prefactor[i] "<<adk_exp_prefactor[i]<<"\n";
-        Print()<<"i = "<<i<<" adk_prefactor[i] "<<adk_prefactor[i]<<"\n";
     }
 }
 
@@ -2180,37 +2174,40 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
 
     Real c = PhysConst::c;
     Real c2_inv = 1./c/c;
+    int atomic_number = ion_atomic_number;
 
     // Loop over all particles in grid/tile. If ionized, set mask to 1
     // and increment ionization level.
     ParallelFor( 
         np,
         [=] AMREX_GPU_DEVICE (long i) {
-            Real random_draw = amrex::Random();
-            // Compute electric field amplitude in the particle's frame of
-            // reference (particularly important when in boosted frame).
-            Real ga = std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]) * c2_inv);
-            Real E = std::sqrt(
-                - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
-                + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
-                + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
-                + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
-                );
             // Get index of ionization_level
             int ilev = (int) round(ilev_real[i]);
-            // Compute probability of ionization p
-            Real p;
-            Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
-                std::pow(E,p_adk_power[ilev]) * 
-                std::exp( p_adk_exp_prefactor[ilev]/E );
-            p = 1. - std::exp( - w_dtau );
             p_ionization_mask[i] = 0;
+            if ( ilev<atomic_number ){
+                Real random_draw = amrex::Random();
+                // Compute electric field amplitude in the particle's frame of
+                // reference (particularly important when in boosted frame).
+                Real ga = std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]) * c2_inv);
+                Real E = std::sqrt(
+                    - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
+                    + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
+                    + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
+                    + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
+                    );
+                // Compute probability of ionization p
+                Real p;
+                Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
+                    std::pow(E,p_adk_power[ilev]) * 
+                    std::exp( p_adk_exp_prefactor[ilev]/E );
+                p = 1. - std::exp( - w_dtau );
 
-            if (random_draw < p){
-                // increment particle's ionization level
-                ilev_real[i] += 1.;
-                // update mask
-                p_ionization_mask[i] = 1;
+                if (random_draw < p){
+                    // increment particle's ionization level
+                    ilev_real[i] += 1.;
+                    // update mask
+                    p_ionization_mask[i] = 1;
+                }
             }
         }
     );
