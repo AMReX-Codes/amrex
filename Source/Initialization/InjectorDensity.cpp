@@ -64,7 +64,7 @@ InjectorDensityPredefined::InjectorDensityPredefined (
                    which_profile_s.begin(), ::tolower);
     if (which_profile_s == "parabolic_channel"){
         profile = Profile::parabolic_channel;
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(v.size() > 6,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(v.size() > 5,
             "InjectorDensityPredefined::parabolic_channel: not enough parameters");
     }
 }
