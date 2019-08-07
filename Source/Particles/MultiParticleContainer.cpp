@@ -521,6 +521,8 @@ namespace
         std::unique_ptr< WarpXParticleContainer>& pc_product,
         const int * const p_is_ionized)
     {
+        BL_PROFILE("createIonizedParticles");
+
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
@@ -645,7 +647,7 @@ namespace
 void
 MultiParticleContainer::doFieldIonization()
 {
-
+    BL_PROFILE("MPC::doFieldIonization");
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
     for (auto& pc_source : allcontainers){
