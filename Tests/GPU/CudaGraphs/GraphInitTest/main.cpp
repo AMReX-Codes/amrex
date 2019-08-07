@@ -47,63 +47,22 @@ void InitGraph(int Nnodes)
 {
     BL_PROFILE("InitGraph");
 
-    int streams = 16;
-
     amrex::Print() << "Instantiating a " << Nnodes << " empty node graph." << std::endl;
 
-    cudaGraph_t     graph;
     cudaGraphExec_t graphExec;
 
     for (int n=0; n<(Nnodes); ++n)
     {
-        if (n == 0)
-        {
-            Gpu::Device::setStreamIndex(0);
-            cudaStream_t graph_stream = Gpu::gpuStream();
-            cudaEvent_t memcpy_event = {0};
-            AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&memcpy_event, cudaEventDisableTiming));
-
-            AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
-            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(NULL, NULL, 0, cudaMemcpyHostToHost, graph_stream));
-            AMREX_GPU_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
-
-            for (int i=1; i<streams; ++i)
-            {
-                Gpu::Device::setStreamIndex(i);
-                AMREX_GPU_SAFE_CALL(cudaStreamWaitEvent(Gpu::gpuStream(), memcpy_event, 0));
-            }
-
-            AMREX_GPU_SAFE_CALL(cudaEventDestroy(memcpy_event));
-        }
+        Gpu::Device::startGraphRecording((n == 0), NULL, NULL, 0);
 
         // ..................
         Gpu::Device::setStreamIndex(n%streams);
         fillerKernel<<<1, 1, 0, Gpu::gpuStream()>>>();
         // ..................
 
-        if (n == (Nnodes-1))
-        { 
-            Gpu::Device::setStreamIndex(0);
-            cudaStream_t graph_stream = Gpu::gpuStream();
-            cudaEvent_t rejoin_event = {0};
-            AMREX_GPU_SAFE_CALL(cudaEventCreateWithFlags(&rejoin_event, cudaEventDisableTiming));
-
-            for (int i=1; i<streams; ++i)
-            {
-                Gpu::Device::setStreamIndex(i);
-                cudaEventRecord(rejoin_event, Gpu::gpuStream());
-                cudaStreamWaitEvent(graph_stream, rejoin_event, 0);
-            }
-
-            Gpu::Device::resetStreamIndex();
-
-            AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(graph_stream, &graph));
-            AMREX_GPU_SAFE_CALL(cudaEventDestroy(rejoin_event));
-        }
+        graphExec = Gpu::Device::stopGraphRecording((n == (Nnodes-1)));
     }
 
-    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0));
-    AMREX_GPU_SAFE_CALL(cudaGraphDestroy(graph));
     AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(graphExec));
 }
 
@@ -228,6 +187,8 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
     {
+        amrex::Gpu::GraphSafeGuard gsf(true);
+
         int begin_nodes, end_nodes, streams, factor, warp, init, tofile;
         std::string filename;
         {
