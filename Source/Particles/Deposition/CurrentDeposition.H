@@ -66,14 +66,37 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real vy  = uyp[ip]*gaminv;
             const amrex::Real vz  = uzp[ip]*gaminv;
             // wqx, wqy wqz are particle current in each direction 
+#if (defined WARPX_DIM_RZ)
+            // In RZ, wqx is actually wqr, and wqy is wqtheta
+            // Convert to cylinderical at the mid point
+            const amrex::Real xpmid = xp[ip] - 0.5*dt*vx;
+            const amrex::Real ypmid = yp[ip] - 0.5*dt*vy;
+            const amrex::Real rpmid = std::sqrt(xpmid*xpmid + ypmid*ypmid);
+            amrex::Real costheta;
+            amrex::Real sintheta;
+            if (rpmid > 0.) {
+                costheta = xpmid/rpmid;
+                sintheta = ypmid/rpmid;
+            } else {
+                costheta = 1.;
+                sintheta = 0.;
+            }
+            const amrex::Real wqx = wq*invvol*(+vx*costheta + vy*sintheta);
+            const amrex::Real wqy = wq*invvol*(-vx*sintheta + vy*costheta);
+#else
             const amrex::Real wqx = wq*invvol*vx;
             const amrex::Real wqy = wq*invvol*vy;
+#endif
             const amrex::Real wqz = wq*invvol*vz;
 
             // --- Compute shape factors
             // x direction
             // Get particle position after 1/2 push back in position
+#if (defined WARPX_DIM_RZ)
+            const amrex::Real xmid = (rpmid-xmin)*dxi;
+#else
             const amrex::Real xmid = (xp[ip]-xmin)*dxi-dts2dx*vx;
+#endif
             // Compute shape factors for node-centered quantities
             amrex::Real AMREX_RESTRICT sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that the particle touches
