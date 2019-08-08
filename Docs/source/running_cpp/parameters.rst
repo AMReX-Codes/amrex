@@ -661,6 +661,12 @@ Boundary conditions
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
 
+* ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
+
+* ``warpx.do_pml_Hi`` (`2 floats in 2D`, `3 floats in 3D`;; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for upper boundaries on mother grid.
+
 Diagnostics and output
 ----------------------
 
