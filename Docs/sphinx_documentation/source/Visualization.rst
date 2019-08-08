@@ -209,6 +209,21 @@ The next step is to run VisIt, select “File” :math:`\rightarrow` “Open fil
 the movie, choose “File” :math:`\rightarrow` “Save movie ...”, and follow the
 on-screen instructions.
 
+Caveat: 
+
+With at least some (possibly all) versions of VisIt, 
+the Visit reader determines "Cycle" not by reading the Header
+file but from the name of the plotfile (directory).  It appears 
+to set "Cycle" by assuming the digits immediately follow the string "plt"
+in the name.
+
+So ... if you call it myplt00100 or this_is_my_plt00100 then it will
+correctly recognize and print Cycle: 100
+
+But if you do not have the number immediately following "plt",
+e.g. you name it pltx00100, then it will not be able to correctly recognize 
+and print the value for "Cycle".  (It will still read and display the data itself.)
+
 .. _section-1:
 
 ParaView
