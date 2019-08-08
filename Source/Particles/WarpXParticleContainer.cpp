@@ -623,11 +623,6 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
         doChargeDepositionShapeN<3>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
                                     np_to_depose, dx, xyzmin, lo, q);
     }
-#ifdef WARPX_DIM_RZ
-    warpx_charge_deposition_rz_volume_scaling(
-                             data_ptr, &ngRho, rholen.getVect(),
-                             &xyzmin[0], &dx[0]);
-#endif
     BL_PROFILE_VAR_STOP(blp_ppc_chd);
 
 #ifndef AMREX_USE_GPU

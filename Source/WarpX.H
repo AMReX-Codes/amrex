@@ -183,6 +183,10 @@ public:
                                                    amrex::MultiFab* Jy,
                                                    amrex::MultiFab* Jz,
                                                    int lev);
+
+    void ApplyInverseVolumeScalingToChargeDensity(amrex::MultiFab* Rho,
+                                                  int icomp,
+                                                  int lev);
 #endif
 
     void DampPML ();
