@@ -489,11 +489,9 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
         ApplyInverseVolumeScalingToCurrentDensity(current_buf[lev][0].get(), current_buf[lev][1].get(), current_buf[lev][2].get(), lev-1);
     }
     if (rho_fp[lev].get()) {
-        for (int icomp = 0 ; icomp < rho_fp[lev].get()->nComp() ; icomp++) {
-            ApplyInverseVolumeScalingToChargeDensity(rho_fp[lev].get(), icomp, lev);
-            if (charge_buf[lev].get()) {
-                ApplyInverseVolumeScalingToChargeDensity(charge_buf[lev].get(), icomp, lev-1);
-            }
+        ApplyInverseVolumeScalingToChargeDensity(rho_fp[lev].get(), lev);
+        if (charge_buf[lev].get()) {
+            ApplyInverseVolumeScalingToChargeDensity(charge_buf[lev].get(), lev-1);
         }
     }
 #endif

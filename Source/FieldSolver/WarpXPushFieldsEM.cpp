@@ -673,7 +673,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
 }
 
 void
-WarpX::ApplyInverseVolumeScalingToChargeDensity (MultiFab* Rho, int icomp, int lev)
+WarpX::ApplyInverseVolumeScalingToChargeDensity (MultiFab* Rho, int lev)
 {
     const long ngRho = Rho->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -699,8 +699,8 @@ WarpX::ApplyInverseVolumeScalingToChargeDensity (MultiFab* Rho, int icomp, int l
 
         // Rescale charge in r-z mode since the inverse volume factor was not
         // included in the charge deposition.
-        amrex::ParallelFor(tb,
-        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        amrex::ParallelFor(tb, Rho->nComp(),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int icomp)
         {
             // Wrap the charge density deposited in the guard cells around
             // to the cells above the axis.

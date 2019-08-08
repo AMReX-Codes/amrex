@@ -185,7 +185,6 @@ public:
                                                    int lev);
 
     void ApplyInverseVolumeScalingToChargeDensity(amrex::MultiFab* Rho,
-                                                  int icomp,
                                                   int lev);
 #endif
 
