@@ -167,13 +167,13 @@ public:
 
     virtual void DepositCharge(WarpXParIter& pti,
                                RealVector& wp,
-                               amrex::MultiFab* rhomf,
-                               amrex::MultiFab* crhomf,
+                               amrex::MultiFab* rho,
                                int icomp,
-                               const long np_current,
-                               const long np,
+                               const long offset,
+                               const long np_to_depose,
                                int thread_num,
-                               int lev );
+                               int lev,
+                               int depos_lev);
 
     virtual void DepositCurrent(WarpXParIter& pti,
                                 RealVector& wp,
