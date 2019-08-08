@@ -511,8 +511,8 @@ MultiParticleContainer::getSpeciesID (std::string product_str)
 
 namespace
 {
-    // For particle i in mfi, if is_ionized[i]=1, copy particle from
-    // particle i container pc_source into pc_product
+    // For particle i in mfi, if is_ionized[i]=1, copy particle
+    // particle i from container pc_source into pc_product
     static void createIonizedParticles (
         int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
@@ -663,7 +663,7 @@ MultiParticleContainer::doFieldIonization ()
         for (int lev = 0; lev <= pc_source->finestLevel(); ++lev){
 
 #ifdef _OPENMP
-            // Touch all tiles of source species in serial if additional arguments 
+            // Touch all tiles of source species in serial if runtime attribs 
             for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
                 const int grid_id = mfi.index();
                 const int tile_id = mfi.LocalTileIndex();

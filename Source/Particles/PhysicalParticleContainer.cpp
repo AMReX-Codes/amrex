@@ -81,7 +81,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
 void PhysicalParticleContainer::InitData()
 {
     // Init ionization module here instead of in the PhysicalParticleContainer
-    // constructor to have access to dt
+    // constructor because dt is required
     if (do_field_ionization) {InitIonizationModule();}
     AddParticles(0); // Note - add on level 0
     Redistribute();  // We then redistribute
@@ -208,10 +208,10 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
         auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-             particle_tile.push_back_real(particle_comps["xold"], x);
+            particle_tile.push_back_real(particle_comps["xold"], x);
             particle_tile.push_back_real(particle_comps["yold"], y);
             particle_tile.push_back_real(particle_comps["zold"], z);
-                
+            
             particle_tile.push_back_real(particle_comps["uxold"], u[0]);
             particle_tile.push_back_real(particle_comps["uyold"], u[1]);
             particle_tile.push_back_real(particle_comps["uzold"], u[2]);
