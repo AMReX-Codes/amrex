@@ -20,7 +20,7 @@ int main (int argc, char* argv[])
 }
 
 AMREX_GPU_DEVICE
-void addone(double &num)
+void addone(double *num)
 {
   int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
   
@@ -29,7 +29,7 @@ void addone(double &num)
     + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
   int i = amrex::get_state(tid);
-  num = num+1;
+  num[i] = num[i]+1;
   amrex::free_state(tid);  
 }
 
@@ -67,9 +67,9 @@ void LockingTest ()
 	 {
 #ifdef AMREX_USE_CUDA
 	   
-	   addone(dxpos[idx]);
-	   addone(dypos[idx]);
-	   addone(dzpos[idx]);
+           addone(dxpos);
+	   addone(dypos);
+	   addone(dzpos);
 	  
 #else // Not defined for CPU -> this will still have the test pass if run with cpus
 	   hx[i] = hx[i]+1;
