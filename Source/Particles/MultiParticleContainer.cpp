@@ -519,7 +519,7 @@ namespace
         int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
-        amrex::Gpu::ManagedVector<int>& is_ionized)
+        amrex::Gpu::ManagedDeviceVector<int>& is_ionized)
     {
         BL_PROFILE("createIonizedParticles");
 
@@ -550,7 +550,7 @@ namespace
         // Indices of product particle for each ionized source particle.
         // i_product[i]-1 is the location in product tile of product particle
         // from source particle i.
-        amrex::Gpu::ManagedVector<int> i_product;
+        amrex::Gpu::ManagedDeviceVector<int> i_product;
         i_product.resize(np_source);
         // 0<i<np_source
         // 0<i_product<np_ionized
@@ -702,7 +702,7 @@ MultiParticleContainer::doFieldIonization()
             {
                 // Ionization mask: one element per source particles.
                 // 0 if not ionized, 1 if ionized.
-                amrex::Gpu::ManagedVector<int> is_ionized;
+                amrex::Gpu::ManagedDeviceVector<int> is_ionized;
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
                 // Create particles in pc_product
                 createIonizedParticles(lev, mfi, pc_source, pc_product, is_ionized);

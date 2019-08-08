@@ -2125,7 +2125,7 @@ void PhysicalParticleContainer::InitIonizationModule()
  */
 void
 PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const int lev,
-                                               amrex::Gpu::ManagedVector<int>& ionization_mask)
+                                               amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
 {
     BL_PROFILE("PPC::buildIonizationMask");
     // Get pointers to ionization data from pc_source

@@ -277,7 +277,7 @@ public:
     virtual void setIonizationProduct (int i_product) {};
 
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
-                                      amrex::Gpu::ManagedVector<int>& ionization_mask)
+                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
     {};
 
     std::map<std::string, int> getParticleComps() { return particle_comps;}

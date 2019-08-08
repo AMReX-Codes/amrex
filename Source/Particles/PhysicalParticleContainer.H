@@ -110,7 +110,7 @@ public:
     void SplitParticles(int lev);
     
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
-                                      amrex::Gpu::ManagedVector<int>& ionization_mask) override;
+                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask) override;
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
