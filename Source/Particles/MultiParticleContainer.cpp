@@ -511,6 +511,8 @@ MultiParticleContainer::getSpeciesID(std::string product_str)
 
 namespace
 {
+    // For particle i in mfi, if is_ionized[i]=1, copy particle from
+    // particle i container pc_source into pc_product
     static void createIonizedParticles(
         int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
