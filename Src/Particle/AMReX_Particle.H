@@ -7,6 +7,9 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IntVect.H>
 
+#include <AMReX_ParmParse.H>
+#include <AMReX_Geometry.H>
+
 namespace amrex {
 
 namespace

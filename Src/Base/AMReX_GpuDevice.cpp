@@ -33,6 +33,7 @@ constexpr int Device::max_gpu_streams;
 dim3 Device::numThreadsMin      = dim3(1, 1, 1);
 dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
+int  Device::max_blocks_per_launch = 640;
 
 std::array<gpuStream_t,Device::max_gpu_streams> Device::gpu_streams;
 gpuStream_t                                     Device::gpu_stream;
@@ -394,6 +395,8 @@ Device::initialize_gpu ()
         GraphSafeGuard gsg(true);
         InitializeGraph(graph_size);
     }
+
+    max_blocks_per_launch = numMultiProcessors() * maxThreadsPerMultiProcessor() / AMREX_GPU_MAX_THREADS;
 
 #endif
 }
