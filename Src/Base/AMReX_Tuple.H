@@ -100,16 +100,14 @@ public:
         : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
         {}
 
-    template <typename... Us>
+    template <typename... Us, amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
     AMREX_GPU_HOST_DEVICE
-    inline constexpr
-    amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),void>
+    inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> const& rhs);
 
-    template <typename... Us>
+    template <typename... Us, amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
     AMREX_GPU_HOST_DEVICE
-    inline constexpr
-    amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),void>
+    inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> && rhs);
 };
 
@@ -209,7 +207,7 @@ namespace detail {
 
     template <std::size_t I, std::size_t N, typename TP1, typename TP2>
     AMREX_GPU_HOST_DEVICE
-    constexpr amrex::EnableIf_t<I==N-1,void>
+    amrex::EnableIf_t<I==N-1,void>
     tuple_copy (TP1 & a, TP2 && b)
     {
         amrex::get<I>(a) = amrex::get<I>(std::forward<TP2>(b));
@@ -217,21 +215,21 @@ namespace detail {
 }
 
 template <typename... Ts>
-template <typename... Us>
-AMREX_GPU_HOST_DEVICE inline constexpr
-amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),void>
+template <typename... Us, amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),int> >
+AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
 {
     detail::tuple_copy<0,sizeof...(Ts)>(*this, rhs);
+    return *this;
 }
 
 template <typename... Ts>
-template <typename... Us>
-AMREX_GPU_HOST_DEVICE inline constexpr
-amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),void>
+template <typename... Us, amrex::EnableIf_t<sizeof...(Us) == sizeof...(Ts),int> >
+AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> && rhs)
 {
     detail::tuple_copy<0,sizeof...(Ts)>(*this, std::move(rhs));
+    return *this;
 }
 
 // makeTuple
@@ -362,9 +360,19 @@ Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<T
 template <typename... Args>
 AMREX_GPU_HOST_DEVICE
 constexpr GpuTuple<Args&...>
-Tie (Args&... args)
+Tie (Args&... args) noexcept
 {
     return GpuTuple<Args&...>(args...);
+}
+
+// ForwardAsTuple
+
+template <typename... Ts>
+AMREX_GPU_HOST_DEVICE
+constexpr GpuTuple<Ts&&...>
+ForwardAsTuple (Ts&&... args) noexcept
+{
+    return GpuTuple<Ts&&...>(std::forward<Ts>(args)...);
 }
 
 }
