@@ -76,6 +76,10 @@ public:
     RealVector& GetAttribs (int comp) { 
         return GetStructOfArrays().GetRealData(comp);
     }
+
+    IntVector& GetiAttribs (int comp) {
+        return GetStructOfArrays().GetIntData(comp);
+    }
 };
 
 class MultiParticleContainer;
@@ -180,7 +184,7 @@ public:
                                 RealVector& uxp,
                                 RealVector& uyp,
                                 RealVector& uzp,
-                                amrex::Real* ion_lev,
+                                int* ion_lev,
                                 amrex::MultiFab* jx,
                                 amrex::MultiFab* jy,
                                 amrex::MultiFab* jz,
@@ -268,7 +272,7 @@ public:
 
     void AddIntComp (const std::string& name, bool comm=true)
     {
-        particle_comps[name] = NumIntComps();
+        particle_icomps[name] = NumIntComps();
         AddIntComp(comm);
     }
 
@@ -285,6 +289,7 @@ public:
 protected:
 
     std::map<std::string, int> particle_comps;
+    std::map<std::string, int> particle_icomps;
     
     int species_id;
 

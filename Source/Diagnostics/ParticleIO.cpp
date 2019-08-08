@@ -114,7 +114,8 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             }
 
             if(pc->do_field_ionization){
-                real_names.push_back("ionization_level");
+                int_names.push_back("ionization_level");
+                int_flags.resize(1, 1);
             }
             
             // Convert momentum to SI

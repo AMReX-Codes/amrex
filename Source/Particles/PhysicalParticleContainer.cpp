@@ -452,9 +452,9 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pb[4] = soa.GetRealData(particle_comps["uyold"]).data() + old_size;
             pb[5] = soa.GetRealData(particle_comps["uzold"]).data() + old_size;
         }
-        Real* pi;
+        int* pi;
         if (do_field_ionization) {
-            pi = soa.GetRealData(particle_comps[ "ionization_level"]).data() + old_size;
+            pi = soa.GetIntData(particle_icomps["ionization_level"]).data() + old_size;
         }
         
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
@@ -1293,9 +1293,9 @@ PhysicalParticleContainer::Evolve (int lev,
                                               lev, lev-1, dt);
                     }
                 } else {
-                    Real* AMREX_RESTRICT ion_lev;
+                    int* AMREX_RESTRICT ion_lev;
                     if (do_field_ionization){
-                        ion_lev = pti.GetAttribs(particle_comps["ionization_level"]).dataPtr();
+                        ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
                     } else {
                         ion_lev = nullptr;
                     }
@@ -1523,9 +1523,9 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         copy_attribs(pti, x, y, z);
     }
 
-    Real* AMREX_RESTRICT ion_lev = nullptr;
+    int* AMREX_RESTRICT ion_lev = nullptr;
     if (do_field_ionization){
-        ion_lev = pti.GetAttribs(particle_comps["ionization_level"]).dataPtr();
+        ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
     }
     
     // Loop over the particles and update their momentum
@@ -1972,7 +1972,7 @@ void PhysicalParticleContainer::InitIonizationModule()
     pp.get("ionization_product", ionization_product_name);
     pp.get("physical_element", physical_element);
     // Add Real component for ionization level
-    AddRealComp("ionization_level");
+    AddIntComp("ionization_level");
     plot_flags.resize(PIdx::nattribs + 1, 1);
     // Get atomic number and ionization energies from file
     int ion_element_id = ion_map_ids[physical_element];
@@ -2051,7 +2051,8 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
     const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
     const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
     const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
-    Real* ilev_real = soa.GetRealData(particle_comps["ionization_level"]).data();
+    // Real* ilev_real = soa.GetIntData(particle_icomps["ionization_level"]).data();
+    int* ion_lev = soa.GetIntData(particle_icomps["ionization_level"]).data();
 
     Real c = PhysConst::c;
     Real c2_inv = 1./c/c;
@@ -2063,9 +2064,9 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
         np,
         [=] AMREX_GPU_DEVICE (long i) {
             // Get index of ionization_level
-            int ilev = (int) round(ilev_real[i]);
+            // int ilev = (int) round(ilev_real[i]);
             p_ionization_mask[i] = 0;
-            if ( ilev<atomic_number ){
+            if ( ion_lev[i]<atomic_number ){
                 Real random_draw = amrex::Random();
                 // Compute electric field amplitude in the particle's frame of
                 // reference (particularly important when in boosted frame).
@@ -2078,14 +2079,14 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
                     );
                 // Compute probability of ionization p
                 Real p;
-                Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
-                    std::pow(E,p_adk_power[ilev]) * 
-                    std::exp( p_adk_exp_prefactor[ilev]/E );
+                Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev[i]] *
+                    std::pow(E,p_adk_power[ion_lev[i]]) *
+                    std::exp( p_adk_exp_prefactor[ion_lev[i]]/E );
                 p = 1. - std::exp( - w_dtau );
 
                 if (random_draw < p){
                     // increment particle's ionization level
-                    ilev_real[i] += 1.;
+                    ion_lev[i] += 1;
                     // update mask
                     p_ionization_mask[i] = 1;
                 }
