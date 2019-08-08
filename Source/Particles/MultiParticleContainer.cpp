@@ -519,8 +519,10 @@ namespace
         int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
-        const int * const p_is_ionized)
+        amrex::Gpu::ManagedVector<int>& is_ionized)
     {
+        const int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
+
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
@@ -544,17 +546,20 @@ namespace
         runtime_uold_source[2] = soa_source.GetRealData(PIdx::uz).data();
 
         // Indices of product particle for each ionized source particle.
-        // i_product[i] is the location in product tile of product particle
+        // i_product[i]-1 is the location in product tile of product particle
         // from source particle i.
         amrex::Gpu::ManagedVector<int> i_product;
         i_product.resize(np_source);
         // 0<i<np_source
         // 0<i_product<np_ionized
-        int np_ionized = p_is_ionized[0];
-        for(int i=1; i<np_source; ++i){
-            np_ionized += p_is_ionized[i];
-            i_product[i] = i_product[i-1]+p_is_ionized[i-1];
-        }
+        // Strictly speaking, i_product should be an exclusive_scan of
+        // is_ionized. However, for indices where is_ionized is 1, the
+        // inclusive scan gives the same result with an offset of 1.
+        // The advantage of inclusive_scan is that the sum of is_ionized
+        // is in the last element, so no other reduction required to get
+        // number of particles.
+        amrex::Gpu::inclusive_scan(is_ionized.begin(), is_ionized.end(), i_product.begin());
+        int np_ionized = i_product[np_source-1];
         if (np_ionized == 0){
             return;
         }
@@ -608,7 +613,8 @@ namespace
             np_source, [=] AMREX_GPU_DEVICE (int is) noexcept
             {
                 if(p_is_ionized[is]){
-                    int ip = p_i_product[is];
+                    // offset of 1 due to inclusive scan
+                    int ip = p_i_product[is]-1;
                     // is: index of ionized particle in source species
                     // ip: index of corresponding new particle in product species
                     WarpXParticleContainer::ParticleType& p_product = particles_product[ip];
@@ -698,8 +704,8 @@ MultiParticleContainer::doFieldIonization()
                 // 0 if not ionized, 1 if ionized.
                 amrex::Gpu::ManagedVector<int> is_ionized;
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
-                const int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
-                createIonizedParticles(lev, mfi, pc_source, pc_product, p_is_ionized);
+                // Create particles in pc_product
+                createIonizedParticles(lev, mfi, pc_source, pc_product, is_ionized);
             }
         } // lev
     } // pc_source
