@@ -4,7 +4,6 @@ max_step = 500
 
 warpx.verbose = 1
 warpx.cfl = 1
-warpx.plot_rho = 1
 warpx.do_pml = 1
 warpx.use_filter = 1
 

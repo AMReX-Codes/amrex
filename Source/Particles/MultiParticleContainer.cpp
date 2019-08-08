@@ -521,6 +521,8 @@ namespace
         std::unique_ptr< WarpXParticleContainer>& pc_product,
         amrex::Gpu::ManagedVector<int>& is_ionized)
     {
+        BL_PROFILE("createIonizedParticles");
+
         const int * const AMREX_RESTRICT p_is_ionized = is_ionized.dataPtr();
 
         const int grid_id = mfi.index();
@@ -556,13 +558,11 @@ namespace
         // is_ionized. However, for indices where is_ionized is 1, the
         // inclusive scan gives the same result with an offset of 1.
         // The advantage of inclusive_scan is that the sum of is_ionized
-        // is in the last element, so no other reduction required to get
+        // is in the last element, so no other reduction is required to get
         // number of particles.
         amrex::Gpu::inclusive_scan(is_ionized.begin(), is_ionized.end(), i_product.begin());
         int np_ionized = i_product[np_source-1];
-        if (np_ionized == 0){
-            return;
-        }
+        if (np_ionized == 0) return;
         int* AMREX_RESTRICT p_i_product = i_product.dataPtr();
 
         // Get product particle data
@@ -651,7 +651,7 @@ namespace
 void
 MultiParticleContainer::doFieldIonization()
 {
-
+    BL_PROFILE("MPC::doFieldIonization");
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
     for (auto& pc_source : allcontainers){
