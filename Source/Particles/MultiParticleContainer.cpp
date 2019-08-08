@@ -479,6 +479,9 @@ MultiParticleContainer::mapSpeciesProduct()
         // pc->ionization_product.
         if (pc->do_field_ionization){
             int i_product = getSpeciesID(pc->ionization_product_name);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                i != i_product,
+                "ERROR: ionization product cannot be the same species");
             pc->ionization_product = i_product;
         }
     }
@@ -500,13 +503,11 @@ MultiParticleContainer::getSpeciesID(std::string product_str)
             i_product = i;
         }
     }
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(found != 0,
-                                     "ERROR: could not find ID for species");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        found != 0,
+        "ERROR: could not find product species ID for ionization. Wrong name?");
     return i_product;
 }
-
-//void
-//MultiParticleContainer::InitIonizationModule()
 
 namespace
 {
