@@ -44,7 +44,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
     const amrex::Real dts2dz = 0.5*dt*dzi;
 #if (AMREX_SPACEDIM == 2)
     const amrex::Real invvol = dxi*dzi;
-#else // (AMREX_SPACEDIM == 3)
+#elif (defined WARPX_DIM_3D)
     const amrex::Real dyi = 1.0/dx[1];
     const amrex::Real dts2dy = 0.5*dt*dyi;
     const amrex::Real invvol = dxi*dyi*dzi;
@@ -71,14 +71,37 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real vy  = uyp[ip]*gaminv;
             const amrex::Real vz  = uzp[ip]*gaminv;
             // wqx, wqy wqz are particle current in each direction 
+#if (defined WARPX_DIM_RZ)
+            // In RZ, wqx is actually wqr, and wqy is wqtheta
+            // Convert to cylinderical at the mid point
+            const amrex::Real xpmid = xp[ip] - 0.5*dt*vx;
+            const amrex::Real ypmid = yp[ip] - 0.5*dt*vy;
+            const amrex::Real rpmid = std::sqrt(xpmid*xpmid + ypmid*ypmid);
+            amrex::Real costheta;
+            amrex::Real sintheta;
+            if (rpmid > 0.) {
+                costheta = xpmid/rpmid;
+                sintheta = ypmid/rpmid;
+            } else {
+                costheta = 1.;
+                sintheta = 0.;
+            }
+            const amrex::Real wqx = wq*invvol*(+vx*costheta + vy*sintheta);
+            const amrex::Real wqy = wq*invvol*(-vx*sintheta + vy*costheta);
+#else
             const amrex::Real wqx = wq*invvol*vx;
             const amrex::Real wqy = wq*invvol*vy;
+#endif
             const amrex::Real wqz = wq*invvol*vz;
 
             // --- Compute shape factors
             // x direction
             // Get particle position after 1/2 push back in position
+#if (defined WARPX_DIM_RZ)
+            const amrex::Real xmid = (rpmid-xmin)*dxi;
+#else
             const amrex::Real xmid = (xp[ip]-xmin)*dxi-dts2dx*vx;
+#endif
             // Compute shape factors for node-centered quantities
             amrex::Real AMREX_RESTRICT sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that the particle touches
@@ -88,7 +111,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
             // j0: leftmost grid point (cell-centered) that the particle touches
             const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real ymid= (yp[ip]-ymin)*dyi-dts2dy*vy;
             amrex::Real AMREX_RESTRICT sy [depos_order + 1];
@@ -104,7 +127,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
             // Deposit current into jx_arr, jy_arr and jz_arr
-#if (AMREX_SPACEDIM == 2)
+#if (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(
@@ -118,7 +141,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         sx [ix]*sz0[iz]*wqz);
                 }
             }
-#else // (AMREX_SPACEDIM == 3)
+#elif (defined WARPX_DIM_3D)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int iy=0; iy<=depos_order; iy++){
                     for (int ix=0; ix<=depos_order; ix++){
@@ -176,7 +199,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dtsdx0 = dt*dxi;
     const amrex::Real xmin = xyzmin[0];
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
     const amrex::Real dyi = 1.0/dx[1];
     const amrex::Real dtsdy0 = dt*dyi;
     const amrex::Real ymin = xyzmin[1];
@@ -185,11 +208,11 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
     const amrex::Real dtsdz0 = dt*dzi;
     const amrex::Real zmin = xyzmin[2];
 
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
     const amrex::Real invdtdx = 1.0/(dt*dx[1]*dx[2]);
     const amrex::Real invdtdy = 1.0/(dt*dx[0]*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]*dx[1]);
-#elif (AMREX_SPACEDIM == 2)
+#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
     const amrex::Real invdtdx = 1.0/(dt*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]);
     const amrex::Real invvol = 1.0/(dx[0]*dx[2]);
@@ -204,8 +227,8 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
 
             // --- Get particle quantities
             const amrex::Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
-                                                     + uyp[ip]*uyp[ip]*clightsq
-                                                     + uzp[ip]*uzp[ip]*clightsq);
+                                                         + uyp[ip]*uyp[ip]*clightsq
+                                                         + uzp[ip]*uzp[ip]*clightsq);
 
             // wqx, wqy wqz are particle current in each direction
             amrex::Real wq = q*wp[ip];
@@ -213,20 +236,43 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                 wq *= ion_lev[ip];
             }
             const amrex::Real wqx = wq*invdtdx;
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
             const amrex::Real wqy = wq*invdtdy;
 #endif
             const amrex::Real wqz = wq*invdtdz;
 
             // computes current and old position in grid units
+#if (defined WARPX_DIM_RZ)
+            const amrex::Real r_new = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            const amrex::Real r_old = std::sqrt((xp[ip] - dt*uxp[ip]*gaminv)*(xp[ip] - dt*uxp[ip]*gaminv) +
+                                                (yp[ip] - dt*uyp[ip]*gaminv)*(yp[ip] - dt*uyp[ip]*gaminv));
+            const amrex::Real x_new = (r_new - xmin)*dxi;
+            const amrex::Real x_old = (r_old - xmin)*dxi;
+#else
             const amrex::Real x_new = (xp[ip] - xmin)*dxi;
             const amrex::Real x_old = x_new - dtsdx0*uxp[ip]*gaminv;
-#if (AMREX_SPACEDIM == 3)        
+#endif
+#if (defined WARPX_DIM_3D)        
             const amrex::Real y_new = (yp[ip] - ymin)*dyi;
             const amrex::Real y_old = y_new - dtsdy0*uyp[ip]*gaminv;
 #endif
             const amrex::Real z_new = (zp[ip] - zmin)*dzi;
             const amrex::Real z_old = z_new - dtsdz0*uzp[ip]*gaminv;
+
+#if (defined WARPX_DIM_RZ)
+            amrex::Real costheta;
+            amrex::Real sintheta;
+            if (r_new > 0.) {
+                costheta = xp[ip]/r_new;
+                sintheta = yp[ip]/r_new;
+            } else {
+                costheta = 1.;
+                sintheta = 0.;
+            }
+            const amrex::Real vy = (-uxp[ip]*sintheta + uyp[ip]*costheta)*gaminv;
+#elif (defined WARPX_DIM_2D)
+            const amrex::Real vy = uyp[ip]*gaminv;
+#endif
 
             // Shape factor arrays
             // Note that there are extra values above and below
@@ -234,7 +280,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             // which can be at a different grid location.
             amrex::Real AMREX_RESTRICT sx_new[depos_order + 3] = {0.};
             amrex::Real AMREX_RESTRICT sx_old[depos_order + 3] = {0.};
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
             amrex::Real AMREX_RESTRICT sy_new[depos_order + 3] = {0.};
             amrex::Real AMREX_RESTRICT sy_old[depos_order + 3] = {0.};
 #endif
@@ -246,7 +292,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             // [ijk]_new: leftmost grid point that the particle touches
             const int i_new = compute_shape_factor<depos_order>(sx_new+1, x_new);
             const int i_old = compute_shifted_shape_factor<depos_order>(sx_old, x_old, i_new);
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
             const int j_new = compute_shape_factor<depos_order>(sy_new+1, y_new);
             const int j_old = compute_shifted_shape_factor<depos_order>(sy_old, y_old, j_new);
 #endif 
@@ -257,7 +303,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             int dil = 1, diu = 1;
             if (i_old < i_new) dil = 0;
             if (i_old > i_new) diu = 0;
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
             int djl = 1, dju = 1;
             if (j_old < j_new) djl = 0;
             if (j_old > j_new) dju = 0;
@@ -266,7 +312,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             if (k_old < k_new) dkl = 0;
             if (k_old > k_new) dku = 0;
 
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D)
 
             for (int k=dkl; k<=depos_order+2-dku; k++) {
                 for (int j=djl; j<=depos_order+2-dju; j++) {
@@ -299,7 +345,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                 }
             }
 
-#elif (AMREX_SPACEDIM == 2)
+#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
 
             for (int k=dkl; k<=depos_order+2-dku; k++) {
                 amrex::Real sdxi = 0.;
@@ -310,8 +356,8 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             }
             for (int k=dkl; k<=depos_order+2-dku; k++) {
                 for (int i=dil; i<=depos_order+2-diu; i++) {
-                    const amrex::Real sdyj = wq*uyp[ip]*gaminv*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
-                                                                       (0.5*sz_new[k] + 1./3.*(sz_old[k] - sz_new[k]))*(sx_old[i] - sx_new[i]));
+                    const amrex::Real sdyj = wq*vy*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
+                                                           (0.5*sz_new[k] + 1./3.*(sz_old[k] - sz_new[k]))*(sx_old[i] - sx_new[i]));
                     amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdyj);
                 }
             }
@@ -322,6 +368,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                     amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdzk);
                 }
             }
+
 
 #endif
         }

@@ -580,3 +580,95 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
         }
     }
 }
+
+#ifdef WARPX_DIM_RZ
+// This scales the current by the inverse volume and wraps around the depostion at negative radius.
+// It is faster to apply this on the grid than to do it particle by particle.
+// It is put here since there isn't another nice place for it.
+void
+WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, MultiFab* Jz, int lev)
+{
+    const long ngJ = Jx->nGrow();
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const Real dr = dx[0];
+
+    Box tilebox;
+
+    for ( MFIter mfi(*Jx, TilingIfNotGPU()); mfi.isValid(); ++mfi )
+    {
+
+        Array4<Real> const& Jr_arr = Jx->array(mfi);
+        Array4<Real> const& Jt_arr = Jy->array(mfi);
+        Array4<Real> const& Jz_arr = Jz->array(mfi);
+
+        tilebox = mfi.tilebox();
+        Box tbr = convert(tilebox, WarpX::jx_nodal_flag);
+        Box tbt = convert(tilebox, WarpX::jy_nodal_flag);
+        Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
+
+        // Lower corner of tile box physical domain
+        // Note that this is done before the tilebox.grow so that
+        // these do not include the guard cells.
+        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, lev);
+        const Dim3 lo = lbound(tilebox);
+        const Real rmin = xyzmin[0];
+        const int irmin = lo.x;
+
+        // Rescale current in r-z mode since the inverse volume factor was not
+        // included in the current deposition.
+        amrex::ParallelFor(tbr,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            // Wrap the current density deposited in the guard cells around
+            // to the cells above the axis.
+            // Note that Jr(i==0) is at 1/2 dr.
+            if (rmin == 0. && 0 <= i && i < ngJ) {
+                Jr_arr(i,j,0) -= Jr_arr(-1-i,j,0);
+            }
+            // Apply the inverse volume scaling
+            // Since Jr is not cell centered in r, no need for distinction
+            // between on axis and off-axis factors
+            const amrex::Real r = std::abs(rmin + (i - irmin + 0.5)*dr);
+            Jr_arr(i,j,0) /= (2.*MathConst::pi*r);
+        });
+        amrex::ParallelFor(tbt,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            // Wrap the current density deposited in the guard cells around
+            // to the cells above the axis.
+            // Jt is located on the boundary
+            if (rmin == 0. && 0 < i && i <= ngJ) {
+                Jt_arr(i,j,0) += Jt_arr(-i,j,0);
+            }
+
+            // Apply the inverse volume scaling
+            // Jt is forced to zero on axis.
+            const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
+            if (r == 0.) {
+                Jt_arr(i,j,0) = 0.;
+            } else {
+                Jt_arr(i,j,0) /= (2.*MathConst::pi*r);
+            }
+        });
+        amrex::ParallelFor(tbz,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            // Wrap the current density deposited in the guard cells around
+            // to the cells above the axis.
+            // Jz is located on the boundary
+            if (rmin == 0. && 0 < i && i <= ngJ) {
+                Jz_arr(i,j,0) += Jz_arr(-i,j,0);
+            }
+
+            // Apply the inverse volume scaling
+            const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
+            if (r == 0.) {
+                // Verboncoeur JCP 164, 421-427 (2001) : corrected volume on axis
+                Jz_arr(i,j,0) /= (MathConst::pi*dr/3.);
+            } else {
+                Jz_arr(i,j,0) /= (2.*MathConst::pi*r);
+            }
+        });
+    }
+}
+#endif

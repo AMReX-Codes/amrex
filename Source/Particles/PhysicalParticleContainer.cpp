@@ -156,7 +156,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             npart /= 4;
         }
         for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 | WARPX_RZ)
+#if ( AMREX_SPACEDIM == 3 | WARPX_DIM_RZ)
             Real weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
@@ -280,7 +280,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
 #endif
 
@@ -334,7 +334,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     Real density_min = plasma_injector->density_min;
     Real density_max = plasma_injector->density_max;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     bool radially_weighted = plasma_injector->radially_weighted;
 #endif
 
@@ -513,11 +513,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #endif
 
             // Save the x and y values to use in the insideBounds checks.
-            // This is needed with WARPX_RZ since x and y are modified.
+            // This is needed with WARPX_DIM_RZ since x and y are modified.
             Real xb = x;
             Real yb = y;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             // Replace the x and y, choosing the angle randomly.
             // These x and y are used to get the momentum and density
             Real theta = 2.*MathConst::pi*amrex::Random();
@@ -595,7 +595,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
             // Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
             Real weight = dens * scale_fac;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             if (radially_weighted) {
                 weight *= 2.*MathConst::pi*xb;
             } else {
@@ -624,7 +624,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             p.pos(1) = y;
             p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             pa[PIdx::theta][ip] = theta;
 #endif
             p.pos(0) = xb;
@@ -914,40 +914,13 @@ PhysicalParticleContainer::FieldGather (int lev,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin = box.loVect();
-
             //
             // Field Gather
             //
-#ifdef WARPX_RZ
-            const int ll4symtry = false;
-            long lvect_fieldgathe = 64;
-            warpx_geteb_energy_conserving(
-                &np,
-                m_xp[thread_num].dataPtr(),
-                m_yp[thread_num].dataPtr(),
-                m_zp[thread_num].dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                ixyzmin,
-                &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                BL_TO_FORTRAN_ANYD(exfab),
-                BL_TO_FORTRAN_ANYD(eyfab),
-                BL_TO_FORTRAN_ANYD(ezfab),
-                BL_TO_FORTRAN_ANYD(bxfab),
-                BL_TO_FORTRAN_ANYD(byfab),
-                BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
                         Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
-#endif
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1216,42 +1189,14 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
                 BL_PROFILE_VAR_START(blp_pxr_fg);
-#ifdef WARPX_RZ
-                const int ll4symtry = false;
-                long lvect_fieldgathe = 64;
-                const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-                const int* ixyzmin_grid = box.loVect();
-                warpx_geteb_energy_conserving(
-                    &np_gather,
-                    m_xp[thread_num].dataPtr(),
-                    m_yp[thread_num].dataPtr(),
-                    m_zp[thread_num].dataPtr(),
-                    Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                    Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                    ixyzmin_grid,
-                    &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
-                    &dx[0], &dx[1], &dx[2],
-                    &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                    BL_TO_FORTRAN_ANYD(*exfab),
-                    BL_TO_FORTRAN_ANYD(*eyfab),
-                    BL_TO_FORTRAN_ANYD(*ezfab),
-                    BL_TO_FORTRAN_ANYD(*bxfab),
-                    BL_TO_FORTRAN_ANYD(*byfab),
-                    BL_TO_FORTRAN_ANYD(*bzfab),
-                    &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                    &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
                 FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                             exfab, eyfab, ezfab, bxfab, byfab, bzfab, 
                             Ex.nGrow(), e_is_nodal, 0, np_gather, thread_num, lev, lev);
-#endif
 
                 if (np_gather < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
                     const Box& cbox = amrex::coarsen(box,ref_ratio);
-                    const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
-                    const int* cixyzmin_grid = cbox.loVect();
 
                     // Data on the grid
                     FArrayBox const* cexfab = &(*cEx)[pti];
@@ -1314,29 +1259,6 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                     
                     // Field gather for particles in gather buffers
-#ifdef WARPX_RZ
-                    
-                    long ncrse = np - nfine_gather;
-                    warpx_geteb_energy_conserving(
-                        &ncrse,
-                        m_xp[thread_num].dataPtr()+nfine_gather,
-                        m_yp[thread_num].dataPtr()+nfine_gather,
-                        m_zp[thread_num].dataPtr()+nfine_gather,
-                        Exp.dataPtr()+nfine_gather, Eyp.dataPtr()+nfine_gather, Ezp.dataPtr()+nfine_gather,
-                        Bxp.dataPtr()+nfine_gather, Byp.dataPtr()+nfine_gather, Bzp.dataPtr()+nfine_gather,
-                        cixyzmin_grid,
-                        &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
-                        &cdx[0], &cdx[1], &cdx[2],
-                        &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                        BL_TO_FORTRAN_ANYD(*cexfab),
-                        BL_TO_FORTRAN_ANYD(*ceyfab),
-                        BL_TO_FORTRAN_ANYD(*cezfab),
-                        BL_TO_FORTRAN_ANYD(*cbxfab),
-                        BL_TO_FORTRAN_ANYD(*cbyfab),
-                        BL_TO_FORTRAN_ANYD(*cbzfab),
-                        &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                        &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
                     e_is_nodal = cEx->is_nodal() and cEy->is_nodal() and cEz->is_nodal();
                     FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp, 
                                 cexfab, ceyfab, cezfab,
@@ -1344,7 +1266,6 @@ PhysicalParticleContainer::Evolve (int lev,
                                 cEx->nGrow(), e_is_nodal, 
                                 nfine_gather, np-nfine_gather, 
                                 thread_num, lev, lev-1);
-#endif
                 }
 
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
@@ -1698,38 +1619,10 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-#ifdef WARPX_RZ
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin_grid = box.loVect();
-
-            const int ll4symtry          = false;
-            long lvect_fieldgathe = 64;
-
-            warpx_geteb_energy_conserving(
-                &np,
-                m_xp[thread_num].dataPtr(),
-                m_yp[thread_num].dataPtr(),
-                m_zp[thread_num].dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                ixyzmin_grid,
-                &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                BL_TO_FORTRAN_ANYD(exfab),
-                BL_TO_FORTRAN_ANYD(eyfab),
-                BL_TO_FORTRAN_ANYD(ezfab),
-                BL_TO_FORTRAN_ANYD(bxfab),
-                BL_TO_FORTRAN_ANYD(byfab),
-                BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
-                int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
-                FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                            &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
-                            Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
-#endif
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
+                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities

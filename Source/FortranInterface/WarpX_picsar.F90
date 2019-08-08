@@ -1,20 +1,16 @@
 #if (AMREX_SPACEDIM == 3)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb3d_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic
 
 #elif (AMREX_SPACEDIM == 2)
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2drz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jrjtjz_generic_rz
 #define WRPX_PXR_RZ_VOLUME_SCALING_RHO    apply_rz_volume_scaling_rho
-#define WRPX_PXR_RZ_VOLUME_SCALING_J      apply_rz_volume_scaling_j
 
 #else
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2dxz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
 
 #endif
@@ -52,84 +48,6 @@ module warpx_to_pxr_module
   integer, parameter :: pxr_logical = 8
 
 contains
-
-  ! _________________________________________________________________
-  !>
-  !> @brief
-  !> Main subroutine for the field gathering process
-  !>
-  !> @param[in] np number of particles
-  !> @param[in] xp,yp,zp particle position arrays
-  !> @param[in] ex,ey,ez particle electric fields in each direction
-  !> @param[in] bx,by,bz particle magnetic fields in each direction
-  !> @param[in] ixyzmin tile grid minimum index
-  !> @param[in] xmin,ymin,zmin tile grid minimum position
-  !> @param[in] dx,dy,dz space discretization steps
-  !> @param[in] xyzmin grid minimum position
-  !> @param[in] dxyz space discretization steps
-  !> @param[in] nox,noy,noz interpolation order
-  !> @param[in] exg,eyg,ezg electric field grid arrays
-  !> @param[in] bxg,byg,bzg electric field grid arrays
-  !> @param[in] lvect vector length
-  !>
-  subroutine warpx_geteb_energy_conserving(np,xp,yp,zp, &
-       ex,ey,ez,bx,by,bz,ixyzmin,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
-       exg,exg_lo,exg_hi,eyg,eyg_lo,eyg_hi,ezg,ezg_lo,ezg_hi, &
-       bxg,bxg_lo,bxg_hi,byg,byg_lo,byg_hi,bzg,bzg_lo,bzg_hi, &
-       ll4symtry,l_lower_order_in_v, l_nodal,&
-       lvect,field_gathe_algo) &
-       bind(C, name="warpx_geteb_energy_conserving")
-
-    integer, intent(in) :: exg_lo(AMREX_SPACEDIM), eyg_lo(AMREX_SPACEDIM), ezg_lo(AMREX_SPACEDIM), &
-                           bxg_lo(AMREX_SPACEDIM), byg_lo(AMREX_SPACEDIM), bzg_lo(AMREX_SPACEDIM)
-    integer, intent(in) :: exg_hi(AMREX_SPACEDIM), eyg_hi(AMREX_SPACEDIM), ezg_hi(AMREX_SPACEDIM), &
-                           bxg_hi(AMREX_SPACEDIM), byg_hi(AMREX_SPACEDIM), bzg_hi(AMREX_SPACEDIM)
-    integer, intent(in) :: ixyzmin(AMREX_SPACEDIM)
-    real(amrex_real), intent(in) :: xmin,ymin,zmin,dx,dy,dz
-    integer(c_long), intent(in) :: field_gathe_algo
-    integer(c_long), intent(in) :: np,nox,noy,noz
-    integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v, l_nodal
-    integer(c_long),intent(in)   :: lvect
-    real(amrex_real), intent(in), dimension(np) :: xp,yp,zp
-    real(amrex_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
-    real(amrex_real),intent(in):: exg(*), eyg(*), ezg(*), bxg(*), byg(*), bzg(*)
-    logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v, pxr_l_nodal
-
-    ! Compute the number of valid cells and guard cells
-    integer(c_long) :: exg_nvalid(AMREX_SPACEDIM), eyg_nvalid(AMREX_SPACEDIM), ezg_nvalid(AMREX_SPACEDIM),    &
-                       bxg_nvalid(AMREX_SPACEDIM), byg_nvalid(AMREX_SPACEDIM), bzg_nvalid(AMREX_SPACEDIM),    &
-                       exg_nguards(AMREX_SPACEDIM), eyg_nguards(AMREX_SPACEDIM), ezg_nguards(AMREX_SPACEDIM), &
-                       bxg_nguards(AMREX_SPACEDIM), byg_nguards(AMREX_SPACEDIM), bzg_nguards(AMREX_SPACEDIM)
-
-    pxr_ll4symtry = ll4symtry .eq. 1
-    pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
-    pxr_l_nodal = l_nodal .eq. 1
-
-    exg_nguards = ixyzmin - exg_lo
-    eyg_nguards = ixyzmin - eyg_lo
-    ezg_nguards = ixyzmin - ezg_lo
-    bxg_nguards = ixyzmin - bxg_lo
-    byg_nguards = ixyzmin - byg_lo
-    bzg_nguards = ixyzmin - bzg_lo
-    exg_nvalid = exg_lo + exg_hi - 2_c_long*ixyzmin + 1_c_long
-    eyg_nvalid = eyg_lo + eyg_hi - 2_c_long*ixyzmin + 1_c_long
-    ezg_nvalid = ezg_lo + ezg_hi - 2_c_long*ixyzmin + 1_c_long
-    bxg_nvalid = bxg_lo + bxg_hi - 2_c_long*ixyzmin + 1_c_long
-    byg_nvalid = byg_lo + byg_hi - 2_c_long*ixyzmin + 1_c_long
-    bzg_nvalid = bzg_lo + bzg_hi - 2_c_long*ixyzmin + 1_c_long
-
-    CALL WRPX_PXR_GETEB_ENERGY_CONSERVING(np,xp,yp,zp, &
-         ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
-         exg,exg_nguards,exg_nvalid,&
-         eyg,eyg_nguards,eyg_nvalid,&
-         ezg,ezg_nguards,ezg_nvalid,&
-         bxg,bxg_nguards,bxg_nvalid,&
-         byg,byg_nguards,byg_nvalid,&
-         bzg,bzg_nguards,bzg_nvalid,&
-	 pxr_ll4symtry, pxr_l_lower_order_in_v, pxr_l_nodal, &
-	 lvect, field_gathe_algo )
-
-  end subroutine warpx_geteb_energy_conserving
 
 ! _________________________________________________________________
 !>
@@ -220,7 +138,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! Dimension 2
 #elif (AMREX_SPACEDIM==2)
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
   logical(pxr_logical) :: l_2drz = .TRUE._c_long
 #else
   logical(pxr_logical) :: l_2drz = .FALSE._c_long
@@ -257,7 +175,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(amrex_real), intent(IN OUT):: rho(*)
     real(amrex_real), intent(IN) :: rmin, dr
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     integer(c_long) :: type_rz_depose = 1
 #endif
 
@@ -266,7 +184,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     rho_nvalid = rho_ntot - 2*rho_ng
     rho_nguards = rho_ng
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     CALL WRPX_PXR_RZ_VOLUME_SCALING_RHO(   &
                  rho,rho_nguards,rho_nvalid, &
                  rmin,dr,type_rz_depose)
@@ -354,54 +272,5 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 #endif
 
   end subroutine warpx_current_deposition
-
-  ! _________________________________________________________________
-  !>
-  !> @brief
-  !> Applies the inverse volume scaling for RZ current deposition
-  !>
-  !> @details
-  !> The scaling is done for single mode only
-  !
-  !> @param[inout] jx,jy,jz current arrays
-  !> @param[in] jx_ntot,jy_ntot,jz_ntot vectors with total number of
-  !>            cells (including guard cells) along each axis for each current
-  !> @param[in] jx_ng,jy_ng,jz_ng vectors with number of guard cells along each
-  !>            axis for each current
-  !> @param[in] rmin tile grid minimum radius
-  !> @param[in] dr radial space discretization steps
-  !>
-  subroutine warpx_current_deposition_rz_volume_scaling( &
-    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot, &
-    rmin,dr) &
-    bind(C, name="warpx_current_deposition_rz_volume_scaling")
-
-    integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
-    integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
-    real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
-    real(amrex_real), intent(IN) :: rmin, dr
-
-#ifdef WARPX_RZ
-    integer(c_long) :: type_rz_depose = 1
-#endif
-    ! Compute the number of valid cells and guard cells
-    integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
-                       jx_nguards(AMREX_SPACEDIM), jy_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)
-    jx_nvalid = jx_ntot - 2*jx_ng
-    jy_nvalid = jy_ntot - 2*jy_ng
-    jz_nvalid = jz_ntot - 2*jz_ng
-    jx_nguards = jx_ng
-    jy_nguards = jy_ng
-    jz_nguards = jz_ng
-
-#ifdef WARPX_RZ
-    CALL WRPX_PXR_RZ_VOLUME_SCALING_J(   &
-                 jx,jx_nguards,jx_nvalid, &
-                 jy,jy_nguards,jy_nvalid, &
-                 jz,jz_nguards,jz_nvalid, &
-                 rmin,dr,type_rz_depose)
-#endif
-
-  end subroutine warpx_current_deposition_rz_volume_scaling
 
 end module warpx_to_pxr_module
