@@ -284,7 +284,7 @@ public:
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
     {};
 
-    std::map<std::string, int> getParticleComps() { return particle_comps;}
+    std::map<std::string, int> getParticleComps () { return particle_comps;}
 
 protected:
 

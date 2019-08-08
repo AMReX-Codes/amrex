@@ -127,7 +127,7 @@ public:
     ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void doFieldIonization();
+    void doFieldIonization ();
 
     void Checkpoint (const std::string& dir) const;
 

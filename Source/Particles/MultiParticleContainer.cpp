@@ -453,7 +453,7 @@ MultiParticleContainer::UpdateContinuousInjectionPosition(Real dt) const
 }
 
 int
-MultiParticleContainer::doContinuousInjection() const
+MultiParticleContainer::doContinuousInjection () const
 {
     int warpx_do_continuous_injection = 0;
     for (int i=0; i<nspecies+nlasers; i++){
@@ -470,7 +470,7 @@ MultiParticleContainer::doContinuousInjection() const
  * this routine get its ID.
  */
 void
-MultiParticleContainer::mapSpeciesProduct()
+MultiParticleContainer::mapSpeciesProduct ()
 {
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
@@ -490,7 +490,7 @@ MultiParticleContainer::mapSpeciesProduct()
 /* \brief Given a species name, return its ID.
  */
 int
-MultiParticleContainer::getSpeciesID(std::string product_str)
+MultiParticleContainer::getSpeciesID (std::string product_str)
 {
     int i_product;
     bool found = 0;
@@ -513,7 +513,7 @@ namespace
 {
     // For particle i in mfi, if is_ionized[i]=1, copy particle from
     // particle i container pc_source into pc_product
-    static void createIonizedParticles(
+    static void createIonizedParticles (
         int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
@@ -647,7 +647,7 @@ namespace
 }
 
 void
-MultiParticleContainer::doFieldIonization()
+MultiParticleContainer::doFieldIonization ()
 {
     BL_PROFILE("MPC::doFieldIonization");
     // Loop over all species.

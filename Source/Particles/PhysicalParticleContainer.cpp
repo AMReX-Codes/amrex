@@ -39,10 +39,6 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
     pp.query("do_field_ionization", do_field_ionization);
-    // If do_field_ionization, read initialization data from input file and
-    // read ionization energies from table.
-    //if (do_field_ionization)
-    //    InitIonizationModule();
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
@@ -84,6 +80,8 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
 
 void PhysicalParticleContainer::InitData()
 {
+    // Init ionization module here instead of in the PhysicalParticleContainer
+    // constructor to have access to dt
     if (do_field_ionization) {InitIonizationModule();}
     AddParticles(0); // Note - add on level 0
     Redistribute();  // We then redistribute
@@ -1964,7 +1962,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 }
 
 
-void PhysicalParticleContainer::InitIonizationModule()
+void PhysicalParticleContainer::InitIonizationModule ()
 {
     if (!do_field_ionization) return;
     ParmParse pp(species_name);
@@ -2017,8 +2015,8 @@ void PhysicalParticleContainer::InitIonizationModule()
  * depending on whether the particle is ionized or not.
  */
 void
-PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const int lev,
-                                               amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
+PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                                amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
 {
     BL_PROFILE("PPC::buildIonizationMask");
     // Get pointers to ionization data from pc_source
