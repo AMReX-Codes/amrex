@@ -27,7 +27,7 @@ void
 WarpXParIter::GetPosition (Cuda::ManagedDeviceVector<Real>& x, Cuda::ManagedDeviceVector<Real>& y, Cuda::ManagedDeviceVector<Real>& z) const
 {
     amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const auto& attribs = GetAttribs();
     const auto& theta = attribs[PIdx::theta];
     y.resize(x.size());
@@ -44,10 +44,10 @@ WarpXParIter::GetPosition (Cuda::ManagedDeviceVector<Real>& x, Cuda::ManagedDevi
 void
 WarpXParIter::SetPosition (const Cuda::ManagedDeviceVector<Real>& x, const Cuda::ManagedDeviceVector<Real>& y, const Cuda::ManagedDeviceVector<Real>& z)
 {
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     auto& attribs = GetAttribs();
     auto& theta = attribs[PIdx::theta];
-    Cuda::DeviceVector<Real> r(x.size());
+    Cuda::ManagedDeviceVector<Real> r(x.size());
     for (unsigned int i=0 ; i < x.size() ; i++) {
         theta[i] = std::atan2(y[i], x[i]);
         r[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
@@ -80,7 +80,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     particle_comps["Bx"] = PIdx::Bx;
     particle_comps["By"] = PIdx::By;
     particle_comps["Bz"] = PIdx::Bz;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     particle_comps["theta"] = PIdx::theta;
 #endif
 
@@ -163,7 +163,7 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
     p.pos(1) = y;
     p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     attribs[PIdx::theta] = std::atan2(y, x);
     x = std::sqrt(x*x + y*y);
 #endif
@@ -209,7 +209,7 @@ WarpXParticleContainer::AddNParticles (int lev,
 
     std::size_t np = iend-ibegin;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     Vector<Real> theta(np);
 #endif
 
@@ -228,7 +228,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         p.pos(1) = y[i];
         p.pos(2) = z[i];
 #elif (AMREX_SPACEDIM == 2)
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
         theta[i-ibegin] = std::atan2(y[i], x[i]);
         p.pos(0) = std::sqrt(x[i]*x[i] + y[i]*y[i]);
 #else
@@ -265,7 +265,7 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
         {
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             if (comp == PIdx::theta) {
                 particle_tile.push_back_real(comp, theta.front(), theta.back());
             }
@@ -394,14 +394,6 @@ WarpXParticleContainer::DepositCurrentFortran(WarpXParIter& pti,
         &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
         &lvect,&WarpX::current_deposition_algo);
 
-#ifdef WARPX_RZ
-    // Rescale current in r-z mode
-    warpx_current_deposition_rz_volume_scaling(
-        jx_ptr, &ngJ, jxntot.getVect(),
-        jy_ptr, &ngJ, jyntot.getVect(),
-        jz_ptr, &ngJ, jzntot.getVect(),
-        &xyzmin[0], &dx[0]);
-#endif
     BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 #ifndef AMREX_USE_GPU
@@ -503,7 +495,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Real* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
 
     // Lower corner of tile box physical domain
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);;
+    // Note that this includes guard cells since it is after tilebox.ngrow
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
     // xyzmin is built on pti.tilebox(), so it does 
     // not include staggering, so the stagger_shift has to be done by hand.
     // Alternatively, we could define xyzminx from tbx (and the same for 3 
@@ -617,7 +610,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &ngRho, &ngRho, &ngRho,
                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
                               &lvect, &WarpX::charge_deposition_algo);
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
       warpx_charge_deposition_rz_volume_scaling(
                                data_ptr, &ngRho, rholen.getVect(),
                                &xyzmin[0], &dx[0]);
@@ -677,7 +670,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &ngRho, &ngRho, &ngRho,
                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
                               &lvect, &WarpX::charge_deposition_algo);
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
       warpx_charge_deposition_rz_volume_scaling(
                                data_ptr, &ngRho, rholen.getVect(),
                                &cxyzmin_tile[0], &cdx[0]);
@@ -837,7 +830,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
                                     &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
                                     &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                     &lvect, &WarpX::charge_deposition_algo);
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             long ngRho = WarpX::nox;
             warpx_charge_deposition_rz_volume_scaling(
                                      data_ptr, &ngRho, rholen.getVect(),
@@ -1022,7 +1015,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
             Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
             Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             Real* AMREX_RESTRICT theta = attribs[PIdx::theta].dataPtr();
 #endif
             // Loop over the particles and update their position
@@ -1030,12 +1023,12 @@ WarpXParticleContainer::PushX (int lev, Real dt)
                 [=] AMREX_GPU_DEVICE (long i) {
                     ParticleType& p = pstructs[i]; // Particle object that gets updated
                     Real x, y, z; // Temporary variables
-#ifndef WARPX_RZ
+#ifndef WARPX_DIM_RZ
                     GetPosition( x, y, z, p ); // Initialize x, y, z
                     UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
                     SetPosition( p, x, y, z ); // Update the object p
 #else
-                    // For WARPX_RZ, the particles are still pushed in 3D Cartesian
+                    // For WARPX_DIM_RZ, the particles are still pushed in 3D Cartesian
                     GetCartesianPositionFromCylindrical( x, y, z, p, theta[i] );
                     UpdatePosition( x, y, z, ux[i], uy[i], uz[i], dt);
                     SetCylindricalPositionFromCartesian( p, theta[i], x, y, z );

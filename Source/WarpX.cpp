@@ -499,9 +499,7 @@ WarpX::ReadParameters ()
         // If not in RZ mode, read use_picsar_deposition
         // In RZ mode, use_picsar_deposition is on, as the C++ version 
         // of the deposition does not support RZ
-#ifndef WARPX_RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
-#endif
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
@@ -995,7 +993,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1014,7 +1012,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1029,7 +1027,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1048,7 +1046,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1063,7 +1061,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1082,7 +1080,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1097,7 +1095,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1116,7 +1114,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
