@@ -428,7 +428,7 @@ void
 WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                        RealVector& wp, RealVector& uxp,
                                        RealVector& uyp, RealVector& uzp,
-                                       int* ion_lev,
+                                       const int * const ion_lev,
                                        MultiFab* jx, MultiFab* jy, MultiFab* jz,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev,

@@ -7,7 +7,6 @@
 #include <string>
 
 #include <AMReX_Particles.H>
-#include <AMReX_AmrCore.H>
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>

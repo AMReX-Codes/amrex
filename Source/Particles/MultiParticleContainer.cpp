@@ -1,15 +1,10 @@
 #include <limits>
 #include <algorithm>
 #include <string>
-#include <math.h>
 
-#include <AMReX_Particles.H>  
-#include <AMReX_AmrCore.H>
-#include <AMReX_Gpu.H>
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
-#include <WarpXConst.H>
 
 using namespace amrex;
 

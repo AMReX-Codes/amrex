@@ -184,7 +184,7 @@ public:
                                 RealVector& uxp,
                                 RealVector& uyp,
                                 RealVector& uzp,
-                                int* ion_lev,
+                                const int * const ion_lev,
                                 amrex::MultiFab* jx,
                                 amrex::MultiFab* jy,
                                 amrex::MultiFab* jz,
