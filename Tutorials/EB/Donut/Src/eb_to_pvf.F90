@@ -601,7 +601,7 @@ end subroutine write_pvtp
 
   nodes = hi-lo + 1
 
-  open(unit=100, file='eb_gird_'//cID//'_'//cgrid//'.vtr', status='unknown')
+  open(unit=100, file='eb_grid_'//cID//'_'//cgrid//'.vtr', status='unknown')
 
   write(100,'(A)') '<?xml version="1.0"?>'
   write(100,'(A)') '<VTKFile type="RectilinearGrid" &

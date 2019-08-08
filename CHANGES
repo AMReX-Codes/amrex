@@ -1,3 +1,16 @@
+# 19.08
+
+  -- MacProjector has the option to set maximal coarsening level.
+
+  -- OwnerMask and OverlapMask are now built on GPU.
+
+  -- Random number generation on GPU no longer requires an call to
+     initialize seeds.  They are done in amrex::Initialize and resize
+     is not needed when launching with more threads than the size of
+     seed array.
+
+  -- Optimization of NeighborParticles.
+
 # 19.07
 
   -- Geometry/CoordSys: Static class members have been removed.

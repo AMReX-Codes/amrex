@@ -495,8 +495,33 @@ amrex::Random ()
     return rand;
 }
 
-unsigned long
-amrex::Random_int(unsigned long n)
+#ifdef __CUDA_ARCH__
+
+AMREX_GPU_DEVICE unsigned int
+amrex::Random_int (unsigned int N)
+{
+    constexpr unsigned int RAND_M = 4294967295; // 2**32-1
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+    int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+              + (threadIdx.z * (blockDim.x * blockDim.y)) 
+              + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    unsigned int rand;
+    int i = get_state(tid);
+    do {
+        rand = curand(&states_d_ptr[i]); 
+    } while (rand > (RAND_M - RAND_M % N));
+    free_state(i);
+
+    return rand % N;
+}
+
+#else
+
+AMREX_GPU_HOST unsigned long
+amrex::Random_int (unsigned long n)
 {
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
@@ -506,6 +531,8 @@ amrex::Random_int(unsigned long n)
     std::uniform_int_distribution<unsigned long> distribution(0, n-1);
     return distribution(generators[tid]);
 }
+
+#endif
 
 void
 amrex::SaveRandomState(std::ostream& os)
