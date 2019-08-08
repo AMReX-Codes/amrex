@@ -5,14 +5,14 @@ using namespace amrex;
 /* \brief Initialize fields in spectral space, and FFT plans */
 SpectralFieldData::SpectralFieldData( const BoxArray& realspace_ba,
                             const SpectralKSpace& k_space,
-                            const DistributionMapping& dm )
+                            const DistributionMapping& dm,
+                            const int n_field_required )
 {
     const BoxArray& spectralspace_ba = k_space.spectralspace_ba;
 
     // Allocate the arrays that contain the fields in spectral space
     // (one component per field)
-    fields = SpectralField(spectralspace_ba, dm,
-                            SpectralFieldIndex::n_fields, 0);
+    fields = SpectralField(spectralspace_ba, dm, n_field_required, 0);
 
     // Allocate temporary arrays - in real space and spectral space
     // These arrays will store the data just before/after the FFT

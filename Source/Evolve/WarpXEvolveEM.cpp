@@ -302,6 +302,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
     PushPSATD(dt[0]);
+    if (do_pml) DampPML();
     FillBoundaryE();
     FillBoundaryB();
 #else
