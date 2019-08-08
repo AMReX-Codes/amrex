@@ -2051,7 +2051,6 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
     const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
     const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
     const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
-    // Real* ilev_real = soa.GetIntData(particle_icomps["ionization_level"]).data();
     int* ion_lev = soa.GetIntData(particle_icomps["ionization_level"]).data();
 
     Real c = PhysConst::c;
@@ -2064,7 +2063,6 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
         np,
         [=] AMREX_GPU_DEVICE (long i) {
             // Get index of ionization_level
-            // int ilev = (int) round(ilev_real[i]);
             p_ionization_mask[i] = 0;
             if ( ion_lev[i]<atomic_number ){
                 Real random_draw = amrex::Random();
