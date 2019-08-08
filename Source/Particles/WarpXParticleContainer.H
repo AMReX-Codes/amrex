@@ -278,8 +278,6 @@ public:
 
     int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }    
 
-    virtual void setIonizationProduct (int i_product) {};
-
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
     {};
