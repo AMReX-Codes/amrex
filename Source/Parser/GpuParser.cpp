@@ -7,7 +7,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
     struct wp_parser* a_wp = wp.m_parser;
     // Initialize GPU parser: allocate memory in CUDA managed memory,
     // copy all data needed on GPU to m_gpu_parser
-    m_gpu_parser.sz_mempool = wp_ast_size((struct wp_node*)a_wp);
+    m_gpu_parser.sz_mempool = wp_ast_size(a_wp->ast);
     m_gpu_parser.p_root = (struct wp_node*)
         amrex::The_Managed_Arena()->alloc(m_gpu_parser.sz_mempool);
     m_gpu_parser.p_free = m_gpu_parser.p_root;
@@ -19,7 +19,7 @@ GpuParser::GpuParser (WarpXParser const& wp)
 
     // Initialize CPU parser: allocate memory in CUDA managed memory,
     // copy all data needed on CPU to m_cpu_parser
-    m_cpu_parser.sz_mempool = wp_ast_size((struct wp_node*)a_wp);
+    m_cpu_parser.sz_mempool = wp_ast_size(a_wp->ast);
     m_cpu_parser.p_root = (struct wp_node*)
         amrex::The_Managed_Arena()->alloc(m_cpu_parser.sz_mempool);
     m_cpu_parser.p_free = m_cpu_parser.p_root;
