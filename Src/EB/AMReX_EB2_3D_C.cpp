@@ -647,7 +647,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bxg1, tbx,
     {
         auto lo = amrex::max_lbound(tbx, Dim3{bxlo.x  ,bxlo.y-1,bxlo.z-1});
-        auto hi = amrex::min_ubound(tbx, Dim3{bxlo.x+1,bxlo.y+1,bxlo.z+1});
+        auto hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
@@ -659,7 +659,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         }}}
 
         lo = amrex::max_lbound(tbx, Dim3{bxlo.x-1,bxlo.y  ,bxlo.z-1});
-        hi = amrex::min_ubound(tbx, Dim3{bxlo.x+1,bxlo.y+1,bxlo.z+1});
+        hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
@@ -671,7 +671,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         }}}
 
         lo = amrex::max_lbound(tbx, Dim3{bxlo.x-1,bxlo.y-1,bxlo.z  });
-        hi = amrex::min_ubound(tbx, Dim3{bxlo.x+1,bxlo.y+1,bxlo.z+1});
+        hi = amrex::min_ubound(tbx, Dim3{bxhi.x+1,bxhi.y+1,bxhi.z+1});
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
