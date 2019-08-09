@@ -43,8 +43,7 @@ public:
         const int lev_max = 0;
         const int nGrow = 0;
         const int local = 1;
-        RedistributeOptimized(lev_min, lev_max, nGrow, local);
-        //Redistribute(lev_min, lev_max, nGrow, local);
+        Redistribute(lev_min, lev_max, nGrow, local);
     }
 
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
@@ -164,9 +163,9 @@ public:
     void checkAnswer () const
     {
         BL_PROFILE("TestParticleContainer::checkAnswer");
-
+        
         AMREX_ALWAYS_ASSERT(OK());
-
+        
         const int lev = 0;
         const Geometry& geom = Geom(lev);
         const auto dx = Geom(lev).CellSizeArray();
