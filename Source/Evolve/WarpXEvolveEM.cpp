@@ -299,6 +299,7 @@ WarpX::OneStep_nosub (Real cur_time)
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
     PushPSATD(dt[0]);
+    if (do_pml) DampPML();
     FillBoundaryE();
     FillBoundaryB();
 #else
@@ -481,6 +482,13 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  Efield_cax[lev][0].get(), Efield_cax[lev][1].get(), Efield_cax[lev][2].get(),
                  Bfield_cax[lev][0].get(), Bfield_cax[lev][1].get(), Bfield_cax[lev][2].get(),
                  cur_time, dt[lev]);
+#ifdef WARPX_DIM_RZ
+    // This is called after all particles have deposited their current.
+    ApplyInverseVolumeScalingToCurrentDensity(current_fp[lev][0].get(), current_fp[lev][1].get(), current_fp[lev][2].get(), lev);
+    if (current_buf[lev][0].get()) {
+        ApplyInverseVolumeScalingToCurrentDensity(current_buf[lev][0].get(), current_buf[lev][1].get(), current_buf[lev][2].get(), lev-1);
+    }
+#endif
 }
 
 void
@@ -491,7 +499,7 @@ WarpX::ComputeDt ()
 
     if (maxwell_fdtd_solver_id == 0) {
         // CFL time step Yee solver
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
         // In the rz case, the Courant limit has been evaluated
         // semi-analytically by R. Lehe, and resulted in the following
         // coefficients. For an explanation, see (not officially published)

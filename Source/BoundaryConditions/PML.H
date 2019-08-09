@@ -6,6 +6,10 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+#ifdef WARPX_USE_PSATD
+#include <SpectralSolver.H>
+#endif
+
 #if (AMREX_SPACEDIM == 3)
 
 #define WRPX_PML_TO_FORTRAN(x)                              \
@@ -93,7 +97,11 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window);
+         int ncell, int delta, int ref_ratio,
+#ifdef WARPX_USE_PSATD
+         amrex::Real dt, int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
+#endif
+         int do_dive_cleaning, int do_moving_window);
 
     void ComputePMLFactors (amrex::Real dt);
 
@@ -110,6 +118,10 @@ public:
 
     const MultiSigmaBox& GetMultiSigmaBox_cp () const
         { return *sigba_cp; }
+
+#ifdef WARPX_USE_PSATD
+    void PushPSATD ();
+#endif
 
     void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
                     const std::array<amrex::MultiFab*,3>& B_cp);
@@ -154,10 +166,21 @@ private:
     std::unique_ptr<MultiSigmaBox> sigba_fp;
     std::unique_ptr<MultiSigmaBox> sigba_cp;
 
+#ifdef WARPX_USE_PSATD
+    std::unique_ptr<SpectralSolver> spectral_solver_fp;
+    std::unique_ptr<SpectralSolver> spectral_solver_cp;
+#endif
+
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
                                          const amrex::BoxArray& grid_ba, int ncell);
 
     static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
+
+#ifdef WARPX_USE_PSATD
+void PushPMLPSATDSinglePatch( SpectralSolver& solver,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_E,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_B );
+#endif
 
 #endif

@@ -37,6 +37,7 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
+long WarpX::use_picsar_deposition = 1;
 long WarpX::current_deposition_algo;
 long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
@@ -204,6 +205,10 @@ WarpX::WarpX ()
     costs.resize(nlevs_max);
 
 #ifdef WARPX_USE_PSATD
+    spectral_solver_fp.resize(nlevs_max);
+    spectral_solver_cp.resize(nlevs_max);
+#endif
+#ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
     Bfield_fp_fft.resize(nlevs_max);
     current_fp_fft.resize(nlevs_max);
@@ -216,9 +221,6 @@ WarpX::WarpX ()
 
     dataptr_fp_fft.resize(nlevs_max);
     dataptr_cp_fft.resize(nlevs_max);
-
-    spectral_solver_fp.resize(nlevs_max);
-    spectral_solver_cp.resize(nlevs_max);
 
     ba_valid_fp_fft.resize(nlevs_max);
     ba_valid_cp_fft.resize(nlevs_max);
@@ -388,36 +390,46 @@ WarpX::ReadParameters ()
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
-        if (ParallelDescriptor::NProcs() == 1) {
-            plot_proc_number = false;
-        }
-        // Fields to dump into plotfiles
-        pp.query("plot_E_field"      , plot_E_field);
-        pp.query("plot_B_field"      , plot_B_field);
-        pp.query("plot_J_field"      , plot_J_field);
-        pp.query("plot_part_per_cell", plot_part_per_cell);
-        pp.query("plot_part_per_grid", plot_part_per_grid);
-        pp.query("plot_part_per_proc", plot_part_per_proc);
-        pp.query("plot_proc_number"  , plot_proc_number);
-        pp.query("plot_dive"         , plot_dive);
-        pp.query("plot_divb"         , plot_divb);
-        pp.query("plot_rho"          , plot_rho);
-        pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+        bool user_fields_to_plot;
+        user_fields_to_plot = pp.queryarr("fields_to_plot", fields_to_plot);
+        if (not user_fields_to_plot){
+            // If not specified, set default values
+            fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
+                              "Bz", "jx", "jy", "jz", 
+                              "part_per_cell"};
+        }
+        // set plot_rho to true of the users requests it, so that
+        // rho is computed at each iteration.
+        if (std::find(fields_to_plot.begin(), fields_to_plot.end(), "rho")
+            != fields_to_plot.end()){
+            plot_rho = true;
+        }
+        // Sanity check if user requests to plot F
+        if (std::find(fields_to_plot.begin(), fields_to_plot.end(), "F")
+            != fields_to_plot.end()){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
+                "plot F only works if warpx.do_dive_cleaning = 1");
+        }
+        // If user requests to plot proc_number for a serial run,
+        // delete proc_number from fields_to_plot
+        if (ParallelDescriptor::NProcs() == 1){
+            fields_to_plot.erase(std::remove(fields_to_plot.begin(), 
+                                             fields_to_plot.end(), 
+                                             "proc_number"), 
+                                 fields_to_plot.end());
+        }
 
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
-              amrex::Abort("plot_coarsening_ratio should be an integer divisor of the blocking factor.");
+              amrex::Abort("plot_coarsening_ratio should be an integer "
+                           "divisor of the blocking factor.");
             }
           }
         }
 
-        if (plot_F){
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
-                "plot_F only works if warpx.do_dive_cleaning = 1");
-        }
         pp.query("plot_finepatch", plot_finepatch);
         if (maxLevel() > 0) {
             pp.query("plot_crsepatch", plot_crsepatch);
@@ -491,6 +503,10 @@ WarpX::ReadParameters ()
 
     {
         ParmParse pp("algo");
+        // If not in RZ mode, read use_picsar_deposition
+        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // of the deposition does not support RZ
+        pp.query("use_picsar_deposition", use_picsar_deposition);
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
@@ -507,8 +523,6 @@ WarpX::ReadParameters ()
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
-        // Override value
-        if (fft_hybrid_mpi_decomposition==false) ngroups_fft=ParallelDescriptor::NProcs();
     }
 #endif
 
@@ -563,8 +577,14 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
     InitLevelData(lev, time);
 
 #ifdef WARPX_USE_PSATD
-    AllocLevelDataFFT(lev);
-    InitLevelDataFFT(lev, time);
+    if (fft_hybrid_mpi_decomposition){
+#ifdef WARPX_USE_PSATD_HYBRID
+        AllocLevelDataFFT(lev);
+        InitLevelDataFFT(lev, time);
+#else
+    amrex::Abort("The option `psatd.fft_hybrid_mpi_decomposition` does not work on GPU.");
+#endif
+    }
 #endif
 }
 
@@ -608,7 +628,7 @@ WarpX::ClearLevel (int lev)
 
     costs[lev].reset();
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
     for (int i = 0; i < 3; ++i) {
         Efield_fp_fft[lev][i].reset();
         Bfield_fp_fft[lev][i].reset();
@@ -700,6 +720,37 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     // CKC solver requires one additional guard cell
     if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
 
+#ifdef WARPX_USE_PSATD
+    if (fft_hybrid_mpi_decomposition == false){
+        // All boxes should have the same number of guard cells
+        // (to avoid temporary parallel copies)
+        // Thus take the max of the required number of guards for each field
+        // Also: the number of guard cell should be enough to contain
+        // the stencil of the FFT solver. Here, this number (`ngFFT`)
+        // is determined *empirically* to be the order of the solver
+        // for nodal, and half the order of the solver for staggered.
+        IntVect ngFFT;
+        if (do_nodal) {
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
+        } else {
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
+        }
+        for (int i_dim=0; i_dim<AMREX_SPACEDIM; i_dim++ ){
+            int ng_required = ngFFT[i_dim];
+            // Get the max
+            ng_required = std::max( ng_required, ngE[i_dim] );
+            ng_required = std::max( ng_required, ngJ[i_dim] );
+            ng_required = std::max( ng_required, ngRho[i_dim] );
+            ng_required = std::max( ng_required, ngF );
+            // Set the guard cells to this max
+            ngE[i_dim] = ng_required;
+            ngJ[i_dim] = ng_required;
+            ngRho[i_dim] = ng_required;
+            ngF = ng_required;
+        }
+    }
+#endif
+
     AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF);
 }
 
@@ -760,6 +811,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
+    }
+    if (fft_hybrid_mpi_decomposition == false){
+        // Allocate and initialize the spectral solver
+        std::array<Real,3> dx = CellSize(lev);
+#if (AMREX_SPACEDIM == 3)
+        RealVect dx_vect(dx[0], dx[1], dx[2]);
+#elif (AMREX_SPACEDIM == 2)
+        RealVect dx_vect(dx[0], dx[2]);
+#endif
+        // Get the cell-centered box, with guard cells
+        BoxArray realspace_ba = ba;  // Copy box
+        realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+        // Define spectral solver
+        spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
+            nox_fft, noy_fft, noz_fft, do_nodal, dx_vect, dt[lev] ) );
     }
 #endif
 
@@ -945,7 +1011,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -964,7 +1030,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -979,7 +1045,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -998,7 +1064,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1013,7 +1079,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1032,7 +1098,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1047,7 +1113,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1066,7 +1132,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );

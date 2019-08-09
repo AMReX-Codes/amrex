@@ -13,7 +13,7 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
         theta, // RZ needs all three position components
 #endif
 	nattribs
@@ -107,8 +107,9 @@ public:
                                 const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) {}
 
     virtual void FieldGather (int lev,
-                              const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-                              const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
+                              const amrex::MultiFab& Ex, const amrex::MultiFab& Ey,
+                              const amrex::MultiFab& Ez, const amrex::MultiFab& Bx,
+                              const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
 
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
@@ -192,6 +193,21 @@ public:
                                 int depos_lev,
                                 amrex::Real dt);
 
+    virtual void DepositCurrentFortran(WarpXParIter& pti,
+                                       RealVector& wp,
+                                       RealVector& uxp,
+                                       RealVector& uyp,
+                                       RealVector& uzp,
+                                       amrex::MultiFab* jx,
+                                       amrex::MultiFab* jy,
+                                       amrex::MultiFab* jz,
+                                       const long offset,
+                                       const long np_to_depose,
+                                       int thread_num,
+                                       int lev,
+                                       int depos_lev,
+                                       amrex::Real dt);
+
     // If particles start outside of the domain, ContinuousInjection 
     // makes sure that they are initialized when they enter the domain, and 
     // NOT before. Virtual function, overriden by derived classes. 
@@ -256,8 +272,8 @@ public:
         AddIntComp(comm);
     }
 
-    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }
-    
+    int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }    
+
 protected:
 
     std::map<std::string, int> particle_comps;
