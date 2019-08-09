@@ -213,7 +213,11 @@ void PlasmaInjector::parseDensity (ParmParse& pp)
         // Construct InjectorDensity with InjectorDensityPredefined.
         inj_rho.reset(new InjectorDensity((InjectorDensityPredefined*)nullptr,species_name));
     } else if (rho_prof_s == "parse_density_function") {
-        pp.get("density_function(x,y,z)", str_density_function);
+        std::vector<std::string> f;
+        pp.getarr("density_function(x,y,z)", f);
+        for (auto const& s : f) {
+            str_density_function += s;
+        }
         // Construct InjectorDensity with InjectorDensityParser.
         inj_rho.reset(new InjectorDensity((InjectorDensityParser*)nullptr,
                                           makeParser(str_density_function)));
@@ -269,9 +273,21 @@ void PlasmaInjector::parseMomentum (ParmParse& pp)
         inj_mom.reset(new InjectorMomentum
                       ((InjectorMomentumRadialExpansion*)nullptr, u_over_r));
     } else if (mom_dist_s == "parse_momentum_function") {
-        pp.get("momentum_function_ux(x,y,z)", str_momentum_function_ux);
-        pp.get("momentum_function_uy(x,y,z)", str_momentum_function_uy);
-        pp.get("momentum_function_uz(x,y,z)", str_momentum_function_uz);
+        std::vector<std::string> f;
+        pp.getarr("momentum_function_ux(x,y,z)", f);
+        for (auto const& s : f) {
+            str_momentum_function_ux += s;
+        }
+        f.clear();
+        pp.getarr("momentum_function_uy(x,y,z)", f);
+        for (auto const& s : f) {
+            str_momentum_function_uy += s;
+        }
+        f.clear();
+        pp.getarr("momentum_function_uz(x,y,z)", f);
+        for (auto const& s : f) {
+            str_momentum_function_uz += s;
+        }
         // Construct InjectorMomentum with InjectorMomentumParser.
         inj_mom.reset(new InjectorMomentum((InjectorMomentumParser*)nullptr,
                                            makeParser(str_momentum_function_ux),
