@@ -132,10 +132,9 @@ WarpX::InitPML ()
     if (do_pml)
     {
         amrex::IntVect do_pml_Lo_corrected = do_pml_Lo;
-        // amrex::IntVect do_pml_Hi_corrected = do_pml_Hi;
 
 #ifdef WARPX_DIM_RZ
-        do_pml_Lo_corrected[0] = 0; //no PML along z-axis
+        do_pml_Lo_corrected[0] = 0; // no PML at r=0, in cylindrical geometry
 #endif
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
                              pml_ncell, pml_delta, 0,
@@ -148,7 +147,8 @@ WarpX::InitPML ()
         {
             amrex::IntVect do_pml_Lo_MR = amrex::IntVect::TheUnitVector();
 #ifdef WARPX_DIM_RZ
-            if ((max_level > 0) && (fine_tag_lo[0]==0.)) { //if the border of the patch matches with the z-axis
+            //In cylindrical geometry, if the edge of the patch is at r=0, do not add PML
+            if ((max_level > 0) && (fine_tag_lo[0]==0.)) {
                 do_pml_Lo_MR[0] = 0;
             }
 #endif
