@@ -12,7 +12,7 @@ ds = yt.load( filename )
 ad = ds.all_data()
 ilev = ad['ions', 'particle_ionization_level'].v
 
-N5_fraction = ilev[ilev == 5].size/ilev.size
+N5_fraction = ilev[ilev == 5].size/float(ilev.size)
 
 print("Number of ions: " + str(ilev.size))
 print("Number of N5+ : " + str(ilev[ilev == 5].size))
