@@ -511,37 +511,40 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
         if        (WarpX::nox == 1){
-            doEsirkepovDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                                           uyp.dataPtr(), uzp.dataPtr(), ion_lev, jx_arr, jy_arr, 
-                                           jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+            doEsirkepovDepositionShapeN<1>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         } else if (WarpX::nox == 2){
-            doEsirkepovDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                                           uyp.dataPtr(), uzp.dataPtr(), ion_lev, jx_arr, jy_arr, 
-                                           jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+            doEsirkepovDepositionShapeN<2>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         } else if (WarpX::nox == 3){
-            doEsirkepovDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                                           uyp.dataPtr(), uzp.dataPtr(), ion_lev, jx_arr, jy_arr, 
-                                           jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+            doEsirkepovDepositionShapeN<3>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         }
     } else {
         if        (WarpX::nox == 1){
-            doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                                  uyp.dataPtr(), uzp.dataPtr(), ion_lev, jx_arr, jy_arr, 
-                                  jz_arr, np_to_depose, dt, dx,
-                                  xyzmin, lo, stagger_shift, q);
+            doDepositionShapeN<1>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
+                stagger_shift, q);
         } else if (WarpX::nox == 2){
-            doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                                  uyp.dataPtr(), uzp.dataPtr(), ion_lev, jx_arr, jy_arr, 
-                                  jz_arr, np_to_depose, dt, dx,
-                                  xyzmin, lo, stagger_shift, q);
+            doDepositionShapeN<2>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
+                stagger_shift, q);
         } else if (WarpX::nox == 3){
-            doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr(), uxp.dataPtr(), 
-                                  uyp.dataPtr(), uzp.dataPtr(), ion_lev, jx_arr, jy_arr, 
-                                  jz_arr, np_to_depose, dt, dx,
-                                  xyzmin, lo, stagger_shift, q);
+            doDepositionShapeN<3>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
+                stagger_shift, q);
         }
     }
 
