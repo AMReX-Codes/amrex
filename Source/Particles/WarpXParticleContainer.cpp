@@ -735,6 +735,10 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
         }
     }
 
+#ifdef WARPX_DIM_RZ
+    WarpX::GetInstance().ApplyInverseVolumeScalingToChargeDensity(rho.get(), lev);
+#endif
+
     if (!local) rho->SumBoundary(gm.periodicity());
 
     return rho;
