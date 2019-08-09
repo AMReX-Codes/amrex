@@ -567,7 +567,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     const long ngRho = rho->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
-    Real q = this->charge;
+    const Real q = this->charge;
 
     BL_PROFILE_VAR_NS("PPC::ChargeDeposition", blp_ppc_chd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
@@ -586,11 +586,11 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     tilebox.grow(ngRho);
 
 #ifdef AMREX_USE_GPU
-    // No tiling on GPU: rho_ptr points to the full rho array.
+    // No tiling on GPU: rho_arr points to the full rho array.
     Array4<Real> const& rho_arr = rho->array(pti);
 #else
-    // Tiling is on: rho_ptr points to local_rho[thread_num]
-    Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
+    // Tiling is on: rho_arr points to local_rho[thread_num]
+    const Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
 
     local_rho[thread_num].resize(tb);
 
