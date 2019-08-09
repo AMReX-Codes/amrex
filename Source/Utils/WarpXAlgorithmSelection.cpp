@@ -8,7 +8,7 @@
 
 const std::map<std::string, int> maxwell_solver_algo_to_int = {
     {"yee",     MaxwellSolverAlgo::Yee },
-#ifndef WARPX_RZ // Not available in RZ
+#ifndef WARPX_DIM_RZ // Not available in RZ
     {"ckc",     MaxwellSolverAlgo::CKC },
 #endif
     {"default", MaxwellSolverAlgo::Yee }

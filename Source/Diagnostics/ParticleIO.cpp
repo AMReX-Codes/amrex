@@ -98,7 +98,7 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             real_names.push_back("By");
             real_names.push_back("Bz");
             
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             real_names.push_back("theta");
 #endif
             
@@ -114,7 +114,8 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             }
 
             if(pc->do_field_ionization){
-                real_names.push_back("ionization_level");
+                int_names.push_back("ionization_level");
+                int_flags.resize(1, 1);
             }
             
             // Convert momentum to SI

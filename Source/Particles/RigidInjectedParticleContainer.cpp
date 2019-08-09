@@ -421,38 +421,10 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-#ifdef WARPX_RZ
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin_grid = box.loVect();
-
-            const int ll4symtry          = false;
-            long lvect_fieldgathe = 64;
-
-            warpx_geteb_energy_conserving(
-                &np,
-                m_xp[thread_num].dataPtr(),
-                m_yp[thread_num].dataPtr(),
-                m_zp[thread_num].dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                ixyzmin_grid,
-                &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                BL_TO_FORTRAN_ANYD(exfab),
-                BL_TO_FORTRAN_ANYD(eyfab),
-                BL_TO_FORTRAN_ANYD(ezfab),
-                BL_TO_FORTRAN_ANYD(bxfab),
-                BL_TO_FORTRAN_ANYD(byfab),
-                BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
                         Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
-#endif
 
             // Save the position and momenta, making copies
             auto uxp_save = uxp;

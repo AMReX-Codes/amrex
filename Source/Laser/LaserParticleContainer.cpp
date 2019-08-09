@@ -504,7 +504,7 @@ LaserParticleContainer::Evolve (int lev,
             // Current Deposition
             //
             // Deposit inside domains
-            Real* ion_lev = nullptr;
+            int* ion_lev = nullptr;
             DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                            0, np_current, thread_num,
                            lev, lev, dt);

@@ -39,10 +39,6 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
     pp.query("do_field_ionization", do_field_ionization);
-    // If do_field_ionization, read initialization data from input file and
-    // read ionization energies from table.
-    //if (do_field_ionization)
-    //    InitIonizationModule();
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
@@ -84,6 +80,8 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
 
 void PhysicalParticleContainer::InitData()
 {
+    // Init ionization module here instead of in the PhysicalParticleContainer
+    // constructor because dt is required
     if (do_field_ionization) {InitIonizationModule();}
     AddParticles(0); // Note - add on level 0
     Redistribute();  // We then redistribute
@@ -156,7 +154,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             npart /= 4;
         }
         for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 | WARPX_RZ)
+#if ( AMREX_SPACEDIM == 3 | WARPX_DIM_RZ)
             Real weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
@@ -210,10 +208,10 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
         auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
         {
-             particle_tile.push_back_real(particle_comps["xold"], x);
+            particle_tile.push_back_real(particle_comps["xold"], x);
             particle_tile.push_back_real(particle_comps["yold"], y);
             particle_tile.push_back_real(particle_comps["zold"], z);
-                
+            
             particle_tile.push_back_real(particle_comps["uxold"], u[0]);
             particle_tile.push_back_real(particle_comps["uyold"], u[1]);
             particle_tile.push_back_real(particle_comps["uzold"], u[2]);
@@ -280,7 +278,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
 #endif
 
@@ -334,7 +332,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     Real density_min = plasma_injector->density_min;
     Real density_max = plasma_injector->density_max;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     bool radially_weighted = plasma_injector->radially_weighted;
 #endif
 
@@ -452,9 +450,9 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pb[4] = soa.GetRealData(particle_comps["uyold"]).data() + old_size;
             pb[5] = soa.GetRealData(particle_comps["uzold"]).data() + old_size;
         }
-        Real* pi;
+        int* pi;
         if (do_field_ionization) {
-            pi = soa.GetRealData(particle_comps[ "ionization_level"]).data() + old_size;
+            pi = soa.GetIntData(particle_icomps["ionization_level"]).data() + old_size;
         }
         
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
@@ -513,11 +511,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #endif
 
             // Save the x and y values to use in the insideBounds checks.
-            // This is needed with WARPX_RZ since x and y are modified.
+            // This is needed with WARPX_DIM_RZ since x and y are modified.
             Real xb = x;
             Real yb = y;
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             // Replace the x and y, choosing the angle randomly.
             // These x and y are used to get the momentum and density
             Real theta = 2.*MathConst::pi*amrex::Random();
@@ -595,7 +593,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
             // Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
             Real weight = dens * scale_fac;
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             if (radially_weighted) {
                 weight *= 2.*MathConst::pi*xb;
             } else {
@@ -624,7 +622,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             p.pos(1) = y;
             p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             pa[PIdx::theta][ip] = theta;
 #endif
             p.pos(0) = xb;
@@ -914,40 +912,13 @@ PhysicalParticleContainer::FieldGather (int lev,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin = box.loVect();
-
             //
             // Field Gather
             //
-#ifdef WARPX_RZ
-            const int ll4symtry = false;
-            long lvect_fieldgathe = 64;
-            warpx_geteb_energy_conserving(
-                &np,
-                m_xp[thread_num].dataPtr(),
-                m_yp[thread_num].dataPtr(),
-                m_zp[thread_num].dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                ixyzmin,
-                &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                BL_TO_FORTRAN_ANYD(exfab),
-                BL_TO_FORTRAN_ANYD(eyfab),
-                BL_TO_FORTRAN_ANYD(ezfab),
-                BL_TO_FORTRAN_ANYD(bxfab),
-                BL_TO_FORTRAN_ANYD(byfab),
-                BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
                         Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
-#endif
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1216,42 +1187,14 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
                 BL_PROFILE_VAR_START(blp_pxr_fg);
-#ifdef WARPX_RZ
-                const int ll4symtry = false;
-                long lvect_fieldgathe = 64;
-                const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-                const int* ixyzmin_grid = box.loVect();
-                warpx_geteb_energy_conserving(
-                    &np_gather,
-                    m_xp[thread_num].dataPtr(),
-                    m_yp[thread_num].dataPtr(),
-                    m_zp[thread_num].dataPtr(),
-                    Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                    Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                    ixyzmin_grid,
-                    &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
-                    &dx[0], &dx[1], &dx[2],
-                    &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                    BL_TO_FORTRAN_ANYD(*exfab),
-                    BL_TO_FORTRAN_ANYD(*eyfab),
-                    BL_TO_FORTRAN_ANYD(*ezfab),
-                    BL_TO_FORTRAN_ANYD(*bxfab),
-                    BL_TO_FORTRAN_ANYD(*byfab),
-                    BL_TO_FORTRAN_ANYD(*bzfab),
-                    &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                    &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
                 FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                             exfab, eyfab, ezfab, bxfab, byfab, bzfab, 
                             Ex.nGrow(), e_is_nodal, 0, np_gather, thread_num, lev, lev);
-#endif
 
                 if (np_gather < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
                     const Box& cbox = amrex::coarsen(box,ref_ratio);
-                    const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
-                    const int* cixyzmin_grid = cbox.loVect();
 
                     // Data on the grid
                     FArrayBox const* cexfab = &(*cEx)[pti];
@@ -1314,29 +1257,6 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                     
                     // Field gather for particles in gather buffers
-#ifdef WARPX_RZ
-                    
-                    long ncrse = np - nfine_gather;
-                    warpx_geteb_energy_conserving(
-                        &ncrse,
-                        m_xp[thread_num].dataPtr()+nfine_gather,
-                        m_yp[thread_num].dataPtr()+nfine_gather,
-                        m_zp[thread_num].dataPtr()+nfine_gather,
-                        Exp.dataPtr()+nfine_gather, Eyp.dataPtr()+nfine_gather, Ezp.dataPtr()+nfine_gather,
-                        Bxp.dataPtr()+nfine_gather, Byp.dataPtr()+nfine_gather, Bzp.dataPtr()+nfine_gather,
-                        cixyzmin_grid,
-                        &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
-                        &cdx[0], &cdx[1], &cdx[2],
-                        &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                        BL_TO_FORTRAN_ANYD(*cexfab),
-                        BL_TO_FORTRAN_ANYD(*ceyfab),
-                        BL_TO_FORTRAN_ANYD(*cezfab),
-                        BL_TO_FORTRAN_ANYD(*cbxfab),
-                        BL_TO_FORTRAN_ANYD(*cbyfab),
-                        BL_TO_FORTRAN_ANYD(*cbzfab),
-                        &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                        &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
                     e_is_nodal = cEx->is_nodal() and cEy->is_nodal() and cEz->is_nodal();
                     FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp, 
                                 cexfab, ceyfab, cezfab,
@@ -1344,7 +1264,6 @@ PhysicalParticleContainer::Evolve (int lev,
                                 cEx->nGrow(), e_is_nodal, 
                                 nfine_gather, np-nfine_gather, 
                                 thread_num, lev, lev-1);
-#endif
                 }
 
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
@@ -1372,9 +1291,9 @@ PhysicalParticleContainer::Evolve (int lev,
                                               lev, lev-1, dt);
                     }
                 } else {
-                    Real* AMREX_RESTRICT ion_lev;
+                    int* AMREX_RESTRICT ion_lev;
                     if (do_field_ionization){
-                        ion_lev = pti.GetAttribs(particle_comps["ionization_level"]).dataPtr();
+                        ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
                     } else {
                         ion_lev = nullptr;
                     }
@@ -1602,9 +1521,9 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         copy_attribs(pti, x, y, z);
     }
 
-    Real* AMREX_RESTRICT ion_lev = nullptr;
+    int* AMREX_RESTRICT ion_lev = nullptr;
     if (do_field_ionization){
-        ion_lev = pti.GetAttribs(particle_comps["ionization_level"]).dataPtr();
+        ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
     }
     
     // Loop over the particles and update their momentum
@@ -1698,38 +1617,10 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             //
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-#ifdef WARPX_RZ
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin_grid = box.loVect();
-
-            const int ll4symtry          = false;
-            long lvect_fieldgathe = 64;
-
-            warpx_geteb_energy_conserving(
-                &np,
-                m_xp[thread_num].dataPtr(),
-                m_yp[thread_num].dataPtr(),
-                m_zp[thread_num].dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                ixyzmin_grid,
-                &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                BL_TO_FORTRAN_ANYD(exfab),
-                BL_TO_FORTRAN_ANYD(eyfab),
-                BL_TO_FORTRAN_ANYD(ezfab),
-                BL_TO_FORTRAN_ANYD(bxfab),
-                BL_TO_FORTRAN_ANYD(byfab),
-                BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
-#else
-                int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
-                FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                            &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
-                            Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
-#endif
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
+                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
@@ -2071,7 +1962,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
 }
 
 
-void PhysicalParticleContainer::InitIonizationModule()
+void PhysicalParticleContainer::InitIonizationModule ()
 {
     if (!do_field_ionization) return;
     ParmParse pp(species_name);
@@ -2079,7 +1970,7 @@ void PhysicalParticleContainer::InitIonizationModule()
     pp.get("ionization_product", ionization_product_name);
     pp.get("physical_element", physical_element);
     // Add Real component for ionization level
-    AddRealComp("ionization_level");
+    AddIntComp("ionization_level");
     plot_flags.resize(PIdx::nattribs + 1, 1);
     // Get atomic number and ionization energies from file
     int ion_element_id = ion_map_ids[physical_element];
@@ -2110,7 +2001,7 @@ void PhysicalParticleContainer::InitIonizationModule()
         adk_power[i] = -(2*n_eff - 1);
         Real Uion = ionization_energies[i];
         adk_prefactor[i] = dt * wa * C2 * ( Uion/(2*UH) ) 
-            * std::pow(std::pow(2*(Uion/UH),3./2)*Ea,2*n_eff - 1);
+            * std::pow(2*std::pow((Uion/UH),3./2)*Ea,2*n_eff - 1);
         adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
     }
 }
@@ -2124,8 +2015,8 @@ void PhysicalParticleContainer::InitIonizationModule()
  * depending on whether the particle is ionized or not.
  */
 void
-PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const int lev,
-                                               amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
+PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                                amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
 {
     BL_PROFILE("PPC::buildIonizationMask");
     // Get pointers to ionization data from pc_source
@@ -2158,7 +2049,7 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
     const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
     const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
     const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
-    Real* ilev_real = soa.GetRealData(particle_comps["ionization_level"]).data();
+    int* ion_lev = soa.GetIntData(particle_icomps["ionization_level"]).data();
 
     Real c = PhysConst::c;
     Real c2_inv = 1./c/c;
@@ -2170,9 +2061,8 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
         np,
         [=] AMREX_GPU_DEVICE (long i) {
             // Get index of ionization_level
-            int ilev = (int) round(ilev_real[i]);
             p_ionization_mask[i] = 0;
-            if ( ilev<atomic_number ){
+            if ( ion_lev[i]<atomic_number ){
                 Real random_draw = amrex::Random();
                 // Compute electric field amplitude in the particle's frame of
                 // reference (particularly important when in boosted frame).
@@ -2185,14 +2075,14 @@ PhysicalParticleContainer::buildIonizationMask(const amrex::MFIter& mfi, const i
                     );
                 // Compute probability of ionization p
                 Real p;
-                Real w_dtau = 1./ ga * p_adk_prefactor[ilev] * 
-                    std::pow(E,p_adk_power[ilev]) * 
-                    std::exp( p_adk_exp_prefactor[ilev]/E );
+                Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev[i]] *
+                    std::pow(E,p_adk_power[ion_lev[i]]) *
+                    std::exp( p_adk_exp_prefactor[ion_lev[i]]/E );
                 p = 1. - std::exp( - w_dtau );
 
                 if (random_draw < p){
                     // increment particle's ionization level
-                    ilev_real[i] += 1.;
+                    ion_lev[i] += 1;
                     // update mask
                     p_ionization_mask[i] = 1;
                 }

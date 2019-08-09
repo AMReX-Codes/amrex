@@ -42,7 +42,9 @@ void doGatherShapeN(const amrex::Real * const xp,
 #endif
 
     const amrex::Real xmin = xyzmin[0];
+#if (AMREX_SPACEDIM == 3)
     const amrex::Real ymin = xyzmin[1];
+#endif
     const amrex::Real zmin = xyzmin[2];
 
     // Loop over particles and gather fields from
@@ -53,7 +55,12 @@ void doGatherShapeN(const amrex::Real * const xp,
             // --- Compute shape factors
             // x direction
             // Get particle position
+#ifdef WARPX_DIM_RZ
+            const amrex::Real r = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            const amrex::Real x = (r - xmin)*dxi;
+#else
             const amrex::Real x = (xp[ip]-xmin)*dxi;
+#endif
             // Compute shape factors for node-centered quantities
             amrex::Real AMREX_RESTRICT sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that particle touches
@@ -126,6 +133,26 @@ void doGatherShapeN(const amrex::Real * const xp,
                         by_arr(lo.x+j0+ix, lo.y+l0+iz, 0);
                 }
             }
+
+#ifdef WARPX_DIM_RZ
+            // Convert Exp and Eyp (which are actually Er and Etheta) to Ex and Ey
+            amrex::Real costheta;
+            amrex::Real sintheta;
+            if (r > 0.) {
+                costheta = xp[ip]/r;
+                sintheta = yp[ip]/r;
+            } else {
+                costheta = 1.;
+                sintheta = 0.;
+            }
+            const amrex::Real Exp_save = Exp[ip];
+            Exp[ip] = costheta*Exp[ip] - sintheta*Eyp[ip];
+            Eyp[ip] = costheta*Eyp[ip] + sintheta*Exp_save;
+            const amrex::Real Bxp_save = Bxp[ip];
+            Bxp[ip] = costheta*Bxp[ip] - sintheta*Byp[ip];
+            Byp[ip] = costheta*Byp[ip] + sintheta*Bxp_save;
+#endif
+
 #else // (AMREX_SPACEDIM == 3)
             // Gather field on particle Exp[i] from field on grid ex_arr
             for (int iz=0; iz<=depos_order; iz++){

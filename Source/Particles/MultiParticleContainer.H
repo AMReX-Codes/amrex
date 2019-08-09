@@ -7,7 +7,6 @@
 #include <string>
 
 #include <AMReX_Particles.H>
-#include <AMReX_AmrCore.H>
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -128,7 +127,7 @@ public:
     ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void doFieldIonization();
+    void doFieldIonization ();
 
     void Checkpoint (const std::string& dir) const;
 

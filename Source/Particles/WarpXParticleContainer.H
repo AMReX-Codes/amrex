@@ -13,7 +13,7 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
         theta, // RZ needs all three position components
 #endif
 	nattribs
@@ -75,6 +75,10 @@ public:
     
     RealVector& GetAttribs (int comp) { 
         return GetStructOfArrays().GetRealData(comp);
+    }
+
+    IntVector& GetiAttribs (int comp) {
+        return GetStructOfArrays().GetIntData(comp);
     }
 };
 
@@ -180,7 +184,7 @@ public:
                                 RealVector& uxp,
                                 RealVector& uyp,
                                 RealVector& uzp,
-                                amrex::Real* ion_lev,
+                                const int * const ion_lev,
                                 amrex::MultiFab* jx,
                                 amrex::MultiFab* jy,
                                 amrex::MultiFab* jz,
@@ -268,23 +272,22 @@ public:
 
     void AddIntComp (const std::string& name, bool comm=true)
     {
-        particle_comps[name] = NumIntComps();
+        particle_icomps[name] = NumIntComps();
         AddIntComp(comm);
     }
 
     int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }    
 
-    virtual void setIonizationProduct (int i_product) {};
-
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
     {};
 
-    std::map<std::string, int> getParticleComps() { return particle_comps;}
+    std::map<std::string, int> getParticleComps () { return particle_comps;}
 
 protected:
 
     std::map<std::string, int> particle_comps;
+    std::map<std::string, int> particle_icomps;
     
     int species_id;
 
