@@ -2001,7 +2001,7 @@ void PhysicalParticleContainer::InitIonizationModule ()
         adk_power[i] = -(2*n_eff - 1);
         Real Uion = ionization_energies[i];
         adk_prefactor[i] = dt * wa * C2 * ( Uion/(2*UH) ) 
-            * std::pow(std::pow(2*(Uion/UH),3./2)*Ea,2*n_eff - 1);
+            * std::pow(2*std::pow((Uion/UH),3./2)*Ea,2*n_eff - 1);
         adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
     }
 }
