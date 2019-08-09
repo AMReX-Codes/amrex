@@ -26,9 +26,9 @@ struct ParticleTileData
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
     long m_size;
-    ParticleType* m_aos;
-    GpuArray<Real*, NArrayReal> m_rdata;
-    GpuArray<int*, NArrayInt> m_idata;    
+    ParticleType* AMREX_RESTRICT m_aos;
+    GpuArray<Real* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
@@ -67,9 +67,9 @@ struct ConstParticleTileData
     using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
 
     long m_size;
-    const ParticleType* m_aos;
-    GpuArray<const Real*, NArrayReal> m_rdata;
-    GpuArray<const int* , NArrayInt > m_idata;    
+    const ParticleType* AMREX_RESTRICT m_aos;
+    GpuArray<const Real* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
     
     AMREX_GPU_HOST_DEVICE
     SuperParticleType getSuperParticle (int index) const
