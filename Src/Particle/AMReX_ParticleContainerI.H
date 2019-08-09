@@ -1072,14 +1072,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             auto particle_stays = [=] AMREX_GPU_DEVICE (const ParticleType& p) -> int
             {
-                if (p.id() < 0) return 0;                    
+                if (p.id() < 0) return 0;
                 IntVect iv = IntVect(
                                      AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
                                                   floor((p.pos(1)-plo[1])*dxi[1]),
                                                   floor((p.pos(2)-plo[2])*dxi[2])));
-                iv += domain.smallEnd();                    
+                iv += domain.smallEnd();
                 int grid_id = mask_arr(iv);
-                return grid_id == gid;                    
+                return grid_id == gid;
             };
 
             ParticleType const* AMREX_RESTRICT pv = aos().dataPtr();
@@ -1096,8 +1096,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     } else {
                         pv2[np-1-(i-s)] = pv[i];
                     }
-                },
-                                             Scan::Type::exclusive);
+                }, 
+                Scan::Type::exclusive);
             aos().swap(m_aos_r);
         }
 
@@ -2612,27 +2612,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
                                      functors::grid_is_not(i));
 
         total_wrong += count;
-
-        if (count != 0) {
-            Gpu::HostVector<ParticleType> host_particles(np);
-            Gpu::HostVector<int> host_grids(np);
-
-            Cuda::thrust_copy(aos().begin(),
-                              aos().begin() + np,
-                              host_particles.begin());
-
-            Cuda::thrust_copy(grid_indices.begin(),
-                              grid_indices.end(),
-                              host_grids.begin());
-
-            Gpu::streamSynchronize();
-
-            for (int j = 0; j < np; ++j) {
-                if (grid_indices[j] != i) 
-                    amrex::AllPrint() << host_particles[j] << " ";
-            }
-            amrex::AllPrint() << "\n";                        
-        }
     }
 
     ParallelDescriptor::ReduceLongSum(total_np);
