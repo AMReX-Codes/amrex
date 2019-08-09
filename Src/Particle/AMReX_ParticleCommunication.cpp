@@ -154,7 +154,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         for (int i = 0; i < m_rcv_data.size(); i+=2)
         {
             rcv_box_counts.push_back(m_rcv_data[i]);
-            AMREX_ASSERT(MyProc == map.procID(m_rcv_data[i+1]));
+            AMREX_ASSERT(ParallelDescriptor::MyProc() == map.procID(m_rcv_data[i+1]));
             rcv_box_ids.push_back(m_rcv_data[i+1]);
             rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
         }
