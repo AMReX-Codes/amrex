@@ -39,7 +39,7 @@ public:
                             Location a_loc) const final override;
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final override {
-        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+        amrex::Abort("MLCellABecLap::getFluxes: How did we get here?");
     }
 
     virtual Real getAScalar () const = 0;
