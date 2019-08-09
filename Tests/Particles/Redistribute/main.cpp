@@ -160,6 +160,47 @@ public:
             }            
         }
     }
+
+    void checkAnswer () const
+    {
+        BL_PROFILE("TestParticleContainer::checkAnswer");
+
+        AMREX_ALWAYS_ASSERT(OK());
+
+        const int lev = 0;
+        const Geometry& geom = Geom(lev);
+        const auto dx = Geom(lev).CellSizeArray();
+        auto& plev  = GetParticles(lev);
+        
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();            
+            auto& ptile = plev.at(std::make_pair(gid, tid));
+            const auto ptd = ptile.getConstParticleTileData();
+            const size_t np = ptile.numParticles();
+
+            AMREX_FOR_1D ( np, i,
+            {
+                for (int j = 0; j < NSR; ++j)
+                {
+                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == j);
+                }
+                for (int j = 0; j < NSI; ++j)
+                {
+                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == j);
+                }
+                for (int j = 0; j < NAR; ++j)
+                {
+                    AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == j);
+                }
+                for (int j = 0; j < NAI; ++j)
+                {
+                    AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == j);
+                }
+            });
+        }
+    }
 };
 
 struct TestParams
@@ -238,6 +279,6 @@ void testRedistribute ()
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
-        AMREX_ALWAYS_ASSERT(pc.OK());
+        pc.checkAnswer();
     }
 }
