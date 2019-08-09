@@ -137,6 +137,7 @@ public:
     //
     //! The type of Particles we hold.
     using ParticleType = Particle<NStructReal, NStructInt>;
+    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
 #ifdef BL_SINGLE_PRECISION_PARTICLES
@@ -892,8 +893,8 @@ protected:
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
-    Gpu::PolymorphicDeviceVector<ParticleType> redistribute_snd_buffer;
-    Gpu::PolymorphicDeviceVector<ParticleType> redistribute_rcv_buffer;
+    Gpu::PolymorphicDeviceVector<SuperParticleType> redistribute_snd_buffer;
+    Gpu::PolymorphicDeviceVector<SuperParticleType> redistribute_rcv_buffer;
 
 #endif
 

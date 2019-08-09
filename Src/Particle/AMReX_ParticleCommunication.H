@@ -199,7 +199,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 
         auto& src_tile = plev.at(index);
         auto& aos   = src_tile.GetArrayOfStructs();
-        const auto ptd = src_tile.getParticleTileData();
+        const auto ptd = src_tile.getConstParticleTileData();
 
 	int num_copies = op.numCopies(gid);
 
@@ -218,7 +218,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             int box_offset = p_box_offsets[p_box_perm[dst_box]];
             int dst_index = box_offset + p_dst_indices[i];
             int src_index = p_src_indices[i];
-            p_snd_buffer[dst_index] = ptd.m_aos[src_index];
+            p_snd_buffer[dst_index] = ptd.getSuperParticle(src_index);
             
             auto& p = p_snd_buffer[dst_index];
             const IntVect& pshift = p_periodic_shift[i];
@@ -292,7 +292,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             int box_offset = p_box_offsets[p_box_perm[gid]];
             int src_index = box_offset + i;
             int dst_index = offset + i;
-            ptd.m_aos[dst_index] = p_snd_buffer[src_index];
+            ptd.setSuperParticle(p_snd_buffer[src_index], dst_index);
         });
     }    
 }
@@ -304,7 +304,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     
     AMREX_ASSERT(pc.numLevels() == 1);
 
-    using ParticleType = typename PC::ParticleType;
+    using ParticleType = typename PC::SuperParticleType;
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
@@ -413,7 +413,7 @@ void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buf
 	  auto index = std::make_pair(gid, tid);
 	  
 	  auto& tile = plev[index];
-	  auto& aos   = tile.GetArrayOfStructs();
+          auto ptd = tile.getParticleTileData();
 
 	  AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
 
@@ -421,12 +421,11 @@ void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buf
           int size = sizes[uindex];
           ++uindex;
 
-	  auto p_ptr = &(aos[0]);
 	  AMREX_FOR_1D ( size, ip,
 	  {
               int src_index = offset + ip;
               int dst_index = dst_offset + ip;
-              p_ptr[dst_index] = p_rcv_buffer[src_index];
+              ptd.setSuperParticle(p_rcv_buffer[src_index], dst_index);
 	  });	 
 	}	
     }    
