@@ -587,7 +587,8 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: rho_arr points to the full rho array.
-    Array4<Real> const& rho_arr = rho->array(pti);
+    MultiFab rhoi(*rho, amrex::make_alias, icomp, 1);
+    Array4<Real> const& rho_arr = rhoi.array(pti);
 #else
     // Tiling is on: rho_arr points to local_rho[thread_num]
     const Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
