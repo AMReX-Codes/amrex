@@ -272,7 +272,9 @@ class PseudoRandomLayout(picmistandard.PICMI_PseudoRandomLayout):
 
 
 class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
-    pass
+    def initialize_inputs(self):
+        pywarpx.warpx.use_filter = 1
+        pywarpx.warpx.filter_npass_each_dir = self.n_pass
 
 
 class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
@@ -417,6 +419,9 @@ class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
 
         if self.cfl is not None:
             pywarpx.warpx.cfl = self.cfl
+
+        if self.source_smoother is not None:
+            self.source_smoother.initialize_inputs()
 
 
 class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
