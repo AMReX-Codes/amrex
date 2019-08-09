@@ -272,8 +272,17 @@ class PseudoRandomLayout(picmistandard.PICMI_PseudoRandomLayout):
 
 
 class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
-    def initialize_inputs(self):
+    def initialize_inputs(self, solver):
         pywarpx.warpx.use_filter = 1
+        if self.n_pass is None:
+            # If not specified, do at least one pass in each direction.
+            self.n_pass = 1
+        try:
+            # Check if n_pass is a vector
+            len(self.n_pass)
+        except TypeError:
+            # If not, make it a vector
+            self.n_pass = solver.grid.number_of_dimensions*[self.n_pass]
         pywarpx.warpx.filter_npass_each_dir = self.n_pass
 
 
@@ -421,7 +430,7 @@ class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
             pywarpx.warpx.cfl = self.cfl
 
         if self.source_smoother is not None:
-            self.source_smoother.initialize_inputs()
+            self.source_smoother.initialize_inputs(self)
 
 
 class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
