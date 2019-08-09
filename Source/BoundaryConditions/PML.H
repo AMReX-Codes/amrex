@@ -101,7 +101,8 @@ public:
 #ifdef WARPX_USE_PSATD
          amrex::Real dt, int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
 #endif
-         int do_dive_cleaning, int do_moving_window);
+         int do_dive_cleaning, int do_moving_window,
+         const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi);
 
     void ComputePMLFactors (amrex::Real dt);
 
@@ -172,7 +173,9 @@ private:
 #endif
 
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
-                                         const amrex::BoxArray& grid_ba, int ncell);
+                                         const amrex::BoxArray& grid_ba, int ncell,
+                                         const amrex::IntVect do_pml_Lo,
+                                         const amrex::IntVect do_pml_Hi);
 
     static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };

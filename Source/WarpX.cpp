@@ -383,6 +383,22 @@ WarpX::ReadParameters ()
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
 
+        Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Lo", parse_do_pml_Lo);
+        do_pml_Lo[0] = parse_do_pml_Lo[0];
+        do_pml_Lo[1] = parse_do_pml_Lo[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Lo[2] = parse_do_pml_Lo[2];
+#endif
+        Vector<int> parse_do_pml_Hi(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Hi", parse_do_pml_Hi);
+        do_pml_Hi[0] = parse_do_pml_Hi[0];
+        do_pml_Hi[1] = parse_do_pml_Hi[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Hi[2] = parse_do_pml_Hi[2];
+#endif
+
+
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
@@ -393,7 +409,7 @@ WarpX::ReadParameters ()
         if (not user_fields_to_plot){
             // If not specified, set default values
             fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
-                              "Bz", "jx", "jy", "jz", 
+                              "Bz", "jx", "jy", "jz",
                               "part_per_cell"};
         }
         // set plot_rho to true of the users requests it, so that
@@ -411,9 +427,9 @@ WarpX::ReadParameters ()
         // If user requests to plot proc_number for a serial run,
         // delete proc_number from fields_to_plot
         if (ParallelDescriptor::NProcs() == 1){
-            fields_to_plot.erase(std::remove(fields_to_plot.begin(), 
-                                             fields_to_plot.end(), 
-                                             "proc_number"), 
+            fields_to_plot.erase(std::remove(fields_to_plot.begin(),
+                                             fields_to_plot.end(),
+                                             "proc_number"),
                                  fields_to_plot.end());
         }
 
@@ -497,7 +513,7 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("algo");
         // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // In RZ mode, use_picsar_deposition is on, as the C++ version
         // of the deposition does not support RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
