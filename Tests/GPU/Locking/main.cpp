@@ -14,7 +14,14 @@ int main (int argc, char* argv[])
 {
 
     amrex::Initialize(argc,argv);
+    {
+    auto begin = std::chrono::high_resolution_clock::now();
     LockingTest();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "Execution Time: ";
+    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count()
+	      << "ns" << std::endl;
+    }
     amrex::Finalize();
 
 }
@@ -30,14 +37,13 @@ void addone(double *num)
 
   int i = amrex::get_state(tid);
   num[i] = num[i]+1;
-  amrex::free_state(tid);  
+  amrex::free_state(tid);
 }
 
 
 void LockingTest ()
 {
-    int Ndraw=1e7;
-
+    int Ndraw= 1e7;
 #ifdef AMREX_USE_CUDA    
     
     amrex::Print() << "Generating random numbers using GPU ";

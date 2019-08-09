@@ -424,7 +424,6 @@ int amrex::get_state(int tid)
   int bsize = blockDim.x * blockDim.y * blockDim.z;
   int nstates = cuda_nstates - (cuda_nstates % bsize); 
   int i = tid % nstates;
-
   if (tid % bsize == 0)
     {
       while (amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],0,1))
@@ -432,6 +431,7 @@ int amrex::get_state(int tid)
 	  continue;  //Trap 1 thread per block
 	}
     }
+  __threadfence();  // ensures global memory is done writing
   __syncthreads(); // Other threads will wait here for master to be freed
   return i;        // This ensures threads move with block - Important for prevolta
 }
@@ -446,6 +446,7 @@ void amrex::free_state(int tid)
     {
       amrex::Gpu::Atomic::CAS(&locks_d_ptr[i],1,0);
     }
+  __threadfence();
   __syncthreads();
 }
 #endif
