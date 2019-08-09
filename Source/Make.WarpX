@@ -101,7 +101,7 @@ ifeq ($(USE_OPENPMD), TRUE)
    ifeq (0, $(shell pkg-config "openPMD >= 0.9.0"; echo $$?))
        CXXFLAGS += $(shell pkg-config --cflags openPMD)
        LDFLAGS += $(shell pkg-config --libs openPMD)
-       LDFLAGS += -Wl,-rpath,$(shell pkg-config --variable=libdir openPMD)
+       LDFLAGS += -Xlinker -rpath -Xlinker $(shell pkg-config --variable=libdir openPMD)
    # fallback to manual settings
    else
        OPENPMD_LIB_PATH ?= NOT_SET
