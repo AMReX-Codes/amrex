@@ -5,10 +5,10 @@
 
 using namespace amrex;
 
-static constexpr int NSR = 2;
-static constexpr int NSI = 1;
-static constexpr int NAR = 0;
-static constexpr int NAI = 0;
+static constexpr int NSR = 0;
+static constexpr int NSI = 0;
+static constexpr int NAR = 2;
+static constexpr int NAI = 1;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
@@ -61,8 +61,9 @@ public:
         {
             const Box& tile_box  = mfi.tilebox();
 
-            Cuda::HostVector<ParticleType> host_particles;
-        
+            Gpu::HostVector<ParticleType> host_particles;
+            std::array<Gpu::HostVector<Real>, NAR> host_real;
+            std::array<Gpu::HostVector<int>, NAI> host_int;
             for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
             {
                 for (int i_part=0; i_part<num_ppc;i_part++) {
@@ -80,7 +81,14 @@ public:
                     p.pos(1) = y;
                     p.pos(2) = z;
                     
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
+                    for (int i = 0; i < NSI; ++i) p.idata(i) = i;
+                    
                     host_particles.push_back(p);
+                    for (int i = 0; i < NAR; ++i)
+                        host_real[i].push_back(i);
+                    for (int i = 0; i < NAI; ++i)
+                        host_int[i].push_back(i);
                 }
             }
         
@@ -93,6 +101,21 @@ public:
             Cuda::thrust_copy(host_particles.begin(),
                               host_particles.end(),
                               particle_tile.GetArrayOfStructs().begin() + old_size);        
+
+            auto& soa = particle_tile.GetStructOfArrays();
+            for (int i = 0; i < NAR; ++i)
+            {
+                Cuda::thrust_copy(host_real[i].begin(),
+                                  host_real[i].end(),
+                                  soa.GetRealData(i).begin() + old_size);
+            }
+
+            for (int i = 0; i < NAI; ++i)
+            {
+                Cuda::thrust_copy(host_int[i].begin(),
+                                  host_int[i].end(),
+                                  soa.GetIntData(i).begin() + old_size);
+            }
         }
     }
 
