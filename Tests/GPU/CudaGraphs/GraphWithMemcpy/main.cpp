@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <AMReX_Gpu.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
@@ -254,7 +255,7 @@ int main (int argc, char* argv[])
                 const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
-                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
+                AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
                                          lo, len, ncells,
                                          offset, src, dst,
                                          0, 0, 1);
@@ -330,7 +331,7 @@ int main (int argc, char* argv[])
                 const auto ec = Gpu::ExecutionConfig(ncells);
                 const Dim3 offset = {0,0,0};
 
-                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
+                AMREX_GPU_LAUNCH_GLOBAL(ec, copy,
                                          lo, len, ncells,
                                          offset, &(src_fab_d[idx]), &(dst_fab_d[idx]), 0, 0, 1); 
 
@@ -545,6 +546,8 @@ int main (int argc, char* argv[])
                 Dim3 offset = {0,0,0};
 
                 CopyMemory* cgd = cgraph.getDevicePtr(idx); 
+
+                // ADD INDIVIDUAL MEMCPY_ASYNCS DIRECTLY HERE.
                 AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
                 {
                     // Build the Array4's.
@@ -558,6 +561,7 @@ int main (int argc, char* argv[])
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 {
+                    // PASS MEMCPY_ASYNC GRAPH FROM CUDAGRAPH FUNCTION FOR "ROOT" PLACEMENT. 
                     cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
                 }
             }
@@ -575,6 +579,11 @@ int main (int argc, char* argv[])
                                                             y[mfi].array(),
                                                             0, 1));
             }
+
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
 
             cgraph.executeGraph();
 
@@ -611,6 +620,11 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR("GraphObject: diff", cgfdiff);
 
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+
             cgraph.executeGraph();
 
             BL_PROFILE_VAR_STOP(cgfdiff);
@@ -619,6 +633,469 @@ int main (int argc, char* argv[])
             amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
 
         }
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        amrex::Print() << "=============" << std::endl;
+        amrex::Print() << "Using Graph Object w/ Individual Asyncs" << std::endl;
+
+        {
+            x.setVal(3.6);
+            y.setVal(7.8);
+
+            BL_PROFILE("Included Asyncs");
+            BL_PROFILE_VAR("Included Asyncs: create", goc);
+
+            // Creates appropriate device storage of graph parameters.
+            CudaGraph<CopyMemory> cgraph(x.local_size());
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                if (mfi.LocalIndex() == 0)
+                {
+                    amrex::Gpu::Device::startGraphStreamRecording();
+                } 
+
+                const Box bx = mfi.validbox();
+                int idx = mfi.LocalIndex();
+                Dim3 offset = {0,0,0};
+
+                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
+
+                // Method to directly add individual memcpy_asyncs to the graph. 
+                CopyMemory* cgh = cgraph.getHostPtr(idx);
+                Gpu::htod_memcpy_async(cgd, cgh, sizeof(CopyMemory));
+
+                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                {
+                    // Build the Array4's.
+                    auto const dst = cgd->getDst<Real>();
+                    auto const src = cgd->getSrc<Real>();
+                    int scomp   = cgd->scomp;
+                    for (int n = 0; n < cgd->ncomp; ++n) {
+                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                    }
+                });
+
+                if (mfi.LocalIndex() == (x.local_size() - 1) )
+                {
+                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording());
+                }
+            }
+
+            BL_PROFILE_VAR_STOP(goc);
+
+// --------- Launch the graph  ----------
+
+            BL_PROFILE_VAR("Included Asyncs: launch", gol);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
+                                                            y[mfi].array(),
+                                                            0, 1));
+            }
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(gol);
+
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
+
+            x.setVal(55.555e-5);
+            y.setVal(0.0);
+
+            BL_PROFILE_VAR("Included Asyncs: relaunch", cgfrl);
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfrl);
+
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph on different MFIters  ----------
+
+            x.setVal(0.167852);
+            v.setVal(0.0);
+            w.setVal(0.15e-5);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
+                                                            v[mfi].array(),
+                                                            0, 1));
+            }
+
+            BL_PROFILE_VAR("Included Asyncs: diff", cgfdiff);
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfdiff);
+
+            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
+
+        }
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        amrex::Print() << "=============" << std::endl;
+        amrex::Print() << "Using Graph Object w/ Event Waits" << std::endl;
+
+        {
+            x.setVal(23.316);
+            y.setVal(277.8);
+
+            BL_PROFILE("Event Waits");
+            BL_PROFILE_VAR("Event Waits: create", goc);
+
+            // Creates appropriate device storage of graph parameters.
+            CudaGraph<CopyMemory> cgraph(x.local_size());
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                Gpu::Device::startGraphRecording( mfi.LocalIndex() == 0,
+                                                  cgraph.getHostPtr(0),
+                                                  cgraph.getDevicePtr(0),
+                                                  std::size_t(sizeof(CopyMemory)*x.local_size()) );
+
+                const Box bx = mfi.validbox();
+                int idx = mfi.LocalIndex();
+                Dim3 offset = {0,0,0};
+
+                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
+                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                {
+                    // Build the Array4's.
+                    auto const dst = cgd->getDst<Real>();
+                    auto const src = cgd->getSrc<Real>();
+                    int scomp   = cgd->scomp;
+                    for (int n = 0; n < cgd->ncomp; ++n) {
+                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                    }
+                });
+
+                bool last_iter = (mfi.LocalIndex() == (x.local_size() - 1));
+                cudaGraphExec_t graphExec = Gpu::Device::stopGraphRecording(last_iter);
+                if (last_iter) { cgraph.setGraph(graphExec); } 
+            }
+
+            BL_PROFILE_VAR_STOP(goc);
+
+// --------- Launch the graph  ----------
+
+            BL_PROFILE_VAR("Event Waits: launch", gol);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
+                                                            y[mfi].array(),
+                                                            0, 1));
+            }
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(gol);
+
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
+
+            x.setVal(55.555e-5);
+            y.setVal(0.0);
+
+            BL_PROFILE_VAR("Event Waits: relaunch", cgfrl);
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfrl);
+
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph on different MFIters  ----------
+
+            x.setVal(0.167852);
+            v.setVal(0.0);
+            w.setVal(0.15e-5);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
+                                                            v[mfi].array(),
+                                                            0, 1));
+            }
+
+            BL_PROFILE_VAR("Event Waits: diff", cgfdiff);
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfdiff);
+
+            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
+
+        }
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        amrex::Print() << "=============" << std::endl;
+        amrex::Print() << "Using Graph Object w/ Event Waits, no Streams" << std::endl;
+
+        {
+            x.setVal(213.3089);
+            y.setVal(66.6);
+
+            BL_PROFILE("Streamless");
+            BL_PROFILE_VAR("Streamless: create", goc);
+
+            // Creates appropriate device storage of graph parameters.
+            CudaGraph<CopyMemory> cgraph(x.local_size());
+            cudaGraph_t mfiter_graph;
+            cudaStream_t graph_stream;
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                if (mfi.LocalIndex() == 0)
+                {
+                    Gpu::Device::setStreamIndex(0);
+                    graph_stream = amrex::Gpu::gpuStream(); 
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
+#else
+                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
+#endif
+                    AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(cgraph.getDevicePtr(0),
+                                        cgraph.getHostPtr(0),
+                                        std::size_t(sizeof(CopyMemory)*x.local_size()),
+                                        cudaMemcpyHostToDevice, graph_stream));
+                } 
+                Gpu::Device::setStreamIndex(0);
+
+                const Box bx = mfi.validbox();
+                int idx = mfi.LocalIndex();
+                Dim3 offset = {0,0,0};
+
+                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
+                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                {
+                    // Build the Array4's.
+                    auto const dst = cgd->getDst<Real>();
+                    auto const src = cgd->getSrc<Real>();
+                    int scomp   = cgd->scomp;
+                    for (int n = 0; n < cgd->ncomp; ++n) {
+                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                    }
+                });
+
+                if (mfi.LocalIndex() == (x.local_size() - 1) )
+                {
+                    Gpu::Device::setStreamIndex(0);
+
+                    cudaGraphExec_t graphExec;
+                    AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(graph_stream, &mfiter_graph));
+                    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec,mfiter_graph,NULL,NULL,0));
+                    cgraph.setGraph(graphExec);
+                }
+            }
+
+            BL_PROFILE_VAR_STOP(goc);
+
+// --------- Launch the graph  ----------
+
+            BL_PROFILE_VAR("Streamless: launch", gol);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
+                                                            y[mfi].array(),
+                                                            0, 1));
+            }
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(gol);
+
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
+
+            x.setVal(55.5e-5);
+            y.setVal(0.0);
+
+            BL_PROFILE_VAR("Streamless: relaunch", cgfrl);
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfrl);
+
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph on different MFIters  ----------
+
+            x.setVal(0.16752);
+            v.setVal(0.0);
+            w.setVal(0.17e-5);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
+                                                            v[mfi].array(),
+                                                            0, 1));
+            }
+
+            BL_PROFILE_VAR("Streamless: diff", cgfdiff);
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfdiff);
+
+            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
+
+        }
+
+
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        amrex::Print() << "=============" << std::endl;
+        amrex::Print() << "Using Graph Object w/ Global Async Root Node" << std::endl;
+
+        {
+            x.setVal(253.37);
+            y.setVal(26877.2);
+
+            BL_PROFILE("Root Node");
+            BL_PROFILE_VAR("Root Node: create", goc);
+
+            // Creates appropriate device storage of graph parameters.
+            CudaGraph<CopyMemory> cgraph(x.local_size());
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                if (mfi.LocalIndex() == 0)
+                {
+                    amrex::Gpu::Device::startGraphStreamRecording();
+                } 
+
+                const Box bx = mfi.validbox();
+                int idx = mfi.LocalIndex();
+                Dim3 offset = {0,0,0};
+
+                CopyMemory* cgd = cgraph.getDevicePtr(idx); 
+                AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+                {
+                    // Build the Array4's.
+                    auto const dst = cgd->getDst<Real>();
+                    auto const src = cgd->getSrc<Real>();
+                    int scomp   = cgd->scomp;
+                    for (int n = 0; n < cgd->ncomp; ++n) {
+                        dst(i,j,k,scomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                    }
+                });
+
+                if (mfi.LocalIndex() == (x.local_size() - 1) )
+                {
+                    cgraph.setGraph(amrex::Gpu::Device::stopGraphStreamRecording(cgraph.copyRootGraph()));
+                }
+            }
+
+            BL_PROFILE_VAR_STOP(goc);
+
+// --------- Launch the graph  ----------
+
+            BL_PROFILE_VAR("Root Node: launch", gol);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(x[mfi].array(),
+                                                            y[mfi].array(),
+                                                            0, 1));
+            }
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(gol);
+
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
+
+            x.setVal(55.555e-5);
+            y.setVal(0.0);
+
+            BL_PROFILE_VAR("Root Node: relaunch", cgfrl);
+
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfrl);
+
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph on different MFIters  ----------
+
+            x.setVal(0.167852);
+            v.setVal(0.0);
+            w.setVal(0.15e-5);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                int idx = mfi.LocalIndex();
+                cgraph.setParams(idx, amrex::makeCopyMemory(w[mfi].array(),
+                                                            v[mfi].array(),
+                                                            0, 1));
+            }
+
+            BL_PROFILE_VAR("Root Node: diff", cgfdiff);
+/*
+            cudaMemcpy(cgraph.getDevicePtr(0),
+                       cgraph.getHostPtr(0),
+                       std::size_t(sizeof(CopyMemory)*x.local_size()),
+                       cudaMemcpyHostToDevice);
+*/
+            cgraph.executeGraph();
+
+            BL_PROFILE_VAR_STOP(cgfdiff);
+
+            amrex::Print() << "Different MultiFab = " << v.sum() << "; Expected value = " << w.sum() << std::endl;
+            amrex::Print() << " x = " << x.sum() << "; y = " << y.sum() << std::endl;
+
+        }
+
 
         amrex::Print() << "Test Completed." << std::endl;
     }
