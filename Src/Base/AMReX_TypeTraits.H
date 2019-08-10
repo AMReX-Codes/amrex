@@ -37,6 +37,16 @@ namespace amrex
 
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
+
+
+    template <class T, class Enable = void>
+    struct IsCopyAtomicSafe : std::false_type {};
+    //
+    template <class T>
+    struct IsCopyAtomicSafe<T, typename std::enable_if <
+                                   std::is_arithmetic<T>::value
+                                   && sizeof(T) <= 8 >::type >
+        : std::true_type {};
 }
 
 #endif
