@@ -734,7 +734,9 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
             DepositCharge(pti, wp, rho.get(), 0, 0, np, thread_num, lev, lev);
         }
+#ifdef _OPENMP
     }
+#endif
 
 #ifdef WARPX_DIM_RZ
     WarpX::GetInstance().ApplyInverseVolumeScalingToChargeDensity(rho.get(), lev);
