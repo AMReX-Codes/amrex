@@ -75,22 +75,6 @@ extern "C"
 {
 #endif
 
-	// Charge deposition
-	void warpx_charge_deposition(amrex::Real* rho,
-            const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
-			const amrex::Real* q, const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
-			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
-			const long* nx, const long* ny, const long* nz,
-			const long* nxguard, const long* nyguard, const long* nzguard,
-			const long* nox, const long* noy,const long* noz,
-			const long* lvect, const long* charge_depo_algo);
-
-        // Charge deposition finalize for RZ
-        void warpx_charge_deposition_rz_volume_scaling(
-			amrex::Real* rho, const long* rho_ng, const int* rho_ntot,
-			const amrex::Real* rmin,
-			const amrex::Real* dr);
-
 	// Current deposition
 	void warpx_current_deposition(
 			amrex::Real* jx, const long* jx_ng, const int* jx_ntot,
