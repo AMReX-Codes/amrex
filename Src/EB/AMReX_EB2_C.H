@@ -29,7 +29,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& apx, Array4<Real> const& apy,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm);
+                  Array4<Real> const& bnorm, Real small_volfrac);
 
 #elif (AMREX_SPACEDIM == 3)
 
@@ -56,7 +56,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp);
+                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
+                  Real small_volfrac);
 
 #endif
 

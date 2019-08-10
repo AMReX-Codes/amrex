@@ -485,7 +485,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp)
+                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
+                  Real small_volfrac)
 {
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
@@ -624,7 +625,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             vcent(i,j,k,2) = Sz * den;
 
             // remove small cells
-            if (vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i,j,k) < small_volfrac) {
                 vfrac(i,j,k) = 0.0;
                 vcent(i,j,k,0) = 0.0;
                 vcent(i,j,k,1) = 0.0;
@@ -652,7 +653,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i-1,j,k) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i-1,j,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fx(i,j,k) = Type::covered;
                 apx(i,j,k) = 0.0;
             }
@@ -664,7 +665,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i,j-1,k) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i,j-1,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fy(i,j,k) = Type::covered;
                 apy(i,j,k) = 0.0;
             }
@@ -676,7 +677,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i,j,k-1) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
             }
