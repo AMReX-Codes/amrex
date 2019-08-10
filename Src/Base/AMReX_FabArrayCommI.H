@@ -26,17 +26,61 @@ namespace detail {
 template <class T>
 struct CellCopy
 {
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    amrex::EnableIf_t<sizeof(T) <= 8>
-    operator() (T* d, T s) const noexcept
+    template<class U=T,
+             amrex::EnableIf_t<amrex::IsStoreAtomicSafe<U>::value,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator() (U* d, U s, int*) const noexcept
     {
         *d = s;
+    }
+
+    template<class U=T,
+             amrex::EnableIf_t<!amrex::IsStoreAtomicSafe<U>::value,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator() (U* d, U s, int* m) const noexcept
+    {
+        if (*m == 0 && atomicExch(m, 1) == 0) {
+            *d = s;
+        }
+    }
+};
+
+template <class T>
+struct CellAdd
+{
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator() (T* d, T s, int*) const noexcept
+    {
+        *d += s;
+    }
+};
+
+template <class T>
+struct CellAtomicAdd
+{
+    template<class U=T,
+             amrex::EnableIf_t<amrex::HasAtomicAdd<U>::value,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator() (U* d, U s, int*) const noexcept
+    {
+        atomicAdd(d,s);
+    }
+
+    template<class U=T,
+             amrex::EnableIf_t<!amrex::HasAtomicAdd<U>::value,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+    operator() (U* d, U s, int* m) const noexcept
+    {
+        while (atomicCAS(m, 0, 1) == 1) { };
+        *d += s;
+        *m = 0;
     }
 };
 
 template <class T, class F>
 void
-fab_to_fab_copy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int ncomp, F && f)
+fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int ncomp,
+            F && f, Vector<Array4<int> > const& masks)
 {
     typedef Array4CopyTag<T> TagType;
 
@@ -58,6 +102,13 @@ fab_to_fab_copy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int ncom
     auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc((N_loc+1)*sizeof(int)));
     Gpu::htod_memcpy(d_tags, copy_tags.data(), N_loc*sizeof(TagType));
     Gpu::htod_memcpy(d_nwarps, nwarps.data(), (N_loc+1)*sizeof(int));
+
+    Array4<int>* d_masks = nullptr;
+    if (masks.size() > 0) {
+        std::size_t nbytes = masks.size()*sizeof(Array4<int>);
+        d_masks = static_cast<Array4<int>*>(The_Device_Arena()->alloc(nbytes));
+        Gpu::htod_memcpy(d_masks, masks.data(), nbytes);
+    }
 
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
@@ -99,9 +150,11 @@ fab_to_fab_copy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int ncom
             i += lo.x;
             j += lo.y;
             k += lo.z;
+            int* m = d_masks ? d_masks[tag_id].ptr(i,j,k) : nullptr;
             for (int n = 0; n < ncomp; ++n) {
                 f(&(tag.dfab(i,j,k,n+scomp)),
-                  tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp));
+                  tag.sfab(i+tag.offset.x,j+tag.offset.y,k+tag.offset.z,n+scomp),
+                  m);
             }
         }
     });
@@ -230,6 +283,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 typedef Array4CopyTag<typename FAB::value_type> TagType;
                 Vector<TagType> loc_copy_tags;
                 loc_copy_tags.reserve(N_loc);
+                Vector<BaseFab<int> > maskfabs;
+                if (!amrex::IsStoreAtomicSafe<typename FAB::value_type>::value
+                    and !is_thread_safe)
+                {
+                    maskfabs.resize(this->local_size());
+                }
+
                 for (int i = 0; i < N_loc; ++i)
                 {
                     const CopyComTag& tag = (*TheFB.m_LocTags)[i];
@@ -237,15 +297,40 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
                     BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
+                    int li = this->localindex(tag.dstIndex);
                     loc_copy_tags.push_back
-                        ({this->fabPtr(tag.dstIndex)->array(),
+                        ({this->atLocalIdx(li).array(),
                           this->fabPtr(tag.srcIndex)->const_array(),
                           tag.dbox,
                           (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+
+                    if (maskfabs.size() > 0) {
+                        if (!maskfabs[li].isAllocated()) {
+                            maskfabs[li].resize(this->atLocalIdx(li).box());
+                        }
+                    }
                 }
 
-                detail::fab_to_fab_copy<typename FAB::value_type>(loc_copy_tags, scomp, ncomp,
-                                                                  detail::CellCopy<typename FAB::value_type>()); 
+                Vector<Array4<int> > masks;
+                if (maskfabs.size() > 0) {
+                    masks.reserve(maskfabs.size());
+                    for (Gpu::StreamIter sit(masks.size()); sit.isValid(); ++sit) {
+                        const int li = sit();
+                        masks.push_back(maskfabs[li].array());
+                        auto msk = masks[li];
+                        const Box& bx = maskfabs[li].box();
+                        amrex::ParallelFor(bx,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            msk(i,j,k) = 0;
+                        });
+                    }
+                }
+
+                detail::fab_to_fab<typename FAB::value_type>
+                    (loc_copy_tags, scomp, ncomp,
+                     detail::CellCopy<typename FAB::value_type>(),
+                     masks);
             }
             else
 #endif
