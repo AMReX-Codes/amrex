@@ -53,6 +53,8 @@ namespace {
 
     void InitializeGraph(int graph_size)
     {
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+
         BL_PROFILE("InitGraph");
 
         int streams = Gpu::Device::numGpuStreams();
@@ -69,6 +71,7 @@ namespace {
             graphExec = Gpu::Device::stopGraphRecording((n == (graph_size-1)));
         }
         AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(graphExec));
+#endif
     }
 }
 

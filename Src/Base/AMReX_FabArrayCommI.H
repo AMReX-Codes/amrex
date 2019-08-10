@@ -41,6 +41,8 @@ fab_to_fab_copy (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int ncom
     typedef Array4CopyTag<T> TagType;
 
     const int N_loc = copy_tags.size();
+    if (N_loc == 0) return;
+
     int ntotwarps = 0;
     Vector<int> nwarps;
     nwarps.reserve(N_loc+1);
@@ -238,7 +240,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     loc_copy_tags.push_back
                         ({this->fabPtr(tag.dstIndex)->array(),
                           this->fabPtr(tag.srcIndex)->const_array(),
-                          tag.dbox, (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+                          tag.dbox,
+                          (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
                 }
 
                 detail::fab_to_fab_copy<typename FAB::value_type>(loc_copy_tags, scomp, ncomp,
