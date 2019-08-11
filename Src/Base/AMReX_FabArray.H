@@ -732,8 +732,7 @@ private:
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
-                   int                                    SeqNum,
-                   int                                    preSeqNum);
+                   int                                    SeqNum);
 #endif
 
 #ifdef BL_USE_MPI3

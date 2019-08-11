@@ -317,7 +317,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         //
 	int N_loc = (*TheFB.m_LocTags).size();
         if (N_loc == 0) return;
-        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
+        bool is_thread_safe = TheFB.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
@@ -516,10 +516,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    int preSeqNum = -1;
-    if (!FAB::preAllocatable()) {
-        preSeqNum = ParallelDescriptor::SeqNum();
-    }
     int SeqNum = ParallelDescriptor::SeqNum();
 
     const int N_locs = TheFB.m_LocTags->size();
@@ -531,7 +527,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         return;
 
     //
-    // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
+    // Before we post recv, let's preprocess sends
     //
     char*&                          the_send_data = fb_the_send_data;
     Vector<char*> &                     send_data = fb_send_data;
@@ -539,8 +535,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     Vector<int>                         send_rank;
     Vector<MPI_Request>&                send_reqs = fb_send_reqs;
     Vector<const CopyComTagsContainer*> send_cctc;
-    Vector<Vector<int> >                indv_send_size;
-    Vector<MPI_Request>                 pre_reqs;
 
     fb_tag = SeqNum;
 
@@ -554,7 +548,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	send_rank.reserve(N_snds);
         send_reqs.reserve(N_snds);
 	send_cctc.reserve(N_snds);
-        indv_send_size.reserve(N_snds);
 
         std::size_t total_volume = 0;
         for (auto const& kv : *TheFB.m_SndTags)
@@ -563,21 +556,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             auto const& cctc = kv.second;
 
             std::size_t nbytes = 0;
-            if (FAB::preAllocatable())
+            for (auto const& cct : kv.second)
             {
-                for (auto const& cct : kv.second)
-                {
-                    nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
-                }
-            }
-            else
-            {
-                for (auto const& tag : cctc)
-                {
-                    std::size_t b = (*this)[tag.srcIndex].nBytes(tag.sbox,scomp,ncomp);
-                    nbytes += b;
-                    iss.push_back(static_cast<int>(b));
-                }
+                nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
             }
             
             BL_ASSERT(nbytes < std::numeric_limits<int>::max());
@@ -589,7 +570,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
             send_cctc.push_back(&cctc);
-            indv_send_size.push_back(std::move(iss));
         }
 
         if (total_volume > 0)
@@ -605,19 +585,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         }
     }
 
-    if (!FAB::preAllocatable())
-    {
-        pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
-        for (int j=0; j<N_snds; ++j)
-        {
-            pre_reqs[j] = ParallelDescriptor::Asend
-                (indv_send_size[j].data(), indv_send_size[j].size(),
-                 ParallelContext::global_to_local_rank(send_rank[j]),
-                 preSeqNum,
-                 ParallelContext::CommunicatorSub()).req();
-        }
-    }
-
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
@@ -626,7 +593,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     if (N_rcvs > 0) {
         PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
                  fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
-                 scomp, ncomp, SeqNum, preSeqNum);
+                 scomp, ncomp, SeqNum);
         fb_recv_stat.resize(N_rcvs);
     }
 
@@ -635,8 +602,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     if (N_snds > 0)
     {
-        bool is_thread_safe = FAB::isCopyOMPSafe();
-
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
         if (Gpu::inGraphRegion()) {
 
@@ -654,7 +619,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     
                 // Record the graph.
                 int idx = 0;
-                for (Gpu::StreamIter sit(N_snds,Gpu::StreamItInfo().DisableDeviceSync(),is_thread_safe);
+                for (Gpu::StreamIter sit(N_snds,Gpu::StreamItInfo().DisableDeviceSync());
                                      sit.isValid(); ++sit)
                 {
                     amrex::Gpu::Device::startGraphRecording( (sit() == 0),
@@ -718,12 +683,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         }
         else
 #endif
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion())
         {
-
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-            for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
+            // xxxxxx
+            for (Gpu::StreamIter sit(N_snds); sit.isValid(); ++sit)
             {
                 const int j = sit();
                 char* dptr = send_data[j];
@@ -745,20 +709,39 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
             }
         }
+        else
+#endif
+        {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int j = 0; j < N_snds; ++j)
+            {
+                char* dptr = send_data[j];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *send_cctc[j];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx = tag.sbox;
+                        auto const sfab = this->array(tag.srcIndex);
+                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx,ncomp);
+                        amrex::LoopConcurrentOnCpu( bx, ncomp,
+                        [=] (int ii, int jj, int kk, int n) noexcept
+                        {
+                            pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+scomp);
+                        });
+                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
+                    }
+                    BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+                }
+            }
+        }
 
         int send_counter = 0;
         while (send_counter < N_snds)
         {
-            int j;
-            if (FAB::preAllocatable())
-            {
-                j = send_counter;
-            }
-            else
-            {
-                MPI_Status status;
-                ParallelDescriptor::Waitany(pre_reqs, j, status);
-            }
+            int j = send_counter;
 
             BL_ASSERT(send_size[j] > 0);
 
@@ -779,7 +762,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     if (N_locs > 0)
     {
-        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
+        bool is_thread_safe = TheFB.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
             int launches = 0; // Used for graphs only.
@@ -947,7 +930,7 @@ FabArray<FAB>::FillBoundary_finish ()
                 recv_cctc[k] = &cctc;
             }
 	}
-        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv;
+        bool is_thread_safe = TheFB.m_threadsafe_rcv;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
             recv_copy_tags.define(boxArray(),DistributionMap());
@@ -1146,7 +1129,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // non-cell-centered data this simplistic way.
         //
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
         {
@@ -1182,7 +1165,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
         if (N_loc == 0) return;
-        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
+        bool is_thread_safe = thecpc.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
 #ifdef AMREX_USE_GPU
@@ -1349,10 +1332,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    int preSeqNum;
-    if (!FAB::preAllocatable()) {
-        preSeqNum = ParallelDescriptor::SeqNum();
-    }
     int SeqNum  = ParallelDescriptor::SeqNum();
 
     const int N_snds = thecpc.m_SndTags->size();
@@ -1376,7 +1355,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
 
         //
-        // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
+        // Before we post recv, let's preprocess sends
         //
         char*                               the_send_data;
 	Vector<char*>                       send_data;
@@ -1384,8 +1363,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	Vector<int>                         send_rank;
 	Vector<MPI_Request>                 send_reqs;
 	Vector<const CopyComTagsContainer*> send_cctc;
-        Vector<Vector<int> >                indv_send_size;
-        Vector<MPI_Request>                 pre_reqs;
 
 	if (N_snds > 0)
 	{
@@ -1394,7 +1371,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    send_rank.reserve(N_snds);
             send_reqs.reserve(N_snds);
 	    send_cctc.reserve(N_snds);
-            indv_send_size.reserve(N_snds);
 
             std::size_t total_volume = 0;
             for (auto const& kv : *thecpc.m_SndTags)
@@ -1403,21 +1379,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 auto const& cctc = kv.second;
 
                 std::size_t nbytes = 0;
-                if (FAB::preAllocatable())
+                for (auto const& cct : kv.second)
                 {
-                    for (auto const& cct : kv.second)
-                    {
-                        nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
-                    }
-                }
-                else
-                {
-                    for (auto const& tag : cctc)
-                    {
-                        std::size_t b = src[tag.srcIndex].nBytes(tag.sbox,SC,NC);
-                        nbytes += b;
-                        iss.push_back(static_cast<int>(b));
-                    }
+                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
                 }
 		
 		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
@@ -1429,7 +1393,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 send_rank.push_back(kv.first);
                 send_reqs.push_back(MPI_REQUEST_NULL);
                 send_cctc.push_back(&cctc);
-                indv_send_size.push_back(std::move(iss));
 	    }
 
             if (total_volume > 0)
@@ -1445,19 +1408,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             }
         }
 
-        if (!FAB::preAllocatable())
-        {
-            pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
-            for (int j=0; j<N_snds; ++j)
-            {
-                pre_reqs[j] = ParallelDescriptor::Asend
-                    (indv_send_size[j].data(), indv_send_size[j].size(),
-                     ParallelContext::global_to_local_rank(send_rank[j]),
-                     preSeqNum,
-                     ParallelContext::CommunicatorSub()).req();
-            }
-        }
-
         Vector<int>         recv_from;
         Vector<char*>       recv_data;
         Vector<int>         recv_size;
@@ -1470,7 +1420,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         int actual_n_rcvs = 0;
 	if (N_rcvs > 0) {
             PostRcvs(*thecpc.m_RcvTags, the_recv_data,
-                     recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
+                     recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum);
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
 	}
 
@@ -1479,11 +1429,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	// 
 	if (N_snds > 0)
 	{
-            bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
+            for (Gpu::StreamIter sit(N_snds); sit.isValid(); ++sit)
 	    {
                 const int j = sit();
 		char* dptr = send_data[j];
@@ -1509,17 +1458,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             int send_counter = 0;
             while (send_counter < N_snds)
             {
-                int j;
-
-                if (FAB::preAllocatable())
-                {
-                    j = send_counter;
-                }
-                else
-                {
-                    MPI_Status status;
-                    ParallelDescriptor::Waitany(pre_reqs, j, status);
-                }
+                int j = send_counter;
 
                 if (send_size[j] > 0)
                 {
@@ -1539,7 +1478,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
         if (N_locs > 0)
 	{
-            bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
+            bool is_thread_safe = thecpc.m_threadsafe_loc;
             if (Gpu::inLaunchRegion() || !is_thread_safe)
             {
                 // gpu version or omp over dest fabs
@@ -1618,7 +1557,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 }
 	    }
 
-            bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
+            bool is_thread_safe = thecpc.m_threadsafe_rcv;
             if (Gpu::inLaunchRegion() || !is_thread_safe)
             {
                 recv_copy_tags.define(boxArray(),DistributionMap());
@@ -1818,8 +1757,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
                          Vector<MPI_Request>&              recv_reqs,
                          int                               icomp,
                          int                               ncomp,
-                         int                               SeqNum,
-                         int                               preSeqNum)
+                         int                               SeqNum)
 {
     recv_data.clear();
     recv_size.clear();
@@ -1830,12 +1768,9 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
     for (const auto& kv : m_RcvTags) // loop over senders
     {
         std::size_t nbytes = 0;
-        if (FAB::preAllocatable())
+        for (auto const& cct : kv.second)
         {
-            for (auto const& cct : kv.second)
-            {
-                nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
-            }
+            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
         }
 
         BL_ASSERT(nbytes < std::numeric_limits<int>::max());
@@ -1850,24 +1785,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
 
     const int nrecv = recv_from.size();
     
-    Vector<Vector<int> > indv_recv_size;
-    Vector<MPI_Request> pre_reqs(nrecv,MPI_REQUEST_NULL);
-
     MPI_Comm comm = ParallelContext::CommunicatorSub();
-
-    if (!FAB::preAllocatable())
-    {
-        BL_ASSERT(preSeqNum >= 0);
-        indv_recv_size.resize(nrecv);
-        for (int k = 0; k < nrecv; ++k)
-        {
-            auto n = m_RcvTags.at(recv_from[k]).size();
-            indv_recv_size[k].resize(n);
-            pre_reqs[k] = ParallelDescriptor::Arecv(indv_recv_size[k].data(), n,
-                                                    ParallelContext::global_to_local_rank(recv_from[k]),
-                                                    preSeqNum, comm).req();
-        }
-    }
 
     if (TotalRcvsVolume == 0)
     {
@@ -1882,22 +1800,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
     char* p = the_recv_data;
     while (recv_counter < nrecv)
     {
-        int i;
-
-        if (FAB::preAllocatable())
-        {
-            i = recv_counter;
-        }
-        else
-        {
-            MPI_Status status;
-            ParallelDescriptor::Waitany(pre_reqs, i, status);
-
-            for (auto x : indv_recv_size[i])
-            {
-                recv_size[i] += x;
-            }
-        }
+        int i = recv_counter;
 
         if (recv_size[i] > 0)
         {
@@ -1986,7 +1889,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
     BL_PROFILE("FillBoundary(Vector)");
 
     const int nummfs = mf.size();
-    if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable())
+    if (ParallelContext::NProcsSub() == 1)
     {
         for (int imf = 0; imf < nummfs; ++imf) {
             mf[imf]->FillBoundary(period);
@@ -2154,7 +2057,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                 const DistributionMapping& dm = fa.DistributionMap();
                 const auto& tags = *(TheFB[imf]->m_LocTags);
                 const int N_locs = tags.size();
-                bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB[imf]->m_threadsafe_loc;
+                bool is_thread_safe = TheFB[imf]->m_threadsafe_loc;
                 if (Gpu::inLaunchRegion() || !is_thread_safe)
                 {
                     LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(fa.boxArray(),dm);
@@ -2233,7 +2136,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
             }
 #endif
 
-            bool is_thread_safe = FAB::isCopyOMPSafe();
+            bool is_thread_safe = true;
             for (int imf = 0; imf < nummfs; ++imf) {
                 is_thread_safe = is_thread_safe && TheFB[imf]->m_threadsafe_rcv;
             }
