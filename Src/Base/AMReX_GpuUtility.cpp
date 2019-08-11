@@ -41,8 +41,8 @@ StreamIter::init() noexcept
     int nthreads = omp_get_num_threads();
     if (nthreads > 1) {
         int tid = omp_get_thread_num();
-        int nr = n / nthreads;
-        int nlft = n - nr*nthreads;
+        int nr = m_n / nthreads;
+        int nlft = m_n - nr*nthreads;
         if (tid < nlft) { // get nr+1 items
             m_i = tid * (nr+1);
             m_n = m_i + nr+1;
