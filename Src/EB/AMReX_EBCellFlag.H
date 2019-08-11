@@ -239,7 +239,7 @@ private:
 };
 
 template <>
-struct IsStoreAtomicSafe<EBCellFlag> : std::true_type {};
+struct IsStoreAtomic<EBCellFlag> : std::true_type {};
 
 class EBCellFlagFab
     : public BaseFab<EBCellFlag>

@@ -40,12 +40,12 @@ namespace amrex
 
 
     template <class T, class Enable = void>
-    struct IsStoreAtomicSafe : std::false_type {};
+    struct IsStoreAtomic : std::false_type {};
     //
     template <class T>
-    struct IsStoreAtomicSafe<T, typename std::enable_if <
-                                    std::is_arithmetic<T>::value
-                                    && sizeof(T) <= 8 >::type >
+    struct IsStoreAtomic<T, typename std::enable_if <
+                                std::is_arithmetic<T>::value
+                                && sizeof(T) <= 8 >::type >
         : std::true_type {};
 
     template <class T, class Enable = void>
