@@ -652,18 +652,18 @@ public:
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false);
 
-    void FB_local_copy_cpu (const FB& the_fb, int scomp, int ncomp);
+    void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
 
 #ifdef AMREX_USE_GPU
 
-    void FB_local_copy_gpu (const FB& the_fb, int scomp, int ncomp);
+    void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
-    void FB_local_copy_cuda_graph_1 (const FB& the_fb, int scomp, int ncomp);
+    void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
 
 #ifdef AMREX_USE_GPU
-    void FB_local_copy_cuda_graph_n (const FB& the_fb, int scomp, int ncomp);
+    void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
 #endif
 
 #endif
@@ -674,12 +674,12 @@ public:
 #ifdef AMREX_USE_CUDA
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
 
-    void FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int ncomp,
+    void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                          Vector<char*>& send_data,
                                          Vector<int> const& send_size,
                                          Vector<const CopyComTagsContainer*> const& send_cctc);
 
-    void FB_unpack_recv_buffer_cuda_graph (int dcomp, int ncomp,
+    void FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int ncomp,
                                            Vector<char*> const& recv_data,
                                            Vector<int> const& recv_size,
                                            Vector<const CopyComTagsContainer*> const& recv_cctc,
