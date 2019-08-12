@@ -61,8 +61,8 @@ ions.ux = 0.0
 ions.uy = 0.0
 ions.uz = 0.0
 ions.do_field_ionization = 1
-ions.ionization_level = 1
-ions.ionization_product = electrons
+ions.ionization_initial_level = 1
+ions.ionization_product_species = electrons
 ions.physical_element = Si
 
 lasers.nlasers = 1

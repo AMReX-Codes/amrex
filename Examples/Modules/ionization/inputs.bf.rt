@@ -31,8 +31,8 @@ ions.profile = constant
 ions.density = 1.
 ions.momentum_distribution_type = constant
 ions.do_field_ionization = 1
-ions.ionization_level = 2
-ions.ionization_product = electrons
+ions.ionization_initial_level = 2
+ions.ionization_product_species = electrons
 ions.physical_element = N
 ions.do_continuous_injection=1
 

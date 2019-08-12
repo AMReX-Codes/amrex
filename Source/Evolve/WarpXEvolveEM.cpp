@@ -342,6 +342,10 @@ WarpX::OneStep_sub1 (Real curtime)
 {
     // TODO: we could save some charge depositions
 
+    // Loop over species. For each ionizable species, create particles in 
+    // product species.
+    mypc->doFieldIonization();
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;
     const int coarse_lev = 0;
