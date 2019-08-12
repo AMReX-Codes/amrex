@@ -340,16 +340,16 @@ Particle initialization
     Do field ionization for this species (using the ADK theory).
 
 * ``<species>.physical_element`` (`string`)
-    Only read of `do_field_ionization = 1`. Symbol of chemical element for
+    Only read if `do_field_ionization = 1`. Symbol of chemical element for
     this species. Example: for Helium, use ``physical_element = He``.
 
-* ``<species>.ionization_product`` (`string`)
-    Only read of `do_field_ionization = 1`. Name of species in which ionized
+* ``<species>.ionization_product_species`` (`string`)
+    Only read if `do_field_ionization = 1`. Name of species in which ionized
     electrons are stored. This species must be created as a regular species
     in the input file (in particular, it must be in `particles.species_names`).
 
 * ``<species>.ionization_level`` (`int`) optional (default `0`)
-    Only read of `do_field_ionization = 1`. Initial ionization level of the
+    Only read if `do_field_ionization = 1`. Initial ionization level of the
     species (must be smaller than the atomic number of chemical element given
     in `physical_element`).
 
