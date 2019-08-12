@@ -393,9 +393,8 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
     if (maskfabs.size() > 0) {
         for (Gpu::StreamIter sit(masks.size()); sit.isValid(); ++sit) {
-            const int li = sit();
-            auto msk = masks[li];
-            const Box& bx = maskfabs[li].box();
+            auto msk = masks[sit()];
+            Box bx(msk);
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -778,7 +777,7 @@ FabArray<FAB>::FB_pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int
             BL_ASSERT(dptr == send_data[j] + send_size[j]); 
         }
     }
-            
+
     detail::fab_to_fab<value_type>(snd_copy_tags, scomp, 0, ncomp,
                                    detail::CellStore<value_type>());
 }
@@ -832,9 +831,8 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
 
     if (maskfabs.size() > 0) {
         for (Gpu::StreamIter sit(masks.size()); sit.isValid(); ++sit) {
-            const int li = sit();
-            auto msk = masks[li];
-            const Box& bx = maskfabs[li].box();
+            auto msk = masks[sit()];
+            Box bx(msk);
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
