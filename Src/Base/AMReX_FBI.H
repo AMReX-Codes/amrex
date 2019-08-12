@@ -64,13 +64,13 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 {
     typedef Array4CopyTag<T> TagType;
 
-    const int N_loc = copy_tags.size();
-    if (N_loc == 0) return;
+    const int N_locs = copy_tags.size();
+    if (N_locs == 0) return;
 
     int ntotwarps = 0;
     Vector<int> nwarps;
-    nwarps.reserve(N_loc+1);
-    for (int i = 0; i < N_loc; ++i)
+    nwarps.reserve(N_locs+1);
+    for (int i = 0; i < N_locs; ++i)
     {
         auto& tag = copy_tags[i];
         nwarps.push_back(ntotwarps);
@@ -78,11 +78,11 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     }
     nwarps.push_back(ntotwarps);
 
-    std::size_t nbytes = N_loc*sizeof(TagType);
+    std::size_t nbytes = N_locs*sizeof(TagType);
     auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
     Gpu::htod_memcpy(d_tags, copy_tags.data(), nbytes);
 
-    nbytes = (N_loc+1)*sizeof(int);
+    nbytes = (N_locs+1)*sizeof(int);
     auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
     Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
 
@@ -99,7 +99,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int tag_id;
         {
             int lo = 0;
-            int hi = N_loc;
+            int hi = N_locs;
             while (lo <= hi)
             {
                 int mid = (lo+hi)/2;
@@ -147,13 +147,13 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
 {
     typedef Array4CopyTag<T> TagType;
 
-    const int N_loc = copy_tags.size();
-    if (N_loc == 0) return;
+    const int N_locs = copy_tags.size();
+    if (N_locs == 0) return;
 
     int ntotwarps = 0;
     Vector<int> nwarps;
-    nwarps.reserve(N_loc+1);
-    for (int i = 0; i < N_loc; ++i)
+    nwarps.reserve(N_locs+1);
+    for (int i = 0; i < N_locs; ++i)
     {
         auto& tag = copy_tags[i];
         nwarps.push_back(ntotwarps);
@@ -161,11 +161,11 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     }
     nwarps.push_back(ntotwarps);
 
-    std::size_t nbytes = N_loc*sizeof(TagType);
+    std::size_t nbytes = N_locs*sizeof(TagType);
     auto d_tags = static_cast<TagType*>(The_Device_Arena()->alloc(nbytes));
     Gpu::htod_memcpy(d_tags, copy_tags.data(), nbytes);
 
-    nbytes = (N_loc+1)*sizeof(int);
+    nbytes = (N_locs+1)*sizeof(int);
     auto d_nwarps = static_cast<int*>(The_Device_Arena()->alloc(nbytes));
     Gpu::htod_memcpy(d_nwarps, nwarps.data(), nbytes);
 
@@ -186,7 +186,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int tag_id;
         {
             int lo = 0;
-            int hi = N_loc;
+            int hi = N_locs;
             while (lo <= hi)
             {
                 int mid = (lo+hi)/2;
@@ -291,15 +291,15 @@ void
 FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 {
     auto const& LocTags = *(TheFB.m_LocTags);
-    int N_loc = LocTags.size();
-    if (N_loc == 0) return;
+    int N_locs = LocTags.size();
+    if (N_locs == 0) return;
     bool is_thread_safe = TheFB.m_threadsafe_loc;
     if (is_thread_safe)
     {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < N_loc; ++i)
+        for (int i = 0; i < N_locs; ++i)
         {
             const CopyComTag& tag = LocTags[i];
 
@@ -314,7 +314,7 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
     else
     {
         LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
-        for (int i = 0; i < N_loc; ++i)
+        for (int i = 0; i < N_locs; ++i)
         {
             const CopyComTag& tag = LocTags[i];
 
@@ -353,23 +353,23 @@ void
 FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 {
     auto const& LocTags = *(TheFB.m_LocTags);
-    int N_loc = LocTags.size();
-    if (N_loc == 0) return;
+    int N_locs = LocTags.size();
+    if (N_locs == 0) return;
     bool is_thread_safe = TheFB.m_threadsafe_loc;
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> loc_copy_tags;
-    loc_copy_tags.reserve(N_loc);
+    loc_copy_tags.reserve(N_locs);
 
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4<int> > masks;
     if (!amrex::IsStoreAtomic<value_type>::value and !is_thread_safe)
     {
         maskfabs.resize(this->local_size());
-        masks.reserve(N_loc);
+        masks.reserve(N_locs);
     }
 
-    for (int i = 0; i < N_loc; ++i)
+    for (int i = 0; i < N_locs; ++i)
     {
         const CopyComTag& tag = LocTags[i];
 
@@ -417,9 +417,9 @@ template <class FAB>
 void
 FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp)
 {
-    const int N_loc = (*TheFB.m_LocTags).size();
+    const int N_locs = (*TheFB.m_LocTags).size();
     LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
-    for (int i = 0; i < N_loc; ++i)
+    for (int i = 0; i < N_locs; ++i)
     {
         const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
@@ -433,7 +433,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
     // Create Graph if one is needed.
     if ( !(TheFB.m_localCopy.ready()) )
     {
-        const_cast<FB&>(TheFB).m_localCopy.resize(N_loc);
+        const_cast<FB&>(TheFB).m_localCopy.resize(N_locs);
     
         int idx = 0;
         // Record the graph.
@@ -442,7 +442,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp
             amrex::Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0),
                                                      const_cast<FB&>(TheFB).m_localCopy.getHostPtr(0),
                                                      (TheFB).m_localCopy.getDevicePtr(0),
-                                                     std::size_t(sizeof(CopyMemory)*N_loc) );
+                                                     std::size_t(sizeof(CopyMemory)*N_locs) );
     
             const auto& tags = loc_copy_tags[mfi];
             for (auto const & tag : tags)
