@@ -33,8 +33,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         //
         // There can only be local work to do.
         //
-	int N_loc = (*TheFB.m_LocTags).size();
-        if (N_loc == 0) return;
+	int N_locs = (*TheFB.m_LocTags).size();
+        if (N_locs == 0) return;
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -75,7 +75,19 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         return;
 
     //
-    // Before we post recv, let's preprocess sends
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    fb_the_recv_data = nullptr;
+
+    if (N_rcvs > 0) {
+        PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
+                 fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
+                 scomp, ncomp, SeqNum);
+        fb_recv_stat.resize(N_rcvs);
+    }
+
+    //
+    // Post send's
     //
     char*&                          the_send_data = fb_the_send_data;
     Vector<char*> &                     send_data = fb_send_data;
@@ -83,8 +95,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     Vector<int>                         send_rank;
     Vector<MPI_Request>&                send_reqs = fb_send_reqs;
     Vector<const CopyComTagsContainer*> send_cctc;
-
-    fb_tag = SeqNum;
 
     if (N_snds > 0)
     {
@@ -131,25 +141,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
             }
         }
-    }
 
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    fb_the_recv_data = nullptr;
-
-    if (N_rcvs > 0) {
-        PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
-                 fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
-                 scomp, ncomp, SeqNum);
-        fb_recv_stat.resize(N_rcvs);
-    }
-
-    //
-    // Post send's
-    //
-    if (N_snds > 0)
-    {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
@@ -169,20 +161,15 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             FB_pack_send_buffer_cpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
         }
 
-        int send_counter = 0;
-        while (send_counter < N_snds)
+        for (int j = 0; j < N_snds; ++j)
         {
-            int j = send_counter;
-
-            BL_ASSERT(send_size[j] > 0);
-
-            send_reqs[j] = ParallelDescriptor::Asend
-                (send_data[j], send_size[j],
-                 ParallelContext::global_to_local_rank(send_rank[j]),
-                 SeqNum,
-                 ParallelContext::CommunicatorSub()).req();
-
-            ++send_counter;
+            if (send_size[j] > 0) {
+                send_reqs[j] = ParallelDescriptor::Asend
+                    (send_data[j], send_size[j],
+                     ParallelContext::global_to_local_rank(send_rank[j]),
+                     SeqNum,
+                     ParallelContext::CommunicatorSub()).req();
+            }
 	}
     }
 
@@ -243,13 +230,13 @@ FabArray<FAB>::FillBoundary_finish ()
                 recv_cctc[k] = &cctc;
             }
         }
-        
+
         int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
 
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
+            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, SeqNum))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
@@ -366,8 +353,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
         // There can only be local work to do.
         //
-	int N_loc = (*thecpc.m_LocTags).size();
-        if (N_loc == 0) return;
+	int N_locs = (*thecpc.m_LocTags).size();
+        if (N_locs == 0) return;
         bool is_thread_safe = thecpc.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
@@ -376,7 +363,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             {
                 typedef Array4CopyTag<typename FAB::value_type> TagType;
                 Vector<TagType> loc_copy_tags;
-                loc_copy_tags.reserve(N_loc);
+                loc_copy_tags.reserve(N_locs);
 
                 Vector<BaseFab<int> > maskfabs;
                 Vector<Array4<int> > masks;
@@ -385,18 +372,18 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         and !is_thread_safe)
                     {
                         maskfabs.resize(this->local_size());
-                        masks.reserve(N_loc);
+                        masks.reserve(N_locs);
                     }
                 } else {
                     if (!amrex::HasAtomicAdd<typename FAB::value_type>::value
                         and !is_thread_safe)
                     {
                         maskfabs.resize(this->local_size());
-                        masks.reserve(N_loc);
+                        masks.reserve(N_locs);
                     }
                 }
 
-                for (int i = 0; i < N_loc; ++i)
+                for (int i = 0; i < N_locs; ++i)
                 {
                     const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                     if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
@@ -458,7 +445,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
             {
                 LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
-                for (int i = 0; i < N_loc; ++i)
+                for (int i = 0; i < N_locs; ++i)
                 {
                     const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                     if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
@@ -507,7 +494,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-            for (int i = 0; i < N_loc; ++i)
+            for (int i = 0; i < N_locs; ++i)
             {
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
@@ -557,9 +544,25 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     {
         const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
 
+        Vector<int>         recv_from;
+        Vector<char*>       recv_data;
+        Vector<int>         recv_size;
+        Vector<MPI_Request> recv_reqs;
         //
-        // Before we post recv, let's preprocess sends
+        // Post rcvs. Allocate one chunk of space to hold'm all.
         //
+        char* the_recv_data = nullptr;
+
+        int actual_n_rcvs = 0;
+	if (N_rcvs > 0) {
+            PostRcvs(*thecpc.m_RcvTags, the_recv_data,
+                     recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum);
+            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
+	}
+
+	//
+	// Post send's
+	//
         char*                               the_send_data;
 	Vector<char*>                       send_data;
 	Vector<int>                         send_size;
@@ -609,29 +612,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     }
                 }
             }
-        }
 
-        Vector<int>         recv_from;
-        Vector<char*>       recv_data;
-        Vector<int>         recv_size;
-        Vector<MPI_Request> recv_reqs;
-        //
-        // Post rcvs. Allocate one chunk of space to hold'm all.
-        //
-        char* the_recv_data = nullptr;
-
-        int actual_n_rcvs = 0;
-	if (N_rcvs > 0) {
-            PostRcvs(*thecpc.m_RcvTags, the_recv_data,
-                     recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum);
-            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
-	}
-
-	//
-	// Post send's
-	// 
-	if (N_snds > 0)
-	{
             // xxxxx
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -659,21 +640,15 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
-            int send_counter = 0;
-            while (send_counter < N_snds)
+            for (int j = 0; j < N_snds; ++j)
             {
-                int j = send_counter;
-
-                if (send_size[j] > 0)
-                {
+                if (send_size[j] > 0) {
                     send_reqs[j] = ParallelDescriptor::Asend
                         (send_data[j], send_size[j],
                          ParallelContext::global_to_local_rank(send_rank[j]),
                          SeqNum,
                          ParallelContext::CommunicatorSub()).req();
                 }
-
-                ++send_counter;
 	    }
 	}
 
