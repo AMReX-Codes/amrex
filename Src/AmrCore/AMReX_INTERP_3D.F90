@@ -76,7 +76,7 @@ contains
                kfn = kc*lratioz + lz
                kfc = kfn + hratz
                if (kfc .ge. fb_l3 .and. kfc .le. fb_h3) then
-                  z = denomz*(two*real(ly,amrex_real) + one)
+                  z = denomz*(two*real(lz,amrex_real) + one)
                   do ly = 0, lratioy-1
                      jfn = jc*lratioy + ly
                      jfc = jfn + hraty
