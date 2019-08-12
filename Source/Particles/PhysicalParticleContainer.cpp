@@ -584,7 +584,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             }
 
             if (do_field_ionization) {
-                pi[ip] = species_ionization_level;
+                pi[ip] = ionization_initial_level;
             }
 
             u.x *= PhysConst::c;
@@ -1966,7 +1966,7 @@ void PhysicalParticleContainer::InitIonizationModule ()
 {
     if (!do_field_ionization) return;
     ParmParse pp(species_name);
-    pp.query("ionization_level", species_ionization_level);
+    pp.query("ionization_level", ionization_initial_level);
     pp.get("ionization_product_species", ionization_product_name);
     pp.get("physical_element", physical_element);
     // Add Real component for ionization level

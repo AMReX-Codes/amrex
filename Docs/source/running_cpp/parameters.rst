@@ -348,7 +348,7 @@ Particle initialization
     electrons are stored. This species must be created as a regular species
     in the input file (in particular, it must be in `particles.species_names`).
 
-* ``<species>.ionization_level`` (`int`) optional (default `0`)
+* ``<species>.ionization_initial_level`` (`int`) optional (default `0`)
     Only read if `do_field_ionization = 1`. Initial ionization level of the
     species (must be smaller than the atomic number of chemical element given
     in `physical_element`).
