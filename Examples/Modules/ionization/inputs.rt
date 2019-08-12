@@ -10,7 +10,7 @@ geometry.prob_hi     =  5.e-6  20.e-6
 amr.max_level = 0
 
 algo.maxwell_fdtd_solver = ckc
-warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition
+warpx.do_pml = 1
 warpx.cfl = .999
 
 particles.nspecies = 2
@@ -34,7 +34,7 @@ electrons.mass = m_p
 electrons.charge = -q_e
 electrons.injection_style = nuniformpercell
 electrons.num_particles_per_cell_each_dim = 1 1
-electrons.zmin = 1. #  5.e-6
+electrons.zmin = 1.
 electrons.zmax = 15.e-6
 electrons.profile = constant
 electrons.density = 2.

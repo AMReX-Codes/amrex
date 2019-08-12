@@ -1,5 +1,3 @@
-# stop_time = 100.e-15
-
 max_step = 500 
 
 warpx.verbose = 1
@@ -9,7 +7,7 @@ warpx.use_filter = 1
 
 amr.plot_int = 100
 amr.plot_file = diags/plotfiles/plt
-amr.n_cell = 256 384 # 768 1152
+amr.n_cell = 256 384
 amr.max_grid_size = 1024
 amr.blocking_factor = 32
 amr.max_level = 0
@@ -37,7 +35,7 @@ electrons.xmin = -3.1e-06
 electrons.xmax = 0.0
 electrons.ymin = -5.76e-06
 electrons.ymax = 5.76e-06
-electrons.zmin = -1.44e-5 # -1.44e-05
+electrons.zmin = -1.44e-5
 electrons.zmax = 1.44e-05
 electrons.profile = constant
 electrons.density = 1.e27

@@ -10,11 +10,11 @@ geometry.prob_hi     =  5.e-6   0.e-6
 amr.max_level = 0
 
 algo.maxwell_fdtd_solver = ckc
-warpx.do_pml = 1 # use Perfectly Matched Layer as boundary condition
+warpx.do_pml = 1
 warpx.cfl = .999
 warpx.do_moving_window = 1
 warpx.moving_window_dir = z
-warpx.moving_window_v = 1.0 # in units of the speed of light
+warpx.moving_window_v = 1.0
 warpx.gamma_boost = 2.
 warpx.boost_direction = z
 
