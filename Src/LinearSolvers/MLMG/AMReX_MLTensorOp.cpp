@@ -285,4 +285,98 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #endif
 }
 
+void
+MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                       MultiFab& sol, Location loc) const
+{
+  // cribbing from MLCellLinOp
+  // making lots of guesses...
+  
+    BL_PROFILE("MLTensorOp::compFlux()");
+
+    const int mglev = 0;
+    const int ncomp = getNComp();
+    ///
+    MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
+
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    // applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
+    //         m_bndry_sol[amrlev].get());
+
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+
+    Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
+    Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
+    Real bscalar = m_b_scalar;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        //FArrayBox fluxfab_tmp[AMREX_SPACEDIM];
+	//before mfi on out, the cell-centered solution
+	// now want out to be face-centered fluxes 
+        Array<FArrayBox,AMREX_SPACEDIM> fluxfab_tmp;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&fluxfab_tmp[0], &fluxfab_tmp[1], &fluxfab_tmp[2]) };
+
+        for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            //Array4<Real> const axfab = out.array(mfi);
+	    // Need to make handles to fluxes
+	    
+            Array4<Real const> const vfab = sol.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
+                         Array4<Real const> const etayfab = etamf[1].array(mfi);,
+                         Array4<Real const> const etazfab = etamf[2].array(mfi););
+            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
+                         Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
+                         Array4<Real const> const kapzfab = kapmf[2].array(mfi););
+            AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
+                         Box const ybx = amrex::surroundingNodes(bx,1);,
+                         Box const zbx = amrex::surroundingNodes(bx,2););
+	    AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
+                         fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
+                         fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
+            AMREX_D_TERM(Elixir fxeli = fluxfab_tmp[0].elixir();,
+                         Elixir fyeli = fluxfab_tmp[1].elixir();,
+                         Elixir fzeli = fluxfab_tmp[2].elixir(););
+            AMREX_D_TERM(Array4<Real> const fxfab = fluxfab_tmp[0].array();,
+                         Array4<Real> const fyfab = fluxfab_tmp[1].array();,
+                         Array4<Real> const fzfab = fluxfab_tmp[2].array(););
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+            ( xbx, txbx,
+              {
+                  mltensor_cross_terms_fx(txbx,fxfab,vfab,etaxfab,kapxfab,dxinv);
+              }
+            , ybx, tybx,
+              {
+                  mltensor_cross_terms_fy(tybx,fyfab,vfab,etayfab,kapyfab,dxinv);
+              }
+#if (AMREX_SPACEDIM == 3)
+            , zbx, tzbx,
+              {
+                  mltensor_cross_terms_fz(tzbx,fzfab,vfab,etazfab,kapzfab,dxinv);
+              }
+#endif
+            );
+
+	    //fixme??
+	    // pretty sure 1/dx already multiplied in above
+	    // and that bscalar need to be put in below, but should check both
+	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+	        const Box& nbx = mfi.nodaltilebox(idim);
+                Array4<Real      > dst = fluxes[idim]->array(mfi);
+                Array4<Real const> src =  pflux[idim]->array();
+                AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
+                {
+                    dst(i,j,k,n) += bscalar*src(i,j,k,n);
+                });
+            }
+
+        }
+    }
+}
+
+
 }
