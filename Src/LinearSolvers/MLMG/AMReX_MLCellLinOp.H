@@ -124,7 +124,7 @@ public:
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab&,
                          MultiFab&, MultiFab& fine_sol, const MultiFab&) const final override;
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const final override;
+                           MultiFab& sol, Location loc) const override;
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location loc) const override;
 
