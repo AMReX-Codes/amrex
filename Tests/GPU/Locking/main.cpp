@@ -27,7 +27,7 @@ int main (int argc, char* argv[])
 }
 
 AMREX_GPU_DEVICE
-void addone(double *num)
+void addone(double volatile * num)
 {
   int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
   
