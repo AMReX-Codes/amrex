@@ -659,7 +659,7 @@ public:
 #ifdef AMREX_USE_GPU
 
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
-    void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
+    void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
@@ -691,29 +691,29 @@ public:
 
 #endif
 
-    static void FB_pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                         Vector<char*>& send_data,
-                                         Vector<int> const& send_size,
-                                         Vector<const CopyComTagsContainer*> const& send_cctc);
+    static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                      Vector<char*>& send_data,
+                                      Vector<int> const& send_size,
+                                      Vector<const CopyComTagsContainer*> const& send_cctc);
 
-    void FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
-                                    Vector<char*> const& recv_data,
-                                    Vector<int> const& recv_size,
-                                    Vector<const CopyComTagsContainer*> const& recv_cctc,
-                                    bool is_thread_safe);
+    static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                        Vector<char*> const& recv_data,
+                                        Vector<int> const& recv_size,
+                                        Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                        CpOp op, bool is_thread_safe);
 
 #endif
 
-    static void FB_pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                         Vector<char*>& send_data,
-                                         Vector<int> const& send_size,
-                                         Vector<const CopyComTagsContainer*> const& send_cctc);
+    static void pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                      Vector<char*>& send_data,
+                                      Vector<int> const& send_size,
+                                      Vector<const CopyComTagsContainer*> const& send_cctc);
 
-    void FB_unpack_recv_buffer_cpu (int dcomp, int ncomp,
-                                    Vector<char*> const& recv_data,
-                                    Vector<int> const& recv_size,
-                                    Vector<const CopyComTagsContainer*> const& recv_cctc,
-                                    bool is_thread_safe);
+    static void unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                        Vector<char*> const& recv_data,
+                                        Vector<int> const& recv_size,
+                                        Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                        CpOp op, bool is_thread_safe);
 
 #endif
 

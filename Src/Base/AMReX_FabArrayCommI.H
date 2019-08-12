@@ -153,13 +153,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             else
 #endif
             {
-                FB_pack_send_buffer_gpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
             }
         }
         else
 #endif
         {
-            FB_pack_send_buffer_cpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
+            pack_send_buffer_cpu(*this, scomp, ncomp, send_data, send_size, send_cctc);
         }
 
         for (int j = 0; j < N_snds; ++j)
@@ -259,15 +259,15 @@ FabArray<FAB>::FillBoundary_finish ()
             else
 #endif
             {
-                FB_unpack_recv_buffer_gpu(fb_scomp, fb_ncomp, fb_recv_data, fb_recv_size,
-                                          recv_cctc, is_thread_safe);
+                unpack_recv_buffer_gpu(*this, fb_scomp, fb_ncomp, fb_recv_data, fb_recv_size,
+                                       recv_cctc, FabArrayBase::COPY, is_thread_safe);
             }
         }
         else
 #endif
         {
-            FB_unpack_recv_buffer_cpu(fb_scomp, fb_ncomp, fb_recv_data, fb_recv_size,
-                                      recv_cctc, is_thread_safe);
+            unpack_recv_buffer_cpu(*this, fb_scomp, fb_ncomp, fb_recv_data, fb_recv_size,
+                                   recv_cctc, FabArrayBase::COPY, is_thread_safe);
         }
 
         if (fb_the_recv_data)
@@ -467,32 +467,16 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 }
             }
 
-            // xxxxx
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc);
+            }
+            else
 #endif
-            for (Gpu::StreamIter sit(N_snds); sit.isValid(); ++sit)
-	    {
-                const int j = sit();
-		char* dptr = send_data[j];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *send_cctc[j];
-                    for (auto const& tag : cctc)
-                    {
-                        const Box& bx = tag.sbox;
-                        auto const sfab = src.array(tag.srcIndex);
-                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx,NC);
-                        AMREX_HOST_DEVICE_FOR_4D ( bx, NC, ii, jj, kk, n,
-                        {
-                            pfab(ii,jj,kk,n) = sfab(ii,jj,kk,SC+n);
-                        });
-
-                        dptr += (bx.numPts() * NC * sizeof(value_type));
-                    }
-                    BL_ASSERT(dptr == send_data[j] + send_size[j]);
-		}
-	    }
+            {
+                pack_send_buffer_cpu(src, SC, NC, send_data, send_size, send_cctc);
+            }
 
             for (int j = 0; j < N_snds; ++j)
             {
@@ -511,77 +495,21 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
         if (N_locs > 0)
 	{
-            // xxxxx
-            bool is_thread_safe = thecpc.m_threadsafe_loc;
-            if (Gpu::inLaunchRegion() || !is_thread_safe)
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
             {
-                // gpu version or omp over dest fabs
-
-                LayoutData<Vector<FabCopyTag<FAB> > > copy_tags(boxArray(),DistributionMap());
-                for (int j = 0; j < N_locs; ++j) {
-                    const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-                    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                        copy_tags[tag.dstIndex].push_back
-                            ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
-                    }
-                }
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-                for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                    auto dfab = this->array(mfi);
-                    const auto& fab_copy_tags = copy_tags[mfi];
-                    if (op == FabArrayBase::COPY) {
-                        for (auto const& fab_tag : fab_copy_tags) {
-                            Dim3 offset = fab_tag.offset.dim3();
-                            auto const sfab = fab_tag.sfab->array();
-                            AMREX_HOST_DEVICE_FOR_4D ( fab_tag.dbox, NC, i, j, k, n,
-                            {
-                                dfab(i,j,k,DC+n) = sfab(i+offset.x,j+offset.y,k+offset.z,SC+n);
-                            });
-                        }
-                    } else {
-                        for (auto const& fab_tag : fab_copy_tags) {
-                            Dim3 offset = fab_tag.offset.dim3();
-                            auto const sfab = fab_tag.sfab->array();
-                            AMREX_HOST_DEVICE_FOR_4D ( fab_tag.dbox, NC, i, j, k, n,
-                            {
-                                dfab(i,j,k,DC+n) += sfab(i+offset.x,j+offset.y,k+offset.z,SC+n);
-                            });
-                        }
-                    }
-                }
+                PC_local_gpu(thecpc, src, SC, DC, NC, op);
             }
             else
-            {
-                // cpu version, omp over dest tile boxes
-#ifdef _OPENMP
-#pragma omp parallel for
 #endif
-                for (int j = 0; j < N_locs; ++j)
-                {
-                    const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-                    // avoid self copy or plus
-                    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                        const FAB* sfab = &(src[tag.srcIndex]);
-                              FAB* dfab = &(get(tag.dstIndex));
-                        if (op == FabArrayBase::COPY) {
-                            dfab->copy(*sfab, tag.sbox, SC, tag.dbox, DC, NC);
-                        } else {
-                            dfab->plus(*sfab, tag.sbox, tag.dbox, SC, DC, NC);
-                        }
-                    }
-                }
+            {
+                PC_local_cpu(thecpc, src, SC, DC, NC, op);
             }
         }
 
-        // prepare for receive
-        Vector<const CopyComTagsContainer*> recv_cctc;
-        LayoutData<Vector<VoidCopyTag> > recv_copy_tags;
         if (N_rcvs > 0)
         {
-            recv_cctc.resize(N_rcvs,nullptr);
+            Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 	    for (int k = 0; k < N_rcvs; ++k)
 	    {
                 if (recv_size[k] > 0)
@@ -591,98 +519,30 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 }
 	    }
 
-            // xxxxx
-            bool is_thread_safe = thecpc.m_threadsafe_rcv;
-            if (Gpu::inLaunchRegion() || !is_thread_safe)
-            {
-                recv_copy_tags.define(boxArray(),DistributionMap());
-                for (int k = 0; k < N_rcvs; ++k) {
-                    const char* dptr = recv_data[k];
-                    if (dptr != nullptr)
-                    {
-                        auto const& cctc = *recv_cctc[k];
-                        for (auto const& tag : cctc)
-                        {
-                            recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
-                            dptr += tag.dbox.numPts() * NC * sizeof(value_type);
-                        }
-                        BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
-                    }
+            if (actual_n_rcvs > 0) {
+                Vector<MPI_Status> stats(N_rcvs);
+                ParallelDescriptor::Waitall(recv_reqs, stats);
+#ifdef AMREX_DEBUG
+                if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+                {
+                    amrex::Abort("ParallelCopy failed with wrong message size");
                 }
-            }
-        }
-
-	//
-	//  wait and unpack
-	//
-        if (actual_n_rcvs > 0) {
-            Vector<MPI_Status> stats(N_rcvs);
-            ParallelDescriptor::Waitall(recv_reqs, stats);
-            if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
-            {
-                amrex::Abort("ParallelCopy failed with wrong message size");
-            }
-	}
-
-	if (N_rcvs > 0)
-	{
-            if (!recv_copy_tags.empty())
-            {
-                // gpu version or omp over dest fabs
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-                for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                    auto dfab = this->array(mfi);
-                    const auto& void_copy_tags = recv_copy_tags[mfi];
-                    if (op == FabArrayBase::COPY)
-                    {
-                        for (auto const& void_tag : void_copy_tags) {
-                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox, NC);
-                            AMREX_HOST_DEVICE_FOR_4D ( void_tag.dbox, NC, i, j, k, n,
-                            {
-                                dfab(i,j,k,DC+n) = pfab(i,j,k,n);
-                            });
-                        }
-                    } else {
-                        for (auto const& void_tag : void_copy_tags) {
-                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox, NC);
-                            AMREX_HOST_DEVICE_FOR_4D ( void_tag.dbox, NC, i, j, k, n,
-                            {
-                                dfab(i,j,k,DC+n) += pfab(i,j,k,n);
-                            });
-                        }
-                    }
-                }
+            }
+
+            bool is_thread_safe = thecpc.m_threadsafe_rcv;
+
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                unpack_recv_buffer_gpu(*this, DC, NC, recv_data, recv_size, recv_cctc,
+                                       op, is_thread_safe);
             }
             else
-            {
-#ifdef _OPENMP
-#pragma omp parallel for
 #endif
-                for (int k = 0; k < N_rcvs; ++k)
-                {
-                    const char* dptr = recv_data[k];
-                    if (dptr != nullptr)
-                    {
-                        auto const& cctc = *recv_cctc[k];
-                        for (auto const& tag : cctc)
-                        {
-                            FAB* dfab = &(get(tag.dstIndex));
-                            if (op == FabArrayBase::COPY)
-                            {
-                                dfab->copyFromMem(tag.dbox,DC,NC,dptr);
-                            }
-                            else
-                            {
-                                dfab->addFromMem(tag.dbox, DC, NC, dptr);
-                            }
-                        
-                            dptr += tag.dbox.numPts() * NC * sizeof(value_type);
-                        }
-                        BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
-                    }
-                }
+            {
+                unpack_recv_buffer_cpu(*this, DC, NC, recv_data, recv_size, recv_cctc,
+                                       op, is_thread_safe);
             }
 
             if (the_recv_data)
@@ -690,7 +550,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 amrex::The_FA_Arena()->free(the_recv_data);
                 the_recv_data = nullptr;
             }
-	}
+        }
 	
         if (N_snds > 0) {
             if (! thecpc.m_SndTags->empty()) {

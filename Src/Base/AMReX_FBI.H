@@ -752,10 +752,10 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
 
 template <class FAB>
 void
-FabArray<FAB>::FB_pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                        Vector<char*>& send_data,
-                                        Vector<int> const& send_size,
-                                        Vector<CopyComTagsContainer const*> const& send_cctc)
+FabArray<FAB>::pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                     Vector<char*>& send_data,
+                                     Vector<int> const& send_size,
+                                     Vector<CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
@@ -785,11 +785,11 @@ FabArray<FAB>::FB_pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int
 
 template <class FAB>
 void
-FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
-                                          Vector<char*> const& recv_data,
-                                          Vector<int> const& recv_size,
-                                          Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                          bool is_thread_safe)
+FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                       Vector<char*> const& recv_data,
+                                       Vector<int> const& recv_size,
+                                       Vector<CopyComTagsContainer const*> const& recv_cctc,
+                                       CpOp op, bool is_thread_safe)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
@@ -799,9 +799,13 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
 
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4<int> > masks;
-    if (!amrex::IsStoreAtomic<value_type>::value and !is_thread_safe)
+    if (!is_thread_safe)
     {
-        maskfabs.resize(this->local_size());
+        if ((op == FabArrayBase::COPY and !amrex::IsStoreAtomic<value_type>::value) or
+            (op == FabArrayBase::ADD  and !amrex::HasAtomicAdd <value_type>::value))
+        {
+            maskfabs.resize(dst.local_size());
+        }
     }
 
     for (int k = 0; k < N_rcvs; ++k)
@@ -812,16 +816,16 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
             auto const& cctc = *recv_cctc[k];
             for (auto const& tag : cctc)
             {
-                const int li = this->localindex(tag.dstIndex);
+                const int li = dst.localindex(tag.dstIndex);
                 recv_copy_tags.push_back
-                    ({this->atLocalIdx(li).array(),
+                    ({dst.atLocalIdx(li).array(),
                       amrex::makeArray4((value_type*)(dptr),tag.dbox,ncomp),
                       tag.dbox, Dim3{0,0,0}});
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
 
                 if (maskfabs.size() > 0) {
                     if (!maskfabs[li].isAllocated()) {
-                        maskfabs[li].resize(this->atLocalIdx(li).box());
+                        maskfabs[li].resize(dst.atLocalIdx(li).box());
                     }
                     masks.push_back(maskfabs[li].array());
                 }
@@ -843,11 +847,23 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
         }
     }
 
-    if (is_thread_safe) {
-        detail::fab_to_fab<value_type>(recv_copy_tags, 0, dcomp, ncomp,
-                                       detail::CellStore<value_type>());
-    } else {
-        detail::fab_to_fab_atomic_cpy<value_type>(recv_copy_tags, 0, dcomp, ncomp, masks);
+    if (op == FabArrayBase::COPY)
+    {
+        if (is_thread_safe) {
+            detail::fab_to_fab<value_type>(recv_copy_tags, 0, dcomp, ncomp,
+                                           detail::CellStore<value_type>());
+        } else {
+            detail::fab_to_fab_atomic_cpy<value_type>(recv_copy_tags, 0, dcomp, ncomp, masks);
+        }
+    }
+    else
+    {
+        if (is_thread_safe) {
+            detail::fab_to_fab<value_type>(recv_copy_tags, 0, dcomp, ncomp,
+                                           detail::CellAdd<value_type>());
+        } else {
+            detail::fab_to_fab_atomic_add<value_type>(recv_copy_tags, 0, dcomp, ncomp, masks);
+        }
     }
 }
 
@@ -855,10 +871,10 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
 
 template <class FAB>
 void
-FabArray<FAB>::FB_pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
-                                        Vector<char*>& send_data,
-                                        Vector<int> const& send_size,
-                                        Vector<CopyComTagsContainer const*> const& send_cctc)
+FabArray<FAB>::pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                     Vector<char*>& send_data,
+                                     Vector<int> const& send_size,
+                                     Vector<CopyComTagsContainer const*> const& send_cctc)
 {
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
@@ -891,11 +907,11 @@ FabArray<FAB>::FB_pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int
 
 template <class FAB>
 void
-FabArray<FAB>::FB_unpack_recv_buffer_cpu (int dcomp, int ncomp,
-                                          Vector<char*> const& recv_data,
-                                          Vector<int> const& recv_size,
-                                          Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                          bool is_thread_safe)
+FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                       Vector<char*> const& recv_data,
+                                       Vector<int> const& recv_size,
+                                       Vector<CopyComTagsContainer const*> const& recv_cctc,
+                                       CpOp op, bool is_thread_safe)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) return;
@@ -914,8 +930,15 @@ FabArray<FAB>::FB_unpack_recv_buffer_cpu (int dcomp, int ncomp,
                 for (auto const& tag : cctc)
                 {
                     const Box& bx  = tag.dbox;
-                    FAB* dfab = &(get(tag.dstIndex));
-                    dfab->copyFromMem(bx, dcomp, ncomp, dptr);
+                    FAB& dfab = dst[tag.dstIndex];
+                    if (op == FabArrayBase::COPY)
+                    {
+                        dfab.copyFromMem(bx, dcomp, ncomp, dptr);
+                    }
+                    else
+                    {
+                        dfab.addFromMem(tag.dbox, dcomp, ncomp, dptr);
+                    }
                     dptr += bx.numPts() * ncomp * sizeof(value_type);
                 }
                 BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
@@ -925,7 +948,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cpu (int dcomp, int ncomp,
     else
     {
         LayoutData<Vector<VoidCopyTag> > recv_copy_tags;
-        recv_copy_tags.define(boxArray(),DistributionMap());
+        recv_copy_tags.define(dst.boxArray(),dst.DistributionMap());
         for (int k = 0; k < N_rcvs; ++k)
         {
             const char* dptr = recv_data[k];
@@ -944,18 +967,29 @@ FabArray<FAB>::FB_unpack_recv_buffer_cpu (int dcomp, int ncomp,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        for (MFIter mfi(dst); mfi.isValid(); ++mfi)
         {
             const auto& tags = recv_copy_tags[mfi];
-            auto dfab = this->array(mfi);
+            auto dfab = dst.array(mfi);
             for (auto const & tag : tags)
             {
                 auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox, ncomp);
-                amrex::LoopConcurrentOnCpu(tag.dbox, ncomp,
-                [=] (int i, int j, int k, int n) noexcept
+                if (op == FabArrayBase::COPY)
                 {
-                    dfab(i,j,k,n+dcomp) = pfab(i,j,k,n);
-                });
+                    amrex::LoopConcurrentOnCpu(tag.dbox, ncomp,
+                    [=] (int i, int j, int k, int n) noexcept
+                    {
+                        dfab(i,j,k,n+dcomp) = pfab(i,j,k,n);
+                    });
+                }
+                else
+                {
+                    amrex::LoopConcurrentOnCpu(tag.dbox, ncomp,
+                    [=] (int i, int j, int k, int n) noexcept
+                    {
+                        dfab(i,j,k,n+dcomp) += pfab(i,j,k,n);
+                    });
+                }
             }
         }
     }
