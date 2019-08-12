@@ -653,10 +653,14 @@ public:
                       bool enforce_periodicity_only = false);
 
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
+    void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
+                       int scomp, int dcomp, int ncomp, CpOp op);
 
 #ifdef AMREX_USE_GPU
 
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
+    void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
+                       int scomp, int dcomp, int ncomp, CpOp op);
 
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 
