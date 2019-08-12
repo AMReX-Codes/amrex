@@ -392,9 +392,10 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
     }
 
     if (maskfabs.size() > 0) {
-        for (Gpu::StreamIter sit(masks.size()); sit.isValid(); ++sit) {
-            auto msk = masks[sit()];
-            Box bx(msk);
+        for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
+            BaseFab<int>& mskfab = maskfabs[sit()];
+            const Array4<int>& msk = mskfab.array();
+            const Box& bx = mskfab.box();
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -803,7 +804,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
         maskfabs.resize(this->local_size());
     }
 
-    for (int k = N_rcvs; k < N_rcvs; ++k)
+    for (int k = 0; k < N_rcvs; ++k)
     {
         const char* dptr = recv_data[k];
         if (dptr != nullptr)
@@ -830,9 +831,10 @@ FabArray<FAB>::FB_unpack_recv_buffer_gpu (int dcomp, int ncomp,
     }
 
     if (maskfabs.size() > 0) {
-        for (Gpu::StreamIter sit(masks.size()); sit.isValid(); ++sit) {
-            auto msk = masks[sit()];
-            Box bx(msk);
+        for (Gpu::StreamIter sit(maskfabs.size()); sit.isValid(); ++sit) {
+            BaseFab<int>& mskfab = maskfabs[sit()];
+            const Array4<int>& msk = mskfab.array();
+            const Box& bx = mskfab.box();
             amrex::ParallelFor(bx,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
