@@ -65,6 +65,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     // Otherwise sequence numbers will not match across MPI processes.
     //
     int SeqNum = ParallelDescriptor::SeqNum();
+    fb_tag = SeqNum;
 
     const int N_locs = TheFB.m_LocTags->size();
     const int N_rcvs = TheFB.m_RcvTags->size();
@@ -236,7 +237,7 @@ FabArray<FAB>::FillBoundary_finish ()
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
 #ifdef AMREX_DEBUG
-            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, SeqNum))
+            if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
