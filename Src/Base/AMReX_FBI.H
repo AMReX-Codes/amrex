@@ -288,12 +288,12 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, in
 
 template <class FAB>
 void
-FabArray<FAB>::FB_local_copy_cpu (const FB& the_fb, int scomp, int ncomp)
+FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
 {
-    auto const& LocTags = *(the_fb.m_LocTags);
+    auto const& LocTags = *(TheFB.m_LocTags);
     int N_loc = LocTags.size();
     if (N_loc == 0) return;
-    bool is_thread_safe = the_fb.m_threadsafe_loc;
+    bool is_thread_safe = TheFB.m_threadsafe_loc;
     if (is_thread_safe)
     {
 #ifdef _OPENMP
@@ -350,12 +350,12 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& the_fb, int scomp, int ncomp)
 
 template <class FAB>
 void
-FabArray<FAB>::FB_local_copy_gpu (const FB& the_fb, int scomp, int ncomp)
+FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 {
-    auto const& LocTags = *(the_fb.m_LocTags);
+    auto const& LocTags = *(TheFB.m_LocTags);
     int N_loc = LocTags.size();
     if (N_loc == 0) return;
-    bool is_thread_safe = the_fb.m_threadsafe_loc;
+    bool is_thread_safe = TheFB.m_threadsafe_loc;
 
     typedef Array4CopyTag<value_type> TagType;
     Vector<TagType> loc_copy_tags;
@@ -415,12 +415,13 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& the_fb, int scomp, int ncomp)
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
 template <class FAB>
 void
-FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& the_fb, int scomp, int ncomp)
+FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp)
 {
+    const int N_loc = (*TheFB.m_LocTags).size();
     LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
     for (int i = 0; i < N_loc; ++i)
     {
-        const CopyComTag& tag = (*the_fb.m_LocTags)[i];
+        const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
         BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
@@ -430,24 +431,24 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& the_fb, int scomp, int ncom
     }
 
     // Create Graph if one is needed.
-    if ( !(the_fb.m_localCopy.ready()) )
+    if ( !(TheFB.m_localCopy.ready()) )
     {
-        const_cast<FB&>(the_fb).m_localCopy.resize(N_loc);
+        const_cast<FB&>(TheFB).m_localCopy.resize(N_loc);
     
         int idx = 0;
         // Record the graph.
         for (MFIter mfi(*this, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
         {
             amrex::Gpu::Device::startGraphRecording( (mfi.LocalIndex() == 0),
-                                                     const_cast<FB&>(the_fb).m_localCopy.getHostPtr(0),
-                                                     (the_fb).m_localCopy.getDevicePtr(0),
+                                                     const_cast<FB&>(TheFB).m_localCopy.getHostPtr(0),
+                                                     (TheFB).m_localCopy.getDevicePtr(0),
                                                      std::size_t(sizeof(CopyMemory)*N_loc) );
     
             const auto& tags = loc_copy_tags[mfi];
             for (auto const & tag : tags)
             {
                 const auto offset = tag.offset.dim3();
-                CopyMemory* cmem = the_fb.m_localCopy.getDevicePtr(idx++);
+                CopyMemory* cmem = TheFB.m_localCopy.getDevicePtr(idx++);
                 AMREX_HOST_DEVICE_FOR_3D (tag.dbox, i, j, k,
                 {
                     // Build the Array4's.
@@ -461,7 +462,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& the_fb, int scomp, int ncom
     
             bool last_iter = mfi.LocalIndex() == (this->local_size()-1);
             cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
-            if (last_iter) { const_cast<FB&>(the_fb).m_localCopy.setGraph( graphExec ); }
+            if (last_iter) { const_cast<FB&>(TheFB).m_localCopy.setGraph( graphExec ); }
         }
     }
 
@@ -476,22 +477,22 @@ FabArray<FAB>::FB_local_copy_cuda_graph_1 (const FB& the_fb, int scomp, int ncom
         const auto& tags = loc_copy_tags[mfi];
         for (auto const & tag : tags)
         {
-            const_cast<FB&>(the_fb).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
+            const_cast<FB&>(TheFB).m_localCopy.setParams(idx++, makeCopyMemory(tag.sfab->array(),
                                                                                dst_array,
                                                                                scomp, ncomp));
         }
     }
      
     // Launch Graph
-    the_fb.m_localCopy.executeGraph();
+    TheFB.m_localCopy.executeGraph();
 }
 
 #ifdef AMREX_USE_MPI
 template <class FAB>
 void
-FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& the_fb, int scomp, int ncomp)
+FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp)
 {
-    const int N_locs = the_fb.m_LocTags->size();
+    const int N_locs = TheFB.m_LocTags->size();
 
     int launches = 0; // Used for graphs only.
     LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
@@ -581,7 +582,7 @@ FabArray<FAB>::FB_local_copy_cuda_graph_n (const FB& the_fb, int scomp, int ncom
 
 template <class FAB>
 void
-FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int ncomp,
+FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
                                                Vector<char*>& send_data,
                                                Vector<int> const& send_size,
                                                Vector<typename FabArray<FAB>::CopyComTagsContainer const*> const& send_cctc)
@@ -589,7 +590,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
     const int N_snds = send_data.size();
     if (N_snds == 0) return;
 
-    if ( !(the_fb.m_copyToBuffer.ready()) )
+    if ( !(TheFB.m_copyToBuffer.ready()) )
     {
         // Set size of CudaGraph buffer.
         // Is the conditional ever expected false?
@@ -599,7 +600,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
                 launches += send_cctc[send]->size();
             }
         }
-        const_cast<FB&>(the_fb).m_copyToBuffer.resize(launches);
+        const_cast<FB&>(TheFB).m_copyToBuffer.resize(launches);
     
         // Record the graph.
         int idx = 0;
@@ -607,8 +608,8 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
              sit.isValid(); ++sit)
         {
             amrex::Gpu::Device::startGraphRecording( (sit() == 0),
-                                                     const_cast<FB&>(the_fb).m_copyToBuffer.getHostPtr(0),
-                                                     (the_fb).m_copyToBuffer.getDevicePtr(0),
+                                                     const_cast<FB&>(TheFB).m_copyToBuffer.getHostPtr(0),
+                                                     (TheFB).m_copyToBuffer.getDevicePtr(0),
                                                      std::size_t(sizeof(CopyMemory)*launches) );
 
             const int j = sit();
@@ -619,7 +620,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
                 for (auto const& tag : cctc)
                 {
                     const Box& bx = tag.sbox;
-                    CopyMemory* cmem = the_fb.m_copyToBuffer.getDevicePtr(idx++);
+                    CopyMemory* cmem = TheFB.m_copyToBuffer.getDevicePtr(idx++);
                     AMREX_HOST_DEVICE_FOR_3D (bx, ii, jj, kk,
                     {
                         auto const pfab = cmem->getDst<value_type>();
@@ -634,7 +635,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
 
             bool last_iter = sit() == (N_snds-1);
             cudaGraphExec_t graphExec = amrex::Gpu::Device::stopGraphRecording(last_iter);
-            if (last_iter) { const_cast<FB&>(the_fb).m_copyToBuffer.setGraph( graphExec ); }
+            if (last_iter) { const_cast<FB&>(TheFB).m_copyToBuffer.setGraph( graphExec ); }
         }
     }
 
@@ -649,7 +650,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
             auto const& cctc = *send_cctc[j];
             for (auto const& tag : cctc)
             {
-                const_cast<FB&>(the_fb).m_copyToBuffer.setParams(idx++, makeCopyMemory(this->array(tag.srcIndex),
+                const_cast<FB&>(TheFB).m_copyToBuffer.setParams(idx++, makeCopyMemory(this->array(tag.srcIndex),
                                                                                        amrex::makeArray4((value_type*)(dptr),
                                                                                                          tag.sbox,
                                                                                                          ncomp),
@@ -662,7 +663,7 @@ FabArray<FAB>::FB_pack_send_buffer_cuda_graph (const FB& the_fb, int scomp, int 
     }
     
     // Launch Graph synched, so copyToBuffer is complete prior to posting sends.
-    the_fb.m_copyToBuffer.executeGraph();
+    TheFB.m_copyToBuffer.executeGraph();
 }
 
 template <class FAB>
