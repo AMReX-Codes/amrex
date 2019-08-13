@@ -15,7 +15,7 @@ include $(AMREX_HOME)/Src/Base/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-include ../../../arch.common
+include $(AMREX_HOME)/Src/AmrTask/arch.common
 INCLUDE_LOCATIONS += $(INCLUDE)
 INCLUDE_LOCATIONS +=  $(ROOT_PATH)/graph
 INCLUDE_LOCATIONS +=  $(ROOT_PATH)/AMFIter

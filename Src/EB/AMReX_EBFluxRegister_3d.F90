@@ -1,10 +1,13 @@
 module amrex_eb_flux_reg_3d_module
 
+  use amrex_constants_module , only : zero, one
   use amrex_fort_module, only : rt => amrex_real
   use amrex_eb_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, fine_cell, &
        reredistribution_threshold
   use amrex_ebcellflag_module, only : get_neighbor_cells, is_regular_cell, is_single_valued_cell
+
   implicit none
+
   private
 
   public :: amrex_eb_flux_reg_crseadd_va, amrex_eb_flux_reg_fineadd_va, &
@@ -43,7 +46,7 @@ contains
           do i = lo(1), hi(1)
              if (flag(i,j,k).eq.crse_fine_boundary_cell .and. vfrac(i,j,k).gt.1.d-14) then
 
-                volinv = 1._rt/vfrac(i,j,k)
+                volinv = one/vfrac(i,j,k)
 
                 if (flag(i-1,j,k).eq.fine_cell) then
                    d(i,j,k,:) = d(i,j,k,:) - dtdx*fx(i,j,k,:)*(ax(i,j,k)*volinv)
@@ -344,7 +347,7 @@ contains
                    d(i,j,k,:) = d(i,j,k,:) + dm
                    
                    call get_neighbor_cells(ebflg(i,j,k),nbr)
-                   wtot = 0.d0
+                   wtot = zero
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
@@ -355,7 +358,7 @@ contains
                       enddo
                    enddo
                    
-                   drho = dm * ((1.d0-vfrac(i,j,k))/wtot)
+                   drho = dm * ((one-vfrac(i,j,k))/wtot)
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1

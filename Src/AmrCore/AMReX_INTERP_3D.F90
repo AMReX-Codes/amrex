@@ -57,20 +57,13 @@ contains
       real(amrex_real) strip(strip_lo:strip_hi)
       real(amrex_real) sl(cb_l1:cb_h1, num_slp)
 
-#define SLX 1
-#define SLY 2
-#define SLZ 3
-#define SLXY 4
-#define SLXZ 5
-#define SLYZ 6
-#define SLXYZ 7
-
       integer lx, ly, lz, hratx, hraty, hratz, ic, jc, kc, jfn, jfc, kfn, kfc, i, n
       real(amrex_real) x, y, z, denomx, denomy, denomz
+      real(amrex_real) cx00, cx01, cx10, cx11, cy0, cy1
 
-      denomx = one/dble(2*lratiox)
-      denomy = one/dble(2*lratioy)
-      denomz = one/dble(2*lratioz)
+      denomx = one/real(2*lratiox,amrex_real)
+      denomy = one/real(2*lratioy,amrex_real)
+      denomz = one/real(2*lratioz,amrex_real)
 
       hratx = lratiox/2
       hraty = lratioy/2
@@ -79,41 +72,31 @@ contains
       do n = 1, nvar
          do kc = cb_l3, cb_h3-1
          do jc = cb_l2, cb_h2-1
-            do ic = cb_l1, cb_h1-1
-               sl(ic,SLX  ) = crse(ic+1,jc,  kc,  n)-crse(ic,  jc,  kc,  n)
-               sl(ic,SLY  ) = crse(ic,  jc+1,kc,  n)-crse(ic,  jc,  kc,  n)
-               sl(ic,SLZ  ) = crse(ic,  jc,  kc+1,n)-crse(ic,  jc,  kc,  n)
-               sl(ic,SLXY ) = crse(ic+1,jc+1,kc,  n)-crse(ic+1,jc,  kc,  n) &
-                            - crse(ic  ,jc+1,kc,  n)+crse(ic  ,jc,  kc,  n)
-               sl(ic,SLXZ ) = crse(ic+1,jc,  kc+1,n)-crse(ic+1,jc,  kc,  n) &
-                            - crse(ic,  jc,  kc+1,n)+crse(ic,  jc,  kc,  n)
-               sl(ic,SLYZ ) = crse(ic,  jc+1,kc+1,n)-crse(ic,  jc,  kc+1,n) &
-                            - crse(ic  ,jc+1,kc,  n)+crse(ic  ,jc,  kc,  n)
-               sl(ic,SLXYZ) = crse(ic+1,jc,  kc,  n)+crse(ic,  jc+1,kc,  n) &
-                            + crse(ic,  jc,  kc+1,n)-crse(ic,  jc+1,kc+1,n) &
-                            - crse(ic+1,jc,  kc+1,n)-crse(ic+1,jc+1,kc,  n) &
-                            + crse(ic+1,jc+1,kc+1,n)-crse(ic,  jc,  kc,  n)
-
-            end do
-
             do lz = 0, lratioz-1
                kfn = kc*lratioz + lz
                kfc = kfn + hratz
                if (kfc .ge. fb_l3 .and. kfc .le. fb_h3) then
-                  z = denomz*(two*lz + one)
+                  z = denomz*(two*real(lz,amrex_real) + one)
                   do ly = 0, lratioy-1
                      jfn = jc*lratioy + ly
                      jfc = jfn + hraty
                      if (jfc .ge. fb_l2  .and.  jfc .le. fb_h2) then
-                        y = denomy*(two*ly + one)
+                        y = denomy*(two*real(ly,amrex_real) + one)
                         do lx = 0, lratiox-1
                            do ic = cb_l1, cb_h1-1
                               i = ic*lratiox + lx
-                              x = denomx*(two*lx + one)
-                              strip(i) = crse(ic,jc,kc,n) +     x*sl(ic,SLX  ) + &
-                                           y*sl(ic,SLY )  +     z*sl(ic,SLZ  ) + &
-                                         x*y*sl(ic,SLXY)  +   x*z*sl(ic,SLXZ ) + &
-                                         y*z*sl(ic,SLYZ)  + x*y*z*sl(ic,SLXYZ)
+                              x = denomx*(two*real(lx,amrex_real)+ one)
+
+                              cx00 = crse(ic,jc  ,kc  ,n) + x*(crse(ic+1,jc  ,kc  ,n) - crse(ic,jc  ,kc  ,n))
+                              cx10 = crse(ic,jc+1,kc  ,n) + x*(crse(ic+1,jc+1,kc  ,n) - crse(ic,jc+1,kc  ,n))
+                              cx01 = crse(ic,jc  ,kc+1,n) + x*(crse(ic+1,jc  ,kc+1,n) - crse(ic,jc,  kc+1,n))
+                              cx11 = crse(ic,jc+1,kc+1,n) + x*(crse(ic+1,jc+1,kc+1,n) - crse(ic,jc+1,kc+1,n))
+
+                              cy0 = cx00 + y*(cx10 - cx00)
+                              cy1 = cx01 + y*(cx11 - cx01)
+
+                              strip(i) = cy0 + z*(cy1 - cy0)
+
                            end do
                         end do
                         do i = fb_l1, fb_h1
@@ -161,7 +144,7 @@ contains
       real(amrex_real) cvcy(cb_l2:cb_h2+1)
       real(amrex_real) cvcz(cb_l3:cb_h3+1)
 
-      call bl_abort('QUADRATIC INTERP NOT IMPLEMEMNTED IN 3-D')
+      call bl_abort('QUADRATIC INTERP NOT IMPLEMENTED IN 3-D')
 
     end subroutine AMREX_CQINTERP
 
