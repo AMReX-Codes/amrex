@@ -1121,15 +1121,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
 
         int num_move = np - num_stay;
-        // if (num_move > 1)
-        // {
-        //     int npairs = num_move/2;
-        //     ParticleType* p = aos().dataPtr() + num_stay;
-        //     amrex::ParallelFor(npairs, [=] AMREX_GPU_DEVICE (int i) noexcept
-        //     {
-        //         std::swap(p[i], p[n2-1-i]);
-        //     });            
-        // }
         new_sizes[gid] = num_stay;
 	op.resize(gid, num_move);
 
