@@ -118,7 +118,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& apx, Array4<Real> const& apy,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm)
+                  Array4<Real> const& bnorm, Real small_volfrac)
 {
     constexpr Real small = 1.e-14;
     constexpr Real tiny = 1.e-15;
@@ -238,7 +238,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             }
 
             // remove small cells
-            if (vfrac(i,j,0) < small) {
+            if (vfrac(i,j,0) < small_volfrac) {
                 vfrac(i,j,0) = 0.0;
                 vcent(i,j,0,0) = 0.0;
                 vcent(i,j,0,1) = 0.0;
@@ -260,7 +260,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         auto hi = amrex::min_ubound(tbx, lbx);
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i-1,j,0) < small or vfrac(i,j,0) < small) {
+            if (vfrac(i-1,j,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
                 fx(i,j,0) = Type::covered;
                 apx(i,j,0) = 0.0;
             }
@@ -271,7 +271,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         hi = amrex::min_ubound(tbx, lbx);
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            if (vfrac(i,j-1,0) < small or vfrac(i,j,0) < small) {
+            if (vfrac(i,j-1,0) < small_volfrac or vfrac(i,j,0) < small_volfrac) {
                 fy(i,j,0) = Type::covered;
                 apy(i,j,0) = 0.0;
             }
