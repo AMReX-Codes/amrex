@@ -1,4 +1,6 @@
-include ../../arch.common 
+AMREX_HOME ?= ../../../
+
+include $(AMREX_HOME)/Src/AmrTask/arch.common 
 
 OBJECTS= 001_TokenRing.o 002_Jacobi_StaticGraph.o 003_Jacobi_DynamicGraph.o
 
