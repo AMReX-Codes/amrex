@@ -144,7 +144,7 @@ contains
       real(amrex_real) cvcy(cb_l2:cb_h2+1)
       real(amrex_real) cvcz(cb_l3:cb_h3+1)
 
-      call bl_abort('QUADRATIC INTERP NOT IMPLEMEMNTED IN 3-D')
+      call bl_abort('QUADRATIC INTERP NOT IMPLEMENTED IN 3-D')
 
     end subroutine AMREX_CQINTERP
 

@@ -84,5 +84,6 @@ target_sources(amrex
    AMReX_algoim.H
    AMReX_algoim_K.H
    AMReX_algoim.cpp
+   AMReX_WriteEBSurface.cpp
 )
 

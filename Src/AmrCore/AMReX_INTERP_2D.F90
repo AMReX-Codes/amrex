@@ -93,6 +93,15 @@ contains
 
     end subroutine AMREX_CBINTERP
 
+! ::: 
+! ::: --------------------------------------------------------------
+! ::: cqinterp:  cell-centered quadratic interpolation
+! ::: 
+! ::: NOTE: it is assumed that the coarse grid array is
+! ::: large enough to define interpolated values
+! ::: in the region fblo:fbhi on the fine grid
+! ::: 
+! ::: 
 
      subroutine AMREX_CQINTERP (fine, fine_l1,fine_l2,fine_h1,fine_h2, &
                                fb_l1, fb_l2, fb_h1, fb_h2, &
