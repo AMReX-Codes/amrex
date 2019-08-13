@@ -58,6 +58,198 @@ void warpx_push_pml_bz_yee (int i, int j, int k, Array4<Real> const& Bz,
 #endif
 }
 
+
+//PML BX CKC
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void warpx_push_pml_bx_ckc(int i, int j, int k, Array4<Real> const&Bx, 
+                           Array4<Real const> const& Ey, 
+                           Array4<Real const> const& Ez,
+                           Real betaxy, Real betaxz, Real betayx, Real betayz, 
+                           Real betazx, Real betazy, Real gammax, Real gammay, 
+                           Real gammaz, Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM == 3)
+    Bx(i,j,k,0) += -alphay*(Ez(i  ,j+1,k  ,0) + Ez(i  ,j+1,k  ,1) + Ez(i  ,j+1,k  ,2) 
+                          - Ez(i  ,j  ,k  ,0) - Ez(i  ,j  ,k  ,1) - Ez(i  ,j  ,k  ,2)) 
+                   +betayx*(Ez(i+1,j+1,k  ,0) + Ez(i+1,j+1,k  ,1) + Ez(i+1,j+1,k  ,2) 
+                          - Ez(i+1,j  ,k  ,0) - Ez(i+1,j  ,k  ,1) - Ez(i+1,j  ,k  ,2) 
+                          + Ez(i-1,j+1,k  ,0) + Ez(i-1,j+1,k  ,1) + Ez(i-1,j+1,k  ,2)
+                          - Ez(i-1,j  ,k  ,0) - Ez(i-1,j  ,k  ,1) - Ez(i-1,j  ,k  ,2))
+                   +betayz*(Ez(i  ,j+1,k+1,0) + Ez(i  ,j+1,k+1,1) + Ez(i  ,j+1,k+1,2)
+                          - Ez(i  ,j  ,k+1,0) - Ez(i  ,j  ,k+1,1) - Ez(i  ,j  ,k+1,2)
+                          + Ez(i  ,j+1,k-1,0) + Ez(i  ,j+1,k-1,1) + Ez(i  ,j+1,k-1,2)
+                          - Ez(i  ,j  ,k-1,0) - Ez(i  ,j  ,k-1,1) - Ez(i  ,j  ,k-1,2))
+                   +gammay*(Ez(i+1,j+1,k+1,0) + Ez(i+1,j+1,k+1,1) + Ez(i+1,j+1,k+1,2)
+                          - Ez(i+1,j  ,k+1,0) - Ez(i+1,j  ,k+1,1) - Ez(i+1,j  ,k+1,2)
+                          + Ez(i-1,j+1,k+1,0) + Ez(i-1,j+1,k+1,1) + Ez(i-1,j+1,k+1,2)
+                          - Ez(i-1,j  ,k+1,0) - Ez(i-1,j  ,k+1,1) - Ez(i-1,j  ,k+1,2)
+                          + Ez(i+1,j+1,k-1,0) + Ez(i+1,j+1,k-1,1) + Ez(i+1,j+1,k-1,2)
+                          - Ez(i+1,j  ,k-1,0) - Ez(i+1,j  ,k-1,1) - Ez(i+1,j  ,k-1,2)
+                          + Ez(i-1,j+1,k-1,0) + Ez(i-1,j+1,k-1,1) + Ez(i-1,j+1,k-1,2) 
+                          - Ez(i-1,j  ,k-1,0) - Ez(i-1,j  ,k-1,1) - Ez(i-1,j  ,k-1,2));                  
+   Bx(i,j,k,1) +=   alphaz*(Ey(i  ,j  ,k+1,0) + Ey(i  ,j  ,k+1,1) + Ez(i  ,j  ,k+1,2)
+                          - Ey(i  ,j  ,k  ,0) - Ey(i  ,j  ,k  ,1) - Ey(i  ,j  ,k  ,2))
+                   +betazx*(Ey(i+1,j  ,k+1,0) + Ey(i+1,j  ,k+1,1) + Ey(i+1,j  ,k+1,2) 
+                          - Ey(i+1,j  ,k  ,0) - Ey(i+1,j  ,k  ,1) - Ey(i+1,j  ,k  ,2)
+                          + Ey(i-1,j  ,k+1,0) + Ey(i-1,j  ,k+1,1) + Ey(i-1,j  ,k+1,2)
+                          - Ey(i-1,j  ,k  ,0) - Ey(i-1,j  ,k  ,1) - Ey(i-1,j  ,k  ,2))
+                   +betazy*(Ey(i  ,j+1,k+1,0) + Ey(i  ,j+1,k+1,1) + Ey(i  ,j+1,k+1,2) 
+                          - Ey(i  ,j+1,k  ,0) - Ey(i  ,j+1,k  ,1) - Ey(i  ,j+1,k  ,2) 
+                          + Ey(i,  j-1,k+1,0) + Ey(i  ,j-1,k+1,1) + Ey(i  ,j-1,k+1,2) 
+                          - Ey(i  ,j-1,k  ,0) - Ey(i  ,j-1,k  ,1) - Ey(i  ,j-1,k  ,2))
+                   +gammaz*(Ey(i+1,j+1,k+1,0) + Ey(i+1,j+1,k+1,1) + Ey(i+1,j+1,k+1,2)
+                          - Ey(i+1,j+1,k  ,0) - Ey(i+1,j+1,k  ,1) - Ey(i+1,j+1,k  ,2)
+                          + Ey(i-1,j+1,k+1,0) + Ey(i-1,j+1,k+1,1) + Ey(i-1,j+1,k+1,2)
+                          - Ey(i-1,j+1,k  ,0) - Ey(i-1,j+1,k  ,1) - Ey(i-1,j+1,k  ,2)
+                          + Ey(i+1,j-1,k+1,0) + Ey(i+1,j-1,k+1,1) + Ey(i+1,j-2,k+1,2)
+                          - Ey(i+1,j-1,k  ,0) - Ey(i+1,j-1,k  ,1) - Ey(i+1,j-1,k  ,2)
+                          + Ey(i-1,j-1,k+1,0) + Ey(i-1,j-1,k+1,1) + Ey(i-1,j-1,k+1,1) 
+                          - Ey(i-1,j-1,k  ,0) - Ey(i-1,j-1,k  ,1) - Ey(i-1,j-1,k  ,2));
+
+#else
+
+   Bx(i,j,k,1) +=   alphaz*(Ey(i  ,j+1,k  ,0) + Ey(i  ,j+1,k  ,1) + Ey(i  ,j+1,k  ,2)
+                          - Ey(i  ,j  ,k  ,0) - Ey(i  ,j  ,k  ,1) - Ey(i  ,j  ,k  ,2)) 
+                   +betazx*(Ey(i+1,j+1,k  ,0) + Ey(i+1,j+1,k  ,1) + Ey(i+1,j+1,k  ,2)
+                          - Ey(i+1,j  ,k  ,0) - Ey(i+1,j  ,k  ,1) - Ey(i+1,j+1,k  ,2)
+                          + Ey(i-1,j+1,k  ,0) + Ey(i-1,j+1,k  ,1) + Ey(i-1,j+1,k  ,2)
+                          - Ey(i-1,j  ,k  ,0) - Ey(i-1,j  ,k  ,1) - Ey(i-1,j  ,k  ,2));
+
+          
+#endif
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void warpx_push_pml_by_ckc(int i, int j, int k, Array4<Real> const&By, 
+                           Array4<Real const> const& Ex, 
+                           Array4<Real const> const& Ez,
+                           Real betaxy, Real betaxz, Real betayx, Real betayz, 
+                           Real betazx, Real betazy, Real gammax, Real gammay, 
+                           Real gammaz, Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM==3)
+   By(i,j,k,0) += -alphaz*(Ex(i  ,j  ,k+1,0) + Ex(i  ,j  ,k+1,1) + Ex(i  ,j  ,k+1,2)
+                         - Ex(i  ,j  ,k  ,0) - Ex(i  ,j  ,k  ,1) - Ex(i  ,j  ,k  ,2))
+                  +betazx*(Ex(i+1,j  ,k+1,0) + Ex(i+1,j  ,k+1,1) + Ex(i+1,j  ,k+1,2)
+                         - Ex(i+1,j  ,k  ,0) - Ex(i+1,j  ,k+1,1) - Ex(i+1,j  ,k  ,2)
+                         + Ex(i-1,j  ,k+1,0) + Ex(i-1,j  ,k+1,1) + Ex(i-1,j  ,k+1,2)
+                         - Ex(i-1,j  ,k  ,0) - Ex(i-1,j  ,k  ,1) - Ex(i-1,j  ,k+1,2))
+                  +betaxy*(Ex(i  ,j+1,k+1,0) + Ex(i  ,j+1,k+1,1) + Ex(i  ,j+1,k+1,2)
+                         - Ex(i  ,j+1,k  ,0) - Ex(i  ,j+1,k  ,1) - Ex(i  ,j+1,k  ,2)
+                         + Ex(i  ,j-1,k+1,0) + Ex(i  ,j-1,k+1,1) + Ex(i  ,j-1,k+1,2)
+                         - Ex(i  ,j-1,k  ,0) - Ex(i  ,j-1,k  ,1) - Ex(i  ,j-1,k  ,2))
+                  +gammaz*(Ex(i+1,j+1,k+1,0) + Ex(i+1,j+1,k+1,1) + Ex(i+1,j+1,k+1,2)
+                         - Ex(i+1,j+1,k  ,0) - Ex(i+1,j+1,k  ,1) - Ex(i+1,j+1,k  ,2)
+                         + Ex(i-1,j+1,k+1,0) + Ex(i-1,j+1,k+1,1) + Ex(i-1,j+1,k+1,2)
+                         - Ex(i-1,j+1,k  ,0) - Ex(i-1,j+1,k  ,1) - Ex(i-1,j+1,k  ,2)
+                         + Ex(i+1,j-1,k+1,0) + Ex(i+1,j-1,k+1,1) + Ex(i+1,j-1,k+1,2)
+                         - Ex(i+1,j-1,k  ,0) - Ex(i+1,j-1,k  ,1) - Ex(i+1,j-1,k  ,2)
+                         + Ex(i-1,j-1,k+1,0) + Ex(i-1,j-1,k+1,1) + Ex(i-1,j-1,k+1,2)
+                         - Ex(i-1,j-1,k  ,0) - Ex(i-1,j-1,k  ,1) - Ex(i-1,j-1,k  ,2));
+
+   By(i,j,k,1) +=  alphax*(Ez(i+1,j  ,k  ,0) + Ez(i+1,j  ,k  ,1) + Ez(i+1,j  ,k  ,2)
+                         - Ez(i  ,j  ,k  ,0) - Ez(i+1,j  ,k  ,1) - Ez(i-1,j  ,k  ,2)) 
+                  +betaxy*(Ez(i+1,j+1,k  ,0) + Ez(i+1,j+1,k  ,1) + Ez(i+1,j+1,k  ,2)
+                         - Ez(i  ,j+1,k  ,0) - Ez(i  ,j+1,k  ,1) - Ez(i  ,j+1,k  ,2)
+                         + Ez(i+1,j-1,k  ,0) + Ez(i+1,j-1,k  ,1) + Ez(i+1,j-1,k  ,2)
+                         - Ez(i  ,j-1,k  ,0) - Ez(i  ,j-1,k  ,1) - Ez(i  ,j-1,k  ,2))
+                  +betaxz*(Ez(i+1,j  ,k+1,0) + Ez(i+1,j  ,k+1,1) + Ez(i+1,j  ,k+1,2) 
+                         - Ez(i  ,j  ,k+1,0) - Ez(i  ,j  ,k+1,1) - Ez(i  ,j  ,k+1,2) 
+                         + Ez(i+1,j  ,k-1,0) + Ez(i+1,j  ,k-1,1) + Ez(i+1,j  ,k-1,2)
+                         - Ez(i  ,j  ,k-1,0) - Ez(i  ,j  ,k-1,1) - Ez(i  ,j  ,k-1,2))
+                  +gammax*(Ez(i+1,j+1,k+1,0) + Ez(i+1,j+1,k+1,1) + Ez(i+1,j+1,k+1,2)
+                         - Ez(i  ,j+1,k+1,0) - Ez(i  ,j+1,k+1,1) - Ez(i  ,j+1,k+1,2)
+                         + Ez(i+1,j-1,k+1,0) + Ez(i+1,j-1,k+1,1) + Ez(i+1,j-1,k+1,2) 
+                         - Ez(i  ,j-1,k+1,0) - Ez(i  ,j-1,k+1,1) - Ez(i  ,j-1,k+1,2)
+                         + Ez(i+1,j+1,k-1,0) + Ez(i+1,j+1,k-1,1) + Ez(i+1,j+1,k-1,2)
+                         - Ez(i  ,j+1,k-1,0) - Ez(i  ,j+1,k-1,1) - Ez(i  ,j+1,k-1,2)
+                         + Ez(i+1,j-1,k-1,0) + Ez(i+1,j-1,k-1,1) + Ez(i+1,j-1,k-1,2) 
+                         - Ez(i  ,j-1,k-1,0) - Ez(i  ,j-1,k-1,1) - Ez(i  ,j-1,k-1,2));
+#else
+   By(i,j,k,0) += -alphaz*(Ex(i  ,j+1,k  ,0) + Ex(i  ,j+1,k  ,1) + Ex(i  ,j+1,k  ,2) 
+                         - Ex(i  ,j  ,k  ,0) - Ex(i  ,j  ,k  ,1) - Ex(i  ,j  ,k  ,2))
+                  +betazx*(Ex(i+1,j+1,k  ,0) + Ex(i+1,j+1,k  ,1) + Ex(i+1,j+1,k  ,2) 
+                         - Ex(i  ,j+1,k  ,0) - Ex(i  ,j+1,k  ,1) - Ex(i  ,j+1,k  ,2)
+                         + Ex(i+1,j-1,k  ,0) + Ex(i+1,j-1,k  ,1) + Ex(i+1,j-1,k  ,2) 
+                         - Ex(i  ,j-1,k  ,0) - Ex(i  ,j-1,k  ,1) - Ex(i  ,j-1,k  ,2));
+
+   By(i,j,k,1) +=  alphax*(Ez(i+1,j  ,k  ,0) + Ez(i+1,j  ,k  ,1) + Ez(i+1,j  ,k  ,2) 
+                         - Ez(i  ,j  ,k  ,0) - Ez(i  ,j  ,k  ,1) - Ez(i  ,j  ,k  ,2))
+                  +betaxz*(Ez(i+1,j+1,k  ,0) + Ez(i+1,j+1,k  ,1) + Ez(i+1,j+1,k  ,2) 
+                         - Ez(i  ,j+1,k  ,0) - Ez(i  ,j+1,k  ,1) - Ez(i  ,j+1,k  ,2)
+                         + Ez(i+1,j-1,k  ,0) + Ez(i+1,j-1,k  ,1) + Ez(i+1,j-1,k  ,2)
+                         - Ez(i  ,j-1,k  ,0) - Ez(i  ,j-1,k  ,1) - Ez(i  ,j-1,k  ,2));
+
+
+#endif
+
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void warpx_push_pml_bz_ckc(int i, int j, int k, Array4<Real> const&Bz, 
+                           Array4<Real const> const& Ex,
+                           Array4<Real const> const& Ey,
+                           Real betaxy, Real betaxz, Real betayx, Real betayz, 
+                           Real betazx, Real betazy, Real gammax, Real gammay, 
+                           Real gammaz, Real alphax, Real alphay, Real alphaz)
+{
+#if (AMREX_SPACEDIM==3)
+   Bz(i,j,k,0) += -alphax*(Ey(i+1,j  ,k  ,0) + Ey(i+1,j  ,k  ,1) + Ey(i+1,j  ,k  ,2) 
+                         - Ey(i  ,j  ,k  ,0) - Ey(i  ,j  ,k  ,1) - Ey(i  ,j  ,k  ,2))
+                  +betaxy*(Ey(i+1,j+1,k  ,0) + Ey(i+1,j+1,k  ,1) + Ey(i+1,j+1,k  ,2)
+                         - Ey(i  ,j+1,k  ,0) - Ey(i  ,j+1,k  ,1) - Ey(i  ,j+1,k  ,2)
+                         + Ey(i+1,j-1,k  ,0) + Ey(i+1,j-1,k  ,1) + Ey(i+1,j-1,k  ,2)
+                         - Ey(i  ,j-1,k  ,0) - Ey(i  ,j-1,k  ,1) - Ey(i  ,j-1,k  ,2))
+                  +betaxz*(Ey(i+1,j  ,k+1,0) + Ey(i+1,j  ,k+1,1) + Ey(i+1,j  ,k+1,2)
+                         - Ey(i  ,j  ,k+1,0) - Ey(i  ,j  ,k+1,1) - Ey(i  ,j  ,k+1,2)
+                         + Ey(i+1,j  ,k-1,0) + Ey(i+1,j  ,k-1,1) + Ey(i+1,j  ,k-1,2)
+                         - Ey(i  ,j  ,k-1,0) - Ey(i  ,j  ,k-1,1) - Ey(i  ,j  ,k-1,2))
+                  +gammax*(Ey(i+1,j+1,k+1,0) + Ey(i+1,j+1,k+1,1) + Ey(i+1,j+1,k+1,2)
+                         - Ey(i  ,j+1,k+1,0) - Ey(i  ,j+1,k+1,1) - Ey(i  ,j+1,k+1,2)
+                         + Ey(i+1,j-1,k+1,0) + Ey(i+1,j-1,k+1,1) + Ey(i+1,j-1,k+1,2)
+                         - Ey(i  ,j-1,k+1,0) - Ey(i  ,j-1,k+1,1) - Ey(i  ,j-1,k+1,2)
+                         + Ey(i+1,j+1,k-1,0) + Ey(i+1,j+1,k-1,1) + Ey(i+1,j+1,k-1,2)
+                         - Ey(i  ,j+1,k-1,0) - Ey(i  ,j+1,k-1,1) - Ey(i  ,j+1,k-1,2)
+                         + Ey(i+1,j-1,k-1,0) + Ey(i+1,j-1,k-1,1) + Ey(i+1,j-1,k-1,2)
+                         - Ey(i  ,j-1,k-1,0) - Ey(i  ,j-1,k-1,1) - Ey(i  ,j-1,k-1,2));
+
+   Bz(i,j,k,1) +=  alphay*(Ex(i  ,j+1,k  ,0) + Ex(i  ,j+1,k  ,1) + Ex(i  ,j+1,k  ,2)
+                         - Ex(i  ,j  ,k  ,0) - Ex(i  ,j  ,k  ,1) - Ex(i  ,j  ,k  ,2))
+                  +betayx*(Ex(i+1,j+1,k  ,0) + Ex(i+1,j+1,k  ,1) + Ex(i+1,j+1,k  ,2) 
+                         - Ex(i+1,j  ,k  ,0) - Ex(i+1,j  ,k  ,1) - Ex(i+1,j  ,k  ,2)
+                         + Ex(i-1,j+1,k  ,0) + Ex(i-1,j+1,k  ,1) + Ex(i-1,j+1,k  ,2)
+                         - Ex(i-1,j  ,k  ,0) - Ex(i-1,j  ,k  ,1) - Ex(i-1,j  ,k  ,2))
+                  +betayz*(Ex(i  ,j+1,k+1,0) + Ex(i  ,j+1,k+1,1) + Ex(i  ,j+1,k+1,2)
+                         - Ex(i  ,j  ,k+1,0) - Ex(i  ,j  ,k+1,1) - Ex(i  ,j  ,k+1,2)
+                         + Ex(i  ,j+1,k-1,0) + Ex(i  ,j+1,k-1,1) + Ex(i  ,j+1,k-1,2)
+                         - Ex(i  ,j  ,k-1,0) - Ex(i  ,j  ,k-1,1) - Ex(i  ,j  ,k-1,2)) 
+                  +gammay*(Ex(i+1,j+1,k+1,0) + Ex(i+1,j+1,k+1,1) + Ex(i+1,j+1,k+1,2)
+                         - Ex(i+1,j  ,k+1,0) - Ex(i+1,j  ,k+1,1) - Ex(i+1,j  ,k+1,2)
+                         + Ex(i-1,j+1,k+1,0) + Ex(i-1,j+1,k+1,1) + Ex(i-1,j+1,k+1,2) 
+                         - Ex(i-1,j  ,k+1,0) - Ex(i-1,j  ,k+1,1) - Ex(i-1,j  ,k+1,2)
+                         + Ex(i+1,j+1,k-1,0) + Ex(i+1,j+1,k-1,1) + Ex(i+1,j+1,k-1,2)
+                         - Ex(i+1,j  ,k-1,0) - Ex(i+1,j  ,k-1,1) - Ex(i+1,j  ,k-1,2)
+                         + Ex(i-1,j+1,k-1,0) + Ex(i-1,j+1,k-1,1) + Ex(i-1,j+1,k-1,2)
+                         - Ex(i-1,j  ,k-1,0) - Ex(i-1,j  ,k-1,1) - Ex(i-1,j  ,k-1,2));
+
+
+#else
+   Bz(i,j,k,0) += -alphax*(Ey(i+1,j  ,k  ,0) + Ey(i+1,j  ,k  ,1) + Ey(i+1,j  ,k  ,2) 
+                         - Ey(i  ,j  ,k  ,0) - Ey(i  ,j  ,k  ,1) - Ey(i  ,j  ,k  ,2))
+                  +betaxy*(Ey(i+1,j+1,k  ,0) + Ey(i+1,j+1,k  ,1) + Ey(i+1,j+1,k  ,2)
+                         - Ey(i  ,j+1,k  ,0) - Ey(i  ,j+1,k  ,1) - Ey(i  ,j+1,k  ,2)
+                         + Ey(i+1,j-1,k  ,0) + Ey(i+1,j-1,k  ,1) + Ey(i+1,j-1,k  ,2)
+                         - Ey(i  ,j-1,k  ,0) - Ey(i  ,j-1,k  ,1) - Ey(i  ,j-1,k  ,2));
+#endif
+
+}
+
+
+
+
+
 //PML EX YEE
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_pml_ex_yee (int i, int j, int k, Array4<Real> const& Ex, 
@@ -153,9 +345,130 @@ void warpx_push_pml_ez_f_yee(int i, int j, int k,
 #endif
 }
 
+// PML EX F CKC
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void warpx_push_pml_ex_f_ckc(int i, int j, int k, 
+                             Array4<Real> const&  Exfab,
+                             Array4<Real const> const& F,
+                             Real alphax, Real betaxy, Real betaxz,Real gammax)
+{
+#if (AMREX_SPACEDIM==3)
+   Exfab(i,j,k,2) +=  alphax*( 
+                        F(i+1,j  ,k  ,0) + F(i+1,j  ,k  ,1) + F(i+1,j  ,k  ,2)
+                      - F(i  ,j  ,k  ,0) - F(i  ,j  ,k  ,1) - F(i  ,j  ,k  ,2))
+                     +betaxy*(
+                        F(i+1,j+1,k  ,0) + F(i+1,j+1,k  ,1) + F(i+1,j+1,k  ,2) 
+                      - F(i  ,j+1,k  ,0) - F(i  ,j+1,k  ,1) - F(i  ,j+1,k  ,2)
+                      + F(i+1,j-1,k  ,0) + F(i+1,j-1,k  ,1) + F(i+1,j-1,k  ,2)
+                      - F(i  ,j-1,k  ,0) - F(i  ,j-1,k  ,1) - F(i  ,j-1,k  ,2))
+                     +betaxz*(
+                        F(i+1,j  ,k+1,0) + F(i+1,j  ,k+1,1) + F(i+1,j  ,k+1,2) 
+                      - F(i  ,j  ,k+1,0) - F(i  ,j  ,k+1,1) - F(i  ,j  ,k+1,2)
+                      + F(i+1,j  ,k-1,0) + F(i+1,j  ,k-1,1) + F(i+1,j  ,k-1,2)
+                      - F(i  ,j  ,k-1,0) - F(i  ,j  ,k-1,1) - F(i  ,j  ,k-1,2))
+                     +gammax*( 
+                        F(i+1,j+1,k+1,0) + F(i+1,j+1,k+1,1) + F(i+1,j+1,k+1,2)
+                      - F(i  ,j+1,k+1,0) - F(i  ,j+1,k+1,1) - F(i  ,j+1,k+1,2)
+                      + F(i+1,j-1,k+1,0) + F(i+1,j-1,k+1,1) + F(i+1,j-1,k+1,2) 
+                      - F(i  ,j-1,k+1,0) - F(i  ,j-1,k+1,1) - F(i  ,j-1,k+1,2) 
+                      + F(i+1,j+1,k-1,0) + F(i+1,j+1,k-1,1) + F(i+1,j+1,k-1,2)
+                      - F(i  ,j+1,k-1,0) - F(i  ,j+1,k-1,1) - F(i  ,j+1,k-1,2)
+                      + F(i+1,j-1,k-1,0) + F(i+1,j-1,k-1,1) + F(i+1,j-1,k-1,2)
+                      - F(i  ,j-1,k-1,0) - F(i  ,j-1,k-1,1) - F(i  ,j-1,k-1,2));
+#else
+   Exfab(i,j,k,2) +=  alphax*(
+                        F(i+1,j  ,k  ,0) + F(i+1,j  ,k  ,1) + F(i+1,j  ,k  ,2)
+                      - F(i  ,j  ,k  ,0) - F(i  ,j  ,k  ,1) - F(i  ,j  ,k  ,2))
+                     +betaxz*(
+                        F(i+1,j+1,k  ,0) + F(i+1,j+1,k  ,1) + F(i+1,j+1,k  ,2) 
+                      - F(i  ,j+1,k  ,0) - F(i  ,j+1,k  ,1) - F(i  ,j+1,k  ,2)
+                      + F(i+1,j-1,k  ,0) + F(i+1,j-1,k  ,1) + F(i+1,j-1,k  ,2)
+                      - F(i  ,j-1,k  ,0) - F(i  ,j-1,k  ,1) - F(i  ,j-1,k  ,2));
+#endif
+
+}
+
+#if (AMREX_SPACEDIM==3)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void warpx_push_pml_ey_f_ckc(int i, int j, int k, 
+                             Array4<Real> const&  Eyfab,
+                             Array4<Real const> const& F,
+                             Real alphay, Real betayx, Real betayz,Real gammay)
+{
+   Eyfab(i,j,k,2) +=  alphay*( 
+                        F(i  ,j+1,k  ,0) + F(i  ,j+1,k  ,1) + F(i  ,j+1,k  ,2) 
+                      - F(i  ,j  ,k  ,0) - F(i  ,j  ,k  ,1) - F(i  ,j  ,k  ,2)) 
+                     +betayx*(
+                        F(i+1,j+1,k  ,0) + F(i+1,j+1,k  ,1) + F(i+1,j+1,k  ,2)
+                      - F(i+1,j  ,k  ,0) - F(i+1,j  ,k  ,1) - F(i+1,j  ,k  ,2) 
+                      + F(i-1,j+1,k  ,0) + F(i-1,j+1,k  ,1) + F(i-1,j+1,k  ,2) 
+                      - F(i-1,j  ,k  ,0) - F(i-1,j  ,k  ,1) - F(i-1,j  ,k  ,2))
+                     +betayz*(
+                        F(i  ,j+1,k+1,0) + F(i  ,j+1,k+1,1) + F(i  ,j+1,k+1,2)
+                      - F(i  ,j  ,k+1,0) - F(i  ,j  ,k+1,1) - F(i  ,j  ,k+1,2)
+                      + F(i  ,j+1,k-1,0) + F(i  ,j+1,k-1,1) + F(i  ,j+1,k-1,2) 
+                      - F(i  ,j  ,k-1,0) - F(i  ,j  ,k-1,1) - F(i  ,j  ,k-1,2))
+                     +gammay*(
+                        F(i+1,j+1,k+1,0) + F(i+1,j+1,k+1,1) + F(i+1,j+1,k+1,2) 
+                      - F(i+1,j  ,k+1,0) - F(i+1,j  ,k+1,1) - F(i+1,j  ,k+1,2)
+                      + F(i-1,j+1,k+1,0) + F(i-1,j+1,k+1,1) + F(i-1,j+1,k+1,2)
+                      - F(i-1,j  ,k+1,0) - F(i-1,j  ,k+1,1) - F(i-1,j  ,k+1,2) 
+                      + F(i+1,j+1,k-1,0) + F(i+1,j+1,k-1,1) + F(i+1,j+1,k-1,2)
+                      - F(i+1,j  ,k-1,0) - F(i+1,j  ,k-1,1) - F(i+1,j  ,k-1,2) 
+                      + F(i-1,j+1,k-1,0) + F(i-1,j+1,k-1,1) + F(i-1,j+1,k-1,2)
+                      - F(i-1,j  ,k-1,0) - F(i-1,j  ,k-1,1) - F(i-1,j  ,k-1,2));
+}
+#endif
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void warpx_push_pml_ez_f_ckc(int i, int j, int k, 
+                             Array4<Real> const&  Ezfab,
+                             Array4<Real const> const& F,
+                             Real alphaz, Real betazx, Real betazy,Real gammaz)
+{
+#if (AMREX_SPACEDIM==3)
+   Ezfab(i,j,k,2) +=  alphaz*( 
+                        F(i  ,j  ,k+1,0) + F(i  ,j  ,k+1,1) + F(i  ,j  ,k+1,2) 
+                      - F(i  ,j  ,k  ,0) - F(i  ,j  ,k  ,1) - F(i  ,j  ,k  ,2))
+                     +betazx*(
+                        F(i+1,j  ,k+1,0) + F(i+1,j  ,k+1,1) + F(i+1,j  ,k+1,2)
+                      - F(i+1,j  ,k  ,0) - F(i+1,j  ,k  ,1) - F(i+1,j  ,k  ,2)
+                      + F(i-1,j  ,k+1,0) + F(i-1,j  ,k+1,1) + F(i-1,j  ,k+1,2)
+                      - F(i-1,j  ,k  ,0) - F(i-1,j  ,k  ,1) - F(i-1,j  ,k  ,2))
+                     +betazy*(
+                        F(i  ,j+1,k+1,0) + F(i  ,j+1,k+1,1) + F(i  ,j+1,k+1,2)
+                      - F(i  ,j+1,k  ,0) - F(i  ,j+1,k  ,1) - F(i  ,j+1,k  ,2)
+                      + F(i  ,j-1,k+1,0) + F(i  ,j-1,k+1,1) + F(i  ,j-1,k+1,2)
+                      - F(i  ,j-1,k  ,0) - F(i  ,j-1,k  ,1) - F(i  ,j-1,k  ,2))
+                     +gammaz*(
+                        F(i+1,j+1,k+1,0) + F(i+1,j+1,k+1,1) + F(i+1,j+1,k+1,2)
+                      - F(i+1,j+1,k  ,0) - F(i+1,j+1,k  ,1) - F(i+1,j+1,k  ,2)
+                      + F(i-1,j+1,k+1,0) + F(i-1,j+1,k+1,1) + F(i-1,j+1,k+1,2) 
+                      - F(i-1,j+1,k  ,0) - F(i-1,j+1,k  ,1) - F(i-1,j+1,k  ,2)
+                      + F(i+1,j-1,k+1,0) + F(i+1,j-1,k+1,1) + F(i+1,j-1,k+1,2) 
+                      - F(i+1,j-1,k  ,0) - F(i+1,j-1,k  ,1) - F(i+1,j-1,k  ,2)
+                      + F(i-1,j-1,k+1,0) + F(i-1,j-1,k+1,1) + F(i-1,j-1,k+1,2)
+                      - F(i-1,j-1,k  ,0) - F(i-1,j-1,k  ,1) - F(i-1,j-1,k  ,2));
+#else
+   Ezfab(i,j,k,2) +=  alphaz*(
+                        F(i  ,j+1,k  ,0) + F(i  ,j+1,k  ,1) + F(i  ,j+1,k  ,2) 
+                      - F(i  ,j  ,k  ,0) - F(i  ,j  ,k  ,1) - F(i  ,j  ,k  ,2))
+                     +betazx*(
+                        F(i+1,j+1,k  ,0) + F(i+1,j+1,k  ,1) + F(i+1,j+1,k  ,2)
+                      - F(i+1,j  ,k  ,0) - F(i+1,j  ,k  ,1) - F(i+1,j  ,k  ,2)
+                      + F(i-1,j+1,k  ,0) + F(i-1,j+1,k  ,1) + F(i-1,j+1,k  ,2) 
+                      - F(i-1,j  ,k  ,0) - F(i-1,j  ,k  ,1) - F(i-1,j  ,k  ,2));
+#endif
+
+}
+
+
+
+
 // PML F YEE
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void warpx_push_pml_F(int i, int j, int k, Array4<Real> const& F_fab,                       Array4<Real const> const& Exfab, 
+void warpx_push_pml_F(int i, int j, int k, Array4<Real> const& F_fab, 
+                      Array4<Real const> const& Exfab, 
                       Array4<Real const> const& Eyfab, 
                       Array4<Real const> const& Ezfab, 
                       Real dtsdx, Real dtsdy, Real dtsdz)
@@ -198,7 +511,8 @@ void warpx_damp_pml_ex (int i, int j, int k, Array4<Real> const& Ex,
 //AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 //
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void warpx_damp_pml_ey (int i, int j, int k, Array4<Real> const& Ey, const Real* const sigma_fac_z,
+void warpx_damp_pml_ey (int i, int j, int k, Array4<Real> const& Ey, 
+                        const Real* const sigma_fac_z,
                         const Real* const sigma_fac_x,
                         const Real* const sigma_star_fac_y, 
                         int xlo,int ylo, int zlo)
@@ -218,7 +532,8 @@ void warpx_damp_pml_ey (int i, int j, int k, Array4<Real> const& Ey, const Real*
 //AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 //
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void warpx_damp_pml_ez (int i, int j, int k, Array4<Real> const& Ez, const Real* const sigma_fac_x,
+void warpx_damp_pml_ez (int i, int j, int k, Array4<Real> const& Ez, 
+                        const Real* const sigma_fac_x,
                         const Real* const sigma_fac_y,
                         const Real* const sigma_star_fac_z, 
                         int xlo,int ylo, int zlo)

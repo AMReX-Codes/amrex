@@ -7,6 +7,7 @@
 #include <WarpX_f.H>
 #include <WarpX_K.H>
 #include <WarpX_PML_kernels.H>
+#include <WarpX_FDTD.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -222,8 +223,46 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                    warpx_push_pml_bz_yee(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
                                         dtsdx,dtsdy);
                });
-            } else if (WarpX::maxwell_fdtd_solver_id == 1) {
-              amrex::Print() << " CKC solver not implemented for CPP run\n";
+            }  else if (WarpX::maxwell_fdtd_solver_id == 1) {
+               amrex::Print() << " CKC solver not implemented for CPP run\n";
+               Real betaxy, betaxz, betayx, betayz, betazx, betazy;
+               Real gammax, gammay, gammaz;
+               Real alphax, alphay, alphaz;
+               warpx_calculate_ckc_coefficients(dtsdx, dtsdy, dtsdz,
+                                                betaxy, betaxz, betayx, betayz,
+                                                betazx, betazy, gammax, gammay,
+                                                gammaz, alphax, alphay, alphaz);
+
+               // BX
+               amrex::ParallelFor(tbx, 
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_bx_ckc(i,j,k,pml_Bxfab,pml_Eyfab,pml_Ezfab,
+                                         betaxy, betaxz, betayx, betayz, 
+                                         betazx, betazy, gammax, gammay, 
+                                         gammaz, alphax, alphay, alphaz);
+               });                
+
+               // BY
+               amrex::ParallelFor(tby, 
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_by_ckc(i,j,k,pml_Byfab,pml_Exfab,pml_Ezfab,
+                                         betaxy, betaxz, betayx, betayz,
+                                         betazx, betazy, gammax, gammay, 
+                                         gammaz, alphax, alphay, alphaz);
+               });
+
+               // BZ
+               amrex::ParallelFor(tbz, 
+               [=] AMREX_GPU_DEVICE (int i, int j, int k)
+               {
+                   warpx_push_pml_bz_ckc(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
+                                         betaxy, betaxz, betayx, betayz, 
+                                         betazx, betazy, gammax, gammay, 
+                                         gammaz, alphax, alphay, alphaz);
+               });
+
             }
 
         }
@@ -402,51 +441,79 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             auto const& pml_Byfab = pml_B[1]->array(mfi);
             auto const& pml_Bzfab = pml_B[2]->array(mfi);
 
-            if (WarpX::maxwell_fdtd_solver_id == 0) {
-               amrex::ParallelFor(tex,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-               {
-                   warpx_push_pml_ex_yee(i,j,k,pml_Exfab,pml_Byfab,pml_Bzfab,
-                                         dtsdy_c2,dtsdz_c2);
-               });
-               amrex::ParallelFor(tey,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-               {
-                   warpx_push_pml_ey_yee(i,j,k,pml_Eyfab,pml_Bxfab,pml_Bzfab,
-                                         dtsdx_c2,dtsdz_c2);
-               });
-               amrex::ParallelFor(tez,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-               {
-                   warpx_push_pml_ez_yee(i,j,k,pml_Ezfab,pml_Bxfab,pml_Byfab,
-                                         dtsdx_c2,dtsdy_c2);
-               });
-            }
-            else if (WarpX::maxwell_fdtd_solver_id == 1)
+            amrex::ParallelFor(tex,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-              amrex::Print() << " CKC solver not implemented for CPP run\n";
-            }
+                warpx_push_pml_ex_yee(i,j,k,pml_Exfab,pml_Byfab,pml_Bzfab,
+                                      dtsdy_c2,dtsdz_c2);
+            });
+            amrex::ParallelFor(tey,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                warpx_push_pml_ey_yee(i,j,k,pml_Eyfab,pml_Bxfab,pml_Bzfab,
+                                      dtsdx_c2,dtsdz_c2);
+            });
+            amrex::ParallelFor(tez,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                warpx_push_pml_ez_yee(i,j,k,pml_Ezfab,pml_Bxfab,pml_Byfab,
+                                      dtsdx_c2,dtsdy_c2);
+            });
 
             if (pml_F)
             {
 
                auto const& pml_F_fab = pml_F->array(mfi);
-               amrex::ParallelFor(tex,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-               {
-                   warpx_push_pml_ex_f_yee(i,j,k,pml_Exfab,pml_F_fab,dtsdx_c2);
-               });
-               amrex::ParallelFor(tey,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-               {
-                   warpx_push_pml_ey_f_yee(i,j,k,pml_Eyfab,pml_F_fab,dtsdy_c2);
-               });
-               amrex::ParallelFor(tez,
-               [=] AMREX_GPU_DEVICE (int i, int j, int k)
-               {
-                   warpx_push_pml_ez_f_yee(i,j,k,pml_Ezfab,pml_F_fab,dtsdz_c2);
-               });
-                
+
+               if (WarpX::maxwell_fdtd_solver_id == 1) {
+
+                  amrex::ParallelFor(tex,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                  {
+                      warpx_push_pml_ex_f_yee(i,j,k,pml_Exfab,pml_F_fab,dtsdx_c2);
+                  });
+                  amrex::ParallelFor(tey,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                  {
+                      warpx_push_pml_ey_f_yee(i,j,k,pml_Eyfab,pml_F_fab,dtsdy_c2);
+                  });
+                  amrex::ParallelFor(tez,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                  {
+                      warpx_push_pml_ez_f_yee(i,j,k,pml_Ezfab,pml_F_fab,dtsdz_c2);
+                  });               
+
+               } else if (WarpX::maxwell_fdtd_solver_id == 1) {
+
+                  Real betaxy, betaxz, betayx, betayz, betazx, betazy;
+                  Real gammax, gammay, gammaz;
+                  Real alphax, alphay, alphaz;
+                  warpx_calculate_ckc_coefficients(dtsdx, dtsdy, dtsdz,
+                                                   betaxy, betaxz, betayx, betayz,
+                                                   betazx, betazy, gammax, gammay,
+                                                   gammaz, alphax, alphay, alphaz);
+
+                  amrex::ParallelFor(tex, 
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) 
+                  {
+                      warpx_push_pml_ex_f_ckc(i,j,k,pml_Exfab,pml_F_fab,
+                                              alphax,betaxy,betaxz,gammax);
+                  });
+#if (AMREX_SPACEDIM==3) 
+                  amrex::ParallelFor(tex, 
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) 
+                  {
+                      warpx_push_pml_ey_f_ckc(i,j,k,pml_Eyfab,pml_F_fab,
+                                              alphay,betayx,betayz,gammay);
+                  });
+#endif
+                  amrex::ParallelFor(tex, 
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) 
+                  {
+                      warpx_push_pml_ez_f_ckc(i,j,k,pml_Ezfab,pml_F_fab,
+                                              alphaz,betazx,betazy,gammaz);
+                  });
+               }
             }
         }
     }
