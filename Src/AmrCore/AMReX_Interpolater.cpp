@@ -14,9 +14,9 @@ namespace amrex {
 //
 // CellConsertiveProtected only works in 2D and 3D on cpu.
 //
-// CellBilinear only works in 1D and 2D and 3D on cpu.
+// CellBilinear works in 1D, 2D and 3D on cpu.
 //
-// CellQuadratic only works in 2D and 3D on cpu.
+// CellQuadratic only works in 2D on cpu.
 //
 // CellConservativeQuartic only works with ref ratio of 2 on cpu
 //
