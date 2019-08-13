@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_LEVEL_H_
 #define AMREX_EB2_LEVEL_H_
 
+#include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_LayoutData.H>
@@ -110,6 +111,12 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     }
 
     BL_PROFILE("EB2::GShopLevel()-fine");
+
+    Real small_volfrac = 1.e-14;
+    {
+        ParmParse pp("eb2");
+        pp.query("small_volfrac", small_volfrac);
+    }
 
     // make sure ngrow is multiple of 16
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
@@ -288,7 +295,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             build_cells(vbx, cfg, ftx, fty, ftz, apx, apy, apz,
                         fcx, fcy, fcz, xm2, ym2, zm2, vfr, ctr,
-                        bar, bct, bnm, cfgtmp);
+                        bar, bct, bnm, cfgtmp, small_volfrac);
 
 #elif (AMREX_SPACEDIM == 2)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -318,7 +325,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             build_faces(vbx, cfg, ftx, fty, lst, xip, yip, apx, apy, fcx, fcy, dx, problo);
 
-            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm);
+            build_cells(vbx, cfg, ftx, fty, apx, apy, vfr, ctr, bar, bct, bnm, small_volfrac);
 #endif
         }
     }
