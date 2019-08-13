@@ -8,18 +8,9 @@ int main (int argc, char* argv[])
 
     {
         BL_PROFILE("main");
-        {
-            MyTest mytest;
-            mytest.solve();
-        }
-        {
-            MyTest mytest;
-            {
-                BL_PROFILE_REGION("LinearSolver");
-                mytest.solve();
-            }
-        }
-//        mytest.writePlotfile();
+        MyTest mytest;
+        mytest.solve();
+        mytest.writePlotfile();
     }
 
     amrex::Finalize();
