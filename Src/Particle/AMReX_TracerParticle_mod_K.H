@@ -88,21 +88,19 @@ void cic_interpolate (const P& p,
     amrex::Real sz[] = {1.-zint, zint};
 
     for (int d=0; d < AMREX_SPACEDIM; ++d)
-      {
-      val[d] = 0.0;
-      for (int kk = 0; kk<=1; ++kk)
+    {
+        val[d] = 0.0;
+        for (int kk = 0; kk<=1; ++kk)
 	{
-	for (int jj = 0; jj <= 1; ++jj)
-	  {
-          for (int ii = 0; ii <= 1; ++ii)
-	    {
-              val[d] += sx[ii]*sy[jj]*sz[kk]*uccarr(i+ii,j+jj,k+kk,d);
+            for (int jj = 0; jj <= 1; ++jj)
+            {
+                for (int ii = 0; ii <= 1; ++ii)
+                {
+                    val[d] += sx[ii]*sy[jj]*sz[kk]*uccarr(i+ii,j+jj,k+kk,d);
+                }
             }
-	  }
         }
-      }
-
-
+    }    
 #endif
 }
 
