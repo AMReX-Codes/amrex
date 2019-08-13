@@ -5,8 +5,6 @@
 
 using namespace amrex;
 
-//Real* const AMREX_RESTRICT sigma_fac_x //
-// send lo and hi and shift it //
 
 // PML BX YEE
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
