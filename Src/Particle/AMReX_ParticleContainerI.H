@@ -1068,33 +1068,68 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         auto mask_arr = redistribute_mask_ptr->array(mfi);
         
         m_aos_r.resize(np);
+        for (int i = 0; i < NArrayReal; ++i) m_rdata_r[i].resize(np);
+        for (int i = 0; i < NArrayInt;  ++i) m_idata_r[i].resize(np);
         int num_stay;
         {
             auto particle_stays = [=] AMREX_GPU_DEVICE (const ParticleType& p) -> int
             {
                 return getParticleGrid(p, mask_arr, plo, dxi, domain) == gid;
             };
+            
+            const auto src_data = src_tile.getConstParticleTileData();
+            typename ParticleTileType::ParticleTileDataType dst_data;
+            dst_data.m_aos = m_aos_r.dataPtr();
+            for (int i = 0; i < NArrayReal; ++i)
+                dst_data.m_rdata[i] = m_rdata_r[i].dataPtr();
+            for (int i = 0; i < NArrayInt; ++i)
+                dst_data.m_idata[i] = m_idata_r[i].dataPtr();
 
-            ParticleType const* AMREX_RESTRICT pv = aos().dataPtr();
-            ParticleType * AMREX_RESTRICT pv2 = m_aos_r.dataPtr();
             num_stay = Scan::PrefixSum<int> (np,
                 [=] AMREX_GPU_DEVICE (int i) -> int
                 {
-                    return particle_stays(pv[i]);
+                    return particle_stays(src_data.m_aos[i]);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int const& s)
                 {
-                    if (particle_stays(pv[i])) {
-                        pv2[s] = pv[i];
+                    if (particle_stays(src_data.m_aos[i])) {
+                        dst_data.m_aos[s] = src_data.m_aos[i];
+                        for (int j = 0; j < NArrayReal; ++j)
+                            dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
+                        for (int j = 0; j < NArrayInt; ++j)
+                            dst_data.m_idata[j][s] = src_data.m_idata[j][i];
                     } else {
-                        pv2[np-1-(i-s)] = pv[i];
+                        dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
+                        for (int j = 0; j < NArrayReal; ++j)
+                            dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
+                        for (int j = 0; j < NArrayInt; ++j)
+                            dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
                     }
                 }, 
                 Scan::Type::exclusive);
             aos().swap(m_aos_r);
+            for (int i = 0; i < NArrayReal; ++i)
+            {
+                auto& rdata = src_tile.GetStructOfArrays().GetRealData(i);
+                rdata.swap(m_rdata_r[i]);
+            }
+            for (int i = 0; i < NArrayInt; ++i)
+            {
+                auto& idata = src_tile.GetStructOfArrays().GetIntData(i);
+                idata.swap(m_idata_r[i]);
+            }
         }
 
         int num_move = np - num_stay;
+        // if (num_move > 1)
+        // {
+        //     int npairs = num_move/2;
+        //     ParticleType* p = aos().dataPtr() + num_stay;
+        //     amrex::ParallelFor(npairs, [=] AMREX_GPU_DEVICE (int i) noexcept
+        //     {
+        //         std::swap(p[i], p[n2-1-i]);
+        //     });            
+        // }
         new_sizes[gid] = num_stay;
 	op.resize(gid, num_move);
 
@@ -3831,5 +3866,4 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
 
         amrex::Print() << "ParticleContainer::moveKick() time: " << stoptime << '\n';
     }
-
 }
