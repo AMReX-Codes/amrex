@@ -347,7 +347,8 @@ RigidInjectedParticleContainer::Evolve (int lev,
     // particles have crossed the inject plane.
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
-    done_injecting[lev] = (zinject_plane_levels[lev] < plo[2] || zinject_plane_levels[lev] > phi[2]);
+    const int zdir = AMREX_SPACEDIM-1;
+    done_injecting[lev] = (zinject_plane_levels[lev] < plo[zdir] || zinject_plane_levels[lev] > phi[zdir]);
     done_injecting_lev = done_injecting[lev];
 
     PhysicalParticleContainer::Evolve (lev,
