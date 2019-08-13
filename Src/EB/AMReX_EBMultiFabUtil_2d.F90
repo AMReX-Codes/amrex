@@ -32,8 +32,8 @@ contains
           jj    = j * lrat(2)
           do i  = lo(1), hi(1)
              ii = i * lrat(1)
-             crse(i,j,n) = 0.d0
-             cv          = 0.d0
+             crse(i,j,n) = zero
+             cv          = zero
              do    jref = 0, lrat(2)-1
                 do iref = 0, lrat(1)-1
                    cv          = cv          +                         (fv(ii+iref,jj+jref) &
@@ -70,8 +70,8 @@ contains
           jj    = j * lrat(2)
           do i  = lo(1), hi(1)
              ii = i * lrat(1)
-             crse(i,j,n) = 0.d0
-             cv          = 0.d0
+             crse(i,j,n) = zero
+             cv          = zero
              do    jref = 0, lrat(2)-1
                 do iref = 0, lrat(1)-1
                    cv  = cv + vfrc(ii+iref,jj+jref)
@@ -107,8 +107,8 @@ contains
             jj      = j*facy
             do i    = lo(1), hi(1)
                ii   = i*facx
-               crse(i,j,n) = 0.d0 
-               fa          = 0.d0 
+               crse(i,j,n) = zero 
+               fa          = zero 
                do    jref  = 0, facy-1
                      fa          = fa + ap(ii, jj+jref) 
                      crse(i,j,n) = crse(i,j,n) + ap(ii,jj+jref)*fine(ii,jj+jref,n)
@@ -127,8 +127,8 @@ contains
             jj      = j*facy
             do i    = lo(1), hi(1) 
                ii   = i*facx
-               crse(i,j,n) = 0.d0
-               fa          = 0.d0 
+               crse(i,j,n) = zero
+               fa          = zero 
                do    iref  = 0, facx-1
                      fa          = fa + ap(ii+iref, jj) 
                      crse(i,j,n) = crse(i,j,n) + ap(ii+iref,jj)*fine(ii+iref,jj,n)
@@ -164,8 +164,8 @@ contains
           jj      = j*facy
           do i    = lo(1), hi(1)
              ii   = i*facx
-             crse(i,j,n) = 0.d0 
-             fa          = 0.d0 
+             crse(i,j,n) = zero 
+             fa          = zero 
              do    jref  = 0, facy-1
                 do iref  = 0, facx-1
                    fa          = fa          + ba(ii+iref,jj+jref)
