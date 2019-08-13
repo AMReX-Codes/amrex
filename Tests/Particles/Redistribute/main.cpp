@@ -5,8 +5,8 @@
 
 using namespace amrex;
 
-static constexpr int NSR = 0;
-static constexpr int NSI = 0;
+static constexpr int NSR = 4;
+static constexpr int NSI = 3;
 static constexpr int NAR = 2;
 static constexpr int NAI = 1;
 
@@ -80,14 +80,14 @@ public:
                     p.pos(1) = y;
                     p.pos(2) = z;
                     
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = i;
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
+                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
                     
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(i);
+                        host_real[i].push_back(p.id());
                     for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(i);
+                        host_int[i].push_back(p.id());
                 }
             }
         
@@ -183,19 +183,19 @@ public:
             {
                 for (int j = 0; j < NSR; ++j)
                 {
-                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == j);
+                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
                 }
                 for (int j = 0; j < NSI; ++j)
                 {
-                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == j);
+                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
                 }
                 for (int j = 0; j < NAR; ++j)
                 {
-                    AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == j);
+                    AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
                 }
                 for (int j = 0; j < NAI; ++j)
                 {
-                    AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == j);
+                    AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
                 }
             });
         }
