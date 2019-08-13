@@ -873,8 +873,8 @@ protected:
 
 #ifdef AMREX_USE_CUDA
     ParticleVector m_aos_r;
-    RealVector m_rdata_r;
-    IntVector  m_idata_r;
+    std::array<RealVector, NArrayReal> m_rdata_r;
+    std::array<IntVector, NArrayInt>  m_idata_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
 
     Gpu::ManagedDeviceVector<int> m_lo;
