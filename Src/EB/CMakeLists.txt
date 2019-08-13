@@ -43,6 +43,7 @@ target_sources(amrex
    AMReX_ebinterp_${DIM}d.F90  
    AMReX_ebcellflag_mod.F90   
    AMReX_compute_normals.F90
+   AMReX_eb_to_pvd.F90
    AMReX_EB_geometry.F90
    AMReX_EB_levelset_F.F90
    AMReX_EB_Tagging.F90
@@ -85,5 +86,7 @@ target_sources(amrex
    AMReX_algoim_K.H
    AMReX_algoim.cpp
    AMReX_WriteEBSurface.cpp
+   AMReX_WriteEBSurface.H
+   AMReX_WriteEB_F.H
 )
 
