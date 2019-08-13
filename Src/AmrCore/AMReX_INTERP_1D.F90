@@ -71,7 +71,7 @@ contains
       real(amrex_real) x, y
       real(amrex_real) denom
 
-      denom = one/dble(2*lratio)
+      denom = one/real(2*lratio,amrex_real)
       hrat = lratio/2
       do 200 n = 1, nvar 
       ! first fill a strip that will fit
