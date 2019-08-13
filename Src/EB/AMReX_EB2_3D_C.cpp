@@ -9,6 +9,8 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
                   Real axm, Real axp, Real aym, Real ayp,
                   Real bcx, Real bcy) noexcept
 {
+    constexpr Real small = 1.e-14;
+    constexpr Real tiny  = 1.e-15;
     Real apnorm = std::hypot(axm-axp,aym-ayp);
     Real nx = (axm-axp) * (1./apnorm); // pointing to the wall
     Real ny = (aym-ayp) * (1./apnorm);
@@ -16,15 +18,15 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
     Real nxabs = std::abs(nx);
     Real nyabs = std::abs(ny);
 
-    if (nxabs < 1.e-15 or nyabs > 1.0-1.e-15) {
+    if (nxabs < tiny or nyabs > 1.0-tiny) {
         areafrac = 0.5*(axm+axp);
-        if (areafrac > 1.0-1.e-14) {
+        if (areafrac > 1.0-small) {
             areafrac = 1.0;
             centx = 0.0;
             centy = 0.0;
             Sx2 = Sy2 = 1./12.;
             Sxy = 0.0;
-        } else if (areafrac < 1.e-14) {
+        } else if (areafrac < small) {
             areafrac = 0.0;
             centx = 0.0;
             centy = 0.0;
@@ -38,15 +40,15 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
             Sy2 = (1./24.)*(ayp+aym) + ny*(1./3.)*(bcy*bcy*bcy);
             Sxy = 0.0;
         }
-    } else if (nyabs < 1.e-15 or nxabs > 1.0-1.e-15) {
+    } else if (nyabs < tiny or nxabs > 1.0-tiny) {
         areafrac = 0.5*(aym+ayp);
-        if (areafrac > 1.0-1.e-14) {
+        if (areafrac > 1.0-small) {
             areafrac = 1.0;
             centx = 0.0;
             centy = 0.0;
             Sx2 = Sy2 = 1./12.;
             Sxy = 0.0;
-        } else if (areafrac < 1.e-14) {
+        } else if (areafrac < small) {
             areafrac = 0.0;
             centx = 0.0;
             centy = 0.0;
@@ -93,13 +95,13 @@ void cut_face_2d (Real& areafrac, Real& centx, Real& centy,
             : -signx*(1./16.)*dx2 + 0.5*ny*S_b;
 
         areafrac = 0.5*(af1+af2);
-        if (areafrac > 1.0-1.e-14) {
+        if (areafrac > 1.0-small) {
             areafrac = 1.0;
             centx = 0.0;
             centy = 0.0;
             Sx2 = Sy2 = 1./12.;
             Sxy = 0.0;
-        } else if (areafrac < 1.e-14) {
+        } else if (areafrac < small) {
             areafrac = 0.0;
             centx = 0.0;
             centy = 0.0;
@@ -130,6 +132,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                   GpuArray<Real,AMREX_SPACEDIM> const& dx,
                   GpuArray<Real,AMREX_SPACEDIM> const& problo)
 {
+    constexpr Real small = 1.e-14;
     const Real dxinv = 1.0/dx[0];
     const Real dyinv = 1.0/dx[1];
     const Real dzinv = 1.0/dx[2];
@@ -212,7 +215,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
                                              "amrex::EB2::build_faces: more than 2 cuts not supported");
 
-            if (lym <= 1.e-14 and lyp <= 1.e-14 and lzm <= 1.e-14 and lzp <= 1.e-14) {
+            if (lym <= small and lyp <= small and lzm <= small and lzp <= small) {
                 apx(i,j,k) = 0.0;
                 fcx(i,j,k,0) = 0.0;
                 fcx(i,j,k,1) = 0.0;
@@ -319,7 +322,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
                                              "amrex::EB2::build_faces: more than 2 cuts not supported");
 
-            if (lxm <= 1.e-14 and lxp <= 1.e-14 and lzm <= 1.e-14 and lzp <= 1.e-14) {
+            if (lxm <= small and lxp <= small and lzm <= small and lzp <= small) {
                 apy(i,j,k) = 0.0;
                 fcy(i,j,k,0) = 0.0;
                 fcy(i,j,k,1) = 0.0;
@@ -426,7 +429,7 @@ void build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncuts <= 2,
                                              "amrex::EB2::build_faces: more than 2 cuts not supported");
 
-            if (lxm <= 1.e-14 and lxp <= 1.e-14 and lym <= 1.e-14 and lyp <= 1.e-14) {
+            if (lxm <= small and lxp <= small and lym <= small and lyp <= small) {
                 apz(i,j,k) = 0.0;
                 fcz(i,j,k,0) = 0.0;
                 fcz(i,j,k,1) = 0.0;
@@ -485,7 +488,8 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real const> const& m2y, Array4<Real const> const& m2z,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
-                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp)
+                  Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
+                  Real small_volfrac)
 {
     const Box& bxg1 = amrex::grow(bx,1);
     AMREX_HOST_DEVICE_FOR_3D ( bxg1, i, j, k,
@@ -624,7 +628,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
             vcent(i,j,k,2) = Sz * den;
 
             // remove small cells
-            if (vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i,j,k) < small_volfrac) {
                 vfrac(i,j,k) = 0.0;
                 vcent(i,j,k,0) = 0.0;
                 vcent(i,j,k,1) = 0.0;
@@ -652,7 +656,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i-1,j,k) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i-1,j,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fx(i,j,k) = Type::covered;
                 apx(i,j,k) = 0.0;
             }
@@ -664,7 +668,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i,j-1,k) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i,j-1,k) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fy(i,j,k) = Type::covered;
                 apy(i,j,k) = 0.0;
             }
@@ -676,7 +680,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i)
         {
-            if (vfrac(i,j,k-1) < 1.e-14 or vfrac(i,j,k) < 1.e-14) {
+            if (vfrac(i,j,k-1) < small_volfrac or vfrac(i,j,k) < small_volfrac) {
                 fz(i,j,k) = Type::covered;
                 apz(i,j,k) = 0.0;
             }
