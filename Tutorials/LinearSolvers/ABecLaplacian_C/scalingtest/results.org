@@ -18,5 +18,5 @@ This is a combination of weak and strong scaling
   |------+--------|
   |  512 | 0.5295 |
   | 1024 | 0.4029 |
-  | 2048 |        |
+  | 2048 | 0.3317 |
 
