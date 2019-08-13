@@ -584,9 +584,9 @@ end subroutine write_pvtp
      do j=lo(2),hi(2)
         do i=lo(1),hi(1)
 
-           !if(is_regular_cell(flag(i,j,k)) .or. &
-           !     .not.is_covered_cell(flag(i,j,k))) lc1 = lc1 + 1
-           if(is_regular_cell(flag(i,j,k))) lc1 = lc1 + 1
+          !if(is_regular_cell(flag(i,j,k)) .or. &
+          !     .not.is_covered_cell(flag(i,j,k))) lc1 = lc1 + 1
+          if(is_regular_cell(flag(i,j,k))) lc1 = lc1 + 1
 
         end do
      end do

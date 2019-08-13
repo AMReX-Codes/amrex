@@ -55,6 +55,10 @@ endif
 CEXE_headers += AMReX_algoim.H AMReX_algoim_K.H
 CEXE_sources += AMReX_algoim.cpp
 
+CEXE_sources += AMReX_WriteEBSurface.cpp
+CEXE_headers += AMReX_WriteEBSurface.H AMReX_WriteEB_F.H
+F90EXE_sources += AMReX_eb_to_pvd.F90
+
 CEXE_headers += AMReX_EB2_IF_AllRegular.H
 CEXE_headers += AMReX_EB2_IF_Box.H
 CEXE_headers += AMReX_EB2_IF_Cylinder.H

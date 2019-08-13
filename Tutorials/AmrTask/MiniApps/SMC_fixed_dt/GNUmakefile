@@ -16,7 +16,9 @@ PRECISION = DOUBLE
 DEBUG     = FALSE
 
 DIM      = 3
-include ../../../arch.common
+
+include $(AMREX_HOME)/Src/AmrTask/arch.common
+
 INCLUDE_LOCATIONS += $(INCLUDE)
 INCLUDE_LOCATIONS +=  $(ROOT_PATH)/graph
 INCLUDE_LOCATIONS +=  $(ROOT_PATH)/AMFIter
