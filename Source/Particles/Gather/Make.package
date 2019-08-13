@@ -1,0 +1,3 @@
+CEXE_headers += FieldGather.H
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles/Gather
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles/Gather

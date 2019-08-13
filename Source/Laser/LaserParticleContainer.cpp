@@ -453,7 +453,12 @@ LaserParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
+            if (rho) {
+                DepositCharge(pti, wp, rho, 0, 0, np_current, thread_num, lev, lev);
+                if (crho) {
+                    DepositCharge(pti, wp, crho, 0, np_current, np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             //
             // Particle Push
@@ -504,15 +509,15 @@ LaserParticleContainer::Evolve (int lev,
             // Current Deposition
             //
             // Deposit inside domains
-            DepositCurrentFortran(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
-                                  0, np_current, thread_num,
-                                  lev, lev, dt);
+            DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                           0, np_current, thread_num,
+                           lev, lev, dt);
             bool has_buffer = cjx;
             if (has_buffer){
                 // Deposit in buffers
-                DepositCurrentFortran(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
-                                      np_current, np-np_current, thread_num,
-                                      lev, lev-1, dt);
+                DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                               np_current, np-np_current, thread_num,
+                               lev, lev-1, dt);
             }
 
             //
@@ -522,7 +527,12 @@ LaserParticleContainer::Evolve (int lev,
             pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
+            if (rho) {
+                DepositCharge(pti, wp, rho, 1, 0, np_current, thread_num, lev, lev);
+                if (crho) {
+                    DepositCharge(pti, wp, crho, 1, np_current, np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             if (cost) {
                 const Box& tbx = pti.tilebox();

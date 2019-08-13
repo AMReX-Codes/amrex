@@ -43,7 +43,7 @@ public:
                          amrex::Real dt) override;
 
     virtual void PushPX(WarpXParIter& pti,
-	                amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& giv,
@@ -77,7 +77,6 @@ private:
     // Temporary quantites
     amrex::Real zinject_plane_lev;
     amrex::Real zinject_plane_lev_previous;
-    amrex::Vector<int> done_injecting_temp;
     bool done_injecting_lev;
 
 };

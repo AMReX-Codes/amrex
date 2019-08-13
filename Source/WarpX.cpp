@@ -383,40 +383,66 @@ WarpX::ReadParameters ()
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
 
+        Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Lo", parse_do_pml_Lo);
+        do_pml_Lo[0] = parse_do_pml_Lo[0];
+        do_pml_Lo[1] = parse_do_pml_Lo[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Lo[2] = parse_do_pml_Lo[2];
+#endif
+        Vector<int> parse_do_pml_Hi(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Hi", parse_do_pml_Hi);
+        do_pml_Hi[0] = parse_do_pml_Hi[0];
+        do_pml_Hi[1] = parse_do_pml_Hi[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Hi[2] = parse_do_pml_Hi[2];
+#endif
+
+
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
-        if (ParallelDescriptor::NProcs() == 1) {
-            plot_proc_number = false;
-        }
-        // Fields to dump into plotfiles
-        pp.query("plot_E_field"      , plot_E_field);
-        pp.query("plot_B_field"      , plot_B_field);
-        pp.query("plot_J_field"      , plot_J_field);
-        pp.query("plot_part_per_cell", plot_part_per_cell);
-        pp.query("plot_part_per_grid", plot_part_per_grid);
-        pp.query("plot_part_per_proc", plot_part_per_proc);
-        pp.query("plot_proc_number"  , plot_proc_number);
-        pp.query("plot_dive"         , plot_dive);
-        pp.query("plot_divb"         , plot_divb);
-        pp.query("plot_rho"          , plot_rho);
-        pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+        bool user_fields_to_plot;
+        user_fields_to_plot = pp.queryarr("fields_to_plot", fields_to_plot);
+        if (not user_fields_to_plot){
+            // If not specified, set default values
+            fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
+                              "Bz", "jx", "jy", "jz",
+                              "part_per_cell"};
+        }
+        // set plot_rho to true of the users requests it, so that
+        // rho is computed at each iteration.
+        if (std::find(fields_to_plot.begin(), fields_to_plot.end(), "rho")
+            != fields_to_plot.end()){
+            plot_rho = true;
+        }
+        // Sanity check if user requests to plot F
+        if (std::find(fields_to_plot.begin(), fields_to_plot.end(), "F")
+            != fields_to_plot.end()){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
+                "plot F only works if warpx.do_dive_cleaning = 1");
+        }
+        // If user requests to plot proc_number for a serial run,
+        // delete proc_number from fields_to_plot
+        if (ParallelDescriptor::NProcs() == 1){
+            fields_to_plot.erase(std::remove(fields_to_plot.begin(),
+                                             fields_to_plot.end(),
+                                             "proc_number"),
+                                 fields_to_plot.end());
+        }
 
         // Check that the coarsening_ratio can divide the blocking factor
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
-              amrex::Abort("plot_coarsening_ratio should be an integer divisor of the blocking factor.");
+              amrex::Abort("plot_coarsening_ratio should be an integer "
+                           "divisor of the blocking factor.");
             }
           }
         }
 
-        if (plot_F){
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
-                "plot_F only works if warpx.do_dive_cleaning = 1");
-        }
         pp.query("plot_finepatch", plot_finepatch);
         if (maxLevel() > 0) {
             pp.query("plot_crsepatch", plot_crsepatch);
@@ -487,16 +513,10 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("algo");
         // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // In RZ mode, use_picsar_deposition is on, as the C++ version
         // of the deposition does not support RZ
-#ifndef WARPX_RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
-#endif
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
-        if (!use_picsar_deposition){
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( current_deposition_algo >= 2, 
-                "if not use_picsar_deposition, cannot use Esirkepov deposition.");
-        }
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
         particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
@@ -989,7 +1009,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1008,7 +1028,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1023,7 +1043,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1042,7 +1062,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1057,7 +1077,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1076,7 +1096,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1091,7 +1111,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1110,7 +1130,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );

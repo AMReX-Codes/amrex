@@ -219,6 +219,14 @@ Particle initialization
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
       user-defined constant, see above.
 
+* ``<species_name>.density_min`` (`float`) optional (default `0.`)
+    Minimum plasma density. No particle is injected where the density is below
+    this value.
+
+* ``<species_name>.density_max`` (`float`) optional (default `infinity`)
+    Maximum plasma density. The density at each point is the minimum between
+    the value given in the profile, and `density_max`.
+
 * ``<species_name>.radially_weighted`` (`bool`) optional (default `true`)
     Whether particle's weight is varied with their radius. This only applies to cylindrical geometry.
     The only valid value is true.
@@ -653,6 +661,12 @@ Boundary conditions
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
 
+* ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
+
+* ``warpx.do_pml_Hi`` (`2 floats in 2D`, `3 floats in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for upper boundaries on mother grid.
+
 Diagnostics and output
 ----------------------
 
@@ -723,14 +737,12 @@ Diagnostics and output
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
 
-* ``warpx.plot_J_field`` (`0` or `1` optional; default `1`)
-    Whether to plot the current density.
-
-* ``warpx.plot_E_field`` (`0` or `1` optional; default `1`)
-    Whether to plot the electric field.
-
-* ``warpx.plot_B_field`` (`0` or `1` optional; default `1`)
-    Whether to plot the magnetic field.
+* ``warpx.fields_to_plot`` (`list of strings`)
+    Fields written to plotfiles. Possible values: ``Ex`` ``Ey`` ``Ez``
+    ``Bx`` ``By`` ``Bz`` ``jx`` ``jy`` ``jz`` ``part_per_cell`` ``rho``
+    ``F`` ``part_per_grid`` ``part_per_proc`` ``divE`` ``divB``.
+    Default is
+    ``warpx_fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
 
 * ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
     The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
@@ -742,8 +754,6 @@ Diagnostics and output
 * ``slice.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps for the slice. Use a
     negative number to disable slice generation and slice data dumping.
-
-
 
 Checkpoints and restart
 -----------------------
