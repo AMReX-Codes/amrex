@@ -261,14 +261,28 @@ updateNeighborsGPU ()
 
     AMREX_ASSERT(this->numLevels() == 1);
 
-    // note - in principle could overlap communication with computation here.
-
     clearNeighbors();
     packBuffer(*this, neighbor_copy_op, neighbor_copy_plan, snd_buffer);
-    neighbor_copy_plan.buildMPIFinish(this->BufferMap());
-    communicateParticlesStart(*this, neighbor_copy_plan, snd_buffer, rcv_buffer);
-    unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
-    communicateParticlesFinish(*this, neighbor_copy_plan, snd_buffer, rcv_buffer, NeighborUnpackPolicy());
+    if (ParallelDescriptor::UseGpuAwareMpi())
+    {
+        neighbor_copy_plan.buildMPIFinish(this->BufferMap());
+        communicateParticlesStart(*this, neighbor_copy_plan, snd_buffer, rcv_buffer);
+        unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
+        communicateParticlesFinish(neighbor_copy_plan);
+        unpackRemotes(*this, neighbor_copy_plan, rcv_buffer, NeighborUnpackPolicy());
+    }
+    else
+    {
+        pinned_snd_buffer.resize(snd_buffer.size());
+        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);        
+        neighbor_copy_plan.buildMPIFinish(this->BufferMap());
+        communicateParticlesStart(*this, neighbor_copy_plan, pinned_snd_buffer, pinned_rcv_buffer);
+        rcv_buffer.resize(pinned_rcv_buffer.size());
+        unpackBuffer(*this, neighbor_copy_plan, snd_buffer, NeighborUnpackPolicy());
+        communicateParticlesFinish(neighbor_copy_plan);
+        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);
+        unpackRemotes(*this, neighbor_copy_plan, rcv_buffer, NeighborUnpackPolicy());
+    }
 }
 
 template <int NStructReal, int NStructInt>

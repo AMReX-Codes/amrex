@@ -748,15 +748,11 @@ public:
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
-    void RedistributeOptimized (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
-
     bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-#ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU (std::map<int, SendBuffer>& not_ours);
-    
+#ifdef AMREX_USE_CUDA    
     void EnforcePeriodicGPU ();
 #endif
 
@@ -893,9 +889,12 @@ protected:
 
     ParticleCopyOp redistribute_copy_op;
     ParticleCopyPlan redistribute_copy_plan;
-    Gpu::PolymorphicDeviceVector<SuperParticleType> redistribute_snd_buffer;
-    Gpu::PolymorphicDeviceVector<SuperParticleType> redistribute_rcv_buffer;
+    Gpu::DeviceVector<SuperParticleType> redistribute_snd_buffer;
+    Gpu::DeviceVector<SuperParticleType> redistribute_rcv_buffer;
 
+    Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+    
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }

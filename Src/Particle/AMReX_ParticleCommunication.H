@@ -366,10 +366,12 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 #endif // MPI
 }
 
+void communicateParticlesFinish (const ParticleCopyPlan& plan);
+
 template <class PC, class Buffer, class UnpackPolicy>
-void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, Buffer& rcv_buffer, const UnpackPolicy& policy)
+void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, const UnpackPolicy& policy)
 {
-    BL_PROFILE("amrex::communicateParticlesFinish");
+    BL_PROFILE("amrex::unpackRemotes");
     
     AMREX_ASSERT(pc.numLevels() == 1);
 
@@ -377,10 +379,9 @@ void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buf
     const int MyProc = ParallelDescriptor::MyProc();
     using PTile = typename PC::ParticleTileType;
 
-    if (plan.m_nrcvs > 0) {
-        ParallelDescriptor::Waitall(plan.m_rreqs, plan.m_stats);
-
-	const int lev = 0;
+    if (plan.m_nrcvs > 0)
+    {
+ 	const int lev = 0;
 	auto& plev  = pc.GetParticles(lev);
 
 	auto p_rcv_box_counts = plan.m_rcv_box_counts.dataPtr();
@@ -401,9 +402,9 @@ void communicateParticlesFinish (PC& pc, const ParticleCopyPlan& plan, const Buf
             tiles.push_back(&tile);
         }
 
-        std::vector<int> offsets;
+        Vector<int> offsets;
         policy.resizeTiles(tiles, sizes, offsets);
-        int uindex;
+        int uindex = 0;
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{
 	  int gid = plan.m_rcv_box_ids[i];

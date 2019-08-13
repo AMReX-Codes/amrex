@@ -231,3 +231,14 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>
 {
     amrex::Abort("Not implemented.");
 }
+
+void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
+{
+    BL_PROFILE("amrex::communicateParticlesFinish");
+#ifdef BL_USE_MPI
+    if (plan.m_nrcvs > 0)
+    {
+        ParallelDescriptor::Waitall(plan.m_rreqs, plan.m_stats);
+    }
+#endif
+}

@@ -1170,10 +1170,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         tile.resize(new_sizes[gid]);
     }    
 
-    plan.buildMPIFinish(BufferMap());
-    communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
-    unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
-    communicateParticlesFinish(*this, plan, snd_buffer, rcv_buffer, RedistributeUnpackPolicy());
+    if (ParallelDescriptor::UseGpuAwareMpi())
+    {
+        plan.buildMPIFinish(BufferMap());
+        communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
+        unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
+        communicateParticlesFinish(plan);
+        unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());        
+    }
+    else
+    {
+        pinned_snd_buffer.resize(snd_buffer.size());
+        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);    
+        plan.buildMPIFinish(BufferMap());
+        communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
+        rcv_buffer.resize(pinned_rcv_buffer.size());   
+        unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
+        communicateParticlesFinish(plan);        
+        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);    
+        unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
+    }
 #endif    
 }
 

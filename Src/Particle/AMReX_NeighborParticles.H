@@ -33,8 +33,10 @@ template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
+public:
     using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
-    
+    using SuperParticleType = typename ParticleContainerType::SuperParticleType;
+private:
     struct MaskComps
     {
         enum {
@@ -430,6 +432,9 @@ protected:
 
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
     amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
+
+    Gpu::PinnedDeviceVector<ParticleType> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<ParticleType> pinned_rcv_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
