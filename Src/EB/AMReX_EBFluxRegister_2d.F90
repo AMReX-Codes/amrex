@@ -1,6 +1,7 @@
 module amrex_eb_flux_reg_2d_module
 
   use amrex_fort_module, only : rt => amrex_real
+  use amrex_constants_module, only : zero, one
   use amrex_eb_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, fine_cell, &
        reredistribution_threshold
   use amrex_ebcellflag_module, only : get_neighbor_cells, is_regular_cell, is_single_valued_cell

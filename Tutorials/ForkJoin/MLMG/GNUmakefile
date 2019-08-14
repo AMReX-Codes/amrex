@@ -11,7 +11,7 @@ EBASE = main
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include Make.package
-Pdirs := Base Boundary LinearSolvers/C_CellMG LinearSolvers/MLMG
+Pdirs := Base Boundary LinearSolvers/MLMG
 Ppack += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
