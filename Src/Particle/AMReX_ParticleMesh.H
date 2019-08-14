@@ -8,6 +8,8 @@ template <class PC, class MF, class F>
 void
 ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
 {
+    BL_PROFILE("amrex::ParticleToMesh");
+    
     MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
         &mf : new MultiFab(pc.ParticleBoxArray(lev), 
                            pc.ParticleDistributionMap(lev),
