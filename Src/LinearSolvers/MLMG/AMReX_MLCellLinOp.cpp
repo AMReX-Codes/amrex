@@ -660,9 +660,9 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
         for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
-                         flux[1].resize(amrex::surroundingNodes(tbx,1));,
-                         flux[2].resize(amrex::surroundingNodes(tbx,2)););
+            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                         flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                         flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
             AMREX_D_TERM(Elixir elifx = flux[0].elixir();,
                          Elixir elify = flux[1].elixir();,
                          Elixir elifz = flux[2].elixir(););
