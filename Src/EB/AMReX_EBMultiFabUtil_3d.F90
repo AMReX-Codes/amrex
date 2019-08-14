@@ -32,8 +32,8 @@ contains
              jj    = j * lrat(2)
              do i  = lo(1), hi(1)
                 ii = i * lrat(1)
-                crse(i,j,k,n) = 0.d0
-                cv            = 0.d0
+                crse(i,j,k,n) = zero
+                cv            = zero
                 do       kref = 0, lrat(3)-1
                    do    jref = 0, lrat(2)-1
                       do iref = 0, lrat(1)-1
@@ -73,8 +73,8 @@ contains
              jj    = j * lrat(2)
              do i  = lo(1), hi(1)
                 ii = i * lrat(1)
-                crse(i,j,k,n) = 0.d0
-                cv            = 0.d0
+                crse(i,j,k,n) = zero
+                cv            = zero
                 do       kref = 0, lrat(3)-1
                    do    jref = 0, lrat(2)-1
                       do iref = 0, lrat(1)-1
@@ -114,8 +114,8 @@ contains
                jj       = j*lrat(2)
                do i     = lo(1), hi(1)
                   ii    = i*lrat(1)
-                  crse(i,j,k,n) = 0.d0
-                  fa            = 0.d0
+                  crse(i,j,k,n) = zero
+                  fa            = zero
                   do    kref    = 0, lrat(3)-1
                     do  jref    = 0, lrat(2)-1
                         fa            = fa + ap(ii,jj+jref,kk+kref)
@@ -139,8 +139,8 @@ contains
                jj      = j*lrat(2)
                do i    = lo(1), hi(1)
                   ii   = i*lrat(1)
-                  crse(i,j,k,n) = 0.d0
-                  fa            = 0.d0
+                  crse(i,j,k,n) = zero
+                  fa            = zero
                   do    kref    = 0, lrat(3)-1
                     do  iref    = 0, lrat(1)-1
                         fa            = fa + ap(ii+iref, jj, kk+kref)
@@ -164,8 +164,8 @@ contains
                jj     = j*lrat(2)
                do i   = lo(1), hi(1)
                   ii  = i*lrat(1)
-                  crse(i,j,k,n) = 0.d0
-                  fa            = 0.d0
+                  crse(i,j,k,n) = zero
+                  fa            = zero
                   do    jref    = 0, lrat(2)-1
                     do  iref    = 0, lrat(1)-1
                         fa            = fa + ap(ii+iref,jj+jref,kk)
@@ -203,8 +203,8 @@ contains
              jj       = j*lrat(2)
              do i     = lo(1), hi(1)
                 ii    = i*lrat(1)
-                crse(i,j,k,n) = 0.d0
-                fa            = 0.d0
+                crse(i,j,k,n) = zero
+                fa            = zero
                 do    kref    = 0, lrat(3)-1
                    do  jref   = 0, lrat(2)-1
                       do iref = 0, lrat(1)-1
