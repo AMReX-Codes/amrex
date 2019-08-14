@@ -6,7 +6,7 @@ AMREX_INSTALL_DIR ?= ../../tmp_install_dir
 CXX = mpicxx
 FC = gfortran
 
-CPPFLAGS = -I$(AMREX_INSTALL_DIR)/include
+CPPFLAGS = -I. -I$(AMREX_INSTALL_DIR)/include
 CXXFLAGS = -O2 -std=c++11
 FFLAGS = -O2
 LDFLAGS = -L$(AMREX_INSTALL_DIR)/lib
@@ -18,16 +18,16 @@ LIBRARIES += -lgfortran
 
 default: main.exe
 
-main.exe: main.o MyAmr.o myf.o
+main.exe: main.o test_parameters.o my_func.o
 	$(CXX) -o $@ $(CXXFLAGS) $^ $(LDFLAGS) $(LIBRARIES)
 
-main.o: main.cpp MyAmr.H
+main.o: main.cpp MyParams.H
 	$(CXX) -o $@ -c $(CXXFLAGS) $(CPPFLAGS) $<
 
-MyAmr.o: MyAmr.cpp MyAmr.H
+test_parameters.o: test_parameters.cpp MyParams.H
 	$(CXX) -o $@ -c $(CXXFLAGS) $(CPPFLAGS) $<
 
-myf.o: myf.f90
+my_func.o: my_func.f90
 	$(FC) -o $@ -c $(FFLAGS) $(CPPFLAGS) $<
 
 .PHONY: clean realclean
