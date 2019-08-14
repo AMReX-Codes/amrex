@@ -33,8 +33,10 @@ template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
+public:
     using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
-    
+    using SuperParticleType = typename ParticleContainerType::SuperParticleType;
+private:
     struct MaskComps
     {
         enum {
@@ -315,19 +317,9 @@ public:
 
     void buildNeighborMask ();
 
-    void computeHaloParticles ();
+    void buildNeighborCopyOp ();
 
-    void computeCopyPlan ();
-    
-    void packBuffer ();
-
-    void unpackBuffer ();
-
-    void clearCopyPlan ();
-
-    void getBoxRcvCounts ();
-
-    void communicateParticles ();
+    const Vector<int>& NeighborProcs () const { return neighbor_procs; };
 
 protected:
 
@@ -431,31 +423,18 @@ protected:
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
-    std::map<int, amrex::Gpu::HostVector<int> > m_start;
-    std::map<int, amrex::Gpu::HostVector<int> > m_stop;
 
     std::map<int, amrex::Gpu::ManagedDeviceVector<NeighborCode> > m_code_array;
     std::map<int, amrex::Gpu::ManagedDeviceVector<int> > m_code_offsets;
 
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_boxes;
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_src_indices;
-    std::map<int, amrex::Gpu::ManagedDeviceVector<int> > copy_plan_dst_indices;
-    std::map<int, amrex::Gpu::ManagedDeviceVector<IntVect> > copy_plan_periodic_shift;
+    ParticleCopyOp neighbor_copy_op;
+    ParticleCopyPlan neighbor_copy_plan;
 
-    amrex::Gpu::ManagedDeviceVector<unsigned int> box_counts;
-    amrex::Gpu::ManagedDeviceVector<unsigned int> box_offsets;
-    amrex::Gpu::ManagedDeviceVector<int> bucket_to_gid;
-    amrex::Gpu::ManagedDeviceVector<int> gid_to_bucket;
-
-    amrex::Gpu::ManagedDeviceVector<int> proc_box_counts;
-    amrex::Gpu::ManagedDeviceVector<int> proc_box_offsets;
-
-    amrex::Gpu::ManagedDeviceVector<int> rcv_box_counts;
-    amrex::Gpu::ManagedDeviceVector<int> rcv_box_offsets;
-    amrex::Gpu::ManagedDeviceVector<int> rcv_box_ids;
-   
     amrex::Gpu::DeviceVector<ParticleType> snd_buffer;
     amrex::Gpu::DeviceVector<ParticleType> rcv_buffer;
+
+    Gpu::PinnedDeviceVector<ParticleType> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<ParticleType> pinned_rcv_buffer;
 
     std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 #endif
