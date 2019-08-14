@@ -2,9 +2,9 @@
 #BSUB -P CSC308
 #BSUB -W 2:00
 #BSUB -nnodes 1
-#BSUB -J NeighborParticles
-#BSUB -o NeighborParticleso.%J
-#BSUB -e NeighborParticlese.%J
+#BSUB -J RedistributeTest
+#BSUB -o RedistributeTesto.%J
+#BSUB -e RedistributeTeste.%J
 
 module load gcc
 module load cuda
@@ -14,7 +14,7 @@ set -x
 omp=1
 export OMP_NUM_THREADS=${omp}
 EXE="../main3d.gnu.TPROF.MPI.CUDA.ex"
-JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
+JSRUN="jsrun -n 6 -a 1 -g 1 -c 1 --bind=packed:${omp} "
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 mkdir $rundir
@@ -39,4 +39,4 @@ ${JSRUN} --smpiargs="-gpu" ${EXE} inputs
 # 5. Run under nvprof and collect metrics for all kernels -- much slower!
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} inputs
 
-cp ../NeighborParticles*.${LSB_JOBID} .
+cp ../RedistributeTest*.${LSB_JOBID} .

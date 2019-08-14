@@ -16,7 +16,30 @@ AMREX_GPU_HOST_DEVICE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
                   const IntVect& a_tile_size, Box& tbx);
 
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
+                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                     const Box& domain)
+{
+    if (p.id() < 0) return -1;
+    IntVect iv = IntVect(
+            AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                         floor((p.pos(1)-plo[1])*dxi[1]),
+                         floor((p.pos(2)-plo[2])*dxi[2])));
+    iv += domain.smallEnd();
+    return mask(iv);
+}
 
+
+template <class PC, class F>
+auto
+ReduceSum (PC const& pc, F f) -> decltype(f(typename PC::ParticleType()))
+{
+    return ReduceSum(pc, 0, pc.finestLevel(), std::move(f));
+}
+    
 template <class PC, class F>
 auto
 ReduceSum (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
@@ -109,6 +132,13 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 
 template <class PC, class F>
 auto
+ReduceMax (PC const& pc, F f) -> decltype(f(typename PC::ParticleType()))
+{
+    return ReduceMax(pc, 0, pc.finestLevel(), std::move(f));
+}
+    
+template <class PC, class F>
+auto
 ReduceMax (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
 {
     return ReduceMax(pc, lev, lev, std::move(f));
@@ -197,6 +227,13 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
     }
 
     return r;
+}
+
+template <class PC, class F>
+auto
+ReduceMin (PC const& pc, F f) -> decltype(f(typename PC::ParticleType()))
+{
+    return ReduceMin(pc, 0, pc.finestLevel(), std::move(f));
 }
 
 template <class PC, class F>
@@ -293,6 +330,13 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 
 template <class PC, class F>
 bool
+ReduceLogicalAnd (PC const& pc, F f)
+{
+    return ReduceLogicalAnd(pc, 0, pc.finestLevel(), std::move(f));
+}
+
+template <class PC, class F>
+bool
 ReduceLogicalAnd (PC const& pc, int lev, F f)
 {
     return ReduceLogicalAnd(pc, lev, lev, std::move(f));
@@ -378,6 +422,13 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
     }
 
     return r;
+}
+
+template <class PC, class F>
+bool
+ReduceLogicalOr (PC const& pc, F f)
+{
+    return ReduceLogicalOr(pc, 0, pc.finestLevel(), std::move(f));
 }
 
 template <class PC, class F>

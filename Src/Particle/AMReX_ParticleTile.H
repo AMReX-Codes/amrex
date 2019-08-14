@@ -20,6 +20,75 @@
 namespace amrex {
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+struct ParticleTileData
+{
+    using ParticleType = Particle<NStructReal, NStructInt>;
+    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
+
+    long m_size;
+    ParticleType* AMREX_RESTRICT m_aos;
+    GpuArray<Real* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    SuperParticleType getSuperParticle (int index) const noexcept
+    {
+        AMREX_ASSERT(index < m_size);
+        SuperParticleType sp;
+        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
+            sp.m_rdata.arr[i] = m_aos[index].m_rdata.arr[i];
+        for (int i = 0; i < NArrayReal; ++i)
+            sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i] = m_rdata[i][index];
+        for (int i = 0; i < NStructInt+2; ++i)
+            sp.m_idata.arr[i] = m_aos[index].m_idata.arr[i];
+        for (int i = 0; i < NArrayInt; ++i)
+            sp.m_idata.arr[NStructInt+2+i] = m_idata[i][index];
+        return sp;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+    {
+        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
+            m_aos[index].m_rdata.arr[i] = sp.m_rdata.arr[i];
+        for (int i = 0; i < NArrayReal; ++i)
+            m_rdata[i][index] = sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i];
+        for (int i = 0; i < NStructInt+2; ++i)
+            m_aos[index].m_idata.arr[i] = sp.m_idata.arr[i];
+        for (int i = 0; i < NArrayInt; ++i)
+            m_idata[i][index] = sp.m_idata.arr[NStructInt+2+i];
+    }
+};
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+struct ConstParticleTileData
+{
+    using ParticleType = Particle<NStructReal, NStructInt>;
+    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
+
+    long m_size;
+    const ParticleType* AMREX_RESTRICT m_aos;
+    GpuArray<const Real* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
+    
+    AMREX_GPU_HOST_DEVICE
+    SuperParticleType getSuperParticle (int index) const
+    {
+        AMREX_ASSERT(index < m_size);
+        SuperParticleType sp;
+        for (int i = 0; i < NStructReal+AMREX_SPACEDIM; ++i)
+            sp.m_rdata.arr[i] = m_aos[index].m_rdata.arr[i];
+        for (int i = 0; i < NArrayReal; ++i)
+            sp.m_rdata.arr[NStructReal+AMREX_SPACEDIM+i] = m_rdata[i][index];
+        for (int i = 0; i < NStructInt+2; ++i)
+            sp.m_idata.arr[i] = m_aos[index].m_idata.arr[i];
+        for (int i = 0; i < NArrayInt; ++i)
+            sp.m_idata.arr[NStructInt+2+i] = m_idata[i][index];
+        return sp;
+    }
+};
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile
 {
     using ParticleType = Particle<NStructReal, NStructInt>;
@@ -30,6 +99,9 @@ struct ParticleTile
     using SoA = StructOfArrays<NArrayReal, NArrayInt>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
+
+    using ParticleTileDataType = ParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ConstParticleTileDataType = ConstParticleTileData<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     ParticleTile()
         : m_defined(false)
@@ -173,6 +245,28 @@ struct ParticleTile
     void push_back_int (int comp, std::size_t npar, int v) {
         auto new_size = m_soa_tile.GetIntData(comp).size() + npar;
         m_soa_tile.GetIntData(comp).resize(new_size, v);
+    }
+
+    ParticleTileDataType getParticleTileData ()
+    {
+        ParticleTileDataType ptd;
+        ptd.m_aos = m_aos_tile().dataPtr();
+        for (int i = 0; i < NArrayReal; ++i)
+            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        for (int i = 0; i < NArrayInt; ++i)
+            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        return ptd;
+    }
+
+    ConstParticleTileDataType getConstParticleTileData () const
+    {
+        ConstParticleTileDataType ptd;
+        ptd.m_aos = m_aos_tile().dataPtr();
+        for (int i = 0; i < NArrayReal; ++i)
+            ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
+        for (int i = 0; i < NArrayInt; ++i)
+            ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        return ptd;
     }
 
 private:
