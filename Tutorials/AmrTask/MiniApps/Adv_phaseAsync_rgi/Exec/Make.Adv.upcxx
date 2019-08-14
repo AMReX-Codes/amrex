@@ -1,5 +1,5 @@
-AMREX_HOME = ../../../../../../../
-ADR_DIR  ?= $(AMREX_HOME)/Src/AmrTask/tutorials/MiniApps/Adv_phaseAsync_rgi
+AMREX_HOME = ../../../../../..
+ADR_DIR  ?= $(AMREX_HOME)/Tutorials/AmrTask/MiniApps/Adv_phaseAsync_rgi
 TOP := $(ADR_DIR)
 UPCXX_INSTALL=/global/common/cori/ftg/upcxx/2019.3.0/hsw/gnu/PrgEnv-gnu-6.0.4-7.3.0/
 PPFLAGS=$(shell $(UPCXX_INSTALL)/bin/upcxx-meta PPFLAGS)
