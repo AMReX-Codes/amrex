@@ -32,6 +32,14 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
     return mask(iv);
 }
 
+
+template <class PC, class F>
+auto
+ReduceSum (PC const& pc, F f) -> decltype(f(typename PC::ParticleType()))
+{
+    return ReduceSum(pc, 0, pc.finestLevel(), std::move(f));
+}
+    
 template <class PC, class F>
 auto
 ReduceSum (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
@@ -124,6 +132,13 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 
 template <class PC, class F>
 auto
+ReduceMax (PC const& pc, F f) -> decltype(f(typename PC::ParticleType()))
+{
+    return ReduceMax(pc, 0, pc.finestLevel(), std::move(f));
+}
+    
+template <class PC, class F>
+auto
 ReduceMax (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
 {
     return ReduceMax(pc, lev, lev, std::move(f));
@@ -212,6 +227,13 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
     }
 
     return r;
+}
+
+template <class PC, class F>
+auto
+ReduceMin (PC const& pc, F f) -> decltype(f(typename PC::ParticleType()))
+{
+    return ReduceMin(pc, 0, pc.finestLevel(), std::move(f));
 }
 
 template <class PC, class F>
@@ -308,6 +330,13 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 
 template <class PC, class F>
 bool
+ReduceLogicalAnd (PC const& pc, F f)
+{
+    return ReduceLogicalAnd(pc, 0, pc.finestLevel(), std::move(f));
+}
+
+template <class PC, class F>
+bool
 ReduceLogicalAnd (PC const& pc, int lev, F f)
 {
     return ReduceLogicalAnd(pc, lev, lev, std::move(f));
@@ -393,6 +422,13 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
     }
 
     return r;
+}
+
+template <class PC, class F>
+bool
+ReduceLogicalOr (PC const& pc, F f)
+{
+    return ReduceLogicalOr(pc, 0, pc.finestLevel(), std::move(f));
 }
 
 template <class PC, class F>
