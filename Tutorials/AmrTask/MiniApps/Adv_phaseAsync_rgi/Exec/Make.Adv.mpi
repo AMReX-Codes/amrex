@@ -1,5 +1,5 @@
-AMREX_HOME = ../../../../../../../
-ADR_DIR  ?= $(AMREX_HOME)/Src/AmrTask/tutorials/MiniApps/Adv_phaseAsync_rgi
+AMREX_HOME = ../../../../../..
+ADR_DIR  ?= $(AMREX_HOME)/Tutorials/AmrTask/MiniApps/Adv_phaseAsync_rgi
 TOP := $(ADR_DIR)
 
 TOP := $(ADR_DIR)
