@@ -289,19 +289,13 @@ void
 MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
-  // cribbing from MLCellLinOp
-  // making lots of guesses...
-  
     BL_PROFILE("MLTensorOp::compFlux()");
 
     const int mglev = 0;
     const int ncomp = getNComp();
-    ///
     MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
 
     applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
-    // applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
-    //         m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -313,18 +307,11 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        //FArrayBox fluxfab_tmp[AMREX_SPACEDIM];
-	//before mfi on out, the cell-centered solution
-	// now want out to be face-centered fluxes 
         Array<FArrayBox,AMREX_SPACEDIM> fluxfab_tmp;
-        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&fluxfab_tmp[0], &fluxfab_tmp[1], &fluxfab_tmp[2]) };
 
         for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            //Array4<Real> const axfab = out.array(mfi);
-	    // Need to make handles to fluxes
-	    
             Array4<Real const> const vfab = sol.array(mfi);
             AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
                          Array4<Real const> const etayfab = etamf[1].array(mfi);,
@@ -361,14 +348,11 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 #endif
             );
 
-	    //fixme??
-	    // pretty sure 1/dx already multiplied in above
-	    // and that bscalar need to be put in below, but should check both
 	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
 	        const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
-                Array4<Real const> src =  pflux[idim]->array();
-                AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
+		Array4<Real const> src = fluxfab_tmp[idim].array();
+		AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
                 {
                     dst(i,j,k,n) += bscalar*src(i,j,k,n);
                 });
