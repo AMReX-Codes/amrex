@@ -783,6 +783,8 @@ public:
     {
         return neighbor_procs;
     };
+
+    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
     
 protected:
 
@@ -817,10 +819,6 @@ protected:
     */
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
-
-    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
-
-
 
     /**
     * \brief Helper function for Checkpoint() and WritePlotFile().
