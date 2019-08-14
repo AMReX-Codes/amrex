@@ -30,6 +30,7 @@ Vector<Real> WarpX::B_external(3, 0.0);
 
 int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
+Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;

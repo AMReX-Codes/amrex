@@ -257,6 +257,7 @@ public:
 
     static int do_moving_window;
     static int moving_window_dir;
+    static amrex::Real moving_window_v;
 
     // slice generation //
     void InitializeSliceMultiFabs ();
@@ -504,7 +505,6 @@ private:
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
-    amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters

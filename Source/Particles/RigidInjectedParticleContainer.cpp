@@ -348,7 +348,8 @@ RigidInjectedParticleContainer::Evolve (int lev,
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
     const int zdir = AMREX_SPACEDIM-1;
-    done_injecting[lev] = (zinject_plane_levels[lev] < plo[zdir] || zinject_plane_levels[lev] > phi[zdir]);
+    done_injecting[lev] = ((zinject_plane_levels[lev] < plo[zdir] && WarpX::moving_window_v > 0.) ||
+                           (zinject_plane_levels[lev] > phi[zdir] && WarpX::moving_window_v < 0.));
     done_injecting_lev = done_injecting[lev];
 
     PhysicalParticleContainer::Evolve (lev,
