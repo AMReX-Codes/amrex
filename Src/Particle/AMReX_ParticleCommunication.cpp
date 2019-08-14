@@ -84,6 +84,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     }
     if ( (tot_snds_this_proc == 0) and (tot_rcvs_this_proc == 0) )
     {
+        m_nrcvs = 0;
         return;
     } 
 

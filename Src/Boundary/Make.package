@@ -1,7 +1,8 @@
 BNDRYLIB_BASE=EXE
 
 C$(BNDRYLIB_BASE)_sources += AMReX_FabSet.cpp AMReX_BndryRegister.cpp AMReX_Mask.cpp AMReX_MultiMask.cpp\
-                             AMReX_BndryData.cpp AMReX_InterpBndryData.cpp AMReX_MacBndry.cpp
+                             AMReX_BndryData.cpp AMReX_InterpBndryData.cpp AMReX_MacBndry.cpp \
+                             AMReX_LO_BCTYPES.cpp
 
 C$(BNDRYLIB_BASE)_headers += AMReX_FabSet.H AMReX_BndryRegister.H AMReX_Mask.H AMReX_MultiMask.H\
 			     AMReX_BndryData.H AMReX_BoundCond.H AMReX_InterpBndryData.H \

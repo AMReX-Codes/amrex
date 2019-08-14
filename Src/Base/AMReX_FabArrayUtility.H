@@ -579,7 +579,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 
                 Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(d_r, *block_r);
             });
         }
 
@@ -652,7 +652,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
                 Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(d_r, *block_r);
             });
         }
 
@@ -721,7 +721,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 
                 Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(d_r, *block_r);
             });
         }
 
@@ -794,7 +794,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
                 Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
-                if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
+                if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(d_r, *block_r);
             });
         }
 
