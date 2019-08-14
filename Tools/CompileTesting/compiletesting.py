@@ -49,7 +49,6 @@ def compiletesting(arg_string):
                      'OldTutorials/DataServicesTest0',
 #                     'OldTutorials/MultiColor_C',
                      'OldTutorials/MultiFabTests_C',
-                     'OldTutorials/MultiGrid_C',
                      'OldTutorials/Tiling_C',
                      'OldTutorials/Tiling_Heat_C',
                      'OldTutorials/WaveEquation_C',
@@ -60,7 +59,6 @@ def compiletesting(arg_string):
                      'Tests/LinearSolvers/CellEB',
                      'Tests/LinearSolvers/CellEB2',
                      'Tests/LinearSolvers/C_CellMG',
-                     'Tests/LinearSolvers/ComparisonTest',
                      'Tests/LinearSolvers/C_TensorMG',
                      'Tests/MKDir']
 
@@ -72,8 +70,7 @@ def compiletesting(arg_string):
                      'Tutorials/LinearSolvers/ABecLaplacian_F',
                      'Tutorials/Particles/NeighborList',
                      'Tests/NoFort',
-                     'Tests/LinearSolvers/CellEB2',
-                     'Tests/LinearSolvers/ComparisonTest']
+                     'Tests/LinearSolvers/CellEB2']
 
     print("Test List: ", test_list)
 

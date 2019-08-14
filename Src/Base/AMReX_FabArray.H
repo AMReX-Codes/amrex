@@ -645,10 +645,77 @@ public:
 		    value_type covered, value_type notcovered,
 		    value_type physbnd, value_type interior);
 
+    // The following are private functions.  But we have to make them public for cuda.
+
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false);
+
+    void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
+    void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
+                       int scomp, int dcomp, int ncomp, CpOp op);
+
+#ifdef AMREX_USE_GPU
+
+    void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
+    void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
+                       int scomp, int dcomp, int ncomp, CpOp op);
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+
+    void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
+
+#ifdef AMREX_USE_GPU
+    void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
+#endif
+
+#endif
+#endif
+
+#ifdef AMREX_USE_MPI
+
+#ifdef AMREX_USE_CUDA
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+
+    void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
+                                         Vector<char*>& send_data,
+                                         Vector<int> const& send_size,
+                                         Vector<const CopyComTagsContainer*> const& send_cctc);
+
+    void FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int ncomp,
+                                           Vector<char*> const& recv_data,
+                                           Vector<int> const& recv_size,
+                                           Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                           bool is_thread_safe);
+
+#endif
+
+    static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                      Vector<char*>& send_data,
+                                      Vector<int> const& send_size,
+                                      Vector<const CopyComTagsContainer*> const& send_cctc);
+
+    static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                        Vector<char*> const& recv_data,
+                                        Vector<int> const& recv_size,
+                                        Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                        CpOp op, bool is_thread_safe);
+
+#endif
+
+    static void pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                      Vector<char*>& send_data,
+                                      Vector<int> const& send_size,
+                                      Vector<const CopyComTagsContainer*> const& send_cctc);
+
+    static void unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                        Vector<char*> const& recv_data,
+                                        Vector<int> const& recv_size,
+                                        Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                        CpOp op, bool is_thread_safe);
+
+#endif
 
 protected:
 
@@ -732,8 +799,7 @@ private:
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
-                   int                                    SeqNum,
-                   int                                    preSeqNum);
+                   int                                    SeqNum);
 #endif
 
 #ifdef BL_USE_MPI3

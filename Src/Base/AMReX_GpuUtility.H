@@ -389,10 +389,23 @@ namespace Gpu {
 #endif
     }
 
+    struct StreamItInfo
+    {
+        bool device_sync;
+        StreamItInfo () noexcept 
+            : device_sync(true) {}
+        StreamItInfo& DisableDeviceSync () noexcept {
+            device_sync = false;
+            return *this;
+        }
+    };
+
     class StreamIter
     {
     public:
         StreamIter (const int n, bool is_thread_safe=true) noexcept;
+        StreamIter (const int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
+
         ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
@@ -411,9 +424,12 @@ namespace Gpu {
 #endif
 
     private:
+        void init() noexcept;
+
         int m_n;
         int m_i;
         bool m_threadsafe;
+        bool m_sync;
     };
 
 } // namespace Gpu

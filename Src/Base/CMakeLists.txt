@@ -132,6 +132,8 @@ target_sources( amrex
    AMReX_FabArray.H
    AMReX_FACopyDescriptor.H
    AMReX_FabArrayCommI.H
+   AMReX_FBI.H
+   AMReX_PCI.H
    AMReX_FabArrayUtility.H
    AMReX_LayoutData.H
    # Geometry / Coordinate system routines -----------------------------------
