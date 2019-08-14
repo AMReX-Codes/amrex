@@ -1,4 +1,4 @@
-module eb_to_vtk
+module amrex_eb_to_vtk
 
   use iso_c_binding    , only: c_int
   use amrex_fort_module, only: amrex_real
@@ -16,9 +16,9 @@ module eb_to_vtk
 
 contains
 
-  subroutine eb_to_polygon (dx, lo, hi, flag, fglo, fghi, bcent, blo, bhi, &
+  subroutine amrex_eb_to_polygon (dx, lo, hi, flag, fglo, fghi, bcent, blo, bhi, &
        apx, axlo, axhi,  apy, aylo, ayhi, apz, azlo, azhi) &
-       bind(C, name="eb_to_polygon")
+       bind(C, name="amrex_eb_to_polygon")
 
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
 
@@ -186,14 +186,14 @@ contains
      end do
   end do
 
-end subroutine eb_to_polygon
+end subroutine amrex_eb_to_polygon
 
 !----------------------------------------------------------------------!
 !                                                                      !
 !                                                                      !
 !                                                                      !
 !----------------------------------------------------------------------!
-subroutine write_eb_vtp(myID) bind(C, name="write_eb_vtp")
+subroutine amrex_write_eb_vtp(myID) bind(C, name="amrex_write_eb_vtp")
 
   implicit none
 
@@ -259,7 +259,7 @@ subroutine write_eb_vtp(myID) bind(C, name="write_eb_vtp")
   if(allocated(points      )) deallocate(points      )
   if(allocated(connectivity)) deallocate(connectivity)
 
-end subroutine write_eb_vtp
+end subroutine amrex_write_eb_vtp
 
 
 
@@ -268,7 +268,7 @@ end subroutine write_eb_vtp
 !                                                                      !
 !                                                                      !
 !----------------------------------------------------------------------!
-subroutine write_pvtp(nProcs) bind(C, name="write_pvtp")
+subroutine amrex_write_pvtp(nProcs) bind(C, name="amrex_write_pvtp")
 
   implicit none
 
@@ -304,7 +304,7 @@ subroutine write_pvtp(nProcs) bind(C, name="write_pvtp")
   if(allocated(points      )) deallocate(points      )
   if(allocated(connectivity)) deallocate(connectivity)
 
-end subroutine write_pvtp
+end subroutine amrex_write_pvtp
 
 !.......................................................................!
 ! SUBROUTINE CALC_HESSE(distance, n0, p, normal, centroid)              !
@@ -555,8 +555,8 @@ end subroutine write_pvtp
 !                                                                       !
 !                                                                       !
 !.......................................................................!
-  subroutine eb_grid_coverage (myID, dx, lo, hi, flag, fglo, fghi)&
-       bind(C, name="eb_grid_coverage")
+  subroutine amrex_eb_grid_coverage (myID, dx, lo, hi, flag, fglo, fghi)&
+       bind(C, name="amrex_eb_grid_coverage")
 
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell
 
@@ -654,6 +654,6 @@ contains
 
   end subroutine data_array
 
-end subroutine eb_grid_coverage
+end subroutine amrex_eb_grid_coverage
 
-end module eb_to_vtk
+end module amrex_eb_to_vtk

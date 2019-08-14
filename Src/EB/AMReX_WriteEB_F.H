@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-    void eb_to_polygon(
+    void amrex_eb_to_polygon(
             const amrex::Real* dx,
             const int* slo, const int* shi,
             const void* flag,        const int* fglo, const int* fghi,
@@ -18,10 +18,10 @@ extern "C"
             const amrex_real* az,    const int* azlo, const int* azhi
         );
 
-    void write_eb_vtp(int* myID);
-    void write_pvtp(int* nProcs);
+    void amrex_write_eb_vtp(int* myID);
+    void amrex_write_pvtp(int* nProcs);
 
-    void eb_grid_coverage(
+    void amrex_eb_grid_coverage(
             int* myID, const amrex::Real* dx,
             const int* slo, const int* shi,
             const void* flag, const int* fglo, const int* fghi

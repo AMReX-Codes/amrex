@@ -293,10 +293,6 @@ public:
         return (this->ptr_owner) ? nBytes() : 0;
     }
 
-    static bool preAllocatable () noexcept { return true; }
-
-    static bool isCopyOMPSafe () noexcept { return true; }
-
     //! Returns bytes used in the Box for those components
     AMREX_GPU_HOST_DEVICE
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const noexcept

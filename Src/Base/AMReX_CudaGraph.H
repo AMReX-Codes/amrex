@@ -54,6 +54,7 @@ makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp
 template <typename T>
 struct CudaGraph
 {
+    cudaGraph_t copyGraph;
     cudaGraphExec_t m_graph;
     Vector<T> m_parms;
     T* m_parms_d = nullptr;
@@ -69,6 +70,7 @@ struct CudaGraph
     {
         static_assert(AMREX_IS_TRIVIALLY_COPYABLE(T), "CudaGraph's T must be trivially copyable");
         m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
+        createRootGraph();
     }
     ~CudaGraph() {
         The_Device_Arena()->free(m_parms_d);
@@ -78,7 +80,6 @@ struct CudaGraph
             AMREX_GPU_SAFE_CALL(cudaGraphExecDestroy(m_graph));
         }
     }
-
     void resize(long num) {
         m_parms.resize(num);
         if (m_parms_d != nullptr)
@@ -86,6 +87,7 @@ struct CudaGraph
             The_Device_Arena()->free(m_parms_d);
         }
         m_parms_d = static_cast<T*>( The_Device_Arena()->alloc(sizeof(T)*m_parms.size()) );
+        createRootGraph();
     }
     void setGraph(cudaGraphExec_t const& graph) { 
         m_graph = graph;
@@ -94,20 +96,37 @@ struct CudaGraph
     void setParams(int idx, T const& a_parm) {
         m_parms[idx] = a_parm;
     }
+    T* getHostPtr (int idx) {
+        return (m_parms.data() + idx);
+    }
     T* getDevicePtr (int idx) const {
         return (m_parms_d + idx);
     }
     bool ready() const { return graph_is_ready; }
-    void executeGraph () const {
-        cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
-                   cudaMemcpyHostToDevice);
-
+    cudaGraph_t copyRootGraph() const { return copyGraph; }
+    void createRootGraph() {
+        // Assumed that this happens outside MFIter. Might work, but why? 
         Gpu::Device::setStreamIndex(0);
+        cudaStream_t currentStream = Gpu::Device::cudaStream();
+#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(currentStream));
+#else
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(currentStream, cudaStreamCaptureModeGlobal));
+#endif
+        cudaMemcpyAsync(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
+                        cudaMemcpyHostToDevice, currentStream);
 
-        cudaGraphLaunch(m_graph, amrex::Gpu::Device::cudaStream());
-
+        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(currentStream, &copyGraph));
         Gpu::Device::resetStreamIndex();
-        Gpu::Device::synchronize();
+    }
+    void executeGraph (bool synch = true) const {
+        if (!Gpu::Device::memcpyInGraph())
+        {
+            cudaMemcpy(m_parms_d, m_parms.data(), std::size_t(sizeof(T)*m_parms.size()),
+                       cudaMemcpyHostToDevice);
+        }
+
+        Gpu::Device::executeGraph(m_graph, synch);
     }
 };
 
