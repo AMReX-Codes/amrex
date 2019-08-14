@@ -276,7 +276,7 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Or (int* m, int value) noexcept
+        void LogicalOr (int* m, int value) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
             atomicOr(m, value);
@@ -286,10 +286,10 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void And (int* m, int value) noexcept
+        void LogicalAnd (int* m, int value) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
-            atomicAnd(m, value);
+            atomicAnd(m, value ? ~0x0 : 0);
 #else
             *m = (*m) && value; 
 #endif
