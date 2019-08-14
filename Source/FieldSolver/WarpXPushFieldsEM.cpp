@@ -279,6 +279,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                                         dtsdx,dtsdy);
                });
             }  else if (WarpX::maxwell_fdtd_solver_id == 1) {
+
                amrex::Print() << " CKC solver not implemented for CPP run\n";
                Real betaxy, betaxz, betayx, betayz, betazx, betazy;
                Real gammax, gammay, gammaz;
@@ -308,7 +309,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                                          gammaz, alphax, alphay, alphaz);
                });
 
-               // BZ
+               //// BZ
                amrex::ParallelFor(tbz, 
                [=] AMREX_GPU_DEVICE (int i, int j, int k)
                {
@@ -561,7 +562,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
                auto const& pml_F_fab = pml_F->array(mfi);
 
-               if (WarpX::maxwell_fdtd_solver_id == 1) {
+               if (WarpX::maxwell_fdtd_solver_id == 0) {
 
                   amrex::ParallelFor(tex,
                   [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -609,6 +610,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                       warpx_push_pml_ez_f_ckc(i,j,k,pml_Ezfab,pml_F_fab,
                                               alphaz,betazx,betazy,gammaz);
                   });
+
                }
             }
         }
