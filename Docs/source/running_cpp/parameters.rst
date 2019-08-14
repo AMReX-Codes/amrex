@@ -703,6 +703,11 @@ Diagnostics and output
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
+* ``warpx.dz_snapshots_lab`` (`float`, in meters)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Distance between the lab-frame snapshots (expressed in the laboratory
+    frame). Either `dt_snapshots_lab` or `dz_snapshot_lab` is required.
+
 * ``warpx.do_boosted_frame_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
