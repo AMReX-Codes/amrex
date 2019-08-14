@@ -166,7 +166,7 @@ buildNeighborCopyOp ()
 
         Array4<const int> const& mask_arr = m_neighbor_mask_ptr->array(mfi);
 
-	Gpu::DeviceVector<int> counts(np, 0);
+	Gpu::DeviceVector<int> counts(np + 1, 0);
 	Gpu::DeviceVector<int> offsets(np + 1);
 	auto p_counts = counts.dataPtr();
 	auto p_offsets = offsets.dataPtr();
