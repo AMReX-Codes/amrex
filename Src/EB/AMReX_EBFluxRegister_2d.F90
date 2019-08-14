@@ -249,7 +249,7 @@ contains
                 d(i,j,:) = d(i,j,:) + dm
                    
                 call get_neighbor_cells(ebflg(i,j),nbr)
-                wtot = 0.d0
+                wtot = zero
                 do jj = -1,1
                    do ii = -1,1
                       if ((ii.ne. 0 .or. jj.ne.0) .and. nbr(ii,jj).eq.1) then
@@ -258,7 +258,7 @@ contains
                    end do
                 enddo
                    
-                drho = dm * ((1.d0-vfrac(i,j))/wtot)
+                drho = dm * ((one-vfrac(i,j))/wtot)
                 do jj = -1,1
                    do ii = -1,1
                       if((ii.ne. 0 .or. jj.ne.0) .and. nbr(ii,jj).eq.1) then
