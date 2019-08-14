@@ -334,7 +334,20 @@ WarpX::ReadParameters ()
                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
         pp.get("num_snapshots_lab", num_snapshots_lab);
-        pp.get("dt_snapshots_lab", dt_snapshots_lab);
+
+        // Read either dz_snapshots_lab or dt_snapshots_lab
+        bool snapshot_interval_is_specified = 0;
+        Real dz_snapshots_lab = 0;
+        snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
+        if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
+            // dt_snapshots_lab = dz_snapshots_lab/gamma_boost/moving_window_v;
+            dt_snapshots_lab = dz_snapshots_lab/moving_window_v;
+            snapshot_interval_is_specified = 1;
+        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            snapshot_interval_is_specified,
+            "When using back-transformed diagnostics, user should specify either dz_snapshots_lab or dt_snapshots_lab.");
+
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
