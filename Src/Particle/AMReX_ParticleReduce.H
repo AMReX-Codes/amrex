@@ -6,6 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_GpuUtility.H>
 
 #include <limits>
 
@@ -367,7 +368,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
 
                     Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
-                    if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
+                    if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(d_r, *block_r);
                 });
             }
         }
@@ -463,7 +464,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
 
                     Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
 
-                    if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
+                    if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(d_r, *block_r);
                 });
             }
         }
