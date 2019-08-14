@@ -55,7 +55,7 @@ struct ReduceOpSum
 {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::ReduceSum(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceSum(&d,s); }
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -69,7 +69,7 @@ struct ReduceOpMin
 {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::ReduceMin(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMin(&d,s); }
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -83,7 +83,7 @@ struct ReduceOpMax
 {
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void parallel_update (T& d, T const& s) const noexcept { Gpu::ReduceMax(&d,s); }
+    void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMax(&d,s); }
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -264,7 +264,7 @@ T Sum (N n, U const* v, T init_val, BOP bop)
     },
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
-        Gpu::ReduceSum(dp, r);
+        Gpu::deviceReduceSum(dp, r);
     });
     return ds.dataValue();
 }
@@ -288,7 +288,7 @@ T Min (N n, U const* v, T init_val, BOP bop)
     },
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
-        Gpu::ReduceMin(dp, r);
+        Gpu::deviceReduceMin(dp, r);
     });
     return ds.dataValue();
 }
@@ -312,7 +312,7 @@ T Max (N n, U const* v, T init_val, BOP bop)
     },
     [=] AMREX_GPU_DEVICE (T const& r) noexcept
     {
-        Gpu::ReduceMax(dp, r);
+        Gpu::deviceReduceMax(dp, r);
     });
     return ds.dataValue();
 }
@@ -339,8 +339,8 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     },
     [=] AMREX_GPU_DEVICE (Real2 const& r) noexcept
     {
-        Gpu::ReduceMin(dp  , r[0]);
-        Gpu::ReduceMax(dp+1, r[1]);
+        Gpu::deviceReduceMin(dp  , r[0]);
+        Gpu::deviceReduceMax(dp+1, r[1]);
     });
     Gpu::dtoh_memcpy(hv.data(), dp, 2*sizeof(T));
     The_Device_Arena()->free(dp);
@@ -463,7 +463,7 @@ T Sum (N n, U const* v, T init_val, BOP bop)
     },
     [=] (T r) noexcept
     {
-        Gpu::ReduceSum(dp, r);
+        Gpu::deviceReduceSum(dp, r);
     });
     return sum;
 }
@@ -486,7 +486,7 @@ T Min (N n, U const* v, T init_val, BOP bop)
     },
     [=] AMREX_GPU_DEVICE (T r) noexcept
     {
-        Gpu::ReduceMin(dp, r);
+        Gpu::deviceReduceMin(dp, r);
     });
     return mn;
 }
@@ -509,7 +509,7 @@ T Max (N n, U const* v, T init_val, BOP bop)
     },
     [=] AMREX_GPU_DEVICE (T r) noexcept
     {
-        Gpu::ReduceMax(dp, r);
+        Gpu::deviceReduceMax(dp, r);
     });
     return mx;
 }
@@ -534,8 +534,8 @@ std::pair<T,T> MinMax (N n, U const* v, MINOP minop, MAXOP maxop)
     },
     [=] AMREX_GPU_DEVICE (Real2 const& r) noexcept
     {
-        Gpu::ReduceMin(dp  , r[0]);
-        Gpu::ReduceMax(dp+1, r[1]);
+        Gpu::deviceReduceMin(dp  , r[0]);
+        Gpu::deviceReduceMax(dp+1, r[1]);
     });
     return std::make_pair(hv[0],hv[1]);
 }

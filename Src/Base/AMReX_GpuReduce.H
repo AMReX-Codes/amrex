@@ -96,7 +96,7 @@ T blockReduceMax (T x) noexcept
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ReduceSum (T * dest, T source) noexcept
+void deviceReduceSum (T * dest, T source) noexcept
 {
     source = Gpu::blockReduceSum<Gpu::Device::warp_size,T>(source);
     if (threadIdx.x == 0) Gpu::Atomic::Add(dest, source);
@@ -104,7 +104,7 @@ void ReduceSum (T * dest, T source) noexcept
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ReduceMin (T * dest, T source) noexcept
+void deviceReduceMin (T * dest, T source) noexcept
 {
     source = Gpu::blockReduceMin<Gpu::Device::warp_size,T>(source);
     if (threadIdx.x == 0) Gpu::Atomic::Min(dest, source);
@@ -112,7 +112,7 @@ void ReduceMin (T * dest, T source) noexcept
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void ReduceMax (T * dest, T source) noexcept
+void deviceReduceMax (T * dest, T source) noexcept
 {
     source = Gpu::blockReduceMax<Gpu::Device::warp_size,T>(source);
     if (threadIdx.x == 0) Gpu::Atomic::Max(dest, source);
@@ -122,7 +122,7 @@ void ReduceMax (T * dest, T source) noexcept
 
 template <typename T>
 AMREX_FORCE_INLINE
-void ReduceSum (T * dest, T source) noexcept
+void deviceReduceSum (T * dest, T source) noexcept
 {
 #ifdef _OPENMP
 #pragma omp atomic
@@ -132,7 +132,7 @@ void ReduceSum (T * dest, T source) noexcept
 
 template <typename T>
 AMREX_FORCE_INLINE
-void ReduceMin (T * dest, T source) noexcept
+void deviceReduceMin (T * dest, T source) noexcept
 {
 #ifdef _OPENMP
 #pragma omp critical (gpureduce_reducemin)
@@ -142,7 +142,7 @@ void ReduceMin (T * dest, T source) noexcept
 
 template <typename T>
 AMREX_FORCE_INLINE
-void ReduceMax (T * dest, T source) noexcept
+void deviceReduceMax (T * dest, T source) noexcept
 {
 #ifdef _OPENMP
 #pragma omp critical (gpureduce_reducemax)
