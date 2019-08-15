@@ -5,7 +5,6 @@
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
-#include <AMReX_MFIter.H>
 #include <AMReX_GpuUtility.H>
 
 #include <limits>
@@ -32,6 +31,7 @@ auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename PC::ParticleType()))
 {
     using value_type = decltype(f(typename PC::ParticleType()));
+    using ParIter = typename PC::ParConstIterType;
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -43,17 +43,12 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 constexpr int parts_per_thread = 32;
                 const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
@@ -89,18 +84,12 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
                 const auto pstruct = aos().dataPtr();
-
                 for (int i = 0; i < np; ++i)
                     sm += f(pstruct[i]);
             }
@@ -129,6 +118,7 @@ auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename PC::ParticleType()))
 {
     using value_type = decltype(f(typename PC::ParticleType()));
+    using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -141,17 +131,12 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 constexpr int parts_per_thread = 32;
                 const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
@@ -188,17 +173,12 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
 #endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 for (int i = 0; i < np; ++i)
                     r = std::max(r, f(pstruct[i]));
@@ -228,6 +208,7 @@ auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename PC::ParticleType()))
 {
     using value_type = decltype(f(typename PC::ParticleType()));
+    using ParIter = typename PC::ParConstIterType;
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
@@ -240,17 +221,12 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 constexpr int parts_per_thread = 32;
                 const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
@@ -287,17 +263,12 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 for (int i = 0; i < np; ++i)
                     r = std::min(r, f(pstruct[i]));
@@ -326,6 +297,7 @@ template <class PC, class F>
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
 {
+    using ParIter = typename PC::ParConstIterType;
     int r = true;
 
 #ifdef AMREX_USE_GPU
@@ -337,17 +309,12 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 constexpr int parts_per_thread = 32;
                 const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
@@ -383,17 +350,12 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 for (int i = 0; i < np; ++i)
                     r = r && f(pstruct[i]);
@@ -422,6 +384,7 @@ template <class PC, class F>
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
 {
+    using ParIter = typename PC::ParConstIterType;
     int r = false;
 
 #ifdef AMREX_USE_GPU
@@ -433,17 +396,12 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
         for (int lev = lev_min; lev <= lev_max; ++lev)
         {
             const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 constexpr int parts_per_thread = 32;
                 const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
@@ -479,17 +437,12 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+                const auto pstruct = aos().dataPtr();        
 
                 for (int i = 0; i < np; ++i)
                     r = r || f(pstruct[i]);
