@@ -90,7 +90,7 @@ ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
 
 template <class PC, class MF, class F>
 void
-MeshToParticle(PC const& pc, MF& mf, int lev, F f)
+MeshToParticle(PC& pc, MF const& mf, int lev, F f)
 {
     BL_PROFILE("amrex::MeshToParticle");
 
@@ -98,41 +98,39 @@ MeshToParticle(PC const& pc, MF& mf, int lev, F f)
     int ngrow = mf.nGrow();
     
     MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
-        &mf : new MultiFab(pc.ParticleBoxArray(lev), 
-                           pc.ParticleDistributionMap(lev),
-                           ncomp, ngrow);
+        const_cast<MultiFab*>(&mf) : new MultiFab(pc.ParticleBoxArray(lev), 
+                                                  pc.ParticleDistributionMap(lev),
+                                                  ncomp, ngrow);
 
-    if (mf_pointer != &mf) mf.copy(*mf_pointer,0,0,ncomp,0,ngrow);
+    if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,ncomp,0,ngrow);
         
-    const auto& plevel = pc.GetParticles(lev);
+    auto& plevel = pc.GetParticles(lev);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+    for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+        if(plevel.find(index) == plevel.end()) continue;            
+        auto& tile = plevel.at(index);
+        
+        const auto np = tile.numParticles();
+        if (np == 0) continue;
+        
+        auto& aos = tile.GetArrayOfStructs();
+        auto pstruct = aos().dataPtr();
+        
+        const FArrayBox& fab = (*mf_pointer)[mfi];
+        auto fabarr = fab.array();
+        
+        AMREX_FOR_1D( np, i,
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-            if(plevel.find(index) == plevel.end()) continue;            
-            const auto& tile = plevel.at(index);
-            
-            const auto np = tile.numParticles();
-            if (np == 0) continue;
-            
-            const auto& aos = tile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
-            
-            FArrayBox& fab = (*mf_pointer)[mfi];
-            auto fabarr = fab.array();
-            
-            AMREX_FOR_1D( np, i,
-            {
-                f(pstruct[i], fabarr);
-            });
-        }
+            f(pstruct[i], fabarr);
+        });
+    }
 
-        if (mf_pointer != &mf) delete mf_pointer;
-    }    
+    if (mf_pointer != &mf) delete mf_pointer;
 }
-
 
 }
 #endif
