@@ -151,6 +151,10 @@ namespace amrex
     //! Convert iMultiFab to long
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
 
+    //! Periodic shift MultiFab
+    MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
+                            Periodicity const& period);
+
     //! example: auto mf = amrex::cast<MultiFab>(imf);
     template <typename T, typename U>
     T cast (U const& mf_in)

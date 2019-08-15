@@ -753,4 +753,29 @@ namespace amrex
             });
         }
     }
+
+    MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
+                            Periodicity const& period)
+    {
+        MultiFab r(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
+
+        BoxList bl = mf.boxArray().boxList();
+        for (auto& b : bl) {
+            b.shift(offset);
+        }
+        BoxArray nba(std::move(bl));
+        MultiFab nmf(nba, mf.DistributionMap(), mf.nComp(), 0,
+                     MFInfo().SetAlloc(false));
+
+        for (MFIter mfi(r); mfi.isValid(); ++mfi) {
+            auto const& rfab = r[mfi];
+            nmf.setFab(mfi, new FArrayBox(nba[mfi.index()], rfab.nComp(),
+                                          rfab.dataPtr()), false);
+        }
+
+        nmf.ParallelCopy(mf, period);
+
+        return r;
+    }
+
 }
