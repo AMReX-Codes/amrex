@@ -16,23 +16,19 @@ ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
                            mf.nComp(), mf.nGrow());
     mf_pointer->setVal(0.);
 
+    using ParIter = typename PC::ParConstIterType;
     const auto& plevel = pc.GetParticles(lev);
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
-            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-            if(plevel.find(index) == plevel.end()) continue;            
-            const auto& tile = plevel.at(index);
-            
+            const auto& tile = pti.GetParticleTile();
             const auto np = tile.numParticles();
-            if (np == 0) continue;
-            
             const auto& aos = tile.GetArrayOfStructs();
-            const auto pstruct = aos().dataPtr();
-            
-            FArrayBox& fab = (*mf_pointer)[mfi];
+            const auto pstruct = aos().dataPtr();        
+
+            FArrayBox& fab = (*mf_pointer)[pti];
             auto fabarr = fab.array();
             
             AMREX_FOR_1D( np, i,
@@ -49,21 +45,16 @@ ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
 #endif
         {
             FArrayBox local_fab;
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-                
+                const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
-                if (np == 0) continue;
-                
                 const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-                
-                FArrayBox& fab = (*mf_pointer)[mfi];
-                
-                Box tile_box = mfi.tilebox();
+                const auto pstruct = aos().dataPtr();        
+
+                FArrayBox& fab = (*mf_pointer)[pti];
+
+                Box tile_box = pti.tilebox();
                 tile_box.grow(mf_pointer->nGrow());
                 local_fab.resize(tile_box,mf_pointer->nComp());
                 local_fab = 0.0;
@@ -94,35 +85,28 @@ MeshToParticle(PC& pc, MF const& mf, int lev, F f)
 {
     BL_PROFILE("amrex::MeshToParticle");
 
-    int ncomp = mf.nComp();
-    int ngrow = mf.nGrow();
-    
     MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
         const_cast<MultiFab*>(&mf) : new MultiFab(pc.ParticleBoxArray(lev), 
                                                   pc.ParticleDistributionMap(lev),
-                                                  ncomp, ngrow);
+                                                  mf.nComp(), mf.nGrow());
 
-    if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,ncomp,0,ngrow);
+    if (mf_pointer != &mf) mf_pointer->copy(mf,0,0,mf.nComp(),0,mf.nGrow());
         
     auto& plevel = pc.GetParticles(lev);
+    using ParIter = typename PC::ParIterType;
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+    for(ParIter pti(pc, lev); pti.isValid(); ++pti)
     {
-        auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-        if(plevel.find(index) == plevel.end()) continue;            
-        auto& tile = plevel.at(index);
-        
+        auto& tile = pti.GetParticleTile();
         const auto np = tile.numParticles();
-        if (np == 0) continue;
-        
         auto& aos = tile.GetArrayOfStructs();
-        auto pstruct = aos().dataPtr();
-        
-        const FArrayBox& fab = (*mf_pointer)[mfi];
-        auto fabarr = fab.array();
-        
+        auto pstruct = aos().dataPtr();        
+
+        const FArrayBox& fab = (*mf_pointer)[pti];
+        auto fabarr = fab.array();        
+
         AMREX_FOR_1D( np, i,
         {
             f(pstruct[i], fabarr);

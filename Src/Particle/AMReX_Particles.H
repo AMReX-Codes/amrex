@@ -123,11 +123,14 @@ class ParIterBase;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIter;
-    
-    /**
-     * \brief A distributed container for Particles sorted onto grids and tiles.
 
-     */
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+class ParConstIter;
+    
+/**
+ * \brief A distributed container for Particles sorted onto grids and tiles.
+ 
+ */
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParticleContainer
 {
@@ -157,12 +160,13 @@ public:
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
 
-    using RealVector     = typename SoA::RealVector;
-    using IntVector      = typename SoA::IntVector;
-    using ParticleVector = typename AoS::ParticleVector;
-    using CharVector     = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer     = Gpu::PolymorphicDeviceVector<char>;
-    using MyParIter        = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+    using ParticleVector   = typename AoS::ParticleVector;
+    using CharVector       = Gpu::ManagedDeviceVector<char>;
+    using SendBuffer       = Gpu::PolymorphicDeviceVector<char>;
+    using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     
     ParticleContainer ()
       :
