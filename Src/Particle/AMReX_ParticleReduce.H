@@ -84,7 +84,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
-            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
@@ -173,7 +173,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
 #endif
-            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
@@ -263,7 +263,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename P
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
@@ -350,7 +350,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
@@ -437,7 +437,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for(ParIter pti(pc, lev, true); pti.isValid(); ++pti)
+            for(ParIter pti(pc, lev); pti.isValid(); ++pti)
             {
                 const auto& tile = pti.GetParticleTile();
                 const auto np = tile.numParticles();
