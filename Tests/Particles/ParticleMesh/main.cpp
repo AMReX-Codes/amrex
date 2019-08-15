@@ -45,12 +45,6 @@ void test_assign_density(TestParams& parms)
 
   DistributionMapping dmap(ba);
 
-  MultiFab acceleration(ba, dmap, 3, 1);
-  acceleration.setVal(5.0, 1);
-
-  MultiFab density(ba, dmap, 1, 0);
-  density.setVal(0.0);
-
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
@@ -70,7 +64,6 @@ void test_assign_density(TestParams& parms)
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
   int nc = 4;
-
   const auto plo = geom.ProbLoArray();
   const auto dxi = geom.InvCellSizeArray();
   amrex::ParticleToMesh(myPC, partMF, 0,
@@ -102,8 +95,8 @@ void test_assign_density(TestParams& parms)
               }
           }
 
-          for (int comp=1; comp < nc; ++comp) {
-              for (int kk = 0; kk <= 1; ++kk) { 
+          for (int comp=1; comp < nc; ++comp) { 
+             for (int kk = 0; kk <= 1; ++kk) { 
                   for (int jj = 0; jj <= 1; ++jj) { 
                       for (int ii = 0; ii <= 1; ++ii) {
                           amrex::Gpu::Atomic::Add(&rho(i+ii-1, j+jj-1, k+kk-1, comp),
@@ -114,8 +107,6 @@ void test_assign_density(TestParams& parms)
           }
       });
 
-
-  MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
   WriteSingleLevelPlotfile("plt00000", partMF, 
                            {"density", "vx", "vy", "vz"},

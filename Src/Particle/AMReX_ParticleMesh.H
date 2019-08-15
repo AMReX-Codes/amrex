@@ -90,9 +90,47 @@ ParticleToMesh(PC const& pc, MF& mf, int lev, F f)
 
 template <class PC, class MF, class F>
 void
-MeshToParticle(PC& pc, MF const& mf, int lev, F f)
+MeshToParticle(PC const& pc, MF& mf, int lev, F f)
 {
+    BL_PROFILE("amrex::MeshToParticle");
+
+    int ncomp = mf.nComp();
+    int ngrow = mf.nGrow();
     
+    MultiFab* mf_pointer = pc.OnSameGrids(lev, mf) ?
+        &mf : new MultiFab(pc.ParticleBoxArray(lev), 
+                           pc.ParticleDistributionMap(lev),
+                           ncomp, ngrow);
+
+    if (mf_pointer != &mf) mf.copy(*mf_pointer,0,0,ncomp,0,ngrow);
+        
+    const auto& plevel = pc.GetParticles(lev);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
+            if(plevel.find(index) == plevel.end()) continue;            
+            const auto& tile = plevel.at(index);
+            
+            const auto np = tile.numParticles();
+            if (np == 0) continue;
+            
+            const auto& aos = tile.GetArrayOfStructs();
+            const auto pstruct = aos().dataPtr();
+            
+            FArrayBox& fab = (*mf_pointer)[mfi];
+            auto fabarr = fab.array();
+            
+            AMREX_FOR_1D( np, i,
+            {
+                f(pstruct[i], fabarr);
+            });
+        }
+
+        if (mf_pointer != &mf) delete mf_pointer;
+    }    
 }
 
 
