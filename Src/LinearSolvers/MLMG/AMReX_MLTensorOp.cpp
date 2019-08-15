@@ -289,6 +289,7 @@ void
 MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
+#if (AMREX_SPACEDIM > 1)
     BL_PROFILE("MLTensorOp::compFlux()");
 
     const int mglev = 0;
@@ -360,6 +361,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 
         }
     }
+#endif
 }
 
 
