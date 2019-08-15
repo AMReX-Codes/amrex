@@ -7,8 +7,8 @@ using namespace amrex;
 
 static constexpr int NSR = 4;
 static constexpr int NSI = 3;
-static constexpr int NAR = 2;
-static constexpr int NAI = 1;
+static constexpr int NAR = 0;
+static constexpr int NAI = 0;
 
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
@@ -37,19 +37,9 @@ public:
         : amrex::ParticleContainer<NSR, NSI, NAR, NAI>(a_geom, a_dmap, a_ba)
     {}
 
-    void RedistributeLocal ()
-    {
-        const int lev_min = 0;
-        const int lev_max = 0;
-        const int nGrow = 0;
-        const int local = 1;
-        Redistribute(lev_min, lev_max, nGrow, local);
-    }
-
     void InitParticles (const amrex::IntVect& a_num_particles_per_cell)
     {
         BL_PROFILE("InitParticles");
-        
         const int lev = 0;   
         const Real* dx = Geom(lev).CellSize();
         const Real* plo = Geom(lev).ProbLo();
@@ -82,14 +72,14 @@ public:
                     p.pos(1) = y;
                     p.pos(2) = z;
                     
-                    for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
-                    for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
+                    for (int i = 0; i < NSR; ++i) p.rdata(i) = i;
+                    for (int i = 0; i < NSI; ++i) p.idata(i) = i;
                     
                     host_particles.push_back(p);
                     for (int i = 0; i < NAR; ++i)
-                        host_real[i].push_back(p.id());
+                        host_real[i].push_back(i);
                     for (int i = 0; i < NAI; ++i)
-                        host_int[i].push_back(p.id());
+                        host_int[i].push_back(i);
                 }
             }
         
@@ -119,89 +109,6 @@ public:
             }
         }
     }
-
-    void moveParticles (const IntVect& move_dir, int do_random)
-    {
-        BL_PROFILE("TestParticleContainer::moveParticles");
-
-        const int lev = 0;
-        const Geometry& geom = Geom(lev);
-        const auto dx = Geom(lev).CellSizeArray();
-        auto& plev  = GetParticles(lev);
-        
-        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-        {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();            
-            auto& ptile = plev[std::make_pair(gid, tid)];
-            auto& aos   = ptile.GetArrayOfStructs();
-            ParticleType* pstruct = &(aos[0]);            
-            const size_t np = aos.numParticles();
-
-            if (do_random == 0)
-            {
-                AMREX_FOR_1D ( np, i,
-                {
-                    ParticleType& p = pstruct[i];
-                    p.pos(0) += move_dir[0]*dx[0];
-                    p.pos(1) += move_dir[1]*dx[1];
-                    p.pos(2) += move_dir[2]*dx[2];
-                });
-            }
-            else
-            {
-                AMREX_FOR_1D ( np, i,
-                {
-                    ParticleType& p = pstruct[i];
-
-                    p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
-                    p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
-                    p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
-                });               
-            }            
-        }
-    }
-
-    void checkAnswer () const
-    {
-        BL_PROFILE("TestParticleContainer::checkAnswer");
-        
-        AMREX_ALWAYS_ASSERT(OK());
-        
-        const int lev = 0;
-        const Geometry& geom = Geom(lev);
-        const auto dx = Geom(lev).CellSizeArray();
-        auto& plev  = GetParticles(lev);
-        
-        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-        {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();            
-            auto& ptile = plev.at(std::make_pair(gid, tid));
-            const auto ptd = ptile.getConstParticleTileData();
-            const size_t np = ptile.numParticles();
-
-            AMREX_FOR_1D ( np, i,
-            {
-                for (int j = 0; j < NSR; ++j)
-                {
-                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].rdata(j) == ptd.m_aos[i].id());
-                }
-                for (int j = 0; j < NSI; ++j)
-                {
-                    AMREX_ALWAYS_ASSERT(ptd.m_aos[i].idata(j) == ptd.m_aos[i].id());
-                }
-                for (int j = 0; j < NAR; ++j)
-                {
-                    AMREX_ALWAYS_ASSERT(ptd.m_rdata[j][i] == ptd.m_aos[i].id());
-                }
-                for (int j = 0; j < NAI; ++j)
-                {
-                    AMREX_ALWAYS_ASSERT(ptd.m_idata[j][i] == ptd.m_aos[i].id());
-                }
-            });
-        }
-    }
 };
 
 struct TestParams
@@ -209,20 +116,16 @@ struct TestParams
     IntVect size;
     int max_grid_size;
     int num_ppc;
-    int is_periodic;
-    IntVect move_dir;
-    int do_random;
-    int nsteps;
 };
 
-void testRedistribute();
+void testReduce();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     amrex::Print() << "Running redistribute test \n";
-    testRedistribute();
+    testReduce();
 
     amrex::Finalize();
 }
@@ -233,17 +136,13 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("num_ppc", params.num_ppc);
-    pp.get("is_periodic", params.is_periodic);
-    pp.get("move_dir", params.move_dir);
-    pp.get("do_random", params.do_random);    
-    pp.get("nsteps", params.nsteps);
 }
 
-void testRedistribute ()
+void testReduce ()
 {
-    BL_PROFILE("testRedistribute");
+    BL_PROFILE("testReduce");
     TestParams params;
-    get_test_params(params, "redistribute");
+    get_test_params(params, "reduce");
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -259,7 +158,7 @@ void testRedistribute ()
     int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = params.is_periodic;
+        is_per[i] = 1;
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
@@ -276,10 +175,36 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
-    for (int i = 0; i < params.nsteps; ++i)
+    using PType = typename TestParticleContainer::ParticleType;
+    
+    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return -p.rdata(1); });
+    AMREX_ALWAYS_ASSERT(sm == -pc.TotalNumberOfParticles());
+
+    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    AMREX_ALWAYS_ASSERT(mn == 1);
+
+    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    AMREX_ALWAYS_ASSERT(mx == 1);
+
     {
-        pc.moveParticles(params.move_dir, params.do_random);
-        pc.RedistributeLocal();
-        pc.checkAnswer();
+        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == 1; });
+        AMREX_ALWAYS_ASSERT(r == 1);
     }
+
+    {
+        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == -1; });
+        AMREX_ALWAYS_ASSERT(r == 0);
+    }
+
+    {
+        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == p.id(); });
+        AMREX_ALWAYS_ASSERT(r == 1);
+    }
+
+    {
+        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == 1; });
+        AMREX_ALWAYS_ASSERT(r == 0);
+    }
+
+    amrex::Print() << "Passed! \n";
 }
