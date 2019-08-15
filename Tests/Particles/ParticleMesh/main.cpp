@@ -18,7 +18,7 @@ struct TestParams {
   bool verbose;
 };
 
-void test_assign_density(TestParams& parms)
+void testParticleMesh(TestParams& parms)
 {
 
   RealBox real_box;
@@ -48,7 +48,7 @@ void test_assign_density(TestParams& parms)
   MultiFab partMF(ba, dmap, 1 + BL_SPACEDIM, 1);
   partMF.setVal(0.0);
 
-  typedef ParticleContainer<1 + BL_SPACEDIM> MyParticleContainer;
+  typedef ParticleContainer<1 + 2*BL_SPACEDIM> MyParticleContainer;
   MyParticleContainer myPC(geom, dmap, ba);
   myPC.SetVerbose(false);
 
@@ -63,7 +63,7 @@ void test_assign_density(TestParams& parms)
   MyParticleContainer::ParticleInitData pdata = {mass, AMREX_D_DECL(1.0, 2.0, 3.0)};
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-  int nc = 4;
+  int nc = 1 + BL_SPACEDIM;
   const auto plo = geom.ProbLoArray();
   const auto dxi = geom.InvCellSizeArray();
   amrex::ParticleToMesh(myPC, partMF, 0,
@@ -107,7 +107,41 @@ void test_assign_density(TestParams& parms)
           }
       });
 
+  MultiFab acceleration(ba, dmap, BL_SPACEDIM, 1);
+  acceleration.setVal(5.0);
 
+  nc = BL_SPACEDIM;
+  amrex::MeshToParticle(myPC, acceleration, 0,
+      [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                            amrex::Array4<const amrex::Real> const& acc)
+      {
+          amrex::Real lx = (p.pos(0) - plo[0]) * dxi[0] + 0.5;
+          amrex::Real ly = (p.pos(1) - plo[1]) * dxi[1] + 0.5;
+          amrex::Real lz = (p.pos(2) - plo[2]) * dxi[2] + 0.5;
+
+          int i = std::floor(lx);
+          int j = std::floor(ly);
+          int k = std::floor(lz);
+
+          amrex::Real xint = lx - i;
+          amrex::Real yint = ly - j;
+          amrex::Real zint = lz - k;
+
+          amrex::Real sx[] = {1.-xint, xint};
+          amrex::Real sy[] = {1.-yint, yint};
+          amrex::Real sz[] = {1.-zint, zint};
+
+          for (int comp=0; comp < nc; ++comp) {                    
+              for (int kk = 0; kk <= 1; ++kk) { 
+                  for (int jj = 0; jj <= 1; ++jj) { 
+                      for (int ii = 0; ii <= 1; ++ii) {
+                          p.rdata(4+comp) = sx[ii]*sy[jj]*sz[kk]*acc(i+ii,j+jj,k+kk,comp);
+                      }
+                  }
+              }
+          }
+      });
+  
   WriteSingleLevelPlotfile("plt00000", partMF, 
                            {"density", "vx", "vy", "vz"},
                            geom, 0.0, 0);
@@ -142,7 +176,7 @@ int main(int argc, char* argv[])
     std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
   }
   
-  test_assign_density(parms);
+  testParticleMesh(parms);
   
   amrex::Finalize();
 }
