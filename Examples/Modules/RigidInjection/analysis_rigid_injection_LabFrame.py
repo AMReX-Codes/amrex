@@ -1,5 +1,18 @@
 #! /usr/bin/env python
 
+'''
+Analysis script of a WarpX simulation of rigid injection.
+
+A Gaussian electron beam starts from -5 microns, propagates rigidly up to
+20 microns after which it expands due to emittance only (the focal position is
+20 microns). The beam width is measured after ~50 microns, and compared with
+the theory (with a 5% error allowed).
+
+As a help to the user, the script also compares beam width to the theory in
+case rigid injection is OFF (i.e., the beam starts expanding from -5 microns),
+in which case a warning is raised.
+'''
+
 import sys
 import yt
 import numpy as np
@@ -51,5 +64,7 @@ if ( error_no_rigid < 0.05):
 wth = np.sqrt( w0**2 + (z-z0)**2*theta0**2 )
 error = np.abs((w-wth)/wth)
 # Print error and assert small error
+print("Beam position: " + str(z))
+print("Beam width   : " + str(w))
 print("error: " + str(error))
 assert( error < 0.05 )
