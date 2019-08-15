@@ -550,10 +550,7 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
         WarpX::moving_window_dir == AMREX_SPACEDIM-1,
         "Can use zmax_plasma_to_compute_max_step only if " +
         "moving window along z. TODO: all directions.");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        maxLevel() == 0,
-        "Can use zmax_plasma_to_compute_max_step only if " +
-        "max level = 0.");
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
         (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
@@ -574,7 +571,12 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
     const Real interaction_time_boost = (len_plasma_boost-zmin_domain_boost)/
         (moving_window_v-v_plasma_boost);
     // Divide by dt, and update value of max_step.
-    const int computed_max_step = interaction_time_boost/dt[0];
+    int computed_max_step;
+    if (do_subcycling){
+        computed_max_step = interaction_time_boost/dt[0];
+    } else {
+        computed_max_step = interaction_time_boost/dt[maxLevel()];
+    }
     max_step = computed_max_step;
     Print()<<"max_step computed in computeMaxStepBoostAccelerator: "
            <<computed_max_step<<std::endl;

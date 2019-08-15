@@ -40,6 +40,7 @@ RigidInjectedParticleContainer::WriteHeader (std::ostream& os) const
     // no need to write species_id
     os << charge << " " << mass << "\n";
     int nlevs = zinject_plane_levels.size();
+    /*
     os << nlevs << "\n";
     for (int i = 0; i < nlevs; ++i)
     {
@@ -49,6 +50,7 @@ RigidInjectedParticleContainer::WriteHeader (std::ostream& os) const
     {
         os << done_injecting[i] << "\n";
     }
+    */
 }
 
 void
