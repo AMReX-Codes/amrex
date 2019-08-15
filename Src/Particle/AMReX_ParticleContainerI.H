@@ -3783,12 +3783,8 @@ InterpolateSingleLevel (MultiFab& mesh_data, int lev)
 //
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (MultiFab&       acceleration,
-                                                                             int             lev,
-                                                                             Real            dt,
-                                                                             Real            a_new,
-                                                                             Real            a_half, 
-                                                                             int             start_comp_for_accel)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::moveKick (MultiFab& acceleration, int lev, Real dt, Real a_new, Real a_half, int start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NStructReal >= AMREX_SPACEDIM+1);
