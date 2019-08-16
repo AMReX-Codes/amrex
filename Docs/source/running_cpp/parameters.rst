@@ -308,7 +308,7 @@ Particle initialization
       following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}`
       :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
-* ``<species_name>.do_backward_injection`` (`bool`)
+* ``<species_name>.do_backward_propagation`` (`bool`)
     Inject a backward-propagating beam to reduce the effect of charge-separation
     fields when running in the boosted frame. See examples.
 
