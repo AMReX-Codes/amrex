@@ -421,7 +421,7 @@ WarpX::GetCellCenteredData() {
     // imaginary part of mode 0 for code symmetry, even though
     // it is always zero.
     int modes_factor = 1;
-    if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes + 1;
+    // if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes + 1;
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
