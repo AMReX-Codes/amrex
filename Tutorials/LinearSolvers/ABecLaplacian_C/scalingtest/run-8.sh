@@ -5,7 +5,7 @@
 #BSUB -J amrex
 #BSUB -o amrexo.%J
 #BSUB -e amrexe.%J
-module load pgi
+module load gcc 
 module load cuda
 module list
 set -x

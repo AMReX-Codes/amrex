@@ -221,6 +221,8 @@ public:
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+    FArrayBox (const Box& b, int ncomp, Real const* p) noexcept;
+
     FArrayBox (const Box& b, int ncomp, Real* p) noexcept;
 
     AMREX_GPU_HOST_DEVICE
