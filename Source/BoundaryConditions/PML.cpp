@@ -319,11 +319,12 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 #ifdef WARPX_USE_PSATD
           Real dt, int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
 #endif
-          int do_dive_cleaning, int do_moving_window)
+          int do_dive_cleaning, int do_moving_window,
+          const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
-    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
+    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell, do_pml_Lo, do_pml_Hi);
     if (ba.size() == 0) {
         m_ok = false;
         return;
@@ -399,7 +400,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
-        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell);
+        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_Lo, do_pml_Hi);
 
         DistributionMapping cdm{cba};
 
@@ -438,12 +439,18 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 }
 
 BoxArray
-PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
+PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell,
+                   const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     Box domain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
-            domain.grow(idim, ncell);
+            if (do_pml_Lo[idim]){
+                domain.growLo(idim, ncell);
+            }
+            if (do_pml_Hi[idim]){
+                domain.growHi(idim, ncell);
+            }
         }
     }
 

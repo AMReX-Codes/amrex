@@ -19,7 +19,7 @@ geometry.prob_hi     =  128.e-6     0.96e-6
 #################################
 warpx.verbose = 1
 amrex.v = 1
-algo.current_deposition = direct
+algo.current_deposition = esirkepov
 algo.charge_deposition = standard
 algo.field_gathering = standard
 algo.particle_pusher = vay
