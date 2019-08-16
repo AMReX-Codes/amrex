@@ -53,7 +53,6 @@ public:
                       amrex::FArrayBox const * byfab,
                       amrex::FArrayBox const * bzfab,
                       const int ngE, const int e_is_nodal,
-                      const long n_rz_azimuthal_modes,
                       const long offset,
                       const long np_to_gather,
                       int thread_num,
