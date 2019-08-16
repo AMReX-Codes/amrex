@@ -603,6 +603,8 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     Array4<Real> const& rho_arr = local_rho[thread_num].array();
 #endif
+    // GPU, no tiling: deposit directly in rho
+    // CPU, tiling: deposit into local_rho
 
     Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
     Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
