@@ -124,7 +124,7 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
-    amrex::Print() << "Running redistribute test \n";
+    amrex::Print() << "Running particle reduction test \n";
     testReduce();
 
     amrex::Finalize();
