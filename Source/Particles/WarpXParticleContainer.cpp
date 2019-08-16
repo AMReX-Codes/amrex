@@ -511,17 +511,17 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
             doEsirkepovDepositionShapeN<1>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
                                            uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
                                            jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+                                           xyzmin, lo, q, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doEsirkepovDepositionShapeN<2>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
                                            uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
                                            jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+                                           xyzmin, lo, q, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doEsirkepovDepositionShapeN<3>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
                                            uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
                                            jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+                                           xyzmin, lo, q, WarpX::n_rz_azimuthal_modes);
         }
     } else {
         if        (WarpX::nox == 1){

@@ -2,6 +2,7 @@
 #define CURRENTDEPOSITION_H_
 
 #include "ShapeFactors.H"
+#include <WarpX_Complex.H>
 
 /* \brief Current Deposition for thread thread_num
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
@@ -187,7 +188,8 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                   const std::array<amrex::Real,3>& dx,
                                   const std::array<amrex::Real, 3> xyzmin,
                                   const amrex::Dim3 lo,
-                                  const amrex::Real q)
+                                  const amrex::Real q,
+                                  const long n_rz_azimuthal_modes)
 {
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dtsdx0 = dt*dxi;
@@ -209,6 +211,10 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
     const amrex::Real invdtdx = 1.0/(dt*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]);
     const amrex::Real invvol = 1.0/(dx[0]*dx[2]);
+#endif
+
+#if (defined WARPX_DIM_RZ)
+    const Complex I = Complex{0., 1.};
 #endif
 
     const amrex::Real clightsq = 1.0/PhysConst::c/PhysConst::c;
@@ -233,11 +239,42 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
 
             // computes current and old position in grid units
 #if (defined WARPX_DIM_RZ)
-            const amrex::Real r_new = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
-            const amrex::Real r_old = std::sqrt((xp[ip] - dt*uxp[ip]*gaminv)*(xp[ip] - dt*uxp[ip]*gaminv) +
-                                                (yp[ip] - dt*uyp[ip]*gaminv)*(yp[ip] - dt*uyp[ip]*gaminv));
-            const amrex::Real x_new = (r_new - xmin)*dxi;
-            const amrex::Real x_old = (r_old - xmin)*dxi;
+            const amrex::Real xp_mid = xp[ip] - 0.5*dt*uxp[ip]*gaminv;
+            const amrex::Real yp_mid = yp[ip] - 0.5*dt*uyp[ip]*gaminv;
+            const amrex::Real xp_old = xp[ip] - dt*uxp[ip]*gaminv;
+            const amrex::Real yp_old = yp[ip] - dt*uyp[ip]*gaminv;
+            const amrex::Real rp_new = std::sqrt(xp[ip]*xp[ip] + yp[ip]*yp[ip]);
+            const amrex::Real rp_mid = std::sqrt(xp_mid*xp_mid + yp_mid*yp_mid);
+            const amrex::Real rp_old = std::sqrt(xp_old*xp_old + yp_old*yp_old);
+            amrex::Real costheta_new, sintheta_new;
+            if (rp_new > 0.) {
+                costheta_new = xp[ip]/rp_new;
+                sintheta_new = yp[ip]/rp_new;
+            } else {
+                costheta_new = 1.;
+                sintheta_new = 0.;
+            }
+            amrex::Real costheta_mid, sintheta_mid;
+            if (rp_mid > 0.) {
+                costheta_mid = xp_mid/rp_mid;
+                sintheta_mid = yp_mid/rp_mid;
+            } else {
+                costheta_mid = 1.;
+                sintheta_mid = 0.;
+            }
+            amrex::Real costheta_old, sintheta_old;
+            if (rp_old > 0.) {
+                costheta_old = xp_old/rp_old;
+                sintheta_old = yp_old/rp_old;
+            } else {
+                costheta_old = 1.;
+                sintheta_old = 0.;
+            }
+            const Complex xy_new0 = Complex{costheta_new, sintheta_new};
+            const Complex xy_mid0 = Complex{costheta_mid, sintheta_mid};
+            const Complex xy_old0 = Complex{costheta_old, sintheta_old};
+            const amrex::Real x_new = (rp_new - xmin)*dxi;
+            const amrex::Real x_old = (rp_old - xmin)*dxi;
 #else
             const amrex::Real x_new = (xp[ip] - xmin)*dxi;
             const amrex::Real x_old = x_new - dtsdx0*uxp[ip]*gaminv;
@@ -250,16 +287,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             const amrex::Real z_old = z_new - dtsdz0*uzp[ip]*gaminv;
 
 #if (defined WARPX_DIM_RZ)
-            amrex::Real costheta;
-            amrex::Real sintheta;
-            if (r_new > 0.) {
-                costheta = xp[ip]/r_new;
-                sintheta = yp[ip]/r_new;
-            } else {
-                costheta = 1.;
-                sintheta = 0.;
-            }
-            const amrex::Real vy = (-uxp[ip]*sintheta + uyp[ip]*costheta)*gaminv;
+            const amrex::Real vy = (-uxp[ip]*sintheta_mid + uyp[ip]*costheta_mid)*gaminv;
 #elif (defined WARPX_DIM_2D)
             const amrex::Real vy = uyp[ip]*gaminv;
 #endif
@@ -341,24 +369,60 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                 amrex::Real sdxi = 0.;
                 for (int i=dil; i<=depos_order+1-diu; i++) {
                     sdxi += wqx*(sx_old[i] - sx_new[i])*(sz_new[k] + 0.5*(sz_old[k] - sz_new[k]));
-                    amrex::Gpu::Atomic::Add( &Jx_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdxi);
+                    amrex::Gpu::Atomic::Add( &Jx_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 0), sdxi);
+#if (defined WARPX_DIM_RZ)
+                    Complex xy_mid = xy_mid0; // Throughout the following loop, xy_mid takes the value e^{i m theta}
+                    for (int imode=1 ; imode < n_rz_azimuthal_modes ; imode++) {
+                        // The factor 2 comes from the normalization of the modes
+                        const Complex djr_cmplx = 2.*sdxi*xy_mid;
+                        amrex::Gpu::Atomic::Add( &Jx_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode), djr_cmplx.real());
+                        amrex::Gpu::Atomic::Add( &Jx_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode+1), djr_cmplx.imag());
+                        xy_mid = xy_mid*xy_mid0;
+                    }
+#endif
                 }
             }
             for (int k=dkl; k<=depos_order+2-dku; k++) {
                 for (int i=dil; i<=depos_order+2-diu; i++) {
                     const amrex::Real sdyj = wq*vy*invvol*((sz_new[k] + 0.5*(sz_old[k] - sz_new[k]))*sx_new[i] +
                                                            (0.5*sz_new[k] + 1./3.*(sz_old[k] - sz_new[k]))*(sx_old[i] - sx_new[i]));
-                    amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdyj);
+                    amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 0), sdyj);
+#if (defined WARPX_DIM_RZ)
+                    Complex xy_new = xy_new0;
+                    Complex xy_mid = xy_mid0;
+                    Complex xy_old = xy_old0;
+                    // Throughout the following loop, xy_ takes the value e^{i m theta_}
+                    for (int imode=1 ; imode < n_rz_azimuthal_modes ; imode++) {
+                        // The factor 2 comes from the normalization of the modes
+                        // The minus sign comes from the different convention with respect to Davidson et al.
+                        const Complex djt_cmplx = -2.*I*(i + xmin*dxi)*wq*invdtdx/(double)imode* 
+                                                  (sx_new[i]*sz_new[k]*(xy_new - xy_mid) + sx_old[i]*sz_old[k]*(xy_mid - xy_old));
+                        amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode), djt_cmplx.real());
+                        amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode+1), djt_cmplx.imag());
+                        xy_new = xy_new*xy_new0;
+                        xy_mid = xy_mid*xy_mid0;
+                        xy_old = xy_old*xy_old0;
+                    }
+#endif
                 }
             }
             for (int i=dil; i<=depos_order+2-diu; i++) {
                 amrex::Real sdzk = 0.;
                 for (int k=dkl; k<=depos_order+1-dku; k++) {
                     sdzk += wqz*(sz_old[k] - sz_new[k])*(sx_new[i] + 0.5*(sx_old[i] - sx_new[i]));
-                    amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0), sdzk);
+                    amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 0), sdzk);
+#if (defined WARPX_DIM_RZ)
+                    Complex xy_mid = xy_mid0; // Throughout the following loop, xy_mid takes the value e^{i m theta}
+                    for (int imode=1 ; imode < n_rz_azimuthal_modes ; imode++) {
+                        // The factor 2 comes from the normalization of the modes
+                        const Complex djz_cmplx = 2.*sdzk*xy_mid;
+                        amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode), djz_cmplx.real());
+                        amrex::Gpu::Atomic::Add( &Jz_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode+1), djz_cmplx.imag());
+                        xy_mid = xy_mid*xy_mid0;
+                    }
+#endif
                 }
             }
-
 
 #endif
         }
