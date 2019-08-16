@@ -340,7 +340,7 @@ WarpX::ReadParameters ()
         Real dz_snapshots_lab = 0;
         snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
         if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
-            dt_snapshots_lab = dz_snapshots_lab/moving_window_v;
+            dt_snapshots_lab = dz_snapshots_lab/PhysConst::c;
             snapshot_interval_is_specified = 1;
         }
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
