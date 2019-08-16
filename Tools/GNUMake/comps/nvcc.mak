@@ -70,6 +70,8 @@ ifneq ($(USE_CUDA_FAST_MATH),FALSE)
   NVCC_FLAGS += --use_fast_math
 endif
 
+NVCC_FLAGS += $(XTRA_NVCC_FLAGS)
+
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
