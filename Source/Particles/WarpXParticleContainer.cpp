@@ -586,7 +586,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     
     tilebox.grow(ngRho);
 
-    const int nc = (rhomf->nComp() == 1 ? 1 : rhomf->nComp()/2);
+    const int nc = (rho->nComp() == 1 ? 1 : rho->nComp()/2);
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: rho_arr points to the full rho array.
