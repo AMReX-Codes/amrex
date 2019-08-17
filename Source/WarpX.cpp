@@ -891,6 +891,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
+        if (fft_hybrid_mpi_decomposition == false){
+            // Allocate and initialize the spectral solver
+            std::array<Real,3> cdx = CellSize(lev-1);
+    #if (AMREX_SPACEDIM == 3)
+            RealVect cdx_vect(cdx[0], cdx[1], cdx[2]);
+    #elif (AMREX_SPACEDIM == 2)
+            RealVect cdx_vect(cdx[0], cdx[2]);
+    #endif
+            // Get the cell-centered box, with guard cells
+            BoxArray realspace_ba = cba;  // Copy box
+            realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+            // Define spectral solver
+            spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
+                nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
+        }
 #endif
     }
 
@@ -922,7 +937,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-            if (do_dive_cleaning || plot_rho) {
+            if (rho_cp[lev]) {
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
