@@ -1,3 +1,0 @@
-CEXE_sources += $(addsuffix .cpp, $(EBASE))
-FEXE_headers += AVGDOWN_F.H
-FEXE_sources += AVGDOWN_$(DIM)D.F
