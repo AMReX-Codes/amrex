@@ -31,6 +31,7 @@ using std::ios;
 using namespace amrex;
 using std::setw;
 using std::setprecision;
+using std::setfill;
 
 static
 void
@@ -56,6 +57,7 @@ PrintUsage (const char* progName)
   std::cout << "    mediError = medium error file (optional output)" << '\n';
   std::cout << "    coarError = coarse error file (optional output)" << '\n';
   std::cout << "   [-help]" << '\n';
+  std::cout << "   [-latex]" << '\n';
   std::cout << "   [-verbose]" << '\n';
   std::cout << '\n';
   exit(1);
@@ -434,6 +436,10 @@ main (int   argc,
   if (pp.contains("verbose"))
     verbose = true;
 
+  bool latex = false;
+  if (pp.contains("latex"))
+    latex = true;
+
   FArrayBox::setFormat(FABio::FAB_IEEE_32);
   //
   // Scan the arguments.
@@ -468,11 +474,14 @@ main (int   argc,
     int ncompMedi = normsMedi.size();
     int ncompCoar = normsCoar.size();
     int ncomp = std::min(ncompMedi, ncompCoar);
-    amrex::Print() << "\\begin{table}[p]" << std::endl;
-    amrex::Print() << "\\begin{center}" << std::endl;
-    amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << std::endl;
-    amrex::Print() << "Variable & $e_{4h \\rightarrow 2h}$ & Order & $e_{2h \\rightarrow h}$\\\\" << std::endl;;
-    amrex::Print() << "\\hline " << std::endl;
+
+    if (latex) {
+      amrex::Print() << "\\begin{table}[p]" << std::endl;
+      amrex::Print() << "\\begin{center}" << std::endl;
+      amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << std::endl;
+      amrex::Print() << "Variable & $e_{4h \\rightarrow 2h}$ & Order & $e_{2h \\rightarrow h}$\\\\" << std::endl;;
+      amrex::Print() << "\\hline " << std::endl;
+    }
 
     for (int icomp = 0; icomp < ncomp; icomp++)
     {
@@ -486,48 +495,78 @@ main (int   argc,
         printOrder = true;
       }
 
-      amrex::Print() << namesMedi[icomp] << "&    \t ";
-      amrex::Print() << setw(12)
+      amrex::Print() << setw(24) << namesMedi[icomp];
+      if (latex) {
+        amrex::Print() << "&    \t ";
+      } else {
+        amrex::Print() << "        ";
+      }
+      amrex::Print() << setw(12) << std::right << setfill('0')
                      << setprecision(6)
                      << setiosflags(ios::showpoint)
                      << setiosflags(ios::scientific)
-                     << normsCoar[icomp]  << " & ";
+                     << normsCoar[icomp];
+      if (latex) {
+        amrex::Print() << " & ";
+      } else {
+        amrex::Print() << "   ";
+      }
+
       if(printOrder)
       {
-        amrex::Print()      << setw(12)
+        amrex::Print()      << setw(12) << std::right << setfill('0')
                             << setprecision(3)
                             << setiosflags(ios::showpoint)
                             << setiosflags(ios::scientific);
-        amrex::Print()  << order << " & ";
+        amrex::Print() << setfill(' ') << order;
+        if (latex) {
+          amrex::Print() << " & ";
+        } else {
+          amrex::Print() << "   ";
+        }
       }
       else
       {
-        amrex::Print() << "------------ &";
+        amrex::Print() << "------------ ";
+        if (latex) {
+          amrex::Print() << "& ";
+        } else {
+          amrex::Print() << "  ";
+        }
       }
 
-      amrex::Print() << setw(12)
+      amrex::Print() << setw(12) << std::right << setfill('0')
                      << setprecision(6)
                      << setiosflags(ios::showpoint)
                      << setiosflags(ios::scientific)
                      << normsMedi[icomp];
-      amrex::Print() << " \\\\ " << std::endl;
+      if (latex) {
+        amrex::Print() << " \\\\ " << std::endl;
+      } else {
+        amrex::Print() << std::endl;
+      }
 
     }
-    amrex::Print() << "\\hline " << std::endl;
-    amrex::Print() << "\\end{tabular}" << std::endl;
-    amrex::Print() << "\\end{center}" << std::endl;
-    amrex::Print() << "\\caption{Solution error convergence rates using $L_";
-    if(inorm == 0)
-    {
-      amrex::Print() <<"\\infty$ norm." << std::endl;;
+
+    if (latex) {
+      amrex::Print() << "\\hline " << std::endl;
+      amrex::Print() << "\\end{tabular}" << std::endl;
+      amrex::Print() << "\\end{center}" << std::endl;
+      amrex::Print() << "\\caption{Solution error convergence rates using $L_";
+
+      if(inorm == 0)
+        {
+          amrex::Print() <<"\\infty$ norm." << std::endl;;
+        }
+      else
+        {
+          amrex::Print() << inorm << "$ norm.";
+        }
+      amrex::Print() << "}" << std::endl;
+      amrex::Print() << "\\end{table}" << std::endl;
+      amrex::Print() << std::endl << std::endl;
     }
-    else
-    {
-      amrex::Print() << inorm << "$ norm.";
-    }
-    amrex::Print() << "}" << std::endl;
-    amrex::Print() << "\\end{table}" << std::endl;
-    amrex::Print() << std::endl << std::endl;
+
   }
 
 
