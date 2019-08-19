@@ -1065,6 +1065,7 @@ public:
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParIterI.H"
+#include "AMReX_ParticleIO.H"
 
 }
 
