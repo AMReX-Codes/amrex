@@ -27,6 +27,8 @@ warpx.verbose = 1
 
 # Algorithms
 algo.field_gathering = standard
+algo.current_deposition = esirkepov
+algo.use_picsar_deposition = 0
 
 # Interpolation
 interpolation.nox = 1

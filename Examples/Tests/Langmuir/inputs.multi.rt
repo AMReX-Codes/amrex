@@ -58,7 +58,7 @@ electrons.ymin = -20.e-6
 electrons.ymax = 20.e-6
 electrons.zmin = -20.e-6
 electrons.zmax = 20.e-6
-electrons.plot_vars = w ux Bz Ey
+electrons.plot_vars = w ux Ey
 
 electrons.profile = constant
 electrons.density = 2.e24   # number of electrons per m^3
@@ -77,7 +77,7 @@ positrons.ymin = -20.e-6
 positrons.ymax = 20.e-6
 positrons.zmin = -20.e-6
 positrons.zmax = 20.e-6
-positrons.plot_vars = w ux Bz Ey
+positrons.plot_vars = w ux Ey
 
 positrons.profile = constant
 positrons.density = 2.e24   # number of positrons per m^3

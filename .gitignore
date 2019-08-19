@@ -1,6 +1,3 @@
-.DS_Store
-plt*
-chk*
 main?d.*.ex
 d/
 f/
@@ -11,3 +8,32 @@ Backtrace.*
 *.vth
 *.sw[opqrs]
 
+####################
+# AMReX data files #
+####################
+plt*
+chk*
+
+##########
+# Python #
+##########
+*.pyc
+__pycache__
+
+#######
+# IDE #
+#######
+.idea/
+cmake-build-*/
+.kdev?/
+*.kdev?
+
+# File-based project format:
+*.iws
+
+######
+# OS #
+######
+.DS_Store
+.AppleDouble
+.LSOverride

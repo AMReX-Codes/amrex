@@ -30,6 +30,7 @@ Vector<Real> WarpX::B_external(3, 0.0);
 
 int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
+Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
@@ -334,7 +335,19 @@ WarpX::ReadParameters ()
                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
         pp.get("num_snapshots_lab", num_snapshots_lab);
-        pp.get("dt_snapshots_lab", dt_snapshots_lab);
+
+        // Read either dz_snapshots_lab or dt_snapshots_lab
+        bool snapshot_interval_is_specified = 0;
+        Real dz_snapshots_lab = 0;
+        snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
+        if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
+            dt_snapshots_lab = dz_snapshots_lab/PhysConst::c;
+            snapshot_interval_is_specified = 1;
+        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            snapshot_interval_is_specified,
+            "When using back-transformed diagnostics, user should specify either dz_snapshots_lab or dt_snapshots_lab.");
+
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
@@ -383,6 +396,22 @@ WarpX::ReadParameters ()
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
 
+        Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Lo", parse_do_pml_Lo);
+        do_pml_Lo[0] = parse_do_pml_Lo[0];
+        do_pml_Lo[1] = parse_do_pml_Lo[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Lo[2] = parse_do_pml_Lo[2];
+#endif
+        Vector<int> parse_do_pml_Hi(AMREX_SPACEDIM,1);
+        pp.queryarr("do_pml_Hi", parse_do_pml_Hi);
+        do_pml_Hi[0] = parse_do_pml_Hi[0];
+        do_pml_Hi[1] = parse_do_pml_Hi[1];
+#if (AMREX_SPACEDIM == 3)
+        do_pml_Hi[2] = parse_do_pml_Hi[2];
+#endif
+
+
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
@@ -393,7 +422,7 @@ WarpX::ReadParameters ()
         if (not user_fields_to_plot){
             // If not specified, set default values
             fields_to_plot = {"Ex", "Ey", "Ez", "Bx", "By",
-                              "Bz", "jx", "jy", "jz", 
+                              "Bz", "jx", "jy", "jz",
                               "part_per_cell"};
         }
         // set plot_rho to true of the users requests it, so that
@@ -411,9 +440,9 @@ WarpX::ReadParameters ()
         // If user requests to plot proc_number for a serial run,
         // delete proc_number from fields_to_plot
         if (ParallelDescriptor::NProcs() == 1){
-            fields_to_plot.erase(std::remove(fields_to_plot.begin(), 
-                                             fields_to_plot.end(), 
-                                             "proc_number"), 
+            fields_to_plot.erase(std::remove(fields_to_plot.begin(),
+                                             fields_to_plot.end(),
+                                             "proc_number"),
                                  fields_to_plot.end());
         }
 
@@ -497,11 +526,9 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("algo");
         // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // In RZ mode, use_picsar_deposition is on, as the C++ version
         // of the deposition does not support RZ
-#ifndef WARPX_RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
-#endif
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
@@ -876,6 +903,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
+        if (fft_hybrid_mpi_decomposition == false){
+            // Allocate and initialize the spectral solver
+            std::array<Real,3> cdx = CellSize(lev-1);
+    #if (AMREX_SPACEDIM == 3)
+            RealVect cdx_vect(cdx[0], cdx[1], cdx[2]);
+    #elif (AMREX_SPACEDIM == 2)
+            RealVect cdx_vect(cdx[0], cdx[2]);
+    #endif
+            // Get the cell-centered box, with guard cells
+            BoxArray realspace_ba = cba;  // Copy box
+            realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+            // Define spectral solver
+            spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
+                nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
+        }
 #endif
     }
 
@@ -907,7 +949,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-            if (do_dive_cleaning || plot_rho) {
+            if (rho_cp[lev]) {
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
@@ -995,7 +1037,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1014,7 +1056,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1029,7 +1071,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1048,7 +1090,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedivb(i, j, k, dcomp, divBfab, Bxfab, Byfab, Bzfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1063,7 +1105,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1082,7 +1124,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );
@@ -1097,7 +1139,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 {
     Real dxinv = 1./dx[0], dyinv = 1./dx[1], dzinv = 1./dx[2];
 
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
     const Real rmin = GetInstance().Geom(0).ProbLo(0);
 #endif
 
@@ -1116,7 +1158,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             warpx_computedive(i, j, k, dcomp, divEfab, Exfab, Eyfab, Ezfab, dxinv, dyinv, dzinv
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
                               ,rmin
 #endif
                               );

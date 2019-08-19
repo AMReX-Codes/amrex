@@ -152,12 +152,12 @@ public:
     BilinearFilter bilinear_filter;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
-    
+
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
     amrex::Vector<int> mirror_z_npoints;
-    
+
     void applyMirrors(amrex::Real time);
 
     void ComputeDt ();
@@ -177,6 +177,16 @@ public:
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
+
+#ifdef WARPX_DIM_RZ
+    void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
+                                                   amrex::MultiFab* Jy,
+                                                   amrex::MultiFab* Jz,
+                                                   int lev);
+
+    void ApplyInverseVolumeScalingToChargeDensity(amrex::MultiFab* Rho,
+                                                  int lev);
+#endif
 
     void DampPML ();
     void DampPML (int lev);
@@ -247,6 +257,7 @@ public:
 
     static int do_moving_window;
     static int moving_window_dir;
+    static amrex::Real moving_window_v;
 
     // slice generation //
     void InitializeSliceMultiFabs ();
@@ -489,17 +500,18 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
+    amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector();
+    amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector();
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
-    amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
     int warpx_do_continuous_injection = 0;
     int num_injected_species = -1;
     amrex::Vector<int> injected_plasma_species;
-    
+
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;

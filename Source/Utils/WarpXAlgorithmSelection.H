@@ -34,11 +34,9 @@ struct CurrentDepositionAlgo {
 };
 
 struct ChargeDepositionAlgo {
-    // These numbers corresponds to the algorithm code in WarpX's
-    // `warpx_charge_deposition` function
+    // Only the Standard algorithm is implemented
     enum {
-         Vectorized = 0,
-         Standard = 1
+         Standard = 0
     };
 };
 

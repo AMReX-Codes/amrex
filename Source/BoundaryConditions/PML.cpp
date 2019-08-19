@@ -258,14 +258,7 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
     {
         for (int i = 0, N = sigma_star[idim].size(); i < N; ++i)
         {
-            if (sigma_star[idim][i] == 0.0)
-            {
-                sigma_star_fac[idim][i] = 1.0;
-            }
-            else
-            {
-                sigma_star_fac[idim][i] = std::exp(-sigma_star[idim][i]*dt);
-            }
+            sigma_star_fac[idim][i] = std::exp(-sigma_star[idim][i]*dt);
         }
     }
 }
@@ -277,14 +270,7 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
     {
         for (int i = 0, N = sigma[idim].size(); i < N; ++i)
         {
-            if (sigma[idim][i] == 0.0)
-            {
-                sigma_fac[idim][i] = 1.0;
-            }
-            else
-            {
-                sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
-            }
+            sigma_fac[idim][i] = std::exp(-sigma[idim][i]*dt);
         }
     }
 }
@@ -329,11 +315,16 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window)
+          int ncell, int delta, int ref_ratio,
+#ifdef WARPX_USE_PSATD
+          Real dt, int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
+#endif
+          int do_dive_cleaning, int do_moving_window,
+          const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
-    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
+    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell, do_pml_Lo, do_pml_Hi);
     if (ba.size() == 0) {
         m_ok = false;
         return;
@@ -343,10 +334,30 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     DistributionMapping dm{ba};
 
-    int nge = 2;
-    int ngb = 2;
-    int ngf = (do_moving_window) ? 2 : 0;
-    if (WarpX::maxwell_fdtd_solver_id == 1) ngf = std::max( ngf, 1 );
+    // Define the number of guard cells in each direction, for E, B, and F
+    IntVect nge = IntVect(AMREX_D_DECL(2, 2, 2));
+    IntVect ngb = IntVect(AMREX_D_DECL(2, 2, 2));
+    int ngf_int = (do_moving_window) ? 2 : 0;
+    if (WarpX::maxwell_fdtd_solver_id == 1) ngf_int = std::max( ngf_int, 1 );
+    IntVect ngf = IntVect(AMREX_D_DECL(ngf_int, ngf_int, ngf_int));
+#ifdef WARPX_USE_PSATD
+    // Increase the number of guard cells, in order to fit the extent
+    // of the stencil for the spectral solver
+    IntVect ngFFT;
+    if (do_nodal) {
+        ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
+    } else {
+        ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
+    }
+    // Set the number of guard cells to the maximum of each field
+    // (all fields should have the same number of guard cells)
+    ngFFT = ngFFT.max(nge);
+    ngFFT = ngFFT.max(ngb);
+    ngFFT = ngFFT.max(ngf);
+    nge = ngFFT;
+    ngb = ngFFT;
+    ngf = ngFFT;
+ #endif
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 3, nge));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 3, nge));
@@ -370,15 +381,26 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell, delta));
 
+#ifdef WARPX_USE_PSATD
+    const bool in_pml = true; // Tells spectral solver to use split-PML equations
+    const RealVect dx{AMREX_D_DECL(geom->CellSize(0), geom->CellSize(1), geom->CellSize(2))};
+    // Get the cell-centered box, with guard cells
+    BoxArray realspace_ba = ba;  // Copy box
+    realspace_ba.enclosedCells().grow(nge); // cell-centered + guard cells
+    spectral_solver_fp.reset( new SpectralSolver( realspace_ba, dm,
+        nox_fft, noy_fft, noz_fft, do_nodal, dx, dt, in_pml ) );
+#endif
+
     if (cgeom)
     {
-
-        nge = 1;
-        ngb = 1;
+#ifndef WARPX_USE_PSATD
+        nge = IntVect(AMREX_D_DECL(1, 1, 1));
+        ngb = IntVect(AMREX_D_DECL(1, 1, 1));
+#endif
 
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
-        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell);
+        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_Lo, do_pml_Hi);
 
         DistributionMapping cdm{cba};
 
@@ -403,17 +425,32 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         }
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
-    }
 
+#ifdef WARPX_USE_PSATD
+        const bool in_pml = true; // Tells spectral solver to use split-PML equations
+        const RealVect cdx{AMREX_D_DECL(cgeom->CellSize(0), cgeom->CellSize(1), cgeom->CellSize(2))};
+        // Get the cell-centered box, with guard cells
+        BoxArray realspace_cba = cba;  // Copy box
+        realspace_cba.enclosedCells().grow(nge); // cell-centered + guard cells
+        spectral_solver_cp.reset( new SpectralSolver( realspace_cba, cdm,
+            nox_fft, noy_fft, noz_fft, do_nodal, cdx, dt, in_pml ) );
+#endif
+    }
 }
 
 BoxArray
-PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
+PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell,
+                   const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     Box domain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
-            domain.grow(idim, ncell);
+            if (do_pml_Lo[idim]){
+                domain.growLo(idim, ncell);
+            }
+            if (do_pml_Hi[idim]){
+                domain.growHi(idim, ncell);
+            }
         }
     }
 
@@ -753,3 +790,57 @@ PML::Restart (const std::string& dir)
         VisMF::Read(*pml_B_cp[2], dir+"_Bz_cp");
     }
 }
+
+#ifdef WARPX_USE_PSATD
+void
+PML::PushPSATD () {
+
+    // Update the fields on the fine and coarse patch
+    PushPMLPSATDSinglePatch( *spectral_solver_fp, pml_E_fp, pml_B_fp );
+    if (spectral_solver_cp) {
+        PushPMLPSATDSinglePatch( *spectral_solver_cp, pml_E_cp, pml_B_cp );
+    }
+}
+
+void
+PushPMLPSATDSinglePatch (
+    SpectralSolver& solver,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_E,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_B ) {
+
+    using Idx = SpectralPMLIndex;
+
+    // Perform forward Fourier transform
+    // Note: the correspondance between the spectral PML index
+    // (Exy, Ezx, etc.) and the component (0 or 1) of the
+    // MultiFabs (e.g. pml_E) is dictated by the
+    // function that damps the PML
+    solver.ForwardTransform(*pml_E[0], Idx::Exy, 0);
+    solver.ForwardTransform(*pml_E[0], Idx::Exz, 1);
+    solver.ForwardTransform(*pml_E[1], Idx::Eyz, 0);
+    solver.ForwardTransform(*pml_E[1], Idx::Eyx, 1);
+    solver.ForwardTransform(*pml_E[2], Idx::Ezx, 0);
+    solver.ForwardTransform(*pml_E[2], Idx::Ezy, 1);
+    solver.ForwardTransform(*pml_B[0], Idx::Bxy, 0);
+    solver.ForwardTransform(*pml_B[0], Idx::Bxz, 1);
+    solver.ForwardTransform(*pml_B[1], Idx::Byz, 0);
+    solver.ForwardTransform(*pml_B[1], Idx::Byx, 1);
+    solver.ForwardTransform(*pml_B[2], Idx::Bzx, 0);
+    solver.ForwardTransform(*pml_B[2], Idx::Bzy, 1);
+    // Advance fields in spectral space
+    solver.pushSpectralFields();
+    // Perform backward Fourier Transform
+    solver.BackwardTransform(*pml_E[0], Idx::Exy, 0);
+    solver.BackwardTransform(*pml_E[0], Idx::Exz, 1);
+    solver.BackwardTransform(*pml_E[1], Idx::Eyz, 0);
+    solver.BackwardTransform(*pml_E[1], Idx::Eyx, 1);
+    solver.BackwardTransform(*pml_E[2], Idx::Ezx, 0);
+    solver.BackwardTransform(*pml_E[2], Idx::Ezy, 1);
+    solver.BackwardTransform(*pml_B[0], Idx::Bxy, 0);
+    solver.BackwardTransform(*pml_B[0], Idx::Bxz, 1);
+    solver.BackwardTransform(*pml_B[1], Idx::Byz, 0);
+    solver.BackwardTransform(*pml_B[1], Idx::Byx, 1);
+    solver.BackwardTransform(*pml_B[2], Idx::Bzx, 0);
+    solver.BackwardTransform(*pml_B[2], Idx::Bzy, 1);
+}
+#endif

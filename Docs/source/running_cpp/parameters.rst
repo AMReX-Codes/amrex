@@ -219,6 +219,14 @@ Particle initialization
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
       user-defined constant, see above.
 
+* ``<species_name>.density_min`` (`float`) optional (default `0.`)
+    Minimum plasma density. No particle is injected where the density is below
+    this value.
+
+* ``<species_name>.density_max`` (`float`) optional (default `infinity`)
+    Maximum plasma density. The density at each point is the minimum between
+    the value given in the profile, and `density_max`.
+
 * ``<species_name>.radially_weighted`` (`bool`) optional (default `true`)
     Whether particle's weight is varied with their radius. This only applies to cylindrical geometry.
     The only valid value is true.
@@ -293,7 +301,7 @@ Particle initialization
       following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}`
       :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
-* ``<species_name>.do_backward_injection`` (`bool`)
+* ``<species_name>.do_backward_propagation`` (`bool`)
     Inject a backward-propagating beam to reduce the effect of charge-separation
     fields when running in the boosted frame. See examples.
 
@@ -653,6 +661,12 @@ Boundary conditions
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
 
+* ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
+
+* ``warpx.do_pml_Hi`` (`2 floats in 2D`, `3 floats in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for upper boundaries on mother grid.
+
 Diagnostics and output
 ----------------------
 
@@ -688,6 +702,13 @@ Diagnostics and output
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
+
+* ``warpx.dz_snapshots_lab`` (`float`, in meters)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Distance between the lab-frame snapshots (expressed in the laboratory
+    frame). ``dt_snapshots_lab`` is then computed by
+    ``dt_snapshots_lab = dz_snapshots_lab/c``. Either `dt_snapshots_lab`
+    or `dz_snapshot_lab` is required.
 
 * ``warpx.do_boosted_frame_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
