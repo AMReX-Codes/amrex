@@ -616,6 +616,8 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
         const Real rmin = xyzmin[0];
         const int irmin = lo.x;
 
+        const long nmodes = n_rz_azimuthal_modes;
+
         // Rescale current in r-z mode since the inverse volume factor was not
         // included in the current deposition.
         amrex::ParallelFor(tbr,
@@ -625,13 +627,30 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
             // to the cells above the axis.
             // Note that Jr(i==0) is at 1/2 dr.
             if (rmin == 0. && 0 <= i && i < ngJ) {
-                Jr_arr(i,j,0) -= Jr_arr(-1-i,j,0);
+                Jr_arr(i,j,0,0) -= Jr_arr(-1-i,j,0,0);
             }
             // Apply the inverse volume scaling
             // Since Jr is not cell centered in r, no need for distinction
             // between on axis and off-axis factors
             const amrex::Real r = std::abs(rmin + (i - irmin + 0.5)*dr);
-            Jr_arr(i,j,0) /= (2.*MathConst::pi*r);
+            Jr_arr(i,j,0,0) /= (2.*MathConst::pi*r);
+
+            for (int imode=1 ; imode < nmodes ; imode++) {
+                const Real ifact = ( (imode%2) == 0 ? +1. : -1.);
+                // Wrap the current density deposited in the guard cells around
+                // to the cells above the axis.
+                // Note that Jr(i==0) is at 1/2 dr.
+                if (rmin == 0. && 0 <= i && i < ngJ) {
+                    Jr_arr(i,j,0,2*imode) -= ifact*Jr_arr(-1-i,j,0,2*imode);
+                    Jr_arr(i,j,0,2*imode+1) -= ifact*Jr_arr(-1-i,j,0,2*imode+1);
+                }
+                // Apply the inverse volume scaling
+                // Since Jr is not cell centered in r, no need for distinction
+                // between on axis and off-axis factors
+                Jr_arr(i,j,0,2*imode) /= (2.*MathConst::pi*r);
+                Jr_arr(i,j,0,2*imode+1) /= (2.*MathConst::pi*r);
+            }
+
         });
         amrex::ParallelFor(tbt,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -640,17 +659,40 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
             // to the cells above the axis.
             // Jt is located on the boundary
             if (rmin == 0. && 0 < i && i <= ngJ) {
-                Jt_arr(i,j,0) += Jt_arr(-i,j,0);
+                Jt_arr(i,j,0,0) += Jt_arr(-i,j,0,0);
             }
 
             // Apply the inverse volume scaling
             // Jt is forced to zero on axis.
             const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
             if (r == 0.) {
-                Jt_arr(i,j,0) = 0.;
+                Jt_arr(i,j,0,0) = 0.;
             } else {
-                Jt_arr(i,j,0) /= (2.*MathConst::pi*r);
+                Jt_arr(i,j,0,0) /= (2.*MathConst::pi*r);
             }
+
+            for (int imode=1 ; imode < nmodes ; imode++) {
+                const Real ifact = ( (imode%2) == 0 ? +1. : -1.);
+                // Wrap the current density deposited in the guard cells around
+                // to the cells above the axis.
+                // Jt is located on the boundary
+                if (rmin == 0. && 0 < i && i <= ngJ) {
+                    Jt_arr(i,j,0,2*imode) += ifact*Jt_arr(-i,j,0,2*imode);
+                    Jt_arr(i,j,0,2*imode+1) += ifact*Jt_arr(-i,j,0,2*imode+1);
+                }
+
+                // Apply the inverse volume scaling
+                // Jt is forced to zero on axis.
+                const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
+                if (r == 0.) {
+                    Jt_arr(i,j,0,2*imode) = 0.;
+                    Jt_arr(i,j,0,2*imode+1) = 0.;
+                } else {
+                    Jt_arr(i,j,0,2*imode) /= (2.*MathConst::pi*r);
+                    Jt_arr(i,j,0,2*imode+1) /= (2.*MathConst::pi*r);
+                }
+            }
+
         });
         amrex::ParallelFor(tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -659,17 +701,40 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
             // to the cells above the axis.
             // Jz is located on the boundary
             if (rmin == 0. && 0 < i && i <= ngJ) {
-                Jz_arr(i,j,0) += Jz_arr(-i,j,0);
+                Jz_arr(i,j,0,0) += Jz_arr(-i,j,0,0);
             }
 
             // Apply the inverse volume scaling
             const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
             if (r == 0.) {
                 // Verboncoeur JCP 164, 421-427 (2001) : corrected volume on axis
-                Jz_arr(i,j,0) /= (MathConst::pi*dr/3.);
+                Jz_arr(i,j,0,0) /= (MathConst::pi*dr/3.);
             } else {
-                Jz_arr(i,j,0) /= (2.*MathConst::pi*r);
+                Jz_arr(i,j,0,0) /= (2.*MathConst::pi*r);
             }
+
+            for (int imode=1 ; imode < nmodes ; imode++) {
+                const Real ifact = ( (imode%2) == 0 ? +1. : -1.);
+                // Wrap the current density deposited in the guard cells around
+                // to the cells above the axis.
+                // Jz is located on the boundary
+                if (rmin == 0. && 0 < i && i <= ngJ) {
+                    Jz_arr(i,j,0,2*imode) += Jz_arr(-i,j,0,2*imode);
+                    Jz_arr(i,j,0,2*imode+1) += Jz_arr(-i,j,0,2*imode+1);
+                }
+
+                // Apply the inverse volume scaling
+                const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
+                if (r == 0.) {
+                    // Verboncoeur JCP 164, 421-427 (2001) : corrected volume on axis
+                    Jz_arr(i,j,0,2*imode) /= (MathConst::pi*dr/3.);
+                    Jz_arr(i,j,0,2*imode+1) /= (MathConst::pi*dr/3.);
+                } else {
+                    Jz_arr(i,j,0,2*imode) /= (2.*MathConst::pi*r);
+                    Jz_arr(i,j,0,2*imode+1) /= (2.*MathConst::pi*r);
+                }
+            }
+
         });
     }
 }
