@@ -46,7 +46,7 @@ def compiletesting(arg_string):
 #                     'Tutorials/Particles/ElectromagneticPIC',
 #                     'Tutorials/Particles/ElectrostaticPIC',
                      'Tutorials/Particles/NeighborList',
-                     'OldTutorials/DataServicesTest0',
+                     'Tests/DataServicesTest0',
 #                     'OldTutorials/MultiColor_C',
                      'OldTutorials/MultiFabTests_C',
                      'OldTutorials/Tiling_C',
