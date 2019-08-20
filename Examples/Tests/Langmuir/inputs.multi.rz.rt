@@ -12,6 +12,7 @@ amr.max_grid_size = 64
 amr.max_level = 0
 
 amr.plot_int = 40   # How often to write plotfiles.  "<= 0" means no plotfiles.
+warpx.fields_to_plot = jx jz Ex Ez By
 
 # Geometry
 geometry.coord_sys   = 1                  # 0: Cartesian
