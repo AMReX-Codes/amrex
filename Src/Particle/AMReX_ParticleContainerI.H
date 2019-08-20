@@ -1146,7 +1146,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
 
             p_boxes[i] = grid_id;
-            p_periodic_shift[i] = IntVect(0,0,0); // already handled this
+            p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0)); // already handled this
             p_src_indices[i] = num_stay+i;
 	});
     }
