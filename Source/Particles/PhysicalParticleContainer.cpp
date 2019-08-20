@@ -463,6 +463,9 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         std::size_t shared_mem_bytes = plasma_injector->sharedMemoryNeeded();
         int lrrfac = rrfac;
 
+	bool loc_do_field_ionization = do_field_ionization;
+	int loc_ionization_initial_level = ionization_initial_level;
+
         // Loop over all new particles and inject them (creates too many 
         // particles, in particular does not consider xmin, xmax etc.).
         // The invalid ones are given negative ID and are deleted during the 
@@ -583,8 +586,8 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 u.z = gamma_boost * ( u.z -beta_boost*gamma_lab );
             }
 
-            if (do_field_ionization) {
-                pi[ip] = ionization_initial_level;
+            if (loc_do_field_ionization) {
+                pi[ip] = loc_ionization_initial_level;
             }
 
             u.x *= PhysConst::c;
@@ -2084,11 +2087,10 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
                     + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
                     );
                 // Compute probability of ionization p
-                Real p;
                 Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev[i]] *
                     std::pow(E,p_adk_power[ion_lev[i]]) *
                     std::exp( p_adk_exp_prefactor[ion_lev[i]]/E );
-                p = 1. - std::exp( - w_dtau );
+                Real p = 1. - std::exp( - w_dtau );
 
                 if (random_draw < p){
                     // increment particle's ionization level
