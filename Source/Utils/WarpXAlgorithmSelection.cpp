@@ -31,12 +31,7 @@ const std::map<std::string, int> current_deposition_algo_to_int = {
 
 const std::map<std::string, int> charge_deposition_algo_to_int = {
     {"standard",   ChargeDepositionAlgo::Standard },
-#if (!defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
-    {"vectorized", ChargeDepositionAlgo::Vectorized },
-    {"default",    ChargeDepositionAlgo::Vectorized }
-#else
     {"default",    ChargeDepositionAlgo::Standard }
-#endif
 };
 
 const std::map<std::string, int> gathering_algo_to_int = {

@@ -12,6 +12,7 @@
 #include <GetAndSetPosition.H>
 #include <UpdatePosition.H>
 #include <CurrentDeposition.H>
+#include <ChargeDeposition.H>
 
 using namespace amrex;
 
@@ -560,140 +561,87 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 }
 
 void
-WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
-                                        MultiFab* rhomf, MultiFab* crhomf, int icomp,
-                                        const long np_current,
-                                        const long np, int thread_num, int lev )
+WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
+                                       MultiFab* rho, int icomp,
+                                       const long offset, const long np_to_depose,
+                                       int thread_num, int lev, int depos_lev)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
+                                     (depos_lev==(lev  )),
+                                     "Deposition buffers only work for lev-1");
 
-  BL_PROFILE_VAR_NS("PICSAR::ChargeDeposition", blp_pxr_chd);
-  BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
+    // If no particles, do not do anything
+    if (np_to_depose == 0) return;
 
-  const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-  const long lvect = 8;
+    const long ngRho = rho->nGrow();
+    const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
+    const Real q = this->charge;
 
-  long ngRho = rhomf->nGrow();
-  Real* data_ptr;
-  Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+    BL_PROFILE_VAR_NS("PPC::ChargeDeposition", blp_ppc_chd);
+    BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
 
-  const std::array<Real,3>& dx = WarpX::CellSize(lev);
-  const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
-
-  // Deposit charge for particles that are not in the current buffers
-  if (np_current > 0)
-  {
-      const std::array<Real, 3>& xyzmin = xyzmin_tile;
-
-#ifdef AMREX_USE_GPU
-      data_ptr = (*rhomf)[pti].dataPtr(icomp);
-      auto rholen = (*rhomf)[pti].length();
-#else
-      tile_box.grow(ngRho);
-      local_rho[thread_num].resize(tile_box);
-
-      data_ptr = local_rho[thread_num].dataPtr();
-      auto rholen = local_rho[thread_num].length();
-
-      local_rho[thread_num].setVal(0.0);
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-      const long nx = rholen[0]-1-2*ngRho;
-      const long ny = rholen[1]-1-2*ngRho;
-      const long nz = rholen[2]-1-2*ngRho;
-#else
-      const long nx = rholen[0]-1-2*ngRho;
-      const long ny = 0;
-      const long nz = rholen[1]-1-2*ngRho;
-#endif
-      BL_PROFILE_VAR_START(blp_pxr_chd);
-      warpx_charge_deposition(data_ptr, &np_current,
-                              m_xp[thread_num].dataPtr(),
-                              m_yp[thread_num].dataPtr(),
-                              m_zp[thread_num].dataPtr(),
-                              wp.dataPtr(),
-                              &this->charge,
-                              &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                              &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                              &ngRho, &ngRho, &ngRho,
-                              &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                              &lvect, &WarpX::charge_deposition_algo);
-#ifdef WARPX_DIM_RZ
-      warpx_charge_deposition_rz_volume_scaling(
-                               data_ptr, &ngRho, rholen.getVect(),
-                               &xyzmin[0], &dx[0]);
-#endif
-      BL_PROFILE_VAR_STOP(blp_pxr_chd);
-
-#ifndef AMREX_USE_GPU
-      BL_PROFILE_VAR_START(blp_accumulate);
-
-      (*rhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
-
-      BL_PROFILE_VAR_STOP(blp_accumulate);
-#endif
-  }
-
-  // Deposit charge for particles that are in the current buffers
-  if (np_current < np)
-  {
-      const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
-      const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
-      const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
-
-#ifdef AMREX_USE_GPU
-      data_ptr = (*crhomf)[pti].dataPtr(icomp);
-      auto rholen = (*crhomf)[pti].length();
-#else
-      tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
-      tile_box.grow(ngRho);
-      local_rho[thread_num].resize(tile_box);
-
-      data_ptr = local_rho[thread_num].dataPtr();
-      auto rholen = local_rho[thread_num].length();
-
-      local_rho[thread_num].setVal(0.0);
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-      const long nx = rholen[0]-1-2*ngRho;
-      const long ny = rholen[1]-1-2*ngRho;
-      const long nz = rholen[2]-1-2*ngRho;
-#else
-      const long nx = rholen[0]-1-2*ngRho;
-      const long ny = 0;
-      const long nz = rholen[1]-1-2*ngRho;
-#endif
-
-      long ncrse = np - np_current;
-      BL_PROFILE_VAR_START(blp_pxr_chd);
-      warpx_charge_deposition(data_ptr, &ncrse,
-                              m_xp[thread_num].dataPtr() + np_current,
-                              m_yp[thread_num].dataPtr() + np_current,
-                              m_zp[thread_num].dataPtr() + np_current,
-                              wp.dataPtr() + np_current,
-                              &this->charge,
-                              &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
-                              &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
-                              &ngRho, &ngRho, &ngRho,
-                              &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                              &lvect, &WarpX::charge_deposition_algo);
-#ifdef WARPX_DIM_RZ
-      warpx_charge_deposition_rz_volume_scaling(
-                               data_ptr, &ngRho, rholen.getVect(),
-                               &cxyzmin_tile[0], &cdx[0]);
-#endif
-      BL_PROFILE_VAR_STOP(blp_pxr_chd);
-
-#ifndef AMREX_USE_GPU
-      BL_PROFILE_VAR_START(blp_accumulate);
-
-      (*crhomf)[pti].atomicAdd(local_rho[thread_num], tile_box, tile_box, 0, icomp, 1);
-
-      BL_PROFILE_VAR_STOP(blp_accumulate);
-#endif
+    // Get tile box where charge is deposited.
+    // The tile box is different when depositing in the buffers (depos_lev<lev)
+    // or when depositing inside the level (depos_lev=lev)
+    Box tilebox;
+    if (lev == depos_lev) {
+        tilebox = pti.tilebox();
+    } else {
+        const IntVect& ref_ratio = WarpX::RefRatio(depos_lev);
+        tilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
     }
-};
+    
+    tilebox.grow(ngRho);
+
+#ifdef AMREX_USE_GPU
+    // No tiling on GPU: rho_arr points to the full rho array.
+    MultiFab rhoi(*rho, amrex::make_alias, icomp, 1);
+    Array4<Real> const& rho_arr = rhoi.array(pti);
+#else
+    // Tiling is on: rho_arr points to local_rho[thread_num]
+    const Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
+
+    local_rho[thread_num].resize(tb);
+
+    // local_rho[thread_num] is set to zero
+    local_rho[thread_num].setVal(0.0);
+
+    Array4<Real> const& rho_arr = local_rho[thread_num].array();
+#endif
+    // GPU, no tiling: deposit directly in rho
+    // CPU, tiling: deposit into local_rho
+
+    Real* AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
+    Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
+    Real* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
+
+    // Lower corner of tile box physical domain
+    // Note that this includes guard cells since it is after tilebox.ngrow
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
+    // Indices of the lower bound
+    const Dim3 lo = lbound(tilebox);
+
+    BL_PROFILE_VAR_START(blp_ppc_chd);
+    if        (WarpX::nox == 1){
+        doChargeDepositionShapeN<1>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
+                                    np_to_depose, dx, xyzmin, lo, q);
+    } else if (WarpX::nox == 2){
+        doChargeDepositionShapeN<2>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
+                                    np_to_depose, dx, xyzmin, lo, q);
+    } else if (WarpX::nox == 3){
+        doChargeDepositionShapeN<3>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
+                                    np_to_depose, dx, xyzmin, lo, q);
+    }
+    BL_PROFILE_VAR_STOP(blp_ppc_chd);
+
+#ifndef AMREX_USE_GPU
+    BL_PROFILE_VAR_START(blp_accumulate);
+
+    (*rho)[pti].atomicAdd(local_rho[thread_num], tb, tb, 0, icomp, 1);
+
+    BL_PROFILE_VAR_STOP(blp_accumulate);
+#endif
+}
 
 void
 WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
@@ -770,8 +718,6 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     BoxArray nba = ba;
     nba.surroundingNodes();
 
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
     const int ng = WarpX::nox;
 
     auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
@@ -781,75 +727,28 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #pragma omp parallel
     {
 #endif
-        Cuda::ManagedDeviceVector<Real> xp, yp, zp;
 #ifdef _OPENMP
-        FArrayBox rho_loc;
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
 #endif
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
+            const long np = pti.numParticles();
             auto& wp = pti.GetAttribs(PIdx::w);
 
-            const long np  = pti.numParticles();
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            pti.GetPosition(xp, yp, zp);
-
-            // Data on the grid
-            Real* data_ptr;
-            FArrayBox& rhofab = (*rho)[pti];
-#ifdef _OPENMP
-            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-            Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-            const std::array<Real, 3>& xyzmin = xyzmin_tile;
-            tile_box.grow(ng);
-            rho_loc.resize(tile_box);
-            rho_loc = 0.0;
-            data_ptr = rho_loc.dataPtr();
-            auto rholen = rho_loc.length();
-#else
-            const Box& box = pti.validbox();
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-            const std::array<Real, 3>& xyzmin = xyzmin_grid;
-            data_ptr = rhofab.dataPtr();
-            auto rholen = rhofab.length();
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-            const long nx = rholen[0]-1-2*ng;
-            const long ny = rholen[1]-1-2*ng;
-            const long nz = rholen[2]-1-2*ng;
-#else
-            const long nx = rholen[0]-1-2*ng;
-            const long ny = 0;
-            const long nz = rholen[1]-1-2*ng;
-#endif
-
-            long nxg = ng;
-            long nyg = ng;
-            long nzg = ng;
-            long lvect = 8;
-
-            warpx_charge_deposition(data_ptr,
-                                    &np,
-                                    xp.dataPtr(),
-                                    yp.dataPtr(),
-                                    zp.dataPtr(), wp.dataPtr(),
-                                    &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                    &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                    &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                    &lvect, &WarpX::charge_deposition_algo);
-#ifdef WARPX_DIM_RZ
-            long ngRho = WarpX::nox;
-            warpx_charge_deposition_rz_volume_scaling(
-                                     data_ptr, &ngRho, rholen.getVect(),
-                                     &xyzmin[0], &dx[0]);
-#endif
-
-#ifdef _OPENMP
-            rhofab.atomicAdd(rho_loc);
+            DepositCharge(pti, wp, rho.get(), 0, 0, np, thread_num, lev, lev);
         }
-#endif
+#ifdef _OPENMP
     }
+#endif
+
+#ifdef WARPX_DIM_RZ
+    WarpX::GetInstance().ApplyInverseVolumeScalingToChargeDensity(rho.get(), lev);
+#endif
 
     if (!local) rho->SumBoundary(gm.periodicity());
 

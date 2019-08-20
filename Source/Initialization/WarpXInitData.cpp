@@ -131,21 +131,35 @@ WarpX::InitPML ()
 {
     if (do_pml)
     {
+        amrex::IntVect do_pml_Lo_corrected = do_pml_Lo;
+
+#ifdef WARPX_DIM_RZ
+        do_pml_Lo_corrected[0] = 0; // no PML at r=0, in cylindrical geometry
+#endif
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
                              pml_ncell, pml_delta, 0,
 #ifdef WARPX_USE_PSATD
                              dt[0], nox_fft, noy_fft, noz_fft, do_nodal,
 #endif
-                             do_dive_cleaning, do_moving_window));
+                             do_dive_cleaning, do_moving_window,
+                             do_pml_Lo_corrected, do_pml_Hi));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
+            amrex::IntVect do_pml_Lo_MR = amrex::IntVect::TheUnitVector();
+#ifdef WARPX_DIM_RZ
+            //In cylindrical geometry, if the edge of the patch is at r=0, do not add PML
+            if ((max_level > 0) && (fine_tag_lo[0]==0.)) {
+                do_pml_Lo_MR[0] = 0;
+            }
+#endif
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
                                    pml_ncell, pml_delta, refRatio(lev-1)[0],
 #ifdef WARPX_USE_PSATD
                                    dt[lev], nox_fft, noy_fft, noz_fft, do_nodal,
 #endif
-                                   do_dive_cleaning, do_moving_window));
+                                   do_dive_cleaning, do_moving_window,
+                                   do_pml_Lo_MR, amrex::IntVect::TheUnitVector()));
         }
     }
 }

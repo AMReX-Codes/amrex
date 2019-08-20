@@ -1175,7 +1175,12 @@ PhysicalParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
+            if (rho) {
+                DepositCharge(pti, wp, rho, 0, 0, np_current, thread_num, lev, lev);
+                if (has_buffer){
+                    DepositCharge(pti, wp, crho, 0, np_current, np-np_current, thread_num, lev, lev-1);
+                }
+            }
             
             if (! do_not_push)
             {
@@ -1318,7 +1323,12 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
             
-            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
+            if (rho) {
+                DepositCharge(pti, wp, rho, 1, 0, np_current, thread_num, lev, lev);
+                if (has_buffer){
+                    DepositCharge(pti, wp, crho, 1, np_current, np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             if (cost) {
                 const Box& tbx = pti.tilebox();

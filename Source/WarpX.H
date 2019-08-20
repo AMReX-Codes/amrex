@@ -183,6 +183,9 @@ public:
                                                    amrex::MultiFab* Jy,
                                                    amrex::MultiFab* Jz,
                                                    int lev);
+
+    void ApplyInverseVolumeScalingToChargeDensity(amrex::MultiFab* Rho,
+                                                  int lev);
 #endif
 
     void DampPML ();
@@ -254,6 +257,7 @@ public:
 
     static int do_moving_window;
     static int moving_window_dir;
+    static amrex::Real moving_window_v;
 
     // slice generation //
     void InitializeSliceMultiFabs ();
@@ -496,10 +500,11 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
+    amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector();
+    amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector();
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
-    amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
