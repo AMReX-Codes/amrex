@@ -1153,7 +1153,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE_VAR_STOP(blp_partition);
 
     auto& plan = redistribute_copy_plan;
-    plan.build(*this, op);
+    
+    plan.build(*this, op, m_need_handshake);
+    m_need_handshake = false;
 
     auto& snd_buffer = redistribute_snd_buffer;
     auto& rcv_buffer = redistribute_rcv_buffer;
@@ -1589,7 +1591,11 @@ defineBufferMap () const
     const BoxArray& ba = ParticleBoxArray(lev);
     const DistributionMapping& dm = ParticleDistributionMap(lev);
 
-    if (not m_buffer_map.isValid(ba, dm)) m_buffer_map.define(ba, dm);
+    if (not m_buffer_map.isValid(ba, dm))
+    {
+        m_buffer_map.define(ba, dm);
+        m_need_handshake = true;
+    }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>

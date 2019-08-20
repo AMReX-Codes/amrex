@@ -28,7 +28,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_ids.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_handshake)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -37,11 +37,14 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
     const int MyProc = ParallelDescriptor::MyProc();
     const int NNeighborProcs = m_neighbor_procs.size();
 
-    m_Snds.resize(0);
-    m_Snds.resize(NProcs, 0);
+    if (do_handshake)
+    {
+        m_Snds.resize(0);
+        m_Snds.resize(NProcs, 0);
 
-    m_Rcvs.resize(0);
-    m_Rcvs.resize(NProcs, 0);
+        m_Rcvs.resize(0);
+        m_Rcvs.resize(NProcs, 0);
+    }
     
     m_snd_num_particles.resize(0);
     m_snd_num_particles.resize(NProcs, 0);
@@ -72,7 +75,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 	m_NumSnds += nbytes;
     }
 
-    doHandShake(m_Snds, m_Rcvs);
+    if (do_handshake) doHandShake(m_Snds, m_Rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     long tot_snds_this_proc = 0;
