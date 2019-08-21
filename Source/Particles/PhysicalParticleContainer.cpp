@@ -277,9 +277,6 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
         GetParticles(lev)[std::make_pair(grid_id, tile_id)];
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags) {
-            DefineAndReturnParticleTile(lev, grid_id, tile_id);
-        }
     }
 #endif
 
@@ -403,11 +400,6 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         const int cpuid = ParallelDescriptor::MyProc();
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        bool do_boosted = false;
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags) {
-            do_boosted = true;
-            DefineAndReturnParticleTile(lev, grid_id, tile_id);
-        }
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + max_new_particles;
         particle_tile.resize(new_size);
@@ -1612,13 +1604,13 @@ void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
     const auto lev = pti.GetLevel();
     const auto index = pti.GetPairIndex();
     tmp_particle_data.resize(finestLevel()+1);
-    for (int i = 0; i < 6; ++i) tmp_particle_data[lev][index][i].resize(np);
-    Real* AMREX_RESTRICT xpold  = tmp_particle_data[lev][index][0].dataPtr();
-    Real* AMREX_RESTRICT ypold  = tmp_particle_data[lev][index][1].dataPtr();
-    Real* AMREX_RESTRICT zpold  = tmp_particle_data[lev][index][2].dataPtr();
-    Real* AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][3].dataPtr();
-    Real* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][4].dataPtr();
-    Real* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][5].dataPtr();
+    for (int i = 0; i < TmpIdx::nattribs; ++i) tmp_particle_data[lev][index][i].resize(np);
+    Real* AMREX_RESTRICT xpold  = tmp_particle_data[lev][index][TmpIdx::xold ].dataPtr();
+    Real* AMREX_RESTRICT ypold  = tmp_particle_data[lev][index][TmpIdx::yold ].dataPtr();
+    Real* AMREX_RESTRICT zpold  = tmp_particle_data[lev][index][TmpIdx::zold ].dataPtr();
+    Real* AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
+    Real* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
+    Real* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
     
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
@@ -1704,12 +1696,12 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto& uyp_new = attribs[PIdx::uy   ];
                 auto& uzp_new = attribs[PIdx::uz   ];
 
-                auto&  xp_old = tmp_particle_data[lev][index][0];
-                auto&  yp_old = tmp_particle_data[lev][index][1];
-                auto&  zp_old = tmp_particle_data[lev][index][2];
-                auto& uxp_old = tmp_particle_data[lev][index][3];
-                auto& uyp_old = tmp_particle_data[lev][index][4];
-                auto& uzp_old = tmp_particle_data[lev][index][5];
+                auto&  xp_old = tmp_particle_data[lev][index][TmpIdx::xold];
+                auto&  yp_old = tmp_particle_data[lev][index][TmpIdx::yold];
+                auto&  zp_old = tmp_particle_data[lev][index][TmpIdx::zold];
+                auto& uxp_old = tmp_particle_data[lev][index][TmpIdx::uxold];
+                auto& uyp_old = tmp_particle_data[lev][index][TmpIdx::uyold];
+                auto& uzp_old = tmp_particle_data[lev][index][TmpIdx::uzold];
 
                 const long np = pti.numParticles();
                 
