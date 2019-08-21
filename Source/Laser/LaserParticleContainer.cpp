@@ -397,8 +397,8 @@ LaserParticleContainer::Evolve (int lev,
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
-    BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("Laser::ParticlePush", blp_pp);
+    BL_PROFILE_VAR_NS("Laser::CurrentDepo", blp_cd);
     BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
 
     Real t_lab = t;
@@ -463,7 +463,7 @@ LaserParticleContainer::Evolve (int lev,
             //
             // Particle Push
             //
-            BL_PROFILE_VAR_START(blp_pxr_pp);
+            BL_PROFILE_VAR_START(blp_pp);
             // Find the coordinates of the particles in the emission plane
             calculate_laser_plane_coordinates( &np,
                                                m_xp[thread_num].dataPtr(),
@@ -503,7 +503,7 @@ LaserParticleContainer::Evolve (int lev,
                                   wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
                                   &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
                                   &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
-            BL_PROFILE_VAR_STOP(blp_pxr_pp);
+            BL_PROFILE_VAR_STOP(blp_pp);
 
             //
             // Current Deposition

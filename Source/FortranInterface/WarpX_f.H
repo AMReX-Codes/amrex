@@ -26,7 +26,6 @@
 #define WRPX_PUSH_PML_F                  warpx_push_pml_f_3d
 #define WRPX_DAMP_PML                    warpx_damp_pml_3d
 #define WRPX_DAMP_PML_F                  warpx_damp_pml_f_3d
-
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_3d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_3d
 #define WRPX_BUILD_MASK                  warpx_build_mask_3d
@@ -65,25 +64,7 @@
 extern "C"
 {
 #endif
-
-	// Current deposition
-	void warpx_current_deposition(
-			amrex::Real* jx, const long* jx_ng, const int* jx_ntot,
-			amrex::Real* jy, const long* jy_ng, const int* jy_ntot,
-			amrex::Real* jz, const long* jz_ng, const int* jz_ntot,
-			const long* np,
-			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
-			const amrex::Real* uxp, const amrex::Real* uyp,const amrex::Real* uzp,
-			const amrex::Real* gip, const amrex::Real* w, const amrex::Real* q,
-			const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
-			const amrex::Real* dt,
-			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
-			const long* nox, const long* noy,const long* noz,
-                        const int* l_nodal, const long* lvect, const long* current_depo_algo);
-
-
     // Laser pusher
-
 	void warpx_gaussian_laser( const long* np,
 				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
 				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude,

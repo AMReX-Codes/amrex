@@ -541,10 +541,6 @@ Numerics and algorithms
        (see `Esirkepov, Comp. Phys. Comm. (2001) <https://www.sciencedirect.com/science/article/pii/S0010465500002289>`__)
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
-     - ``direct-vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
-       mathematically equivalent to ``direct``, but uses an optimized algorithm
-       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
-       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
 
     If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
 
@@ -553,24 +549,12 @@ Numerics and algorithms
 
      - ``standard``: standard charge deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`.
-     - ``vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
-       mathematically equivalent to ``standard``, but uses an optimized algorithm
-       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
-       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
-
-    If ``algo.charge_deposition`` is not specified, ``vectorized`` is the default
-    whenever it is available ; ``standard`` is the default otherwise.
 
 * ``algo.field_gathering`` (`string`, optional)
     The algorithm for field gathering. Available options are:
 
      - ``standard``: gathers directly from the grid points (either staggered
        or nodal gridpoints depending on ``warpx.do_nodal``).
-     - ``vectorized`` (not available when running on GPU): mathematically
-       equivalent to ``standard``, but uses optimized vector instructions for CPU/KNL.
-
-    If ``algo.field_gathering`` is not specified, ``vectorized`` is the default
-    on CPU/KNL ; ``standard`` is the default on GPU.
 
 * ``algo.particle_pusher`` (`string`, optional)
     The algorithm for the particle pusher. Available options are:
