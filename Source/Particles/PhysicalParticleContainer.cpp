@@ -6,6 +6,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpXWrappers.h>
+#include <IonizationEnergiesTable.H>
 #include <FieldGather.H>
 
 #include <WarpXAlgorithmSelection.H>
@@ -36,6 +37,14 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     // Whether to plot back-transformed (lab-frame) diagnostics 
     // for this species.
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
+
+    pp.query("do_field_ionization", do_field_ionization);
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        do_field_ionization == 0,
+        "Field ionization does not work on GPU so far, because the current "
+        "version of Redistribute in AMReX does not work with runtime parameters");
+#endif
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
@@ -77,6 +86,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
 
 void PhysicalParticleContainer::InitData()
 {
+    // Init ionization module here instead of in the PhysicalParticleContainer
+    // constructor because dt is required
+    if (do_field_ionization) {InitIonizationModule();}
     AddParticles(0); // Note - add on level 0
     Redistribute();  // We then redistribute
 }
@@ -196,17 +208,20 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
     attribs[PIdx::uz] = u[2];
     attribs[PIdx::w ] = weight;
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) )
     {
         // need to create old values
         auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-        particle_tile.push_back_real(particle_comps["xold"], x);
-        particle_tile.push_back_real(particle_comps["yold"], y);
-        particle_tile.push_back_real(particle_comps["zold"], z);
-                
-        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
-        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
-        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        {
+            particle_tile.push_back_real(particle_comps["xold"], x);
+            particle_tile.push_back_real(particle_comps["yold"], y);
+            particle_tile.push_back_real(particle_comps["zold"], z);
+            
+            particle_tile.push_back_real(particle_comps["uxold"], u[0]);
+            particle_tile.push_back_real(particle_comps["uyold"], u[1]);
+            particle_tile.push_back_real(particle_comps["uzold"], u[2]);
+        }
     }
     // add particle
     AddOneParticle(0, 0, 0, x, y, z, attribs);
@@ -289,7 +304,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
         GetParticles(lev)[std::make_pair(grid_id, tile_id)];
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags) {
+        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ) {
             DefineAndReturnParticleTile(lev, grid_id, tile_id);
         }
     }
@@ -416,10 +431,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         bool do_boosted = false;
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags) {
-            do_boosted = true;
+        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ) {
             DefineAndReturnParticleTile(lev, grid_id, tile_id);
         }
+        do_boosted = WarpX::do_boosted_frame_diagnostic 
+            && do_boosted_frame_diags;
+
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + max_new_particles;
         particle_tile.resize(new_size);
@@ -439,7 +456,11 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pb[4] = soa.GetRealData(particle_comps["uyold"]).data() + old_size;
             pb[5] = soa.GetRealData(particle_comps["uzold"]).data() + old_size;
         }
-
+        int* pi;
+        if (do_field_ionization) {
+            pi = soa.GetIntData(particle_icomps["ionization_level"]).data() + old_size;
+        }
+        
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
             {AMREX_D_DECL(overlap_realbox.lo(0),
                           overlap_realbox.lo(1),
@@ -447,6 +468,9 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
         std::size_t shared_mem_bytes = plasma_injector->sharedMemoryNeeded();
         int lrrfac = rrfac;
+
+	bool loc_do_field_ionization = do_field_ionization;
+	int loc_ionization_initial_level = ionization_initial_level;
 
         // Loop over all new particles and inject them (creates too many 
         // particles, in particular does not consider xmin, xmax etc.).
@@ -566,6 +590,10 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
                 // => Perform Lorentz transform
                 dens = gamma_boost * dens * ( 1.0 - beta_boost*betaz_lab );
                 u.z = gamma_boost * ( u.z -beta_boost*gamma_lab );
+            }
+
+            if (loc_do_field_ionization) {
+                pi[ip] = loc_ionization_initial_level;
             }
 
             u.x *= PhysConst::c;
@@ -1157,9 +1185,18 @@ PhysicalParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-                DepositCharge(pti, wp, rho, 0, 0, np_current, thread_num, lev, lev);
+                // Deposit charge before particle push, in component 0 of MultiFab rho.
+                int* AMREX_RESTRICT ion_lev;
+                if (do_field_ionization){
+                    ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+                } else {
+                    ion_lev = nullptr;
+                }
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
+                              np_current, thread_num, lev, lev);
                 if (has_buffer){
-                    DepositCharge(pti, wp, crho, 0, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
             
@@ -1265,16 +1302,25 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Current Deposition
                 //
+
+                int* AMREX_RESTRICT ion_lev;
+                if (do_field_ionization){
+                    ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+                } else {
+                    ion_lev = nullptr;
+                }
+                
                 // Deposit inside domains
-                DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+                DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                                0, np_current, thread_num,
                                lev, lev, dt);
                 if (has_buffer){
                     // Deposit in buffers
-                    DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                    DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
                                    np_current, np-np_current, thread_num,
                                    lev, lev-1, dt);
                 }
+
 
                 //
                 // copy particle data back
@@ -1285,9 +1331,18 @@ PhysicalParticleContainer::Evolve (int lev,
             }
             
             if (rho) {
-                DepositCharge(pti, wp, rho, 1, 0, np_current, thread_num, lev, lev);
+                // Deposit charge after particle push, in component 1 of MultiFab rho.
+                int* AMREX_RESTRICT ion_lev;
+                if (do_field_ionization){
+                    ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+                } else {
+                    ion_lev = nullptr;
+                }
+                DepositCharge(pti, wp, ion_lev, rho, 1, 0,
+                              np_current, thread_num, lev, lev);
                 if (has_buffer){
-                    DepositCharge(pti, wp, crho, 1, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
 
@@ -1492,25 +1547,38 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
         copy_attribs(pti, x, y, z);
     }
 
+    int* AMREX_RESTRICT ion_lev = nullptr;
+    if (do_field_ionization){
+        ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+    }
+    
     // Loop over the particles and update their momentum
     const Real q = this->charge;
     const Real m = this-> mass;
     if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
-        amrex::ParallelFor( pti.numParticles(),
+        amrex::ParallelFor( 
+            pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
                 UpdateMomentumBoris( ux[i], uy[i], uz[i], gi[i],
-                      Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+                                     Ex[i], Ey[i], Ez[i], Bx[i],
+                                     By[i], Bz[i], qp, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
                       ux[i], uy[i], uz[i], dt );
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
-        amrex::ParallelFor( pti.numParticles(),
+        amrex::ParallelFor(
+            pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
                 UpdateMomentumVay( ux[i], uy[i], uz[i], gi[i],
-                      Ex[i], Ey[i], Ez[i], Bx[i], By[i], Bz[i], q, m, dt);
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], qp, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
-                      ux[i], uy[i], uz[i], dt );
+                                ux[i], uy[i], uz[i], dt );
             }
         );
     } else {
@@ -1917,4 +1985,137 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 xyzmin, lo, stagger_shift);
         }
     }
+}
+
+
+void PhysicalParticleContainer::InitIonizationModule ()
+{
+    if (!do_field_ionization) return;
+    ParmParse pp(species_name);
+    if (charge != PhysConst::q_e){
+        amrex::Warning(
+            "charge != q_e for ionizable species: overriding user value and setting charge = q_e.");
+        charge = PhysConst::q_e;
+    }
+    pp.query("ionization_initial_level", ionization_initial_level);
+    pp.get("ionization_product_species", ionization_product_name);
+    pp.get("physical_element", physical_element);
+    // Add runtime integer component for ionization level
+    AddIntComp("ionization_level");
+    // Get atomic number and ionization energies from file
+    int ion_element_id = ion_map_ids[physical_element];
+    ion_atomic_number = ion_atomic_numbers[ion_element_id];
+    ionization_energies.resize(ion_atomic_number);
+    int offset = ion_energy_offsets[ion_element_id];
+    for(int i=0; i<ion_atomic_number; i++){
+        ionization_energies[i] = table_ionization_energies[i+offset];
+    }
+    // Compute ADK prefactors (See Chen, JCP 236 (2013), equation (2))
+    // For now, we assume l=0 and m=0.
+    // The approximate expressions are used, 
+    // without Gamma function
+    Real wa = std::pow(PhysConst::alpha,3) * PhysConst::c / PhysConst::r_e;
+    Real Ea = PhysConst::m_e * PhysConst::c*PhysConst::c /PhysConst::q_e * 
+        std::pow(PhysConst::alpha,4)/PhysConst::r_e;
+    Real UH = table_ionization_energies[0];
+    Real l_eff = std::sqrt(UH/ionization_energies[0]) - 1.;
+
+    const Real dt = WarpX::GetInstance().getdt(0);
+
+    adk_power.resize(ion_atomic_number);
+    adk_prefactor.resize(ion_atomic_number);
+    adk_exp_prefactor.resize(ion_atomic_number);
+    for (int i=0; i<ion_atomic_number; ++i){
+        Real n_eff = (i+1) * std::sqrt(UH/ionization_energies[i]);
+        Real C2 = std::pow(2,2*n_eff)/(n_eff*tgamma(n_eff+l_eff+1)*tgamma(n_eff-l_eff));
+        adk_power[i] = -(2*n_eff - 1);
+        Real Uion = ionization_energies[i];
+        adk_prefactor[i] = dt * wa * C2 * ( Uion/(2*UH) ) 
+            * std::pow(2*std::pow((Uion/UH),3./2)*Ea,2*n_eff - 1);
+        adk_exp_prefactor[i] = -2./3 * std::pow( Uion/UH,3./2) * Ea;
+    }
+}
+
+/* \brief create mask of ionized particles (1 if ionized, 0 otherwise)
+ * 
+ * \param mfi: tile or grid
+ * \param lev: MR level
+ * \param ionization_mask: Array with as many elements as particles in mfi.
+ * This function initialized the array, and set each element to 1 or 0 
+ * depending on whether the particle is ionized or not.
+ */
+void
+PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                                amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
+{
+    BL_PROFILE("PPC::buildIonizationMask");
+    // Get pointers to ionization data from pc_source
+    const Real * const AMREX_RESTRICT p_ionization_energies = ionization_energies.dataPtr();
+    const Real * const AMREX_RESTRICT p_adk_prefactor = adk_prefactor.dataPtr();
+    const Real * const AMREX_RESTRICT p_adk_exp_prefactor = adk_exp_prefactor.dataPtr();
+    const Real * const AMREX_RESTRICT p_adk_power = adk_power.dataPtr();
+
+    // Current tile info
+    const int grid_id = mfi.index();
+    const int tile_id = mfi.LocalTileIndex();
+
+    // Get GPU-friendly arrays of particle data
+    auto& ptile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+    // Only need attribs (i.e., SoA data)
+    auto& soa = ptile.GetStructOfArrays();
+    const int np = ptile.GetArrayOfStructs().size();
+
+    // If no particle, nothing to do.
+    if (np == 0) return;
+    // Otherwise, resize ionization_mask, and get poiters to attribs arrays.
+    ionization_mask.resize(np);
+    int * const AMREX_RESTRICT p_ionization_mask = ionization_mask.data();
+    const Real * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
+    const Real * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
+    const Real * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
+    const Real * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
+    const Real * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
+    const Real * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
+    const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
+    const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
+    const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
+    int* ion_lev = soa.GetIntData(particle_icomps["ionization_level"]).data();
+
+    Real c = PhysConst::c;
+    Real c2_inv = 1./c/c;
+    int atomic_number = ion_atomic_number;
+
+    // Loop over all particles in grid/tile. If ionized, set mask to 1
+    // and increment ionization level.
+    ParallelFor( 
+        np,
+        [=] AMREX_GPU_DEVICE (long i) {
+            // Get index of ionization_level
+            p_ionization_mask[i] = 0;
+            if ( ion_lev[i]<atomic_number ){
+                Real random_draw = amrex::Random();
+                // Compute electric field amplitude in the particle's frame of
+                // reference (particularly important when in boosted frame).
+                Real ga = std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]) * c2_inv);
+                Real E = std::sqrt(
+                    - ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * ( ux[i]*ex[i] + uy[i]*ey[i] + uz[i]*ez[i] ) * c2_inv
+                    + ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] ) * ( ga   *ex[i] + uy[i]*bz[i] - uz[i]*by[i] )
+                    + ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] ) * ( ga   *ey[i] + uz[i]*bx[i] - ux[i]*bz[i] )
+                    + ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] ) * ( ga   *ez[i] + ux[i]*by[i] - uy[i]*bx[i] )
+                    );
+                // Compute probability of ionization p
+                Real w_dtau = 1./ ga * p_adk_prefactor[ion_lev[i]] *
+                    std::pow(E,p_adk_power[ion_lev[i]]) *
+                    std::exp( p_adk_exp_prefactor[ion_lev[i]]/E );
+                Real p = 1. - std::exp( - w_dtau );
+
+                if (random_draw < p){
+                    // increment particle's ionization level
+                    ion_lev[i] += 1;
+                    // update mask
+                    p_ionization_mask[i] = 1;
+                }
+            }
+        }
+    );
 }

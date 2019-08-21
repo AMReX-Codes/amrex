@@ -1,0 +1,54 @@
+max_step = 1600
+amr.n_cell =  16 800
+amr.max_grid_size = 64
+amr.blocking_factor = 16
+amr.plot_int = 10000
+geometry.coord_sys   = 0
+geometry.is_periodic = 1     0
+geometry.prob_lo     = -5.e-6   0.e-6
+geometry.prob_hi     =  5.e-6  20.e-6
+amr.max_level = 0
+
+algo.maxwell_fdtd_solver = ckc
+warpx.do_pml = 1
+warpx.cfl = .999
+
+particles.nspecies = 2
+particles.species_names = electrons ions
+
+ions.mass = 2.3428415e-26
+ions.charge = q_e
+ions.injection_style = nuniformpercell
+ions.num_particles_per_cell_each_dim = 2 1
+ions.zmin =  5.e-6
+ions.zmax = 15.e-6
+ions.profile = constant
+ions.density = 1.
+ions.momentum_distribution_type = constant
+ions.do_field_ionization = 1
+ions.ionization_initial_level = 2
+ions.ionization_product_species = electrons
+ions.physical_element = N
+
+electrons.mass = m_e
+electrons.charge = -q_e
+electrons.injection_style = nuniformpercell
+electrons.num_particles_per_cell_each_dim = 1 1
+electrons.zmin = 1.
+electrons.zmax = 15.e-6
+electrons.profile = constant
+electrons.density = 2.
+electrons.momentum_distribution_type = constant
+
+lasers.nlasers      = 1
+lasers.names        = laser1
+laser1.profile      = Gaussian
+laser1.position     = 0. 0. 3.e-6
+laser1.direction    = 0. 0. 1.
+laser1.polarization = 1. 0. 0.
+laser1.e_max        = 7.224e12 # a0=1.8
+laser1.profile_waist = 1.e10
+laser1.profile_duration = 26.685e-15
+laser1.profile_t_peak = 60.e-15
+laser1.profile_focal_distance = 0
+laser1.wavelength = 0.8e-6
