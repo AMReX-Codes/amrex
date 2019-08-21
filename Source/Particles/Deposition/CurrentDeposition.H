@@ -7,6 +7,10 @@
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param jx_arr       : Array4 of current density, either full array or tile.
  * \param jy_arr       : Array4 of current density, either full array or tile.
  * \param jz_arr       : Array4 of current density, either full array or tile.
@@ -37,6 +41,8 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Real stagger_shift, 
                         const amrex::Real q)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
     const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dzi = 1.0/dx[2];
@@ -166,6 +172,10 @@ void doDepositionShapeN(const amrex::Real * const xp,
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param Jx_arr       : Array4 of current density, either full array or tile.
  * \param Jy_arr       : Array4 of current density, either full array or tile.
  * \param Jz_arr       : Array4 of current density, either full array or tile.
@@ -195,6 +205,8 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                   const amrex::Dim3 lo,
                                   const amrex::Real q)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
     const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dtsdx0 = dt*dxi;

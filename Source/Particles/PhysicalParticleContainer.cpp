@@ -1979,12 +1979,17 @@ void PhysicalParticleContainer::InitIonizationModule ()
 {
     if (!do_field_ionization) return;
     ParmParse pp(species_name);
+    if (charge != PhysConst::q_e){
+        amrex::Warning(
+            "charge != q_e for ionizable species: overriding user value and setting charge = q_e.");
+        charge = PhysConst::q_e;
+    }
     pp.query("ionization_initial_level", ionization_initial_level);
     pp.get("ionization_product_species", ionization_product_name);
     pp.get("physical_element", physical_element);
-    // Add Real component for ionization level
+    // Add runtime integer component for ionization level
     AddIntComp("ionization_level");
-    plot_flags.resize(PIdx::nattribs + 1, 1);
+    // plot_flags.resize(PIdx::nattribs + 1, 1);
     // Get atomic number and ionization energies from file
     int ion_element_id = ion_map_ids[physical_element];
     ion_atomic_number = ion_atomic_numbers[ion_element_id];

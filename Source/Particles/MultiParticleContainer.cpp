@@ -513,7 +513,7 @@ namespace
 {
     // For particle i in mfi, if is_ionized[i]=1, copy particle
     // particle i from container pc_source into pc_product
-    static void createIonizedParticles (
+    void createIonizedParticles (
         int lev, const MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
@@ -558,6 +558,9 @@ namespace
         // The advantage of inclusive_scan is that the sum of is_ionized
         // is in the last element, so no other reduction is required to get
         // number of particles.
+        // Gpu::inclusive_scan runs on the current GPU stream, and synchronizes
+        // with the CPU, so that the next line (executed by the CPU) has the
+        // updated values of i_product
         amrex::Gpu::inclusive_scan(is_ionized.begin(), is_ionized.end(), i_product.begin());
         int np_ionized = i_product[np_source-1];
         if (np_ionized == 0) return;
@@ -662,6 +665,10 @@ MultiParticleContainer::doFieldIonization ()
 
         for (int lev = 0; lev <= pc_source->finestLevel(); ++lev){
 
+            // When using runtime components, AMReX requires to touch all tiles
+            // in serial and create particles tiles with runtime components if
+            // they do not exist (or if they were defined by default, i.e.,
+            // without runtime component).
 #ifdef _OPENMP
             // Touch all tiles of source species in serial if runtime attribs 
             for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {

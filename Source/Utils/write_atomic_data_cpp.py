@@ -1,3 +1,9 @@
+'''
+This python script reads ionization tables in atomic_data.txt (generated from
+the NIST website) and extracts ionization levels into C++ file
+IonizationEnergiesTable.H, which contains tables + metadata.
+'''
+
 import re, os
 import numpy as np
 from scipy.constants import e
