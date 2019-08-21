@@ -26,8 +26,10 @@
 #include <NCIGodfreyFilter.H>
 
 #ifdef WARPX_USE_PSATD
-#include <fftw3.h>
 #include <SpectralSolver.H>
+#endif
+#ifdef WARPX_USE_PSATD_HYBRID
+#include <PicsarHybridFFTData.H>
 #endif
 
 #if defined(BL_USE_SENSEI_INSITU)
@@ -81,6 +83,7 @@ public:
     static amrex::Vector<amrex::Real> B_external;
 
     // Algorithms
+    static long use_picsar_deposition;
     static long current_deposition_algo;
     static long charge_deposition_algo;
     static long field_gathering_algo;
@@ -175,6 +178,16 @@ public:
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
 
+#ifdef WARPX_DIM_RZ
+    void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
+                                                   amrex::MultiFab* Jy,
+                                                   amrex::MultiFab* Jz,
+                                                   int lev);
+
+    void ApplyInverseVolumeScalingToChargeDensity(amrex::MultiFab* Rho,
+                                                  int lev);
+#endif
+
     void DampPML ();
     void DampPML (int lev);
     void DampPML (int lev, PatchType patch_type);
@@ -248,6 +261,7 @@ public:
 
     static int do_moving_window;
     static int moving_window_dir;
+    static amrex::Real moving_window_v;
 
     // slice generation //
     void InitializeSliceMultiFabs ();
@@ -489,7 +503,7 @@ private:
     // PML
     int do_pml = 1;
     int pml_ncell = 10;
-    int pml_delta = 5;
+    int pml_delta = 10;
     int pml_has_particles = 0;
     int do_pml_j_damping = 0;
     int do_pml_in_domain = 0;
@@ -498,7 +512,6 @@ private:
     amrex::Vector<std::unique_ptr<PML> > pml;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
-    amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
     amrex::Real current_injection_position = 0;
 
     // Plasma injection parameters
@@ -543,25 +556,15 @@ private:
     bool dump_plotfiles = true;
     bool dump_openpmd = false;
 #endif
-    bool plot_E_field       = true;
-    bool plot_B_field       = true;
-    bool plot_J_field       = true;
-    bool plot_part_per_cell = true;
-    bool plot_part_per_grid = false;
-    bool plot_part_per_proc = false;
-    bool plot_proc_number   = false;
-    bool plot_dive          = false;
-    bool plot_divb          = false;
     bool plot_rho           = false;
-    bool plot_F             = false;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+    amrex::Vector<std::string> fields_to_plot;
     int plot_coarsening_ratio = 1;
 
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
-//    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;
     amrex::VisMF::Header::Version plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
     amrex::VisMF::Header::Version slice_plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
 
@@ -587,7 +590,7 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_slice;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_slice;
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
@@ -599,43 +602,29 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
+#endif
 
-public:
-    // FFTData is a stuct containing a 22 pointers to auxiliary arrays
-    // 1-11: padded arrays in real space (required by FFTW); 12-22: arrays in spectral space
-    struct FFTData
-    {
-        static constexpr int N = 22;
-        void* data[N] = { nullptr };
-
-        ~FFTData () {
-            for (int i = 0; i < N; ++i) { // The memory is allocated with fftw_alloc.
-                fftw_free(data[i]);
-                data[i] = nullptr;
-            }
-        }
-
-        FFTData () = default;
-
-        FFTData (FFTData && rhs) noexcept {
-            for (int i = 0; i < N; ++i) {
-                data[i] = rhs.data[i];
-                rhs.data[i] = nullptr;
-            }
-        }
-
-        FFTData (FFTData const&) = delete;
-        void operator= (FFTData const&) = delete;
-        void operator= (FFTData&&) = delete;
-    };
-
+#ifdef WARPX_USE_PSATD
 private:
+    void EvolvePSATD (int numsteps);
+    void PushPSATD (amrex::Real dt);
+    void PushPSATD_localFFT (int lev, amrex::Real dt);
 
-    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
-    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
+    bool fft_hybrid_mpi_decomposition = false;
+    int ngroups_fft = 4;
+    int fftw_plan_measure = 1;
+    int nox_fft = 16;
+    int noy_fft = 16;
+    int noz_fft = 16;
 
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_fp;
     amrex::Vector<std::unique_ptr<SpectralSolver>> spectral_solver_cp;
+#endif
+
+#ifdef WARPX_USE_PSATD_HYBRID
+private:
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_fp_fft;
+    amrex::Vector<std::unique_ptr<amrex::LayoutData<FFTData> > > dataptr_cp_fft;
 
   // Domain decomposition containing the valid part of the dual grids (i.e. without FFT guard cells)
     amrex::Vector<amrex::BoxArray> ba_valid_fp_fft;
@@ -647,13 +636,6 @@ private:
     amrex::Vector<MPI_Comm> comm_fft;
     amrex::Vector<int>      color_fft;
 
-    bool fft_hybrid_mpi_decomposition = false;
-    int ngroups_fft = 4;
-    int fftw_plan_measure = 1;
-    int nox_fft = 16;
-    int noy_fft = 16;
-    int noz_fft = 16;
-
     void AllocLevelDataFFT (int lev);
     void InitLevelDataFFT (int lev, amrex::Real time);
 
@@ -663,11 +645,7 @@ private:
                                  const amrex::Box& domain);
     void InitFFTDataPlan (int lev);
     void FreeFFT (int lev);
-
-    void EvolvePSATD (int numsteps);
-    void PushPSATD (amrex::Real dt);
-    void PushPSATD (int lev, amrex::Real dt);
-
+    void PushPSATD_hybridFFT (int lev, amrex::Real dt);
 #endif
 
 #if defined(BL_USE_SENSEI_INSITU)
