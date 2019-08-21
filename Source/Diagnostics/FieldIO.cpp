@@ -278,7 +278,7 @@ AverageAndPackVectorField( MultiFab& mf_avg,
         // and copies over directly the y (or theta) component (which is
         // already cell centered).
         if (vector_field[0]->nComp() > 1) {
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             // When there are more than one components, the total
             // fields needs to be constructed in temporary MultiFabs
             // Note that mf_total is declared in the same way as
@@ -324,7 +324,7 @@ AverageAndPackVectorField( MultiFab& mf_avg,
         // See comment above, though here, the y (or theta) component
         // has node centering.
         if (vector_field[0]->nComp() > 1) {
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
             // When there are more than one components, the total
             // fields needs to be constructed in temporary MultiFabs
             // Note that mf_total is declared in the same way as

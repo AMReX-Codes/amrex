@@ -683,7 +683,6 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
 
                 // Apply the inverse volume scaling
                 // Jt is forced to zero on axis.
-                const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
                 if (r == 0.) {
                     Jt_arr(i,j,0,2*imode) = 0.;
                     Jt_arr(i,j,0,2*imode+1) = 0.;
@@ -719,12 +718,11 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
                 // to the cells above the axis.
                 // Jz is located on the boundary
                 if (rmin == 0. && 0 < i && i <= ngJ) {
-                    Jz_arr(i,j,0,2*imode) += Jz_arr(-i,j,0,2*imode);
-                    Jz_arr(i,j,0,2*imode+1) += Jz_arr(-i,j,0,2*imode+1);
+                    Jz_arr(i,j,0,2*imode) += ifact*Jz_arr(-i,j,0,2*imode);
+                    Jz_arr(i,j,0,2*imode+1) += ifact*Jz_arr(-i,j,0,2*imode+1);
                 }
 
                 // Apply the inverse volume scaling
-                const amrex::Real r = std::abs(rmin + (i - irmin)*dr);
                 if (r == 0.) {
                     // Verboncoeur JCP 164, 421-427 (2001) : corrected volume on axis
                     Jz_arr(i,j,0,2*imode) /= (MathConst::pi*dr/3.);

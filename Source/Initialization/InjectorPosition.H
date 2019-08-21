@@ -33,7 +33,7 @@ struct InjectorPositionRegular
     {
         int nx = ref_fac*ppc.x;
         int ny = ref_fac*ppc.y;
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
         int nz = ref_fac*ppc.z;
 #else
         int nz = 1;

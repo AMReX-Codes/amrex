@@ -148,12 +148,12 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             npart /= 4;
         }
         for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 | WARPX_DIM_RZ)
+#if (defined WARPX_DIM_3D) || (WARPX_DIM_RZ)
             Real weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
             Real z = distz(mt);
-#elif ( AMREX_SPACEDIM == 2 )
+#elif (defined WARPX_DIM_2D)
             Real weight = q_tot/npart/charge/y_rms;
             Real x = distx(mt);
             Real y = 0.;
@@ -480,7 +480,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #else
             Real x = overlap_corner[0] + (iv[0]+r.x)*dx[0];
             Real y = 0.0;
+#ifdef WARPX_DIM_2D
             Real z = overlap_corner[1] + (iv[1]+r.y)*dx[1];
+#elif defined WARPX_DIM_RZ
+            // Note that for RZ, r.y will be theta
+            Real z = overlap_corner[1] + (iv[1]+r.z)*dx[1];
+#endif
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -501,9 +506,16 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             Real yb = y;
 
 #ifdef WARPX_DIM_RZ
-            // Replace the x and y, choosing the angle randomly.
+            // Replace the x and y, setting an angle theta.
             // These x and y are used to get the momentum and density
-            Real theta = 2.*MathConst::pi*amrex::Random();
+            Real theta;
+            if (WarpX::n_rz_azimuthal_modes == 1) {
+                // With only 1 mode, the angle doesn't matter so
+                // choose it randomly.
+                theta = 2.*MathConst::pi*amrex::Random();
+            } else {
+                theta = 2.*MathConst::pi*r.y;
+            }
             x = xb*std::cos(theta);
             y = xb*std::sin(theta);
 #endif

@@ -8,6 +8,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pywarpx import picmi
 
+constants = picmi.constants
+
 nr = 64
 nz = 200
 
@@ -18,9 +20,9 @@ zmax = +40.e-6
 
 # Parameters describing particle distribution
 density = 2.e24
-epsilon0 = 0.001
-epsilon1 = 0.001
-epsilon2 = 0.001
+epsilon0 = 0.001*constants.c
+epsilon1 = 0.001*constants.c
+epsilon2 = 0.001*constants.c
 w0 = 5.e-6
 n_osc_z = 3
 
@@ -28,8 +30,8 @@ n_osc_z = 3
 k0 = 2.*np.pi*n_osc_z/(zmax - zmin)
 
 # Plasma frequency
-wp = np.sqrt((density*picmi.q_e**2)/(picmi.m_e*picmi.ep0))
-kp = wp/picmi.c
+wp = np.sqrt((density*constants.q_e**2)/(constants.m_e*constants.ep0))
+kp = wp/constants.c
 
 uniform_plasma = picmi.UniformDistribution(density = density,
                                            upper_bound = [+18e-6, +18e-6, None],
@@ -80,8 +82,8 @@ sim = picmi.Simulation(solver = solver,
                        warpx_field_gathering_algo = 'standard',
                        warpx_particle_pusher_algo = 'boris')
 
-sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,8,2], grid=grid))
-sim.add_species(ions, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,8,2], grid=grid))
+sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,16,2], grid=grid))
+sim.add_species(ions, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,16,2], grid=grid))
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
@@ -101,15 +103,15 @@ def calcEr( z, r, k0, w0, wp, t, epsilons) :
     of the same length as z and r, in the half-plane theta=0
     """
     Er_array = (
-        epsilons[0] * picmi.m_e*picmi.c**2/picmi.q_e * 2*r/w0**2 *
+        epsilons[0] * constants.m_e*constants.c/constants.q_e * 2*r/w0**2 *
             np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t )
-        - epsilons[1] * picmi.m_e*picmi.c**2/picmi.q_e * 2/w0 *
+        - epsilons[1] * constants.m_e*constants.c/constants.q_e * 2/w0 *
             np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t )
-        + epsilons[1] * picmi.m_e*picmi.c**2/picmi.q_e * 4*r**2/w0**3 *
+        + epsilons[1] * constants.m_e*constants.c/constants.q_e * 4*r**2/w0**3 *
             np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t )
-        - epsilons[2] * picmi.m_e*picmi.c**2/picmi.q_e * 8*r/w0**2 *
+        - epsilons[2] * constants.m_e*constants.c/constants.q_e * 8*r/w0**2 *
             np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t )
-        + epsilons[2] * picmi.m_e*picmi.c**2/picmi.q_e * 8*r**3/w0**4 *
+        + epsilons[2] * constants.m_e*constants.c/constants.q_e * 8*r**3/w0**4 *
             np.exp( -r**2/w0**2 ) * np.sin( k0*z ) * np.sin( wp*t ))
     return( Er_array )
 
@@ -119,11 +121,11 @@ def calcEz( z, r, k0, w0, wp, t, epsilons) :
     of the same length as z and r, in the half-plane theta=0
     """
     Ez_array = (
-        - epsilons[0] * picmi.m_e*picmi.c**2/picmi.q_e * k0 *
+        - epsilons[0] * constants.m_e*constants.c/constants.q_e * k0 *
             np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t )
-        - epsilons[1] * picmi.m_e*picmi.c**2/picmi.q_e * k0 * 2*r/w0 *
+        - epsilons[1] * constants.m_e*constants.c/constants.q_e * k0 * 2*r/w0 *
             np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t )
-        - epsilons[2] * picmi.m_e*picmi.c**2/picmi.q_e * k0 * 4*r**2/w0**2 *
+        - epsilons[2] * constants.m_e*constants.c/constants.q_e * k0 * 4*r**2/w0**2 *
             np.exp( -r**2/w0**2 ) * np.cos( k0*z ) * np.sin( wp*t ))
     return( Ez_array )
 
@@ -153,7 +155,7 @@ Ez_th = calcEz(zz[:,:-1] + dz/2., rr[:,:-1], k0, w0, wp, t0, [epsilon0, epsilon1
 max_error_Er = abs(Er_sim - Er_th).max()/abs(Er_th).max()
 max_error_Ez = abs(Ez_sim - Ez_th).max()/abs(Ez_th).max()
 print("Max error Er %e"%max_error_Er)
-print("Max error Ez %e"%max_error_Er)
+print("Max error Ez %e"%max_error_Ez)
 
 # Plot the last field from the loop (Ez at iteration 40)
 plt.subplot2grid( (1,2), (0,0) )

@@ -28,10 +28,10 @@ void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
                 // (due to the 1/r terms). The following expressions regularize
                 // these divergences by assuming, on axis :
                 // Ez/r = 0/r + dEz/dr
-                Bx(i,j,2*imode) = Bx(i,j,0,2*imode) - imode*dtsdx*Ez(i+1,j,0,2*imode+1) &
-                       + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
-                Bx(i,j,2*imode+1) = Bx(i,j,0,2*imode+1) + imode*dtsdx*Ez(i+1,j,0,2*imode) &
-                       + dtsdz*(Ey(i,j+1,0,2*imode+1) - Ey(i,j,0,2*imode+1));
+                Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) - imode*dtsdx*Ez(i+1,j,0,2*imode+1) &
+                           + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
+                Bx(i,j,0,2*imode+1) = Bx(i,j,0,2*imode+1) + imode*dtsdx*Ez(i+1,j,0,2*imode) &
+                           + dtsdz*(Ey(i,j+1,0,2*imode+1) - Ey(i,j,0,2*imode+1));
             } else {
                 Bx(i,j,0,2*imode) = 0.;
                 Bx(i,j,0,2*imode+1) = 0.;
@@ -39,10 +39,10 @@ void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
         } else {
             // Br(i,j,m) = Br(i,j,m) + I*m*dt*Ez(i,j,m)/r + dtsdz*(Et(i,j+1,m) - Et(i,j,m))
             const Real r = rmin*dxinv + i;
-            Bx(i,j,2*imode) = Bx(i,j,0,2*imode) - imode*dtsdx*Ez(i,j,0,2*imode+1)/r &
-                   + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
-            Bx(i,j,2*imode+1) = Bx(i,j,0,2*imode+1) + imode*dtsdx*Ez(i,j,0,2*imode)/r &
-                   + dtsdz*(Ey(i,j+1,0,2*imode+1) - Ey(i,j,0,2*imode+1));
+            Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) - imode*dtsdx*Ez(i,j,0,2*imode+1)/r &
+                       + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
+            Bx(i,j,0,2*imode+1) = Bx(i,j,0,2*imode+1) + imode*dtsdx*Ez(i,j,0,2*imode)/r &
+                       + dtsdz*(Ey(i,j+1,0,2*imode+1) - Ey(i,j,0,2*imode+1));
         }
     }
 #endif
@@ -90,8 +90,8 @@ void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
     Bz(i,j,0,0) += - dtsdx*(ru*Ey(i+1,j,0,0) - rd*Ey(i,j,0,0));
     for (int imode=1 ; imode < nmodes ; imode++) {
         // Bz(i,j,m) = Bz(i,j,m) - dtsdr*(ru*Et(i+1,j,m) - rd*Et(i,j,m)) - I*m*dt*Er(i,j,m)/r
-        Bz(i,j,0,2*imode) += - dtsdx*(ru*Ey(i+1,j,0,2*imode) - rd*Ey(i,j,0,2*imode)) + imode*dtsdx*Ex(i,j,2*imode+1)/r;
-        Bz(i,j,0,2*imode+1) += - dtsdx*(ru*Ey(i+1,j,0,2*imode+1) - rd*Ey(i,j,0,2*imode+1)) - imode*dtsdx*Ex(i,j,2*imode)/r;
+        Bz(i,j,0,2*imode) += - dtsdx*(ru*Ey(i+1,j,0,2*imode) - rd*Ey(i,j,0,2*imode)) + imode*dtsdx*Ex(i,j,0,2*imode+1)/r;
+        Bz(i,j,0,2*imode+1) += - dtsdx*(ru*Ey(i+1,j,0,2*imode+1) - rd*Ey(i,j,0,2*imode+1)) - imode*dtsdx*Ex(i,j,0,2*imode)/r;
     }
 #endif
 }
@@ -157,7 +157,7 @@ void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
                 // And using the rule applying for the guards cells
                 // Er(r=-dr/2,m=1) = Er(r=dr/2,m=1). Thus: Et(i,j,m) = -i*Er(i,j,m)
                 Ey(i,j,0,2*imode) = Ex(i,j,0,2*imode+1);
-                Ey(i,j,0,2*imode+1) = -Ex(i,0,j,2*imode);
+                Ey(i,j,0,2*imode+1) = -Ex(i,j,0,2*imode);
             } else {
                 // Etheta should remain 0 on axis, for modes different than m=1
                 Ey(i,j,0,2*imode) = 0.;

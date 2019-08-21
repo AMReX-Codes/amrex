@@ -159,7 +159,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
 }
 
 /* \brief Esirkepov Current Deposition for thread thread_num
- * /param xp, yp, zp   : Pointer to arrays of particle positions.
+ * \param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
  * \param Jx_arr       : Array4 of current density, either full array or tile.
@@ -170,7 +170,8 @@ void doDepositionShapeN(const amrex::Real * const xp,
  * \param dx           : 3D cell size
  * \param xyzmin       : Physical lower bounds of domain.
  * \param lo           : Index lower bounds of domain.
- * /param q            : species charge.
+ * \param q            : species charge.
+ * \param n_rz_azimuthal_modes: Number of azimuthal modes when using RZ geometry
  */
 template <int depos_order>
 void doEsirkepovDepositionShapeN (const amrex::Real * const xp,

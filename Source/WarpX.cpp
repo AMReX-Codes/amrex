@@ -503,7 +503,7 @@ WarpX::ReadParameters ()
             l_lower_order_in_v = false;
         }
 
-        // Only needs to be set with WARPX_RZ, otherwise defaults to 1.
+        // Only needs to be set with WARPX_DIM_RZ, otherwise defaults to 1.
         pp.query("n_rz_azimuthal_modes", n_rz_azimuthal_modes);
 
     }
@@ -520,9 +520,6 @@ WarpX::ReadParameters ()
 
     {
         ParmParse pp("algo");
-        // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version
-        // of the deposition does not support RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
@@ -776,7 +773,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
                       const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho, int ngF)
 {
 
-#if defined WARPX_RZ
+#if defined WARPX_DIM_RZ
     if (n_rz_azimuthal_modes > 1) {
         // There is a real and imaginary component for each mode
         ncomps = n_rz_azimuthal_modes*2;
