@@ -239,17 +239,17 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
 
     def setup_parse_momentum_functions(self, species):
         if self.momentum_expressions[0] is not None:
-            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[0], c))
+            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[0], constants.c))
         else:
-            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.directed_velocity[0], c))
+            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.directed_velocity[0], constants.c))
         if self.momentum_expressions[1] is not None:
-            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[1], c))
+            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[1], constants.c))
         else:
-            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.directed_velocity[1], c))
+            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.directed_velocity[1], constants.c))
         if self.momentum_expressions[2] is not None:
-            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[2], c))
+            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[2], constants.c))
         else:
-            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.directed_velocity[2], c))
+            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.directed_velocity[2], constants.c))
 
 class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
     def init(self, kw):
