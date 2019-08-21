@@ -30,9 +30,10 @@ struct MFItInfo
     bool do_tiling;
     bool dynamic;
     bool device_sync;
+    int  num_streams;
     IntVect tilesize;
     MFItInfo () noexcept
-        : do_tiling(false), dynamic(false), device_sync(true), tilesize(IntVect::TheZeroVector()) {}
+        : do_tiling(false), dynamic(false), device_sync(true), num_streams(Gpu::numGpuStreams()), tilesize(IntVect::TheZeroVector()) {}
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
         tilesize = ts;
@@ -190,6 +191,7 @@ protected:
     int           currentIndex;
     int           beginIndex;
     int           endIndex;
+    int           streams;
     IndexType     typ;
 
     bool          dynamic;
