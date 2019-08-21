@@ -274,9 +274,10 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #ifdef _OPENMP
     // First touch all tiles in the map in serial
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        GetParticles(lev)[std::make_pair(grid_id, tile_id)];
+        auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+        GetParticles(lev)[index];
+        tmp_particle_data.resize(finestLevel()+1);
+        tmp_particle_data[lev][index];
     }
 #endif
 
@@ -1611,7 +1612,7 @@ void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
     Real* AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
     Real* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
     Real* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
-    
+
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
                      xpold[i]=xp[i];
