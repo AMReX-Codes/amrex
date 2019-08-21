@@ -416,6 +416,10 @@ WarpXParticleContainer::DepositCurrentFortran(WarpXParIter& pti,
  * \param pti         : Particle iterator
  * \param wp          : Array of particle weights
  * \param uxp uyp uzp : Array of particle
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param jx jy jz    : Full array of current density
  * \param offset      : Index of first particle for which current is deposited
  * \param np_to_depose: Number of particles for which current is deposited.
@@ -560,6 +564,24 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #endif
 }
 
+/* \brief Charge Deposition for thread thread_num
+ * \param pti         : Particle iterator
+ * \param wp          : Array of particle weights
+ * \param ion_lev     : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
+ * \param rho         : Full array of charge density
+ * \param icomp       : Component of rho into which charge is deposited.
+                        0: old value (before particle push). 
+                        1: new value (after particle push).
+ * \param offset      : Index of first particle for which charge is deposited
+ * \param np_to_depose: Number of particles for which charge is deposited.
+                        Particles [offset,offset+np_tp_depose] deposit charge
+ * \param thread_num  : Thread number (if tiling)
+ * \param lev         : Level of box that contains particles
+ * \param depos_lev   : Level on which particles deposit (if buffers are used)
+ */
 void
 WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
                                        const int * const ion_lev,

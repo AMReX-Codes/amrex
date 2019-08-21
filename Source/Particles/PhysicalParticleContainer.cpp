@@ -1179,7 +1179,7 @@ PhysicalParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-
+                // Deposit charge before particle push, in component 0 of MultiFab rho.
                 int* AMREX_RESTRICT ion_lev;
                 if (do_field_ionization){
                     ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
@@ -1336,6 +1336,7 @@ PhysicalParticleContainer::Evolve (int lev,
             }
             
             if (rho) {
+                // Deposit charge after particle push, in component 1 of MultiFab rho.
                 int* AMREX_RESTRICT ion_lev;
                 if (do_field_ionization){
                     ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
