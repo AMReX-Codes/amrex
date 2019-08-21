@@ -1002,7 +1002,13 @@ public:
                                    Container& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }
+
+    int GetLevel () const { return m_level; }
+
+    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+    
 protected:
+    
     int m_level;
     int m_pariter_index;
     Vector<int> m_valid_index;
