@@ -238,12 +238,14 @@ WarpXParticleContainer::AddNParticles (int lev,
         p.pos(1) = z[i];
 #endif
 
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-        {
-            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
-            ptile.push_back_real(particle_comps["xold"], x[i]);
-            ptile.push_back_real(particle_comps["yold"], y[i]);
-            ptile.push_back_real(particle_comps["zold"], z[i]);
+        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);            
+            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+            {
+                ptile.push_back_real(particle_comps["xold"], x[i]);
+                ptile.push_back_real(particle_comps["yold"], y[i]);
+                ptile.push_back_real(particle_comps["zold"], z[i]);
+            }
         }
 
         particle_tile.push_back(p);
@@ -256,12 +258,14 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-        {
-            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
-            ptile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
-            ptile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
-            ptile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
+        if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);            
+            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+            {
+                ptile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
+                ptile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
+                ptile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
+            }
         }
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
@@ -412,6 +416,10 @@ WarpXParticleContainer::DepositCurrentFortran(WarpXParIter& pti,
  * \param pti         : Particle iterator
  * \param wp          : Array of particle weights
  * \param uxp uyp uzp : Array of particle
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param jx jy jz    : Full array of current density
  * \param offset      : Index of first particle for which current is deposited
  * \param np_to_depose: Number of particles for which current is deposited.
@@ -425,6 +433,7 @@ void
 WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                        RealVector& wp, RealVector& uxp,
                                        RealVector& uyp, RealVector& uzp,
+                                       const int * const ion_lev,
                                        MultiFab* jx, MultiFab* jy, MultiFab* jz,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev,
@@ -507,37 +516,40 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
         if        (WarpX::nox == 1){
-            doEsirkepovDepositionShapeN<1>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
-                                           uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
-                                           jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+            doEsirkepovDepositionShapeN<1>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         } else if (WarpX::nox == 2){
-            doEsirkepovDepositionShapeN<2>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
-                                           uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
-                                           jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+            doEsirkepovDepositionShapeN<2>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         } else if (WarpX::nox == 3){
-            doEsirkepovDepositionShapeN<3>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
-                                           uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
-                                           jz_arr, np_to_depose, dt, dx,
-                                           xyzmin, lo, q);
+            doEsirkepovDepositionShapeN<3>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         }
     } else {
         if        (WarpX::nox == 1){
-            doDepositionShapeN<1>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
-                                  uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
-                                  jz_arr, np_to_depose, dt, dx,
-                                  xyzmin, lo, stagger_shift, q);
+            doDepositionShapeN<1>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
+                stagger_shift, q);
         } else if (WarpX::nox == 2){
-            doDepositionShapeN<2>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
-                                  uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
-                                  jz_arr, np_to_depose, dt, dx,
-                                  xyzmin, lo, stagger_shift, q);
+            doDepositionShapeN<2>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
+                stagger_shift, q);
         } else if (WarpX::nox == 3){
-            doDepositionShapeN<3>(xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset, 
-                                  uyp.dataPtr() + offset, uzp.dataPtr() + offset, jx_arr, jy_arr, 
-                                  jz_arr, np_to_depose, dt, dx,
-                                  xyzmin, lo, stagger_shift, q);
+            doDepositionShapeN<3>(
+                xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
+                uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
+                stagger_shift, q);
         }
     }
 
@@ -552,8 +564,27 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 #endif
 }
 
+/* \brief Charge Deposition for thread thread_num
+ * \param pti         : Particle iterator
+ * \param wp          : Array of particle weights
+ * \param ion_lev     : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
+ * \param rho         : Full array of charge density
+ * \param icomp       : Component of rho into which charge is deposited.
+                        0: old value (before particle push). 
+                        1: new value (after particle push).
+ * \param offset      : Index of first particle for which charge is deposited
+ * \param np_to_depose: Number of particles for which charge is deposited.
+                        Particles [offset,offset+np_tp_depose] deposit charge
+ * \param thread_num  : Thread number (if tiling)
+ * \param lev         : Level of box that contains particles
+ * \param depos_lev   : Level on which particles deposit (if buffers are used)
+ */
 void
 WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
+                                       const int * const ion_lev,
                                        MultiFab* rho, int icomp,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev)
@@ -615,14 +646,14 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     BL_PROFILE_VAR_START(blp_ppc_chd);
     if        (WarpX::nox == 1){
-        doChargeDepositionShapeN<1>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
-                                    np_to_depose, dx, xyzmin, lo, q);
+        doChargeDepositionShapeN<1>(xp, yp, zp, wp.dataPtr()+offset, ion_lev,
+                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 2){
-        doChargeDepositionShapeN<2>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
-                                    np_to_depose, dx, xyzmin, lo, q);
+        doChargeDepositionShapeN<2>(xp, yp, zp, wp.dataPtr()+offset, ion_lev,
+                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 3){
-        doChargeDepositionShapeN<3>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
-                                    np_to_depose, dx, xyzmin, lo, q);
+        doChargeDepositionShapeN<3>(xp, yp, zp, wp.dataPtr()+offset, ion_lev,
+                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
     }
     BL_PROFILE_VAR_STOP(blp_ppc_chd);
 
@@ -732,7 +763,15 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            DepositCharge(pti, wp, rho.get(), 0, 0, np, thread_num, lev, lev);
+            int* AMREX_RESTRICT ion_lev;
+            if (do_field_ionization){
+                ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+            } else {
+                ion_lev = nullptr;
+            }
+
+            DepositCharge(pti, wp, ion_lev, rho.get(), 0, 0, np,
+                          thread_num, lev, lev);
         }
 #ifdef _OPENMP
     }
