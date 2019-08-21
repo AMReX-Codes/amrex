@@ -326,6 +326,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
 
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
+    BL_PROFILE_VAR_NS("PPC::CurrentDeposition", blp_deposit);
+
 
     // Get tile box where current is deposited.
     // The tile box is different when depositing in the buffers (depos_lev<lev)
@@ -388,6 +390,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Better for memory? worth trying?    
     const Dim3 lo = lbound(tilebox);
 
+    BL_PROFILE_VAR_START(blp_deposit);
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
         if        (WarpX::nox == 1){
             doEsirkepovDepositionShapeN<1>(
@@ -426,6 +429,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                 stagger_shift, q);
         }
     }
+    BL_PROFILE_VAR_STOP(blp_deposit);
 
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
