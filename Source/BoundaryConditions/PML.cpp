@@ -53,13 +53,13 @@ namespace
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            sigma_cum[i-slo] = coeff_damp*(fac*(offset*offset*offset)/3.)/PhysConst::c;
+            sigma_cum[i-slo] = (fac*(offset*offset*offset)/3.)/PhysConst::c;
         }
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(i-ghi) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
-            sigma_star_cum[i-sslo] = coeff_damp*(fac*(offset*offset*offset)/3.)/PhysConst::c;
+            sigma_star_cum[i-sslo] = (fac*(offset*offset*offset)/3.)/PhysConst::c;
         }
     }
 
