@@ -28,21 +28,15 @@
 # For two nodes: -N 2, -n 16, -c 10, --gres=gpu:8 --ntasks-per-node 8
 
 # salloc commands:
+# (Make sure the appropriate module is loaded to see the gpu partition.)
 # ================
 # Single GPU. (If you don't require an independent node, please use a shared node.)
-# Request 30GB per GPU being requested.
-# salloc -N 1 -t 2:00:00 -c 10 -C gpu --mem=30GB --gres=gpu:1 -A m1759
+# salloc -N 1 -t 2:00:00 -c 10 -C gpu --gres=gpu:1 -A m1759
 # Single node:
 # salloc -N 1 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A m1759 
 # Multi node:
 # salloc -N 2 -t 2:00:00 -c 80 -C gpu --exclusive --gres=gpu:8 -A m1759
 
-# environment setup:
-# ==================
-# module purge
-# module load modules esslurm gcc cuda mvapich2 
-#    or for openmpi:
-# module load modules esslurm gcc cuda openmpi/3.1.0-ucx
 
 
 EXE=./CNS3d.gnu.TPROF.MPI.CUDA.ex
