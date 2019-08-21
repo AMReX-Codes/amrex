@@ -1179,9 +1179,18 @@ PhysicalParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-                DepositCharge(pti, wp, rho, 0, 0, np_current, thread_num, lev, lev);
+
+                int* AMREX_RESTRICT ion_lev;
+                if (do_field_ionization){
+                    ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+                } else {
+                    ion_lev = nullptr;
+                }
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
+                              np_current, thread_num, lev, lev);
                 if (has_buffer){
-                    DepositCharge(pti, wp, crho, 0, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
             
@@ -1327,9 +1336,17 @@ PhysicalParticleContainer::Evolve (int lev,
             }
             
             if (rho) {
-                DepositCharge(pti, wp, rho, 1, 0, np_current, thread_num, lev, lev);
+                int* AMREX_RESTRICT ion_lev;
+                if (do_field_ionization){
+                    ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+                } else {
+                    ion_lev = nullptr;
+                }
+                DepositCharge(pti, wp, ion_lev, rho, 1, 0,
+                              np_current, thread_num, lev, lev);
                 if (has_buffer){
-                    DepositCharge(pti, wp, crho, 1, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
 

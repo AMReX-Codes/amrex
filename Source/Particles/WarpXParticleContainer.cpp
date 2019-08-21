@@ -562,6 +562,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
 void
 WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
+                                       const int * const ion_lev,
                                        MultiFab* rho, int icomp,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev)
@@ -623,14 +624,14 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     BL_PROFILE_VAR_START(blp_ppc_chd);
     if        (WarpX::nox == 1){
-        doChargeDepositionShapeN<1>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
-                                    np_to_depose, dx, xyzmin, lo, q);
+        doChargeDepositionShapeN<1>(xp, yp, zp, wp.dataPtr()+offset, ion_lev,
+                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 2){
-        doChargeDepositionShapeN<2>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
-                                    np_to_depose, dx, xyzmin, lo, q);
+        doChargeDepositionShapeN<2>(xp, yp, zp, wp.dataPtr()+offset, ion_lev,
+                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
     } else if (WarpX::nox == 3){
-        doChargeDepositionShapeN<3>(xp, yp, zp, wp.dataPtr()+offset, rho_arr,
-                                    np_to_depose, dx, xyzmin, lo, q);
+        doChargeDepositionShapeN<3>(xp, yp, zp, wp.dataPtr()+offset, ion_lev,
+                                    rho_arr, np_to_depose, dx, xyzmin, lo, q);
     }
     BL_PROFILE_VAR_STOP(blp_ppc_chd);
 
@@ -740,7 +741,15 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            DepositCharge(pti, wp, rho.get(), 0, 0, np, thread_num, lev, lev);
+            int* AMREX_RESTRICT ion_lev;
+            if (do_field_ionization){
+                ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+            } else {
+                ion_lev = nullptr;
+            }
+
+            DepositCharge(pti, wp, ion_lev, rho.get(), 0, 0, np,
+                          thread_num, lev, lev);
         }
 #ifdef _OPENMP
     }

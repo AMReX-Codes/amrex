@@ -171,6 +171,7 @@ public:
 
     virtual void DepositCharge(WarpXParIter& pti,
                                RealVector& wp,
+                               const int * const ion_lev,
                                amrex::MultiFab* rho,
                                int icomp,
                                const long offset,

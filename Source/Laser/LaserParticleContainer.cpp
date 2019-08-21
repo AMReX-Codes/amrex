@@ -454,9 +454,10 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-                DepositCharge(pti, wp, rho, 0, 0, np_current, thread_num, lev, lev);
+                int* AMREX_RESTRICT ion_lev = nullptr;
                 if (crho) {
-                    DepositCharge(pti, wp, crho, 0, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
 
@@ -529,9 +530,12 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-                DepositCharge(pti, wp, rho, 1, 0, np_current, thread_num, lev, lev);
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 1, 0,
+                              np_current, thread_num, lev, lev);
                 if (crho) {
-                    DepositCharge(pti, wp, crho, 1, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
 
