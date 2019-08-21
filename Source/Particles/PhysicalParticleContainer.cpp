@@ -2007,7 +2007,7 @@ void PhysicalParticleContainer::InitIonizationModule ()
     pp.get("physical_element", physical_element);
     // Add runtime integer component for ionization level
     AddIntComp("ionization_level");
-    // plot_flags.resize(PIdx::nattribs + 1, 1);
+    plot_flags.resize(PIdx::nattribs + 1, 1);
     // Get atomic number and ionization energies from file
     int ion_element_id = ion_map_ids[physical_element];
     ion_atomic_number = ion_atomic_numbers[ion_element_id];
