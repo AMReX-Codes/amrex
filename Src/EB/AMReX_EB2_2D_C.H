@@ -65,6 +65,30 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     });
 }
 
+namespace {
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    int num_cuts (Real a, Real b) noexcept {
+        return (a >= 0.0 and b < 0.0) or (b >= 0.0 and a < 0.0);
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
+{
+    constexpr int k = 0;
+    i *= 2;
+    j *= 2;
+    int ncuts = num_cuts(fine(i  ,j  ,k),fine(i+1,j  ,k))
+        +       num_cuts(fine(i+1,j  ,k),fine(i+2,j  ,k))
+        +       num_cuts(fine(i  ,j+2,k),fine(i+1,j+2,k))
+        +       num_cuts(fine(i+1,j+2,k),fine(i+2,j+2,k))
+        +       num_cuts(fine(i  ,j  ,k),fine(i  ,j+1,k))
+        +       num_cuts(fine(i  ,j+1,k),fine(i  ,j+2,k))
+        +       num_cuts(fine(i+2,j  ,k),fine(i+2,j+1,k))
+        +       num_cuts(fine(i+2,j+1,k),fine(i+2,j+2,k));
+    return (ncuts != 0 or ncuts != 2);
+}
+
 }}
 
 #endif
