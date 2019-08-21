@@ -62,28 +62,28 @@ void doGatherShapeN(const amrex::Real * const xp,
             const amrex::Real x = (xp[ip]-xmin)*dxi;
 #endif
             // Compute shape factors for node-centered quantities
-            amrex::Real AMREX_RESTRICT sx [depos_order + 1];
+            amrex::Real sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that particle touches
             const int j  = compute_shape_factor<depos_order>(sx, x);
             // Compute shape factors for cell-centered quantities
-            amrex::Real AMREX_RESTRICT sx0[depos_order + 1 - lower_in_v];
+            amrex::Real sx0[depos_order + 1 - lower_in_v];
             // j0: leftmost grid point (cell-centered) that particle touches
             const int j0 = compute_shape_factor<depos_order - lower_in_v>(
                 sx0, x-stagger_shift);
 #if (AMREX_SPACEDIM == 3)
             // y direction
             const amrex::Real y = (yp[ip]-ymin)*dyi;
-            amrex::Real AMREX_RESTRICT sy [depos_order + 1];
+            amrex::Real sy [depos_order + 1];
             const int k  = compute_shape_factor<depos_order>(sy, y);
-            amrex::Real AMREX_RESTRICT sy0[depos_order + 1 - lower_in_v];
+            amrex::Real sy0[depos_order + 1 - lower_in_v];
             const int k0 = compute_shape_factor<depos_order-lower_in_v>(
                 sy0, y-stagger_shift);
 #endif
             // z direction
             const amrex::Real z = (zp[ip]-zmin)*dzi;
-            amrex::Real AMREX_RESTRICT sz [depos_order + 1];
+            amrex::Real sz [depos_order + 1];
             const int l  = compute_shape_factor<depos_order>(sz, z);
-            amrex::Real AMREX_RESTRICT sz0[depos_order + 1 - lower_in_v];
+            amrex::Real sz0[depos_order + 1 - lower_in_v];
             const int l0 = compute_shape_factor<depos_order - lower_in_v>(
                 sz0, z-stagger_shift);
 

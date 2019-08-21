@@ -43,7 +43,7 @@ laser1.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
 
 # I/O
 amr.plot_int = 20
-
+warpx.fields_to_plot = jx jy jz Ex Ey Ez Bx Bz
 warpx.do_pml = 0
 
 # Moving window

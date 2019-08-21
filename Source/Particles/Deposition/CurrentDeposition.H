@@ -109,27 +109,27 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real xmid = (xp[ip]-xmin)*dxi-dts2dx*vx;
 #endif
             // Compute shape factors for node-centered quantities
-            amrex::Real AMREX_RESTRICT sx [depos_order + 1];
+            amrex::Real sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that the particle touches
             const int j  = compute_shape_factor<depos_order>(sx,  xmid);
             // Compute shape factors for cell-centered quantities
-            amrex::Real AMREX_RESTRICT sx0[depos_order + 1];
+            amrex::Real sx0[depos_order + 1];
             // j0: leftmost grid point (cell-centered) that the particle touches
             const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real ymid= (yp[ip]-ymin)*dyi-dts2dy*vy;
-            amrex::Real AMREX_RESTRICT sy [depos_order + 1];
+            amrex::Real sy [depos_order + 1];
             const int k  = compute_shape_factor<depos_order>(sy,  ymid);
-            amrex::Real AMREX_RESTRICT sy0[depos_order + 1];
+            amrex::Real sy0[depos_order + 1];
             const int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
             // z direction
             const amrex::Real zmid= (zp[ip]-zmin)*dzi-dts2dz*vz;
-            amrex::Real AMREX_RESTRICT sz [depos_order + 1];
+            amrex::Real sz [depos_order + 1];
             const int l  = compute_shape_factor<depos_order>(sz,  zmid);
-            amrex::Real AMREX_RESTRICT sz0[depos_order + 1];
+            amrex::Real sz0[depos_order + 1];
             const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
             // Deposit current into jx_arr, jy_arr and jz_arr
@@ -290,14 +290,14 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             // Note that there are extra values above and below
             // to possibly hold the factor for the old particle
             // which can be at a different grid location.
-            amrex::Real AMREX_RESTRICT sx_new[depos_order + 3] = {0.};
-            amrex::Real AMREX_RESTRICT sx_old[depos_order + 3] = {0.};
+            amrex::Real sx_new[depos_order + 3] = {0.};
+            amrex::Real sx_old[depos_order + 3] = {0.};
 #if (defined WARPX_DIM_3D)
-            amrex::Real AMREX_RESTRICT sy_new[depos_order + 3] = {0.};
-            amrex::Real AMREX_RESTRICT sy_old[depos_order + 3] = {0.};
+            amrex::Real sy_new[depos_order + 3] = {0.};
+            amrex::Real sy_old[depos_order + 3] = {0.};
 #endif
-            amrex::Real AMREX_RESTRICT sz_new[depos_order + 3] = {0.};
-            amrex::Real AMREX_RESTRICT sz_old[depos_order + 3] = {0.};
+            amrex::Real sz_new[depos_order + 3] = {0.};
+            amrex::Real sz_old[depos_order + 3] = {0.};
 
             // --- Compute shape factors
             // Compute shape factors for position as they are now and at old positions

@@ -55,19 +55,19 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real x = (xp[ip] - xmin)*dxi;
 #endif
             // Compute shape factors for node-centered quantities
-            amrex::Real AMREX_RESTRICT sx[depos_order + 1];
+            amrex::Real sx[depos_order + 1];
             // i: leftmost grid point (node-centered) that the particle touches
             const int i = compute_shape_factor<depos_order>(sx,  x);
                      
 #if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real y = (yp[ip] - ymin)*dyi;
-            amrex::Real AMREX_RESTRICT sy[depos_order + 1];
+            amrex::Real sy[depos_order + 1];
             const int j = compute_shape_factor<depos_order>(sy,  y);
 #endif
             // z direction
             const amrex::Real z = (zp[ip] - zmin)*dzi;
-            amrex::Real AMREX_RESTRICT sz[depos_order + 1];
+            amrex::Real sz[depos_order + 1];
             const int k = compute_shape_factor<depos_order>(sz,  z);
 
             // Deposit charge into rho_arr
