@@ -308,6 +308,8 @@ protected:
     // list of names of attributes to dump.
     amrex::Vector<std::string> plot_vars;
 
+    amrex::Vector<std::map<std::pair<int, int>, std::array<amrex::Gpu::ManagedDeviceVector<amrex::Real>, 6> > > tmp_particle_data;
+    
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;

@@ -196,18 +196,6 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
     attribs[PIdx::uz] = u[2];
     attribs[PIdx::w ] = weight;
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-    {
-        // need to create old values
-        auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-        particle_tile.push_back_real(particle_comps["xold"], x);
-        particle_tile.push_back_real(particle_comps["yold"], y);
-        particle_tile.push_back_real(particle_comps["zold"], z);
-                
-        particle_tile.push_back_real(particle_comps["uxold"], u[0]);
-        particle_tile.push_back_real(particle_comps["uyold"], u[1]);
-        particle_tile.push_back_real(particle_comps["uzold"], u[2]);
-    }
     // add particle
     AddOneParticle(0, 0, 0, x, y, z, attribs);
 }
@@ -430,15 +418,6 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             pa[ia] = soa.GetRealData(ia).data() + old_size;
         }
-        GpuArray<Real*,6> pb;
-        if (do_boosted) {
-            pb[0] = soa.GetRealData(particle_comps[ "xold"]).data() + old_size;
-            pb[1] = soa.GetRealData(particle_comps[ "yold"]).data() + old_size;
-            pb[2] = soa.GetRealData(particle_comps[ "zold"]).data() + old_size;
-            pb[3] = soa.GetRealData(particle_comps["uxold"]).data() + old_size;
-            pb[4] = soa.GetRealData(particle_comps["uyold"]).data() + old_size;
-            pb[5] = soa.GetRealData(particle_comps["uzold"]).data() + old_size;
-        }
 
         const GpuArray<Real,AMREX_SPACEDIM> overlap_corner
             {AMREX_D_DECL(overlap_realbox.lo(0),
@@ -588,15 +567,6 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             pa[PIdx::ux][ip] = u.x;
             pa[PIdx::uy][ip] = u.y;
             pa[PIdx::uz][ip] = u.z;
-
-            if (do_boosted) {
-                pb[0][ip] = x;
-                pb[1][ip] = y;
-                pb[2][ip] = z;
-                pb[3][ip] = u.x;
-                pb[4][ip] = u.y;
-                pb[5][ip] = u.z;
-            }
 
 #if (AMREX_SPACEDIM == 3)
             p.pos(0) = x;
@@ -1633,21 +1603,22 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
                                              const Real* yp, const Real* zp)
 {
-
     auto& attribs = pti.GetAttribs();
-    
     Real* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
     Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
     Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
     
-    Real* AMREX_RESTRICT xpold = pti.GetAttribs(particle_comps["xold"]).dataPtr();
-    Real* AMREX_RESTRICT ypold = pti.GetAttribs(particle_comps["yold"]).dataPtr();
-    Real* AMREX_RESTRICT zpold = pti.GetAttribs(particle_comps["zold"]).dataPtr();
-    Real* AMREX_RESTRICT uxpold = pti.GetAttribs(particle_comps["uxold"]).dataPtr();
-    Real* AMREX_RESTRICT uypold = pti.GetAttribs(particle_comps["uyold"]).dataPtr();
-    Real* AMREX_RESTRICT uzpold = pti.GetAttribs(particle_comps["uzold"]).dataPtr();
-    
-    const long np = pti.numParticles();
+    const auto np = pti.numParticles();
+    const auto lev = pti.GetLevel();
+    const auto index = pti.GetPairIndex();
+    tmp_particle_data.resize(finestLevel()+1);
+    for (int i = 0; i < 6; ++i) tmp_particle_data[lev][index][i].resize(np);
+    Real* AMREX_RESTRICT xpold  = tmp_particle_data[lev][index][0].dataPtr();
+    Real* AMREX_RESTRICT ypold  = tmp_particle_data[lev][index][1].dataPtr();
+    Real* AMREX_RESTRICT zpold  = tmp_particle_data[lev][index][2].dataPtr();
+    Real* AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][3].dataPtr();
+    Real* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][4].dataPtr();
+    Real* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][5].dataPtr();
     
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
@@ -1733,15 +1704,15 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto& uyp_new = attribs[PIdx::uy   ];
                 auto& uzp_new = attribs[PIdx::uz   ];
 
-                auto&  xp_old = pti.GetAttribs(particle_comps["xold"]);
-                auto&  yp_old = pti.GetAttribs(particle_comps["yold"]);
-                auto&  zp_old = pti.GetAttribs(particle_comps["zold"]);
-                auto& uxp_old = pti.GetAttribs(particle_comps["uxold"]);
-                auto& uyp_old = pti.GetAttribs(particle_comps["uyold"]);
-                auto& uzp_old = pti.GetAttribs(particle_comps["uzold"]);
+                auto&  xp_old = tmp_particle_data[lev][index][0];
+                auto&  yp_old = tmp_particle_data[lev][index][1];
+                auto&  zp_old = tmp_particle_data[lev][index][2];
+                auto& uxp_old = tmp_particle_data[lev][index][3];
+                auto& uyp_old = tmp_particle_data[lev][index][4];
+                auto& uzp_old = tmp_particle_data[lev][index][5];
 
                 const long np = pti.numParticles();
-
+                
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
                 Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
 

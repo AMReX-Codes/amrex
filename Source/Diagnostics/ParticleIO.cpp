@@ -102,17 +102,6 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             real_names.push_back("theta");
 #endif
             
-            if (WarpX::do_boosted_frame_diagnostic && pc->DoBoostedFrameDiags())
-            {
-                real_names.push_back("xold");
-                real_names.push_back("yold");
-                real_names.push_back("zold");
-                
-                real_names.push_back("uxold");
-                real_names.push_back("uyold");
-                real_names.push_back("uzold");
-            }
-                        
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
             // real_names contains a list of all particle attributes.

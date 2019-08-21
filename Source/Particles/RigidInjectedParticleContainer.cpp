@@ -239,15 +239,13 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     Real* const AMREX_RESTRICT Bzp = attribs[PIdx::Bz].dataPtr();
 
     if (!done_injecting_lev) {
-        if (!(WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)) {
-            // If the old values are not already saved, create copies here.
-            xp_save = xp;
-            yp_save = yp;
-            zp_save = zp;
-            uxp_save = uxp;
-            uyp_save = uyp;
-            uzp_save = uzp;
-        }
+        // If the old values are not already saved, create copies here.
+        xp_save = xp;
+        yp_save = yp;
+        zp_save = zp;
+        uxp_save = uxp;
+        uyp_save = uyp;
+        uzp_save = uzp;
 
         // Scale the fields of particles about to cross the injection plane.
         // This only approximates what should be happening. The particles
@@ -275,27 +273,12 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 
     if (!done_injecting_lev) {
 
-        Real* AMREX_RESTRICT x_save;
-        Real* AMREX_RESTRICT y_save;
-        Real* AMREX_RESTRICT z_save;
-        Real* AMREX_RESTRICT ux_save;
-        Real* AMREX_RESTRICT uy_save;
-        Real* AMREX_RESTRICT uz_save;
-        if (!(WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)) {
-            x_save = xp_save.dataPtr();
-            y_save = yp_save.dataPtr();
-            z_save = zp_save.dataPtr();
-            ux_save = uxp_save.dataPtr();
-            uy_save = uyp_save.dataPtr();
-            uz_save = uzp_save.dataPtr();
-        } else {
-            x_save = pti.GetAttribs(particle_comps["xold"]).dataPtr();
-            y_save = pti.GetAttribs(particle_comps["yold"]).dataPtr();
-            z_save = pti.GetAttribs(particle_comps["zold"]).dataPtr();
-            ux_save = pti.GetAttribs(particle_comps["uxold"]).dataPtr();
-            uy_save = pti.GetAttribs(particle_comps["uyold"]).dataPtr();
-            uz_save = pti.GetAttribs(particle_comps["uzold"]).dataPtr();
-        }
+        Real* AMREX_RESTRICT x_save = xp_save.dataPtr();
+        Real* AMREX_RESTRICT y_save = yp_save.dataPtr();
+        Real* AMREX_RESTRICT z_save = zp_save.dataPtr();
+        Real* AMREX_RESTRICT ux_save = uxp_save.dataPtr();
+        Real* AMREX_RESTRICT uy_save = uyp_save.dataPtr();
+        Real* AMREX_RESTRICT uz_save = uzp_save.dataPtr();
 
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
