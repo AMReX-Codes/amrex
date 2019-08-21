@@ -455,7 +455,7 @@ LaserParticleContainer::Evolve (int lev,
 
             if (rho) {
                 int* AMREX_RESTRICT ion_lev = nullptr;
-                DepositCharge(pti, wp, rho, 0, 0, 
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
                               np_current, thread_num, lev, lev);
                 if (crho) {
                     DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
