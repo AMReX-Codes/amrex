@@ -24,22 +24,19 @@ namespace
         int slo = sigma.m_lo;
         int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
-        Real x = 10.0;
-        Real theta = 10.0;
-        Real coeff_damp = 1.; //std::sin(theta*MathConst::pi/180.);
 
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(glo-i);
             sigma[i-slo] = fac*(offset*offset);
-            sigma_cum[i-slo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
+            sigma_cum[i-slo] = (fac*(offset*offset*offset)/3.)/PhysConst::c;
         }
 
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(glo-i) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
-            sigma_star_cum[i-sslo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
+            sigma_star_cum[i-sslo] = (fac*(offset*offset*offset)/3.)/PhysConst::c;
         }
     }
 
@@ -52,20 +49,17 @@ namespace
         int slo = sigma.m_lo;
         int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
-        Real x = 10.0;
-        Real theta = 10.0;
-        Real coeff_damp = 1.;//std::sin(theta*MathConst::pi/180.);
         for (int i = olo; i <= ohi+1; ++i)
         {
             Real offset = static_cast<Real>(i-ghi-1);
             sigma[i-slo] = fac*(offset*offset);
-            sigma_cum[i-slo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
+            sigma_cum[i-slo] = coeff_damp*(fac*(offset*offset*offset)/3.)/PhysConst::c;
         }
         for (int i = olo; i <= ohi; ++i)
         {
             Real offset = static_cast<Real>(i-ghi) - 0.5;
             sigma_star[i-sslo] = fac*(offset*offset);
-            sigma_star_cum[i-sslo] = coeff_damp*(fac*(offset*offset*offset)/3.)/(PhysConst::c*x/std::sqrt(1+x*x));
+            sigma_star_cum[i-sslo] = coeff_damp*(fac*(offset*offset*offset)/3.)/PhysConst::c;
         }
     }
 
@@ -118,8 +112,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_lo = lo[idim];
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
-
-    amrex::Print()<<box<<std::endl;
 
     pml_type = "";
     pml_type_array = {3, 3, 3, 3, 3};
@@ -189,7 +181,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 #endif
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillLo"<<std::endl;
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "crn-++"; // for 2d only use the two first components
@@ -213,7 +204,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 #endif
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillHi"<<std::endl;
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "crn+++"; // for 2d only use the two first components
@@ -241,7 +231,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& grid_box = grids[gid];
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
             if (overlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillZero"<<std::endl;
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
                 if (idim==0){
                     pml_type="sed33--";
@@ -260,7 +249,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
             Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (looverlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillLo"<<std::endl;
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "sed03-+"; // for 2d only use the two first components
@@ -289,7 +277,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (hioverlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillHi"<<std::endl;
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
                     pml_type = "sed03++"; // for 2d only use the two first components
@@ -330,7 +317,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
 #endif
             if (overlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillZero"<<std::endl;
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
@@ -344,19 +330,17 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& lobox = amrex::adjCellLo(grid_box, idim, ncell);
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillLo"<<std::endl;
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 pml_type = "df0-";
                 pml_type_array[0] = 0;
                 pml_type_array[1] = idim;
                 pml_type_array[2] = 0;
-                if (idim > 0){pml_type[2]=idim+'0';} //std::to_string(idim)
+                if (idim > 0){pml_type[2]=idim+'0';}
             }
 
             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
-                amrex::Print()<<"["<<idim<<"] FillHi"<<std::endl;
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 pml_type = "df0+";
                 pml_type_array[0] = 0;
@@ -374,7 +358,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             amrex::Abort("SigmaBox::SigmaBox(): direct_faces.size() > 1, Box gaps not wide enough?\n");
         }
     }
-    amrex::Print()<<pml_type<<std::endl;
 }
 
 
@@ -620,9 +603,6 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                    const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     Box domain = geom.Domain();
-    amrex::Print()<<domain<<std::endl;
-    amrex::Print()<<do_pml_Lo<<std::endl;
-    amrex::Print()<<do_pml_Hi<<std::endl;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom.isPeriodic(idim) ) {
             if (do_pml_Lo[idim]){
@@ -633,7 +613,6 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             }
         }
     }
-    amrex::Print()<<domain<<std::endl;
     BoxList bl;
     for (int i = 0, N = grid_ba.size(); i < N; ++i)
     {
@@ -680,13 +659,6 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 
     BoxArray ba(bl);
     ba.removeOverlap(false);
-    amrex::Print()<< "####### PML BOXES #######" <<std::endl;
-    amrex::Print()<<"["<<std::endl;
-    const BoxList& bl2 = BoxList(ba);
-    for (const Box& b : bl2) {
-        amrex::Print()<<"["<<b.smallEnd()[0]<<", "<<b.smallEnd()[1]<<", "<<b.bigEnd()[0]<<", "<<b.bigEnd()[1]<<"],"<<std::endl;
-    }
-    amrex::Print()<<"]"<<std::endl;
 
     return ba;
 }
@@ -887,9 +859,6 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
     if (do_pml_in_domain){
         const IntVect& ngr = reg.nGrowVect();
         const IntVect& ngp = pml.nGrowVect();
-        // amrex::Print()<< "##### PML EXCHANGE #####"<<std::endl;
-        // amrex::Print()<< ngr <<std::endl;
-        // amrex::Print()<< ngp <<std::endl;
         const int ncp = pml.nComp();
         const auto& period = geom.periodicity();
 
@@ -903,72 +872,18 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
             MultiFab::Add(totpmlmf,pml,2,0,1,0);
         }
         totpmlmf.setVal(0.0, 1, ncp-1, 0);
-        // reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period); //old - not really working
-        reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), IntVect(0), period); //new - works better
-
-        // amrex::Print()<<"##### BOXES EXCHANGE PML #####"<<std::endl;
-        // for (MFIter mfi(pml); mfi.isValid(); ++mfi)
-        // {
-        //     amrex::Print()<<pml[mfi].box()<<std::endl;
-        // }
-
-        // for (const Box& bx : BoxList(pml.boxArray())){
-        //     amrex::Print()<<bx<<std::endl;
-        // }
+        reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), IntVect(0), period);
 
         if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
         {
-            MultiFab::Copy(tmpregmf, reg, 0, 0, 1, IntVect(0)); //ngr);
+            MultiFab::Copy(tmpregmf, reg, 0, 0, 1, IntVect(0));
             MultiFab::Copy(totpmlmf, pml, 0, 0, ncp, ngp);
 
             tmpregmf.setVal(0.0, 1, ncp-1, 0);
-            // ce qui foncitonne a peu pres pour le moment
             tmpregmf.ParallelCopy(totpmlmf,0, 0, ncp, IntVect(0), IntVect(0), period);
             totpmlmf.ParallelCopy(tmpregmf,0, 0, ncp, IntVect(0), ngp, period);
 
-            MultiFab::Copy(pml, totpmlmf, 0, 0, ncp, ngp); //test
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-            // // amrex::Print()<<"####### EXCHANGE INFORMATIONS GHOST CELLS PML #######"<<std::endl;
-            // Box domain0 = geom.Domain();
-            // for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            //     if ( ! geom.isPeriodic(idim) ) {
-            //         // domain0.grow(idim, -ncell);
-            //         if (do_pml_Lo[idim]){
-            //             domain0.growLo(idim, -ncell);
-            //         }
-            //         if (do_pml_Hi[idim]){
-            //             domain0.growHi(idim, -ncell);
-            //         }
-            //
-            //     }
-            // }
-            // // amrex::Print()<<"domain0 = "<<domain0<<std::endl;
-            // for (MFIter mfi(pml); mfi.isValid(); ++mfi)
-            // {
-            //     const FArrayBox& src = totpmlmf[mfi];
-            //     FArrayBox& dst = pml[mfi];
-            //     Box test = mfi.validbox();
-            //     // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
-            //     // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
-            //     // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
-            //     // const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-            //     // const BoxList& bl = BoxList(amrex::intersect(BoxArray(domain0), dst.box(),0));
-            //     const BoxList& bl = BoxList(amrex::intersect(BoxArray(dst.box()), domain0,0));
-            //     // amrex::Print()<<BoxList(dst.box())<<std::endl;
-            //     // amrex::Print()<<BoxList(domain0)<<std::endl;
-            //     // amrex::Print()<<bl<<std::endl;
-            //     // amrex::Print()<<">>> EXCHANGE BOXES <<<<<" <<std::endl;
-            //     // amrex::Print()<<"[" <<std::endl;
-            //     for (const Box& bx : bl)
-            //     {
-            //         // dst.copy(src, bx, 0, bx, 0, 1);
-            //         dst.copy(src, bx, 0, bx, 0, ncp);
-            //         // amrex::Print()<<bx<<std::endl;
-            //     }
-            //     // amrex::Print()<<"]" <<std::endl;
-            // }
+            MultiFab::Copy(pml, totpmlmf, 0, 0, ncp, ngp);
         }
     }
 
@@ -995,24 +910,16 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            // amrex::Print()<<"####### EXCHANGE INFORMATIONS GHOST CELLS PML #######"<<std::endl;
             for (MFIter mfi(reg); mfi.isValid(); ++mfi)
             {
                 const FArrayBox& src = tmpregmf[mfi];
                 FArrayBox& dst = reg[mfi];
                 Box test = mfi.validbox();
-                // amrex::Print()<<"src = ["<<src.smallEnd()[0]<<", "<<src.smallEnd()[1]<<", "<<src.bigEnd()[0]<<", "<<src.bigEnd()[1]<<"]"<<std::endl;
-                // amrex::Print()<<"dst = ["<<dst.smallEnd()[0]<<", "<<dst.smallEnd()[1]<<", "<<dst.bigEnd()[0]<<", "<<dst.bigEnd()[1]<<"]"<<std::endl;
-                // amrex::Print()<<"mfi.validbox() = ["<<test.smallEnd()[0]<<", "<<test.smallEnd()[1]<<", "<<test.bigEnd()[0]<<", "<<test.bigEnd()[1]<<"]"<<std::endl;
                 const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-                // amrex::Print()<<">>> EXCHANGE BOXES <<<<<" <<std::endl;
-                // amrex::Print()<<"[" <<std::endl;
                 for (const Box& bx : bl)
                 {
                     dst.copy(src, bx, 0, bx, 0, 1);
-                    // amrex::Print()<<"["<<bx.smallEnd()[0]<<", "<<bx.smallEnd()[1]<<", "<<bx.bigEnd()[0]<<", "<<bx.bigEnd()[1]<<"],"<<std::endl;
                 }
-                // amrex::Print()<<"]" <<std::endl;
             }
         }
 
@@ -1029,9 +936,6 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
 void
 PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
   const IntVect& ngr = reg.nGrowVect();
   const IntVect& ngp = pml.nGrowVect();
   const auto& period = geom.periodicity();
@@ -1042,9 +946,6 @@ PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 void
 PML::CopyPMLsInReg (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
   const IntVect& ngr = reg.nGrowVect();
   const IntVect& ngp = pml.nGrowVect();
   const auto& period = geom.periodicity();

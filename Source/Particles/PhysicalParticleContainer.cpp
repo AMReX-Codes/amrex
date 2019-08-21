@@ -33,7 +33,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
     pp.query("do_continuous_injection", do_continuous_injection);
-    // Whether to plot back-transformed (lab-frame) diagnostics
+    // Whether to plot back-transformed (lab-frame) diagnostics 
     // for this species.
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
@@ -42,7 +42,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
     if (not do_user_plot_vars){
         // By default, all particle variables are dumped to plotfiles,
-        // including {x,y,z,ux,uy,uz}old variables when running in a
+        // including {x,y,z,ux,uy,uz}old variables when running in a 
         // boosted frame
         if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
             plot_flags.resize(PIdx::nattribs + 6, 1);
@@ -59,9 +59,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         // If not none, set plot_flags values to 1 for elements in plot_vars.
         if (plot_vars[0] != "none"){
             for (const auto& var : plot_vars){
-                // Return error if var not in PIdx.
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                    ParticleStringNames::to_index.count(var),
+                // Return error if var not in PIdx. 
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+                    ParticleStringNames::to_index.count(var), 
                     "plot_vars argument not in ParticleStringNames");
                 plot_flags[ParticleStringNames::to_index.at(var)] = 1;
             }
@@ -130,7 +130,7 @@ void PhysicalParticleContainer::MapParticletoBoostedFrame(Real& x, Real& y, Real
 void
 PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
                                            Real x_rms, Real y_rms, Real z_rms,
-                                           Real q_tot, long npart,
+                                           Real q_tot, long npart, 
                                            int do_symmetrize) {
 
     const Geometry& geom     = m_gdb->Geom(0);
@@ -203,7 +203,7 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
         particle_tile.push_back_real(particle_comps["xold"], x);
         particle_tile.push_back_real(particle_comps["yold"], y);
         particle_tile.push_back_real(particle_comps["zold"], z);
-
+                
         particle_tile.push_back_real(particle_comps["uxold"], u[0]);
         particle_tile.push_back_real(particle_comps["uyold"], u[1]);
         particle_tile.push_back_real(particle_comps["uzold"], u[2]);
@@ -931,11 +931,11 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PPC::ParticlePush", blp_ppc_pp);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
-
+    
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
     const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
 
-    // Get instances of NCI Godfrey filters
+    // Get instances of NCI Godfrey filters 
     const auto& nci_godfrey_filter_exeybz = WarpX::GetInstance().nci_godfrey_filter_exeybz;
     const auto& nci_godfrey_filter_bxbyez = WarpX::GetInstance().nci_godfrey_filter_bxbyez;
 
@@ -949,7 +949,7 @@ PhysicalParticleContainer::Evolve (int lev,
     bool has_buffer = cEx || cjx;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel 
 #endif
     {
 #ifdef _OPENMP
@@ -1227,13 +1227,13 @@ PhysicalParticleContainer::Evolve (int lev,
                         eyeli = filtered_Ey.elixir();
                         nci_godfrey_filter_exeybz[lev-1]->ApplyStencil(filtered_Ey, (*cEy)[pti], filtered_Ey.box());
                         ceyfab = &filtered_Ey;
-
+                        
                         // Filter Bx
                         filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
                         bxeli = filtered_Bx.elixir();
                         nci_godfrey_filter_bxbyez[lev-1]->ApplyStencil(filtered_Bx, (*cBx)[pti], filtered_Bx.box());
                         cbxfab = &filtered_Bx;
-
+                        
                         // Filter Bz
                         filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
                         bzeli = filtered_Bz.elixir();
@@ -1453,7 +1453,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
     }
 	// Add local arrays psplit_x etc. to the temporary
 	// particle container pctmp_split. Split particles
-	// are tagged with p.id()=NoSplitParticleID so that
+	// are tagged with p.id()=NoSplitParticleID so that 
 	// they are not re-split when entering a higher level
 	// AddNParticles calls Redistribute, so that particles
 	// in pctmp_split are in the proper grids and tiles
@@ -1550,7 +1550,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
         int thread_num = omp_get_thread_num();
 #else
         int thread_num = 0;
-#endif
+#endif      
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const Box& box = pti.validbox();
@@ -1694,7 +1694,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     slice_box.setHi(direction, z_max);
 
     diagnostic_particles.resize(finestLevel()+1);
-
+    
     for (int lev = 0; lev < nlevs; ++lev) {
 
         const Real* dx  = Geom(lev).CellSize();
@@ -1776,7 +1776,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
 
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::w).push_back(wp[i]);
-
+                    
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::x).push_back(xp);
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::y).push_back(yp);
                     diagnostic_particles[lev][index].GetRealData(DiagIdx::z).push_back(zp);
