@@ -405,14 +405,16 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             // then how many new particles will be injected is not that simple
             // We have to shift fine_injection_box because overlap_box has been shifted.
             Box fine_overlap_box = overlap_box & amrex::shift(fine_injection_box,shifted);
-            max_new_particles += fine_overlap_box.numPts() * num_ppc
-                * (AMREX_D_TERM(rrfac,*rrfac,*rrfac)-1);
-            for (int icell = 0, ncells = overlap_box.numPts(); icell < ncells; ++icell) {
-                IntVect iv = overlap_box.atOffset(icell);
-                int r = (fine_overlap_box.contains(iv)) ? AMREX_D_TERM(rrfac,*rrfac,*rrfac) : 1;
-                for (int ipart = 0; ipart < r; ++ipart) {
-                    cellid_v.push_back(icell);
-                    cellid_v.push_back(ipart);
+            if (fine_overlap_box.ok()) {
+                max_new_particles += fine_overlap_box.numPts() * num_ppc
+                    * (AMREX_D_TERM(rrfac,*rrfac,*rrfac)-1);
+                for (int icell = 0, ncells = overlap_box.numPts(); icell < ncells; ++icell) {
+                    IntVect iv = overlap_box.atOffset(icell);
+                    int r = (fine_overlap_box.contains(iv)) ? AMREX_D_TERM(rrfac,*rrfac,*rrfac) : 1;
+                    for (int ipart = 0; ipart < r; ++ipart) {
+                        cellid_v.push_back(icell);
+                        cellid_v.push_back(ipart);
+                    }
                 }
             }
         }
