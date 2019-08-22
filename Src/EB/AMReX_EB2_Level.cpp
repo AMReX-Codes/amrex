@@ -95,33 +95,33 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
     m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
     int mvmc_error = 0;
 
-    if (true || Gpu::notInLaunchRegion())
+    if (Gpu::notInLaunchRegion())
     {
 #ifdef _OPENMP
 #pragma omp parallel reduction(max:mvmc_error)
 #endif
+        for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
         {
-#if (AMREX_SPACEDIM == 3)
-            IArrayBox ncuts;
-#endif
-            for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
+            const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
+            const Box& ndbx = mfi.tilebox();
+            auto const& crse = m_levelset.array(mfi);
+            auto const& fine = f_levelset.const_array(mfi);
+
+            amrex::LoopConcurrentOnCpu(ndbx,
+            [=] (int i, int j, int k) noexcept
             {
-                const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
-                const Box& ndbx = mfi.tilebox();
-#if (AMREX_SPACEDIM == 3)
-                ncuts.resize(amrex::surroundingNodes(ccbx),6);
-#endif
-                int tile_error = 0;
-                amrex_eb2_check_mvmc(BL_TO_FORTRAN_BOX(ccbx),
-                                     BL_TO_FORTRAN_BOX(ndbx),
-                                     BL_TO_FORTRAN_ANYD(m_levelset[mfi]),
-                                     BL_TO_FORTRAN_ANYD(f_levelset[mfi]),
-#if (AMREX_SPACEDIM == 3)
-                                     BL_TO_FORTRAN_ANYD(ncuts),
-#endif
-                                     &tile_error);
-                mvmc_error = std::max(mvmc_error, tile_error);
-            }
+                crse(i,j,k) = fine(2*i,2*j,2*k);
+            });
+
+            int tile_error = 0;
+            amrex::LoopOnCpu(ccbx,
+            [=,&tile_error] (int i, int j, int k) noexcept
+            {
+                int ierror = check_mvmc(i,j,k,fine);
+                tile_error = std::max(tile_error,ierror);
+            });
+
+            mvmc_error = std::max(mvmc_error, tile_error);
         }
     }
     else
