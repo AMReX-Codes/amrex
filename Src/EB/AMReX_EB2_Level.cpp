@@ -94,32 +94,65 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
     auto const& f_levelset = fineLevel.m_levelset;
     m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
     int mvmc_error = 0;
+
+    if (true || Gpu::notInLaunchRegion())
+    {
 #ifdef _OPENMP
 #pragma omp parallel reduction(max:mvmc_error)
 #endif
-    {
-#if (AMREX_SPACEDIM == 3)
-        IArrayBox ncuts;
-#endif
-        for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
         {
-            const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
-            const Box& ndbx = mfi.tilebox();
 #if (AMREX_SPACEDIM == 3)
-            ncuts.resize(amrex::surroundingNodes(ccbx),6);
+            IArrayBox ncuts;
 #endif
-            int tile_error = 0;
-            amrex_eb2_check_mvmc(BL_TO_FORTRAN_BOX(ccbx),
-                                 BL_TO_FORTRAN_BOX(ndbx),
-                                 BL_TO_FORTRAN_ANYD(m_levelset[mfi]),
-                                 BL_TO_FORTRAN_ANYD(f_levelset[mfi]),
+            for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
+            {
+                const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
+                const Box& ndbx = mfi.tilebox();
 #if (AMREX_SPACEDIM == 3)
-                                 BL_TO_FORTRAN_ANYD(ncuts),
+                ncuts.resize(amrex::surroundingNodes(ccbx),6);
 #endif
-                                 &tile_error);
-            mvmc_error = std::max(mvmc_error, tile_error);
+                int tile_error = 0;
+                amrex_eb2_check_mvmc(BL_TO_FORTRAN_BOX(ccbx),
+                                     BL_TO_FORTRAN_BOX(ndbx),
+                                     BL_TO_FORTRAN_ANYD(m_levelset[mfi]),
+                                     BL_TO_FORTRAN_ANYD(f_levelset[mfi]),
+#if (AMREX_SPACEDIM == 3)
+                                     BL_TO_FORTRAN_ANYD(ncuts),
+#endif
+                                     &tile_error);
+                mvmc_error = std::max(mvmc_error, tile_error);
+            }
         }
     }
+    else
+    {
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(m_levelset); mfi.isValid(); ++mfi)
+        {
+            const Box& ndbx = mfi.validbox();
+            const Box& ccbx = amrex::enclosedCells(ndbx);
+            auto const& crse = m_levelset.array(mfi);
+            auto const& fine = f_levelset.const_array(mfi);
+            reduce_op.eval(ndbx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                crse(i,j,k) = fine(2*i,2*j,2*k);
+                int ierror;
+                if (ccbx.contains(IntVect{AMREX_D_DECL(i,j,k)})) {
+                    ierror = check_mvmc(i,j,k,fine);
+                } else {
+                    ierror = 0;
+                }
+                return {ierror};
+            });
+        }
+        ReduceTuple rv = reduce_data.value();
+        mvmc_error = amrex::max(0, amrex::get<0>(rv));
+    }
+
     {
         bool b = mvmc_error;
         ParallelDescriptor::ReduceBoolOr(b);
