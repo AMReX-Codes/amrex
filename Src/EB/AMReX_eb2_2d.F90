@@ -18,7 +18,7 @@ module amrex_eb2_2d_moudle
   real(amrex_real), private, parameter :: small = 1.d-14
 
   private
-  public :: amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap, amrex_eb2_check_mvmc
+  public :: amrex_eb2_coarsen_from_fine, amrex_eb2_build_cellflag_from_ap
 
 contains
 
@@ -204,48 +204,5 @@ contains
        end do
     end do
   end subroutine amrex_eb2_build_cellflag_from_ap
-
-  
-  subroutine amrex_eb2_check_mvmc (cclo, cchi, ndlo, ndhi, cls, clo, chi, fls, flo, fhi, ierr) &
-       bind(c,name='amrex_eb2_check_mvmc')
-    integer, dimension(2), intent(in) :: cclo, cchi, ndlo, ndhi, clo, chi, flo, fhi
-    real(amrex_real), intent(inout) :: cls(clo(1):chi(1),clo(2):chi(2))
-    real(amrex_real), intent(in   ) :: fls(flo(1):fhi(1),flo(2):fhi(2))
-    integer, intent(inout) :: ierr
-
-    integer :: i,j, ii, jj, ncuts
-
-    do    j = ndlo(2), ndhi(2)
-       do i = ndlo(1), ndhi(1)
-          cls(i,j) = fls(2*i,2*j)
-       end do
-    end do
-
-    do    j = cclo(2), cchi(2)
-       jj = 2*j
-       do i = cclo(1), cchi(1)
-          ii = 2*i
-          ncuts = 0
-          if (has_cut(fls(ii  ,jj  ),fls(ii+1,jj  ))) ncuts = ncuts+1
-          if (has_cut(fls(ii+1,jj  ),fls(ii+2,jj  ))) ncuts = ncuts+1
-          if (has_cut(fls(ii  ,jj+2),fls(ii+1,jj+2))) ncuts = ncuts+1
-          if (has_cut(fls(ii+1,jj+2),fls(ii+2,jj+2))) ncuts = ncuts+1
-          if (has_cut(fls(ii  ,jj  ),fls(ii  ,jj+1))) ncuts = ncuts+1
-          if (has_cut(fls(ii  ,jj+1),fls(ii  ,jj+2))) ncuts = ncuts+1
-          if (has_cut(fls(ii+2,jj  ),fls(ii+2,jj+1))) ncuts = ncuts+1
-          if (has_cut(fls(ii+2,jj+1),fls(ii+2,jj+2))) ncuts = ncuts+1
-          if (ncuts .ne. 0 .and. ncuts .ne. 2) then
-             ierr = 2
-             return
-          end if
-       end do
-    end do
-  contains
-    pure function has_cut(a,b)
-      real(amrex_real), intent(in) :: a,b
-      logical has_cut
-      has_cut = (a.ge.zero .and. b.lt.zero) .or. (b.ge.zero .and. a.lt.zero)
-    end function has_cut
-  end subroutine amrex_eb2_check_mvmc
 
 end module amrex_eb2_2d_moudle

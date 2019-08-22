@@ -72,7 +72,7 @@ namespace {
     }
 }
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
 {
     constexpr int k = 0;
@@ -86,7 +86,7 @@ int check_mvmc (int i, int j, int, Array4<Real const> const& fine)
         +       num_cuts(fine(i  ,j+1,k),fine(i  ,j+2,k))
         +       num_cuts(fine(i+2,j  ,k),fine(i+2,j+1,k))
         +       num_cuts(fine(i+2,j+1,k),fine(i+2,j+2,k));
-    return (ncuts != 0 or ncuts != 2);
+    return (ncuts != 0 and ncuts != 2);
 }
 
 }}
