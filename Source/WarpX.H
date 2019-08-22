@@ -545,6 +545,7 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
+    std::string openpmd_backend {"h5"};
 #ifdef WARPX_USE_OPENPMD
     bool dump_plotfiles = false;
     bool dump_openpmd = true;

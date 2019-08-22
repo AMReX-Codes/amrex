@@ -38,7 +38,7 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
-long WarpX::use_picsar_deposition = 1;
+long WarpX::use_picsar_deposition = 0;
 long WarpX::current_deposition_algo;
 long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
@@ -416,6 +416,7 @@ WarpX::ReadParameters ()
 
 
         pp.query("dump_openpmd", dump_openpmd);
+        pp.query("openpmd_backend", openpmd_backend);
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);

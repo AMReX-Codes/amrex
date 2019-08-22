@@ -454,9 +454,12 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-                DepositCharge(pti, wp, rho, 0, 0, np_current, thread_num, lev, lev);
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
+                              np_current, thread_num, lev, lev);
                 if (crho) {
-                    DepositCharge(pti, wp, crho, 0, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
 
@@ -509,13 +512,14 @@ LaserParticleContainer::Evolve (int lev,
             // Current Deposition
             //
             // Deposit inside domains
-            DepositCurrent(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
+            int* ion_lev = nullptr;
+            DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                            0, np_current, thread_num,
                            lev, lev, dt);
             bool has_buffer = cjx;
             if (has_buffer){
                 // Deposit in buffers
-                DepositCurrent(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
+                DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
                                np_current, np-np_current, thread_num,
                                lev, lev-1, dt);
             }
@@ -528,9 +532,12 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) {
-                DepositCharge(pti, wp, rho, 1, 0, np_current, thread_num, lev, lev);
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 1, 0,
+                              np_current, thread_num, lev, lev);
                 if (crho) {
-                    DepositCharge(pti, wp, crho, 1, np_current, np-np_current, thread_num, lev, lev-1);
+                    DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
                 }
             }
 

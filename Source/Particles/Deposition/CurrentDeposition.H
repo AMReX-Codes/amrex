@@ -8,6 +8,10 @@
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param jx_arr       : Array4 of current density, either full array or tile.
  * \param jy_arr       : Array4 of current density, either full array or tile.
  * \param jz_arr       : Array4 of current density, either full array or tile.
@@ -27,6 +31,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Real * const uxp,
                         const amrex::Real * const uyp,
                         const amrex::Real * const uzp,
+                        const int * const ion_lev,
                         const amrex::Array4<amrex::Real>& jx_arr,
                         const amrex::Array4<amrex::Real>& jy_arr,
                         const amrex::Array4<amrex::Real>& jz_arr,
@@ -37,6 +42,9 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Real stagger_shift, 
                         const amrex::Real q)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
+    const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dzi = 1.0/dx[2];
     const amrex::Real dts2dx = 0.5*dt*dxi;
@@ -62,7 +70,10 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                      + uyp[ip]*uyp[ip]*clightsq
                                                      + uzp[ip]*uzp[ip]*clightsq);
-            const amrex::Real wq  = q*wp[ip];
+            amrex::Real wq  = q*wp[ip];
+            if (do_ionization){
+                wq *= ion_lev[ip];
+            }
             const amrex::Real vx  = uxp[ip]*gaminv;
             const amrex::Real vy  = uyp[ip]*gaminv;
             const amrex::Real vz  = uzp[ip]*gaminv;
@@ -162,6 +173,10 @@ void doDepositionShapeN(const amrex::Real * const xp,
  * \param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param Jx_arr       : Array4 of current density, either full array or tile.
  * \param Jy_arr       : Array4 of current density, either full array or tile.
  * \param Jz_arr       : Array4 of current density, either full array or tile.
@@ -181,6 +196,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                   const amrex::Real * const uxp,
                                   const amrex::Real * const uyp,
                                   const amrex::Real * const uzp,
+                                  const int * ion_lev,
                                   const amrex::Array4<amrex::Real>& Jx_arr,
                                   const amrex::Array4<amrex::Real>& Jy_arr,
                                   const amrex::Array4<amrex::Real>& Jz_arr,
@@ -192,6 +208,9 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                   const amrex::Real q,
                                   const long n_rz_azimuthal_modes)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
+    const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dtsdx0 = dt*dxi;
     const amrex::Real xmin = xyzmin[0];
@@ -231,7 +250,10 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                                          + uzp[ip]*uzp[ip]*clightsq);
 
             // wqx, wqy wqz are particle current in each direction
-            const amrex::Real wq = q*wp[ip];
+            amrex::Real wq = q*wp[ip];
+            if (do_ionization){
+                wq *= ion_lev[ip];
+            }
             const amrex::Real wqx = wq*invdtdx;
 #if (defined WARPX_DIM_3D)
             const amrex::Real wqy = wq*invdtdy;

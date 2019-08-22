@@ -7,7 +7,6 @@
 #include <string>
 
 #include <AMReX_Particles.H>
-
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -128,6 +127,8 @@ public:
     ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
+    void doFieldIonization ();
+
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile (const std::string& dir) const;
@@ -207,6 +208,9 @@ private:
 
     void ReadParameters ();
 
+    void mapSpeciesProduct ();
+    int getSpeciesID (std::string product_str);
+    
     // Number of species dumped in BoostedFrameDiagnostics
     int nspecies_boosted_frame_diags = 0;
     // map_species_boosted_frame_diags[i] is the species ID in 
