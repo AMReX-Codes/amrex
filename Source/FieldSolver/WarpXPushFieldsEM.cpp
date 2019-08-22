@@ -159,34 +159,30 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
         if (do_nodal) {
-            amrex::ParallelFor(tbx,
+            amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bx_nodal(j,k,l,Bxfab,Eyfab,Ezfab,dtsdy,dtsdz);
-            });
-            amrex::ParallelFor(tby,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_by_nodal(j,k,l,Byfab,Exfab,Ezfab,dtsdx,dtsdz);
-            });
-            amrex::ParallelFor(tbz,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_nodal(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy);
             });
         } else if (WarpX::maxwell_fdtd_solver_id == 0) {
             const long nmodes = n_rz_azimuthal_modes;
-            amrex::ParallelFor(tbx,
+            amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bx_yee(j,k,l,Bxfab,Eyfab,Ezfab,dtsdx,dtsdy,dtsdz,dxinv,xmin,nmodes);
-            });
-            amrex::ParallelFor(tby,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_by_yee(j,k,l,Byfab,Exfab,Ezfab,dtsdx,dtsdz,nmodes);
-            });
-            amrex::ParallelFor(tbz,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_yee(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy,dxinv,xmin,nmodes);
@@ -199,23 +195,21 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                                              betaxy, betaxz, betayx, betayz, betazx, betazy,
                                              gammax, gammay, gammaz,
                                              alphax, alphay, alphaz);
-            amrex::ParallelFor(tbx,
+            amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bx_ckc(j,k,l,Bxfab,Eyfab,Ezfab,
                                   betaxy, betaxz, betayx, betayz, betazx, betazy,
                                   gammax, gammay, gammaz,
                                   alphax, alphay, alphaz);
-            });
-            amrex::ParallelFor(tby,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_by_ckc(j,k,l,Byfab,Exfab,Ezfab,
                                   betaxy, betaxz, betayx, betayz, betazx, betazy,
                                   gammax, gammay, gammaz,
                                   alphax, alphay, alphaz);
-            });
-            amrex::ParallelFor(tbz,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_ckc(j,k,l,Bzfab,Exfab,Eyfab,
@@ -357,34 +351,30 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         auto const& jzfab = jz->array(mfi);
 
         if (do_nodal) {
-            amrex::ParallelFor(tex,
+            amrex::ParallelFor(tex, tey, tez,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ex_nodal(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdy_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tey,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ey_nodal(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,mu_c2_dt,dtsdx_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tez,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ez_nodal(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2);
             });
         } else {
             const long nmodes = n_rz_azimuthal_modes;
-            amrex::ParallelFor(tex,
+            amrex::ParallelFor(tex, tey, tez,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ex_yee(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdx_c2,dtsdy_c2,dtsdz_c2,dxinv,xmin,nmodes);
-            });
-            amrex::ParallelFor(tey,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ey_yee(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,Exfab,mu_c2_dt,dtsdx_c2,dtsdz_c2,xmin,nmodes);
-            });
-            amrex::ParallelFor(tez,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ez_yee(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2,dxinv,xmin,nmodes);
@@ -395,17 +385,15 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         {
             auto const& Ffab = F->array(mfi);
             if (WarpX::maxwell_fdtd_solver_id == 0) {
-                amrex::ParallelFor(tex,
+                amrex::ParallelFor(tex, tey, tez,
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ex_f_yee(j,k,l,Exfab,Ffab,dtsdx_c2);
-                });
-                amrex::ParallelFor(tey,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ey_f_yee(j,k,l,Eyfab,Ffab,dtsdy_c2);
-                });
-                amrex::ParallelFor(tez,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ez_f_yee(j,k,l,Ezfab,Ffab,dtsdz_c2);
@@ -419,23 +407,21 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                                                  betaxy, betaxz, betayx, betayz, betazx, betazy,
                                                  gammax, gammay, gammaz,
                                                  alphax, alphay, alphaz);
-                amrex::ParallelFor(tex,
+                amrex::ParallelFor(tex, tey, tez,
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ex_f_ckc(j,k,l,Exfab,Ffab,
                                         betaxy, betaxz, betayx, betayz, betazx, betazy,
                                         gammax, gammay, gammaz,
                                         alphax, alphay, alphaz);
-                });
-                amrex::ParallelFor(tey,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ey_f_ckc(j,k,l,Eyfab,Ffab,
                                         betaxy, betaxz, betayx, betayz, betazx, betazy,
                                         gammax, gammay, gammaz,
                                         alphax, alphay, alphaz);
-                });
-                amrex::ParallelFor(tez,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ez_f_ckc(j,k,l,Ezfab,Ffab,
@@ -620,7 +606,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
 
         // Rescale current in r-z mode since the inverse volume factor was not
         // included in the current deposition.
-        amrex::ParallelFor(tbr,
+        amrex::ParallelFor(tbr, tbt, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             // Wrap the current density deposited in the guard cells around
@@ -650,9 +636,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
                 Jr_arr(i,j,0,2*imode) /= (2.*MathConst::pi*r);
                 Jr_arr(i,j,0,2*imode+1) /= (2.*MathConst::pi*r);
             }
-
-        });
-        amrex::ParallelFor(tbt,
+        },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             // Wrap the current density deposited in the guard cells around
@@ -691,9 +675,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
                     Jt_arr(i,j,0,2*imode+1) /= (2.*MathConst::pi*r);
                 }
             }
-
-        });
-        amrex::ParallelFor(tbz,
+        },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             // Wrap the current density deposited in the guard cells around

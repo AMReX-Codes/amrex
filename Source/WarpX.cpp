@@ -338,7 +338,19 @@ WarpX::ReadParameters ()
                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
         pp.get("num_snapshots_lab", num_snapshots_lab);
-        pp.get("dt_snapshots_lab", dt_snapshots_lab);
+
+        // Read either dz_snapshots_lab or dt_snapshots_lab
+        bool snapshot_interval_is_specified = 0;
+        Real dz_snapshots_lab = 0;
+        snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
+        if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
+            dt_snapshots_lab = dz_snapshots_lab/PhysConst::c;
+            snapshot_interval_is_specified = 1;
+        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            snapshot_interval_is_specified,
+            "When using back-transformed diagnostics, user should specify either dz_snapshots_lab or dt_snapshots_lab.");
+
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
@@ -906,6 +918,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
             rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
+        if (fft_hybrid_mpi_decomposition == false){
+            // Allocate and initialize the spectral solver
+            std::array<Real,3> cdx = CellSize(lev-1);
+    #if (AMREX_SPACEDIM == 3)
+            RealVect cdx_vect(cdx[0], cdx[1], cdx[2]);
+    #elif (AMREX_SPACEDIM == 2)
+            RealVect cdx_vect(cdx[0], cdx[2]);
+    #endif
+            // Get the cell-centered box, with guard cells
+            BoxArray realspace_ba = cba;  // Copy box
+            realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+            // Define spectral solver
+            spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
+                nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
+        }
 #endif
     }
 
@@ -937,7 +964,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,ncomps,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,ncomps,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,ncomps,ngJ));
-            if (do_dive_cleaning || plot_rho) {
+            if (rho_cp[lev]) {
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, ncomps, 1) );
