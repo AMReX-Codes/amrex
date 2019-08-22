@@ -1209,11 +1209,11 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(*m_factory, info.arena, info.tags);
-    }
-
+        Gpu::synchronize();
 #ifdef BL_USE_TEAM
-    if (info.alloc) ParallelDescriptor::MyTeam().MemoryBarrier();
+        ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
+    }
 }
 
 template <class FAB>
