@@ -357,10 +357,10 @@ contains
                     alpha_yz = 0.
                     Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                          &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                         &                            -mudt*alpha_yx*jy(i,j,k)
+                         &                            -mudt*alpha_yz*jy(i,j,k)
                     Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
                          &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                         &                            -mudt*alpha_yz*jy(i,j,k)
+                         &                            -mudt*alpha_yx*jy(i,j,k)
                  end do
               end do
            end do
@@ -404,10 +404,10 @@ contains
                     alpha_yz = 0.5
                     Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                          &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                         &                            -mudt*alpha_yx*jy(i,j,k)
+                         &                            -mudt*alpha_yz*jy(i,j,k)
                     Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
                          &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                         &                            -mudt*alpha_yz*jy(i,j,k)
+                         &                            -mudt*alpha_yx*jy(i,j,k)
                  end do
               end do
            end do
@@ -451,10 +451,10 @@ contains
                     alpha_yz = 1.
                     Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                          &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                         &                            -mudt*alpha_yx*jy(i,j,k)
+                         &                            -mudt*alpha_yz*jy(i,j,k)
                     Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
                          &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                         &                            -mudt*alpha_yz*jy(i,j,k)
+                         &                            -mudt*alpha_yx*jy(i,j,k)
                  end do
               end do
            end do
@@ -512,10 +512,10 @@ contains
 
                  Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
                       &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                      &                            -mudt*alpha_yx*jy(i,j,k)
+                      &                            -mudt*alpha_yz*jy(i,j,k)
                  Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
                       &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                      &                            -mudt*alpha_yz*jy(i,j,k)
+                      &                            -mudt*alpha_yx*jy(i,j,k)
               end do
            end do
         end do
@@ -1170,7 +1170,7 @@ contains
 
     do    k = tjxlo(2), tjxhi(2)
        do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)  
+          jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)
        end do
     end do
 

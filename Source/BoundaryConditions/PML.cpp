@@ -113,7 +113,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
 
-    pml_type = "";
+    // pml_type = "";
     pml_type_array = {3, 3, 3, 3, 3};
 
     Array<Real,AMREX_SPACEDIM> fac;
@@ -183,15 +183,13 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
-                    pml_type = "crn-++"; // for 2d only use the two first components
                     pml_type_array[0] = 1;
                     pml_type_array[1] = 0;
                     pml_type_array[2] = 1;
                     pml_type_array[3] = 1;
                 }
                 else {
-                    if (pml_type[0] == 'c'){
-                      pml_type[3+idim] = '-';
+                    if (pml_type_array[0] == 1){
                       pml_type_array[1+idim] = 0;
                     }
                 }
@@ -206,15 +204,13 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
-                    pml_type = "crn+++"; // for 2d only use the two first components
                     pml_type_array[0] = 1;
                     pml_type_array[1] = 1;
                     pml_type_array[2] = 1;
                     pml_type_array[3] = 1;
                 }
                 else {
-                    if (pml_type[0] == 'c'){
-                      pml_type[3+idim] = '+';
+                    if (pml_type_array[0] == 1){
                       pml_type_array[1+idim] = 1;
                     }
                 }
@@ -233,7 +229,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (overlap.ok()) {
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
                 if (idim==0){
-                    pml_type="sed33--";
                     pml_type_array[0] = 2;
                 }
             }
@@ -251,22 +246,17 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
                 if (idim == 0){
-                    pml_type = "sed03-+"; // for 2d only use the two first components
                     pml_type_array[0] = 2;
                     pml_type_array[1] = idim;
                     pml_type_array[3] = 0;
                 }
                 else {
-                    if (pml_type[0] == 's'){
-                      if (pml_type[3]=='3'){
-                        pml_type[3]=idim+'0';
-                        pml_type[5]='-';
+                    if (pml_type_array[0] == 2){
+                      if (pml_type_array[1]==3){
                         pml_type_array[1] = idim;
                         pml_type_array[3] = 0;
                       }
                       else{
-                        pml_type[4] = idim+'0';
-                        pml_type[6] = '-';
                         pml_type_array[2] = idim;
                         pml_type_array[4] = 0;
                       }
@@ -279,22 +269,17 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
                 if (idim == 0){
-                    pml_type = "sed03++"; // for 2d only use the two first components
                     pml_type_array[0] = 2;
                     pml_type_array[1] = idim;
                     pml_type_array[3] = 1;
                 }
                 else {
-                    if (pml_type[0] == 's'){
-                      if (pml_type[3]=='3'){
-                        pml_type[3]=idim+'0';
-                        pml_type[5]='+';
+                    if (pml_type_array[0] == 2){
+                      if (pml_type_array[1]==3){
                         pml_type_array[1] = idim;
                         pml_type_array[3] = 1;
                       }
                       else{
-                        pml_type[4] = idim+'0';
-                        pml_type[6] = '+';
                         pml_type_array[2] = idim;
                         pml_type_array[4] = 1;
                       }
@@ -331,22 +316,18 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
-                pml_type = "df0-";
                 pml_type_array[0] = 0;
                 pml_type_array[1] = idim;
                 pml_type_array[2] = 0;
-                if (idim > 0){pml_type[2]=idim+'0';}
             }
 
             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
-                pml_type = "df0+";
                 pml_type_array[0] = 0;
                 pml_type_array[1] = idim;
                 pml_type_array[2] = 1;
-                if (idim>0){pml_type[2] = idim+'0';}
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -427,13 +408,13 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, 
+          int ncell, int delta, int ref_ratio,
           #ifdef WARPX_USE_PSATD
                     Real dt, int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
           #endif
           int do_dive_cleaning, int do_moving_window,
           int pml_has_particles, int do_pml_in_domain,
-          const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi) // = amrex::IntVect::TheUnitVector()
+          const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
@@ -441,7 +422,6 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     Box domain0 = geom->Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if ( ! geom->isPeriodic(idim)) {
-            // domain0.grow(idim, -ncell);
             if (do_pml_Lo[idim]){
                 domain0.growLo(idim, -ncell);
             }
@@ -504,9 +484,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
 
-    pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jx_nodal_flag)
-    pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jy_nodal_flag)
-    pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb)); //convert(ba,WarpX::Jz_nodal_flag)
+    pml_j_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngb));
+    pml_j_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngb));
+    pml_j_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngb));
     pml_j_fp[0]->setVal(0.0);
     pml_j_fp[1]->setVal(0.0);
     pml_j_fp[2]->setVal(0.0);
@@ -526,7 +506,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
 
 #ifdef WARPX_USE_PSATD
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( do_pml_in_domain==false, 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE( do_pml_in_domain==false,
         "PSATD solver cannot be used with `do_pml_in_domain`.");
     const bool in_pml = true; // Tells spectral solver to use split-PML equations
     const RealVect dx{AMREX_D_DECL(geom->CellSize(0), geom->CellSize(1), geom->CellSize(2))};
@@ -546,8 +526,8 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
-        const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0)); // domain to change ? This domain was built for a fine grid: the reduced domain is only valid for the fine level...
-        // const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba_reduced, ncell);
+        const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0));
+
         const BoxArray& cba = (do_pml_in_domain) ? MakeBoxArray(*cgeom, grid_cba_reduced, ncell, do_pml_Lo, do_pml_Hi) :  MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_Lo, do_pml_Hi);
 
         DistributionMapping cdm{cba};
