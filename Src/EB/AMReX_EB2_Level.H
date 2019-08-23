@@ -66,7 +66,6 @@ protected:
     Level& operator=(Level const& rhs) = delete;
     Level& operator=(Level && rhs) = delete;
 
-    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
 
     Geometry m_geom;
@@ -87,6 +86,9 @@ protected:
     bool m_allregular = false;
     bool m_ok = false;
     IndexSpace const* m_parent;
+
+public: // for cuda
+    int coarsenFromFine (Level& fineLevel, bool fill_boundary);
 };
 
 template <typename G>

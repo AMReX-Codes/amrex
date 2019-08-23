@@ -33,8 +33,6 @@ can be running using MPI and/or OpenMP.  Here is a brief overview:
    this example shows how to introduce boundary conditions with C++
    using StateData but without using Amr or AmrLevel.
 
-
-
 * `Tiling_C`:
 
    this sets up a MultFab, does domain decomposition into Boxes, and
@@ -53,29 +51,11 @@ can be running using MPI and/or OpenMP.  Here is a brief overview:
    This does a second-order accurate explicit solution of the second-order
    wave equation, u_tt = c**2 L u, where L is the Laplacian
 
-* `AMR_Adv_C`:
-
-   this is a full-fledged application that uses the AMReX StateData class
-   to manage data on an adaptive grid.  This implements simple 2nd order
-   accurate advection using a Godunov approach.
- 
-* `AMR_Adv_C_v2`:
-
-   this is similar to `AMR_Adv_C`, but is implemented with the AmrCoreLib.
-
-* `MultiGrid_C`:
-
-   this example shows how to do multigrid to solve a Helmholtz elliptic
-   problem.  Interfaces to AMReX's native multigrid, Hypre, and HPGMG
-   are provided.
-
 * `MultiColor_C`:
 
    multicolor solves use different MPI communicators to solve the multigrid
    problem for different components in the data.  This sets up different
    RHSs for each of the components and does the solves using colors
-
-
 
 These are more specialized tutorials:
 

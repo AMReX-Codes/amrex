@@ -66,31 +66,3 @@ if (ENABLE_EB)
       MLMG/AMReX_MLEBTensor_${DIM}D_K.H
       )
 endif ()
-
-
-#
-# Sources in folder C_CellMG
-#
-target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/C_CellMG>)
-
-target_sources(amrex PRIVATE 
-   C_CellMG/AMReX_ABecLaplacian.H
-   C_CellMG/AMReX_ABecLaplacian.cpp
-   C_CellMG/AMReX_CGSolver.H   
-   C_CellMG/AMReX_CGSolver.cpp
-   C_CellMG/AMReX_LinOp.H  
-   C_CellMG/AMReX_LinOp.cpp
-   C_CellMG/AMReX_MultiGrid.H   
-   C_CellMG/AMReX_MultiGrid.cpp
-   C_CellMG/AMReX_Laplacian.H
-   C_CellMG/AMReX_Laplacian.cpp
-   C_CellMG/AMReX_ABec_F.H
-   C_CellMG/AMReX_LO_F.H
-   C_CellMG/AMReX_LP_F.H
-   C_CellMG/AMReX_MG_F.H
-   C_CellMG/AMReX_ABec_${DIM}D.F90
-   C_CellMG/AMReX_ABec_UTIL.F90
-   C_CellMG/AMReX_LO_${DIM}D.F90
-   C_CellMG/AMReX_LP_${DIM}D.F90
-   C_CellMG/AMReX_MG_${DIM}D.F90
-   )

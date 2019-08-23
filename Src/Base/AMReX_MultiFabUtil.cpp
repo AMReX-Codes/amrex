@@ -665,32 +665,43 @@ namespace amrex
         return slice;
     }
 
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio)
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+                            int crse_value, int fine_value)
     {
-        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), fba, ratio);
+        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), fba, ratio, crse_value, fine_value);
     }
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
-                            const BoxArray& fba, const IntVect& ratio)
+                            const BoxArray& fba, const IntVect& ratio,
+                            int crse_value, int fine_value)
     {
         iMultiFab mask(cba, cdm, 1, 0);
         const BoxArray& cfba = amrex::coarsen(fba,ratio);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
 
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
-                IArrayBox& fab = mask[mfi];
-                const Box& bx = fab.box();
-                fab.setVal(0);
+                const Box& bx = mfi.validbox();
+                Array4<int> const& fab = mask.array(mfi);
+
+                AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+                {
+                    fab(i,j,k) = crse_value;
+                });
+
                 cfba.intersections(bx, isects);
                 for (auto const& is : isects)
                 {
-                    fab.setVal(1, is.second, 0, 1);
+                    const Box ibx = is.second;
+                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    {
+                        fab(i,j,k) = fine_value;
+                    });
                 }
             }
         }
@@ -742,4 +753,29 @@ namespace amrex
             });
         }
     }
+
+    MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
+                            Periodicity const& period)
+    {
+        MultiFab r(mf.boxArray(), mf.DistributionMap(), mf.nComp(), 0);
+
+        BoxList bl = mf.boxArray().boxList();
+        for (auto& b : bl) {
+            b.shift(offset);
+        }
+        BoxArray nba(std::move(bl));
+        MultiFab nmf(nba, mf.DistributionMap(), mf.nComp(), 0,
+                     MFInfo().SetAlloc(false));
+
+        for (MFIter mfi(r); mfi.isValid(); ++mfi) {
+            auto const& rfab = r[mfi];
+            nmf.setFab(mfi, new FArrayBox(nba[mfi.index()], rfab.nComp(),
+                                          rfab.dataPtr()), false);
+        }
+
+        nmf.ParallelCopy(mf, period);
+
+        return r;
+    }
+
 }

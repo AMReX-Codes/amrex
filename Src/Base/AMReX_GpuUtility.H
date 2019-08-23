@@ -276,7 +276,7 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Or (int* m, int value) noexcept
+        void LogicalOr (int* m, int value) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
             atomicOr(m, value);
@@ -286,10 +286,10 @@ namespace Gpu {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void And (int* m, int value) noexcept
+        void LogicalAnd (int* m, int value) noexcept
         {
 #ifdef AMREX_DEVICE_COMPILE
-            atomicAnd(m, value);
+            atomicAnd(m, value ? ~0x0 : 0);
 #else
             *m = (*m) && value; 
 #endif
@@ -389,10 +389,23 @@ namespace Gpu {
 #endif
     }
 
+    struct StreamItInfo
+    {
+        bool device_sync;
+        StreamItInfo () noexcept 
+            : device_sync(true) {}
+        StreamItInfo& DisableDeviceSync () noexcept {
+            device_sync = false;
+            return *this;
+        }
+    };
+
     class StreamIter
     {
     public:
         StreamIter (const int n, bool is_thread_safe=true) noexcept;
+        StreamIter (const int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
+
         ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
@@ -411,9 +424,12 @@ namespace Gpu {
 #endif
 
     private:
+        void init() noexcept;
+
         int m_n;
         int m_i;
         bool m_threadsafe;
+        bool m_sync;
     };
 
 } // namespace Gpu
@@ -424,6 +440,24 @@ std::ostream& operator<< (std::ostream& os, const dim3& d);
 
 using Gpu::isnan;
 using Gpu::isinf;
+
+namespace HostDevice { namespace Atomic {
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Add (T* sum, T value) noexcept
+    {
+#ifdef AMREX_DEVICE_COMPILE
+        Gpu::Atomic::Add(sum,value);
+#else
+#ifdef _OPENMP
+#pragma omp atomic update
+#endif
+        *sum += value;
+#endif
+    }
+
+}}
 
 } // namespace amrex
 

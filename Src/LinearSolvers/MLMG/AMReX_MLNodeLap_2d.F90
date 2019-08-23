@@ -22,6 +22,8 @@ module amrex_mlnodelap_2d_module
   integer, private, parameter :: i_S_y     = 2
   integer, private, parameter :: i_S_x2    = 3
   integer, private, parameter :: i_S_y2    = 4
+  integer, private, parameter :: i_S_xy    = 5
+  integer, private, parameter :: n_Sintg   = 5
 #endif
 
   logical, private, save :: is_rz = .false.
@@ -177,25 +179,25 @@ contains
 
     if (lo(1) .eq. domlo(1)) then
        if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          dmsk(lo(1),lo(2):hi(2)) = 0.5d0*dmsk(lo(1),lo(2):hi(2))
+          dmsk(lo(1),lo(2):hi(2)) = half*dmsk(lo(1),lo(2):hi(2))
        end if
     end if
 
     if (hi(1) .eq. domhi(1)) then
        if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          dmsk(hi(1),lo(2):hi(2)) = 0.5d0*dmsk(hi(1),lo(2):hi(2))
+          dmsk(hi(1),lo(2):hi(2)) = half*dmsk(hi(1),lo(2):hi(2))
        end if
     end if
 
     if (lo(2) .eq. domlo(2)) then
        if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          dmsk(lo(1):hi(1),lo(2)) = 0.5d0*dmsk(lo(1):hi(1),lo(2))
+          dmsk(lo(1):hi(1),lo(2)) = half*dmsk(lo(1):hi(1),lo(2))
        end if
     end if
 
     if (hi(2) .eq. domhi(2)) then
        if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          dmsk(lo(1):hi(1),hi(2)) = 0.5d0*dmsk(lo(1):hi(1),hi(2))
+          dmsk(lo(1):hi(1),hi(2)) = half*dmsk(lo(1):hi(1),hi(2))
        end if
     end if
 
@@ -986,8 +988,8 @@ contains
     integer :: i,j
     real(amrex_real) :: facx, facy, fm, fp
 
-    facx = 0.5d0*dxinv(1)
-    facy = 0.5d0*dxinv(2)
+    facx = half*dxinv(1)
+    facy = half*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
@@ -1042,8 +1044,8 @@ contains
     integer :: i, j
     real(amrex_real) :: facx, facy, frz
 
-    facx = 0.5d0*dxinv(1)
-    facy = 0.5d0*dxinv(2)
+    facx = half*dxinv(1)
+    facy = half*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
@@ -2052,7 +2054,7 @@ contains
   subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
        bind(c,name='amrex_mlndlap_set_integral')
     integer, dimension(2) :: lo, hi, glo, ghi
-    real(amrex_real), intent(inout) :: intg(glo(1):ghi(1),glo(2):ghi(2),4)
+    real(amrex_real), intent(inout) :: intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
     integer :: i,j
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
@@ -2060,6 +2062,7 @@ contains
           intg(i,j,i_S_y ) = zero
           intg(i,j,i_S_x2) = twelfth
           intg(i,j,i_S_y2) = twelfth
+          intg(i,j,i_S_xy) = zero
        end do
     end do
   end subroutine amrex_mlndlap_set_integral
@@ -2069,7 +2072,7 @@ contains
        bind(c,name='amrex_mlndlap_set_integral_eb')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
     integer, dimension(2) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),n_Sintg)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2))
@@ -2077,17 +2080,17 @@ contains
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
 
     integer :: i,j
-    real(amrex_real) :: Sx, Sx2, Sy, Sy2 ! integral of x, x2, y, and y2
-    real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv, anrmx, anrmy, bcx, bcy
+    real(amrex_real) :: Sx, Sx2, Sy, Sy2, Sxy ! integral of x, x2, y, y2 and xy
+    real(amrex_real) :: axm, axp, aym, ayp, apnorm, apnorminv, anrmx, anrmy, bcx, bcy, kk, bb
     real(amrex_real) :: xmin, xmax, ymin, ymax
     real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
-    real(amrex_real), parameter :: twentyfourth = 1.d0/24.d0
+    real(amrex_real), parameter :: sixteenth = 1.d0/16.d0, twentyfourth = 1.d0/24.d0
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (is_covered_cell(flag(i,j))) then
 
-             intg(i,j,:) = 0.d0
+             intg(i,j,:) = zero
 
           else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
 
@@ -2095,6 +2098,7 @@ contains
              intg(i,j,i_S_y ) = zero
              intg(i,j,i_S_x2) = twelfth
              intg(i,j,i_S_y2) = twelfth
+             intg(i,j,i_S_xy) = zero
 
           else
 
@@ -2104,7 +2108,7 @@ contains
              ayp = ay(i,j+1)
 
              apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
-             if (apnorm .eq. 0.d0) then
+             if (apnorm .eq. zero) then
                 call amrex_abort("amrex_mlndlap_set_integral: we are in trouble")
              end if
 
@@ -2115,39 +2119,47 @@ contains
              bcx = bcen(i,j,1)
              bcy = bcen(i,j,2)
 
-             if (anrmx .eq. 0.d0) then
-                Sx = 0.d0
+             if (anrmx .eq. zero) then
+                Sx = zero
                 Sx2 = twentyfourth*(axm+axp)
-             else if (anrmy .eq. 0.d0) then
-                Sx  = 0.125d0     *(axp-axm) + anrmx*0.5d0*bcx**2
+                Sxy = zero
+             else if (anrmy .eq. zero) then
+                Sx  = eighth     *(axp-axm) + anrmx*half*bcx**2
                 Sx2 = twentyfourth*(axp+axm) + anrmx*third*bcx**3
+                Sxy = zero
              else
-                if (anrmx .gt. 0.d0) then
-                   xmin = -0.5d0 + min(aym,ayp)
-                   xmax = -0.5d0 + max(aym,ayp)
+                if (anrmx .gt. zero) then
+                   xmin = -half + min(aym,ayp)
+                   xmax = -half + max(aym,ayp)
                 else
-                   xmin = 0.5d0 - max(aym,ayp)
-                   xmax = 0.5d0 - min(aym,ayp)
+                   xmin = half - max(aym,ayp)
+                   xmax = half - min(aym,ayp)
                 end if
-                Sx  = 0.125d0     *(axp-axm) + (anrmx/abs(anrmy))*sixth  *(xmax**3-xmin**3)
+                Sx  = eighth     *(axp-axm) + (anrmx/abs(anrmy))*sixth  *(xmax**3-xmin**3)
                 Sx2 = twentyfourth*(axp+axm) + (anrmx/abs(anrmy))*twelfth*(xmax**4-xmin**4)
+
+                kk = -anrmx/anrmy
+                bb = bcy-kk*bcx
+                Sxy = eighth*kk*kk*(xmax**4-xmin**4) + third*kk*bb*(xmax**3-xmin**3) &
+                     + (fourth*bb*bb-sixteenth)*(xmax**2-xmin**2)
+                sxy = sxy * sign(one,anrmy)
              end if
 
-             if (anrmy .eq. 0.d0) then
-                Sy = 0.d0
+             if (anrmy .eq. zero) then
+                Sy = zero
                 Sy2 = twentyfourth*(aym+ayp)
-             else if (anrmx .eq. 0.d0) then
-                Sy  = 0.125d0     *(ayp-aym) + anrmy*0.5d0*bcy**2
+             else if (anrmx .eq. zero) then
+                Sy  = eighth     *(ayp-aym) + anrmy*half*bcy**2
                 Sy2 = twentyfourth*(ayp+aym) + anrmy*third*bcy**3
              else
-                if (anrmy .gt. 0.d0) then
-                   ymin = -0.5d0 + min(axm,axp)
-                   ymax = -0.5d0 + max(axm,axp)
+                if (anrmy .gt. zero) then
+                   ymin = -half + min(axm,axp)
+                   ymax = -half + max(axm,axp)
                 else
-                   ymin = 0.5d0 - max(axm,axp)
-                   ymax = 0.5d0 - min(axm,axp)
+                   ymin = half - max(axm,axp)
+                   ymax = half - min(axm,axp)
                 end if
-                Sy  = 0.125d0     *(ayp-aym) + (anrmy/abs(anrmx))*sixth  *(ymax**3-ymin**3)
+                Sy  = eighth     *(ayp-aym) + (anrmy/abs(anrmx))*sixth  *(ymax**3-ymin**3)
                 Sy2 = twentyfourth*(ayp+aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
              end if
 
@@ -2155,6 +2167,7 @@ contains
              intg(i,j,i_S_y ) = Sy
              intg(i,j,i_S_x2) = Sx2
              intg(i,j,i_S_y2) = Sy2
+             intg(i,j,i_S_xy) = Sxy
 
           end if
        end do
@@ -2167,7 +2180,7 @@ contains
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
     integer, dimension(2), intent(in) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi
     real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
-    real(amrex_real), intent(in   ) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
+    real(amrex_real), intent(in   ) :: intg( glo(1): ghi(1), glo(2): ghi(2),n_Sintg)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
 
@@ -2178,7 +2191,7 @@ contains
        do i = lo(1), hi(1)
           if (is_covered_cell(flag(i,j))) then
 
-             conn(i,j,:) = 0.d0
+             conn(i,j,:) = zero
 
           else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
 
@@ -2237,14 +2250,14 @@ contains
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
     real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2))
-    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),2)
+    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
     real(amrex_real) :: facx, facy
 
-    facx = 0.5d0*dxinv(1)
-    facy = 0.5d0*dxinv(2)
+    facx = half*dxinv(1)
+    facy = half*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
@@ -2258,7 +2271,7 @@ contains
                   &           +vel(i-1,j  ,2)*(vfrac(i-1,j  )+2.d0*intg(i-1,j  ,1)) &
                   &           +vel(i  ,j  ,2)*(vfrac(i  ,j  )-2.d0*intg(i  ,j  ,1)))
           else
-             rhs(i,j) = 0.d0
+             rhs(i,j) = zero
           end if
        end do
     end do
@@ -2274,19 +2287,19 @@ contains
     real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
     real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2))
-    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),2)
+    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
 
     integer :: i, j
     real(amrex_real) :: dpdx, dpdy, facx, facy, dpp
 
-    facx = 0.5d0*dxinv(1)
-    facy = 0.5d0*dxinv(2)
+    facx = half*dxinv(1)
+    facy = half*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (vfrac(i,j) .eq. 0.d0) then
-             u(i,j,1) = 0.d0
-             u(i,j,2) = 0.d0
+          if (vfrac(i,j) .eq. zero) then
+             u(i,j,1) = zero
+             u(i,j,2) = zero
           else
              dpdx = facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
              dpdy = facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
