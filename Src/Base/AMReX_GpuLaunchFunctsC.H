@@ -4,14 +4,12 @@
 namespace amrex {
 
 template<typename T, typename L>
-AMREX_FORCE_INLINE
 void launch (T const& n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     f(n);
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-AMREX_FORCE_INLINE
 void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     for (T i = 0; i < n; ++i) {
@@ -20,7 +18,6 @@ void For (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-AMREX_FORCE_INLINE
 void ParallelFor (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     AMREX_PRAGMA_SIMD
@@ -30,7 +27,6 @@ void ParallelFor (T n, L&& f, std::size_t shared_mem_bytes=0) noexcept
 }
 
 template <typename L>
-AMREX_FORCE_INLINE
 void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -43,7 +39,6 @@ void For (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
 }
 
 template <typename L>
-AMREX_FORCE_INLINE
 void ParallelFor (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -57,7 +52,6 @@ void ParallelFor (Box const& box, L&& f, std::size_t shared_mem_bytes=0) noexcep
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-AMREX_FORCE_INLINE
 void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -72,7 +66,6 @@ void For (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexce
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-AMREX_FORCE_INLINE
 void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0) noexcept
 {
     const auto lo = amrex::lbound(box);
@@ -85,6 +78,90 @@ void ParallelFor (Box const& box, T ncomp, L&& f, std::size_t shared_mem_bytes=0
             f(i,j,k,n);
         }}}
     }
+}
+
+template <typename L1, typename L2>
+void For (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
+          std::size_t shared_mem_bytes=0) noexcept
+{
+    For(box1, std::move(f1));
+    For(box2, std::move(f2));
+}
+
+template <typename L1, typename L2, typename L3>
+void For (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3,
+          std::size_t shared_mem_bytes=0) noexcept
+{
+    For(box1, std::move(f1));
+    For(box2, std::move(f2));
+    For(box3, std::move(f3));
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
+void For (Box const& box1, T1 ncomp1, L1&& f1,
+          Box const& box2, T2 ncomp2, L2&& f2,
+          std::size_t shared_mem_bytes=0) noexcept
+{
+    For(box1, ncomp1, std::move(f1));
+    For(box2, ncomp2, std::move(f2));
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
+          typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
+void For (Box const& box1, T1 ncomp1, L1&& f1,
+          Box const& box2, T2 ncomp2, L2&& f2,
+          Box const& box3, T3 ncomp3, L3&& f3,
+          std::size_t shared_mem_bytes=0) noexcept
+{
+    For(box1, ncomp1, std::move(f1));
+    For(box2, ncomp2, std::move(f2));
+    For(box3, ncomp3, std::move(f3));
+}
+
+template <typename L1, typename L2>
+void ParallelFor (Box const& box1, Box const& box2, L1&& f1, L2&& f2,
+                  std::size_t shared_mem_bytes=0) noexcept
+{
+    ParallelFor(box1, std::move(f1));
+    ParallelFor(box2, std::move(f2));
+}
+
+template <typename L1, typename L2, typename L3>
+void ParallelFor (Box const& box1, Box const& box2, Box const& box3, L1&& f1, L2&& f2, L3&& f3,
+                  std::size_t shared_mem_bytes=0) noexcept
+{
+    ParallelFor(box1, std::move(f1));
+    ParallelFor(box2, std::move(f2));
+    ParallelFor(box3, std::move(f3));
+}
+
+template <typename T1, typename T2, typename L1, typename L2,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value> >
+void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                  Box const& box2, T2 ncomp2, L2&& f2,
+                  std::size_t shared_mem_bytes=0) noexcept
+{
+    ParallelFor(box1, ncomp1, std::move(f1));
+    ParallelFor(box2, ncomp2, std::move(f2));
+}
+
+template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3,
+          typename M1=amrex::EnableIf_t<std::is_integral<T1>::value>,
+          typename M2=amrex::EnableIf_t<std::is_integral<T2>::value>,
+          typename M3=amrex::EnableIf_t<std::is_integral<T3>::value> >
+void ParallelFor (Box const& box1, T1 ncomp1, L1&& f1,
+                  Box const& box2, T2 ncomp2, L2&& f2,
+                  Box const& box3, T3 ncomp3, L3&& f3,
+                  std::size_t shared_mem_bytes=0) noexcept
+{
+    ParallelFor(box1, ncomp1, std::move(f1));
+    ParallelFor(box2, ncomp2, std::move(f2));
+    ParallelFor(box3, ncomp3, std::move(f3));
 }
 
 template <typename N, typename T, typename L1, typename L2,

@@ -21,7 +21,7 @@
 #include <AMReX_WriteEBSurface.H>
 #include <AMReX_WriteEB_F.H>
 
-using namespace amrex;
+namespace amrex {
 
 void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,
                      const EBFArrayBoxFactory * ebf) {
@@ -46,21 +46,21 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         areafrac  =   ebf->getAreaFrac();
         bndrycent = &(ebf->getBndryCent());
 
-        eb_to_polygon(dx, BL_TO_FORTRAN_BOX(bx),
-                      BL_TO_FORTRAN_3D(my_flag),
-                      BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
-                      BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
-                      BL_TO_FORTRAN_3D((* areafrac[1])[mfi]),
-                      BL_TO_FORTRAN_3D((* areafrac[2])[mfi]) );
+        amrex_eb_to_polygon(dx, BL_TO_FORTRAN_BOX(bx),
+                            BL_TO_FORTRAN_3D(my_flag),
+                            BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
+                            BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
+                            BL_TO_FORTRAN_3D((* areafrac[1])[mfi]),
+                            BL_TO_FORTRAN_3D((* areafrac[2])[mfi]) );
     }
 
     int cpu = ParallelDescriptor::MyProc();
     int nProcs = ParallelDescriptor::NProcs();
 
-    write_eb_vtp(& cpu);
+    amrex_write_eb_vtp(& cpu);
 
     if(ParallelDescriptor::IOProcessor())
-        write_pvtp(& nProcs);
+        amrex_write_pvtp(& nProcs);
 
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
@@ -73,6 +73,9 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         if (my_flag.getType(bx) == FabType::covered or
             my_flag.getType(bx) == FabType::regular) continue;
 
-        eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
+        amrex_eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
     }
 }
+
+}
+

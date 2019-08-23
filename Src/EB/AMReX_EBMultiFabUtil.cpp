@@ -45,6 +45,8 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
     bool is_cell_centered = mf.ixType().cellCentered();
     int ng = std::min(mf.nGrow(),ngrow);
 
+    Gpu::LaunchSafeGuard lsg(is_cell_centered);
+
     Gpu::AsyncArray<Real> vals_aa(a_vals.data(), ncomp);
     Real const* AMREX_RESTRICT vals = vals_aa.data();
 

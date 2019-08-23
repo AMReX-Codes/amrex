@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../../../../../..
+AMREX_HOME ?= ../../../../../../
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
@@ -20,5 +20,5 @@ USE_OMP    = FALSE
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.Adv.mpi.pthreads
-#include ../Make.Adv.upcxx.pthreads
+include ../Make.Adv.mpi
+#include ../Make.Adv.upcxx

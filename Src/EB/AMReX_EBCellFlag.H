@@ -238,6 +238,8 @@ private:
     uint32_t flag = default_value;
 };
 
+template <>
+struct IsStoreAtomic<EBCellFlag> : std::true_type {};
 
 class EBCellFlagFab
     : public BaseFab<EBCellFlag>

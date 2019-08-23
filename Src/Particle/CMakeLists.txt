@@ -34,4 +34,11 @@ target_sources( amrex
    AMReX_NeighborParticlesCPUImpl.H
    AMReX_NeighborParticlesGPUImpl.H
    AMReX_KDTree_${DIM}d.F90
+   AMReX_ParticleBufferMap.H
+   AMReX_ParticleBufferMap.cpp
+   AMReX_ParticleCommunication.H
+   AMReX_ParticleCommunication.cpp
+   AMReX_ParticleReduce.H
+   AMReX_ParticleMesh.H
+   AMReX_ParticleIO.H
    )

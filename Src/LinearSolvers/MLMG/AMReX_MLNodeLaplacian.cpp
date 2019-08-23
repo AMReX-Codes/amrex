@@ -73,9 +73,9 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 
 #ifdef AMREX_USE_EB
 #if (AMREX_SPACEDIM == 2)
-    const int ncomp_i = 4;
+    const int ncomp_i = 5;
 #else
-    const int ncomp_i = 18;
+    const int ncomp_i = algoim::numIntgs;
 #endif
     m_integral.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)

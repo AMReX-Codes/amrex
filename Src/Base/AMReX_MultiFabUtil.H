@@ -131,10 +131,12 @@ namespace amrex
 
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
-    //! are set to one, whereas other cells are set to zero.
-    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
+    //! are set to fine_value, whereas other cells are set to crse_value.
+    iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio,
+                            int crse_value = 0, int fine_value = 1);
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
-                            const BoxArray& fba, const IntVect& ratio);
+                            const BoxArray& fba, const IntVect& ratio,
+                            int crse_value = 0, int fine_value = 1);
 
     //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
@@ -148,6 +150,10 @@ namespace amrex
     MultiFab ToMultiFab (const iMultiFab& imf);
     //! Convert iMultiFab to long
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
+
+    //! Periodic shift MultiFab
+    MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
+                            Periodicity const& period);
 
     //! example: auto mf = amrex::cast<MultiFab>(imf);
     template <typename T, typename U>
