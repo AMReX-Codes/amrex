@@ -1,6 +1,7 @@
 module amrex_eb_flux_reg_2d_module
 
   use amrex_fort_module, only : rt => amrex_real
+  use amrex_constants_module, only : zero, one
   use amrex_eb_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, fine_cell, &
        reredistribution_threshold
   use amrex_ebcellflag_module, only : get_neighbor_cells, is_regular_cell, is_single_valued_cell
@@ -249,7 +250,7 @@ contains
                 d(i,j,:) = d(i,j,:) + dm
                    
                 call get_neighbor_cells(ebflg(i,j),nbr)
-                wtot = 0.d0
+                wtot = zero
                 do jj = -1,1
                    do ii = -1,1
                       if ((ii.ne. 0 .or. jj.ne.0) .and. nbr(ii,jj).eq.1) then
@@ -258,7 +259,7 @@ contains
                    end do
                 enddo
                    
-                drho = dm * ((1.d0-vfrac(i,j))/wtot)
+                drho = dm * ((one-vfrac(i,j))/wtot)
                 do jj = -1,1
                    do ii = -1,1
                       if((ii.ne. 0 .or. jj.ne.0) .and. nbr(ii,jj).eq.1) then

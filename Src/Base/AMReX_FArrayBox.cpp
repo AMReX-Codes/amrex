@@ -179,6 +179,11 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p) noexcept
 {
 }
 
+FArrayBox::FArrayBox (const Box& b, int ncomp, Real const* p) noexcept
+    : BaseFab<Real>(b,ncomp,p)
+{
+}
+
 FArrayBox&
 FArrayBox::operator= (Real v) noexcept
 {

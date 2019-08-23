@@ -352,6 +352,11 @@ else
   $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
 endif
 
+CXXFLAGS += $(XTRA_CXXFLAGS)
+CFLAGS   += $(XTRA_CFLAGS)
+FFLAGS   += $(XTRA_FFLAGS)
+F90FLAGS += $(XTRA_F90FLAGS)
+
 ifeq ($(MAKECMDGOALS),check_fortran)
   ifneq ($(lowercase_comp),gnu)
     $(error make check_fortran only works with COMP=gnu)

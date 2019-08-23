@@ -230,6 +230,7 @@ public:
      * p points to a chunk of memory large enough.
      */
     BaseFab (const Box& bx, int ncomp, T* p);
+    BaseFab (const Box& bx, int ncomp, T const* p);
 
     AMREX_GPU_HOST_DEVICE
     explicit BaseFab (Array4<T> const& a) noexcept;
@@ -292,10 +293,6 @@ public:
     std::size_t nBytesOwned () const noexcept {
         return (this->ptr_owner) ? nBytes() : 0;
     }
-
-    static bool preAllocatable () noexcept { return true; }
-
-    static bool isCopyOMPSafe () noexcept { return true; }
 
     //! Returns bytes used in the Box for those components
     AMREX_GPU_HOST_DEVICE
@@ -2025,6 +2022,12 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
 template<class T>
 BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
     : dptr(p), domain(bx), nvar(ncomp), truesize(bx.numPts()*ncomp)
+{
+}
+
+template<class T>
+BaseFab<T>::BaseFab (const Box& bx, int ncomp, T const* p)
+    : dptr(const_cast<T*>(p)), domain(bx), nvar(ncomp), truesize(bx.numPts()*ncomp)
 {
 }
 

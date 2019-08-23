@@ -48,7 +48,8 @@ module amrex_mlnodelap_3d_module
   integer, private, parameter :: i_S_x2_y2 = 16
   integer, private, parameter :: i_S_x2_z2 = 17
   integer, private, parameter :: i_S_y2_z2 = 18
-  integer, private, parameter :: n_Sintg = 18
+  integer, private, parameter :: i_S_xyz   = 19
+  integer, private, parameter :: n_Sintg   = 19
 
   integer, private, parameter :: i_c_xmym = 1
   integer, private, parameter :: i_c_xmyb = 2
@@ -118,8 +119,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
-       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -6526,57 +6526,6 @@ contains
 
 
 #ifdef AMREX_USE_EB
-
-  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
-       bind(c,name='amrex_mlndlap_set_integral')
-    integer, dimension(3) :: lo, hi, glo, ghi
-    real(amrex_real), intent(inout) :: intg(glo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n_Sintg)
-    integer :: i,j,k
-    real(amrex_real), parameter :: offth = 1.d0/144.d0
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             intg(i,j,k,i_S_x    ) = 0.d0
-             intg(i,j,k,i_S_y    ) = 0.d0
-             intg(i,j,k,i_S_z    ) = 0.d0
-             intg(i,j,k,i_S_x2   ) = twelfth
-             intg(i,j,k,i_S_y2   ) = twelfth
-             intg(i,j,k,i_S_z2   ) = twelfth
-             intg(i,j,k,i_S_x_y  ) = 0.d0
-             intg(i,j,k,i_S_x_z  ) = 0.d0
-             intg(i,j,k,i_S_y_z  ) = 0.d0
-             intg(i,j,k,i_S_x2_y ) = 0.d0
-             intg(i,j,k,i_S_x2_z ) = 0.d0
-             intg(i,j,k,i_S_x_y2 ) = 0.d0
-             intg(i,j,k,i_S_y2_z ) = 0.d0
-             intg(i,j,k,i_S_x_z2 ) = 0.d0
-             intg(i,j,k,i_S_y_z2 ) = 0.d0
-             intg(i,j,k,i_S_x2_y2) = offth
-             intg(i,j,k,i_S_x2_z2) = offth
-             intg(i,j,k,i_S_y2_z2) = offth
-          end do
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_integral
-
-  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
-       vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, az, azlo, azhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_integral_eb')
-    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(3) :: lo, hi, glo, ghi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
-         azlo, azhi, blo, bhi
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2), glo(3): ghi(3),n_Sintg)
-    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
-    real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
-    real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
-    real(amrex_real), intent(in   ) :: az  (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
-    real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
-    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
-
-    call amrex_mlndlap_set_integral(lo, hi, intg, glo, ghi)
-
-  end subroutine amrex_mlndlap_set_integral_eb
-
 
   subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')

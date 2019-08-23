@@ -51,6 +51,18 @@ main_C and main_F introduce the following:
     can choose to skip command line parsing.  Applications can also provide a function that
     adds parameters to AMReX ParmParse database.
 
+**Build_with_libamrex**
+-----------------------
+
+This tutorial builds on the main_C example and demonstrates how to build the executable when we 
+want to link local files with the pre-built amrex library (libamrex.a) that has been installed elsewhere.
+We separate main.cpp from the main_C example into two separate files (main.cpp and 
+test_parameters.cpp), replace MyAmr.H by MyParams.H and add a Fortran file my_func.f90.  
+The GNUmakefile here assumes that you have already built the AMReX library; for instructions on how to do 
+that see the  Building_libamrex_ chapter.
+
+.. Building_libamrex: https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html
+
 **HeatEquation**
 ----------------
 

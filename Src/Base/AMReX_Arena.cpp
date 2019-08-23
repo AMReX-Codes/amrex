@@ -166,12 +166,14 @@ Arena::Initialize ()
     the_device_arena = new BArena;
 #endif
 
-#if defined(AMREX_USE_GPU)
+#ifdef AMREX_USE_GPU
     the_managed_arena = new CArena;
 #else
     the_managed_arena = new BArena;
 #endif
 
+    // When USE_CUDA=FALSE, we call mlock to pin the cpu memory.
+    // When USE_CUDA=TRUE, we call cudaHostAlloc to pin the host memory.
     the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc());
 
     std::size_t N = 1024UL*1024UL*8UL;
