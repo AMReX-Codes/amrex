@@ -78,7 +78,7 @@ sim = picmi.Simulation(solver = solver,
                        max_steps = 40,
                        verbose = 1,
                        warpx_plot_int = 40,
-                       warpx_current_deposition_algo = 'direct',
+                       warpx_current_deposition_algo = 'esirkepov',
                        warpx_field_gathering_algo = 'standard',
                        warpx_particle_pusher_algo = 'boris')
 

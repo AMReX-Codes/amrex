@@ -469,7 +469,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
     Box tby = convert(tilebox, WarpX::jy_nodal_flag);
     Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
-    tilebox.grow(ngJ);
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
@@ -484,9 +483,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     tby.grow(ngJ);
     tbz.grow(ngJ);
 
-    local_jx[thread_num].resize(tbx);
-    local_jy[thread_num].resize(tby);
-    local_jz[thread_num].resize(tbz);
+    local_jx[thread_num].resize(tbx, jx->nComp());
+    local_jy[thread_num].resize(tby, jy->nComp());
+    local_jz[thread_num].resize(tbz, jz->nComp());
 
     // local_jx[thread_num] is set to zero
     local_jx[thread_num].setVal(0.0);
@@ -561,9 +560,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     BL_PROFILE_VAR_START(blp_accumulate);
     // CPU, tiling: atomicAdd local_jx into jx
     // (same for jx and jz)
-    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, jx->nComp());
+    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, jy->nComp());
+    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, jz->nComp());
     BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
 }
