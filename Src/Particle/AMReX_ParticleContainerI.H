@@ -1939,57 +1939,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
     if (lev_max == -1)
         lev_max = finestLevel();
 
-    AMREX_ASSERT(lev_max <= finestLevel());
-
-    AMREX_ASSERT(lev_min == 0);
-    AMREX_ASSERT(lev_max == 0);
-    AMREX_ASSERT(nGrow == 0);
-    AMREX_ASSERT(do_tiling == false);
-
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-
-    BuildRedistributeMask(0, 1);
-
-    Gpu::DeviceVector<int> grid_indices;
-
-    long total_np = 0;
-    long total_wrong = 0;
-    for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi) {
-        int i = mfi.index();
-        const int tid = 0;
-
-        const auto& ptile = ParticlesAt(lev, i, tid);
-        auto& aos   = ptile.GetArrayOfStructs();
-        const int np = ptile.numParticles();
-
-        total_np += np;
-
-        if (np == 0) continue;
-        
-        grid_indices.resize(np);
-        
-        thrust::transform(thrust::device, 
-			  aos().begin(), aos().begin() + np, grid_indices.begin(),
-                          functors::assignParticleGrid(geom.data(),
-                                         (*redistribute_mask_ptr)[mfi].box(),
-                                         redistribute_mask_ptr->array(mfi)));
-
-        int count = thrust::count_if(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                                     grid_indices.begin(),
-                                     grid_indices.end(),
-                                     functors::grid_is_not(i));
-
-        total_wrong += count;
-    }
-
-    ParallelDescriptor::ReduceLongSum(total_np);
-    ParallelDescriptor::ReduceLongSum(total_wrong);
-
-    amrex::Print() << "I have " << total_np << " particles in OK(). \n"; 
-    amrex::Print() << "I have " << total_wrong << " particles in the wrong place. \n"; 
-
-    return (total_wrong == 0);
+    return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 #endif
 
