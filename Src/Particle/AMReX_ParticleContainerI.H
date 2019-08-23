@@ -1022,6 +1022,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 #ifdef AMREX_USE_CUDA
 
+    if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
+
     // sanity checks
     AMREX_ASSERT(local);
     AMREX_ASSERT(lev_min == 0);

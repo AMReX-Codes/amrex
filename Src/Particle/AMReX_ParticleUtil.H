@@ -31,7 +31,55 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
     iv += domain.smallEnd();
     return mask(iv);
 }
-    
+
+template <class PC>
+bool
+numParticlesOutOfRange (PC const& pc, int nGrow)
+{
+    BL_PROFILE("numParticlesOutOfRange()");
+
+    using ParIter = typename PC::ParConstIterType;
+    using ParticleType = typename PC::ParticleType;
+    int num_wrong = 0;
+    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
+    {
+        const auto plo = pc.Geom(lev).ProbLoArray();
+        const auto dxi = pc.Geom(lev).InvCellSizeArray();
+        const Box domain = pc.Geom(lev).Domain();
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            const auto& tile = pti.GetParticleTile();
+            const auto np = tile.numParticles();
+            const auto& aos = tile.GetArrayOfStructs();
+            const auto pstruct = aos().dataPtr();
+            
+            Box box = pti.tilebox();
+            box.grow(nGrow);
+
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+
+            reduce_op.eval(np, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
+            {
+                const ParticleType& p = pstruct[i];
+                IntVect iv = IntVect(
+                        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                                     floor((p.pos(1)-plo[1])*dxi[1]),
+                                     floor((p.pos(2)-plo[2])*dxi[2])));
+                iv += domain.smallEnd();
+                return !box.contains(iv);
+            });
+            int hv = amrex::get<0>(reduce_data.value());
+            num_wrong += hv;
+        }
+    }
+    ParallelDescriptor::ReduceIntSum(num_wrong);
+
+    return num_wrong;
+}
+
 }
 
 #endif // include guard
