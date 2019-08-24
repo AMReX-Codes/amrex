@@ -1915,110 +1915,12 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_min, int lev_max, int nGrow) const
 {
-#ifdef AMREX_USE_CUDA
-    if ( (finestLevel() == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
-    {
-        return OKGPU(lev_min, lev_max, nGrow);
-    }
-    else
-    {
-        return OKCPU(lev_min, lev_max, nGrow);
-    }
-#else
-    return OKCPU(lev_min, lev_max, nGrow);
-#endif    
-}
-
-#ifdef AMREX_USE_CUDA
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int lev_min, int lev_max, int nGrow) const
-{
-    BL_PROFILE("ParticleContainer::OKGPU()");
+    BL_PROFILE("ParticleContainer::OK()");
 
     if (lev_max == -1)
         lev_max = finestLevel();
 
     return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
-}
-#endif
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKCPU (int lev_min, int lev_max, int nGrow) const
-{
-    BL_PROFILE("ParticleContainer::OKCPU()");
-    if (lev_max == -1)
-        lev_max = finestLevel();
-
-    AMREX_ASSERT(lev_max <= finestLevel());
-
-    ParticleLocData pld;
-    for (int lev = lev_min; lev <= lev_max; lev++)
-    {
-        const auto& pmap = m_particles[lev];
-	for (const auto& kv : pmap)
-        {
-            const int grid = kv.first.first;
-            const int tile = kv.first.second;
-            const auto& aos = kv.second.GetArrayOfStructs();
-            const auto& soa = kv.second.GetStructOfArrays();
-            
-            int np = aos.numParticles();
-            for (int i = 0; i < NArrayReal; i++) {
-                BL_ASSERT(np == soa.GetRealData(i).size());
-            }
-            for (int i = 0; i < NArrayInt; i++) {
-                BL_ASSERT(np == soa.GetIntData(i).size());
-            }
-
-            const BoxArray& ba = ParticleBoxArray(lev);
-            BL_ASSERT(ba.ixType().cellCentered());
-	    for (int k = 0; k < aos.size(); ++k)
-	    {
-	        const ParticleType& p = aos[k];
-                if (p.m_idata.id > 0)
-                {
-                    if (grid < 0 || grid >= ba.size()) return false;
-
-                    //
-                    // First, make sure the particle COULD be in this container
-                    // 
-                    const IntVect& iv = Index(p, lev);
-                    const Box& gridbox = ba.getCellCenteredBox(grid);
-                    if (!amrex::grow(gridbox, nGrow).contains(iv))
-                    {
-                        return false;
-                    }
-                    Box tbx;
-                    if (getTileIndex(iv, gridbox, do_tiling, tile_size, tbx) != tile)
-                    {
-                        return false;
-                    }
-
-                    //
-                    // Then, we need to make sure it cannot be stored in finer level 
-                    // or valid box of current level.
-                    //
-                    if (Where(p, pld, lev_min, lev_max))
-                    {
-                        if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
-                        {
-                            if (m_verbose) {
-                                amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                                  << "POS  " << AMREX_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                                  << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                                  << "GRID " << grid << " " << pld.m_grid << '\n';
-                            }
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    return true;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
