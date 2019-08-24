@@ -53,6 +53,9 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
         const auto plo = pc.Geom(lev).ProbLoArray();
         const auto dxi = pc.Geom(lev).InvCellSizeArray();
         const Box domain = pc.Geom(lev).Domain();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
+#endif
         for(ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
             const auto& tile = pti.GetParticleTile();
