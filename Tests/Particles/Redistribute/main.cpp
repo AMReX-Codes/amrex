@@ -215,18 +215,16 @@ struct TestParams
     int nsteps;
 };
 
-bool testRedistribute();
+void testRedistribute();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     amrex::Print() << "Running redistribute test \n";
-    bool result = testRedistribute();
+    testRedistribute();
 
     amrex::Finalize();
-
-    return !result;  // 0 is pass, 1 is fail
 }
 
 void get_test_params(TestParams& params, const std::string& prefix)
@@ -241,7 +239,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("nsteps", params.nsteps);
 }
 
-bool testRedistribute ()
+void testRedistribute ()
 {
     BL_PROFILE("testRedistribute");
     TestParams params;
@@ -289,5 +287,6 @@ bool testRedistribute ()
 
     if (geom.isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
 
-    return true;  // the way this test is set up, if we make it here we pass
+    // the way this test is set up, if we make it here we pass
+    amrex::Print() << "pass \n";
 }
