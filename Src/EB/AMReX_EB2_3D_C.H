@@ -512,6 +512,9 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
                  fapy(ii+1,jj,kk  )*(0.5*ffcy(ii+1,jj,kk  ,1)-0.25) +
                  fapy(ii  ,jj,kk+1)*(0.5*ffcy(ii  ,jj,kk+1,1)+0.25) +
                  fapy(ii+1,jj,kk+1)*(0.5*ffcy(ii+1,jj,kk+1,1)+0.25) );
+        } else {
+            cfcy(i,j,k,0) = 0.0;
+            cfcy(i,j,k,1) = 0.0;
         }
     }
     else if (ygbx.contains(iv))
@@ -528,15 +531,18 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
         if (capz(i,j,k) != 0.0) {
             Real apinv = 1.0 / capz(i,j,k);
             cfcz(i,j,k,0) = 0.25 * apinv *
-                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,1)-0.25) +
-                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,1)+0.25) +
-                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,1)-0.25) +
-                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,1)+0.25) );
+                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,0)-0.25) +
+                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,0)+0.25) +
+                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,0)-0.25) +
+                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,0)+0.25) );
             cfcz(i,j,k,1) = 0.25 * apinv *
-                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,2)-0.25) +
-                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,2)-0.25) +
-                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,2)+0.25) +
-                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,2)+0.25) );
+                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,1)-0.25) +
+                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,1)-0.25) +
+                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,1)+0.25) +
+                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,1)+0.25) );
+        } else {
+            cfcz(i,j,k,0) = 0.0;
+            cfcz(i,j,k,1) = 0.0;
         }
     }
     else if (zgbx.contains(iv))
