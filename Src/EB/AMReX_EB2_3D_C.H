@@ -565,6 +565,7 @@ void build_cellflag_from_ap (int i, int j, int k, Array4<EBCellFlag> const& cfla
 
     if (!flg.isCovered())
     {
+        flg.setConnected(0,0,0);
 
         if (apx(i  ,j,k) != 0.0) flg.setConnected(-1,  0,  0);
         if (apx(i+1,j,k) != 0.0) flg.setConnected( 1,  0,  0);
