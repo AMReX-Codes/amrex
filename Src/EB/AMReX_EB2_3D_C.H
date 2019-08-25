@@ -549,6 +549,124 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
     return ierr;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void build_cellflag_from_ap (int i, int j, int k, Array4<EBCellFlag> const& cflag,
+                             Array4<Real const> const& apx, Array4<Real const> const& apy,
+                             Array4<Real const> const& apz)
+{
+    auto flg = cflag(i,j,k);
+    flg.setDisconnected();
+
+    if (!flg.isCovered())
+    {
+
+        if (apx(i  ,j,k) != 0.0) flg.setConnected(-1,  0,  0);
+        if (apx(i+1,j,k) != 0.0) flg.setConnected( 1,  0,  0);
+        if (apy(i,j  ,k) != 0.0) flg.setConnected( 0, -1,  0);
+        if (apy(i,j+1,k) != 0.0) flg.setConnected( 0,  1,  0);
+        if (apz(i,j,k  ) != 0.0) flg.setConnected( 0,  0, -1);
+        if (apz(i,j,k+1) != 0.0) flg.setConnected( 0,  0,  1);
+
+        if ( (apx(i,j,k) != 0.0 and apy(i-1,j,k) != 0.0) or
+             (apy(i,j,k) != 0.0 and apx(i,j-1,k) != 0.0) )
+        {
+            flg.setConnected(-1, -1, 0);
+            if (apz(i-1,j-1,k  ) != 0.0) flg.setConnected(-1,-1,-1);
+            if (apz(i-1,j-1,k+1) != 0.0) flg.setConnected(-1,-1, 1);
+        }
+
+        if ( (apx(i+1,j,k) != 0.0 and apy(i+1,j  ,k) != 0.0) or
+             (apy(i  ,j,k) != 0.0 and apx(i+1,j-1,k) != 0.0) )
+        {
+            flg.setConnected(1, -1, 0);
+            if (apz(i+1,j-1,k  ) != 0.0) flg.setConnected(1,-1,-1);
+            if (apz(i+1,j-1,k+1) != 0.0) flg.setConnected(1,-1, 1);
+        }
+
+        if ( (apx(i,j  ,k) != 0.0 and apy(i-1,j+1,k) != 0.0) or
+             (apy(i,j+1,k) != 0.0 and apx(i  ,j+1,k) != 0.0) )
+        {
+            flg.setConnected(-1, 1, 0);
+            if (apz(i-1,j+1,k  ) != 0.0) flg.setConnected(-1, 1,-1);
+            if (apz(i-1,j+1,k+1) != 0.0) flg.setConnected(-1, 1, 1);
+        }
+
+        if ( (apx(i+1,j  ,k) != 0.0 and apy(i+1,j+1,k) != 0.0) or
+             (apy(i  ,j+1,k) != 0.0 and apx(i+1,j+1,k) != 0.0) )
+        {
+            flg.setConnected(1, 1, 0);
+            if (apz(i+1,j+1,k  ) != 0.0) flg.setConnected(1, 1,-1);
+            if (apz(i+1,j+1,k+1) != 0.0) flg.setConnected(1, 1, 1);
+        }
+
+        if ( (apx(i,j,k) != 0.0 and apz(i-1,j,k  ) != 0.0) or
+             (apz(i,j,k) != 0.0 and apx(i  ,j,k-1) != 0.0) )
+        {
+            flg.setConnected(-1, 0, -1);
+            if (apy(i-1,j  ,k-1) != 0.0) flg.setConnected(-1,-1,-1);
+            if (apy(i-1,j+1,k-1) != 0.0) flg.setConnected(-1, 1,-1);
+        }
+
+        if ( (apx(i+1,j,k) != 0.0 and apz(i+1,j,k  ) != 0.0) or
+             (apz(i  ,j,k) != 0.0 and apx(i+1,j,k-1) != 0.0) )
+        {
+            flg.setConnected(1, 0, -1);
+            if (apy(i+1,j  ,k-1) != 0.0) flg.setConnected(1,-1,-1);
+            if (apy(i+1,j+1,k-1) != 0.0) flg.setConnected(1, 1,-1);
+        }
+
+        if ( (apx(i,j,k  ) != 0.0 and apz(i-1,j,k+1) != 0.0) or
+             (apz(i,j,k+1) != 0.0 and apx(i  ,j,k+1) != 0.0) )
+        {
+            flg.setConnected(-1, 0, 1);
+            if (apy(i-1,j  ,k+1) != 0.0) flg.setConnected(-1,-1, 1);
+            if (apy(i-1,j+1,k+1) != 0.0) flg.setConnected(-1, 1, 1);
+        }
+
+        if ( (apx(i+1,j,k  ) != 0.0 and apz(i+1,j,k+1) != 0.0) or
+             (apz(i  ,j,k+1) != 0.0 and apx(i+1,j,k+1) != 0.0) )
+        {
+            flg.setConnected(1, 0, 1);
+            if (apy(i+1,j  ,k+1) != 0.0) flg.setConnected(1,-1, 1);
+            if (apy(i+1,j+1,k+1) != 0.0) flg.setConnected(1, 1, 1);
+        }
+
+        if ( (apy(i,j,k) != 0.0 and apz(i,j-1,k  ) != 0.0) or
+             (apz(i,j,k) != 0.0 and apy(i,j  ,k-1) != 0.0) )
+        {
+            flg.setConnected(0, -1, -1);
+            if (apx(i  ,j-1,k-1) != 0.0) flg.setConnected(-1,-1,-1);
+            if (apx(i+1,j-1,k-1) != 0.0) flg.setConnected( 1,-1,-1);
+        }
+
+        if ( (apy(i,j+1,k) != 0.0 and apz(i,j+1,k  ) != 0.0) or
+             (apz(i,j  ,k) != 0.0 and apy(i,j+1,k-1) != 0.0) )
+        {
+            flg.setConnected(0, 1, -1);
+            if (apx(i  ,j+1,k-1) != 0.0) flg.setConnected(-1, 1,-1);
+            if (apx(i+1,j+1,k-1) != 0.0) flg.setConnected( 1, 1,-1);
+        }
+
+        if ( (apy(i,j,k  ) != 0.0 and apz(i,j-1,k+1) != 0.0) or
+             (apz(i,j,k+1) != 0.0 and apy(i,j  ,k+1) != 0.0) )
+        {
+            flg.setConnected(0, -1, 1);
+            if (apx(i  ,j-1,k+1) != 0.0) flg.setConnected(-1,-1, 1);
+            if (apx(i+1,j-1,k+1) != 0.0) flg.setConnected( 1,-1, 1);
+        }
+
+        if ( (apy(i,j+1,k  ) != 0.0 and apz(i,j+1,k+1) != 0.0) or
+             (apz(i,j  ,k+1) != 0.0 and apy(i,j+1,k+1) != 0.0) )
+        {
+            flg.setConnected(0, 1, 1);
+            if (apx(i  ,j+1,k+1) != 0.0) flg.setConnected(-1, 1, 1);
+            if (apx(i+1,j+1,k+1) != 0.0) flg.setConnected( 1, 1, 1);
+        }
+    }
+
+    cflag(i,j,k) = flg;
+}
+
 }}
 
 #endif

@@ -356,7 +356,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                          Box const& zgbx = amrex::surroundingNodes(gbx,2););
             Box const& ndgbx = amrex::surroundingNodes(gbx);
 
-            amrex::ParallelFor(ndgbx,
+            reduce_op.eval(ndgbx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k),
@@ -400,19 +400,20 @@ Level::buildCellFlag ()
     }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(m_cellflag,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_cellflag,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_eb2_build_cellflag_from_ap
-            (BL_TO_FORTRAN_BOX(bx),
-             BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-             BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-             BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
-#endif
-             BL_TO_FORTRAN_ANYD(m_cellflag[mfi]));
+        auto const& cflag = m_cellflag.array(mfi);
+        AMREX_D_TERM(auto const& apx = m_areafrac[0].const_array(mfi);,
+                     auto const& apy = m_areafrac[1].const_array(mfi);,
+                     auto const& apz = m_areafrac[2].const_array(mfi););
+        AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+        {
+            build_cellflag_from_ap(AMREX_D_DECL(i,j,k),
+                                   cflag, AMREX_D_DECL(apx,apy,apz));
+        });
     }
 }
 

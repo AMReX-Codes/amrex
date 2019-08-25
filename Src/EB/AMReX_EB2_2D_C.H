@@ -235,6 +235,47 @@ int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
     return ierr;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void build_cellflag_from_ap (int i, int j, Array4<EBCellFlag> const& cflag,
+                             Array4<Real const> const& apx, Array4<Real const> const& apy)
+{
+    constexpr int k = 0;
+
+    // By default, all neighbors are already set.
+    auto flg = cflag(i,j,k);
+
+    if (apx(i  ,j  ,k) == 0.0) flg.setDisconnected(-1, 0, 0);
+    if (apx(i+1,j  ,k) == 0.0) flg.setDisconnected( 1, 0, 0);
+    if (apy(i  ,j  ,k) == 0.0) flg.setDisconnected( 0,-1, 0);
+    if (apy(i  ,j+1,k) == 0.0) flg.setDisconnected( 0, 1, 0);
+
+    if ((apx(i,j  ,k) == 0.0 or apy(i-1,j,k) == 0.0) and
+        (apx(i,j-1,k) == 0.0 or apy(i  ,j,k) == 0.0))
+    {
+        flg.setDisconnected(-1,-1,0);
+    }
+
+    if ((apx(i+1,j  ,k) == 0.0 or apy(i+1,j,k) == 0.0) and
+        (apx(i+1,j-1,k) == 0.0 or apy(i  ,j,k) == 0.0))
+    {
+        flg.setDisconnected(1,-1,0);
+    }
+
+    if ((apx(i,j  ,k) == 0.0 or apy(i-1,j+1,k) == 0.0) and
+        (apx(i,j+1,k) == 0.0 or apy(i  ,j+1,k) == 0.0))
+    {
+        flg.setDisconnected(-1,1,0);
+    }
+
+    if ((apx(i+1,j  ,k) == 0.0 or apy(i+1,j+1,k) == 0.0) and
+        (apx(i+1,j+1,k) == 0.0 or apy(i  ,j+1,k) == 0.0))
+    {
+        flg.setDisconnected(1,1,0);
+    }
+
+    cflag(i,j,k) = flg;
+}
+
 }}
 
 #endif
