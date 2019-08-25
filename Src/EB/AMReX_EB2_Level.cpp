@@ -253,64 +253,62 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
 #endif
         for (MFIter mfi(m_volfrac,true); mfi.isValid(); ++mfi)
         {
-            // default
-            {
-                const Box& gbx = mfi.growntilebox(2);
-                m_volfrac[mfi].setVal(1.0, gbx, 0, 1);
-                m_centroid[mfi].setVal(0.0, gbx, 0, AMREX_SPACEDIM);
-                m_bndryarea[mfi].setVal(0.0, gbx, 0, 1);
-                m_bndrycent[mfi].setVal(-1.0, gbx, 0, AMREX_SPACEDIM);
-                m_bndrynorm[mfi].setVal(0.0, gbx, 0, AMREX_SPACEDIM);
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                    const Box& fbx = mfi.grownnodaltilebox(idim,2);
-                    m_areafrac[idim][mfi].setVal(1.0, fbx, 0, 1);
-                    m_facecent[idim][mfi].setVal(0.0, fbx, 0, AMREX_SPACEDIM-1);
-                }
-            }
+            auto const& cvol = m_volfrac.array(mfi);
+            auto const& ccent = m_centroid.array(mfi);
+            auto const& cba = m_bndryarea.array(mfi);
+            auto const& cbc = m_bndrycent.array(mfi);
+            auto const& cbn = m_bndrynorm.array(mfi);
+            AMREX_D_TERM(auto const& capx = m_areafrac[0].array(mfi);,
+                         auto const& capy = m_areafrac[1].array(mfi);,
+                         auto const& capz = m_areafrac[2].array(mfi););
+            AMREX_D_TERM(auto const& cfcx = m_facecent[0].array(mfi);,
+                         auto const& cfcy = m_facecent[1].array(mfi);,
+                         auto const& cfcz = m_facecent[2].array(mfi););
+            auto const& cflag = m_cellflag.array(mfi);
 
-            const Box&  bx = mfi.tilebox();
-            const Box& xbx = mfi.nodaltilebox(0);
-            const Box& ybx = mfi.nodaltilebox(1);
-#if (AMREX_SPACEDIM == 3)
-            const Box& zbx = mfi.nodaltilebox(2);
-#endif
+            auto const& fvol = f_volfrac.const_array(mfi);
+            auto const& fcent = f_centroid.const_array(mfi);
+            auto const& fba = f_bndryarea.const_array(mfi);
+            auto const& fbc = f_bndrycent.const_array(mfi);
+            auto const& fbn = f_bndrynorm.const_array(mfi);
+            AMREX_D_TERM(auto const& fapx = f_areafrac[0].const_array(mfi);,
+                         auto const& fapy = f_areafrac[1].const_array(mfi);,
+                         auto const& fapz = f_areafrac[2].const_array(mfi););
+            AMREX_D_TERM(auto const& ffcx = f_facecent[0].const_array(mfi);,
+                         auto const& ffcy = f_facecent[1].const_array(mfi);,
+                         auto const& ffcz = f_facecent[2].const_array(mfi););
+            auto const& fflag = f_cellflag.const_array(mfi);
+
+            Box const& bx = mfi.validbox();
+            AMREX_D_TERM(Box const& xbx = amrex::surroundingNodes(bx,0);,
+                         Box const& ybx = amrex::surroundingNodes(bx,1);,
+                         Box const& zbx = amrex::surroundingNodes(bx,2););
+            Box const& gbx = amrex::grow(bx,2);
+            AMREX_D_TERM(Box const& xgbx = amrex::surroundingNodes(gbx,0);,
+                         Box const& ygbx = amrex::surroundingNodes(gbx,1);,
+                         Box const& zgbx = amrex::surroundingNodes(gbx,2););
+
+            Box const& ndgbx = mfi.grownnodaltilebox(-1,2);
 
             int tile_error = 0;
-            amrex_eb2_coarsen_from_fine(BL_TO_FORTRAN_BOX( bx),
-                                        BL_TO_FORTRAN_BOX(xbx),
-                                        BL_TO_FORTRAN_BOX(ybx),
-#if (AMREX_SPACEDIM == 3)
-                                        BL_TO_FORTRAN_BOX(zbx),
-#endif
-                                        BL_TO_FORTRAN_ANYD(m_volfrac[mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_volfrac[mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_centroid[mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_centroid[mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_bndryarea[mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_bndrycent[mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_bndrynorm[mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_areafrac[0][mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_areafrac[0][mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_areafrac[1][mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_areafrac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                                        BL_TO_FORTRAN_ANYD(m_areafrac[2][mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_areafrac[2][mfi]),
-#endif
-                                        BL_TO_FORTRAN_ANYD(m_facecent[0][mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_facecent[0][mfi]),
-                                        BL_TO_FORTRAN_ANYD(m_facecent[1][mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_facecent[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                                        BL_TO_FORTRAN_ANYD(m_facecent[2][mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_facecent[2][mfi]),
-#endif
-                                        BL_TO_FORTRAN_ANYD(m_cellflag[mfi]),
-                                        BL_TO_FORTRAN_ANYD(f_cellflag[mfi]),
-                                        &tile_error);
+            amrex::LoopOnCpu(ndgbx,
+            [=,&tile_error] (int i, int j, int k) noexcept
+            {
+                int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k),
+                                             bx, gbx,
+                                             AMREX_D_DECL(xbx,ybx,zbx),
+                                             AMREX_D_DECL(xgbx,ygbx,zgbx),
+                                             cvol,ccent,cba,cbc,cbn,
+                                             AMREX_D_DECL(capx,capy,capz),
+                                             AMREX_D_DECL(cfcx,cfcy,cfcz),
+                                             cflag,
+                                             fvol,fcent,fba,fbc,fbn,
+                                             AMREX_D_DECL(fapx,fapy,fapz),
+                                             AMREX_D_DECL(ffcx,ffcy,ffcz),
+                                             fflag);
+                tile_error = std::max(tile_error,ierr);
+            });
+
             error = std::max(error,tile_error);
         }
     }
