@@ -159,7 +159,7 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
 }
 
 namespace {
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
         return (a >= 0.0 and b < 0.0) or (b >= 0.0 and a < 0.0);
     }
@@ -284,6 +284,266 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
             ierr = 1;
             amrex::Abort("amrex::check_mvmc: how did this happen? nopen != 4");
         }
+    }
+
+    return ierr;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int coarsen_from_fine (int i, int j, int k, Box const& bx, Box const& gbx,
+                       Box const& xbx, Box const& ybx, Box const& zbx,
+                       Box const& xgbx, Box const& ygbx, Box const& zgbx,
+                       Array4<Real> const& cvol, Array4<Real> const& ccent,
+                       Array4<Real> const& cba, Array4<Real> const& cbc,
+                       Array4<Real> const& cbn, Array4<Real> const& capx,
+                       Array4<Real> const& capy, Array4<Real> const& capz,
+                       Array4<Real> const& cfcx, Array4<Real> const& cfcy,
+                       Array4<Real> const& cfcz, Array4<EBCellFlag> const& cflag,
+                       Array4<Real const> const& fvol, Array4<Real const> const& fcent,
+                       Array4<Real const> const& fba, Array4<Real const> const& fbc,
+                       Array4<Real const> const& fbn, Array4<Real const> const& fapx,
+                       Array4<Real const> const& fapy, Array4<Real const> const& fapz,
+                       Array4<Real const> const& ffcx, Array4<Real const> const& ffcy,
+                       Array4<Real const> const& ffcz, Array4<EBCellFlag const> const& fflag)
+{
+    int ierr = 0;
+    IntVect iv(i,j,k);
+    int ii = i*2;
+    int jj = j*2;
+    int kk = k*2;
+
+    if (bx.contains(iv))
+    {
+        if (fflag(ii,jj  ,kk  ).isRegular() && fflag(ii+1,jj  ,kk  ).isRegular() &&
+            fflag(ii,jj+1,kk  ).isRegular() && fflag(ii+1,jj+1,kk  ).isRegular() &&
+            fflag(ii,jj  ,kk+1).isRegular() && fflag(ii+1,jj  ,kk+1).isRegular() &&
+            fflag(ii,jj+1,kk+1).isRegular() && fflag(ii+1,jj+1,kk+1).isRegular())
+        {
+            cflag(i,j,k).setRegular();
+            cvol(i,j,k) = 1.0;
+            ccent(i,j,k,0) = 0.0;
+            ccent(i,j,k,1) = 0.0;
+            ccent(i,j,k,2) = 0.0;
+            cba(i,j,k) = 0.0;
+            cbc(i,j,k,0) = -1.0;
+            cbc(i,j,k,1) = -1.0;
+            cbc(i,j,k,2) = -1.0;
+            cbn(i,j,k,0) = 0.0;
+            cbn(i,j,k,1) = 0.0;
+            cbn(i,j,k,2) = 0.0;
+        }
+        else if (fflag(ii,jj  ,kk  ).isCovered() && fflag(ii+1,jj  ,kk  ).isCovered() &&
+                 fflag(ii,jj+1,kk  ).isCovered() && fflag(ii+1,jj+1,kk  ).isCovered() &&
+                 fflag(ii,jj  ,kk+1).isCovered() && fflag(ii+1,jj  ,kk+1).isCovered() &&
+                 fflag(ii,jj+1,kk+1).isCovered() && fflag(ii+1,jj+1,kk+1).isCovered())
+        {
+            cflag(i,j,k).setCovered();
+            cvol(i,j,k) = 0.0;
+            ccent(i,j,k,0) = 0.0;
+            ccent(i,j,k,1) = 0.0;
+            ccent(i,j,k,2) = 0.0;
+            cba(i,j,k) = 0.0;
+            cbc(i,j,k,0) = -1.0;
+            cbc(i,j,k,1) = -1.0;
+            cbc(i,j,k,2) = -1.0;
+            cbn(i,j,k,0) = 0.0;
+            cbn(i,j,k,1) = 0.0;
+            cbn(i,j,k,2) = 0.0;
+        }
+        else
+        {
+            cflag(i,j,k).setSingleValued();
+
+            cvol(i,j,k) = 0.125*(fvol(ii  ,jj  ,kk  ) + fvol(ii+1,jj  ,kk  ) +
+                                 fvol(ii  ,jj+1,kk  ) + fvol(ii+1,jj+1,kk  ) +
+                                 fvol(ii  ,jj  ,kk+1) + fvol(ii+1,jj  ,kk+1) +
+                                 fvol(ii  ,jj+1,kk+1) + fvol(ii+1,jj+1,kk+1));
+            Real cvolinv = 1.0 / cvol(i,j,k);
+
+            ccent(i,j,k,0) = 0.125 * cvolinv *
+                (fvol(ii  ,jj  ,kk  )*(0.5*fcent(ii  ,jj  ,kk  ,0)-0.25) +
+                 fvol(ii+1,jj  ,kk  )*(0.5*fcent(ii+1,jj  ,kk  ,0)+0.25) +
+                 fvol(ii  ,jj+1,kk  )*(0.5*fcent(ii  ,jj+1,kk  ,0)-0.25) +
+                 fvol(ii+1,jj+1,kk  )*(0.5*fcent(ii+1,jj+1,kk  ,0)+0.25) +
+                 fvol(ii  ,jj  ,kk+1)*(0.5*fcent(ii  ,jj  ,kk+1,0)-0.25) +
+                 fvol(ii+1,jj  ,kk+1)*(0.5*fcent(ii+1,jj  ,kk+1,0)+0.25) +
+                 fvol(ii  ,jj+1,kk+1)*(0.5*fcent(ii  ,jj+1,kk+1,0)-0.25) +
+                 fvol(ii+1,jj+1,kk+1)*(0.5*fcent(ii+1,jj+1,kk+1,0)+0.25));
+            ccent(i,j,k,1) = 0.125 * cvolinv *
+                (fvol(ii  ,jj  ,kk  )*(0.5*fcent(ii  ,jj  ,kk  ,1)-0.25) +
+                 fvol(ii+1,jj  ,kk  )*(0.5*fcent(ii+1,jj  ,kk  ,1)-0.25) +
+                 fvol(ii  ,jj+1,kk  )*(0.5*fcent(ii  ,jj+1,kk  ,1)+0.25) +
+                 fvol(ii+1,jj+1,kk  )*(0.5*fcent(ii+1,jj+1,kk  ,1)+0.25) +
+                 fvol(ii  ,jj  ,kk+1)*(0.5*fcent(ii  ,jj  ,kk+1,1)-0.25) +
+                 fvol(ii+1,jj  ,kk+1)*(0.5*fcent(ii+1,jj  ,kk+1,1)-0.25) +
+                 fvol(ii  ,jj+1,kk+1)*(0.5*fcent(ii  ,jj+1,kk+1,1)+0.25) +
+                 fvol(ii+1,jj+1,kk+1)*(0.5*fcent(ii+1,jj+1,kk+1,1)+0.25));
+            ccent(i,j,k,2) = 0.125 * cvolinv *
+                (fvol(ii  ,jj  ,kk  )*(0.5*fcent(ii  ,jj  ,kk  ,2)-0.25) +
+                 fvol(ii+1,jj  ,kk  )*(0.5*fcent(ii+1,jj  ,kk  ,2)-0.25) +
+                 fvol(ii  ,jj+1,kk  )*(0.5*fcent(ii  ,jj+1,kk  ,2)-0.25) +
+                 fvol(ii+1,jj+1,kk  )*(0.5*fcent(ii+1,jj+1,kk  ,2)-0.25) +
+                 fvol(ii  ,jj  ,kk+1)*(0.5*fcent(ii  ,jj  ,kk+1,2)+0.25) +
+                 fvol(ii+1,jj  ,kk+1)*(0.5*fcent(ii+1,jj  ,kk+1,2)+0.25) +
+                 fvol(ii  ,jj+1,kk+1)*(0.5*fcent(ii  ,jj+1,kk+1,2)+0.25) +
+                 fvol(ii+1,jj+1,kk+1)*(0.5*fcent(ii+1,jj+1,kk+1,2)+0.25));
+
+            cba(i,j,k) = 0.25*(fba(ii  ,jj  ,kk  ) + fba(ii+1,jj  ,kk  ) +
+                               fba(ii  ,jj+1,kk  ) + fba(ii+1,jj+1,kk  ) +
+                               fba(ii  ,jj  ,kk+1) + fba(ii+1,jj  ,kk+1) +
+                               fba(ii  ,jj+1,kk+1) + fba(ii+1,jj+1,kk+1));
+            Real cbainv = 1.0 / cba(i,j,k);
+
+            cbc(i,j,k,0) = 0.25 * cbainv *
+                  ( fba(ii  ,jj  ,kk  )*(0.5*fbc(ii  ,jj  ,kk  ,0)-0.25)
+                  + fba(ii+1,jj  ,kk  )*(0.5*fbc(ii+1,jj  ,kk  ,0)+0.25)
+                  + fba(ii  ,jj+1,kk  )*(0.5*fbc(ii  ,jj+1,kk  ,0)-0.25)
+                  + fba(ii+1,jj+1,kk  )*(0.5*fbc(ii+1,jj+1,kk  ,0)+0.25)
+                  + fba(ii  ,jj  ,kk+1)*(0.5*fbc(ii  ,jj  ,kk+1,0)-0.25)
+                  + fba(ii+1,jj  ,kk+1)*(0.5*fbc(ii+1,jj  ,kk+1,0)+0.25)
+                  + fba(ii  ,jj+1,kk+1)*(0.5*fbc(ii  ,jj+1,kk+1,0)-0.25)
+                  + fba(ii+1,jj+1,kk+1)*(0.5*fbc(ii+1,jj+1,kk+1,0)+0.25) );
+            cbc(i,j,k,1) = 0.25 * cbainv *
+                  ( fba(ii  ,jj  ,kk  )*(0.5*fbc(ii  ,jj  ,kk  ,1)-0.25)
+                  + fba(ii+1,jj  ,kk  )*(0.5*fbc(ii+1,jj  ,kk  ,1)-0.25)
+                  + fba(ii  ,jj+1,kk  )*(0.5*fbc(ii  ,jj+1,kk  ,1)+0.25)
+                  + fba(ii+1,jj+1,kk  )*(0.5*fbc(ii+1,jj+1,kk  ,1)+0.25)
+                  + fba(ii  ,jj  ,kk+1)*(0.5*fbc(ii  ,jj  ,kk+1,1)-0.25)
+                  + fba(ii+1,jj  ,kk+1)*(0.5*fbc(ii+1,jj  ,kk+1,1)-0.25)
+                  + fba(ii  ,jj+1,kk+1)*(0.5*fbc(ii  ,jj+1,kk+1,1)+0.25)
+                  + fba(ii+1,jj+1,kk+1)*(0.5*fbc(ii+1,jj+1,kk+1,1)+0.25) );
+            cbc(i,j,k,2) = 0.25 * cbainv *
+                  ( fba(ii  ,jj  ,kk  )*(0.5*fbc(ii  ,jj  ,kk  ,2)-0.25)
+                  + fba(ii+1,jj  ,kk  )*(0.5*fbc(ii+1,jj  ,kk  ,2)-0.25)
+                  + fba(ii  ,jj+1,kk  )*(0.5*fbc(ii  ,jj+1,kk  ,2)-0.25)
+                  + fba(ii+1,jj+1,kk  )*(0.5*fbc(ii+1,jj+1,kk  ,2)-0.25)
+                  + fba(ii  ,jj  ,kk+1)*(0.5*fbc(ii  ,jj  ,kk+1,2)+0.25)
+                  + fba(ii+1,jj  ,kk+1)*(0.5*fbc(ii+1,jj  ,kk+1,2)+0.25)
+                  + fba(ii  ,jj+1,kk+1)*(0.5*fbc(ii  ,jj+1,kk+1,2)+0.25)
+                  + fba(ii+1,jj+1,kk+1)*(0.5*fbc(ii+1,jj+1,kk+1,2)+0.25) );
+
+            Real nx = fbn(ii  ,jj  ,kk  ,0)*fba(ii  ,jj  ,kk  )
+                +     fbn(ii+1,jj  ,kk  ,0)*fba(ii+1,jj  ,kk  )
+                +     fbn(ii  ,jj+1,kk  ,0)*fba(ii  ,jj+1,kk  )
+                +     fbn(ii+1,jj+1,kk  ,0)*fba(ii+1,jj+1,kk  )
+                +     fbn(ii  ,jj  ,kk+1,0)*fba(ii  ,jj  ,kk+1)
+                +     fbn(ii+1,jj  ,kk+1,0)*fba(ii+1,jj  ,kk+1)
+                +     fbn(ii  ,jj+1,kk+1,0)*fba(ii  ,jj+1,kk+1)
+                +     fbn(ii+1,jj+1,kk+1,0)*fba(ii+1,jj+1,kk+1);
+            Real ny = fbn(ii  ,jj  ,kk  ,1)*fba(ii  ,jj  ,kk  )
+                +     fbn(ii+1,jj  ,kk  ,1)*fba(ii+1,jj  ,kk  )
+                +     fbn(ii  ,jj+1,kk  ,1)*fba(ii  ,jj+1,kk  )
+                +     fbn(ii+1,jj+1,kk  ,1)*fba(ii+1,jj+1,kk  )
+                +     fbn(ii  ,jj  ,kk+1,1)*fba(ii  ,jj  ,kk+1)
+                +     fbn(ii+1,jj  ,kk+1,1)*fba(ii+1,jj  ,kk+1)
+                +     fbn(ii  ,jj+1,kk+1,1)*fba(ii  ,jj+1,kk+1)
+                +     fbn(ii+1,jj+1,kk+1,1)*fba(ii+1,jj+1,kk+1);
+            Real nz = fbn(ii  ,jj  ,kk  ,2)*fba(ii  ,jj  ,kk  )
+                +     fbn(ii+1,jj  ,kk  ,2)*fba(ii+1,jj  ,kk  )
+                +     fbn(ii  ,jj+1,kk  ,2)*fba(ii  ,jj+1,kk  )
+                +     fbn(ii+1,jj+1,kk  ,2)*fba(ii+1,jj+1,kk  )
+                +     fbn(ii  ,jj  ,kk+1,2)*fba(ii  ,jj  ,kk+1)
+                +     fbn(ii+1,jj  ,kk+1,2)*fba(ii+1,jj  ,kk+1)
+                +     fbn(ii  ,jj+1,kk+1,2)*fba(ii  ,jj+1,kk+1)
+                +     fbn(ii+1,jj+1,kk+1,2)*fba(ii+1,jj+1,kk+1);
+            Real nfac = 1.0 / std::sqrt(nx*nx+ny*ny+nz*nz+1.e-50);
+            cbn(i,j,k,0) = nx*nfac;
+            cbn(i,j,k,1) = ny*nfac;
+            cbn(i,j,k,2) = nz*nfac;
+            ierr = (nx == 0.0 and ny == 0.0 and nz == 0.0);
+        }
+    }
+    else if (gbx.contains(iv))
+    {
+        cvol(i,j,k) = 1.0;
+        ccent(i,j,k,0) = 0.0;
+        ccent(i,j,k,1) = 0.0;
+        ccent(i,j,k,2) = 0.0;
+        cba(i,j,k) = 0.0;
+        cbc(i,j,k,0) = -1.0;
+        cbc(i,j,k,1) = -1.0;
+        cbc(i,j,k,2) = -1.0;
+        cbn(i,j,k,0) = 0.0;
+        cbn(i,j,k,1) = 0.0;
+        cbn(i,j,k,2) = 0.0;
+    }
+
+    if (xbx.contains(iv))
+    {
+        capx(i,j,k) = 0.25*(fapx(ii,jj  ,kk  ) + fapx(ii,jj+1,kk  ) +
+                            fapx(ii,jj  ,kk+1) + fapx(ii,jj+1,kk+1));
+        if (capx(i,j,k) != 0.0) {
+            Real apinv = 1.0 / capx(i,j,k);
+            cfcx(i,j,k,0) = 0.25 * apinv *
+                (fapx(ii,jj  ,kk  )*(0.5*ffcx(ii,jj  ,kk  ,0)-0.25) +
+                 fapx(ii,jj+1,kk  )*(0.5*ffcx(ii,jj+1,kk  ,0)+0.25) +
+                 fapx(ii,jj  ,kk+1)*(0.5*ffcx(ii,jj  ,kk+1,0)-0.25) +
+                 fapx(ii,jj+1,kk+1)*(0.5*ffcx(ii,jj+1,kk+1,0)+0.25) );
+            cfcx(i,j,k,1) = 0.25 * apinv *
+                (fapx(ii,jj  ,kk  )*(0.5*ffcx(ii,jj  ,kk  ,1)-0.25) +
+                 fapx(ii,jj+1,kk  )*(0.5*ffcx(ii,jj+1,kk  ,1)-0.25) +
+                 fapx(ii,jj  ,kk+1)*(0.5*ffcx(ii,jj  ,kk+1,1)+0.25) +
+                 fapx(ii,jj+1,kk+1)*(0.5*ffcx(ii,jj+1,kk+1,1)+0.25) );
+        } else {
+            cfcx(i,j,k,0) = 0.0;
+            cfcx(i,j,k,1) = 0.0;
+        }
+    }
+    else if (xgbx.contains(iv))
+    {
+        capx(i,j,k) = 1.0;
+        cfcx(i,j,k,0) = 0.0;
+        cfcx(i,j,k,1) = 0.0;
+    }
+
+    if (ybx.contains(iv))
+    {
+        capy(i,j,k) = 0.25*(fapy(ii  ,jj,kk  ) + fapy(ii+1,jj,kk  ) +
+                            fapy(ii  ,jj,kk+1) + fapy(ii+1,jj,kk+1));
+        if (capy(i,j,k) != 0.0) {
+            Real apinv = 1.0 / capy(i,j,k);
+            cfcy(i,j,k,0) = 0.25 * apinv *
+                (fapy(ii  ,jj,kk  )*(0.5*ffcy(ii  ,jj,kk  ,0)-0.25) +
+                 fapy(ii+1,jj,kk  )*(0.5*ffcy(ii+1,jj,kk  ,0)+0.25) +
+                 fapy(ii  ,jj,kk+1)*(0.5*ffcy(ii  ,jj,kk+1,0)-0.25) +
+                 fapy(ii+1,jj,kk+1)*(0.5*ffcy(ii+1,jj,kk+1,0)+0.25) );
+            cfcy(i,j,k,1) = 0.25 * apinv *
+                (fapy(ii  ,jj,kk  )*(0.5*ffcy(ii  ,jj,kk  ,1)-0.25) +
+                 fapy(ii+1,jj,kk  )*(0.5*ffcy(ii+1,jj,kk  ,1)-0.25) +
+                 fapy(ii  ,jj,kk+1)*(0.5*ffcy(ii  ,jj,kk+1,1)+0.25) +
+                 fapy(ii+1,jj,kk+1)*(0.5*ffcy(ii+1,jj,kk+1,1)+0.25) );
+        }
+    }
+    else if (ygbx.contains(iv))
+    {
+        capy(i,j,k) = 1.0;
+        cfcy(i,j,k,0) = 0.0;
+        cfcy(i,j,k,1) = 0.0;
+    }
+
+    if (zbx.contains(iv))
+    {
+        capz(i,j,k) = 0.25 * (fapz(ii  ,jj  ,kk) + fapz(ii+1,jj  ,kk) +
+                              fapz(ii  ,jj+1,kk) + fapz(ii+1,jj+1,kk));
+        if (capz(i,j,k) != 0.0) {
+            Real apinv = 1.0 / capz(i,j,k);
+            cfcz(i,j,k,0) = 0.25 * apinv *
+                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,1)-0.25) +
+                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,1)+0.25) +
+                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,1)-0.25) +
+                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,1)+0.25) );
+            cfcz(i,j,k,1) = 0.25 * apinv *
+                (fapz(ii  ,jj  ,kk)*(0.5*ffcz(ii  ,jj  ,kk,2)-0.25) +
+                 fapz(ii+1,jj  ,kk)*(0.5*ffcz(ii+1,jj  ,kk,2)-0.25) +
+                 fapz(ii  ,jj+1,kk)*(0.5*ffcz(ii  ,jj+1,kk,2)+0.25) +
+                 fapz(ii+1,jj+1,kk)*(0.5*ffcz(ii+1,jj+1,kk,2)+0.25) );
+        }
+    }
+    else if (zgbx.contains(iv))
+    {
+        capz(i,j,k) = 1.0;
+        cfcz(i,j,k,0) = 0.0;
+        cfcz(i,j,k,1) = 0.0;
     }
 
     return ierr;
