@@ -48,7 +48,6 @@ target_sources(amrex
    AMReX_EB_levelset_F.F90
    AMReX_EB_Tagging.F90
    AMReX_EB_bc_fill_nd.F90
-   AMReX_EB2_F.H
    AMReX_EB2_C.H
    AMReX_EB2_IF_Box.H
    AMReX_EB2_IF_Lathe.H
@@ -79,7 +78,6 @@ target_sources(amrex
    AMReX_EB2.cpp
    AMReX_EB2_Level.cpp
    AMReX_EB2_MultiGFab.cpp
-   AMReX_eb2_${DIM}d.F90
    AMReX_EB2_${DIM}D_C.H
    AMReX_EB2_${DIM}D_C.cpp
    AMReX_algoim.H

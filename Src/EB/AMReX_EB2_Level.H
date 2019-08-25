@@ -11,7 +11,6 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
-#include <AMReX_EB2_F.H>
 #include <AMReX_EB2_IF_AllRegular.H>
 
 #include <unordered_map>
@@ -66,8 +65,6 @@ protected:
     Level& operator=(Level const& rhs) = delete;
     Level& operator=(Level && rhs) = delete;
 
-    void buildCellFlag ();
-
     Geometry m_geom;
     IntVect  m_ngrow;
     BoxArray m_grids;
@@ -89,6 +86,7 @@ protected:
 
 public: // for cuda
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
+    void buildCellFlag ();
 };
 
 template <typename G>
