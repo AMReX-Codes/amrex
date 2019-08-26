@@ -61,5 +61,8 @@ and MPI decomposition and computer architecture used for the run:
 
 * Amount of high-bandwidth memory.
 
-Below is a list of experience-based parameters 
-that were observed to give good performance on given supercomputers.
+Because these parameters put additional contraints on the domain size for a
+simulation, it can be cumbersome to calculate the number of cells and the
+physical size of the computational domain for a given resolution. This
+:download:`Python script<../../../Tools/compute_domain.py>` does it
+automatically.

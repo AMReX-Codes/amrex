@@ -3,6 +3,24 @@ import numpy as np
 import scipy.constants as scc
 import time, copy
 
+'''
+This Python script helps a user to parallelize a WarpX simulation. 
+
+The user specifies the minimal size of the physical domain and the resolution
+in each dimension, and the scripts computes:
+- the number of cells and physical domain to satify the user-specified domain
+  size and resolution AND make sure that the number of cells along each
+  direction is a multiple of max_grid_size.
+- a starting point on how to parallelize on Cori KNL (number of nodes, etc.).
+
+When running in a boosted frame, the script also has the option to
+automatically compute the number of cells in z to satisfy dx>dz in the boosted
+frame.
+
+Note that the script has no notion of blocking_factor. It is assumed that 
+blocking_factor = max_grid_size, and that all boxes have the same size.
+'''
+
 # Update the lines below for your simulation
 # ------------------------------------------
 # 2 elements for 2D, 3 elements for 3D
