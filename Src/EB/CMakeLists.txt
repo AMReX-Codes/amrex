@@ -12,7 +12,6 @@ target_sources(amrex
    AMReX_EBFluxRegister_F.H
    AMReX_EBInterpolater.H
    AMReX_EBSupport.H
-   AMReX_EBCellFlag_F.H
    AMReX_EBFabFactory.H
    AMReX_EBFluxRegister.H
    AMReX_EBMultiFabUtil_F.H
