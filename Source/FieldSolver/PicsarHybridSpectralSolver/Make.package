@@ -1,0 +1,6 @@
+CEXE_headers += PicsarHybridFFTData.H
+CEXE_sources += PicsarHybridSpectralSolver.cpp
+F90EXE_sources += picsar_hybrid_spectral.F90
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FieldSolver/PicsarHybridSpectralSolver
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FieldSolver/PicsarHybridSpectralSolver

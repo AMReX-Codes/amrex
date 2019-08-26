@@ -7,7 +7,6 @@
 #include <string>
 
 #include <AMReX_Particles.H>
-
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -86,8 +85,9 @@ public:
     /// in the MultiParticleContainer. This is the electromagnetic version of the field gather.
     ///
     void FieldGather (int lev,
-                      const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-                      const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
+                      const amrex::MultiFab& Ex, const amrex::MultiFab& Ey,
+                      const amrex::MultiFab& Ez, const amrex::MultiFab& Bx,
+                      const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
 
     ///
     /// This evolves all the particles by one PIC time step, including current deposition, the
@@ -128,10 +128,11 @@ public:
     ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
+    void doFieldIonization ();
+
     void Checkpoint (const std::string& dir) const;
 
-    void WritePlotFile( const std::string& dir,
-                        const amrex::Vector<std::string>& real_names) const;
+    void WritePlotFile (const std::string& dir) const;
     
     void Restart (const std::string& dir);
 
@@ -182,17 +183,6 @@ public:
     void UpdateContinuousInjectionPosition(amrex::Real dt) const;
     int doContinuousInjection() const;
 
-    // 
-    // Parameters for the Cherenkov corrector in the FDTD solver.
-    // Both stencils are calculated ar runtime.
-    // 
-    // Number of coefficients for the stencil of the NCI corrector.
-    // The stencil is applied in the z direction only.
-    static constexpr int nstencilz_fdtd_nci_corr=5;
-
-    amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
-    amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
-
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
@@ -219,6 +209,9 @@ private:
 
     void ReadParameters ();
 
+    void mapSpeciesProduct ();
+    int getSpeciesID (std::string product_str);
+    
     // Number of species dumped in BoostedFrameDiagnostics
     int nspecies_boosted_frame_diags = 0;
     // map_species_boosted_frame_diags[i] is the species ID in 

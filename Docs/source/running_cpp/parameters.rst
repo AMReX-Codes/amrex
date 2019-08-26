@@ -29,12 +29,12 @@ Overall simulation parameters
     (The direction ``y`` cannot be used in 2D simulations.)
 
 * ``warpx.zmax_plasma_to_compute_max_step`` (`float`) optional
-    Can be useful when running in a boosted frame. If specified, automatically 
-    calculates the number of iterations required in the boosted frame for the 
-    lower `z` end of the simulation domain to reach 
-    ``warpx.zmax_plasma_to_compute_max_step`` (typically the plasma end, 
-    given in the lab frame). The value of ``max_step`` is overwritten, and 
-    printed to standard output. Currently only works if the Lorentz boost and 
+    Can be useful when running in a boosted frame. If specified, automatically
+    calculates the number of iterations required in the boosted frame for the
+    lower `z` end of the simulation domain to reach
+    ``warpx.zmax_plasma_to_compute_max_step`` (typically the plasma end,
+    given in the lab frame). The value of ``max_step`` is overwritten, and
+    printed to standard output. Currently only works if the Lorentz boost and
     the moving window are along the z direction.
 
 * ``warpx.verbose`` (`0` or `1`)
@@ -70,7 +70,7 @@ Setting up the field mesh
     This patch is rectangular, and thus its extent is given here by the coordinates
     of the lower corner (``warpx.fine_tag_lo``) and upper corner (``warpx.fine_tag_hi``).
 
-* ``n_field_gather_buffer`` (`integer`; 0 by default)
+* ``warpx.n_field_gather_buffer`` (`integer`; 0 by default)
     When using mesh refinement: the particles that are located inside
     a refinement patch, but within ``n_field_gather_buffer`` cells of
     the edge of this patch, will gather the fields from the lower refinement
@@ -79,12 +79,17 @@ Setting up the field mesh
     refinement patch, close to its edge. See the section
     :doc:`../../theory/amr` for more details.
 
-* ``n_current_deposition_buffer`` (`integer`)
+* ``warpx.n_current_deposition_buffer`` (`integer`)
     When using mesh refinement: the particles that are located inside
     a refinement patch, but within ``n_field_gather_buffer`` cells of
     the edge of this patch, will deposit their charge and current to the
     lower refinement level, instead of depositing to the refinement patch
     itself. See the section :doc:`../../theory/amr` for more details.
+
+* ``particles.deposit_on_main_grid`` (list of strings)
+    When using mesh refinement: the particle species whose name are included
+    in the list will deposit their charge/current directly on the main grid
+    (i.e. the coarsest level), even if they are inside a refinement patch.
 
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
@@ -187,9 +192,18 @@ Particle initialization
     * ``NRandomPerCell``: injection with a fixed number of randomly-distributed particles per cell.
       This requires the additional parameter ``<species_name>.num_particles_per_cell``.
 
+    * ``gaussian_beam``: Inject particle beam with gaussian distribution in
+      space in all directions. This requires additional parameters:
+      ``<species_name>.q_tot`` (beam charge),
+      ``<species_name>.npart`` (number of particles in the beam),
+      ``<species_name>.x/y/z_m`` (average position in `x/y/z`),
+      ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`),
+      and optional argument ``<species_name>.do_symmetrize`` (whether to
+      symmetrize the beam in the x and y directions).
+
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
-    Whether to inject particles during the simulation, and not only at 
-    initialization. This can be required whith a moving window and/or when 
+    Whether to inject particles during the simulation, and not only at
+    initialization. This can be required whith a moving window and/or when
     running in a boosted frame.
 
 * ``<species_name>.profile`` (`string`)
@@ -204,6 +218,14 @@ Particle initialization
       mathematical expression for the density of the species, e.g.
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
       user-defined constant, see above.
+
+* ``<species_name>.density_min`` (`float`) optional (default `0.`)
+    Minimum plasma density. No particle is injected where the density is below
+    this value.
+
+* ``<species_name>.density_max`` (`float`) optional (default `infinity`)
+    Maximum plasma density. The density at each point is the minimum between
+    the value given in the profile, and `density_max`.
 
 * ``<species_name>.radially_weighted`` (`bool`) optional (default `true`)
     Whether particle's weight is varied with their radius. This only applies to cylindrical geometry.
@@ -279,7 +301,7 @@ Particle initialization
       following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}`
       :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
-* ``<species_name>.do_backward_injection`` (`bool`)
+* ``<species_name>.do_backward_propagation`` (`bool`)
     Inject a backward-propagating beam to reduce the effect of charge-separation
     fields when running in the boosted frame. See examples.
 
@@ -295,24 +317,41 @@ Particle initialization
 * ``<species>.plot_species`` (`0` or `1` optional; default `1`)
     Whether to plot particle quantities for this species.
 
-* ``<species>.plot_vars`` (list of `strings` separated by spaces, optional) 
-    List of particle quantities to write to `plotfiles`. By defaults, all 
-    quantities are written to file. Choices are 
+* ``<species>.plot_vars`` (list of `strings` separated by spaces, optional)
+    List of particle quantities to write to `plotfiles`. By defaults, all
+    quantities are written to file. Choices are
     * ``w`` for the particle weight,
-    * ``ux`` ``uy`` ``uz`` for the particle momentum, 
+    * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
     * ``Bx`` ``By`` ``Bz`` for the magnetic field on particles.
-    The particle positions are always included. Use 
-    ``<species>.plot_vars = none`` to plot no particle data, except 
+    The particle positions are always included. Use
+    ``<species>.plot_vars = none`` to plot no particle data, except
     particle position.
 
 * ``<species>.do_boosted_frame_diags`` (`0` or `1` optional, default `1`)
-    Only used when ``warpx.do_boosted_frame_diagnostic=1``. When running in a 
-    boosted frame, whether or not to plot back-transformed diagnostics for 
+    Only used when ``warpx.do_boosted_frame_diagnostic=1``. When running in a
+    boosted frame, whether or not to plot back-transformed diagnostics for
     this species.
 
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
+
+* ``<species>.do_field_ionization`` (`0` or `1`) optional (default `0`)
+    Do field ionization for this species (using the ADK theory).
+
+* ``<species>.physical_element`` (`string`)
+    Only read if `do_field_ionization = 1`. Symbol of chemical element for
+    this species. Example: for Helium, use ``physical_element = He``.
+
+* ``<species>.ionization_product_species`` (`string`)
+    Only read if `do_field_ionization = 1`. Name of species in which ionized
+    electrons are stored. This species must be created as a regular species
+    in the input file (in particular, it must be in `particles.species_names`).
+
+* ``<species>.ionization_initial_level`` (`int`) optional (default `0`)
+    Only read if `do_field_ionization = 1`. Initial ionization level of the
+    species (must be smaller than the atomic number of chemical element given
+    in `physical_element`).
 
 Laser initialization
 --------------------
@@ -466,14 +505,14 @@ Laser initialization
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``<laser_name>.do_continuous_injection`` (`0` or `1`) optional (default `0`).
-    Whether or not to use continuous injection (`0` or not `0`).
-    If the antenna starts outside of the simulation domain but enters it 
-    at some point (due to moving window or moving antenna in the boosted 
-    frame), use this so that the laser antenna is injected when it reaches 
-    the box boundary. If running in a boosted frame, this requires the 
-    boost direction, moving window direction and laser propagation direction 
-    to be along `z`. If not running in a boosted frame, this requires the 
-    moving window and laser propagation directions to be the same (`x`, `y` 
+    Whether or not to use continuous injection.
+    If the antenna starts outside of the simulation domain but enters it
+    at some point (due to moving window or moving antenna in the boosted
+    frame), use this so that the laser antenna is injected when it reaches
+    the box boundary. If running in a boosted frame, this requires the
+    boost direction, moving window direction and laser propagation direction
+    to be along `z`. If not running in a boosted frame, this requires the
+    moving window and laser propagation directions to be the same (`x`, `y`
     or `z`)
 
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
@@ -512,53 +551,60 @@ Numerics and algorithms
     Number of passes along each direction for the bilinear filter.
     In 2D simulations, only the first two values are read.
 
-* ``algo.current_deposition`` (`integer`)
-    The algorithm for current deposition:
+* ``algo.current_deposition`` (`string`, optional)
+    The algorithm for current deposition. Available options are:
 
-     - ``0``: Esirkepov deposition, vectorized
-     - ``1``: Esirkepov deposition, non-optimized
-     - ``2``: Direct deposition, vectorized
-     - ``3``: Direct deposition, non-optimized
+     - ``esirkepov``: the charge-conserving Esirkepov algorithm
+       (see `Esirkepov, Comp. Phys. Comm. (2001) <https://www.sciencedirect.com/science/article/pii/S0010465500002289>`__)
+     - ``direct``: simpler current deposition algorithm, described in
+       the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
+     - ``direct-vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
+       mathematically equivalent to ``direct``, but uses an optimized algorithm
+       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
+       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
 
-    .. warning::
+    If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
 
-        On GPU, use ``algo.current_deposition=0`` for Esirkepov
-	or ``3`` for direct deposition.
+* ``algo.charge_deposition`` (`string`, optional)
+    The algorithm for the charge density deposition. Available options are:
 
-* ``algo.charge_deposition`` (`integer`)
-    The algorithm for the charge density deposition:
+     - ``standard``: standard charge deposition algorithm, described in
+       the section :doc:`../theory/picsar_theory`.
+     - ``vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
+       mathematically equivalent to ``standard``, but uses an optimized algorithm
+       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
+       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
 
-     - ``0``: Vectorized version
-     - ``1``: Non-optimized version
+    If ``algo.charge_deposition`` is not specified, ``vectorized`` is the default
+    whenever it is available ; ``standard`` is the default otherwise.
 
-    .. warning::
+* ``algo.field_gathering`` (`string`, optional)
+    The algorithm for field gathering. Available options are:
 
-        The vectorized version does not run on GPU. Use
-		``algo.charge_deposition=1`` when running on GPU.
-       
-* ``algo.field_gathering`` (`integer`)
-    The algorithm for field gathering:
+     - ``standard``: gathers directly from the grid points (either staggered
+       or nodal gridpoints depending on ``warpx.do_nodal``).
+     - ``vectorized`` (not available when running on GPU): mathematically
+       equivalent to ``standard``, but uses optimized vector instructions for CPU/KNL.
 
-     - ``0``: Vectorized version
-     - ``1``: Non-optimized version
+    If ``algo.field_gathering`` is not specified, ``vectorized`` is the default
+    on CPU/KNL ; ``standard`` is the default on GPU.
 
-    .. warning::
+* ``algo.particle_pusher`` (`string`, optional)
+    The algorithm for the particle pusher. Available options are:
 
-        The vectorized version does not run on GPU. Use
-		``algo.field_gather=1`` when running on GPU.
+     - ``boris``: Boris pusher.
+     - ``vay``: Vay pusher (see `Vay, Phys. Plasmas (2008) <https://aip.scitation.org/doi/10.1063/1.2837054>`__)
 
-* ``algo.particle_pusher`` (`integer`)
-    The algorithm for the particle pusher:
+     If ``algo.particle_pusher`` is not specified, ``boris`` is the default.
 
-     - ``0``: Boris pusher
-     - ``1``: Vay pusher
+* ``algo.maxwell_fdtd_solver`` (`string`, optional)
+    The algorithm for the FDTD Maxwell field solver. Available options are:
 
-* ``algo.maxwell_fdtd_solver`` (`string`)
-    The algorithm for the FDTD Maxwell field solver:
+     - ``yee``: Yee FDTD solver.
+     - ``ckc``: (not available in ``RZ`` geometry) Cole-Karkkainen solver with Cowan
+       coefficients (see `Cowan, PRSTAB 16 (2013) <https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.16.041303>`__)
 
-     - ``yee``: Yee FDTD solver
-     - ``ckc``: Cole-Karkkainen solver with Cowan
-       coefficients (see Cowan - PRST-AB 16, 041303 (2013))
+     If ``algo.maxwell_fdtd_solver`` is not specified, ``yee`` is the default.
 
 * ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
     The order of the shape factors for the macroparticles, for the 3 dimensions of space.
@@ -581,17 +627,17 @@ Numerics and algorithms
     fields are defined at different points in space)
 
 * ``warpx.do_subcycling`` (`0` or `1`; default: 0)
-    Whether or not to use sub-cycling. Different refinement levels have a 
-    different cell size, which results in different Courant–Friedrichs–Lewy 
-    (CFL) limits for the time step. By default, when using mesh refinement, 
-    the same time step is used for all levels. This time step is 
-    taken as the CFL limit of the finest level. Hence, for coarser 
-    levels, the timestep is only a fraction of the CFL limit for this 
-    level, which may lead to numerical artifacts. With sub-cycling, each level 
-    evolves with its own time step, set to its own CFL limit. In practice, it 
-    means that when level 0 performs one iteration, level 1 performs two 
-    iterations. Currently, this option is only supported when 
-    ``amr.max_level = 1``. More information can be found at 
+    Whether or not to use sub-cycling. Different refinement levels have a
+    different cell size, which results in different Courant–Friedrichs–Lewy
+    (CFL) limits for the time step. By default, when using mesh refinement,
+    the same time step is used for all levels. This time step is
+    taken as the CFL limit of the finest level. Hence, for coarser
+    levels, the timestep is only a fraction of the CFL limit for this
+    level, which may lead to numerical artifacts. With sub-cycling, each level
+    evolves with its own time step, set to its own CFL limit. In practice, it
+    means that when level 0 performs one iteration, level 1 performs two
+    iterations. Currently, this option is only supported when
+    ``amr.max_level = 1``. More information can be found at
     https://ieeexplore.ieee.org/document/8659392.
 
 * ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
@@ -632,6 +678,12 @@ Boundary conditions
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
 
+* ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
+
+* ``warpx.do_pml_Hi`` (`2 floats in 2D`, `3 floats in 3D`; default: `1 1 1`)
+    The directions along which one wants a pml boundary condition for upper boundaries on mother grid.
+
 Diagnostics and output
 ----------------------
 
@@ -649,7 +701,13 @@ Diagnostics and output
     `openPMD <https://github.com/openPMD>`__ format.
     When WarpX is compiled with openPMD support, this is ``1`` by default.
 
-* ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
+* ``warpx.openpmd_backend`` (``h5``, ``bp`` or ``json``) optional
+    I/O backend for
+    `openPMD <https://github.com/openPMD>`__ dumps.
+    When WarpX is compiled with openPMD support, this is ``h5`` by default.
+    ``json`` only works with serial/single-rank jobs.
+
+* ``warpx.do_boosted_frame_diagnostic`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
@@ -658,7 +716,7 @@ Diagnostics and output
     The directory in which to save the lab frame data when using the
     **back-transformed diagnostics**. If not specified, the default is
     is `lab_frame_data`.
-    
+
 * ``warpx.num_snapshots_lab`` (`integer`)
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The number of lab-frame snapshots that will be written.
@@ -668,13 +726,20 @@ Diagnostics and output
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
+* ``warpx.dz_snapshots_lab`` (`float`, in meters)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Distance between the lab-frame snapshots (expressed in the laboratory
+    frame). ``dt_snapshots_lab`` is then computed by
+    ``dt_snapshots_lab = dz_snapshots_lab/c``. Either `dt_snapshots_lab`
+    or `dz_snapshot_lab` is required.
+
 * ``warpx.do_boosted_frame_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
 
 * ``warpx.boosted_frame_diag_fields`` (space-separated list of `string`)
-    Which fields to dumped in back-transformed diagnostics. Choices are 
-    'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example: 
-    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields 
+    Which fields to dumped in back-transformed diagnostics. Choices are
+    'Ex', 'Ey', Ez', 'Bx', 'By', Bz', 'jx', 'jy', jz' and 'rho'. Example:
+    ``warpx.boosted_frame_diag_fields = Ex Ez By``. By default, all fields
     are dumped.
 
 * ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
@@ -702,27 +767,23 @@ Diagnostics and output
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `diags/plotfiles/plt`
 
-* ``warpx.plot_J_field`` (`0` or `1` optional; default `1`)
-    Whether to plot the current density.
-
-* ``warpx.plot_E_field`` (`0` or `1` optional; default `1`)
-    Whether to plot the electric field.
-
-* ``warpx.plot_B_field`` (`0` or `1` optional; default `1`)
-    Whether to plot the magnetic field.
+* ``warpx.fields_to_plot`` (`list of strings`)
+    Fields written to plotfiles. Possible values: ``Ex`` ``Ey`` ``Ez``
+    ``Bx`` ``By`` ``Bz`` ``jx`` ``jy`` ``jz`` ``part_per_cell`` ``rho``
+    ``F`` ``part_per_grid`` ``part_per_proc`` ``divE`` ``divB``.
+    Default is
+    ``warpx_fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
 
 * ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
     The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
 
 * ``slice.coarsening_ratio`` (`2 integers in 2D`, `3 integers in 3D`; default `1`)
-    The coarsening ratio input must be greater than 0. Default is 1 in all directions. 
-    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1. 
+    The coarsening ratio input must be greater than 0. Default is 1 in all directions.
+    In the directions that is reduced, i.e., for an x-z slice in 3D, the reduced y-dimension has a default coarsening ratio equal to 1.
 
 * ``slice.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps for the slice. Use a
     negative number to disable slice generation and slice data dumping.
-    
-
 
 Checkpoints and restart
 -----------------------

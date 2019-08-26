@@ -20,10 +20,9 @@ warpx.fine_tag_hi =  0.8   0.8
 amr.plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 warpx.plot_raw_fields = 1
-warpx.plot_dive = 1
-warpx.plot_divb = 1
 warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
+warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell divE divB
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
@@ -41,10 +40,6 @@ warpx.B_external = 0.0  0.00078110417851950768  0.0
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 # CFL
 warpx.cfl = 1.0

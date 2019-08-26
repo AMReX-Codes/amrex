@@ -453,7 +453,15 @@ LaserParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
+            if (rho) {
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
+                              np_current, thread_num, lev, lev);
+                if (crho) {
+                    DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             //
             // Particle Push
@@ -503,8 +511,18 @@ LaserParticleContainer::Evolve (int lev,
             //
             // Current Deposition
             //
-            DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
-                           cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
+            // Deposit inside domains
+            int* ion_lev = nullptr;
+            DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
+                           0, np_current, thread_num,
+                           lev, lev, dt);
+            bool has_buffer = cjx;
+            if (has_buffer){
+                // Deposit in buffers
+                DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
+                               np_current, np-np_current, thread_num,
+                               lev, lev-1, dt);
+            }
 
             //
             // copy particle data back
@@ -513,15 +531,24 @@ LaserParticleContainer::Evolve (int lev,
             pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
+            if (rho) {
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 1, 0,
+                              np_current, thread_num, lev, lev);
+                if (crho) {
+                    DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                FArrayBox* costfab = cost->fabPtr(pti);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                Array4<Real> const& costarr = cost->array(pti);
+                amrex::ParallelFor(tbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    costfab->plus(wt, work_box);
+                    costarr(i,j,k) += wt;
                 });
             }
         }

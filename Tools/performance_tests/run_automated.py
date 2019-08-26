@@ -1,9 +1,10 @@
 #!/usr/common/software/python/2.7-anaconda-4.4/bin/python
 
-import os, sys, shutil, datetime
+import os, sys, shutil, datetime, git
 import argparse, re, time, copy
 import pandas as pd
-from functions_perftest import *
+from functions_perftest import store_git_hash, get_file_content, \
+                               run_batch_nnode, extract_dataframe
 
 # typical use: python run_automated.py --n_node_list='1,8,16,32' --automated
 # Assume warpx, picsar, amrex and perf_logs repos ar in the same directory and
@@ -225,6 +226,7 @@ def process_analysis():
     batch_string += '#SBATCH -o read_output.txt\n'
     batch_string += '#SBATCH --mail-type=end\n'
     batch_string += '#SBATCH --account=m2852\n'
+    batch_string += 'module load h5py-parallel\n'
     batch_string += 'python ' + __file__ + ' --compiler=' + \
                     args.compiler + ' --architecture=' + args.architecture + \
                     ' --mode=read' + \
@@ -303,7 +305,8 @@ for n_node in n_node_list:
             # Load file perf_database_file if exists, and
             # append with results from this scan
             if os.path.exists(perf_database_file):
-                df_base = pd.read_hdf(perf_database_file, 'all_data')
+                df_base = pd.read_hdf(perf_database_file, 'all_data', format='table')
+                # df_base = pd.read_hdf(perf_database_file, 'all_data')
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline

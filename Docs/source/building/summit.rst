@@ -39,7 +39,9 @@ the following text (replace bracketed variables):
 
     omp=1
     export OMP_NUM_THREADS=${omp}
-    jsrun -n <numberOfNodes> -a 6 -g 6 -c 6 --bind=packed:${omp} --smpiargs="-gpu" <warpxExecutable> <inputScript>
+    num_nodes=$(( $(printf '%s\n' ${LSB_HOSTS} | sort -u | wc -l) - 1 ))
+
+    jsrun -n ${num_nodes} -a 6 -g 6 -c 6 --bind=packed:${omp} --smpiargs="-gpu" <warpxExecutable> <inputScript>
 
 
 Then run

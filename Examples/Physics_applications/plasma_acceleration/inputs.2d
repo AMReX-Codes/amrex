@@ -18,10 +18,6 @@ warpx.fine_tag_hi    =   12.e-6 -100.e-6
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 algo.maxwell_fdtd_solver = ckc
 warpx.use_filter = 1
 warpx.do_pml = 1
@@ -39,7 +35,6 @@ interpolation.noz = 3
 #################################
 particles.nspecies = 3
 particles.species_names = plasma_e beam driver
-particles.use_fdtd_nci_corr = 1
 
 driver.charge = -q_e
 driver.mass = m_e
@@ -87,8 +82,6 @@ beam.y_m = 0.
 beam.z_m = -105.e-6
 beam.npart = 1000
 beam.q_tot = -1.e-12
-beam.profile = "constant"
-beam.density = 8.e23                   # number of particles per m^3
 beam.momentum_distribution_type = "gaussian"
 beam.ux_m = 0.0
 beam.uy_m = 0.0

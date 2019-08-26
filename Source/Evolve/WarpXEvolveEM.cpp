@@ -84,12 +84,14 @@ WarpX::EvolveEM (int numsteps)
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
             is_synchronized = false;
+
         } else {
             // Beyond one step, we have E^{n} and B^{n}.
             // Particles have p^{n-1/2} and x^{n}.
             FillBoundaryE();
             FillBoundaryB();
             UpdateAuxilaryData();
+
         }
 
         if (do_subcycling == 0 || finest_level == 0) {
@@ -133,7 +135,8 @@ WarpX::EvolveEM (int numsteps)
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
         // slice generation //
-        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0);        
+        bool to_make_slice_plot = (slice_plot_int > 0) && ( (step+1)% slice_plot_int == 0); 
+
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
@@ -273,6 +276,9 @@ WarpX::EvolveEM (int numsteps)
 void
 WarpX::OneStep_nosub (Real cur_time)
 {
+    // Loop over species. For each ionizable species, create particles in 
+    // product species.
+    mypc->doFieldIonization();
     // Push particle from x^{n} to x^{n+1}
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}
@@ -283,18 +289,20 @@ WarpX::OneStep_nosub (Real cur_time)
     if (warpx_py_beforedeposition) warpx_py_beforedeposition();
 #endif
     PushParticlesandDepose(cur_time);
+
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 #endif
 
     SyncCurrent();
 
-    SyncRho(rho_fp, rho_cp);
+    SyncRho();
 
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
     PushPSATD(dt[0]);
+    if (do_pml) DampPML();
     FillBoundaryE();
     FillBoundaryB();
 #else
@@ -333,6 +341,10 @@ void
 WarpX::OneStep_sub1 (Real curtime)
 {
     // TODO: we could save some charge depositions
+
+    // Loop over species. For each ionizable species, create particles in 
+    // product species.
+    mypc->doFieldIonization();
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;
@@ -477,6 +489,19 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  Efield_cax[lev][0].get(), Efield_cax[lev][1].get(), Efield_cax[lev][2].get(),
                  Bfield_cax[lev][0].get(), Bfield_cax[lev][1].get(), Bfield_cax[lev][2].get(),
                  cur_time, dt[lev]);
+#ifdef WARPX_DIM_RZ
+    // This is called after all particles have deposited their current and charge.
+    ApplyInverseVolumeScalingToCurrentDensity(current_fp[lev][0].get(), current_fp[lev][1].get(), current_fp[lev][2].get(), lev);
+    if (current_buf[lev][0].get()) {
+        ApplyInverseVolumeScalingToCurrentDensity(current_buf[lev][0].get(), current_buf[lev][1].get(), current_buf[lev][2].get(), lev-1);
+    }
+    if (rho_fp[lev].get()) {
+        ApplyInverseVolumeScalingToChargeDensity(rho_fp[lev].get(), lev);
+        if (charge_buf[lev].get()) {
+            ApplyInverseVolumeScalingToChargeDensity(charge_buf[lev].get(), lev-1);
+        }
+    }
+#endif
 }
 
 void
@@ -487,7 +512,7 @@ WarpX::ComputeDt ()
 
     if (maxwell_fdtd_solver_id == 0) {
         // CFL time step Yee solver
-#ifdef WARPX_RZ
+#ifdef WARPX_DIM_RZ
         // Derived semi-analytically by R. Lehe
         deltat  = cfl * 1./( std::sqrt((1+0.2105)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
 #else
@@ -532,10 +557,7 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
         WarpX::moving_window_dir == AMREX_SPACEDIM-1,
         "Can use zmax_plasma_to_compute_max_step only if " +
         "moving window along z. TODO: all directions.");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        maxLevel() == 0,
-        "Can use zmax_plasma_to_compute_max_step only if " +
-        "max level = 0.");
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
         (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
@@ -556,7 +578,12 @@ WarpX::computeMaxStepBoostAccelerator(amrex::Geometry a_geom){
     const Real interaction_time_boost = (len_plasma_boost-zmin_domain_boost)/
         (moving_window_v-v_plasma_boost);
     // Divide by dt, and update value of max_step.
-    const int computed_max_step = interaction_time_boost/dt[0];
+    int computed_max_step;
+    if (do_subcycling){
+        computed_max_step = interaction_time_boost/dt[0];
+    } else {
+        computed_max_step = interaction_time_boost/dt[maxLevel()];
+    }
     max_step = computed_max_step;
     Print()<<"max_step computed in computeMaxStepBoostAccelerator: "
            <<computed_max_step<<std::endl;

@@ -1,12 +1,11 @@
 
-#include <numeric>
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -87,7 +86,7 @@ WarpX::InitDiagnostics () {
         const Real* current_lo = geom[0].ProbLo();
         const Real* current_hi = geom[0].ProbHi();
         Real dt_boost = dt[0];
-        
+
 	// Find the positions of the lab-frame box that corresponds to the boosted-frame box at t=0
 	Real zmin_lab = current_lo[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
 	Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
@@ -96,7 +95,7 @@ WarpX::InitDiagnostics () {
 					       zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
                                                num_snapshots_lab, gamma_boost,
-                                               t_new[0], dt_boost, 
+                                               t_new[0], dt_boost,
                                                moving_window_dir, geom[0]));
     }
 }
@@ -117,10 +116,10 @@ WarpX::InitFromScratch ()
 
     InitPML();
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     if (do_electrostatic) {
         getLevelMasks(masks);
-        
+
         // the plus one is to convert from num_cells to num_nodes
         getLevelMasks(gather_masks, n_buffer + 1);
     }
@@ -132,14 +131,35 @@ WarpX::InitPML ()
 {
     if (do_pml)
     {
+        amrex::IntVect do_pml_Lo_corrected = do_pml_Lo;
+
+#ifdef WARPX_DIM_RZ
+        do_pml_Lo_corrected[0] = 0; // no PML at r=0, in cylindrical geometry
+#endif
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window));
+                             pml_ncell, pml_delta, 0,
+#ifdef WARPX_USE_PSATD
+                             dt[0], nox_fft, noy_fft, noz_fft, do_nodal,
+#endif
+                             do_dive_cleaning, do_moving_window,
+                             do_pml_Lo_corrected, do_pml_Hi));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
+            amrex::IntVect do_pml_Lo_MR = amrex::IntVect::TheUnitVector();
+#ifdef WARPX_DIM_RZ
+            //In cylindrical geometry, if the edge of the patch is at r=0, do not add PML
+            if ((max_level > 0) && (fine_tag_lo[0]==0.)) {
+                do_pml_Lo_MR[0] = 0;
+            }
+#endif
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
-                                   pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning,
-                                   do_moving_window));
+                                   pml_ncell, pml_delta, refRatio(lev-1)[0],
+#ifdef WARPX_USE_PSATD
+                                   dt[lev], nox_fft, noy_fft, noz_fft, do_nodal,
+#endif
+                                   do_dive_cleaning, do_moving_window,
+                                   do_pml_Lo_MR, amrex::IntVect::TheUnitVector()));
         }
     }
 }
@@ -161,8 +181,6 @@ WarpX::InitNCICorrector ()
 {
     if (WarpX::use_fdtd_nci_corr)
     {
-        mypc->fdtd_nci_stencilz_ex.resize(max_level+1);
-        mypc->fdtd_nci_stencilz_by.resize(max_level+1);
         for (int lev = 0; lev <= max_level; ++lev)
         {
             const Geometry& gm = Geom(lev);
@@ -174,10 +192,15 @@ WarpX::InitNCICorrector ()
                 dz = dx[1];
             }
             cdtodz = PhysConst::c * dt[lev] / dz;
-            WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
-                                    (mypc->fdtd_nci_stencilz_by)[lev].data(),
-                                    mypc->nstencilz_fdtd_nci_corr, cdtodz,
-                                    WarpX::l_lower_order_in_v);
+
+            // Initialize Godfrey filters
+            // Same filter for fields Ex, Ey and Bz
+            nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, WarpX::l_lower_order_in_v) );
+            // Same filter for fields Bx, By and Ez
+            nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, WarpX::l_lower_order_in_v) );
+            // Compute Godfrey filters stencils
+            nci_godfrey_filter_exeybz[lev]->ComputeStencils();
+            nci_godfrey_filter_bxbyez[lev]->ComputeStencils();
         }
     }
 }
@@ -222,7 +245,7 @@ WarpX::InitOpenbc ()
     Vector<int> alllohi(6*nprocs,100000);
 
     MPI_Allgather(lohi, 6, MPI_INT, alllohi.data(), 6, MPI_INT, ParallelDescriptor::Communicator());
-    
+
     BoxList bl{IndexType::TheNodeType()};
     for (int i = 0; i < nprocs; ++i)
     {
@@ -248,7 +271,7 @@ WarpX::InitOpenbc ()
     rho_openbc.copy(*rho, 0, 0, 1, rho->nGrow(), 0, gm.periodicity(), FabArrayBase::ADD);
 
     const Real* dx = gm.CellSize();
-    
+
     warpx_openbc_potential(rho_openbc[myproc].dataPtr(), phi_openbc[myproc].dataPtr(), dx);
 
     BoxArray nba = boxArray(lev);
@@ -313,11 +336,12 @@ WarpX::InitLevelData (int lev, Real time)
     }
 }
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
 
 void
 WarpX::InitLevelDataFFT (int lev, Real time)
 {
+
     Efield_fp_fft[lev][0]->setVal(0.0);
     Efield_fp_fft[lev][1]->setVal(0.0);
     Efield_fp_fft[lev][2]->setVal(0.0);
@@ -342,6 +366,7 @@ WarpX::InitLevelDataFFT (int lev, Real time)
         current_cp_fft[lev][2]->setVal(0.0);
         rho_cp_fft[lev]->setVal(0.0);
     }
+
 }
 
 #endif

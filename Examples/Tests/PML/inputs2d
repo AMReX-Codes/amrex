@@ -23,10 +23,6 @@ geometry.prob_hi     =  30.e-6  120.e-6
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 0
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
 
 warpx.cfl = 1.0
 warpx.do_pml = 1
@@ -35,8 +31,6 @@ particles.nspecies = 0
 warpx.do_moving_window = 0
 # warpx.moving_window_dir = z
 # warpx.moving_window_v = 1.0 # in units of the speed of light
-
-warpx.maxwell_fdtd_solver = yee
 
 # Laser
 lasers.nlasers      = 1
