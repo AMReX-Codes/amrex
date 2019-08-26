@@ -949,6 +949,19 @@ PhysicalParticleContainer::Evolve (int lev,
 
     bool has_buffer = cEx || cjx;
 
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    {
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            const auto np = pti.numParticles();
+            const auto lev = pti.GetLevel();
+            const auto index = pti.GetPairIndex();
+            tmp_particle_data.resize(finestLevel()+1);
+            for (int i = 0; i < TmpIdx::nattribs; ++i)
+                tmp_particle_data[lev][index][i].resize(np);
+        }
+    }
+    
 #ifdef _OPENMP
 #pragma omp parallel 
 #endif
@@ -1680,8 +1693,6 @@ void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
     const auto np = pti.numParticles();
     const auto lev = pti.GetLevel();
     const auto index = pti.GetPairIndex();
-    tmp_particle_data.resize(finestLevel()+1);
-    for (int i = 0; i < TmpIdx::nattribs; ++i) tmp_particle_data[lev][index][i].resize(np);
     Real* AMREX_RESTRICT xpold  = tmp_particle_data[lev][index][TmpIdx::xold ].dataPtr();
     Real* AMREX_RESTRICT ypold  = tmp_particle_data[lev][index][TmpIdx::yold ].dataPtr();
     Real* AMREX_RESTRICT zpold  = tmp_particle_data[lev][index][TmpIdx::zold ].dataPtr();
