@@ -146,15 +146,15 @@ int coarsen_from_fine (int i, int j, Box const& bx, Box const& gbx,
             Real cvolinv = 1.0/cvol(i,j,k);
 
             ccent(i,j,k,0) = 0.25 * cvolinv *
-                (fvol(ii  ,jj  ,k)*(0.5*fcent(ii  ,jj  ,0)-0.25) +
-                 fvol(ii+1,jj  ,k)*(0.5*fcent(ii+1,jj  ,0)+0.25) +
-                 fvol(ii  ,jj+1,k)*(0.5*fcent(ii  ,jj+1,0)-0.25) +
-                 fvol(ii+1,jj+1,k)*(0.5*fcent(ii+1,jj+1,0)+0.25));
+                (fvol(ii  ,jj  ,k)*(0.5*fcent(ii  ,jj  ,k,0)-0.25) +
+                 fvol(ii+1,jj  ,k)*(0.5*fcent(ii+1,jj  ,k,0)+0.25) +
+                 fvol(ii  ,jj+1,k)*(0.5*fcent(ii  ,jj+1,k,0)-0.25) +
+                 fvol(ii+1,jj+1,k)*(0.5*fcent(ii+1,jj+1,k,0)+0.25));
             ccent(i,j,k,1) = 0.25 * cvolinv *
-                (fvol(ii  ,jj  ,k)*(0.5*fcent(ii  ,jj  ,1)-0.25) +
-                 fvol(ii+1,jj  ,k)*(0.5*fcent(ii+1,jj  ,1)-0.25) +
-                 fvol(ii  ,jj+1,k)*(0.5*fcent(ii  ,jj+1,1)+0.25) +
-                 fvol(ii+1,jj+1,k)*(0.5*fcent(ii+1,jj+1,1)+0.25));
+                (fvol(ii  ,jj  ,k)*(0.5*fcent(ii  ,jj  ,k,1)-0.25) +
+                 fvol(ii+1,jj  ,k)*(0.5*fcent(ii+1,jj  ,k,1)-0.25) +
+                 fvol(ii  ,jj+1,k)*(0.5*fcent(ii  ,jj+1,k,1)+0.25) +
+                 fvol(ii+1,jj+1,k)*(0.5*fcent(ii+1,jj+1,k,1)+0.25));
 
             cba(i,j,k) = 0.5*(fba(ii,jj  ,k) + fba(ii+1,jj  ,k) +
                               fba(ii,jj+1,k) + fba(ii+1,jj+1,k));

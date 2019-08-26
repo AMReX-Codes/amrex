@@ -228,14 +228,14 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                          auto const& zbx = amrex::surroundingNodes(ibox,2););
                             AMREX_HOST_DEVICE_FOR_3D(indbox, i,j,k,
                             {
-                                IntVect iv(AMREX_D_DECL(i,j,k));
-                                if (ibox.contains(iv)) {
+                                IntVect cell(AMREX_D_DECL(i,j,k));
+                                if (ibox.contains(cell)) {
                                     vfrac(i,j,k) = 0.0;
                                     cflag(i,j,k) = EBCellFlag::TheCoveredCell();
                                 }
-                                AMREX_D_TERM(if (xbx.contains(iv)) apx(i,j,k) = 0.0;,
-                                             if (ybx.contains(iv)) apy(i,j,k) = 0.0;,
-                                             if (zbx.contains(iv)) apz(i,j,k) = 0.0;);
+                                AMREX_D_TERM(if (xbx.contains(cell)) apx(i,j,k) = 0.0;,
+                                             if (ybx.contains(cell)) apy(i,j,k) = 0.0;,
+                                             if (zbx.contains(cell)) apz(i,j,k) = 0.0;);
                             });
                         }
                     }
