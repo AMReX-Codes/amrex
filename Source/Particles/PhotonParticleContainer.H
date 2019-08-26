@@ -46,22 +46,40 @@ public:
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& giv,
                         amrex::Real dt) override;
 
-  virtual void DepositCurrent(WarpXParIter& pti,
-                              RealVector& wp,
-                              RealVector& uxp,
-                              RealVector& uyp,
-                              RealVector& uzp,
-                              amrex::MultiFab& jx,
-                              amrex::MultiFab& jy,
-                              amrex::MultiFab& jz,
-                              amrex::MultiFab* cjx,
-                              amrex::MultiFab* cjy,
-                              amrex::MultiFab* cjz,
-                              const long np_current,
-                              const long np,
-                              int thread_num,
-                              int lev,
-                              amrex::Real dt ) override {};
+
+
+
+    virtual void DepositCurrent(WarpXParIter& pti,
+                                RealVector& wp,
+                                RealVector& uxp,
+                                RealVector& uyp,
+                                RealVector& uzp,
+                                const int * const ion_lev,
+                                amrex::MultiFab* jx,
+                                amrex::MultiFab* jy,
+                                amrex::MultiFab* jz,
+                                const long offset,
+                                const long np_to_depose,
+                                int thread_num,
+                                int lev,
+                                int depos_lev,
+                                amrex::Real dt) override {};
+
+    virtual void DepositCurrentFortran(WarpXParIter& pti,
+                                        RealVector& wp,
+                                        RealVector& uxp,
+                                        RealVector& uyp,
+                                        RealVector& uzp,
+                                        amrex::MultiFab* jx,
+                                        amrex::MultiFab* jy,
+                                        amrex::MultiFab* jz,
+                                        const long offset,
+                                        const long np_to_depose,
+                                        int thread_num,
+                                        int lev,
+                                        int depos_lev,
+                                        amrex::Real dt) override {};
+
 
 private:
 
