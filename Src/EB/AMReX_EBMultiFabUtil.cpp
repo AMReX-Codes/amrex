@@ -20,8 +20,43 @@ namespace amrex
 void
 EB_set_covered (MultiFab& mf, Real val)
 {
-    Vector<Real> vals(mf.nComp(), val);
-    EB_set_covered(mf, 0, mf.nComp(), 0, vals);
+    EB_set_covered(mf, 0, mf.nComp(), 0, val);
+}
+
+void
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
+{
+    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    if (factory == nullptr) return;
+    const auto& flags = factory->getMultiEBCellFlagFab();
+
+    AMREX_ALWAYS_ASSERT(mf.ixType().cellCentered() || mf.ixType().nodeCentered());
+    bool is_cell_centered = mf.ixType().cellCentered();
+    int ng = std::min(mf.nGrow(),ngrow);
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(ng);
+        const auto& flagarr = flags.array(mfi);
+        Array4<Real> const& arr = mf.array(mfi);
+
+        if (is_cell_centered) {
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (flagarr(i,j,k).isCovered()) {
+                    arr(i,j,k,n+icomp) = val;
+                }
+            });
+        } else {
+            AMREX_HOST_DEVICE_FOR_4D (bx, ncomp, i, j, k, n,
+            {
+                eb_set_covered_nodes(i,j,k,n,icomp,arr,flagarr,val);
+            });
+        }
+    }
 }
 
 void
@@ -31,21 +66,15 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 }
 
 void
-EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
-{
-    // xxxxx todo gpu
-    Vector<Real> vals(ncomp, val);
-    EB_set_covered(mf, icomp, ncomp, ngrow, vals);
-}
-
-void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real>& a_vals)
 {
+    const auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    if (factory == nullptr) return;
+    const auto& flags = factory->getMultiEBCellFlagFab();
+
     AMREX_ALWAYS_ASSERT(mf.ixType().cellCentered() || mf.ixType().nodeCentered());
     bool is_cell_centered = mf.ixType().cellCentered();
     int ng = std::min(mf.nGrow(),ngrow);
-
-    Gpu::LaunchSafeGuard lsg(is_cell_centered);
 
     Gpu::AsyncArray<Real> vals_aa(a_vals.data(), ncomp);
     Real const* AMREX_RESTRICT vals = vals_aa.data();
@@ -56,11 +85,8 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        FArrayBox& fab = mf[mfi];
-        const auto& flagfab = amrex::getEBCellFlagFab(fab);
-
+        const auto& flagarr = flags.array(mfi);
         Array4<Real> const& arr = mf.array(mfi);
-        Array4<EBCellFlag const> const& flagarr = flagfab.array();
 
         if (is_cell_centered) {
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
@@ -70,10 +96,10 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
                 }
             });
         } else {
-            amrex_eb_set_covered_nodes(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_N_ANYD(fab,icomp),
-                                       BL_TO_FORTRAN_ANYD(flagfab),
-                                       vals, &ncomp);
+            AMREX_HOST_DEVICE_FOR_4D (bx, ncomp, i, j, k, n,
+            {
+                eb_set_covered_nodes(i,j,k,n,icomp,arr,flagarr,vals);
+            });
         }
     }
 }
