@@ -445,13 +445,14 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
 
     auto cov_val = EBCellFlag::TheCoveredCell();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector<std::pair<int,Box> > isects;
         for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
         {
             auto& fab = cellflag[mfi];
+            auto const& a = fab.array();
             const Box& bx = fab.box();
             if (!m_covered_grids.empty())
             {
@@ -459,7 +460,11 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
                 {
                     m_covered_grids.intersections(bx+iv, isects);
                     for (const auto& is : isects) {
-                        fab.setVal(cov_val, is.second-iv, 0, 1);
+                        Box const& ibox = is.second-iv;
+                        AMREX_HOST_DEVICE_FOR_3D(ibox, i, j, k,
+                        {
+                            a(i,j,k) = cov_val;
+                        }
                     }
                 }
             }

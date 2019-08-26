@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <AMReX_Array.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
@@ -282,6 +283,7 @@ public:
 
 private:
     FabType m_type = FabType::undefined;
+    std::map<Box,FabType> m_typemap;
     Box m_region;
 };
 
