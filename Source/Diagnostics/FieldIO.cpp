@@ -219,7 +219,7 @@ ConstructTotalRZField(std::array< std::unique_ptr<MultiFab>, 3 >& mf_total,
     MultiFab::Copy(*mf_total[0], *vector_field[0], 0, 0, 1, vector_field[0]->nGrowVect());
     MultiFab::Copy(*mf_total[1], *vector_field[1], 0, 0, 1, vector_field[1]->nGrowVect());
     MultiFab::Copy(*mf_total[2], *vector_field[2], 0, 0, 1, vector_field[2]->nGrowVect());
-    for (int ic=2 ; ic < vector_field[0]->nComp() ; ic += 2) {
+    for (int ic=1 ; ic < vector_field[0]->nComp() ; ic += 2) {
         MultiFab::Add(*mf_total[0], *vector_field[0], ic, 0, 1, vector_field[0]->nGrowVect());
         MultiFab::Add(*mf_total[1], *vector_field[1], ic, 0, 1, vector_field[1]->nGrowVect());
         MultiFab::Add(*mf_total[2], *vector_field[2], ic, 0, 1, vector_field[2]->nGrowVect());
@@ -448,7 +448,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
     // imaginary part of mode 0 for code symmetry, even though
     // it is always zero.
     int modes_factor = 1;
-    if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes + 1;
+    /* if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes; */
 
     // Count how many different fields should be written (ncomp)
     const int ncomp = fields_to_plot.size()

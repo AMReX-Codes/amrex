@@ -145,8 +145,8 @@ Ex_sim_modes = ExWrapper()[...]
 Ez_sim_modes = EzWrapper()[...]
 
 # Sum the real components to get the field along x-axis (theta = 0)
-Er_sim = np.sum(Ex_sim_modes[:,:,::2], axis=2)
-Ez_sim = np.sum(Ez_sim_modes[:,:,::2], axis=2)
+Er_sim = Ex_sim_modes[:,:,0] + np.sum(Ex_sim_modes[:,:,1::2], axis=2)
+Ez_sim = Ez_sim_modes[:,:,0] + np.sum(Ez_sim_modes[:,:,1::2], axis=2)
 
 # The analytical solutions
 Er_th = calcEr(zz[:-1,:], rr[:-1,:] + dr/2., k0, w0, wp, t0, [epsilon0, epsilon1, epsilon2])

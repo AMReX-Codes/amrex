@@ -28,21 +28,21 @@ void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
                 // (due to the 1/r terms). The following expressions regularize
                 // these divergences by assuming, on axis :
                 // Ez/r = 0/r + dEz/dr
-                Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) - imode*dtsdx*Ez(i+1,j,0,2*imode+1) &
+                Bx(i,j,0,2*imode-1) = Bx(i,j,0,2*imode-1) - imode*dtsdx*Ez(i+1,j,0,2*imode) &
+                           + dtsdz*(Ey(i,j+1,0,2*imode-1) - Ey(i,j,0,2*imode-1));
+                Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) + imode*dtsdx*Ez(i+1,j,0,2*imode-1) &
                            + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
-                Bx(i,j,0,2*imode+1) = Bx(i,j,0,2*imode+1) + imode*dtsdx*Ez(i+1,j,0,2*imode) &
-                           + dtsdz*(Ey(i,j+1,0,2*imode+1) - Ey(i,j,0,2*imode+1));
             } else {
+                Bx(i,j,0,2*imode-1) = 0.;
                 Bx(i,j,0,2*imode) = 0.;
-                Bx(i,j,0,2*imode+1) = 0.;
             }
         } else {
             // Br(i,j,m) = Br(i,j,m) + I*m*dt*Ez(i,j,m)/r + dtsdz*(Et(i,j+1,m) - Et(i,j,m))
             const Real r = rmin*dxinv + i;
-            Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) - imode*dtsdx*Ez(i,j,0,2*imode+1)/r &
+            Bx(i,j,0,2*imode-1) = Bx(i,j,0,2*imode-1) - imode*dtsdx*Ez(i,j,0,2*imode)/r &
+                       + dtsdz*(Ey(i,j+1,0,2*imode-1) - Ey(i,j,0,2*imode-1));
+            Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) + imode*dtsdx*Ez(i,j,0,2*imode-1)/r &
                        + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
-            Bx(i,j,0,2*imode+1) = Bx(i,j,0,2*imode+1) + imode*dtsdx*Ez(i,j,0,2*imode)/r &
-                       + dtsdz*(Ey(i,j+1,0,2*imode+1) - Ey(i,j,0,2*imode+1));
         }
     }
 #endif
@@ -64,10 +64,10 @@ void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
 #if (defined WARPX_DIM_RZ)
     for (int imode=1 ; imode < nmodes ; imode++) {
         // Bt(i,j,m) = Bt(i,j,m) + dtsdr*(Ez(i+1,j,m) - Ez(i,j,m)) - dtsdz*(Er(i,j+1,m) - Er(i,j,m))
+        By(i,j,0,2*imode-1) += + dtsdx*(Ez(i+1,j  ,0,2*imode-1) - Ez(i,j,0,2*imode-1))
+                             - dtsdz*(Ex(i  ,j+1,0,2*imode-1) - Ex(i,j,0,2*imode-1));
         By(i,j,0,2*imode) += + dtsdx*(Ez(i+1,j  ,0,2*imode) - Ez(i,j,0,2*imode))
-                             - dtsdz*(Ex(i  ,j+1,0,2*imode) - Ex(i,j,0,2*imode));
-        By(i,j,0,2*imode+1) += + dtsdx*(Ez(i+1,j  ,0,2*imode+1) - Ez(i,j,0,2*imode+1))
-                               - dtsdz*(Ex(i  ,j+1,0,2*imode+1) - Ex(i,j,0,2*imode+1));
+                               - dtsdz*(Ex(i  ,j+1,0,2*imode) - Ex(i,j,0,2*imode));
     }
 #endif
 #endif
@@ -90,8 +90,8 @@ void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
     Bz(i,j,0,0) += - dtsdx*(ru*Ey(i+1,j,0,0) - rd*Ey(i,j,0,0));
     for (int imode=1 ; imode < nmodes ; imode++) {
         // Bz(i,j,m) = Bz(i,j,m) - dtsdr*(ru*Et(i+1,j,m) - rd*Et(i,j,m)) - I*m*dt*Er(i,j,m)/r
-        Bz(i,j,0,2*imode) += - dtsdx*(ru*Ey(i+1,j,0,2*imode) - rd*Ey(i,j,0,2*imode)) + imode*dtsdx*Ex(i,j,0,2*imode+1)/r;
-        Bz(i,j,0,2*imode+1) += - dtsdx*(ru*Ey(i+1,j,0,2*imode+1) - rd*Ey(i,j,0,2*imode+1)) - imode*dtsdx*Ex(i,j,0,2*imode)/r;
+        Bz(i,j,0,2*imode-1) += - dtsdx*(ru*Ey(i+1,j,0,2*imode-1) - rd*Ey(i,j,0,2*imode-1)) + imode*dtsdx*Ex(i,j,0,2*imode)/r;
+        Bz(i,j,0,2*imode) += - dtsdx*(ru*Ey(i+1,j,0,2*imode) - rd*Ey(i,j,0,2*imode)) - imode*dtsdx*Ex(i,j,0,2*imode-1)/r;
     }
 #endif
 }
@@ -113,10 +113,10 @@ void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
     const Real r = rmin*dxinv+ i + 0.5;
     for (int imode=1 ; imode < nmodes ; imode++) {
         // Er(i,j,m) = Er(i,j,m) - I*m*dt*Bz(i,j,m)/r - dtsdz*(Bt(i,j,m) - Bt(i,j-1,m)) - mudt*Jr(i,j,m)
-        Ex(i,j,0,2*imode) += - dtsdz_c2*(By(i,j,0,2*imode) - By(i,j-1,0,2*imode)) + imode*dtsdx_c2*Bz(i,j,0,2*imode+1)/r
+        Ex(i,j,0,2*imode-1) += - dtsdz_c2*(By(i,j,0,2*imode-1) - By(i,j-1,0,2*imode-1)) + imode*dtsdx_c2*Bz(i,j,0,2*imode)/r
+                             - mu_c2_dt*Jx(i,j,0,2*imode-1);
+        Ex(i,j,0,2*imode) += - dtsdz_c2*(By(i,j,0,2*imode) - By(i,j-1,0,2*imode)) - imode*dtsdx_c2*Bz(i,j,0,2*imode-1)/r
                              - mu_c2_dt*Jx(i,j,0,2*imode);
-        Ex(i,j,0,2*imode+1) += - dtsdz_c2*(By(i,j,0,2*imode+1) - By(i,j-1,0,2*imode+1)) - imode*dtsdx_c2*Bz(i,j,0,2*imode)/r
-                             - mu_c2_dt*Jx(i,j,0,2*imode+1);
     }
 #endif
 #endif
@@ -156,21 +156,21 @@ void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
                 // Er(r=0,m=1) = 0.5*[Er(r=dr/2,m=1) + Er(r=-dr/2,m=1)]
                 // And using the rule applying for the guards cells
                 // Er(r=-dr/2,m=1) = Er(r=dr/2,m=1). Thus: Et(i,j,m) = -i*Er(i,j,m)
-                Ey(i,j,0,2*imode) = Ex(i,j,0,2*imode+1);
-                Ey(i,j,0,2*imode+1) = -Ex(i,j,0,2*imode);
+                Ey(i,j,0,2*imode-1) = Ex(i,j,0,2*imode);
+                Ey(i,j,0,2*imode) = -Ex(i,j,0,2*imode-1);
             } else {
                 // Etheta should remain 0 on axis, for modes different than m=1
+                Ey(i,j,0,2*imode-1) = 0.;
                 Ey(i,j,0,2*imode) = 0.;
-                Ey(i,j,0,2*imode+1) = 0.;
             }
         } else {
             // Et(i,j,m) = Et(i,j,m) - dtsdr*(Bz(i,j,m) - Bz(i-1,j,m)) + dtsdz*(Br(i,j,m) - Br(i,j-1,m)) - mudt*Jt(i,j,m)
+            Ey(i,j,0,2*imode-1) += - dtsdx_c2 * (Bz(i,j,0,2*imode-1) - Bz(i-1,j,0,2*imode-1))
+                           + dtsdz_c2 * (Bx(i,j,0,2*imode-1) - Bx(i,j-1,0,2*imode-1))
+                           - mu_c2_dt  * Jy(i,j,0,2*imode-1);
             Ey(i,j,0,2*imode) += - dtsdx_c2 * (Bz(i,j,0,2*imode) - Bz(i-1,j,0,2*imode))
                            + dtsdz_c2 * (Bx(i,j,0,2*imode) - Bx(i,j-1,0,2*imode))
                            - mu_c2_dt  * Jy(i,j,0,2*imode);
-            Ey(i,j,0,2*imode+1) += - dtsdx_c2 * (Bz(i,j,0,2*imode+1) - Bz(i-1,j,0,2*imode+1))
-                           + dtsdz_c2 * (Bx(i,j,0,2*imode+1) - Bx(i,j-1,0,2*imode+1))
-                           - mu_c2_dt  * Jy(i,j,0,2*imode+1);
         }
     }
 #endif
@@ -200,19 +200,19 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
     }
     for (int imode=1 ; imode < nmodes ; imode++) {
         if (i == 0 && rmin == 0) {
+            Ez(i,j,0,2*imode-1) = 0.;
             Ez(i,j,0,2*imode) = 0.;
-            Ez(i,j,0,2*imode+1) = 0.;
         } else {
             const Real r = rmin*dxinv + i + 0.5;
             const Real ru = 1. + 0.5/(rmin*dxinv + i);
             const Real rd = 1. - 0.5/(rmin*dxinv + i);
             // Ez(i,j,m) = Ez(i,j,m) + dtsdr*(ru*Bt(i,j,m) - rd*Bt(i-1,j,m)) + I*m*dt*Br(i,j,m)/r - mudt*Jz(i,j,m)
+            Ez(i,j,0,2*imode-1) += + dtsdx_c2 * (ru*By(i,j,0,2*imode-1) - rd*By(i-1,j,0,2*imode-1))
+                                 - imode*dtsdx_c2*Bx(i,j,0,2*imode)/r
+                                 - mu_c2_dt  * Jz(i,j,0,2*imode-1);
             Ez(i,j,0,2*imode) += + dtsdx_c2 * (ru*By(i,j,0,2*imode) - rd*By(i-1,j,0,2*imode))
-                                 - imode*dtsdx_c2*Bx(i,j,0,2*imode+1)/r
+                                 + imode*dtsdx_c2*Bx(i,j,0,2*imode-1)/r
                                  - mu_c2_dt  * Jz(i,j,0,2*imode);
-            Ez(i,j,0,2*imode+1) += + dtsdx_c2 * (ru*By(i,j,0,2*imode+1) - rd*By(i-1,j,0,2*imode+1))
-                                 + imode*dtsdx_c2*Bx(i,j,0,2*imode)/r
-                                 - mu_c2_dt  * Jz(i,j,0,2*imode+1);
         }
     }
 #endif

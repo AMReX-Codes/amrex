@@ -156,8 +156,8 @@ void doGatherShapeN(const amrex::Real * const xp,
                 // Gather field on particle Eyp[i] from field on grid ey_arr
                 for (int iz=0; iz<=depos_order; iz++){
                     for (int ix=0; ix<=depos_order; ix++){
-                        const amrex::Real dEy = (+ ey_arr(lo.x+j+ix, lo.y+l+iz, 0, 2*imode)*xy.real()
-                                                 - ey_arr(lo.x+j+ix, lo.y+l+iz, 0, 2*imode+1)*xy.imag());
+                        const amrex::Real dEy = (+ ey_arr(lo.x+j+ix, lo.y+l+iz, 0, 2*imode-1)*xy.real()
+                                                 - ey_arr(lo.x+j+ix, lo.y+l+iz, 0, 2*imode)*xy.imag());
                         Eyp[ip] += sx[ix]*sz[iz]*dEy;
                     }
                 }
@@ -165,11 +165,11 @@ void doGatherShapeN(const amrex::Real * const xp,
                 // Gather field on particle Bzp[i] from field on grid bz_arr
                 for (int iz=0; iz<=depos_order; iz++){
                     for (int ix=0; ix<=depos_order-lower_in_v; ix++){
-                        const amrex::Real dEx = (+ ex_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode)*xy.real()
-                                                 - ex_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode+1)*xy.imag());
+                        const amrex::Real dEx = (+ ex_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode-1)*xy.real()
+                                                 - ex_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode)*xy.imag());
                         Exp[ip] += sx0[ix]*sz[iz]*dEx;
-                        const amrex::Real dBz = (+ bz_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode)*xy.real()
-                                                 - bz_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode+1)*xy.imag());
+                        const amrex::Real dBz = (+ bz_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode-1)*xy.real()
+                                                 - bz_arr(lo.x+j0+ix, lo.y+l +iz, 0, 2*imode)*xy.imag());
                         Bzp[ip] += sx0[ix]*sz[iz]*dBz;
                     }
                 }
@@ -177,19 +177,19 @@ void doGatherShapeN(const amrex::Real * const xp,
                 // Gather field on particle Bxp[i] from field on grid bx_arr
                 for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                     for (int ix=0; ix<=depos_order; ix++){
-                        const amrex::Real dEz = (+ ez_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode)*xy.real()
-                                                 - ez_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode+1)*xy.imag());
+                        const amrex::Real dEz = (+ ez_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode-1)*xy.real()
+                                                 - ez_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode)*xy.imag());
                         Ezp[ip] += sx[ix]*sz0[iz]*dEz;
-                        const amrex::Real dBx = (+ bx_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode)*xy.real()
-                                                 - bx_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode+1)*xy.imag());
+                        const amrex::Real dBx = (+ bx_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode-1)*xy.real()
+                                                 - bx_arr(lo.x+j+ix, lo.y+l0 +iz, 0, 2*imode)*xy.imag());
                         Bxp[ip] += sx[ix]*sz0[iz]*dBx;
                     }
                 }
                 // Gather field on particle Byp[i] from field on grid by_arr
                 for (int iz=0; iz<=depos_order-lower_in_v; iz++){
                     for (int ix=0; ix<=depos_order-lower_in_v; ix++){
-                        const amrex::Real dBy = (+ by_arr(lo.x+j0+ix, lo.y+l0+iz, 0, 2*imode)*xy.real()
-                                                 - by_arr(lo.x+j0+ix, lo.y+l0+iz, 0, 2*imode+1)*xy.imag());
+                        const amrex::Real dBy = (+ by_arr(lo.x+j0+ix, lo.y+l0+iz, 0, 2*imode-1)*xy.real()
+                                                 - by_arr(lo.x+j0+ix, lo.y+l0+iz, 0, 2*imode)*xy.imag());
                         Byp[ip] += sx0[ix]*sz0[iz]*dBy;
                     }
                 }

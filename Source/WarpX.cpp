@@ -787,13 +787,12 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 {
 
 #if defined WARPX_DIM_RZ
-    if (n_rz_azimuthal_modes > 1) {
-        // There is a real and imaginary component for each mode
-        ncomps = n_rz_azimuthal_modes*2;
-    } else {
-        // With only mode 0, only reals are used
-        ncomps = 1;
-    }
+    // With RZ multimode, there is a real and imaginary component
+    // for each mode, except mode 0 which is purely real
+    // Component 0 is mode 0.
+    // Odd components are the real parts.
+    // Even components are the imaginary parts.
+    ncomps = n_rz_azimuthal_modes*2 - 1;
 #endif
 
     //

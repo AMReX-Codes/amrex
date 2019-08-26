@@ -356,7 +356,7 @@ WarpX::OneStep_sub1 (Real curtime)
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
     NodalSyncJ(fine_lev, PatchType::fine);
-    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2*n_rz_azimuthal_modes);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, rho_fp[fine_lev]->nComp());
     NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
@@ -383,7 +383,7 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(coarse_lev, curtime);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, n_rz_azimuthal_modes);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, rho_cp[coarse_lev]->nComp()/2);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
@@ -410,7 +410,7 @@ WarpX::OneStep_sub1 (Real curtime)
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
     NodalSyncJ(fine_lev, PatchType::fine);
-    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2*n_rz_azimuthal_modes);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, rho_fp[fine_lev]->nComp()/2);
     NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
@@ -436,7 +436,7 @@ WarpX::OneStep_sub1 (Real curtime)
     // by only half a coarse step (second half)
     RestoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, n_rz_azimuthal_modes, n_rz_azimuthal_modes);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, rho_cp[coarse_lev]->nComp()/2, rho_cp[coarse_lev]->nComp()/2);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);
