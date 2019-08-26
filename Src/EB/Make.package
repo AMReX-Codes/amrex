@@ -20,7 +20,6 @@ CEXE_sources += AMReX_MultiCutFab.cpp
 
 CEXE_headers += AMReX_EBSupport.H
 
-CEXE_headers += AMReX_EBCellFlag_F.H
 F90EXE_sources += AMReX_ebcellflag_mod.F90
 F90EXE_sources += AMReX_EBMultiFabUtil_$(DIM)d.F90
 

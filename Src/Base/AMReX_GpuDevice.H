@@ -12,10 +12,8 @@
 namespace amrex {
 
 #if defined(AMREX_USE_HIP)
-using gpuStream_t     = hipStream_t;
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
-using gpuStream_t     = cudaStream_t;
 using gpuDeviceProp_t = cudaDeviceProp;
 #endif
 
@@ -40,6 +38,11 @@ public:
     static int numGpuStreams () noexcept { return max_gpu_streams; }
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
+
+#ifdef AMREX_USE_GPU
+    static gpuStream_t setStream (gpuStream_t s) noexcept;
+    static gpuStream_t resetStream () noexcept;
+#endif
 
     static int deviceId () noexcept;
 

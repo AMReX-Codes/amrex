@@ -432,14 +432,16 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
         return;
     }
 
-    cellflag.ParallelCopy(m_cellflag,0,0,1,0,cellflag.nGrow(),geom.periodicity());
+    const int ng = cellflag.nGrow();
+
+    cellflag.ParallelCopy(m_cellflag,0,0,1,0,ng,geom.periodicity());
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 
     Box gdomain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
-            gdomain.grow(idim, cellflag.nGrow());
+            gdomain.grow(idim, ng);
         }
     }
 
@@ -451,6 +453,8 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
         std::vector<std::pair<int,Box> > isects;
         for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
         {
+            Gpu::ScopedDefaultStream sds;
+
             auto& fab = cellflag[mfi];
             auto const& a = fab.array();
             const Box& bx = fab.box();
@@ -464,7 +468,7 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
                         AMREX_HOST_DEVICE_FOR_3D(ibox, i, j, k,
                         {
                             a(i,j,k) = cov_val;
-                        }
+                        });
                     }
                 }
             }
@@ -475,6 +479,10 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
             fab.setType(FabType::undefined);
             auto typ = fab.getType(regbx);
             fab.setType(typ);
+            for (int nshrink = 1; nshrink < ng; ++nshrink) {
+                const Box& b = amrex::grow(bx,-nshrink);
+                fab.getType(b);
+            }
         }
     }
 }
