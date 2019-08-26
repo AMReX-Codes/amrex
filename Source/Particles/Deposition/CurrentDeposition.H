@@ -418,7 +418,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                     for (int imode=1 ; imode < n_rz_azimuthal_modes ; imode++) {
                         // The factor 2 comes from the normalization of the modes
                         // The minus sign comes from the different convention with respect to Davidson et al.
-                        const Complex djt_cmplx = -2.*I*(lo.x+i_new-1 + i + xmin*dxi)*wq*invdtdx/(double)imode* 
+                        const Complex djt_cmplx = -2.*I*(i_new-1 + i + xmin*dxi)*wq*invdtdx/(double)imode* 
                                                   (sx_new[i]*sz_new[k]*(xy_new - xy_mid) + sx_old[i]*sz_old[k]*(xy_mid - xy_old));
                         amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode-1), djt_cmplx.real());
                         amrex::Gpu::Atomic::Add( &Jy_arr(lo.x+i_new-1+i, lo.y+k_new-1+k, 0, 2*imode), djt_cmplx.imag());

@@ -469,6 +469,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
     Box tby = convert(tilebox, WarpX::jy_nodal_flag);
     Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
+    tilebox.grow(ngJ);
 
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: jx_ptr points to the full
