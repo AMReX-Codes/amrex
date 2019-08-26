@@ -103,17 +103,6 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             real_names.push_back("theta");
 #endif
             
-            if (WarpX::do_boosted_frame_diagnostic && pc->DoBoostedFrameDiags())
-            {
-                real_names.push_back("xold");
-                real_names.push_back("yold");
-                real_names.push_back("zold");
-                
-                real_names.push_back("uxold");
-                real_names.push_back("uyold");
-                real_names.push_back("uzold");
-            }
-
             if(pc->do_field_ionization){
                 int_names.push_back("ionization_level");
                 // int_flags specifies, for each integer attribs, whether it is
@@ -122,6 +111,7 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
                 // when ionization is on.
                 int_flags.resize(1, 1);
             }
+
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
             // real_names contains a list of all particle attributes.
