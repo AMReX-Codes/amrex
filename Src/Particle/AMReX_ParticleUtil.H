@@ -36,16 +36,26 @@ template <class PC>
 bool
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
+    return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
+}
+
+template <class PC>
+bool
+numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
+{
     BL_PROFILE("numParticlesOutOfRange()");
 
     using ParIter = typename PC::ParConstIterType;
     using ParticleType = typename PC::ParticleType;
     int num_wrong = 0;
-    for (int lev = 0; lev <= pc.finestLevel(); ++lev)
+    for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const auto plo = pc.Geom(lev).ProbLoArray();
         const auto dxi = pc.Geom(lev).InvCellSizeArray();
         const Box domain = pc.Geom(lev).Domain();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
+#endif
         for(ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
             const auto& tile = pti.GetParticleTile();

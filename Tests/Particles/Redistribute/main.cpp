@@ -276,10 +276,17 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
+    int np_old = pc.TotalNumberOfParticles();
+    
     for (int i = 0; i < params.nsteps; ++i)
     {
         pc.moveParticles(params.move_dir, params.do_random);
         pc.RedistributeLocal();
         pc.checkAnswer();
     }
+
+    if (geom.isAllPeriodic()) AMREX_ALWAYS_ASSERT(np_old == pc.TotalNumberOfParticles());
+
+    // the way this test is set up, if we make it here we pass
+    amrex::Print() << "pass \n";
 }

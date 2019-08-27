@@ -1131,11 +1131,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	auto p_periodic_shift = op.m_periodic_shift[gid].dataPtr();
         ParticleType* p_ptr = &(aos[0]);
 
-	AMREX_FOR_1D ( num_move, i,
+	AMREX_FOR_1D ( np, i,
         {
-            auto& p = p_ptr[num_stay + i];
-            int grid_id = getParticleGrid(p, mask_arr, plo, dxi, domain);
+            auto& p = p_ptr[i];
 
+            int grid_id;
+            if (i >= num_stay) grid_id = getParticleGrid(p, mask_arr, plo, dxi, domain);
             // apply periodic boundary conditions
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
@@ -1147,9 +1148,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
             }
 
-            p_boxes[i] = grid_id;
-            p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0)); // already handled this
-            p_src_indices[i] = num_stay+i;
+            if (i >= num_stay) 
+            {
+                p_boxes[i-num_stay] = grid_id;
+                p_periodic_shift[i-num_stay] = IntVect(AMREX_D_DECL(0,0,0));
+                p_src_indices[i-num_stay] = i;
+            }
 	});
     }
     BL_PROFILE_VAR_STOP(blp_partition);
@@ -1194,6 +1198,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);    
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
+
+    AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 #endif    
 }
 
@@ -1909,160 +1915,12 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_min, int lev_max, int nGrow) const
 {
-#ifdef AMREX_USE_CUDA
-    if ( (finestLevel() == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
-    {
-        return OKGPU(lev_min, lev_max, nGrow);
-    }
-    else
-    {
-        return OKCPU(lev_min, lev_max, nGrow);
-    }
-#else
-    return OKCPU(lev_min, lev_max, nGrow);
-#endif    
-}
-
-#ifdef AMREX_USE_CUDA
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int lev_min, int lev_max, int nGrow) const
-{
-    BL_PROFILE("ParticleContainer::OKGPU()");
+    BL_PROFILE("ParticleContainer::OK()");
 
     if (lev_max == -1)
         lev_max = finestLevel();
 
-    AMREX_ASSERT(lev_max <= finestLevel());
-
-    AMREX_ASSERT(lev_min == 0);
-    AMREX_ASSERT(lev_max == 0);
-    AMREX_ASSERT(nGrow == 0);
-    AMREX_ASSERT(do_tiling == false);
-
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-
-    BuildRedistributeMask(0, 1);
-
-    Gpu::DeviceVector<int> grid_indices;
-
-    long total_np = 0;
-    long total_wrong = 0;
-    for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi) {
-        int i = mfi.index();
-        const int tid = 0;
-
-        const auto& ptile = ParticlesAt(lev, i, tid);
-        auto& aos   = ptile.GetArrayOfStructs();
-        const int np = ptile.numParticles();
-
-        total_np += np;
-
-        if (np == 0) continue;
-        
-        grid_indices.resize(np);
-        
-        thrust::transform(thrust::device, 
-			  aos().begin(), aos().begin() + np, grid_indices.begin(),
-                          functors::assignParticleGrid(geom.data(),
-                                         (*redistribute_mask_ptr)[mfi].box(),
-                                         redistribute_mask_ptr->array(mfi)));
-
-        int count = thrust::count_if(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                                     grid_indices.begin(),
-                                     grid_indices.end(),
-                                     functors::grid_is_not(i));
-
-        total_wrong += count;
-    }
-
-    ParallelDescriptor::ReduceLongSum(total_np);
-    ParallelDescriptor::ReduceLongSum(total_wrong);
-
-    amrex::Print() << "I have " << total_np << " particles in OK(). \n"; 
-    amrex::Print() << "I have " << total_wrong << " particles in the wrong place. \n"; 
-
-    return (total_wrong == 0);
-}
-#endif
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKCPU (int lev_min, int lev_max, int nGrow) const
-{
-    BL_PROFILE("ParticleContainer::OKCPU()");
-    if (lev_max == -1)
-        lev_max = finestLevel();
-
-    AMREX_ASSERT(lev_max <= finestLevel());
-
-    ParticleLocData pld;
-    for (int lev = lev_min; lev <= lev_max; lev++)
-    {
-        const auto& pmap = m_particles[lev];
-	for (const auto& kv : pmap)
-        {
-            const int grid = kv.first.first;
-            const int tile = kv.first.second;
-            const auto& aos = kv.second.GetArrayOfStructs();
-            const auto& soa = kv.second.GetStructOfArrays();
-            
-            int np = aos.numParticles();
-            for (int i = 0; i < NArrayReal; i++) {
-                BL_ASSERT(np == soa.GetRealData(i).size());
-            }
-            for (int i = 0; i < NArrayInt; i++) {
-                BL_ASSERT(np == soa.GetIntData(i).size());
-            }
-
-            const BoxArray& ba = ParticleBoxArray(lev);
-            BL_ASSERT(ba.ixType().cellCentered());
-	    for (int k = 0; k < aos.size(); ++k)
-	    {
-	        const ParticleType& p = aos[k];
-                if (p.m_idata.id > 0)
-                {
-                    if (grid < 0 || grid >= ba.size()) return false;
-
-                    //
-                    // First, make sure the particle COULD be in this container
-                    // 
-                    const IntVect& iv = Index(p, lev);
-                    const Box& gridbox = ba.getCellCenteredBox(grid);
-                    if (!amrex::grow(gridbox, nGrow).contains(iv))
-                    {
-                        return false;
-                    }
-                    Box tbx;
-                    if (getTileIndex(iv, gridbox, do_tiling, tile_size, tbx) != tile)
-                    {
-                        return false;
-                    }
-
-                    //
-                    // Then, we need to make sure it cannot be stored in finer level 
-                    // or valid box of current level.
-                    //
-                    if (Where(p, pld, lev_min, lev_max))
-                    {
-                        if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
-                        {
-                            if (m_verbose) {
-                                amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                                  << "POS  " << AMREX_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                                  << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                                  << "GRID " << grid << " " << pld.m_grid << '\n';
-                            }
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    return true;
+    return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
