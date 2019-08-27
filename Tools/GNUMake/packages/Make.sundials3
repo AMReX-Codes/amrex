@@ -20,15 +20,14 @@ CVODE_LIB_DIR ?= ../../../../sundials/instdir/lib
 INCLUDE_LOCATIONS += $(CVODE_LIB_DIR)/../include
 
 ifeq ($(USE_CVODE_LIBS),TRUE)
-LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
-ifeq ($(USE_KLU), TRUE)
-    DEFINES  += -DUSE_KLU
-    LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_sunmatrixsparse -lsundials_sunlinsolklu
-    LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lklu -lamd -lcolamd -lbtf -lsuitesparseconfig
-    INCLUDE_LOCATIONS+=${SUITESPARSE_DIR}/include
+    LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
+    ifeq ($(USE_KLU), TRUE)
+        DEFINES  += -DUSE_KLU
+        LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_sunmatrixsparse -lsundials_sunlinsolklu
+        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lklu -lamd -lcolamd -lbtf -lsuitesparseconfig
+        INCLUDE_LOCATIONS+=${SUITESPARSE_DIR}/include
+    endif
 endif
-endif
-
 
 ifeq ($(USE_ARKODE_LIBS),TRUE)
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_arkode
@@ -44,7 +43,8 @@ ifeq ($(USE_OMP),TRUE)
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecopenmp
 endif
 
-#LIBRARIES += -Wl,-rpath=${CVODE_LIB_DIR}
-#ifeq ($(USE_KLU), TRUE)
-#    LIBRARIES += -Wl,-rpath=${SUITESPARSE_LIB_DIR}
-#endif
+
+LIBRARIES += -Wl,-rpath=${CVODE_LIB_DIR}
+ifeq ($(USE_KLU), TRUE)
+    LIBRARIES += -Wl,-rpath=${SUITESPARSE_DIR}/lib
+endif
