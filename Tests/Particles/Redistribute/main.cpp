@@ -276,7 +276,7 @@ void testRedistribute ()
 
     pc.InitParticles(nppc);
 
-    int np_old = pc.TotalNumberOfParticles();
+    auto np_old = pc.TotalNumberOfParticles();
     
     for (int i = 0; i < params.nsteps; ++i)
     {
