@@ -142,11 +142,11 @@ void testParticleMesh(TestParams& parms)
           }
       });
   
-  WriteSingleLevelPlotfile("plt00000", partMF, 
+  WriteSingleLevelPlotfile("plot", partMF, 
                            {"density", "vx", "vy", "vz"},
                            geom, 0.0, 0);
 
-  myPC.Checkpoint("plt00000", "particle0");
+  myPC.Checkpoint("plot", "particle0");
 }
 
 int main(int argc, char* argv[])

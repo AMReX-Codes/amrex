@@ -1673,6 +1673,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 
 #ifdef BL_USE_MPI
 
+    using buffer_type = unsigned long long;
+    
+    std::map<int, Vector<buffer_type> > mpi_snd_data;
+    for (const auto& kv : not_ours) {
+        int nbt = kv.second.size() / sizeof(buffer_type) + 1;
+        mpi_snd_data[kv.first].resize(nbt);
+        std::memcpy((char*) mpi_snd_data[kv.first].data(), kv.second.data(), kv.second.size());
+    }
+    
     const int NProcs = ParallelDescriptor::NProcs();
     const int NNeighborProcs = neighbor_procs.size();
     
@@ -1713,12 +1722,15 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     Vector<int> RcvProc;
     Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
     
+    std::size_t TotRcvInts = 0;
     std::size_t TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
         if (Rcvs[i] > 0) {
             RcvProc.push_back(i);
-            rOffset.push_back(TotRcvBytes);
+            rOffset.push_back(TotRcvInts);
             TotRcvBytes += Rcvs[i];
+            int nbt = Rcvs[i] / sizeof(buffer_type) + 1;
+            TotRcvInts += nbt;
         }
     }
     
@@ -1727,13 +1739,13 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     Vector<MPI_Request> rreqs(nrcvs);
     
     // Allocate data for rcvs as one big chunk.
-    Vector<char> recvdata(TotRcvBytes);
+    Vector<unsigned long long> recvdata(TotRcvInts);
     
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
-        const auto Cnt    = Rcvs[Who];
+        const auto Cnt    = Rcvs[Who] / sizeof(buffer_type) + 1;
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
@@ -1742,7 +1754,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     }
     
     // Send.
-    for (const auto& kv : not_ours) {
+    for (const auto& kv : mpi_snd_data) {
         const auto Who = kv.first;
         const auto Cnt = kv.second.size();
         
@@ -1758,34 +1770,30 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
      
 	BL_PROFILE_VAR_START(blp_locate);
    
-        if (recvdata.size() % superparticle_size != 0) {
-            if (m_verbose) {
-                amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
-                                  << recvdata.size() << ", " << superparticle_size << "\n";
-            }
-            amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
-        }
-
-        int npart = recvdata.size() / superparticle_size;
+        int npart = TotRcvBytes / superparticle_size;
         
         Vector<int> rcv_levs(npart);
         Vector<int> rcv_grid(npart);
         Vector<int> rcv_tile(npart);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        { ParticleLocData pld;
-        for (int i = 0; i < npart; ++i)
+        int ipart = 0;
+        ParticleLocData pld;
+        for (int j = 0; j < nrcvs; ++j)
         {
-            char* pbuf = recvdata.data() + i*superparticle_size;
-            ParticleType p;
-            std::memcpy(&p, pbuf, sizeof(ParticleType));
-            locateParticle(p, pld, lev_min, lev_max, nGrow);
-            rcv_levs[i] = pld.m_lev;
-            rcv_grid[i] = pld.m_grid;
-            rcv_tile[i] = pld.m_tile;
-        }
+            const auto offset = rOffset[j];
+            const auto Who    = RcvProc[j];
+            const auto Cnt    = Rcvs[Who] / superparticle_size;            
+            for (int i = 0; i < Cnt; ++i)
+            {
+                char* pbuf = ((char*) &recvdata[offset]) + i*superparticle_size;
+                ParticleType p;
+                std::memcpy(&p, pbuf, sizeof(ParticleType));
+                locateParticle(p, pld, lev_min, lev_max, nGrow);
+                rcv_levs[ipart] = pld.m_lev;
+                rcv_grid[ipart] = pld.m_grid;
+                rcv_tile[ipart] = pld.m_tile;
+                ++ipart;
+            }
         }
 
 	BL_PROFILE_VAR_STOP(blp_locate);
@@ -1793,33 +1801,41 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
         BL_PROFILE_VAR_START(blp_copy);
 
 #ifndef AMREX_USE_CUDA
-        for (int j = 0; j < npart; ++j)
+        ipart = 0;
+        for (int i = 0; i < nrcvs; ++i)
         {
-            auto& ptile = m_particles[rcv_levs[j]][std::make_pair(rcv_grid[j], rcv_tile[j])];
-            
-            char* pbuf = recvdata.data() + j*superparticle_size;
-            ParticleType p;
-            std::memcpy(&p, pbuf, sizeof(ParticleType));            
-            ptile.push_back(p);
-            Real* rdata = (Real*)(pbuf + particle_size);
-            for (int comp = 0; comp < NumRealComps(); ++comp) {
-                if (communicate_real_comp[comp]) {
-                    ptile.push_back_real(comp, *rdata++);
-                } else {
-                    ptile.push_back_real(comp, 0.0);
+            const auto offset = rOffset[i];
+            const auto Who    = RcvProc[i];
+            const auto Cnt = Rcvs[Who] / superparticle_size;            
+            for (int j = 0; j < Cnt; ++j)
+            {                
+                auto& ptile = m_particles[rcv_levs[ipart]][std::make_pair(rcv_grid[ipart],
+                                                                          rcv_tile[ipart])];
+                char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
+
+                ParticleType p;
+                std::memcpy(&p, pbuf, sizeof(ParticleType));            
+                ptile.push_back(p);
+                Real* rdata = (Real*)(pbuf + particle_size);
+                for (int comp = 0; comp < NumRealComps(); ++comp) {
+                    if (communicate_real_comp[comp]) {
+                        ptile.push_back_real(comp, *rdata++);
+                    } else {
+                        ptile.push_back_real(comp, 0.0);
+                    }
                 }
-            }
             
-            int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
-            for (int comp = 0; comp < NumIntComps(); ++comp) {
-                if (communicate_int_comp[comp]) {
-                    ptile.push_back_int(comp, *idata++);
-                } else {
-                    ptile.push_back_int(comp, 0);
+                int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
+                for (int comp = 0; comp < NumIntComps(); ++comp) {
+                    if (communicate_int_comp[comp]) {
+                        ptile.push_back_int(comp, *idata++);
+                    } else {
+                        ptile.push_back_int(comp, 0);
+                    }
                 }
+                ++ipart;
             }
-	  }
-	    
+        }	    
 #else
 	Vector<std::map<std::pair<int, int>, Gpu::HostVector<ParticleType> > > host_particles;
 	host_particles.reserve(15);
@@ -1834,47 +1850,54 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			std::vector<Cuda::HostVector<int> > > > host_int_attribs;
 	host_int_attribs.reserve(15);
 	host_int_attribs.resize(finestLevel()+1);
-	
-        for (int j = 0; j < npart; ++j)
+
+        ipart = 0;
+        for (int i = 0; i < nrcvs; ++i)
         {
+            const auto offset = rOffset[i];
+            const auto Who    = RcvProc[i];
+            const auto Cnt = Rcvs[Who] / superparticle_size;            
+            for (int j = 0; j < Cnt; ++j)
+            {                
+                int lev = rcv_levs[ipart];
+                std::pair<int, int> ind(std::make_pair(rcv_grid[ipart], rcv_tile[ipart]));
 
-	  int lev = rcv_levs[j];
-	  std::pair<int, int> ind(std::make_pair(rcv_grid[j], rcv_tile[j]));
-	  
-	  char* pbuf = recvdata.data() + j*superparticle_size;
-	  ParticleType p;
-	  std::memcpy(&p, pbuf, sizeof(ParticleType));
-	  
-	  host_real_attribs[lev][ind].resize(NumRealComps());
-	  host_int_attribs[lev][ind].resize(NumIntComps());
-	  
-	  // add the struct
-	  host_particles[lev][ind].push_back(p);
-	  
-	  Real* rdata = (Real*)(pbuf + particle_size);
-	  // add the real...
-	  for (int i = 0; i < NumRealComps(); i++) {
-	    if (communicate_real_comp[i]) {
-            host_real_attribs[lev][ind][i].push_back(*rdata++);
-	    } else {
-	      host_real_attribs[lev][ind][i].push_back(0.0);
-	    }
-	    
-	  }
+                char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
-	  int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));        
-	  // ... and int array data
-	  for (int i = 0; i < NumIntComps(); i++) {
-	    if (communicate_int_comp[i]) {
-	      host_int_attribs[lev][ind][i].push_back(*idata++);
-	    } else {
-	      host_int_attribs[lev][ind][i].push_back(0);
-	    }
-	  }
-	}
+                ParticleType p;
+                std::memcpy(&p, pbuf, sizeof(ParticleType));
+	  
+                host_real_attribs[lev][ind].resize(NumRealComps());
+                host_int_attribs[lev][ind].resize(NumIntComps());
+	  
+                // add the struct
+                host_particles[lev][ind].push_back(p);
+	  
+                Real* rdata = (Real*)(pbuf + particle_size);
+                // add the real...
+                for (int comp = 0; comp < NumRealComps(); ++comp) {
+                    if (communicate_real_comp[comp]) {
+                        host_real_attribs[lev][ind][comp].push_back(*rdata++);
+                    } else {
+                        host_real_attribs[lev][ind][comp].push_back(0.0);
+                    }                    
+                }
+                
+                int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));        
+                // ... and int array data
+                for (int comp = 0; comp < NumIntComps(); ++comp) {
+                    if (communicate_int_comp[comp]) {
+                        host_int_attribs[lev][ind][comp].push_back(*idata++);
+                    } else {
+                        host_int_attribs[lev][ind][comp].push_back(0);
+                    }
+                }
+                ++ipart;
+            }
+        }
 
 	for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
-	  {
+	{
 	    for (auto& kv : host_particles[host_lev]) {
 	      auto grid = kv.first.first;
 	      auto tile = kv.first.second;
