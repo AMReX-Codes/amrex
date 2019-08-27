@@ -451,10 +451,8 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
 #endif
     {
         std::vector<std::pair<int,Box> > isects;
-        for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cellflag,MFItInfo().UseDefaultStream()); mfi.isValid(); ++mfi)
         {
-            Gpu::ScopedDefaultStream sds();
-
             auto& fab = cellflag[mfi];
             auto const& a = fab.array();
             const Box& bx = fab.box();
