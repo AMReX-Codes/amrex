@@ -140,6 +140,14 @@ WarpX::EvolveEM (int numsteps)
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
+        if (do_boosted_frame_diagnostic) {
+            std::unique_ptr<MultiFab> cell_centered_data = nullptr;
+            if (WarpX::do_boosted_frame_fields) {
+                cell_centered_data = GetCellCenteredData();
+            }
+            myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
+        }
+        
         bool move_j = is_synchronized || to_make_plot || do_insitu;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
@@ -171,14 +179,6 @@ WarpX::EvolveEM (int numsteps)
         // sync up time
         for (int i = 0; i <= max_level; ++i) {
             t_new[i] = cur_time;
-        }
-
-        if (do_boosted_frame_diagnostic) {
-            std::unique_ptr<MultiFab> cell_centered_data = nullptr;
-            if (WarpX::do_boosted_frame_fields) {
-                cell_centered_data = GetCellCenteredData();
-            }
-            myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
         // slice gen //

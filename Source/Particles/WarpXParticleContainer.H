@@ -29,6 +29,15 @@ struct DiagIdx
     };
 };
 
+struct TmpIdx
+{
+    enum {
+        xold = 0,
+        yold, zold, uxold, uyold, uzold,
+        nattribs
+    };
+};
+
 namespace ParticleStringNames
 {
     const std::map<std::string, int> to_index = {
@@ -326,7 +335,10 @@ protected:
     amrex::Vector<amrex::FArrayBox> local_jy;
     amrex::Vector<amrex::FArrayBox> local_jz;
 
-    amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
+    using DataContainer = amrex::Gpu::ManagedDeviceVector<amrex::Real>;
+    using PairIndex = std::pair<int, int>;
+    
+    amrex::Vector<DataContainer> m_xp, m_yp, m_zp, m_giv;
 
     // Whether to dump particle quantities. 
     // If true, particle position is always dumped.
@@ -336,7 +348,9 @@ protected:
     amrex::Vector<int> plot_flags;
     // list of names of attributes to dump.
     amrex::Vector<std::string> plot_vars;
-
+        
+    amrex::Vector<std::map<PairIndex, std::array<DataContainer, TmpIdx::nattribs> > > tmp_particle_data;
+    
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,
                                     const int lev) override;
