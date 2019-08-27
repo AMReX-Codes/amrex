@@ -34,7 +34,7 @@ public:
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         Real r = std::numeric_limits<Real>::lowest();
 #else
-        Real r = 1.e-37;
+        Real r = -1.e37;
 #endif
         AMREX_D_TERM(r = amrex::max(r, x-m_hi.x, -(x-m_lo.x));,
                      r = amrex::max(r, y-m_hi.y, -(y-m_lo.y));,
