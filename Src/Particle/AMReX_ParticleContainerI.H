@@ -1676,8 +1676,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     using buffer_type = unsigned long long;
     
     std::map<int, Vector<buffer_type> > mpi_snd_data;
-    for (const auto& kv : not_ours) {
-        int nbt = kv.second.size() / sizeof(buffer_type) + 1;
+    for (const auto& kv : not_ours)
+    {
+        int nbt = (kv.second.size() + sizeof(buffer_type)-1)/sizeof(buffer_type);
         mpi_snd_data[kv.first].resize(nbt);
         std::memcpy((char*) mpi_snd_data[kv.first].data(), kv.second.data(), kv.second.size());
     }
@@ -1729,7 +1730,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
             RcvProc.push_back(i);
             rOffset.push_back(TotRcvInts);
             TotRcvBytes += Rcvs[i];
-            int nbt = Rcvs[i] / sizeof(buffer_type) + 1;
+            int nbt = (Rcvs[i] + sizeof(buffer_type)-1)/sizeof(buffer_type);
             TotRcvInts += nbt;
         }
     }
@@ -1745,7 +1746,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
-        const auto Cnt    = Rcvs[Who] / sizeof(buffer_type) + 1;
+        const auto Cnt = (Rcvs[Who] + sizeof(buffer_type)-1)/sizeof(buffer_type);
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
