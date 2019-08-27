@@ -11,7 +11,8 @@ It supports many features including Perfectly-Matched Layers (PML), mesh refinem
 
 ## Documentation
 
-In order to learn how to install and run the code, please see the online documentation: https://ecp-warpx.github.io/index.html
+In order to learn how to install and run the code, please see the online documentation:
+https://warpx.readthedocs.io
 
 ## Contributing
 
