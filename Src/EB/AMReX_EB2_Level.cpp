@@ -425,8 +425,6 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
         for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
         {
             auto& fab = cellflag[mfi];
-            const Box& bx = fab.box();
-            fab.setRegion(bx);
             fab.setType(FabType::regular);
         }
         return;
@@ -437,13 +435,6 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
     cellflag.ParallelCopy(m_cellflag,0,0,1,0,ng,geom.periodicity());
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
-
-    Box gdomain = geom.Domain();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (geom.isPeriodic(idim)) {
-            gdomain.grow(idim, ng);
-        }
-    }
 
     auto cov_val = EBCellFlag::TheCoveredCell();
 #ifdef _OPENMP
@@ -471,11 +462,9 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
                 }
             }
 
-            // fix type and region for each fab
-            const Box& regbx = bx & gdomain;
-            fab.setRegion(regbx);
+            // fix type for each fab
             fab.setType(FabType::undefined);
-            auto typ = fab.getType(regbx);
+            auto typ = fab.getType(bx);
             fab.setType(typ);
             for (int nshrink = 1; nshrink < ng; ++nshrink) {
                 const Box& b = amrex::grow(bx,-nshrink);
