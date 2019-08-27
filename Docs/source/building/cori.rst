@@ -51,6 +51,9 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
         module swap PrgEnv-intel PrgEnv-gnu
         make -j 16 COMP=gnu
 
+See :doc:`../running_cpp/platforms` for more information on how to run
+WarpX on Cori.
+
 GPU Build
 ---------
 
