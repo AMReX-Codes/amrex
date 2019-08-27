@@ -25,8 +25,7 @@ void warpx_push_ex_pml_current_nodal (int j, int k, int l, Array4<Real> const& E
     Ex(j,k,l,0) = Ex(j,k,l,0) - mu_c2_dt  * alpha_xy * jx(j,k,l);
     Ex(j,k,l,1) = Ex(j,k,l,1) - mu_c2_dt  * alpha_xz * jx(j,k,l);
 #else
-
-    Ex(j,k,0) = Ex(j,k,0) - mu_c2_dt  * jx(j,k);
+    Ex(j,k,l,1) = Ex(j,k,l,1) - mu_c2_dt  * jx(j,k,l);
 #endif
 }
 
@@ -50,8 +49,8 @@ Real alpha_yx, alpha_yz;
     Ey(j,k,l,0) = Ey(j,k,l,0) - mu_c2_dt  * alpha_yx * jy(j,k,l);
     Ey(j,k,l,1) = Ey(j,k,l,1) - mu_c2_dt  * alpha_yz * jy(j,k,l);
 #else
-    Ey(j,k,0) = Ey(j,k,0) - 0.5 * mu_c2_dt  * jy(j,k);
-    Ey(j,k,1) = Ey(j,k,0) - 0.5 * mu_c2_dt  * jy(j,k);
+    Ey(j,k,l,0) = Ey(j,k,l,0) - 0.5 * mu_c2_dt  * jy(j,k,l);
+    Ey(j,k,l,1) = Ey(j,k,l,1) - 0.5 * mu_c2_dt  * jy(j,k,l);
 #endif
 }
 
@@ -75,7 +74,7 @@ void warpx_push_ez_pml_current_nodal (int j, int k, int l, Array4<Real> const& E
     Ez(j,k,l,0) = Ez(j,k,l,0) - mu_c2_dt  * alpha_zx * jz(j,k,l);
     Ez(j,k,l,1) = Ez(j,k,l,1) - mu_c2_dt  * alpha_zy * jz(j,k,l);
 #else
-    Ez(j,k,0) = Ez(j,k,0) - mu_c2_dt  * jz(j,k);
+    Ez(j,k,l,0) = Ez(j,k,l,0) - mu_c2_dt  * jz(j,k,l);
 #endif
 }
 
