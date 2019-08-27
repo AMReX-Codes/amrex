@@ -1,5 +1,7 @@
 # WarpX
 
+[![Documentation Status](https://readthedocs.org/projects/warpx/badge/?version=latest)](https://warpx.readthedocs.io/en/latest/?badge=latest)
+
 ## Overview
 
 **Warning: This is an alpha release of WarpX. The code is still in active development. Robustness and performance may fluctuate at this stage. The input and output formats may evolve.**
