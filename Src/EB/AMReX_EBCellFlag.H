@@ -167,6 +167,47 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int numNeighbors () const noexcept {
+        int n = 1;
+        n += isConnected(-1,-1, 0);
+        n += isConnected( 0,-1, 0);
+        n += isConnected( 1,-1, 0);
+        //
+        n += isConnected(-1, 0, 0);
+        n += isConnected( 1, 0, 0);
+        //
+        n += isConnected(-1, 1, 0);
+        n += isConnected( 0, 1, 0);
+        n += isConnected( 1, 1, 0);
+#if (AMREX_SPACEDIM == 3)
+        n += isConnected(-1,-1,-1);
+        n += isConnected( 0,-1,-1);
+        n += isConnected( 1,-1,-1);
+        //
+        n += isConnected(-1, 0,-1);
+        n += isConnected( 0, 0,-1);
+        n += isConnected( 1, 0,-1);
+        //
+        n += isConnected(-1, 1,-1);
+        n += isConnected( 0, 1,-1);
+        n += isConnected( 1, 1,-1);
+        //
+        n += isConnected(-1,-1, 1);
+        n += isConnected( 0,-1, 1);
+        n += isConnected( 1,-1, 1);
+        //
+        n += isConnected(-1, 0, 1);
+        n += isConnected( 0, 0, 1);
+        n += isConnected( 1, 0, 1);
+        //
+        n += isConnected(-1, 1, 1);
+        n += isConnected( 0, 1, 1);
+        n += isConnected( 1, 1, 1);
+#endif
+        return n;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     uint32_t getValue() const noexcept
     {
         return flag;
