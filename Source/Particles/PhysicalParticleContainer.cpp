@@ -339,6 +339,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     Real density_max = plasma_injector->density_max;
 
 #ifdef WARPX_DIM_RZ
+    const long nmodes = WarpX::n_rz_azimuthal_modes;
     bool radially_weighted = plasma_injector->radially_weighted;
 #endif
 
@@ -533,7 +534,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             // Replace the x and y, setting an angle theta.
             // These x and y are used to get the momentum and density
             Real theta;
-            if (WarpX::n_rz_azimuthal_modes == 1) {
+            if (nmodes == 1) {
                 // With only 1 mode, the angle doesn't matter so
                 // choose it randomly.
                 theta = 2.*MathConst::pi*amrex::Random();
