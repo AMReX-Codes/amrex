@@ -310,7 +310,7 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     
-    if (plan.m_NumSnds == 0) return;
+    if ((NProcs == 1) or (plan.m_NumSnds == 0)) return;
 
     Vector<int> RcvProc;
     Vector<long> rOffset;    
@@ -376,6 +376,9 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
     AMREX_ASSERT(pc.numLevels() == 1);
 
 #ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    if (NProcs == 1) return;
+
     const int MyProc = ParallelDescriptor::MyProc();
     using PTile = typename PC::ParticleTileType;
 

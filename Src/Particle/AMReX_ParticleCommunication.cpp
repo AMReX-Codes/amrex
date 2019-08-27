@@ -37,6 +37,8 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
     const int MyProc = ParallelDescriptor::MyProc();
     const int NNeighborProcs = m_neighbor_procs.size();
 
+    if (NProcs == 1) return;
+
     if (do_handshake)
     {
         m_Snds.resize(0);
@@ -147,6 +149,10 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
     BL_PROFILE("ParticleCopyPlan::buildMPIFinish");
 
 #ifdef BL_USE_MPI
+
+    const int NProcs = ParallelDescriptor::NProcs();
+    if (NProcs == 1) return;
+
     if (m_nrcvs > 0)
     {
         ParallelDescriptor::Waitall(m_rreqs, m_stats);
