@@ -271,16 +271,11 @@ public:
 
     FabType getType (const Box& bx) const noexcept;
 
-    const Box& getRegion () const noexcept { return m_region; }
-
     void setType (FabType t) noexcept { m_type = t; }
-
-    void setRegion (const Box& bx) noexcept { m_region = bx; }
 
 private:
     FabType m_type = FabType::undefined;
     mutable std::map<Box,FabType> m_typemap;
-    Box m_region;
 };
 
 std::ostream& operator<< (std::ostream& os, const EBCellFlag& flag);
