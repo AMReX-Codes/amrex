@@ -211,6 +211,7 @@ WriteOpenPMDFields( const std::string& filename,
 }
 #endif // WARPX_USE_OPENPMD
 
+#ifdef WARPX_DIM_RZ
 void
 ConstructTotalRZField(std::array< std::unique_ptr<MultiFab>, 3 >& mf_total,
                       const std::array< std::unique_ptr<MultiFab>, 3 >& vector_field)
@@ -225,6 +226,7 @@ ConstructTotalRZField(std::array< std::unique_ptr<MultiFab>, 3 >& mf_total,
         MultiFab::Add(*mf_total[2], *vector_field[2], ic, 0, 1, vector_field[2]->nGrowVect());
     }
 }
+#endif
 
 void
 PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
@@ -287,7 +289,7 @@ AverageAndPackVectorField( MultiFab& mf_avg,
         if (vector_field[0]->nComp() > 1) {
 #ifdef WARPX_DIM_RZ
             // When there are more than one components, the total
-            // fields needs to be constructed in temporary MultiFabs
+            // fields needs to be constructed in temporary MultiFabs.
             // Note that mf_total is declared in the same way as
             // vector_field so that it can be passed into PackPlotDataPtrs.
             std::array<std::unique_ptr<MultiFab>,3> mf_total;
@@ -299,20 +301,6 @@ AverageAndPackVectorField( MultiFab& mf_avg,
             amrex::average_face_to_cellcenter( mf_avg, dcomp, srcmf, ngrow);
             MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
             MultiFab::Copy( mf_avg, *mf_total[1], 0, dcomp+1, 1, ngrow);
-            // Also add the real and imaginary parts of each mode.
-            /* Not supported yet
-            for (int i=0 ; i < vector_field[0]->nComp() ; i++) {
-                MultiFab v_comp0(*vector_field[0], amrex::make_alias, i, 1);
-                MultiFab v_comp1(*vector_field[1], amrex::make_alias, i, 1);
-                MultiFab v_comp2(*vector_field[2], amrex::make_alias, i, 1);
-                srcmf[0] = &v_comp0;
-                srcmf[1] = &v_comp2;
-                int id = dcomp + 3*(i + 1);
-                amrex::average_face_to_cellcenter( mf_avg, id, srcmf, ngrow);
-                MultiFab::Copy( mf_avg, mf_avg, id+1, id+2, 1, ngrow);
-                MultiFab::Copy( mf_avg, v_comp1, 0, id+1, 1, ngrow);
-            }
-            */
 #else
            amrex::Abort("AverageAndPackVectorField not implemented for ncomp > 1");
 #endif
@@ -346,21 +334,6 @@ AverageAndPackVectorField( MultiFab& mf_avg,
             MultiFab::Copy( mf_avg, mf_avg, dcomp+1, dcomp+2, 1, ngrow);
             amrex::average_node_to_cellcenter( mf_avg, dcomp+1,
                                               *mf_total[1], 0, 1, ngrow);
-            // Also add the real and imaginary parts of each mode.
-            /* Not supported yet
-            for (int i=0 ; i < vector_field[0]->nComp() ; i++) {
-                MultiFab v_comp0(*vector_field[0], amrex::make_alias, i, 1);
-                MultiFab v_comp1(*vector_field[1], amrex::make_alias, i, 1);
-                MultiFab v_comp2(*vector_field[2], amrex::make_alias, i, 1);
-                srcmf[0] = &v_comp0;
-                srcmf[1] = &v_comp2;
-                int id = dcomp + 3*(i + 1);
-                amrex::average_edge_to_cellcenter( mf_avg, id, srcmf, ngrow);
-                MultiFab::Copy( mf_avg, mf_avg, id+1, id+2, 1, ngrow);
-                amrex::average_node_to_cellcenter( mf_avg, id+1,
-                                                   v_comp1, 0, 1, ngrow);
-            }
-            */
 #else
            amrex::Abort("AverageAndPackVectorField not implemented for ncomp > 1");
 #endif
@@ -406,32 +379,12 @@ AverageAndPackScalarField( MultiFab& mf_avg,
 }
 
 /** \brief Add variable names to the list.
- * If there are more that one mode, add the
- * name of the total field and then the
- * names of the real and imaginary parts of each
- * mode.
  */
 void
-AddToVarNames( Vector<std::string>& varnames,
-               std::string name, std::string suffix,
-               int n_rz_azimuthal_modes ) {
+AddToVarNames (Vector<std::string>& varnames,
+               std::string name, std::string suffix) {
     auto coords = {"x", "y", "z"};
     for(auto coord:coords) varnames.push_back(name+coord+suffix);
-    /* Not supported yet
-    auto coordsRZ = {"r", "theta", "z"};
-    if (n_rz_azimuthal_modes > 1) {
-        // Note that the names are added in the same order as the fields
-        // are packed in AverageAndPackVectorField
-        for (int i = 0 ; i < n_rz_azimuthal_modes ; i++) {
-            for(auto coord:coordsRZ) {
-                varnames.push_back(name + coord + suffix + std::to_string(i) + "_real");
-            }
-            for(auto coord:coordsRZ) {
-                varnames.push_back(name + coord + suffix + std::to_string(i) + "_imag");
-            }
-        }
-    }
-    */
 }
 
 /** \brief Write the different fields that are meant for output,
@@ -442,14 +395,6 @@ void
 WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                               amrex::Vector<MultiFab>& mf_avg, const int ngrow) const
 {
-    // Factor to account for quantities that have multiple components.
-    // If n_rz_azimuthal_modes > 1, allow space for total field and the real and
-    // imaginary part of each node. For now, also include the
-    // imaginary part of mode 0 for code symmetry, even though
-    // it is always zero.
-    int modes_factor = 1;
-    /* if (n_rz_azimuthal_modes > 1) modes_factor = 2*n_rz_azimuthal_modes; */
-
     // Count how many different fields should be written (ncomp)
     const int ncomp = fields_to_plot.size()
         + static_cast<int>(plot_finepatch)*6
@@ -575,11 +520,11 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         if (plot_finepatch)
         {
             AverageAndPackVectorField( mf_avg[lev], Efield_fp[lev], dmap[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, "E", "_fp", n_rz_azimuthal_modes);
-            dcomp += 3*modes_factor;
+            if (lev == 0) AddToVarNames(varnames, "E", "_fp");
+            dcomp += 3;
             AverageAndPackVectorField( mf_avg[lev], Bfield_fp[lev], dmap[lev], dcomp, ngrow );
-            if (lev == 0) AddToVarNames(varnames, "B", "_fp", n_rz_azimuthal_modes);
-            dcomp += 3*modes_factor;
+            if (lev == 0) AddToVarNames(varnames, "B", "_fp");
+            dcomp += 3;
         }
 
         if (plot_crsepatch)
@@ -595,8 +540,8 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 AverageAndPackVectorField( mf_avg[lev], E, dmap[lev], dcomp, ngrow );
 
             }
-            if (lev == 0) AddToVarNames(varnames, "E", "_cp", n_rz_azimuthal_modes);
-            dcomp += 3*modes_factor;
+            if (lev == 0) AddToVarNames(varnames, "E", "_cp");
+            dcomp += 3;
 
             // now the magnetic field
             if (lev == 0)
@@ -609,8 +554,8 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                 std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
                 AverageAndPackVectorField( mf_avg[lev], B, dmap[lev], dcomp, ngrow );
             }
-            if (lev == 0) AddToVarNames(varnames, "B", "_cp", n_rz_azimuthal_modes);
-            dcomp += 3*modes_factor;
+            if (lev == 0) AddToVarNames(varnames, "B", "_cp");
+            dcomp += 3;
         }
 
         if (costs[0] != nullptr)

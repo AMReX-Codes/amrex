@@ -356,7 +356,7 @@ WarpX::OneStep_sub1 (Real curtime)
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
     NodalSyncJ(fine_lev, PatchType::fine);
-    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, rho_fp[fine_lev]->nComp());
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2*ncomps);
     NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
@@ -383,7 +383,7 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(coarse_lev, curtime);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, rho_cp[coarse_lev]->nComp()/2);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, ncomps);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
@@ -410,7 +410,7 @@ WarpX::OneStep_sub1 (Real curtime)
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
     NodalSyncJ(fine_lev, PatchType::fine);
-    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, rho_fp[fine_lev]->nComp()/2);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, ncomps);
     NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
@@ -436,7 +436,7 @@ WarpX::OneStep_sub1 (Real curtime)
     // by only half a coarse step (second half)
     RestoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, rho_cp[coarse_lev]->nComp()/2, rho_cp[coarse_lev]->nComp()/2);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, ncomps, ncomps);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);
@@ -515,8 +515,7 @@ WarpX::ComputeDt ()
 #ifdef WARPX_DIM_RZ
         // In the rz case, the Courant limit has been evaluated
         // semi-analytically by R. Lehe, and resulted in the following
-        // coefficients. For an explanation, see (not officially published)
-        // www.normalesup.org/~lehe/Disp_relation_Circ.pdf
+        // coefficients.
         // NB : Here the coefficient for m=1 as compared to this document,
         // as it was observed in practice that this coefficient was not
         // high enough (The simulation became unstable).
