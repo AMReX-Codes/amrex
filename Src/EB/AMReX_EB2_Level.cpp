@@ -228,14 +228,14 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                          auto const& zbx = amrex::surroundingNodes(ibox,2););
                             AMREX_HOST_DEVICE_FOR_3D(indbox, i,j,k,
                             {
-                                IntVect iv(AMREX_D_DECL(i,j,k));
-                                if (ibox.contains(iv)) {
+                                IntVect cell(AMREX_D_DECL(i,j,k));
+                                if (ibox.contains(cell)) {
                                     vfrac(i,j,k) = 0.0;
                                     cflag(i,j,k) = EBCellFlag::TheCoveredCell();
                                 }
-                                AMREX_D_TERM(if (xbx.contains(iv)) apx(i,j,k) = 0.0;,
-                                             if (ybx.contains(iv)) apy(i,j,k) = 0.0;,
-                                             if (zbx.contains(iv)) apz(i,j,k) = 0.0;);
+                                AMREX_D_TERM(if (xbx.contains(cell)) apx(i,j,k) = 0.0;,
+                                             if (ybx.contains(cell)) apy(i,j,k) = 0.0;,
+                                             if (zbx.contains(cell)) apz(i,j,k) = 0.0;);
                             });
                         }
                     }
@@ -432,26 +432,31 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
         return;
     }
 
-    cellflag.ParallelCopy(m_cellflag,0,0,1,0,cellflag.nGrow(),geom.periodicity());
+    const int ng = cellflag.nGrow();
+
+    cellflag.ParallelCopy(m_cellflag,0,0,1,0,ng,geom.periodicity());
 
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 
     Box gdomain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
-            gdomain.grow(idim, cellflag.nGrow());
+            gdomain.grow(idim, ng);
         }
     }
 
     auto cov_val = EBCellFlag::TheCoveredCell();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector<std::pair<int,Box> > isects;
         for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
         {
+            Gpu::ScopedDefaultStream sds;
+
             auto& fab = cellflag[mfi];
+            auto const& a = fab.array();
             const Box& bx = fab.box();
             if (!m_covered_grids.empty())
             {
@@ -459,7 +464,11 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
                 {
                     m_covered_grids.intersections(bx+iv, isects);
                     for (const auto& is : isects) {
-                        fab.setVal(cov_val, is.second-iv, 0, 1);
+                        Box const& ibox = is.second-iv;
+                        AMREX_HOST_DEVICE_FOR_3D(ibox, i, j, k,
+                        {
+                            a(i,j,k) = cov_val;
+                        });
                     }
                 }
             }
@@ -470,6 +479,10 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
             fab.setType(FabType::undefined);
             auto typ = fab.getType(regbx);
             fab.setType(typ);
+            for (int nshrink = 1; nshrink < ng; ++nshrink) {
+                const Box& b = amrex::grow(bx,-nshrink);
+                fab.getType(b);
+            }
         }
     }
 }
