@@ -11,6 +11,14 @@ by relevant values, for instance ``<job name>`` could be ``laserWakefield``.
 .. literalinclude:: ../../../Examples/batchScripts/batch_cori.sh
    :language: bash
 
+To run a simulation, copy the lines above to a file ``batch_cori.sh`` and
+run
+::
+
+  sbatch batch_cori.sh
+
+to submit the job.
+
 For a 3D simulation with a few (1-4) particles per cell using FDTD Maxwell 
 solver on Cori KNL for a well load-balanced problem (in our case laser 
 wakefield acceleration simulation in a boosted frame in the quasi-linear 
@@ -36,6 +44,14 @@ MPI rank per GPU.
 
 .. literalinclude:: ../../../Examples/batchScripts/batch_summit.sh
    :language: bash
+
+To run a simulation, copy the lines above to a file ``batch_summit.sh`` and
+run
+::
+
+  bsub batch_summit.sh
+
+to submit the job.
 
 For a 3D simulation with a few (1-4) particles per cell using FDTD Maxwell 
 solver on Summit for a well load-balanced problem (in our case laser 
