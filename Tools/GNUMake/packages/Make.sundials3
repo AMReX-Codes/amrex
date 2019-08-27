@@ -22,9 +22,14 @@ INCLUDE_LOCATIONS += $(CVODE_LIB_DIR)/../include
 ifeq ($(USE_CVODE_LIBS),TRUE)
     LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
     ifeq ($(USE_KLU), TRUE)
-        DEFINES  += -DUSE_KLU
-        LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_sunmatrixsparse -lsundials_sunlinsolklu
-        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lklu -lamd -lcolamd -lbtf -lsuitesparseconfig
+        DEFINES   += -DUSE_KLU
+        LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_sunmatrixsparse 
+        LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_sunlinsolklu
+        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lklu 
+        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lamd 
+        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lcolamd 
+        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lbtf 
+        LIBRARIES += -L$(SUITESPARSE_DIR)/lib -lsuitesparseconfig
         INCLUDE_LOCATIONS+=${SUITESPARSE_DIR}/include
     endif
 endif
