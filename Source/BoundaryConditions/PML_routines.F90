@@ -255,295 +255,53 @@ contains
        &                             Bx, Bxlo, Bxhi, &
        &                             By, Bylo, Byhi, &
        &                             Bz, Bzlo, Bzhi, &
-       &                             jx, jxlo, jxhi, &
-       &                             jy, jylo, jyhi, &
-       &                             jz, jzlo, jzhi, &
-       &                             flag, &
-       &                             pml_type, &
-       &                             sigjx, sjxlo, sjxhi, &
-       &                             sigjy, sjylo, sjyhi, &
-       &                             sigjz, sjzlo, sjzhi, &
-       &                             sigsjx, ssjxlo, ssjxhi, &
-       &                             sigsjy, ssjylo, ssjyhi, &
-       &                             sigsjz, ssjzlo, ssjzhi, &
-       &                             mudt, &
        &                             dtsdx, dtsdy, dtsdz) &
        bind(c,name='warpx_push_pml_evec_3d')
     integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
          Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), &
-         Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3), &
-         jxlo(3), jxhi(3), jylo(3), jyhi(3), jzlo(3), jzhi(3), &
-         sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, &
-         ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi, &
-         flag, pml_type(5)
-    real(amrex_real), intent(in   ) :: mudt, dtsdx, dtsdy, dtsdz
+         Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3)
+    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3),2)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3),2)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3),2)
     real(amrex_real), intent(in   ) :: Bx (Bxlo(1):Bxhi(1),Bxlo(2):Bxhi(2),Bxlo(3):Bxhi(3),2)
     real(amrex_real), intent(in   ) :: By (Bylo(1):Byhi(1),Bylo(2):Byhi(2),Bylo(3):Byhi(3),2)
     real(amrex_real), intent(in   ) :: Bz (Bzlo(1):Bzhi(1),Bzlo(2):Bzhi(2),Bzlo(3):Bzhi(3),2)
-    real(amrex_real), intent(in   ) :: jx (jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
-    real(amrex_real), intent(in   ) :: jy (jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
-    real(amrex_real), intent(in   ) :: jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
-    real(amrex_real), intent(in   ) :: sigjx (sjxlo:sjxhi)
-    real(amrex_real), intent(in   ) :: sigjy (sjylo:sjyhi)
-    real(amrex_real), intent(in   ) :: sigjz (sjzlo:sjzhi)
-    real(amrex_real), intent(in   ) :: sigsjx (ssjxlo:ssjxhi)
-    real(amrex_real), intent(in   ) :: sigsjy (ssjylo:ssjyhi)
-    real(amrex_real), intent(in   ) :: sigsjz (ssjzlo:ssjzhi)
 
     integer :: i, j, k
-    real(amrex_real) :: alpha_xy, alpha_xz, alpha_yx, alpha_yz, alpha_zx, alpha_zy
 
-    if (flag == 0) then
-      do       k = xlo(3), xhi(3)
-         do    j = xlo(2), xhi(2)
-            do i = xlo(1), xhi(1)
-               Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                    &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
-               Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                    &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
-            end do
-         end do
-      end do
+    do       k = xlo(3), xhi(3)
+       do    j = xlo(2), xhi(2)
+          do i = xlo(1), xhi(1)
+             Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
+                  &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))
+             Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
+                  &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))
+          end do
+       end do
+    end do
 
-      do       k = ylo(3), yhi(3)
-         do    j = ylo(2), yhi(2)
-            do i = ylo(1), yhi(1)
-               Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                    &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
-               Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                    &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
-            end do
-         end do
-      end do
+    do       k = ylo(3), yhi(3)
+       do    j = ylo(2), yhi(2)
+          do i = ylo(1), yhi(1)
+             Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
+                  &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))
+             Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
+                  &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))
+          end do
+       end do
+    end do
 
-      do       k = zlo(3), zhi(3)
-         do    j = zlo(2), zhi(2)
-            do i = zlo(1), zhi(1)
-               Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                    &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
-               Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                    &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
-            end do
-         end do
-      end do
-
-    else !flag = 1
-      !!!!! DIRECT FACE
-      if (pml_type(1)==0) then
-         if (pml_type(2)==0) then
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-                    alpha_xy = 0.5
-                    alpha_xz = 0.5
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
-                         &                            -mudt*alpha_xy*jx(i,j,k)
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
-                         &                            -mudt*alpha_xz*jx(i,j,k)
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    alpha_yx = 1.
-                    alpha_yz = 0.
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                         &                            -mudt*alpha_yz*jy(i,j,k)
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                         &                            -mudt*alpha_yx*jy(i,j,k)
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    alpha_zx = 1.
-                    alpha_zy = 0.
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
-                         &                            -mudt*alpha_zx*jz(i,j,k)
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
-                         &                            -mudt*alpha_zy*jz(i,j,k)
-                 end do
-              end do
-           end do
-
-         else if (pml_type(2)==1) then
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-                    alpha_xy = 1.
-                    alpha_xz = 0.
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
-                         &                            -mudt*alpha_xy*jx(i,j,k)
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
-                         &                            -mudt*alpha_xz*jx(i,j,k)
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    alpha_yx = 0.5
-                    alpha_yz = 0.5
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                         &                            -mudt*alpha_yz*jy(i,j,k)
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                         &                            -mudt*alpha_yx*jy(i,j,k)
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    alpha_zx = 0.
-                    alpha_zy = 1.
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
-                         &                            -mudt*alpha_zx*jz(i,j,k)
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
-                         &                            -mudt*alpha_zy*jz(i,j,k)
-                 end do
-              end do
-           end do
-
-         else !(pml_type(2)==2)
-           do       k = xlo(3), xhi(3)
-              do    j = xlo(2), xhi(2)
-                 do i = xlo(1), xhi(1)
-                    ! compute current coefficients alpha
-                    alpha_xy = 0.
-                    alpha_xz = 1.
-                    Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                         &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
-                         &                            -mudt*alpha_xy*jx(i,j,k)
-                    Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                         &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
-                         &                            -mudt*alpha_xz*jx(i,j,k)
-                 end do
-              end do
-           end do
-
-           do       k = ylo(3), yhi(3)
-              do    j = ylo(2), yhi(2)
-                 do i = ylo(1), yhi(1)
-                    alpha_yx = 0.
-                    alpha_yz = 1.
-                    Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                         &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                         &                            -mudt*alpha_yz*jy(i,j,k)
-                    Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                         &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                         &                            -mudt*alpha_yx*jy(i,j,k)
-                 end do
-              end do
-           end do
-
-           do       k = zlo(3), zhi(3)
-              do    j = zlo(2), zhi(2)
-                 do i = zlo(1), zhi(1)
-                    alpha_zx = 0.5
-                    alpha_zy = 0.5
-                    Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                         &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
-                         &                            -mudt*alpha_zx*jz(i,j,k)
-                    Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                         &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
-                         &                            -mudt*alpha_zy*jz(i,j,k)
-                 end do
-              end do
-           end do
-         end if !DIRECT FACE
-
-      !!!!! SIDE EDGE OR CORNER
-      else
-        do       k = xlo(3), xhi(3)
-           do    j = xlo(2), xhi(2)
-              do i = xlo(1), xhi(1)
-                 ! compute current coefficients alpha
-                 if ((sigjy(j)==0.) .AND. (sigjz(k)==0.)) then
-                    alpha_xy = 0.5
-                    alpha_xz = 0.5
-                 else
-                    alpha_xy = sigjy(j)/(sigjy(j)+sigjz(k))
-                    alpha_xz = sigjz(k)/(sigjy(j)+sigjz(k))
-                 end if
-
-                 Ex(i,j,k,1) = Ex(i,j,k,1) + dtsdy*(Bz(i,j  ,k  ,1)+Bz(i,j  ,k  ,2) &
-                      &                            -Bz(i,j-1,k  ,1)-Bz(i,j-1,k  ,2))&
-                      &                            -mudt*alpha_xy*jx(i,j,k)
-                 Ex(i,j,k,2) = Ex(i,j,k,2) - dtsdz*(By(i,j  ,k  ,1)+By(i,j  ,k  ,2) &
-                      &                            -By(i,j  ,k-1,1)-By(i,j  ,k-1,2))&
-                      &                            -mudt*alpha_xz*jx(i,j,k)
-              end do
-           end do
-        end do
-
-        do       k = ylo(3), yhi(3)
-           do    j = ylo(2), yhi(2)
-              do i = ylo(1), yhi(1)
-                 if ((sigjx(i)==0.) .AND. (sigjz(k)==0.)) then
-                    alpha_yx = 0.5
-                    alpha_yz = 0.5
-                 else
-                    alpha_yx = sigjx(i)/(sigjx(i)+sigjz(k))
-                    alpha_yz = sigjz(k)/(sigjx(i)+sigjz(k))
-                 end if
-
-                 Ey(i,j,k,1) = Ey(i,j,k,1) + dtsdz*(Bx(i  ,j,k  ,1)+Bx(i  ,j,k  ,2) &
-                      &                            -Bx(i  ,j,k-1,1)-Bx(i  ,j,k-1,2))&
-                      &                            -mudt*alpha_yz*jy(i,j,k)
-                 Ey(i,j,k,2) = Ey(i,j,k,2) - dtsdx*(Bz(i  ,j,k  ,1)+Bz(i  ,j,k  ,2) &
-                      &                            -Bz(i-1,j,k  ,1)-Bz(i-1,j,k  ,2))&
-                      &                            -mudt*alpha_yx*jy(i,j,k)
-              end do
-           end do
-        end do
-
-        do       k = zlo(3), zhi(3)
-           do    j = zlo(2), zhi(2)
-              do i = zlo(1), zhi(1)
-                 if ((sigjx(i)==0.) .AND. (sigjy(j)==0.)) then
-                    alpha_zx = 0.5
-                    alpha_zy = 0.5
-                 else
-                    alpha_zx = sigjx(i)/(sigjx(i)+sigjy(j))
-                    alpha_zy = sigjy(j)/(sigjx(i)+sigjy(j))
-                 end if
-
-                 Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
-                      &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))&
-                      &                            -mudt*alpha_zx*jz(i,j,k)
-                 Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
-                      &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))&
-                      &                            -mudt*alpha_zy*jz(i,j,k)
-              end do
-           end do
-        end do
-
-      end if !PML_TYPE
-
-    end if ! FLAG
+    do       k = zlo(3), zhi(3)
+       do    j = zlo(2), zhi(2)
+          do i = zlo(1), zhi(1)
+             Ez(i,j,k,1) = Ez(i,j,k,1) + dtsdx*(By(i  ,j  ,k,1)+By(i  ,j  ,k,2) &
+                  &                            -By(i-1,j  ,k,1)-By(i-1,j  ,k,2))
+             Ez(i,j,k,2) = Ez(i,j,k,2) - dtsdy*(Bx(i  ,j  ,k,1)+Bx(i  ,j  ,k,2) &
+                  &                            -Bx(i  ,j-1,k,1)-Bx(i  ,j-1,k,2))
+          end do
+       end do
+    end do
 
   end subroutine warpx_push_pml_evec_3d
 
@@ -673,83 +431,43 @@ contains
        &                             Bx, Bxlo, Bxhi, &
        &                             By, Bylo, Byhi, &
        &                             Bz, Bzlo, Bzhi, &
-       &                             jx, jxlo, jxhi, &
-       &                             jy, jylo, jyhi, &
-       &                             jz, jzlo, jzhi, &
-       &                             flag, &
-       &                             mudt, dtsdx, dtsdy, dtsdz) &
+       &                             dtsdx, dtsdy, dtsdz) &
        bind(c,name='warpx_push_pml_evec_2d')
     integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
          Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
-         Bxlo(2), Bxhi(2), Bylo(2), Byhi(2), Bzlo(2), Bzhi(2), &
-         jxlo(2), jxhi(2), jylo(2), jyhi(2), jzlo(2), jzhi(2), &
-         flag
-    real(amrex_real), intent(in) :: mudt, dtsdx, dtsdy, dtsdz
+         Bxlo(2), Bxhi(2), Bylo(2), Byhi(2), Bzlo(2), Bzhi(2)
+    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),2)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),2)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),2)
     real(amrex_real), intent(in   ) :: Bx (Bxlo(1):Bxhi(1),Bxlo(2):Bxhi(2),2)
     real(amrex_real), intent(in   ) :: By (Bylo(1):Byhi(1),Bylo(2):Byhi(2),2)
     real(amrex_real), intent(in   ) :: Bz (Bzlo(1):Bzhi(1),Bzlo(2):Bzhi(2),2)
-    real(amrex_real), intent(in   ) :: jx (jxlo(1):jxhi(1),jxlo(2):jxhi(2)) !jx (jxlo(1):jxhi(1),jxlo(2):jxhi(2),1)
-    real(amrex_real), intent(in   ) :: jy (jylo(1):jyhi(1),jylo(2):jyhi(2)) !jy (jylo(1):jyhi(1),jylo(2):jyhi(2),1)
-    real(amrex_real), intent(in   ) :: jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2)) !jz (jzlo(1):jzhi(1),jzlo(2):jzhi(2),1)
 
     integer :: i, k
 
-    if (flag == 1) then
-      do    k = xlo(2), xhi(2)
-         do i = xlo(1), xhi(1)
-            Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-                 &                        -By(i,k-1,1)-By(i,k-1,2))&
-                 &                        - mudt  * jx(i,k)
-         end do
-      end do
+    do    k = xlo(2), xhi(2)
+       do i = xlo(1), xhi(1)
+          Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
+               &                        -By(i,k-1,1)-By(i,k-1,2))
+       end do
+    end do
 
-      do    k = ylo(2), yhi(2)
-         do i = ylo(1), yhi(1)
-            Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
-                 &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))&
-                 &                        - mudt * 0.5 * jy(i,k)
-            Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
-                 &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))&
-                 &                        - mudt * 0.5 * jy(i,k)
-         end do
-      end do
+    do    k = ylo(2), yhi(2)
+       do i = ylo(1), yhi(1)
+          Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
+               &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))
+          Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
+               &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))
+       end do
+    end do
 
-      do    k = zlo(2), zhi(2)
-         do i = zlo(1), zhi(1)
-            Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
-                 &                        -By(i-1,k,1)-By(i-1,k,2))&
-                 &                        - mudt * jz(i,k)
-         end do
-      end do
-
-    else !no particles in PML
-      do    k = xlo(2), xhi(2)
-         do i = xlo(1), xhi(1)
-            Ex(i,k,2) = Ex(i,k,2) - dtsdz*(By(i,k  ,1)+By(i,k  ,2) &
-                 &                        -By(i,k-1,1)-By(i,k-1,2))
-         end do
-      end do
-
-      do    k = ylo(2), yhi(2)
-         do i = ylo(1), yhi(1)
-            Ey(i,k,1) = Ey(i,k,1) + dtsdz*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
-                 &                        -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))
-            Ey(i,k,2) = Ey(i,k,2) - dtsdx*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
-                 &                        -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))
-         end do
-      end do
-
-      do    k = zlo(2), zhi(2)
-         do i = zlo(1), zhi(1)
-            Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
-                 &                        -By(i-1,k,1)-By(i-1,k,2))
-         end do
-      end do
-
-    end if !flag
+    do    k = zlo(2), zhi(2)
+       do i = zlo(1), zhi(1)
+          Ez(i,k,1) = Ez(i,k,1) + dtsdx*(By(i  ,k,1)+By(i  ,k,2) &
+               &                        -By(i-1,k,1)-By(i-1,k,2))
+       end do
+    end do
 
   end subroutine warpx_push_pml_evec_2d
 
@@ -1109,7 +827,6 @@ contains
 
     do    k = texlo(2), texhi(2)
        do i = texlo(1), texhi(1)
-          ! ex(i,k,1) = ex(i,k,1) * sigez(k) !No damping for Exy
           ex(i,k,2) = ex(i,k,2) * sigez(k)
           ex(i,k,3) = ex(i,k,3) * sigcx(i)
        end do
@@ -1149,91 +866,6 @@ contains
     end do
 
   end subroutine warpx_damp_pml_2d
-
-  subroutine warpx_dampJ_pml_2d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
-       &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
-       &                        sigjx, sjxlo, sjxhi, sigjz, sjzlo, sjzhi, &
-       &                        sigsjx, ssjxlo, ssjxhi, sigsjz, ssjzlo, ssjzhi) &
-       bind(c,name='warpx_dampJ_pml_2d')
-    integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
-         jxlo, jxhi, jylo, jyhi, jzlo, jzhi
-    integer, intent(in), value :: sjxlo, sjxhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjzlo, ssjzhi
-    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2))
-    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2))
-    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2))
-    real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
-    real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
-    real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
-    real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
-
-    integer :: i,k
-
-    do    k = tjxlo(2), tjxhi(2)
-       do i = tjxlo(1), tjxhi(1)
-          jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)
-       end do
-    end do
-
-    ! do    k = tjylo(2), tjyhi(2)
-    !    do i = tjylo(1), tjyhi(1)
-    !       jy(i,k) = jy(i,k)
-    !    end do
-    ! end do
-
-    do    k = tjzlo(2), tjzhi(2)
-       do i = tjzlo(1), tjzhi(1)
-          jz(i,k) = jz(i,k) * sigjx(i) * sigsjz(k)
-       end do
-    end do
-
-
-  end subroutine warpx_dampJ_pml_2d
-
-  subroutine warpx_dampJ_pml_3d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
-       &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
-       &                        sigjx, sjxlo, sjxhi, sigjy, sjylo, sjyhi, sigjz, sjzlo, sjzhi, &
-       &                        sigsjx, ssjxlo, ssjxhi, sigsjy, ssjylo, ssjyhi, sigsjz, ssjzlo, ssjzhi) &
-       bind(c,name='warpx_dampJ_pml_3d')
-    integer, dimension(3), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
-         jxlo, jxhi, jylo, jyhi, jzlo, jzhi
-    integer, intent(in), value :: sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi
-    real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
-    real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
-    real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
-    real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
-    real(amrex_real), intent(in) :: sigjy(sjylo:sjyhi)
-    real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
-    real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
-    real(amrex_real), intent(in) :: sigsjy(ssjylo:ssjyhi)
-    real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
-
-    integer :: i,j,k
-
-    do       k = tjxlo(3), tjxhi(3)
-       do    j = tjylo(2), tjyhi(2)
-          do i = tjxlo(1), tjxhi(1)
-             jx(i,j,k) = jx(i,j,k) * sigsjx(i) * sigjy(j) * sigjz(k)
-          end do
-       end do
-    end do
-
-    do       k = tjxlo(3), tjxhi(3)
-       do    j = tjylo(2), tjyhi(2)
-          do i = tjxlo(1), tjxhi(1)
-             jy(i,j,k) = jy(i,j,k) * sigjx(i) * sigsjy(j) * sigjz(k)
-          end do
-       end do
-    end do
-
-    do       k = tjxlo(3), tjxhi(3)
-       do    j = tjylo(2), tjyhi(2)
-          do i = tjxlo(1), tjxhi(1)
-             jz(i,j,k) = jz(i,j,k) * sigjx(i) * sigjy(j) * sigsjz(k)
-          end do
-       end do
-    end do
-
-  end subroutine warpx_dampJ_pml_3d
 
 
   subroutine warpx_damp_pml_3d (texlo, texhi, teylo, teyhi, tezlo, tezhi, &
@@ -1374,4 +1006,89 @@ contains
     end do
   end subroutine warpx_damp_pml_f_3d
 
+ subroutine warpx_dampJ_pml_2d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+      &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
+      &                        sigjx, sjxlo, sjxhi, sigjz, sjzlo, sjzhi, &
+      &                        sigsjx, ssjxlo, ssjxhi, sigsjz, ssjzlo, ssjzhi) &
+      bind(c,name='warpx_dampJ_pml_2d')
+   integer, dimension(2), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+        jxlo, jxhi, jylo, jyhi, jzlo, jzhi
+   integer, intent(in), value :: sjxlo, sjxhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjzlo, ssjzhi
+   real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2))
+   real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2))
+   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2))
+   real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
+   real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
+   real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
+   real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
+
+   integer :: i,k
+
+   do    k = tjxlo(2), tjxhi(2)
+      do i = tjxlo(1), tjxhi(1)
+         jx(i,k) = jx(i,k) * sigsjx(i) * sigjz(k)
+      end do
+   end do
+
+   ! do    k = tjylo(2), tjyhi(2)
+   !    do i = tjylo(1), tjyhi(1)
+   !       jy(i,k) = jy(i,k)
+   !    end do
+   ! end do
+
+   do    k = tjzlo(2), tjzhi(2)
+      do i = tjzlo(1), tjzhi(1)
+         jz(i,k) = jz(i,k) * sigjx(i) * sigsjz(k)
+      end do
+   end do
+
+
+ end subroutine warpx_dampJ_pml_2d
+
+ subroutine warpx_dampJ_pml_3d (tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+      &                        jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, &
+      &                        sigjx, sjxlo, sjxhi, sigjy, sjylo, sjyhi, sigjz, sjzlo, sjzhi, &
+      &                        sigsjx, ssjxlo, ssjxhi, sigsjy, ssjylo, ssjyhi, sigsjz, ssjzlo, ssjzhi) &
+      bind(c,name='warpx_dampJ_pml_3d')
+   integer, dimension(3), intent(in) :: tjxlo, tjxhi, tjylo, tjyhi, tjzlo, tjzhi, &
+        jxlo, jxhi, jylo, jyhi, jzlo, jzhi
+   integer, intent(in), value :: sjxlo, sjxhi, sjylo, sjyhi, sjzlo, sjzhi, ssjxlo, ssjxhi, ssjylo, ssjyhi, ssjzlo, ssjzhi
+   real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
+   real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1),jylo(2):jyhi(2),jylo(3):jyhi(3))
+   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1),jzlo(2):jzhi(2),jzlo(3):jzhi(3))
+   real(amrex_real), intent(in) :: sigjx(sjxlo:sjxhi)
+   real(amrex_real), intent(in) :: sigjy(sjylo:sjyhi)
+   real(amrex_real), intent(in) :: sigjz(sjzlo:sjzhi)
+   real(amrex_real), intent(in) :: sigsjx(ssjxlo:ssjxhi)
+   real(amrex_real), intent(in) :: sigsjy(ssjylo:ssjyhi)
+   real(amrex_real), intent(in) :: sigsjz(ssjzlo:ssjzhi)
+
+   integer :: i,j,k
+
+   do       k = tjxlo(3), tjxhi(3)
+      do    j = tjylo(2), tjyhi(2)
+         do i = tjxlo(1), tjxhi(1)
+            jx(i,j,k) = jx(i,j,k) * sigsjx(i) * sigjy(j) * sigjz(k)
+         end do
+      end do
+   end do
+
+   do       k = tjxlo(3), tjxhi(3)
+      do    j = tjylo(2), tjyhi(2)
+         do i = tjxlo(1), tjxhi(1)
+            jy(i,j,k) = jy(i,j,k) * sigjx(i) * sigsjy(j) * sigjz(k)
+         end do
+      end do
+   end do
+
+   do       k = tjxlo(3), tjxhi(3)
+      do    j = tjylo(2), tjyhi(2)
+         do i = tjxlo(1), tjxhi(1)
+            jz(i,j,k) = jz(i,j,k) * sigjx(i) * sigjy(j) * sigsjz(k)
+         end do
+      end do
+   end do
+
+ end subroutine warpx_dampJ_pml_3d
+ 
 end module warpx_pml_module

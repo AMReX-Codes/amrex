@@ -11,6 +11,8 @@
 #include <WarpX_py.H>
 #endif
 
+#include <PML_current.H>
+
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
@@ -476,7 +478,9 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
-            const auto& pml_type = sigba[mfi].pml_type_array;
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
 
             WRPX_PUSH_PML_EVEC(
 			     tex.loVect(), tex.hiVect(),
@@ -488,23 +492,33 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-#if (AMREX_SPACEDIM==2)
-           BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
-           BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
-           BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
-           &pml_has_particles,
-                             &mu_c2_dt,
-#endif
-#if (AMREX_SPACEDIM==3)
-           BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
-           BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
-           BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
-           &pml_has_particles,
-           &pml_type,
-           WRPX_PML_SIGMACOEFF_TO_FORTRAN(sigba[mfi]),
-                             &mu_c2_dt,
-#endif
-                             &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+                 &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+            
+            if (pml_has_particles) {
+                // Update the E field in the PML, using the current
+                // deposited by the particles in the PML
+                auto const& pml_jxfab = pml_j[0]->array(mfi);
+                auto const& pml_jyfab = pml_j[1]->array(mfi);
+                auto const& pml_jzfab = pml_j[2]->array(mfi);
+                const Real* sigmaj_x = sigba[mfi].sigma[0].data();
+                const Real* sigmaj_y = sigba[mfi].sigma[1].data();
+                const Real* sigmaj_z = sigba[mfi].sigma[2].data();
+                amrex::ParallelFor( tex, tey, tez, 
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        warpx_push_ex_pml_current_nodal(i,j,k,
+                            pml_Exfab, pml_jxfab, sigmaj_y, sigmaj_z, mu_c2_dt);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        warpx_push_ey_pml_current_nodal(i,j,k,
+                            pml_Eyfab, pml_jyfab, sigmaj_x, sigmaj_z, mu_c2_dt);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        warpx_push_ez_pml_current_nodal(i,j,k,
+                            pml_Ezfab, pml_jzfab, sigmaj_x, sigmaj_y, mu_c2_dt);
+                    }
+                );
+            }
+
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(
@@ -515,7 +529,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 				   BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
 				   BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
 				   BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                                   &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
+                   &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
 				   &WarpX::maxwell_fdtd_solver_id);
             }
         }

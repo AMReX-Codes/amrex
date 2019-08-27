@@ -1,4 +1,3 @@
-
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
@@ -329,27 +328,6 @@ extern "C"
                             const BL_FORT_FAB_ARG_3D(bx),
                             const BL_FORT_FAB_ARG_3D(by),
                             const BL_FORT_FAB_ARG_3D(bz),
-#if (AMREX_SPACEDIM == 2)
-                            BL_FORT_FAB_ARG_3D(jx),
-                            BL_FORT_FAB_ARG_3D(jy),
-                            BL_FORT_FAB_ARG_3D(jz),
-                            const int* flag,
-                            const amrex::Real* mudt,
-#endif
-#if (AMREX_SPACEDIM == 3)
-                            BL_FORT_FAB_ARG_3D(jx),
-                            BL_FORT_FAB_ARG_3D(jy),
-                            BL_FORT_FAB_ARG_3D(jz),
-                            const int* flag,
-                            const std::array<int,5>* pml_type,//const std::string pml_type,
-                            const amrex::Real* sigjx, const int* sigjx_lo, const int* sigjx_hi,
-                            const amrex::Real* sigjy, const int* sigjy_lo, const int* sigjy_hi,
-                            const amrex::Real* sigjz, const int* sigjz_lo, const int* sigjz_hi,
-                            const amrex::Real* sigsjx, const int* sigsjx_lo, const int* sigsjx_hi,
-                            const amrex::Real* sigsjy, const int* sigsjy_lo, const int* sigsjy_hi,
-                            const amrex::Real* sigjsz, const int* sigsjz_lo, const int* sigsjz_hi,
-                            const amrex::Real* mudt,
-#endif
                             const amrex::Real* dtsdx,
                             const amrex::Real* dtsdy,
                             const amrex::Real* dtsdz);
