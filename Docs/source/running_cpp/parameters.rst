@@ -327,6 +327,7 @@ Particle initialization
 * ``<species>.plot_vars`` (list of `strings` separated by spaces, optional)
     List of particle quantities to write to `plotfiles`. By defaults, all
     quantities are written to file. Choices are
+
     * ``w`` for the particle weight,
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
