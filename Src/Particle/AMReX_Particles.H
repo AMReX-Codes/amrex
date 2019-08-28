@@ -44,6 +44,7 @@
 #include <AMReX_ParticleReduce.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_ParticleCommunication.H>
+#include <AMReX_ParticleLocator.H>
 #include <AMReX_Scan.H>
 
 #ifdef BL_LAZY
@@ -898,6 +899,8 @@ protected:
 
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+
+    mutable ParticleLocator m_particle_locator;
     
 #endif
 
