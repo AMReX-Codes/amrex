@@ -341,22 +341,30 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     Array4<Real> loarr = loreg.array();
     Array4<Real> hiarr = hireg.array();
     Array4<Real const> farr = flux.array();
-
-    Gpu::LaunchSafeGuard lg((runon == RunOn::Gpu) && Gpu::inLaunchRegion());
-
     const Dim3 local_ratio = ratio.dim3();
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA
-    ( lobox, tlobx,
-      {
-          fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp,
-                          numcomp, dir, local_ratio, mult);
-      },
-      hibox, thibx,
-      {
-          fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp,
-                          numcomp, dir, local_ratio, mult);
-      }
-    );
+
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion())
+    {
+        AMREX_LAUNCH_DEVICE_LAMBDA
+        ( lobox, tlobx,
+          {
+              fluxreg_fineadd(tlobx, loarr, destcomp, farr, srccomp,
+                              numcomp, dir, local_ratio, mult);
+          },
+          hibox, thibx,
+          {
+              fluxreg_fineadd(thibx, hiarr, destcomp, farr, srccomp,
+                              numcomp, dir, local_ratio, mult);
+          }
+        );
+    }
+    else
+    {
+        fluxreg_fineadd(lobox, loarr, destcomp, farr, srccomp,
+                        numcomp, dir, local_ratio, mult);
+        fluxreg_fineadd(hibox, hiarr, destcomp, farr, srccomp,
+                        numcomp, dir, local_ratio, mult);
+    }
 }
 
 void
@@ -382,24 +390,34 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     Array4<Real> hiarr = hireg.array();
     Array4<Real const> farr = flux.array();
     Array4<Real const> aarr = area.array();
-
-    Gpu::LaunchSafeGuard lg((runon == RunOn::Gpu) && Gpu::inLaunchRegion());
-
     const Dim3 local_ratio = ratio.dim3();
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA
-    ( lobox, tlobx,
-      {
-          fluxreg_fineareaadd(tlobx, loarr, destcomp,
-                              aarr, farr, srccomp,
-                              numcomp, dir, local_ratio, mult);
-      },
-      hibox, thibx,
-      {
-          fluxreg_fineareaadd(thibx, hiarr, destcomp,
-                              aarr, farr, srccomp,
-                              numcomp, dir, local_ratio, mult);
-      }
-    );
+
+    if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion())
+    {
+        AMREX_LAUNCH_DEVICE_LAMBDA
+        ( lobox, tlobx,
+          {
+              fluxreg_fineareaadd(tlobx, loarr, destcomp,
+                                  aarr, farr, srccomp,
+                                  numcomp, dir, local_ratio, mult);
+          },
+          hibox, thibx,
+          {
+              fluxreg_fineareaadd(thibx, hiarr, destcomp,
+                                  aarr, farr, srccomp,
+                                  numcomp, dir, local_ratio, mult);
+          }
+        );
+    }
+    else
+    {
+        fluxreg_fineareaadd(lobox, loarr, destcomp,
+                            aarr, farr, srccomp,
+                            numcomp, dir, local_ratio, mult);
+        fluxreg_fineareaadd(hibox, hiarr, destcomp,
+                            aarr, farr, srccomp,
+                            numcomp, dir, local_ratio, mult);
+    }
 }
 
 void
