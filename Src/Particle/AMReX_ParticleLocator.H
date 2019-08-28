@@ -135,7 +135,7 @@ public:
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
         
-        thrust::copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
+        Gpu::thrust_copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 

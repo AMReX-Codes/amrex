@@ -1677,7 +1677,9 @@ BuildRedistributeMask (int lev, int nghost) const
         }
         RemoveDuplicates(neighbor_procs);
 
+#ifdef AMREX_USE_GPU
         m_particle_locator.build(ba);
+#endif
     }    
 }
 
