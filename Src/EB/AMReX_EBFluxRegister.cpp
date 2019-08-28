@@ -93,7 +93,8 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
                  Array4<Real const> const& apz = areafrac[2]->const_array(););
     Array4<Real const> const& vfrac = volfrac.const_array();
 
-    AMREX_HOST_DEVICE_FOR_4D(bx, nc, i, j, k, n,
+    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu, bx, nc, i, j, k, n,
     {
         eb_flux_reg_crseadd_va(i,j,k,n,fab,amrflag,AMREX_D_DECL(fx,fy,fz),
                                vfrac,AMREX_D_DECL(apx,apy,apz),
@@ -117,68 +118,111 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
     if (cfp_fabs.empty()) return;
 
+    bool run_on_gpu = (runon == RunOn::Gpu and Gpu::inLaunchRegion());
+
     const int nc = m_cfpatch.nComp();
 
     const Box& tbx = mfi.tilebox();
     BL_ASSERT(tbx.cellCentered());
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
     const Box& fbx = amrex::refine(cbx, m_ratio);
-    
+
     std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
     std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
+    std::array<Elixir,AMREX_SPACEDIM> ftmp_eli;
     if (fbx != tbx) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const Box& b = amrex::surroundingNodes(fbx,idim);
             ftmp[idim].resize(b,nc);
-            ftmp[idim].setVal(0.0);
-            ftmp[idim].copy(*a_flux[idim]);
+            if (run_on_gpu) ftmp_eli[idim] = ftmp[idim].elixir();
+            Array4<Real> const& atmp = ftmp[idim].array();
+            Array4<Real const> const& a_f = a_flux[idim]->const_array();
+            const Box& a_box = a_flux[idim]->box();
+            AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,b,nc,i,j,k,n,
+            {
+                atmp(i,j,k,n) = 0.0;
+                if (a_f.contains(i,j,k)) {
+                    atmp(i,j,k,n) = a_f(i,j,k,n);
+                }
+            });
             flux[idim] = &ftmp[idim];
         }
     }
 
-    FArrayBox cvol;
+    AMREX_D_TERM(Array4<Real const> const& fx = flux[0]->const_array();,
+                 Array4<Real const> const& fy = flux[1]->const_array();,
+                 Array4<Real const> const& fz = flux[2]->const_array(););
 
-    for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
+    Array4<Real const> const& vfrac = volfrac.const_array();
+    AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array();,
+                 Array4<Real const> const& apy = areafrac[1]->const_array();,
+                 Array4<Real const> const& apz = areafrac[2]->const_array(););
+
+    Dim3 ratio = m_ratio.dim3();
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
+        Real fac = dt/dx[idim];
         const Box& lobx = amrex::adjCellLo(cbx, idim);
         const Box& hibx = amrex::adjCellHi(cbx, idim);
         for (FArrayBox* cfp : cfp_fabs)
         {
-            {
-                const Box& lobx_is = lobx & cfp->box();
-                const int side = 0;
-                if (lobx_is.ok())
+            Array4<Real> const& cfa = cfp->array();
+            const Box& lobx_is = lobx & cfp->box();
+            if (lobx_is.ok()) {
+                if (idim == 0)
                 {
-                    cvol.resize(lobx_is);
-                    amrex_eb_flux_reg_fineadd_va(BL_TO_FORTRAN_BOX(lobx_is),
-                                                 BL_TO_FORTRAN_ANYD(*cfp),
-                                                 BL_TO_FORTRAN_ANYD(*flux[idim]),
-                                                 BL_TO_FORTRAN_ANYD(cvol),
-                                                 BL_TO_FORTRAN_ANYD(volfrac),
-                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*areafrac[0]),
-                                                              BL_TO_FORTRAN_ANYD(*areafrac[1]),
-                                                              BL_TO_FORTRAN_ANYD(*areafrac[2])),
-                                                 dx, &dt, &nc, &idim, &side,
-                                                 m_ratio.getVect());
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,lobx_is,nc,i,j,k,n,
+                    {
+                        eb_flux_reg_fineadd_va_xlo(i,j,k,n, cfa, fx, vfrac, apx, fac, ratio);
+                    });
                 }
+#if (AMREX_SPACEDIM >= 2)
+                else if (idim == 1)
+                {
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,lobx_is,nc,i,j,k,n,
+                    {
+                        eb_flux_reg_fineadd_va_ylo(i,j,k,n, cfa, fy, vfrac, apy, fac, ratio);
+                    });
+                }
+#if (AMREX_SPACEDIM == 3)
+                else
+                {
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,lobx_is,nc,i,j,k,n,
+                    {
+                        eb_flux_reg_fineadd_va_zlo(i,j,k,n, cfa, fz, vfrac, apz, fac, ratio);
+                    });
+                }
+#endif
+#endif
             }
-            {
-                const Box& hibx_is = hibx & cfp->box();
-                const int side = 1;
-                if (hibx_is.ok())
+            const Box& hibx_is = hibx & cfp->box();
+            if (hibx_is.ok()) {
+                if (idim == 0)
                 {
-                    cvol.resize(hibx_is);
-                    amrex_eb_flux_reg_fineadd_va(BL_TO_FORTRAN_BOX(hibx_is),
-                                                 BL_TO_FORTRAN_ANYD(*cfp),
-                                                 BL_TO_FORTRAN_ANYD(*flux[idim]),
-                                                 BL_TO_FORTRAN_ANYD(cvol),
-                                                 BL_TO_FORTRAN_ANYD(volfrac),
-                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*areafrac[0]),
-                                                              BL_TO_FORTRAN_ANYD(*areafrac[1]),
-                                                              BL_TO_FORTRAN_ANYD(*areafrac[2])),
-                                                 dx, &dt, &nc, &idim, &side,
-                                                 m_ratio.getVect());
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,hibx_is,nc,i,j,k,n,
+                    {
+                        eb_flux_reg_fineadd_va_xhi(i,j,k,n, cfa, fx, vfrac, apx, fac, ratio);
+                    });
                 }
+#if (AMREX_SPACEDIM >= 2)
+                else if (idim == 1)
+                {
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,hibx_is,nc,i,j,k,n,
+                    {
+                        eb_flux_reg_fineadd_va_yhi(i,j,k,n, cfa, fy, vfrac, apy, fac, ratio);
+                    });
+                }
+#if (AMREX_SPACEDIM == 3)
+                else
+                {
+                    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,hibx_is,nc,i,j,k,n,
+                    {
+                        eb_flux_reg_fineadd_va_zhi(i,j,k,n, cfa, fz, vfrac, apz, fac, ratio);
+                    });
+                }
+#endif
+#endif
             }
         }
     }
@@ -189,6 +233,8 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     dmgrow.copy(dm,tbxg1,0,tbxg1,0,nc);
 
     const Box& cbxg1 = amrex::grow(cbx,1);
+
+    FArrayBox cvol;
 
     for (FArrayBox* cfp : cfp_fabs)
     {
