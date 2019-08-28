@@ -147,7 +147,7 @@ PlasmaInjector::PlasmaInjector (int ispecies, const std::string& name)
         // For 2D, only two are expected. The third is overwritten with 1.
         num_particles_per_cell_each_dim.assign(3, 1);
         pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
-#if WARPX_DIM_2D
+#if WARPX_DIM_XZ
         num_particles_per_cell_each_dim[2] = 1;
 #endif
         // Construct InjectorPosition from InjectorPositionRegular.

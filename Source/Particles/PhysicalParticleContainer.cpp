@@ -165,7 +165,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             Real x = distx(mt);
             Real y = disty(mt);
             Real z = distz(mt);
-#elif (defined WARPX_DIM_2D)
+#elif (defined WARPX_DIM_XZ)
             Real weight = q_tot/npart/charge/y_rms;
             Real x = distx(mt);
             Real y = 0.;
@@ -490,7 +490,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #else
             Real x = overlap_corner[0] + (iv[0]+r.x)*dx[0];
             Real y = 0.0;
-#ifdef WARPX_DIM_2D
+#if   defined WARPX_DIM_XZ
             Real z = overlap_corner[1] + (iv[1]+r.y)*dx[1];
 #elif defined WARPX_DIM_RZ
             // Note that for RZ, r.y will be theta
