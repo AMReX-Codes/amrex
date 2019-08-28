@@ -1055,6 +1055,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const auto is_per = Geom(lev).isPeriodicArray();
     const Box domain = Geom(lev).Domain();
 
+    auto assign_grid = m_particle_locator.getGridAssignor();
+
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
     std::map<int, int> new_sizes;
@@ -1072,11 +1074,42 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         m_aos_r.resize(np);
         for (int i = 0; i < NArrayReal; ++i) m_rdata_r[i].resize(np);
         for (int i = 0; i < NArrayInt;  ++i) m_idata_r[i].resize(np);
+
+        m_grids_tmp.resize(np);
+        m_grids_r.resize(np);
+        
+        auto grids_ptr = m_grids_tmp.dataPtr();
+        ParticleType* p_ptr = &(aos[0]);
+        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
+        {
+            auto& p = p_ptr[i];
+            if (p.id() < 0) 
+            {    
+                grids_ptr[i] = -1;
+            }
+            else
+            {
+                // apply periodic boundary conditions
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                {
+                    if (not is_per[idim]) continue;
+                    if (p.pos(idim) > phi[idim]) { 
+                        p.pos(idim) -= (phi[idim] - plo[idim]); 
+                    } else if (p.pos(idim) < plo[idim]) {
+                        p.pos(idim) += (phi[idim] - plo[idim]);
+                    }
+                }
+                
+                IntVect iv = getParticleCell(p, plo, dxi, domain);
+                grids_ptr[i] = assign_grid(iv);
+            }
+        });
+
         int num_stay;
         {
-            auto particle_stays = [=] AMREX_GPU_DEVICE (const ParticleType& p) -> int
+            auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
             {
-                return getParticleGrid(p, mask_arr, plo, dxi, domain) == gid;
+                return grids_ptr[i] == gid;
             };
             
             const auto src_data = src_tile.getConstParticleTileData();
@@ -1086,26 +1119,29 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 dst_data.m_rdata[i] = m_rdata_r[i].dataPtr();
             for (int i = 0; i < NArrayInt; ++i)
                 dst_data.m_idata[i] = m_idata_r[i].dataPtr();
+            auto dst_grids_ptr = m_grids_r.dataPtr();
 
             num_stay = Scan::PrefixSum<int> (np,
                 [=] AMREX_GPU_DEVICE (int i) -> int
                 {
-                    return particle_stays(src_data.m_aos[i]);
+                    return particle_stays(i);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int const& s)
                 {
-                    if (particle_stays(src_data.m_aos[i])) {
+                    if (particle_stays(i)) {
                         dst_data.m_aos[s] = src_data.m_aos[i];
                         for (int j = 0; j < NArrayReal; ++j)
                             dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
                         for (int j = 0; j < NArrayInt; ++j)
-                            dst_data.m_idata[j][s] = src_data.m_idata[j][i];
+                            dst_data.m_idata[j][s] = src_data.m_idata[j][i];                        
+                        dst_grids_ptr[s] = grids_ptr[i];
                     } else {
                         dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
                         for (int j = 0; j < NArrayReal; ++j)
                             dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
                         for (int j = 0; j < NArrayInt; ++j)
                             dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
+                        dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
                     }
                 }, 
                 Scan::Type::exclusive);
@@ -1129,31 +1165,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	auto p_boxes = op.m_boxes[gid].dataPtr();
 	auto p_src_indices = op.m_src_indices[gid].dataPtr();
 	auto p_periodic_shift = op.m_periodic_shift[gid].dataPtr();
-        ParticleType* p_ptr = &(aos[0]);
+        auto dst_grids_ptr = m_grids_r.dataPtr();
 
-	AMREX_FOR_1D ( np, i,
+	AMREX_FOR_1D ( num_move, i,
         {
-            auto& p = p_ptr[i];
-
-            int grid_id;
-            if (i >= num_stay) grid_id = getParticleGrid(p, mask_arr, plo, dxi, domain);
-            // apply periodic boundary conditions
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                if (not is_per[idim]) continue;
-                if (p.pos(idim) > phi[idim]) { 
-                    p.pos(idim) -= (phi[idim] - plo[idim]); 
-                } else if (p.pos(idim) < plo[idim]) {
-                    p.pos(idim) += (phi[idim] - plo[idim]);
-                }
-            }
-
-            if (i >= num_stay) 
-            {
-                p_boxes[i-num_stay] = grid_id;
-                p_periodic_shift[i-num_stay] = IntVect(AMREX_D_DECL(0,0,0));
-                p_src_indices[i-num_stay] = i;
-            }
+            p_boxes[i] = dst_grids_ptr[i + num_stay];
+            p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
+            p_src_indices[i] = i+num_stay;
 	});
     }
     BL_PROFILE_VAR_STOP(blp_partition);
@@ -1658,7 +1676,9 @@ BuildRedistributeMask (int lev, int nghost) const
             }
         }
         RemoveDuplicates(neighbor_procs);
-    }
+
+        m_particle_locator.build(ba);
+    }    
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
