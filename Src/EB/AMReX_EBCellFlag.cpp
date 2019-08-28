@@ -35,7 +35,7 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     }
     else
     {
-        const Box& bx = amrex::enclosedCells(bx_in) & m_region;
+        const Box& bx = amrex::enclosedCells(bx_in);
         std::map<Box,FabType>::iterator it;
 #ifdef _OPENMP
 #pragma omp critical (amrex_ebcellflagfab_gettype)

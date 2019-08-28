@@ -112,26 +112,40 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
-    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
-    const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    FArrayBox slopefab(cslope_bx, num_slope);
-    Elixir slopeeli = slopefab.elixir();
-
-    Array4<Real const> const& crsearr = crse.array();
-    Array4<Real> const& finearr = fine.array();
-    Array4<Real> const& slopearr = slopefab.array();
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+    if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
     {
-        amrex::nodebilin_slopes(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
-    });
+        int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
+        const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
+        FArrayBox slopefab(cslope_bx, num_slope);
+        Elixir slopeeli = slopefab.elixir();
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+        Array4<Real const> const& crsearr = crse.const_array();
+        Array4<Real> const& finearr = fine.array();
+        Array4<Real> const& slopearr = slopefab.array();
+
+        AMREX_LAUNCH_DEVICE_LAMBDA (cslope_bx, tbx,
+        {
+            amrex::nodebilin_slopes(tbx, slopearr, crsearr, crse_comp, ncomp, ratio);
+        });
+
+        AMREX_LAUNCH_DEVICE_LAMBDA (fine_region, tbx,
+        {
+            amrex::nodebilin_interp(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
+        });
+    }
+    else
     {
-        amrex::nodebilin_interp(tbx, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
-    });
+        int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
+        const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
+        FArrayBox slopefab(cslope_bx, num_slope);
+
+        Array4<Real const> const& crsearr = crse.const_array();
+        Array4<Real> const& finearr = fine.array();
+        Array4<Real> const& slopearr = slopefab.array();
+
+        amrex::nodebilin_slopes(cslope_bx, slopearr, crsearr, crse_comp, ncomp, ratio);
+        amrex::nodebilin_interp(fine_region, finearr, fine_comp, ncomp, slopearr, crsearr, crse_comp, ratio);
+    }
 }
 
 CellBilinear::~CellBilinear () {}
@@ -279,73 +293,121 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     AMREX_ASSERT(fine.box().contains(fine_region));
 
-    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
+    {
+        Array4<Real const> const& crsearr = crse.const_array();
+        Array4<Real> const& finearr = fine.array();
 
-    Array4<Real const> const& crsearr = crse.array();
-    Array4<Real> const& finearr = fine.array();
+        const Box& crse_region = CoarseBox(fine_region,ratio);
+        const Box& cslope_bx = amrex::grow(crse_region,-1);
 
-    const Box& crse_region = CoarseBox(fine_region,ratio);
-    const Box& cslope_bx = amrex::grow(crse_region,-1);
+        AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
+        BCRec const* bcrp = async_bcr.data();
 
-    AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
-    BCRec* bcrp = async_bcr.data();
+        // component of ccfab : slopes for first compoent for x-direction
+        //                      slopes for second component for x-direction
+        //                      ...
+        //                      slopes for last component for x-direction
+        //                      slopes for y-direction
+        //                      slopes for z-drction
+        // then followed by
+        //      lin_lim = true : factors (one for all components) for x, y and z-direction
+        //      lin_lim = false: min for every component followed by max for every component
+        const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
+        FArrayBox ccfab(cslope_bx, ntmp);
+        Elixir cceli = ccfab.elixir();
+        Array4<Real> const& ccarr = ccfab.array();
 
-    // component of ccfab : slopes for first compoent for x-direction
-    //                      slopes for second component for x-direction
-    //                      ...
-    //                      slopes for last component for x-direction
-    //                      slopes for y-direction
-    //                      slopes for z-drction
-    // then followed by
-    //      lin_lim = true : factors (one for all components) for x, y and z-direction
-    //      lin_lim = false: min for every component followed by max for every component
-    const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
-    FArrayBox ccfab(cslope_bx, ntmp);
-    Elixir cceli = ccfab.elixir();
-    Array4<Real> const& ccarr = ccfab.array();
+        const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
 
-    const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
+        AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
+        Real const* voff = async_voff.data();
 
-    AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
-    Real const* voff = async_voff.data();
+        if (do_linear_limiting) {
+            AMREX_LAUNCH_DEVICE_LAMBDA (cslope_bx, tbx,
+            {
+                amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
+            });
 
-    if (do_linear_limiting) {
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
-        {
-            amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
-        });
+            AMREX_LAUNCH_DEVICE_LAMBDA (fine_region, tbx,
+            {
+                amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
+                                          voff, ratio);
+            });
+        } else {
+            const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
+            FArrayBox fafab(fslope_bx, ncomp);
+            Elixir faeli = fafab.elixir();
+            Array4<Real> const& faarr = fafab.array();
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
-        {
-            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
+            AMREX_LAUNCH_DEVICE_LAMBDA (cslope_bx, tbx,
+            {
+                amrex::cellconslin_slopes_mclim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (fslope_bx, tbx,
+            {
+                amrex::cellconslin_fine_alpha(tbx, faarr, ccarr, ncomp, voff, ratio);
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (cslope_bx, tbx,
+            {
+                amrex::cellconslin_slopes_mmlim(tbx, ccarr, faarr, ncomp, ratio);
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (fine_region, tbx,
+           {
+               amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
+                                         voff, ratio);
+           });
+        }
+    }
+    else
+    {
+        Array4<Real const> const& crsearr = crse.const_array();
+        Array4<Real> const& finearr = fine.array();
+
+        const Box& crse_region = CoarseBox(fine_region,ratio);
+        const Box& cslope_bx = amrex::grow(crse_region,-1);
+
+        BCRec const* bcrp = bcr.data();
+
+        // component of ccfab : slopes for first compoent for x-direction
+        //                      slopes for second component for x-direction
+        //                      ...
+        //                      slopes for last component for x-direction
+        //                      slopes for y-direction
+        //                      slopes for z-drction
+        // then followed by
+        //      lin_lim = true : factors (one for all components) for x, y and z-direction
+        //      lin_lim = false: min for every component followed by max for every component
+        const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
+        FArrayBox ccfab(cslope_bx, ntmp);
+        Array4<Real> const& ccarr = ccfab.array();
+
+        const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
+
+        Real const* voff = vec_voff.data();
+
+        if (do_linear_limiting) {
+            amrex::cellconslin_slopes_linlim(cslope_bx, ccarr, crsearr, crse_comp, ncomp, bcrp);
+
+            amrex::cellconslin_interp(fine_region, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                       voff, ratio);
-        });
-    } else {
-        const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
-        FArrayBox fafab(fslope_bx, ncomp);
-        Elixir faeli = fafab.elixir();
-        Array4<Real> const& faarr = fafab.array();
+        } else {
+            const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
+            FArrayBox fafab(fslope_bx, ncomp);
+            Array4<Real> const& faarr = fafab.array();
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
-        {
-            amrex::cellconslin_slopes_mclim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
-        });
+            amrex::cellconslin_slopes_mclim(cslope_bx, ccarr, crsearr, crse_comp, ncomp, bcrp);
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fslope_bx, tbx,
-        {
-            amrex::cellconslin_fine_alpha(tbx, faarr, ccarr, ncomp, voff, ratio);
-        });
+            amrex::cellconslin_fine_alpha(fslope_bx, faarr, ccarr, ncomp, voff, ratio);
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
-        {
-            amrex::cellconslin_slopes_mmlim(tbx, ccarr, faarr, ncomp, ratio);
-        });
+            amrex::cellconslin_slopes_mmlim(cslope_bx, ccarr, faarr, ncomp, ratio);
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
-        {
-            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
+            amrex::cellconslin_interp(fine_region, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                       voff, ratio);
-        });
+        }
     }
 }
 
@@ -509,15 +571,20 @@ PCInterp::interp (const FArrayBox& crse,
 {
     BL_PROFILE("PCInterp::interp()");
 
-    Array4<Real const> const& crsearr = crse.array();
+    Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();;
 
-    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+    if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
     {
-        amrex::pcinterp_interp(tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
-    });
+        AMREX_LAUNCH_DEVICE_LAMBDA (fine_region, tbx,
+        {
+            amrex::pcinterp_interp(tbx,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
+        });
+    }
+    else
+    {
+        amrex::pcinterp_interp(fine_region,finearr,fine_comp,ncomp,crsearr,crse_comp,ratio);
+    }
 }
 
 CellConservativeProtected::CellConservativeProtected () {}
@@ -562,45 +629,77 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     AMREX_ASSERT(fine.box().contains(fine_region));
 
-    Gpu::LaunchSafeGuard lg(runon == RunOn::Gpu && Gpu::inLaunchRegion());
-
-    Array4<Real const> const& crsearr = crse.array();
-    Array4<Real> const& finearr = fine.array();
-
-    const Box& crse_region = CoarseBox(fine_region,ratio);
-    const Box& cslope_bx = amrex::grow(crse_region,-1);
-
-    AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
-    BCRec* bcrp = async_bcr.data();
-
-    // component of ccfab : slopes for first compoent for x-direction
-    //                      slopes for second component for x-direction
-    //                      ...
-    //                      slopes for last component for x-direction
-    //                      slopes for y-direction
-    //                      slopes for z-drction
-    // then followed by
-    //                      factors (one for all components) for x, y and z-direction
-    const int ntmp = (ncomp+1)*AMREX_SPACEDIM;
-    FArrayBox ccfab(cslope_bx, ntmp);
-    Elixir cceli = ccfab.elixir();
-    Array4<Real> const& ccarr = ccfab.array();
-
-    const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
-
-    AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
-    Real const* voff = async_voff.data();
-
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+    if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
     {
-        amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
-    });
+        Array4<Real const> const& crsearr = crse.const_array();
+        Array4<Real> const& finearr = fine.array();
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+        const Box& crse_region = CoarseBox(fine_region,ratio);
+        const Box& cslope_bx = amrex::grow(crse_region,-1);
+
+        AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
+        BCRec const* bcrp = async_bcr.data();
+
+        // component of ccfab : slopes for first compoent for x-direction
+        //                      slopes for second component for x-direction
+        //                      ...
+        //                      slopes for last component for x-direction
+        //                      slopes for y-direction
+        //                      slopes for z-drction
+        // then followed by
+        //                      factors (one for all components) for x, y and z-direction
+        const int ntmp = (ncomp+1)*AMREX_SPACEDIM;
+        FArrayBox ccfab(cslope_bx, ntmp);
+        Elixir cceli = ccfab.elixir();
+        Array4<Real> const& ccarr = ccfab.array();
+
+        const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
+
+        AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
+        Real const* voff = async_voff.data();
+
+        AMREX_LAUNCH_DEVICE_LAMBDA (cslope_bx, tbx,
+        {
+            amrex::cellconslin_slopes_linlim(tbx, ccarr, crsearr, crse_comp, ncomp, bcrp);
+        });
+
+        AMREX_LAUNCH_DEVICE_LAMBDA (fine_region, tbx,
+        {
+            amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
+                                      voff, ratio);
+        });
+    }
+    else
     {
-        amrex::cellconslin_interp(tbx, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
+        Array4<Real const> const& crsearr = crse.const_array();
+        Array4<Real> const& finearr = fine.array();
+
+        const Box& crse_region = CoarseBox(fine_region,ratio);
+        const Box& cslope_bx = amrex::grow(crse_region,-1);
+
+        BCRec const* bcrp = bcr.data();
+
+        // component of ccfab : slopes for first compoent for x-direction
+        //                      slopes for second component for x-direction
+        //                      ...
+        //                      slopes for last component for x-direction
+        //                      slopes for y-direction
+        //                      slopes for z-drction
+        // then followed by
+        //                      factors (one for all components) for x, y and z-direction
+        const int ntmp = (ncomp+1)*AMREX_SPACEDIM;
+        FArrayBox ccfab(cslope_bx, ntmp);
+        Array4<Real> const& ccarr = ccfab.array();
+
+        const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
+
+        Real const* voff = vec_voff.data();
+
+        amrex::cellconslin_slopes_linlim(cslope_bx, ccarr, crsearr, crse_comp, ncomp, bcrp);
+
+        amrex::cellconslin_interp(fine_region, finearr, fine_comp, ncomp, ccarr, crsearr, crse_comp,
                                   voff, ratio);
-    });
+    }
 }
 
 void

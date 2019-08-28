@@ -3,7 +3,6 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_EBInterp_F.H>
 
 namespace amrex {
 
@@ -66,17 +65,31 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
         }
         else
         {
-
-            const int* ratioV = ratio.getVect();
-            const Box& cdomain = crse_geom.Domain();
-
-            amrex_ebinterp_pc_sv(BL_TO_FORTRAN_BOX(target_fine_region),
-                                 BL_TO_FORTRAN_BOX(crse_bx),
-                                 BL_TO_FORTRAN_N_ANYD(crse,crse_comp),
-                                 BL_TO_FORTRAN_N_ANYD(fine,fine_comp),
-                                 &ncomp, ratioV,
-                                 BL_TO_FORTRAN_BOX(cdomain),
-                                 BL_TO_FORTRAN_ANYD(crse_flag));
+            const auto& cflag = crse_flag.const_array();
+            auto const& fa = fine.array();
+            auto const& ca = crse.const_array();
+            if (Gpu::inLaunchRegion() && runon == RunOn::Gpu)
+            {
+                amrex::ParallelFor(target_fine_region, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
+                    if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
+                        fa(i,j,k,n+fine_comp) = ca(cxyz.x,cxyz.y,cxyz.z,n+crse_comp);
+                    }
+                });
+            }
+            else
+            {
+                amrex::LoopOnCpu(target_fine_region, ncomp,
+                [=] (int i, int j, int k, int n) noexcept
+                {
+                    Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
+                    if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
+                        fa(i,j,k,n+fine_comp) = ca(cxyz.x,cxyz.y,cxyz.z,n+crse_comp);
+                    }
+                });
+            }
         }
     }        
 }
