@@ -40,7 +40,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        const auto& flagarr = flags.array(mfi);
+        const auto& flagarr = flags.const_array(mfi);
         Array4<Real> const& arr = mf.array(mfi);
 
         if (is_cell_centered) {
@@ -85,7 +85,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        const auto& flagarr = flags.array(mfi);
+        const auto& flagarr = flags.const_array(mfi);
         Array4<Real> const& arr = mf.array(mfi);
 
         if (is_cell_centered) {
@@ -172,9 +172,9 @@ EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val)
         }
         else if (fabtyp == FabType::singlevalued)
         {
-            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->array(mfi);,
-                         Array4<Real const> const& ay = area[1]->array(mfi);,
-                         Array4<Real const> const& az = area[2]->array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
+                         Array4<Real const> const& ay = area[1]->const_array(mfi);,
+                         Array4<Real const> const& az = area[2]->const_array(mfi););
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 xbx, txbx,
                 {

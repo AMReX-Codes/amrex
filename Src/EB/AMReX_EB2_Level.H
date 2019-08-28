@@ -142,7 +142,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     {
         const Box& vbx = mfi.validbox();
         const Box& gbx = amrex::surroundingNodes(amrex::grow(vbx,1));
-        int box_type = gshop.getBoxType(gbx, geom);
+        int box_type = gshop.getBoxType(gbx, geom, RunOn::Gpu);
         if (box_type == gshop.allcovered) {
             covered_boxes.push_back(vbx);
         } else if (box_type == gshop.mixedcells) {
@@ -222,7 +222,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             gfab.buildTypes(cellflag);
 
-            Array4<Real const> const& lst = levelset.array();
+            Array4<Real const> const& lst = levelset.const_array();
             Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
             Array4<Real> const& vfr = m_volfrac.array(mfi);
             Array4<Real> const& ctr = m_centroid.array(mfi);

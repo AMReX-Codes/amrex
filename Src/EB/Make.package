@@ -23,9 +23,8 @@ CEXE_headers += AMReX_EBSupport.H
 F90EXE_sources += AMReX_ebcellflag_mod.F90
 F90EXE_sources += AMReX_EBMultiFabUtil_$(DIM)d.F90
 
-CEXE_headers += AMReX_EBInterpolater.H AMReX_EBInterp_F.H
+CEXE_headers += AMReX_EBInterpolater.H
 CEXE_sources += AMReX_EBInterpolater.cpp
-F90EXE_sources += AMReX_ebinterp_$(DIM)d.F90
 
 CEXE_headers += AMReX_EBFluxRegister.H AMReX_EBFluxRegister_F.H
 CEXE_sources += AMReX_EBFluxRegister.cpp
