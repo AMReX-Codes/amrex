@@ -36,11 +36,29 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                     const Box& domain)
+                     const Box& domain) noexcept
 {
     if (p.id() < 0) return -1;    
     IntVect iv = getParticleCell(p, plo, dxi, domain);
     return mask(iv);
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void enforcePeriodic (P& p,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
+                      amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (not is_per[idim]) continue;
+        if (p.pos(idim) > phi[idim]) { 
+            p.pos(idim) -= (phi[idim] - plo[idim]); 
+        } else if (p.pos(idim) < plo[idim]) {
+            p.pos(idim) += (phi[idim] - plo[idim]);
+        }
+    }
 }
 
 template <class PC>

@@ -1089,17 +1089,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
             else
             {
-                // apply periodic boundary conditions
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                {
-                    if (not is_per[idim]) continue;
-                    if (p.pos(idim) > phi[idim]) { 
-                        p.pos(idim) -= (phi[idim] - plo[idim]); 
-                    } else if (p.pos(idim) < plo[idim]) {
-                        p.pos(idim) += (phi[idim] - plo[idim]);
-                    }
-                }
-                
+                enforcePeriodic(p, plo, phi, is_per);
                 IntVect iv = getParticleCell(p, plo, dxi, domain);
                 grids_ptr[i] = assign_grid(iv);
             }
@@ -1246,14 +1236,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         ParticleType* pstruct = &(particles.GetArrayOfStructs()[0]);
         AMREX_FOR_1D ( np, i,
         {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (not is_per[idim]) continue;
-                if (pstruct[i].pos(idim) > phi[idim]) { 
-                    pstruct[i].pos(idim) -= (phi[idim] - plo[idim]); 
-                } else if (pstruct[i].pos(idim) < plo[idim]) {
-                    pstruct[i].pos(idim) += (phi[idim] - plo[idim]);
-                }
-            }
+            enforcePeriodic(pstruct[i], plo, phi, is_per);
         });
     }
 }
