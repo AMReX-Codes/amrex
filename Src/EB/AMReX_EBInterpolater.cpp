@@ -65,17 +65,31 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
         }
         else
         {
-            Gpu::LaunchSafeGuard lsg(Gpu::inLaunchRegion() && runon == RunOn::Gpu);
             const auto& cflag = crse_flag.const_array();
             auto const& fa = fine.array();
             auto const& ca = crse.const_array();
-            AMREX_HOST_DEVICE_FOR_4D (target_fine_region, ncomp, i, j, k, n,
+            if (Gpu::inLaunchRegion() && runon == RunOn::Gpu)
             {
-                Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
-                if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
-                    fa(i,j,k,n+fine_comp) = ca(cxyz.x,cxyz.y,cxyz.z,n+crse_comp);
-                }
-            });
+                amrex::ParallelFor(target_fine_region, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
+                    if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
+                        fa(i,j,k,n+fine_comp) = ca(cxyz.x,cxyz.y,cxyz.z,n+crse_comp);
+                    }
+                });
+            }
+            else
+            {
+                amrex::LoopOnCpu(target_fine_region, ncomp,
+                [=] (int i, int j, int k, int n) noexcept
+                {
+                    Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
+                    if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
+                        fa(i,j,k,n+fine_comp) = ca(cxyz.x,cxyz.y,cxyz.z,n+crse_comp);
+                    }
+                });
+            }
         }
     }        
 }
