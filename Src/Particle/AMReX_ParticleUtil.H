@@ -18,22 +18,6 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
-                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
-                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                     const Box& domain)
-{
-    if (p.id() < 0) return -1;
-    IntVect iv = IntVect(
-        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
-                     floor((p.pos(1)-plo[1])*dxi[1]),
-                     floor((p.pos(2)-plo[2])*dxi[2])));
-    iv += domain.smallEnd();
-    return mask(iv);
-}
-
-template <typename P>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 IntVect getParticleCell (P const& p,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
@@ -45,6 +29,18 @@ IntVect getParticleCell (P const& p,
                      floor((p.pos(2)-plo[2])*dxi[2])));
     iv += domain.smallEnd();
     return iv;
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
+                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                     const Box& domain)
+{
+    if (p.id() < 0) return -1;    
+    IntVect iv = getParticleCell(p, plo, dxi, domain);
+    return mask(iv);
 }
 
 template <class PC>
