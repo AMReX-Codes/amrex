@@ -7,6 +7,7 @@
 [![Language](https://img.shields.io/badge/language-C%2B%2B11-orange.svg)](https://isocpp.org/)
 [![Development Status](https://img.shields.io/badge/development%20status-alpha-orange.svg)]()
 [![License WarpX](https://img.shields.io/badge/license-BSD--3--Clause--LBNL-blue.svg)](https://spdx.org/licenses/BSD-3-Clause-LBNL.html)
+[![DOI](https://img.shields.io/badge/DOI-10.1016/j.nima.2018.01.035-blue.svg)](https://doi.org/10.1016/j.nima.2018.01.035)
 
 ## Overview
 
