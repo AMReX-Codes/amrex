@@ -505,15 +505,15 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                 const Real* sigmaj_z = sigba[mfi].sigma[2].data();
                 amrex::ParallelFor( tex, tey, tez, 
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        warpx_push_ex_pml_current_nodal(i,j,k,
+                        push_ex_pml_current(i,j,k,
                             pml_Exfab, pml_jxfab, sigmaj_y, sigmaj_z, mu_c2_dt);
                     },
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        warpx_push_ey_pml_current_nodal(i,j,k,
+                        push_ey_pml_current(i,j,k,
                             pml_Eyfab, pml_jyfab, sigmaj_x, sigmaj_z, mu_c2_dt);
                     },
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        warpx_push_ez_pml_current_nodal(i,j,k,
+                        push_ez_pml_current(i,j,k,
                             pml_Ezfab, pml_jzfab, sigmaj_x, sigmaj_y, mu_c2_dt);
                     }
                 );

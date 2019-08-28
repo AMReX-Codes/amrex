@@ -352,16 +352,16 @@ WarpX::OneStep_nosub (Real cur_time)
 
                 amrex::ParallelFor( tjx, tjy, tjz,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        warpx_damp_jx_pml(i,j,k,
-                            pml_jxfab, sigma_star_cum_fac_j_x, sigma_cum_fac_j_y, sigma_cum_fac_j_z);
+                        damp_jx_pml(i, j, k, pml_jxfab, sigma_star_cum_fac_j_x,
+                                    sigma_cum_fac_j_y, sigma_cum_fac_j_z);
                     },
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        warpx_damp_jy_pml(i,j,k,
-                            pml_jyfab, sigma_cum_fac_j_x, sigma_star_cum_fac_j_y, sigma_cum_fac_j_z);
+                        damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
+                                    sigma_star_cum_fac_j_y, sigma_cum_fac_j_z);
                     },
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        warpx_damp_jz_pml(i,j,k,
-                            pml_jzfab, sigma_cum_fac_j_x, sigma_cum_fac_j_y, sigma_star_cum_fac_j_z);
+                        damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
+                                    sigma_cum_fac_j_y, sigma_star_cum_fac_j_z);
                     }
                 );
             }
@@ -391,16 +391,19 @@ WarpX::OneStep_nosub (Real cur_time)
 
                     amrex::ParallelFor( tjx, tjy, tjz,
                         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                            warpx_damp_jx_pml(i,j,k,
-                                pml_jxfab, sigma_star_cum_fac_j_x, sigma_cum_fac_j_y, sigma_cum_fac_j_z);
+                            damp_jx_pml(i, j, k, pml_jxfab,
+                                        sigma_star_cum_fac_j_x,
+                                        sigma_cum_fac_j_y, sigma_cum_fac_j_z);
                         },
                         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                            warpx_damp_jy_pml(i,j,k,
-                                pml_jyfab, sigma_cum_fac_j_x, sigma_star_cum_fac_j_y, sigma_cum_fac_j_z);
+                            damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
+                                        sigma_star_cum_fac_j_y,
+                                        sigma_cum_fac_j_z);
                         },
                         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                            warpx_damp_jz_pml(i,j,k,
-                                pml_jzfab, sigma_cum_fac_j_x, sigma_cum_fac_j_y, sigma_star_cum_fac_j_z);
+                            damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
+                                        sigma_cum_fac_j_y,
+                                        sigma_star_cum_fac_j_z);
                         }
                     );
                 }

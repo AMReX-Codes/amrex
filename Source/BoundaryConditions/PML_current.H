@@ -6,11 +6,11 @@
 using namespace amrex;
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_ex_pml_current_nodal (int j, int k, int l, Array4<Real> const& Ex,
-                                      Array4<Real const> const& jx,
-                                      Real const* const& sigjy,
-                                      Real const* const& sigjz,
-                                      Real mu_c2_dt)
+void push_ex_pml_current (int j, int k, int l, Array4<Real> const& Ex,
+                          Array4<Real const> const& jx,
+                          Real const * const sigjy,
+                          Real const * const sigjz,
+                          Real mu_c2_dt)
 {
 #if (AMREX_SPACEDIM == 3)
     Real alpha_xy, alpha_xz;
@@ -30,14 +30,14 @@ void warpx_push_ex_pml_current_nodal (int j, int k, int l, Array4<Real> const& E
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_ey_pml_current_nodal (int j, int k, int l, Array4<Real> const& Ey,
-                                      Array4<Real const> const& jy,
-                                      Real const* const& sigjx,
-                                      Real const* const& sigjz,
-                                      Real mu_c2_dt)
+void push_ey_pml_current (int j, int k, int l, Array4<Real> const& Ey,
+                          Array4<Real const> const& jy,
+                          Real const * const sigjx,
+                          Real const * const sigjz,
+                          Real mu_c2_dt)
 {
 #if (AMREX_SPACEDIM == 3)
-Real alpha_yx, alpha_yz;
+    Real alpha_yx, alpha_yz;
     if (sigjx[j]+sigjz[l] == 0){
         alpha_yx = 0.5;
         alpha_yz = 0.5;
@@ -55,11 +55,11 @@ Real alpha_yx, alpha_yz;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_ez_pml_current_nodal (int j, int k, int l, Array4<Real> const& Ez,
-                                      Array4<Real const> const& jz,
-                                      Real const* const& sigjx,
-                                      Real const* const& sigjy,
-                                      Real mu_c2_dt)
+void push_ez_pml_current (int j, int k, int l, Array4<Real> const& Ez,
+                          Array4<Real const> const& jz,
+                          Real const * const sigjx,
+                          Real const * const sigjy,
+                          Real mu_c2_dt)
 {
 #if (AMREX_SPACEDIM == 3)
     Real alpha_zx, alpha_zy;
@@ -78,13 +78,12 @@ void warpx_push_ez_pml_current_nodal (int j, int k, int l, Array4<Real> const& E
 #endif
 }
 
-
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_damp_jx_pml (int j, int k, int l,
-                        Array4<Real> const& jx,
-                        Real const* const& sigsjx,
-                        Real const* const& sigjy,
-                        Real const* const& sigjz)
+void damp_jx_pml (int j, int k, int l,
+                  Array4<Real> const& jx,
+                  Real const* const sigsjx,
+                  Real const* const sigjy,
+                  Real const* const sigjz)
 {
 #if (AMREX_SPACEDIM == 3)
     jx(j,k,l) = jx(j,k,l) * sigsjx[j] * sigjy[k] * sigjz[l];
@@ -94,11 +93,11 @@ void warpx_damp_jx_pml (int j, int k, int l,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_damp_jy_pml (int j, int k, int l,
-                        Array4<Real> const& jy,
-                        Real const* const& sigjx,
-                        Real const* const& sigsjy,
-                        Real const* const& sigjz)
+void damp_jy_pml (int j, int k, int l,
+                  Array4<Real> const& jy,
+                  Real const * const sigjx,
+                  Real const * const sigsjy,
+                  Real const * const sigjz)
 {
 #if (AMREX_SPACEDIM == 3)
     jy(j,k,l) = jy(j,k,l) * sigjx[j] * sigsjy[k] * sigjz[l];
@@ -108,11 +107,11 @@ void warpx_damp_jy_pml (int j, int k, int l,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_damp_jz_pml (int j, int k, int l,
-                        Array4<Real> const& jz,
-                        Real const* const& sigjx,
-                        Real const* const& sigjy,
-                        Real const* const& sigsjz)
+void damp_jz_pml (int j, int k, int l,
+                  Array4<Real> const& jz,
+                  Real const * const sigjx,
+                  Real const * const sigjy,
+                  Real const * const sigsjz)
 {
 #if (AMREX_SPACEDIM == 3)
     jz(j,k,l) = jz(j,k,l) * sigjx[j] * sigjy[k] * sigsjz[l];
