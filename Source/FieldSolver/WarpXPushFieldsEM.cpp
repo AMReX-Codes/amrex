@@ -493,7 +493,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
                  &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
-            
+
             if (pml_has_particles) {
                 // Update the E field in the PML, using the current
                 // deposited by the particles in the PML
@@ -503,18 +503,31 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                 const Real* sigmaj_x = sigba[mfi].sigma[0].data();
                 const Real* sigmaj_y = sigba[mfi].sigma[1].data();
                 const Real* sigmaj_z = sigba[mfi].sigma[2].data();
-                amrex::ParallelFor( tex, tey, tez, 
+
+                auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma[0].lo();
+#if (AMREX_SPACEDIM == 3)
+                auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma[1].lo();
+                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[2].lo();
+#else
+                int y_lo = 0;
+                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[1].lo();
+#endif
+
+                amrex::ParallelFor( tex, tey, tez,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                         push_ex_pml_current(i,j,k,
-                            pml_Exfab, pml_jxfab, sigmaj_y, sigmaj_z, mu_c2_dt);
+                            pml_Exfab, pml_jxfab, sigmaj_y, sigmaj_z,
+                            y_lo, z_lo, mu_c2_dt);
                     },
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                         push_ey_pml_current(i,j,k,
-                            pml_Eyfab, pml_jyfab, sigmaj_x, sigmaj_z, mu_c2_dt);
+                            pml_Eyfab, pml_jyfab, sigmaj_x, sigmaj_z,
+                            x_lo, z_lo, mu_c2_dt);
                     },
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                         push_ez_pml_current(i,j,k,
-                            pml_Ezfab, pml_jzfab, sigmaj_x, sigmaj_y, mu_c2_dt);
+                            pml_Ezfab, pml_jzfab, sigmaj_x, sigmaj_y,
+                            x_lo, y_lo, mu_c2_dt);
                     }
                 );
             }

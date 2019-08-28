@@ -112,7 +112,7 @@ WarpX::DampJPML (int lev, PatchType patch_type)
         const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
                                                             : pml[lev]->GetMultiSigmaBox_cp();
-                                              
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -138,18 +138,39 @@ WarpX::DampJPML (int lev, PatchType patch_type)
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
 
+            auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_cum_fac[0].lo();
+#if (AMREX_SPACEDIM == 3)
+            auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma_cum_fac[1].lo();
+            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cum_fac[2].lo();
+#else
+            int y_lo = 0;
+            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cum_fac[1].lo();
+#endif
+
+            auto const& AMREX_RESTRICT xs_lo = sigba[mfi].sigma_star_cum_fac[0].lo();
+#if (AMREX_SPACEDIM == 3)
+            auto const& AMREX_RESTRICT ys_lo = sigba[mfi].sigma_star_cum_fac[1].lo();
+            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cum_fac[2].lo();
+#else
+            int ys_lo = 0;
+            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cum_fac[1].lo();
+#endif
+
             amrex::ParallelFor( tjx, tjy, tjz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                     damp_jx_pml(i, j, k, pml_jxfab, sigma_star_cum_fac_j_x,
-                                sigma_cum_fac_j_y, sigma_cum_fac_j_z);
+                                sigma_cum_fac_j_y, sigma_cum_fac_j_z,
+                                xs_lo,y_lo, z_lo);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                     damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
-                                sigma_star_cum_fac_j_y, sigma_cum_fac_j_z);
+                                sigma_star_cum_fac_j_y, sigma_cum_fac_j_z,
+                                x_lo,ys_lo, z_lo);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                     damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
-                                sigma_cum_fac_j_y, sigma_star_cum_fac_j_z);
+                                sigma_cum_fac_j_y, sigma_star_cum_fac_j_z,
+                                x_lo,y_lo, zs_lo);
                 }
             );
         }
