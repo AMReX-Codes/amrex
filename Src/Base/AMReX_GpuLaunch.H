@@ -191,4 +191,46 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_FOR_3D(...) AMREX_GPU_HOST_DEVICE_FOR_3D(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_FOR_4D(...) AMREX_GPU_HOST_DEVICE_FOR_4D(__VA_ARGS__)
 
+#ifdef AMREX_USE_GPU
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    if (flag) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
+            block \
+        ); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    if (flag) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    }
+
+#else
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
+        block \
+    );
+
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+        block \
+    );
+
+#endif
+
 #endif

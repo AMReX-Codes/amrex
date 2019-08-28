@@ -97,6 +97,8 @@ private:
 
     iMultiFab m_cfp_inside_mask;
 
+public: // for cuda
+
     void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };
 
