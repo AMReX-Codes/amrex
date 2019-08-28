@@ -1,5 +1,6 @@
 
 #include <AMReX_EBFluxRegister.H>
+#include <AMReX_EBFluxRegister_C.H>
 #include <AMReX_EBFluxRegister_F.H>
 #include <AMReX_EBFArrayBox.H>
 
@@ -36,20 +37,27 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
     cfba.coarsen(m_ratio);
     m_cfp_inside_mask.define(cfba, fdm, 1, 0, MFInfo(),DefaultFabFactory<IArrayBox>());
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(m_cfp_inside_mask); mfi.isValid(); ++mfi)
     {
-        IArrayBox& ifab = m_cfp_inside_mask[mfi];
-        ifab.setVal(0);
+        const Box& ifabbox = mfi.fabbox();
+        auto const& ifab = m_cfp_inside_mask.array(mfi);
+        AMREX_HOST_DEVICE_FOR_3D(ifabbox, i, j, k,
+        {
+            ifab(i,j,k) = 0;
+        });
 
         const int li = mfi.LocalIndex();
         const auto& cfp_fabs = m_cfp_fab[li];
         for (const FArrayBox* cfp : cfp_fabs)
         {
             const Box& bx = amrex::grow(cfp->box(), 1);
-            const Box& ibx = bx & ifab.box();
-            ifab.setVal(1,ibx);  // cells just inside crse/fine boundary
+            const Box& ibx = bx & ifabbox;
+            AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+            {
+                ifab(i,j,k) = 1; // cells just inside crse/fine boundary
+            });
         }
     }
 }
@@ -68,23 +76,29 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
         return;  // this coarse fab is not close to fine fabs.
     }
 
-    FArrayBox& fab = m_crse_data[mfi];
+    Array4<Real> const& fab = m_crse_data.array(mfi);
     const Box& bx = mfi.tilebox();
     const int nc = fab.nComp();
 
-    const IArrayBox& amrflag = m_crse_flag[mfi];
+    Array4<int const> const& amrflag = m_crse_flag.array(mfi);
 
-    amrex_eb_flux_reg_crseadd_va(BL_TO_FORTRAN_BOX(bx),
-                                 BL_TO_FORTRAN_ANYD(fab),
-                                 BL_TO_FORTRAN_ANYD(amrflag),
-                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
-                                              BL_TO_FORTRAN_ANYD(*flux[1]),
-                                              BL_TO_FORTRAN_ANYD(*flux[2])),
-                                 BL_TO_FORTRAN_ANYD(volfrac),
-                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*areafrac[0]),
-                                              BL_TO_FORTRAN_ANYD(*areafrac[1]),
-                                              BL_TO_FORTRAN_ANYD(*areafrac[2])),
-                                 dx, &dt,&nc);
+    AMREX_D_TERM(Real dtdx = dt/dx[0];,
+                 Real dtdy = dt/dx[1];,
+                 Real dtdz = dt/dx[2];);
+    AMREX_D_TERM(Array4<Real const> const& fx = flux[0]->const_array();,
+                 Array4<Real const> const& fy = flux[1]->const_array();,
+                 Array4<Real const> const& fz = flux[2]->const_array(););
+    AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array();,
+                 Array4<Real const> const& apy = areafrac[1]->const_array();,
+                 Array4<Real const> const& apz = areafrac[2]->const_array(););
+    Array4<Real const> const& vfrac = volfrac.const_array();
+
+    AMREX_HOST_DEVICE_FOR_4D(bx, nc, i, j, k, n,
+    {
+        eb_flux_reg_crseadd_va(i,j,k,n,fab,amrflag,AMREX_D_DECL(fx,fy,fz),
+                               vfrac,AMREX_D_DECL(apx,apy,apz),
+                               AMREX_D_DECL(dtdx,dtdy,dtdz));
+    });
 }
 
 
