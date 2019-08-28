@@ -112,23 +112,31 @@ WarpX::DampJPML (int lev, PatchType patch_type)
         const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
                                                             : pml[lev]->GetMultiSigmaBox_cp();
-                                                            
+                                              
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for ( MFIter mfi(*pml_j[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
             auto const& pml_jxfab = pml_j[0]->array(mfi);
             auto const& pml_jyfab = pml_j[1]->array(mfi);
             auto const& pml_jzfab = pml_j[2]->array(mfi);
             const Real* sigma_cum_fac_j_x = sigba[mfi].sigma_cum_fac[0].data();
-            const Real* sigma_cum_fac_j_y = sigba[mfi].sigma_cum_fac[1].data();
-            const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[2].data();
             const Real* sigma_star_cum_fac_j_x = sigba[mfi].sigma_star_cum_fac[0].data();
+#if (AMREX_SPACEDIM == 3)
+            const Real* sigma_cum_fac_j_y = sigba[mfi].sigma_cum_fac[1].data();
             const Real* sigma_star_cum_fac_j_y = sigba[mfi].sigma_star_cum_fac[1].data();
+            const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[2].data();
             const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[2].data();
-
+#else
+            const Real* sigma_cum_fac_j_y = nullptr;
+            const Real* sigma_star_cum_fac_j_y = nullptr;
+            const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[1].data();
+            const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[1].data();
+#endif
             const Box& tjx  = mfi.tilebox(jx_nodal_flag);
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
-
 
             amrex::ParallelFor( tjx, tjy, tjz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {

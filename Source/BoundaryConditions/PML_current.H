@@ -88,7 +88,7 @@ void damp_jx_pml (int j, int k, int l,
 #if (AMREX_SPACEDIM == 3)
     jx(j,k,l) = jx(j,k,l) * sigsjx[j] * sigjy[k] * sigjz[l];
 #else
-    jx(j,k,l) = jx(j,k,l) * sigsjx[j] * sigjz[l]; //jx(j,k,0) ?
+    jx(j,k,l) = jx(j,k,l) * sigsjx[j] * sigjz[k];
 #endif
 }
 
@@ -102,7 +102,7 @@ void damp_jy_pml (int j, int k, int l,
 #if (AMREX_SPACEDIM == 3)
     jy(j,k,l) = jy(j,k,l) * sigjx[j] * sigsjy[k] * sigjz[l];
 #else
-    jy(j,k,l) = jy(j,k,l) * sigjx[j] * sigjz[l];
+    jy(j,k,l) = jy(j,k,l) * sigjx[j] * sigjz[k];
 #endif
 }
 
@@ -116,7 +116,7 @@ void damp_jz_pml (int j, int k, int l,
 #if (AMREX_SPACEDIM == 3)
     jz(j,k,l) = jz(j,k,l) * sigjx[j] * sigjy[k] * sigsjz[l];
 #else
-    jz(j,k,l) = jz(j,k,l) * sigjx[j] * sigsjz[l];
+    jz(j,k,l) = jz(j,k,l) * sigjx[j] * sigsjz[k];
 #endif
 }
 
