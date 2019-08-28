@@ -119,7 +119,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
         FArrayBox slopefab(cslope_bx, num_slope);
         Elixir slopeeli = slopefab.elixir();
 
-        Array4<Real const> const& crsearr = crse.array();
+        Array4<Real const> const& crsearr = crse.const_array();
         Array4<Real> const& finearr = fine.array();
         Array4<Real> const& slopearr = slopefab.array();
 
@@ -139,7 +139,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
         const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
         FArrayBox slopefab(cslope_bx, num_slope);
 
-        Array4<Real const> const& crsearr = crse.array();
+        Array4<Real const> const& crsearr = crse.const_array();
         Array4<Real> const& finearr = fine.array();
         Array4<Real> const& slopearr = slopefab.array();
 
@@ -295,7 +295,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
     {
-        Array4<Real const> const& crsearr = crse.array();
+        Array4<Real const> const& crsearr = crse.const_array();
         Array4<Real> const& finearr = fine.array();
 
         const Box& crse_region = CoarseBox(fine_region,ratio);
@@ -364,7 +364,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     }
     else
     {
-        Array4<Real const> const& crsearr = crse.array();
+        Array4<Real const> const& crsearr = crse.const_array();
         Array4<Real> const& finearr = fine.array();
 
         const Box& crse_region = CoarseBox(fine_region,ratio);
@@ -571,7 +571,7 @@ PCInterp::interp (const FArrayBox& crse,
 {
     BL_PROFILE("PCInterp::interp()");
 
-    Array4<Real const> const& crsearr = crse.array();
+    Array4<Real const> const& crsearr = crse.const_array();
     Array4<Real> const& finearr = fine.array();;
 
     if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
@@ -631,7 +631,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
     {
-        Array4<Real const> const& crsearr = crse.array();
+        Array4<Real const> const& crsearr = crse.const_array();
         Array4<Real> const& finearr = fine.array();
 
         const Box& crse_region = CoarseBox(fine_region,ratio);
@@ -671,7 +671,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     }
     else
     {
-        Array4<Real const> const& crsearr = crse.array();
+        Array4<Real const> const& crsearr = crse.const_array();
         Array4<Real> const& finearr = fine.array();
 
         const Box& crse_region = CoarseBox(fine_region,ratio);

@@ -161,8 +161,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
 	const Box& bx = mfi.tilebox();
         auto       dfab =   mf.array(mfi);
-        auto const sfab = mflx.array(mfi);
-        auto const afab = area.array(mfi);
+        auto const sfab = mflx.const_array(mfi);
+        auto const afab = area.const_array(mfi);
         AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
         {
             dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
@@ -191,7 +191,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                auto const sfab =          fs.array(mfi);
+                auto const sfab =          fs.const_array(mfi);
                 auto       dfab = bndry[face].array(mfi);
                 AMREX_HOST_DEVICE_FOR_4D (bx, numcomp, i, j, k, n,
                 {
@@ -248,8 +248,8 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     {
 	const Box& bx = mfi.tilebox();
         auto       dfab =   mf.array(mfi);
-        auto const sfab = mflx.array(mfi);
-        auto const afab = area.array(mfi);
+        auto const sfab = mflx.const_array(mfi);
+        auto const afab = area.const_array(mfi);
         AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
         {
             dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
@@ -340,7 +340,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     Array4<Real> loarr = loreg.array();
     Array4<Real> hiarr = hireg.array();
-    Array4<Real const> farr = flux.array();
+    Array4<Real const> farr = flux.const_array();
     const Dim3 local_ratio = ratio.dim3();
 
     if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion())
@@ -388,8 +388,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     Array4<Real> loarr = loreg.array();
     Array4<Real> hiarr = hireg.array();
-    Array4<Real const> farr = flux.array();
-    Array4<Real const> aarr = area.array();
+    Array4<Real const> farr = flux.const_array();
+    Array4<Real const> aarr = area.const_array();
     const Dim3 local_ratio = ratio.dim3();
 
     if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion())
@@ -535,8 +535,8 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
     {
         const Box& bx = mfi.tilebox();
         Array4<Real> const& sfab = mf.array(mfi);
-        Array4<Real const> const& ffab = flux.array(mfi);
-        Array4<Real const> const& vfab = volume.array(mfi);
+        Array4<Real const> const& ffab = flux.const_array(mfi);
+        Array4<Real const> const& vfab = volume.const_array(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
         {
             fluxreg_reflux(tbx, sfab, dcomp, ffab, vfab, nc, scale, face);

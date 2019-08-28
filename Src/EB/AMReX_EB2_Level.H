@@ -222,7 +222,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
             gfab.buildTypes(cellflag);
 
-            Array4<Real const> const& lst = levelset.array();
+            Array4<Real const> const& lst = levelset.const_array();
             Array4<EBCellFlag> const& cfg = m_cellflag.array(mfi);
             Array4<Real> const& vfr = m_volfrac.array(mfi);
             Array4<Real> const& ctr = m_centroid.array(mfi);

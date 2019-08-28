@@ -1496,7 +1496,7 @@ they are different due to index types).
       {
           const Box& box = mfi.validbox();
 
-          Array4<Real const> const& u = U.array(mfi);
+          Array4<Real const> const& u = U.const_array(mfi);
           Array4<Real      > const& f = F.array(mfi);
 
           f2(box, u, f);
@@ -1609,7 +1609,7 @@ also requires only two minor changes.
           //                   tilebox() instead of validbox()
           const Box& box = mfi.tilebox();
 
-          Array4<Real const> const& u = U.array(mfi);
+          Array4<Real const> const& u = U.const_array(mfi);
           Array4<Real      > const& f = F.array(mfi);
           f2(box, u, f);
       }
