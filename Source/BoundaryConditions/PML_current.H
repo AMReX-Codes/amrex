@@ -89,7 +89,7 @@ void warpx_damp_jx_pml (int j, int k, int l,
 #if (AMREX_SPACEDIM == 3)
     jx(j,k,l) = jx(j,k,l) * sigsjx[j] * sigjy[k] * sigjz[l];
 #else
-    jx(j,l) = jx(j,k) * sigsjx[j] * sigjz[l]; //jx(j,k,0) ?
+    jx(j,k,l) = jx(j,k,l) * sigsjx[j] * sigjz[l]; //jx(j,k,0) ?
 #endif
 }
 
@@ -103,7 +103,7 @@ void warpx_damp_jy_pml (int j, int k, int l,
 #if (AMREX_SPACEDIM == 3)
     jy(j,k,l) = jy(j,k,l) * sigjx[j] * sigsjy[k] * sigjz[l];
 #else
-    jy(j,l) = jy(j,l) * sigjx[j] * sigjz[l];
+    jy(j,k,l) = jy(j,k,l) * sigjx[j] * sigjz[l];
 #endif
 }
 
@@ -117,7 +117,7 @@ void warpx_damp_jz_pml (int j, int k, int l,
 #if (AMREX_SPACEDIM == 3)
     jz(j,k,l) = jz(j,k,l) * sigjx[j] * sigjy[k] * sigsjz[l];
 #else
-    jz(j,0,l) = jz(j,k,l) * sigjx[j] * sigsjz[l];
+    jz(j,k,l) = jz(j,k,l) * sigjx[j] * sigsjz[l];
 #endif
 }
 
