@@ -13,7 +13,7 @@ void warpx_push_bx_yee(int i, int j, int k, Array4<Real> const& Bx,
 #if defined WARPX_DIM_3D
     Bx(i,j,k) += - dtsdy * (Ez(i,j+1,k  ) - Ez(i,j,k))
                  + dtsdz * (Ey(i,j  ,k+1) - Ey(i,j,k));
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     // Note that the 2D Cartesian and RZ versions are the same
     Bx(i,j,0) += + dtsdz * (Ey(i,j+1,0) - Ey(i,j,0));
 #endif
@@ -27,7 +27,7 @@ void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
 #if defined WARPX_DIM_3D
     By(i,j,k) += + dtsdx * (Ez(i+1,j,k  ) - Ez(i,j,k))
                  - dtsdz * (Ex(i  ,j,k+1) - Ex(i,j,k));
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     // Note that the 2D Cartesian and RZ versions are the same
     By(i,j,0) += + dtsdx * (Ez(i+1,j  ,0) - Ez(i,j,0))
                  - dtsdz * (Ex(i  ,j+1,0) - Ex(i,j,0));
@@ -42,7 +42,7 @@ void warpx_push_bz_yee(int i, int j, int k, Array4<Real> const& Bz,
 #if defined WARPX_DIM_3D
     Bz(i,j,k) += - dtsdx * (Ey(i+1,j  ,k) - Ey(i,j,k))
                  + dtsdy * (Ex(i  ,j+1,k) - Ex(i,j,k));
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     Bz(i,j,0) += - dtsdx * (Ey(i+1,j,0) - Ey(i,j,0));
 #elif defined WARPX_DIM_RZ
     const Real ru = 1. + 0.5/(rmin*dxinv + i + 0.5);
@@ -60,7 +60,7 @@ void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
     Ex(i,j,k) += + dtsdy_c2 * (Bz(i,j,k) - Bz(i,j-1,k  ))
                  - dtsdz_c2 * (By(i,j,k) - By(i,j  ,k-1))
                  - mu_c2_dt  * Jx(i,j,k);
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     // Note that the 2D Cartesian and RZ versions are the same
     Ex(i,j,0) += - dtsdz_c2 * (By(i,j,0) - By(i,j-1,0))
                  - mu_c2_dt  * Jx(i,j,0);
@@ -76,7 +76,7 @@ void warpx_push_ey_yee(int i, int j, int k, Array4<Real> const& Ey,
     Ey(i,j,k) += - dtsdx_c2 * (Bz(i,j,k) - Bz(i-1,j,k))
                  + dtsdz_c2 * (Bx(i,j,k) - Bx(i,j,k-1))
                  - mu_c2_dt  * Jy(i,j,k);
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     // 2D Cartesian and RZ are the same, except that the axis is skipped with RZ
 #ifdef WARPX_DIM_RZ
     if (i != 0 || rmin != 0.)
@@ -98,7 +98,7 @@ void warpx_push_ez_yee(int i, int j, int k, Array4<Real> const& Ez,
     Ez(i,j,k) += + dtsdx_c2 * (By(i,j,k) - By(i-1,j  ,k))
                  - dtsdy_c2 * (Bx(i,j,k) - Bx(i  ,j-1,k))
                  - mu_c2_dt  * Jz(i,j,k);
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     Ez(i,j,0) += + dtsdx_c2 * (By(i,j,0) - By(i-1,j,0))
                  - mu_c2_dt  * Jz(i,j,0);
 #elif defined WARPX_DIM_RZ
@@ -120,7 +120,7 @@ void warpx_push_ex_f_yee(int j, int k, int l, Array4<Real> const& Ex,
 {
 #if defined WARPX_DIM_3D
     Ex(j,k,l) += + dtsdx_c2 * (F(j+1,k,l) - F(j,k,l));
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     Ex(j,k,0) += + dtsdx_c2 * (F(j+1,k,0) - F(j  ,k,0));
 #endif
 }
@@ -140,7 +140,7 @@ void warpx_push_ez_f_yee(int j, int k, int l, Array4<Real> const& Ez,
 {
 #if defined WARPX_DIM_3D
     Ez(j,k,l) += + dtsdz_c2 * (F(j,k,l+1) - F(j,k,l));
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     Ez(j,k,0) += + dtsdz_c2 * (F(j,k+1,0) - F(j,k,0));
 #endif
 }
@@ -183,7 +183,7 @@ static void warpx_calculate_ckc_coefficients(Real dtsdx, Real dtsdy, Real dtsdz,
     gammax *= dtsdx;
     gammay *= dtsdy;
     gammaz *= dtsdz;
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     const Real delta = std::max(dtsdx,dtsdz);
     const Real rx = (dtsdx/delta)*(dtsdx/delta);
     const Real rz = (dtsdz/delta)*(dtsdz/delta);
@@ -225,7 +225,7 @@ void warpx_push_bx_ckc(int j, int k, int l, Array4<Real> const& Bx,
                           +  Ey(j-1,k+1,l+1) - Ey(j-1,k+1,l  )
                           +  Ey(j+1,k-1,l+1) - Ey(j+1,k-1,l  )
                           +  Ey(j-1,k-1,l+1) - Ey(j-1,k-1,l  ));
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     Bx(j,k,0) += + alphaz * (Ey(j  ,k+1,0) - Ey(j,  k,0))
                  + betazx * (Ey(j+1,k+1,0) - Ey(j+1,k,0)
                           +  Ey(j-1,k+1,0) - Ey(j-1,k,0));
@@ -258,7 +258,7 @@ void warpx_push_by_ckc(int j, int k, int l, Array4<Real> const& By,
                           +  Ex(j-1,k+1,l+1) - Ex(j-1,k+1,l  )
                           +  Ex(j+1,k-1,l+1) - Ex(j+1,k-1,l  )
                           +  Ex(j-1,k-1,l+1) - Ex(j-1,k-1,l  ));
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     By(j,k,0) += + alphax * (Ez(j+1,k  ,0) - Ez(j,k  ,0))
                  + betaxz * (Ez(j+1,k+1,0) - Ez(j,k+1,0)
                           +  Ez(j+1,k-1,0) - Ez(j,k-1,0))
@@ -294,7 +294,7 @@ void warpx_push_bz_ckc(int j, int k, int l, Array4<Real> const& Bz,
                           +  Ex(j-1,k+1,l+1) - Ex(j-1,k  ,l+1)
                           +  Ex(j+1,k+1,l-1) - Ex(j+1,k  ,l-1)
                           +  Ex(j-1,k+1,l-1) - Ex(j-1,k  ,l-1));
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     Bz(j,k,0) += - alphax * (Ey(j+1,k  ,0) - Ey(j,k  ,0))
                  - betaxz * (Ey(j+1,k+1,0) - Ey(j,k+1,0)
                           +  Ey(j+1,k-1,0) - Ey(j,k-1,0));
@@ -318,7 +318,7 @@ void warpx_push_ex_f_ckc(int j, int k, int l, Array4<Real> const& Ex,
                           +  F(j+1,k-1,l+1) - F(j,k-1,l+1)
                           +  F(j+1,k+1,l-1) - F(j,k+1,l-1)
                           +  F(j+1,k-1,l-1) - F(j,k-1,l-1));
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     Ex(j,k,0) += + alphax * (F(j+1,k  ,0) - F(j,k  ,0))
                  + betaxz * (F(j+1,k+1,0) - F(j,k+1,0)
                           +  F(j+1,k-1,0) - F(j,k-1,0));
@@ -362,7 +362,7 @@ void warpx_push_ez_f_ckc(int j, int k, int l, Array4<Real> const& Ez,
                           +  F(j-1,k+1,l+1) - F(j-1,k+1,l)
                           +  F(j+1,k-1,l+1) - F(j+1,k-1,l)
                           +  F(j-1,k-1,l+1) - F(j-1,k-1,l));
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     Ez(j,k,0) += + alphaz * (F(j  ,k+1,0) - F(j  ,k,0))
                  + betazx * (F(j+1,k+1,0) - F(j+1,k,0)
                           +  F(j-1,k+1,0) - F(j-1,k,0));
@@ -382,7 +382,7 @@ void warpx_computedivb(int i, int j, int k, int dcomp, Array4<Real> const& divB,
     divB(i,j,k,dcomp) = (Bx(i+1,j  ,k  ) - Bx(i,j,k))*dxinv
                +        (By(i  ,j+1,k  ) - By(i,j,k))*dyinv
                +        (Bz(i  ,j  ,k+1) - Bz(i,j,k))*dzinv;
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     divB(i,j,0,dcomp) = (Bx(i+1,j  ,0) - Bx(i,j,0))*dxinv
                +        (Bz(i  ,j+1,0) - Bz(i,j,0))*dzinv;
 #elif defined WARPX_DIM_RZ
@@ -406,7 +406,7 @@ void warpx_computedive(int i, int j, int k, int dcomp, Array4<Real> const& divE,
     divE(i,j,k,dcomp) = (Ex(i,j,k) - Ex(i-1,j,k))*dxinv
                +        (Ey(i,j,k) - Ey(i,j-1,k))*dyinv
                +        (Ez(i,j,k) - Ez(i,j,k-1))*dzinv;
-#elif defined WARPX_DIM_2D
+#elif defined WARPX_DIM_XZ
     divE(i,j,0,dcomp) = (Ex(i,j,0) - Ex(i-1,j,0))*dxinv
                  +      (Ez(i,j,0) - Ez(i,j-1,0))*dzinv;
 #elif defined WARPX_DIM_RZ
