@@ -33,8 +33,7 @@ sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 # ones.
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages' ]
+    'sphinx.ext.viewcode' ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -154,7 +153,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'WarpX', 'WarpX Documentation',
-     author, 'WarpX', 'One line description of project.',
+     author, 'WarpX', 'WarpX is an advanced electromagnetic Particle-In-Cell code.',
      'Miscellaneous'),
 ]
 
@@ -162,4 +161,4 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {'https://amrex-codes.github.io/': None}

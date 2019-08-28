@@ -134,7 +134,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
             // Deposit current into jx_arr, jy_arr and jz_arr
-#if (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(
@@ -227,7 +227,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
     const amrex::Real invdtdx = 1.0/(dt*dx[1]*dx[2]);
     const amrex::Real invdtdy = 1.0/(dt*dx[0]*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]*dx[1]);
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     const amrex::Real invdtdx = 1.0/(dt*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]);
     const amrex::Real invvol = 1.0/(dx[0]*dx[2]);
@@ -311,7 +311,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
 
 #if (defined WARPX_DIM_RZ)
             const amrex::Real vy = (-uxp[ip]*sintheta_mid + uyp[ip]*costheta_mid)*gaminv;
-#elif (defined WARPX_DIM_2D)
+#elif (defined WARPX_DIM_XZ)
             const amrex::Real vy = uyp[ip]*gaminv;
 #endif
 
@@ -386,7 +386,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                 }
             }
 
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
 
             for (int k=dkl; k<=depos_order+2-dku; k++) {
                 amrex::Real sdxi = 0.;
