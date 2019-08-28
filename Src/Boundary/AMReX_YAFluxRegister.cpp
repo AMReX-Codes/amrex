@@ -50,18 +50,16 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     m_crse_flag.setVal(crse_cell);
 
-    // TODO gpu
-
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
 
         for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi)
         {
-            auto& fab = m_crse_flag[mfi];
-            const Box& bx = fab.box() & cdomain;
+            auto const& fab = m_crse_flag.array(mfi);
+            const Box& bx = mfi.fabbox() & cdomain;
 
             bool has_fine = false;
 
@@ -71,7 +69,10 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 for (const auto& is : isects)
                 {
                     const Box& ibx = is.second - iv;
-                    fab.setVal(crse_fine_boundary_cell, ibx, 0, 1);
+                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    {
+                        fab(i,j,k) = amrex_yafluxreg_crse_fine_boundary_cell;
+                    });
                     has_fine = true;
                 }
             }
@@ -82,7 +83,10 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 for (const auto& is : isects)
                 {
                     const Box& ibx = is.second - iv;
-                    fab.setVal(fine_cell, ibx, 0, 1);
+                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    {
+                        fab(i,j,k) = amrex_yafluxreg_fine_cell;
+                    });
                 }
             }
 
@@ -199,17 +203,17 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         const Box& domainbox = m_crse_geom.Domain();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
 
             for (MFIter mfi(m_cfp_mask); mfi.isValid(); ++mfi)
             {
-                auto& fab = m_cfp_mask[mfi];
-                const Box& bx = fab.box();
+                const Box& bx = mfi.fabbox();
                 if (!domainbox.contains(bx))  // part of the box is outside periodic boundary
                 {
+                    auto const& fab = m_cfp_mask.array(mfi);
                     for (const auto& iv : pshifts)
                     {
                         if (iv != IntVect::TheZeroVector())
@@ -218,7 +222,10 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                             for (const auto& is : isects)
                             {
                                 const Box& ibx = is.second - iv;
-                                fab.setVal(0.0, ibx, 0, 1);
+                                AMREX_HOST_DEVICE_FOR_3D(ibx,i,j,k,
+                                {
+                                    fab(i,j,k) = 0.0;
+                                });
                             }
                         }
                     }
