@@ -134,6 +134,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
         if (i == MyProc) continue;
         const auto Who = i;
         const auto Cnt = m_Snds[i];
+        if (Cnt == 0) continue;
 
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
