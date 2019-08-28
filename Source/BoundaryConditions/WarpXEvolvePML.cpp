@@ -12,6 +12,10 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
+#ifndef PML_CURRENT_H_
+#include <PML_current.H>
+#endif
+
 using namespace amrex;
 
 void
@@ -104,26 +108,42 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 
     if (pml[lev]->ok())
     {
+
         const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
-                                                              : pml[lev]->GetMultiSigmaBox_cp();
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-
+                                                            : pml[lev]->GetMultiSigmaBox_cp();
+                                                            
         for ( MFIter mfi(*pml_j[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
+            auto const& pml_jxfab = pml_j[0]->array(mfi);
+            auto const& pml_jyfab = pml_j[1]->array(mfi);
+            auto const& pml_jzfab = pml_j[2]->array(mfi);
+            const Real* sigma_cum_fac_j_x = sigba[mfi].sigma_cum_fac[0].data();
+            const Real* sigma_cum_fac_j_y = sigba[mfi].sigma_cum_fac[1].data();
+            const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[2].data();
+            const Real* sigma_star_cum_fac_j_x = sigba[mfi].sigma_star_cum_fac[0].data();
+            const Real* sigma_star_cum_fac_j_y = sigba[mfi].sigma_star_cum_fac[1].data();
+            const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[2].data();
+
             const Box& tjx  = mfi.tilebox(jx_nodal_flag);
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
-            WRPX_DAMPJ_PML(tjx.loVect(), tjx.hiVect(),
-			    tjy.loVect(), tjy.hiVect(),
-			    tjz.loVect(), tjz.hiVect(),
-		    	BL_TO_FORTRAN_3D((*pml_j[0])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_j[1])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_j[2])[mfi]),
-			    WRPX_PML_SIGMAJ_TO_FORTRAN(sigba[mfi]));
+
+
+            amrex::ParallelFor( tjx, tjy, tjz,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    damp_jx_pml(i, j, k, pml_jxfab, sigma_star_cum_fac_j_x,
+                                sigma_cum_fac_j_y, sigma_cum_fac_j_z);
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
+                                sigma_star_cum_fac_j_y, sigma_cum_fac_j_z);
+                },
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                    damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
+                                sigma_cum_fac_j_y, sigma_star_cum_fac_j_z);
+                }
+            );
         }
 
     }

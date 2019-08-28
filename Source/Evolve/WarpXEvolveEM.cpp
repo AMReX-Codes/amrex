@@ -13,9 +13,6 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifndef PML_CURRENT_H_
-#include <PML_current.H>
-#endif
 
 using namespace amrex;
 
@@ -322,93 +319,7 @@ WarpX::OneStep_nosub (Real cur_time)
     }
 
     if (do_pml && do_pml_j_damping){
-        // DampJPML();
-
-        // Update the E field in the PML, using the current
-        // deposited by the particles in the PML
-        for (int lev = 0; lev <= finest_level; ++lev)
-        {
-            PatchType patch_type = PatchType::fine;
-            const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
-            const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
-                                                                : pml[lev]->GetMultiSigmaBox_cp();
-
-            for ( MFIter mfi(*pml_j[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
-            {
-                auto const& pml_jxfab = pml_j[0]->array(mfi);
-                auto const& pml_jyfab = pml_j[1]->array(mfi);
-                auto const& pml_jzfab = pml_j[2]->array(mfi);
-                const Real* sigma_cum_fac_j_x = sigba[mfi].sigma_cum_fac[0].data();
-                const Real* sigma_cum_fac_j_y = sigba[mfi].sigma_cum_fac[1].data();
-                const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[2].data();
-                const Real* sigma_star_cum_fac_j_x = sigba[mfi].sigma_star_cum_fac[0].data();
-                const Real* sigma_star_cum_fac_j_y = sigba[mfi].sigma_star_cum_fac[1].data();
-                const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[2].data();
-
-                const Box& tjx  = mfi.tilebox(jx_nodal_flag);
-                const Box& tjy  = mfi.tilebox(jy_nodal_flag);
-                const Box& tjz  = mfi.tilebox(jz_nodal_flag);
-
-
-                amrex::ParallelFor( tjx, tjy, tjz,
-                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        damp_jx_pml(i, j, k, pml_jxfab, sigma_star_cum_fac_j_x,
-                                    sigma_cum_fac_j_y, sigma_cum_fac_j_z);
-                    },
-                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
-                                    sigma_star_cum_fac_j_y, sigma_cum_fac_j_z);
-                    },
-                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                        damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
-                                    sigma_cum_fac_j_y, sigma_star_cum_fac_j_z);
-                    }
-                );
-            }
-
-            if (lev > 0){
-                PatchType patch_type = PatchType::coarse;
-                const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
-                const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
-                                                                    : pml[lev]->GetMultiSigmaBox_cp();
-
-                for ( MFIter mfi(*pml_j[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
-                {
-                    auto const& pml_jxfab = pml_j[0]->array(mfi);
-                    auto const& pml_jyfab = pml_j[1]->array(mfi);
-                    auto const& pml_jzfab = pml_j[2]->array(mfi);
-                    const Real* sigma_cum_fac_j_x = sigba[mfi].sigma_cum_fac[0].data();
-                    const Real* sigma_cum_fac_j_y = sigba[mfi].sigma_cum_fac[1].data();
-                    const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[2].data();
-                    const Real* sigma_star_cum_fac_j_x = sigba[mfi].sigma_star_cum_fac[0].data();
-                    const Real* sigma_star_cum_fac_j_y = sigba[mfi].sigma_star_cum_fac[1].data();
-                    const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[2].data();
-
-                    const Box& tjx  = mfi.tilebox(jx_nodal_flag);
-                    const Box& tjy  = mfi.tilebox(jy_nodal_flag);
-                    const Box& tjz  = mfi.tilebox(jz_nodal_flag);
-
-
-                    amrex::ParallelFor( tjx, tjy, tjz,
-                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                            damp_jx_pml(i, j, k, pml_jxfab,
-                                        sigma_star_cum_fac_j_x,
-                                        sigma_cum_fac_j_y, sigma_cum_fac_j_z);
-                        },
-                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                            damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
-                                        sigma_star_cum_fac_j_y,
-                                        sigma_cum_fac_j_z);
-                        },
-                        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                            damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
-                                        sigma_cum_fac_j_y,
-                                        sigma_star_cum_fac_j_z);
-                        }
-                    );
-                }
-            }
-        }
+        DampJPML();
     }
 
     EvolveF(0.5*dt[0], DtType::FirstHalf);
