@@ -143,8 +143,6 @@ public:
                     const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
     void CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
-    void CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
-                    const std::array<amrex::MultiFab*,3>& j_cp);
 
     void ExchangeB (PatchType patch_type,
 		    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain, int ncell,
@@ -155,8 +153,6 @@ public:
         const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
         const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
     void CopyJtoPMLs (PatchType patch_type,
-                    const std::array<amrex::MultiFab*,3>& jp);
-    void CopyJinReg (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
 
     void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp, int do_pml_in_domain, int ncell,
@@ -213,7 +209,6 @@ private:
                           const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                           const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
     static void CopyRegInPMLs (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
-    static void CopyPMLsInReg (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 
 #ifdef WARPX_USE_PSATD

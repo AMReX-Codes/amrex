@@ -718,31 +718,6 @@ PML::CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
     CopyJtoPMLs(PatchType::coarse, j_cp);
 }
 
-void
-PML::CopyJinReg (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& jp)
-{
-    if (patch_type == PatchType::fine && pml_j_fp[0] && jp[0])
-    {
-        CopyPMLsInReg(*pml_j_fp[0], *jp[0], *m_geom);
-        CopyPMLsInReg(*pml_j_fp[1], *jp[1], *m_geom);
-        CopyPMLsInReg(*pml_j_fp[2], *jp[2], *m_geom);
-    }
-    else if (patch_type == PatchType::coarse && pml_j_cp[0] && jp[0])
-    {
-        CopyPMLsInReg(*pml_j_cp[0], *jp[0], *m_cgeom);
-        CopyPMLsInReg(*pml_j_cp[1], *jp[1], *m_cgeom);
-        CopyPMLsInReg(*pml_j_cp[2], *jp[2], *m_cgeom);
-    }
-}
-
-void
-PML::CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
-                const std::array<amrex::MultiFab*,3>& j_cp)
-{
-    CopyJinReg(PatchType::fine, j_fp);
-    CopyJinReg(PatchType::coarse, j_cp);
-}
 
 void
 PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain, int ncell,
@@ -853,17 +828,6 @@ PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
   const auto& period = geom.periodicity();
 
   pml.ParallelCopy(reg, 0, 0, 1, ngr, ngp, period);
-}
-
-void
-PML::CopyPMLsInReg (MultiFab& pml, MultiFab& reg, const Geometry& geom)
-{
-  const IntVect& ngr = reg.nGrowVect();
-  const IntVect& ngp = pml.nGrowVect();
-  const auto& period = geom.periodicity();
-
-  reg.ParallelCopy(pml, 0, 0, 1, ngp, ngr, period);
-
 }
 
 void
