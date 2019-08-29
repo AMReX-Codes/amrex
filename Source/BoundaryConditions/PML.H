@@ -208,7 +208,7 @@ private:
     static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain, int ncell,
                           const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                           const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
-    static void CopyRegInPMLs (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
+    static void CopyToPML (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 
 #ifdef WARPX_USE_PSATD

@@ -698,15 +698,15 @@ PML::CopyJtoPMLs (PatchType patch_type,
 {
     if (patch_type == PatchType::fine && pml_j_fp[0] && jp[0])
     {
-        CopyRegInPMLs(*pml_j_fp[0], *jp[0], *m_geom);
-        CopyRegInPMLs(*pml_j_fp[1], *jp[1], *m_geom);
-        CopyRegInPMLs(*pml_j_fp[2], *jp[2], *m_geom);
+        CopyToPML(*pml_j_fp[0], *jp[0], *m_geom);
+        CopyToPML(*pml_j_fp[1], *jp[1], *m_geom);
+        CopyToPML(*pml_j_fp[2], *jp[2], *m_geom);
     }
     else if (patch_type == PatchType::coarse && pml_j_cp[0] && jp[0])
     {
-        CopyRegInPMLs(*pml_j_cp[0], *jp[0], *m_cgeom);
-        CopyRegInPMLs(*pml_j_cp[1], *jp[1], *m_cgeom);
-        CopyRegInPMLs(*pml_j_cp[2], *jp[2], *m_cgeom);
+        CopyToPML(*pml_j_cp[0], *jp[0], *m_cgeom);
+        CopyToPML(*pml_j_cp[1], *jp[1], *m_cgeom);
+        CopyToPML(*pml_j_cp[2], *jp[2], *m_cgeom);
     }
 }
 
@@ -740,8 +740,10 @@ PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain, int nc
 
 
 void
-PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
+                int do_pml_in_domain, int ncell,
+                const amrex::IntVect do_pml_Lo,
+                const amrex::IntVect do_pml_Hi)
 {
     if (do_pml_in_domain){
         const IntVect& ngr = reg.nGrowVect();
@@ -821,7 +823,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom, int do_pml_in
 
 
 void
-PML::CopyRegInPMLs (MultiFab& pml, MultiFab& reg, const Geometry& geom)
+PML::CopyToPML (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
   const IntVect& ngr = reg.nGrowVect();
   const IntVect& ngp = pml.nGrowVect();
