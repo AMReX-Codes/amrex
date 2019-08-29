@@ -11,6 +11,9 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
+// Import low-level single-particle kernels
+#include <UpdatePositionPhoton.H>
+
 using namespace amrex;
 
 PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecies,
@@ -44,25 +47,38 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                                 Cuda::ManagedDeviceVector<Real>& giv,
                                 Real dt)
 {
-    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+    // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
-    auto& uxp = attribs[PIdx::ux];
-    auto& uyp = attribs[PIdx::uy];
-    auto& uzp = attribs[PIdx::uz];
-    auto& Exp = attribs[PIdx::Ex];
-    auto& Eyp = attribs[PIdx::Ey];
-    auto& Ezp = attribs[PIdx::Ez];
-    auto& Bxp = attribs[PIdx::Bx];
-    auto& Byp = attribs[PIdx::By];
-    auto& Bzp = attribs[PIdx::Bz];
-    const long np  = pti.numParticles();
+    // Extract pointers to the different particle quantities
+    Real* const AMREX_RESTRICT x = xp.dataPtr();
+    Real* const AMREX_RESTRICT y = yp.dataPtr();
+    Real* const AMREX_RESTRICT z = zp.dataPtr();
+    Real* const AMREX_RESTRICT gi = giv.dataPtr();
+    Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+    Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+    Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+    const Real* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
+    const Real* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
+    const Real* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
+    const Real* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
+    const Real* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
+    const Real* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    // Probably want to push photons in some way here.
-    // PhysicalParticleContainer::PushPX is probably
-    // a good start. Let's start by writing CPU code.
-    for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {
+        copy_attribs(pti, x, y, z);
     }
+
+    //No need to update momentum for photons (now)
+
+    amrex::ParallelFor(
+        pti.numParticles(),
+        [=] AMREX_GPU_DEVICE (long i) {
+
+            UpdatePositionPhoton( x[i], y[i], z[i],
+                            ux[i], uy[i], uz[i], dt );
+        }
+    );
 }
 
 void
