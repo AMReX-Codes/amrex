@@ -69,7 +69,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
         copy_attribs(pti, x, y, z);
     }
 
-    //No need to update momentum for photons (now)
+    //No need to update momentum for photons (for now)
 
     amrex::ParallelFor(
         pti.numParticles(),
