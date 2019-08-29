@@ -37,7 +37,7 @@
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_3d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
-#define WRPX_DAMPJ_PML                   warpx_dampJ_pml_3d
+// #define WRPX_DAMPJ_PML                   warpx_dampJ_pml_3d
 
 #elif (AMREX_SPACEDIM == 2)
 
@@ -51,7 +51,7 @@
 #define WRPX_PUSH_PML_F                  warpx_push_pml_f_2d
 #define WRPX_DAMP_PML                    warpx_damp_pml_2d
 #define WRPX_DAMP_PML_F                  warpx_damp_pml_f_2d
-#define WRPX_DAMPJ_PML                   warpx_dampJ_pml_2d
+// #define WRPX_DAMPJ_PML                   warpx_dampJ_pml_2d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_2d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_2d
@@ -390,22 +390,22 @@ extern "C"
                           const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
 
 
-    void WRPX_DAMPJ_PML (const int* tjxlo, const int* tjxhi,
-                    const int* tjylo, const int* tjyhi,
-                    const int* tjzlo, const int* tjzhi,
-                    amrex::Real* jx, const int* jxlo, const int* jxhi,
-                    amrex::Real* jy, const int* jylo, const int* jyhi,
-                    amrex::Real* jz, const int* jzlo, const int* jzhi,
-                    const amrex::Real* sigjx, int sigjx_lo, int sigjx_hi,
-#if (AMREX_SPACEDIM == 3)
-                    const amrex::Real* sigjy, int sigjy_lo, int sigjy_hi,
-#endif
-                    const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi,
-                    const amrex::Real* sigsjx, int sigsjx_lo, int sigsjx_hi,
-#if (AMREX_SPACEDIM == 3)
-                    const amrex::Real* sigsjy, int sigsjy_lo, int sigsjy_hi,
-#endif
-                    const amrex::Real* sigjsz, int sigsjz_lo, int sigsjz_hi);
+//     void WRPX_DAMPJ_PML (const int* tjxlo, const int* tjxhi,
+//                     const int* tjylo, const int* tjyhi,
+//                     const int* tjzlo, const int* tjzhi,
+//                     amrex::Real* jx, const int* jxlo, const int* jxhi,
+//                     amrex::Real* jy, const int* jylo, const int* jyhi,
+//                     amrex::Real* jz, const int* jzlo, const int* jzhi,
+//                     const amrex::Real* sigjx, int sigjx_lo, int sigjx_hi,
+// #if (AMREX_SPACEDIM == 3)
+//                     const amrex::Real* sigjy, int sigjy_lo, int sigjy_hi,
+// #endif
+//                     const amrex::Real* sigjz, int sigjz_lo, int sigjz_hi,
+//                     const amrex::Real* sigsjx, int sigsjx_lo, int sigsjx_hi,
+// #if (AMREX_SPACEDIM == 3)
+//                     const amrex::Real* sigsjy, int sigsjy_lo, int sigsjy_hi,
+// #endif
+//                     const amrex::Real* sigjsz, int sigsjz_lo, int sigsjz_hi);
 
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
