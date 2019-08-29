@@ -219,6 +219,14 @@ namespace Gpu {
         ); \
     }
 
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
+    if (flag) { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
+    } else { \
+        auto tbox = box; \
+        block; \
+    }
+
 #else
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
@@ -230,6 +238,12 @@ namespace Gpu {
     amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
         block \
     );
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
+    { \
+        auto tbox = box; \
+        block; \
+    }
 
 #endif
 

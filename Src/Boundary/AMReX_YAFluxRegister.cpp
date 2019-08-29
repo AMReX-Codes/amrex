@@ -271,19 +271,12 @@ YAFluxRegister::CrseAdd (const MFIter& mfi,
                  Array4<Real const> fyarr = fy->const_array();,
                  Array4<Real const> fzarr = fz->const_array(););
 
-    if (runon == RunOn::Gpu && Gpu::inLaunchRegion())
+    bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG ( run_on_gpu, bx, tbx,
     {
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-        {
-            yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
-                              AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
-        });
-    }
-    else
-    {
-        yafluxreg_crseadd(bx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
+        yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(fxarr,fyarr,fzarr),
                           AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
-    }
+    });
 }
 
 
@@ -341,14 +334,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     Array4<Real const> farr = f->const_array();
-                    if (use_gpu) {
-                        AMREX_LAUNCH_DEVICE_LAMBDA ( lobx_is, tmpbox,
-                        {
-                            yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
-                        });
-                    } else {
-                        yafluxreg_fineadd(lobx_is,  d, farr, dtdxs, nc, dirside, rr);
-                    }
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(use_gpu, lobx_is, tmpbox,
+                    {
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
+                    });
                 }
             }
             {
@@ -360,14 +349,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     Array4<Real const> farr = f->const_array();
-                    if (use_gpu) {
-                        AMREX_LAUNCH_DEVICE_LAMBDA ( hibx_is, tmpbox,
-                        {
-                            yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
-                        });
-                    } else {
-                        yafluxreg_fineadd(hibx_is, d, farr, dtdxs, nc, dirside, rr);
-                    }
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(use_gpu, hibx_is, tmpbox,
+                    {
+                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, nc, dirside, rr);
+                    });
                 }
             }
         }
