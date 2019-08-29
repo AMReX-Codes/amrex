@@ -8,8 +8,6 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 
-#include <AMReX_EBMultiFabUtil_F.H>
-
 #ifdef _OPENMP
 #include <omp.h>
 #endif
