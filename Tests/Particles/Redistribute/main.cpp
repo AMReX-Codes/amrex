@@ -298,10 +298,11 @@ void testRedistribute ()
 
     if (params.do_regrid)
     {
+        const int NProcs = ParallelDescriptor::NProcs();
         {
             DistributionMapping new_dm;
             Vector<int> pmap;
-            for (int i = 0; i < ba.size(); ++i) pmap.push_back(i);
+            for (int i = 0; i < ba.size(); ++i) pmap.push_back(i % NProcs);
             new_dm.define(pmap);
             pc.SetParticleDistributionMap(0, new_dm);
             pc.RedistributeGlobal();
@@ -311,7 +312,7 @@ void testRedistribute ()
         {
             DistributionMapping new_dm;
             Vector<int> pmap;
-            for (int i = ba.size()-1; i >= 0; --i) pmap.push_back(i);
+            for (int i = 0; i < ba.size(); ++i) pmap.push_back((i+1) * NProcs);
             new_dm.define(pmap);
             pc.SetParticleDistributionMap(0, new_dm);
             pc.RedistributeGlobal();
