@@ -134,33 +134,21 @@ public:
 #endif
 
     void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                    const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain, int ncell,
-                    const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-                    const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+                    const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain);
     void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                    const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain, int ncell,
-                    const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-                    const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+                    const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain);
     void CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
 
     void ExchangeB (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain, int ncell,
-        const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-        const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+		    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
     void ExchangeE (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain, int ncell,
-        const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-        const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+		    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
     void CopyJtoPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
 
-    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp, int do_pml_in_domain, int ncell,
-                    const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-                    const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
-    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp, int do_pml_in_domain, int ncell,
-                    const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-                    const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp, int do_pml_in_domain);
+    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp, int do_pml_in_domain);
 
     void FillBoundary ();
     void FillBoundaryE ();
@@ -205,9 +193,7 @@ private:
                                          const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                                          const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 
-    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain, int ncell,
-                          const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
-                          const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
     static void CopyToPML (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 

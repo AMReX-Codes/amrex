@@ -638,57 +638,53 @@ PML::GetF_cp ()
 
 void
 PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+                const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain)
 {
-  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+  ExchangeB(PatchType::fine, B_fp, do_pml_in_domain);
+  ExchangeB(PatchType::coarse, B_cp, do_pml_in_domain);
 }
 
 void
 PML::ExchangeB (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+                const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_B_fp[0] && Bp[0])
     {
-        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_B_fp[0], *Bp[0], *m_geom, do_pml_in_domain);
+        Exchange(*pml_B_fp[1], *Bp[1], *m_geom, do_pml_in_domain);
+        Exchange(*pml_B_fp[2], *Bp[2], *m_geom, do_pml_in_domain);
     }
     else if (patch_type == PatchType::coarse && pml_B_cp[0] && Bp[0])
     {
-        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom, do_pml_in_domain);
     }
 }
 
 void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+                const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain)
 {
-    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+    ExchangeE(PatchType::fine, E_fp, do_pml_in_domain);
+    ExchangeE(PatchType::coarse, E_cp, do_pml_in_domain);
 }
 
 void
 PML::ExchangeE (PatchType patch_type,
-                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+                const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
     {
-        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_E_fp[0], *Ep[0], *m_geom, do_pml_in_domain);
+        Exchange(*pml_E_fp[1], *Ep[1], *m_geom, do_pml_in_domain);
+        Exchange(*pml_E_fp[2], *Ep[2], *m_geom, do_pml_in_domain);
     }
     else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
     {
-        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom, do_pml_in_domain);
+        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom, do_pml_in_domain);
     }
 }
 
@@ -720,30 +716,26 @@ PML::CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
 
 
 void
-PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp, int do_pml_in_domain)
 {
-    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
-    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+    ExchangeF(PatchType::fine, F_fp, do_pml_in_domain);
+    ExchangeF(PatchType::coarse, F_cp, do_pml_in_domain);
 }
 
 void
-PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
+PML::ExchangeF (PatchType patch_type, MultiFab* Fp, int do_pml_in_domain)
 {
     if (patch_type == PatchType::fine && pml_F_fp && Fp) {
-        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_F_fp, *Fp, *m_geom, do_pml_in_domain);
     } else if (patch_type == PatchType::coarse && pml_F_cp && Fp) {
-        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain, ncell, do_pml_Lo, do_pml_Hi);
+        Exchange(*pml_F_cp, *Fp, *m_cgeom, do_pml_in_domain);
     }
 }
 
 
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
-                int do_pml_in_domain, int ncell,
-                const amrex::IntVect do_pml_Lo,
-                const amrex::IntVect do_pml_Hi)
+                int do_pml_in_domain)
 {
     if (do_pml_in_domain){
         const IntVect& ngr = reg.nGrowVect();
