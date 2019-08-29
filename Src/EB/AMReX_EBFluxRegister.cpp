@@ -1,7 +1,6 @@
 
 #include <AMReX_EBFluxRegister.H>
 #include <AMReX_EBFluxRegister_C.H>
-#include <AMReX_EBFluxRegister_F.H>
 #include <AMReX_EBFArrayBox.H>
 
 #ifdef _OPENMP

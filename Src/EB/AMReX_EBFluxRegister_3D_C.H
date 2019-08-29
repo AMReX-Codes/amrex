@@ -243,7 +243,7 @@ void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Re
             for (int ii = -1; ii <= 1; ++ii) {
                 if ((ii != 0 or jj != 0 or kk != 0) and flag.isConnected(ii,jj,kk)) {
                     if (bx.contains(IntVect(i+ii,j+jj,k+kk))) {
-                        HostDevice::Atomic::Add(d.ptr(i+ii,j+jj,k+kk,n), drho*vfrac(i+ii,j+jj,k+kk));
+                        HostDevice::Atomic::Add(d.ptr(i+ii,j+jj,k+kk,n), drho);
                     }
                 }
             }}}
