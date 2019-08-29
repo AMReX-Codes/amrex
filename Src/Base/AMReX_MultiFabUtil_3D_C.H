@@ -195,6 +195,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<Real> const& crse,
     }
 }
 
+#if 0
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
@@ -282,6 +283,7 @@ void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
     }
     }
 }
+#endif
 
 AMREX_GPU_HOST_DEVICE
 inline
@@ -357,6 +359,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
     }
 }
 
+#if 0
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
@@ -438,6 +441,7 @@ void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
     }
     }
 }
+#endif
 
 AMREX_GPU_HOST_DEVICE
 inline
@@ -471,6 +475,7 @@ void amrex_avgdown (Box const& bx, Array4<Real> const& crse,
     }
 }
 
+#if 0
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
@@ -508,6 +513,7 @@ void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
         }
     }
 }
+#endif
 
 AMREX_GPU_HOST_DEVICE
 inline
@@ -570,6 +576,7 @@ void amrex_avgdown_nodes (Box const& bx, Array4<Real> const& crse,
     }
 }
 
+#if 0
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
@@ -598,6 +605,7 @@ void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
         }
     }
 }
+#endif
 
 AMREX_GPU_HOST_DEVICE
 inline

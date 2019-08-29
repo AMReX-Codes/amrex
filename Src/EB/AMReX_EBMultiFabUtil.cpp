@@ -232,13 +232,14 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
     BoxArray crse_S_fine_BA = S_fine.boxArray();
     crse_S_fine_BA.coarsen(ratio);
 
-    
     MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
+    Dim3 dratio = ratio.dim3();
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
         auto& crse_fab = crse_S_fine[mfi];
@@ -246,28 +247,25 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 
         const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
         FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
-        
+
+        Array4<Real> const& crse_arr = crse_fab.array();
+        Array4<Real const> const& fine_arr = fine_fab.const_array();
+        Array4<Real const> const& vol = vol_fine.const_array(mfi);
+
         if (typ == FabType::regular || typ == FabType::covered)
         {
-#if (AMREX_SPACEDIM == 3)
-            amrex_avgdown(tbx, crse_fab.array(), fine_fab.array(), 0, scomp, ncomp, ratio);
-#else
-            amrex_avgdown_with_vol(tbx, crse_fab.array(), fine_fab.array(), vol_fine[mfi].array(),
-                                   0, scomp, ncomp, ratio);
-#endif
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+            {
+                amrex_avgdown_with_vol(b, crse_arr, fine_arr, vol, 0, scomp, ncomp, ratio);
+            });
         }
         else if (typ == FabType::singlevalued)
         {
-#if (AMREX_SPACEDIM == 1)
-            amrex::Abort("1D EB not supported");
-#else
-            amrex_eb_avgdown_sv(BL_TO_FORTRAN_BOX(tbx),
-                                BL_TO_FORTRAN_N_ANYD(fine_fab,scomp),
-                                BL_TO_FORTRAN_N_ANYD(crse_fab,0),
-                                BL_TO_FORTRAN_ANYD(vol_fine[mfi]),
-                                BL_TO_FORTRAN_ANYD(vfrac_fine[mfi]),
-                                ratio.getVect(),&ncomp);
-#endif
+            Array4<Real const> const& vfrac = vfrac_fine.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D(tbx, i, j, k,
+            {
+                eb_avgdown_with_vol(i,j,k,fine_arr,scomp,crse_arr,0,vol,vfrac,dratio,ncomp);
+            });
         }
         else
         {
@@ -294,6 +292,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
     }
     else
     {
+        Dim3 dratio = ratio.dim3();
+
         const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(S_fine.Factory());
         const auto& vfrac_fine = factory.getVolFrac();
 
@@ -306,9 +306,9 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
             and S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.tilebox();
                 auto& crse_fab = S_crse[mfi];
@@ -317,17 +317,23 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                 const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
                 FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
 
+                Array4<Real> const& crse = crse_fab.array();
+                Array4<Real const> const& fine = fine_fab.const_array();
+
                 if (typ == FabType::regular || typ == FabType::covered)
                 {
-                    amrex_avgdown(tbx,crse_fab.array(),fine_fab.array(),scomp,scomp,ncomp,ratio);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                    {
+                        amrex_avgdown(b,crse,fine,scomp,scomp,ncomp,ratio);
+                    });
                 }
                 else
                 {
-                    amrex_eb_avgdown(BL_TO_FORTRAN_BOX(tbx),
-                                     BL_TO_FORTRAN_N_ANYD(fine_fab,scomp),
-                                     BL_TO_FORTRAN_N_ANYD(crse_fab,scomp),
-                                     BL_TO_FORTRAN_ANYD(vfrac_fine[mfi]),
-                                     ratio.getVect(),&ncomp);
+                    Array4<Real const> const& vfrc = vfrac_fine.const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(tbx, i, j, k,
+                    {
+                        eb_avgdown(i,j,k,fine,scomp,crse,scomp,vfrc,dratio,ncomp);
+                    });
                 }
             }
         }
@@ -337,9 +343,9 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                                  ncomp, 0, MFInfo(),FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.tilebox();
                 auto& crse_fab = crse_S_fine[mfi];
@@ -347,18 +353,24 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                 
                 const auto& flag_fab = amrex::getEBCellFlagFab(fine_fab);
                 FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
-                
+
+                Array4<Real> const& crse_arr = crse_fab.array();
+                Array4<Real const> const& fine_arr = fine_fab.const_array();
+
                 if (typ == FabType::regular || typ == FabType::covered)
                 {
-                    amrex_avgdown(tbx,crse_fab.array(),fine_fab.array(),0,scomp,ncomp,ratio);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                    {
+                        amrex_avgdown(b,crse_arr,fine_arr,0,scomp,ncomp,ratio);
+                    });
                 }
                 else if (typ == FabType::singlevalued)
                 {
-                    amrex_eb_avgdown(BL_TO_FORTRAN_BOX(tbx),
-                                     BL_TO_FORTRAN_N_ANYD(fine_fab,scomp),
-                                     BL_TO_FORTRAN_N_ANYD(crse_fab,0),
-                                     BL_TO_FORTRAN_ANYD(vfrac_fine[mfi]),
-                                     ratio.getVect(),&ncomp);
+                    Array4<Real const> const& vfrc = vfrac_fine.const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(tbx, i, j, k,
+                    {
+                        eb_avgdown(i,j,k,fine_arr,scomp,crse_arr,scomp,vfrc,dratio,ncomp);
+                    });
                 }
                 else
                 {
@@ -392,32 +404,54 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
     }
     else 
     {
+        Dim3 dratio = ratio.dim3();
+
         const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>((*fine[0]).Factory());
         const auto&  aspect = factory.getAreaFrac();
 
         if (isMFIterSafe(*fine[0], *crse[0]))
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+                for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
                     const auto& flag_fab = amrex::getEBCellFlagFab((*fine[n])[mfi]);
                     const Box& tbx = mfi.growntilebox(ngcrse);
                     FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
-               
+
+                    Array4<Real> const& ca = crse[n]->array(mfi);
+                    Array4<Real const> const& fa = fine[n]->const_array(mfi);
+
                     if(typ == FabType::regular || typ == FabType::covered) 
-                    {    
-                        amrex_avgdown_faces(tbx, (*crse[n])[mfi].array(), (*fine[n])[mfi].array(), 0, 0, ncomp, ratio, n);
+                    {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                        {
+                            amrex_avgdown_faces(b, ca, fa, 0, 0, ncomp, ratio, n);
+                        });
                     }
                     else
                     {
-                       amrex_eb_avgdown_faces(tbx.loVect(), tbx.hiVect(), 
-                                              BL_TO_FORTRAN_ANYD((*fine[n])[mfi]), 
-                                              BL_TO_FORTRAN_ANYD((*crse[n])[mfi]),
-                                              BL_TO_FORTRAN_ANYD((*aspect[n])[mfi]),
-                                              ratio.getVect(), &n, &ncomp);
+                        Array4<Real const> const& ap = aspect[n]->const_array(mfi);
+                        if (n == 0) {
+                            AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                            {
+                                eb_avgdown_face_x(i,j,k,fa,0,ca,0,ap,dratio,ncomp);
+                            });
+                        } else if (n == 1) {
+                            AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                            {
+                                eb_avgdown_face_y(i,j,k,fa,0,ca,0,ap,dratio,ncomp);
+                            });
+                        } else {
+#if (AMREX_SPACEDIM == 3)
+                            AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                            {
+                                eb_avgdown_face_z(i,j,k,fa,0,ca,0,ap,dratio,ncomp);
+                            });
+#endif
+                        }
                     }
                 }
             }
@@ -457,28 +491,36 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
     }
     else
     {
+        Dim3 dratio = ratio.dim3();
+
         const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine.Factory());
         const auto& flags = factory.getMultiEBCellFlagFab();
         const auto& barea = factory.getBndryArea();
 
         if (isMFIterSafe(fine, crse))
         {
+            MFItInfo info;
+            if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse, info); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.growntilebox(ngcrse);
                 FabType typ = flags[mfi].getType(amrex::refine(tbx,ratio));
-
+                Array4<Real> const& ca = crse.array(mfi);
                 if (FabType::covered == typ || FabType::regular == typ) {
-                    crse[mfi].setVal(0.0, tbx, 0, ncomp);
+                    AMREX_HOST_DEVICE_FOR_4D(tbx,ncomp,i,j,k,n,
+                    {
+                        ca(i,j,k,n) = 0.0;
+                    });
                 } else {
-                    amrex_eb_avgdown_boundaries(tbx.loVect(), tbx.hiVect(),
-                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                                BL_TO_FORTRAN_ANYD(crse[mfi]),
-                                                BL_TO_FORTRAN_ANYD(barea[mfi]),
-                                                ratio.getVect(), &ncomp);
+                    Array4<Real const> const& fa = fine.const_array(mfi);
+                    Array4<Real const> const& ba = barea.const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(tbx,i,j,k,
+                    {
+                        eb_avgdown_boundaries(i,j,k,fa,0,ca,0,ba,dratio,ncomp);
+                    });
                 }
             }
         }
@@ -513,7 +555,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
         cc_mask.setVal(0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
@@ -521,53 +563,65 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             const BoxArray& ba = cc_mask.boxArray();
             for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
             {
-                IArrayBox& fab = cc_mask[mfi];
-                const Box& bx = fab.box();
+                const Box& bx = mfi.fabbox();
+                Array4<int> const& fab = cc_mask.array(mfi);
                 for (const auto& iv : pshifts)
                 {
                     ba.intersections(bx+iv, isects);
                     for (const auto& is : isects)
                     {
-                        fab.setVal(1, is.second-iv);
+                        const Box& b = is.second-iv;
+                        AMREX_HOST_DEVICE_FOR_3D(b,i,j,k,
+                        {
+                            fab(i,j,k) = 1;
+                        });
                     }
                 }
             }
         }
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(divu,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(divu,info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             const auto& flagfab = flags[mfi];
-            auto& divufab = divu[mfi];
-            AMREX_D_TERM(const FArrayBox& ufab = (*umac[0])[mfi];,
-                         const FArrayBox& vfab = (*umac[1])[mfi];,
-                         const FArrayBox& wfab = (*umac[2])[mfi];);
+            Array4<Real> const& divuarr = divu.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& uarr = umac[0]->const_array(mfi);,
+                         Array4<Real const> const& varr = umac[1]->const_array(mfi);,
+                         Array4<Real const> const& warr = umac[2]->const_array(mfi););
 
             const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
-                divufab.setVal(0.0, bx, 0, 1);
+                AMREX_HOST_DEVICE_FOR_3D(bx,i,j,k,
+                {
+                    divuarr(i,j,k) = 0.0;
+                });
             } else if (fabtyp == FabType::regular) {
-                amrex_compute_divergence(bx,divufab.array(),AMREX_D_DECL(ufab.array(),vfab.array(),wfab.array()),dxinv);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, b,
+                {
+                    amrex_compute_divergence(b,divuarr,AMREX_D_DECL(uarr,varr,warr),dxinv);
+                });
             } else {
-                amrex_compute_eb_divergence(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD(divufab),
-                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(ufab),
-                                                         BL_TO_FORTRAN_ANYD(vfab),
-                                                         BL_TO_FORTRAN_ANYD(wfab)),
-                                            BL_TO_FORTRAN_ANYD(cc_mask[mfi]),
-                                            BL_TO_FORTRAN_ANYD(flagfab),
-                                            BL_TO_FORTRAN_ANYD(vfrac[mfi]),
-                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                         BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                         BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                                         BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                                         BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                            dxinv.data());
+                Array4<int const> const& ccm = cc_mask.const_array(mfi);
+                Array4<Real const> const& vol = vfrac.const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                             Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                             Array4<Real const> const& apz = area[2]->const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                             Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                             Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+                Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
+                AMREX_HOST_DEVICE_FOR_3D(bx,i,j,k,
+                {
+                    eb_compute_divergence(i,j,k,divuarr,AMREX_D_DECL(uarr,varr,warr),
+                                          ccm, flagarr, vol, AMREX_D_DECL(apx,apy,apz),
+                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv);
+                });
             }
         }
     }
@@ -589,32 +643,40 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
         const auto& flags = factory.getMultiEBCellFlagFab();
         const auto& area = factory.getAreaFrac();
 
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(ccmf,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(ccmf,info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             const auto& flagfab = flags[mfi];
-            auto& ccfab = ccmf[mfi];
-            AMREX_D_TERM(const auto& xfab = (*fmf[0])[mfi];,
-                         const auto& yfab = (*fmf[1])[mfi];,
-                         const auto& zfab = (*fmf[2])[mfi];);
+            Array4<Real> const& ccfab = ccmf.array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& xfab = fmf[0]->const_array(mfi);,
+                         Array4<Real const> const& yfab = fmf[1]->const_array(mfi);,
+                         Array4<Real const> const& zfab = fmf[2]->const_array(mfi););
             const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
-                ccfab.setVal(0.0, bx, dcomp, 1);
+                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                {
+                    ccfab(i,j,k,dcomp) = 0.0;
+                });
             } else if (fabtyp == FabType::regular) {
-                amrex_avg_fc_to_cc(bx,ccfab.array(),AMREX_D_DECL(xfab.array(),yfab.array(),zfab.array()),dcomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, b,
+                {
+                    amrex_avg_fc_to_cc(b,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp);
+                });
             } else {
-                amrex_eb_avg_fc_to_cc(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_N_ANYD(ccfab,dcomp),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD(xfab),
-                                                   BL_TO_FORTRAN_ANYD(yfab),
-                                                   BL_TO_FORTRAN_ANYD(zfab)),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                      BL_TO_FORTRAN_ANYD(flagfab));
+                AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                             Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                             Array4<Real const> const& apz = area[2]->const_array(mfi););
+                Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
+                AMREX_HOST_DEVICE_FOR_3D(bx,i,j,k,
+                {
+                    eb_avg_fc_to_cc(i,j,k,dcomp,ccfab,AMREX_D_DECL(xfab,yfab,zfab),
+                                    AMREX_D_DECL(apx,apy,apz),flagarr);
+                });
             }
         }
     }
