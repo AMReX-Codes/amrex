@@ -901,7 +901,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_CUDA
-    if (local and (lev_min == 0) and (lev_max == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
+    if ((lev_min == 0) and (lev_max == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
     {
         RedistributeGPU(lev_min, lev_max, nGrow, local);
     }
