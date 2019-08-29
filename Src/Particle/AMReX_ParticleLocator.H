@@ -22,19 +22,25 @@ struct assignGrid
         : m_boxes_ptr(a_boxes_ptr),
           m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3()),
           m_poffset(a_poffset), m_pperm(a_pperm)
-        {}
+        {
+            // clamp bin size to 1 for AMREX_SPACEDIM < 3
+            m_bin_size.x = amrex::max(m_bin_size.x, 1);
+            m_bin_size.y = amrex::max(m_bin_size.y, 1);
+            m_bin_size.z = amrex::max(m_bin_size.z, 1);
+        }
 
-    AMREX_GPU_HOST_DEVICE  AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (const IntVect& iv) const noexcept
     {
-        int ix = (iv[0] - m_lo.x) / m_bin_size.x;
-        int iy = (iv[1] - m_lo.y) / m_bin_size.y;
-        int iz = (iv[2] - m_lo.z) / m_bin_size.z;
+        const auto lo = iv.dim3();
+        int ix = (lo.x - m_lo.x) / m_bin_size.x;
+        int iy = (lo.y - m_lo.y) / m_bin_size.y;
+        int iz = (lo.z - m_lo.z) / m_bin_size.z;
 
         int nx = m_hi.x-m_lo.x+1;
         int ny = m_hi.y-m_lo.y+1;
         int nz = m_hi.z-m_lo.z+1;
-        
+
         for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix, nx-1); ++ii) {
             for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
                 for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz, nz-1); ++kk) {
@@ -88,9 +94,15 @@ public:
         
         ReduceTuple hv = reduce_data.value();
 
-        m_bins_lo  = IntVect(AMREX_D_DECL(amrex::get<0>(hv), amrex::get<1>(hv), amrex::get<2>(hv)));
-        m_bins_hi  = IntVect(AMREX_D_DECL(amrex::get<3>(hv), amrex::get<4>(hv), amrex::get<5>(hv)));
-        m_bin_size = IntVect(AMREX_D_DECL(amrex::get<6>(hv), amrex::get<7>(hv), amrex::get<8>(hv)));
+        m_bins_lo  = IntVect(AMREX_D_DECL(amrex::get<0>(hv), 
+                                          amrex::get<1>(hv), 
+                                          amrex::get<2>(hv)));
+        m_bins_hi  = IntVect(AMREX_D_DECL(amrex::get< AMREX_SPACEDIM  >(hv), 
+                                          amrex::get< AMREX_SPACEDIM+1>(hv), 
+                                          amrex::get< AMREX_SPACEDIM+2>(hv)));
+        m_bin_size = IntVect(AMREX_D_DECL(amrex::get<2*AMREX_SPACEDIM>(hv), 
+                                          amrex::get<2*AMREX_SPACEDIM+1>(hv), 
+                                          amrex::get<2*AMREX_SPACEDIM+2>(hv)));
 
         m_bins_hi = (m_bins_hi + m_bin_size - IntVect::TheUnitVector()) / m_bin_size; 
 
@@ -120,9 +132,10 @@ public:
         amrex::ParallelFor(num_boxes, [=] AMREX_GPU_DEVICE (int i) noexcept
         {
             const Box& box = boxes_ptr[i];
-            int ix = (box.smallEnd(0) - lo.x) / bin_size.x;
-            int iy = (box.smallEnd(1) - lo.y) / bin_size.y;
-            int iz = (box.smallEnd(2) - lo.z) / bin_size.z;
+            const auto blo = amrex::lbound(box);
+            int ix = (blo.x - lo.x) / bin_size.x;
+            int iy = (blo.y - lo.y) / bin_size.y;
+            int iz = (blo.z - lo.z) / bin_size.z;
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;            
