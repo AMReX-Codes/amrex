@@ -693,7 +693,7 @@ PML::ExchangeE (PatchType patch_type,
 }
 
 void
-PML::CopyJinPMLs (PatchType patch_type,
+PML::CopyJtoPMLs (PatchType patch_type,
                 const std::array<amrex::MultiFab*,3>& jp)
 {
     if (patch_type == PatchType::fine && pml_j_fp[0] && jp[0])
@@ -711,11 +711,11 @@ PML::CopyJinPMLs (PatchType patch_type,
 }
 
 void
-PML::CopyJinPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
+PML::CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
                 const std::array<amrex::MultiFab*,3>& j_cp)
 {
-    CopyJinPMLs(PatchType::fine, j_fp);
-    CopyJinPMLs(PatchType::coarse, j_cp);
+    CopyJtoPMLs(PatchType::fine, j_fp);
+    CopyJtoPMLs(PatchType::coarse, j_cp);
 }
 
 void

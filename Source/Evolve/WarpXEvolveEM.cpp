@@ -308,7 +308,7 @@ WarpX::OneStep_nosub (Real cur_time)
         for (int lev = 0; lev <= finest_level; ++lev)
         {
             if (pml[lev]->ok()){
-                pml[lev]->CopyJinPMLs({ current_fp[lev][0].get(),
+                pml[lev]->CopyJtoPMLs({ current_fp[lev][0].get(),
                                       current_fp[lev][1].get(),
                                       current_fp[lev][2].get() },
                                     { current_cp[lev][0].get(),

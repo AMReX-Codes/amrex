@@ -141,7 +141,7 @@ public:
                     const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain, int ncell,
                     const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                     const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
-    void CopyJinPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
+    void CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
     void CopyJinReg (const std::array<amrex::MultiFab*,3>& j_fp,
                     const std::array<amrex::MultiFab*,3>& j_cp);
@@ -154,7 +154,7 @@ public:
 		    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain, int ncell,
         const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
         const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
-    void CopyJinPMLs (PatchType patch_type,
+    void CopyJtoPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
     void CopyJinReg (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
