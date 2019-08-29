@@ -113,9 +113,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma_star_cum_fac[idim].m_hi = hi[idim];
     }
 
-    // pml_type = "";
-    pml_type_array = {3, 3, 3, 3, 3};
-
     Array<Real,AMREX_SPACEDIM> fac;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
@@ -182,17 +179,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
-                if (idim == 0){
-                    pml_type_array[0] = 1;
-                    pml_type_array[1] = 0;
-                    pml_type_array[2] = 1;
-                    pml_type_array[3] = 1;
-                }
-                else {
-                    if (pml_type_array[0] == 1){
-                      pml_type_array[1+idim] = 0;
-                    }
-                }
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
@@ -203,17 +189,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
-                if (idim == 0){
-                    pml_type_array[0] = 1;
-                    pml_type_array[1] = 1;
-                    pml_type_array[2] = 1;
-                    pml_type_array[3] = 1;
-                }
-                else {
-                    if (pml_type_array[0] == 1){
-                      pml_type_array[1+idim] = 1;
-                    }
-                }
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -228,9 +203,6 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
             if (overlap.ok()) {
                 FillZero(idim, sigma[idim], sigma_cum[idim], sigma_star[idim], sigma_star_cum[idim], overlap);
-                if (idim==0){
-                    pml_type_array[0] = 2;
-                }
             }
             else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_side_edges, how did this happen?\n");
@@ -245,46 +217,12 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
-                if (idim == 0){
-                    pml_type_array[0] = 2;
-                    pml_type_array[1] = idim;
-                    pml_type_array[3] = 0;
-                }
-                else {
-                    if (pml_type_array[0] == 2){
-                      if (pml_type_array[1]==3){
-                        pml_type_array[1] = idim;
-                        pml_type_array[3] = 0;
-                      }
-                      else{
-                        pml_type_array[2] = idim;
-                        pml_type_array[4] = 0;
-                      }
-                    }
-                }
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
-                if (idim == 0){
-                    pml_type_array[0] = 2;
-                    pml_type_array[1] = idim;
-                    pml_type_array[3] = 1;
-                }
-                else {
-                    if (pml_type_array[0] == 2){
-                      if (pml_type_array[1]==3){
-                        pml_type_array[1] = idim;
-                        pml_type_array[3] = 1;
-                      }
-                      else{
-                        pml_type_array[2] = idim;
-                        pml_type_array[4] = 1;
-                      }
-                    }
-                }
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {
@@ -316,18 +254,12 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             Box looverlap = lobox & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], looverlap, grid_box, fac[idim]);
-                pml_type_array[0] = 0;
-                pml_type_array[1] = idim;
-                pml_type_array[2] = 0;
             }
 
             const Box& hibox = amrex::adjCellHi(grid_box, idim, ncell);
             Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_cum[idim], sigma_star[idim],  sigma_star_cum[idim], hioverlap, grid_box, fac[idim]);
-                pml_type_array[0] = 0;
-                pml_type_array[1] = idim;
-                pml_type_array[2] = 1;
             }
 
             if (!looverlap.ok() && !hioverlap.ok()) {

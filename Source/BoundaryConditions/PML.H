@@ -56,21 +56,6 @@ struct SigmaBox
     SigmaVect sigma_star_fac;
     SigmaVect sigma_star_cum_fac;
 
-    std::array<int,5> pml_type_array;
-    /*
-    pml_type_array is an array containing the PML type.
-    pml_type_array[0] = 0 : direct face: need to store:
-      - direction: 0/1/2 (x/y/z)
-      - sign: 0/1 (-/+)
-    => 3 comp
-    pml_type_array[0] = 1 : corner: need to store:
-      - sign (x3): 0/1 (-/+)
-    => 4 comp
-    pml_type_array[0] = 2 : side edge: need to store:
-      - direction (x2): 0/1/2 (x/y/z)
-      - sign (x2): 0/1 (-/+)
-    => 5 comp
-    */
 };
 
 namespace amrex {
