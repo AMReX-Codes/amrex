@@ -592,14 +592,19 @@ knapsack (const std::vector<long>&         wgts,
     wblv.reserve(nprocs);
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
-        WeightedBoxList wbl = wblq.top();
-        wblq.pop();
-        wbl.push_back(lb[i]);
-	if (wbl.size() < nmax) {
-	    wblq.push(wbl);
-	} else {
-	    wblv.push_back(wbl);
-	}
+        if (!wblq.empty()) {
+            WeightedBoxList wbl = wblq.top();
+            wblq.pop();
+            wbl.push_back(lb[i]);
+            if (wbl.size() < nmax) {
+                wblq.push(wbl);
+            } else {
+                wblv.push_back(wbl);
+            }
+        } else {
+            int ip = static_cast<int>(i) % nprocs;
+            wblv[ip].push_back(lb[i]);
+        }
     }
 
     Real max_weight = 0;

@@ -1618,6 +1618,7 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
+    AMREX_ALWAYS_ASSERT(!omp_in_parallel());
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)

@@ -8,7 +8,6 @@ target_sources(amrex
    AMReX_MultiCutFab.H
    AMReX_EBAmrUtil.H
    AMReX_EBDataCollection.H
-   AMReX_EBFluxRegister_F.H
    AMReX_EBInterpolater.H
    AMReX_EBSupport.H
    AMReX_EBFabFactory.H
@@ -34,7 +33,8 @@ target_sources(amrex
    AMReX_EB_levelset.cpp
    AMReX_EB_utils.cpp
    AMReX_EB_LSCoreBase.cpp 
-   AMReX_EBFluxRegister_${DIM}d.F90
+   AMReX_EBFluxRegister_${DIM}D_C.H
+   AMReX_EBFluxRegister_C.H
    AMReX_EBFluxRegister_nd.F90
    AMReX_EBMultiFabUtil_${DIM}d.F90
    AMReX_EBMultiFabUtil_${DIM}D_C.H
