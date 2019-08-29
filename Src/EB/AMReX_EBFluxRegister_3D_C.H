@@ -4,7 +4,7 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void eb_flux_reg_crseadd_va(int i, int j, int k, int n, Array4<Real> const& d,
+void eb_flux_reg_crseadd_va(int i, int j, int k, Array4<Real> const& d,
                             Array4<int const> const& flag, Array4<Real const> const& fx,
                             Array4<Real const> const& fy, Array4<Real const> const& fz,
                             Array4<Real const> const& vfrac, Array4<Real const> const& ax,
@@ -14,24 +14,43 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, int n, Array4<Real> const& d,
     if (flag(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell
         and vfrac(i,j,k) > 1.e-14)
     {
+        int ncomp = d.nComp();
         Real volinv = 1.0/vfrac(i,j,k);
 
         if (flag(i-1,j,k) == amrex_yafluxreg_fine_cell) {
-            d(i,j,k,n) -= dtdx*fx(i,j,k,n)*(ax(i,j,k)*volinv);
+            Real tmp = dtdx*ax(i,j,k)*volinv;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) -= tmp*fx(i,j,k,n);
+            }
         } else if (flag(i+1,j,k) == amrex_yafluxreg_fine_cell) {
-            d(i,j,k,n) +=  dtdx*fx(i+1,j,k,n)*(ax(i+1,j,k)*volinv);
+            Real tmp = dtdx*ax(i+1,j,k)*volinv;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) += tmp*fx(i+1,j,k,n);
+            }
         }
 
         if (flag(i,j-1,k) == amrex_yafluxreg_fine_cell) {
-            d(i,j,k,n) -= dtdy*fy(i,j,k,n)*(ay(i,j,k)*volinv);
+            Real tmp = dtdy*ay(i,j,k)*volinv;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) -= tmp*fy(i,j,k,n);
+            }
         } else if (flag(i,j+1,k) == amrex_yafluxreg_fine_cell) {
-            d(i,j,k,n) += dtdy*fy(i,j+1,k,n)*(ay(i,j+1,k)*volinv);
+            Real tmp = dtdy*ay(i,j+1,k)*volinv;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) += tmp*fy(i,j+1,k,n);
+            }
         }
 
         if (flag(i,j,k-1) == amrex_yafluxreg_fine_cell) {
-            d(i,j,k,n) -= dtdz*fz(i,j,k,n)*(az(i,j,k)*volinv);
+            Real tmp = dtdz*az(i,j,k)*volinv;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) -= tmp*fz(i,j,k,n);
+            }
         } else if (flag(i,j,k+1) == amrex_yafluxreg_fine_cell) {
-            d(i,j,k,n) += dtdz*fz(i,j,k+1,n)*(az(i,j,k+1)*volinv);
+            Real tmp = dtdz*az(i,j,k+1)*volinv;
+            for (int n = 0; n < ncomp; ++n) {
+                d(i,j,k,n) += tmp*fz(i,j,k+1,n);
+            }
         }
     }
 }
@@ -185,6 +204,63 @@ void eb_flux_reg_fineadd_dm (int i, int j, int k, int n, Box const& dmbx, Array4
     Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio,threshold);
     dmtot *= cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), dmtot);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_rereflux_from_crse (int i, int j, int k, int n, Box const& bx, Array4<Real> const& d,
+                            Array4<Real const> const& s, Array4<int const> const& amrflg,
+                            Array4<EBCellFlag const> const& ebflg, Array4<Real const> const& vfrac)
+{
+    if (amrflg(i,j,k) == amrex_yafluxreg_crse_fine_boundary_cell)
+    {
+        auto flag = ebflg(i,j,k);
+        if (flag.isRegular())
+        {
+            if (bx.contains(IntVect(i,j,k)))
+            {
+                HostDevice::Atomic::Add(d.ptr(i,j,k,n), s(i,j,k,n));
+            }
+        }
+        else if (flag.isSingleValued())
+        {
+            Real dm = s(i,j,k,n) * vfrac(i,j,k);
+            if (bx.contains(IntVect(i,j,k))) {
+                HostDevice::Atomic::Add(d.ptr(i,j,k,n), dm);
+            }
+
+            Real wtot = 0.0;
+            for (int kk = -1; kk <= 1; ++kk) {
+            for (int jj = -1; jj <= 1; ++jj) {
+            for (int ii = -1; ii <= 1; ++ii) {
+                if ((ii != 0 or jj != 0 or kk != 0) and flag.isConnected(ii,jj,kk)) {
+                    wtot += vfrac(i+ii,j+jj,k+kk);
+                }
+            }}}
+
+            Real drho = dm * ((1.0-vfrac(i,j,k))/wtot);
+            for (int kk = -1; kk <= 1; ++kk) {
+            for (int jj = -1; jj <= 1; ++jj) {
+            for (int ii = -1; ii <= 1; ++ii) {
+                if ((ii != 0 or jj != 0 or kk != 0) and flag.isConnected(ii,jj,kk)) {
+                    if (bx.contains(IntVect(i+ii,j+jj,k+kk))) {
+                        HostDevice::Atomic::Add(d.ptr(i+ii,j+jj,k+kk,n), drho*vfrac(i+ii,j+jj,k+kk));
+                    }
+                }
+            }}}
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_rereflux_to_fine (int i, int j, int k, int n, Array4<Real> const& d,
+                          Array4<Real const> const& s, Array4<int const> const& msk, Dim3 ratio)
+{
+    int ic = amrex::coarsen(i,ratio.x);
+    int jc = amrex::coarsen(j,ratio.y);
+    int kc = amrex::coarsen(k,ratio.z);
+    if (msk(ic,jc,kc) == 1) {
+        d(i,j,k,n) += s(ic,jc,kc,n);
+    }
 }
 
 }
