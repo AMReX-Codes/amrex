@@ -4,6 +4,11 @@
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_EBCellFlag.H>
 
+extern "C" {
+    void amrex_eb_disable_reredistribution ();
+    amrex::Real amrex_eb_get_reredistribution_threshold ();
+}
+
 namespace amrex {
 
 /**
@@ -96,6 +101,8 @@ public:
 private:
 
     iMultiFab m_cfp_inside_mask;
+
+public: // for cuda
 
     void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };
