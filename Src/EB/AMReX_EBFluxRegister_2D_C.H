@@ -32,7 +32,7 @@ void eb_flux_reg_crseadd_va(int i, int j, int k, int n, Array4<Real> const& d,
 namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real eb_flux_reg_cvol (int i, int j, Array4<Real const> const& vfrac,
-                           Dim3 const& ratio) noexcept
+                           Dim3 const& ratio, Real threshold) noexcept
     {
         Real cvol = 0.0;
         constexpr int kk = 0;
@@ -41,7 +41,7 @@ namespace {
                 cvol += vfrac(ii,jj,kk);
             }
         }
-        return (cvol > 1.e-14) ? 1.0/cvol : 0.0;
+        return (cvol > threshold) ? 1.0/cvol : 0.0;
     }
 }
 
@@ -58,7 +58,7 @@ void eb_flux_reg_fineadd_va_xlo (int i, int j, int k, int n, Array4<Real> const&
             fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,1.e-14);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -76,7 +76,7 @@ void eb_flux_reg_fineadd_va_xhi (int i, int j, int k, int n, Array4<Real> const&
             fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,1.e-14);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -94,7 +94,7 @@ void eb_flux_reg_fineadd_va_ylo (int i, int j, int k, int n, Array4<Real> const&
             fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,1.e-14);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -112,9 +112,28 @@ void eb_flux_reg_fineadd_va_yhi (int i, int j, int k, int n, Array4<Real> const&
             fa += f(ii,jj,kk,n) * a(ii,jj,kk);
         }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,1.e-14);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void eb_flux_reg_fineadd_dm (int i, int j, int k, int n, Box const& dmbx, Array4<Real> const& d,
+                             Array4<Real const> const& dm, Array4<Real const> const& vfrac,
+                             Dim3 const& ratio, Real threshold)
+{
+    Real dmtot = 0.0;
+    constexpr int kk = 0;
+    for     (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
+        for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
+            if (dmbx.contains(IntVect(ii,jj))) {
+                dmtot += dm(ii,jj,kk,n);
+            }
+        }
+    }
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio,threshold);
+    dmtot *= cvol;
+    HostDevice::Atomic::Add(d.ptr(i,j,k,n), dmtot);
 }
 
 }
