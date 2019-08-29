@@ -78,7 +78,6 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
 
     Array4<Real> const& fab = m_crse_data.array(mfi);
     const Box& bx = mfi.tilebox();
-    const int nc = fab.nComp();
 
     Array4<int const> const& amrflag = m_crse_flag.array(mfi);
 
@@ -94,9 +93,9 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
     Array4<Real const> const& vfrac = volfrac.const_array();
 
     bool run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-    AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu, bx, nc, i, j, k, n,
+    AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
     {
-        eb_flux_reg_crseadd_va(i,j,k,n,fab,amrflag,AMREX_D_DECL(fx,fy,fz),
+        eb_flux_reg_crseadd_va(i,j,k,fab,amrflag,AMREX_D_DECL(fx,fy,fz),
                                vfrac,AMREX_D_DECL(apx,apy,apz),
                                AMREX_D_DECL(dtdx,dtdy,dtdz));
     });
@@ -231,13 +230,17 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     if (!m_cfp_mask.empty())
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
         {
-            for (int i = 0; i < m_ncomp; ++i) {
-                m_cfpatch[mfi].mult(m_cfp_mask[mfi],0,i);
-            }
+            Array4<Real> const& cfa = m_cfpatch.array(mfi);
+            Array4<Real const> const& m = m_cfp_mask.const_array(mfi);
+            const Box& bx = mfi.fabbox();
+            AMREX_HOST_DEVICE_FOR_4D(bx,m_ncomp,i,j,k,n,
+            {
+                cfa(i,j,k,n) *= m(i,j,k);
+            });
         }
     }
 
@@ -254,39 +257,38 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
         auto const& flags = factory.getMultiEBCellFlagFab();
 
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+        for (MFIter mfi(m_crse_data, info); mfi.isValid(); ++mfi)
         {
-            FArrayBox fab;
-            for (MFIter mfi(m_crse_data, MFItInfo().EnableTiling().SetDynamic(true));
-                 mfi.isValid(); ++mfi)
+            if (m_crse_fab_flag[mfi.LocalIndex()] == fine_cell) // fab has crse/fine cells
             {
-                if (m_crse_fab_flag[mfi.LocalIndex()] == fine_cell) // fab has crse/fine cells
-                {
-                    const Box& bx = mfi.tilebox();
-                    
-                    const auto& ebflag = flags[mfi];
-                    
-                    if (ebflag.getType(bx) != FabType::covered) {
-                        if (ebflag.getType(amrex::grow(bx,1)) == FabType::regular)
+                const Box& bx = mfi.tilebox();
+                const auto& ebflag = flags[mfi];
+                if (ebflag.getType(bx) != FabType::covered) {
+                    const Box& bxg1 = amrex::grow(bx,1);
+                    Array4<Real> const& dfab = m_crse_data.array(mfi);
+                    Array4<Real const> const& sfab = grown_crse_data.const_array(mfi);
+                    if (ebflag.getType(bxg1) == FabType::regular)
+                    {
+                        // no re-reflux or re-re-redistribution
+                        AMREX_HOST_DEVICE_FOR_4D(bx, m_ncomp, i, j, k, n,
                         {
-                            // no re-reflux or re-re-redistribution
-                            m_crse_data[mfi].plus(grown_crse_data[mfi],bx,0,0,m_ncomp);
-                        }
-                        else
+                            dfab(i,j,k,n) += sfab(i,j,k,n);
+                        });
+                    }
+                    else
+                    {
+                        Array4<int const> const& amrflag = m_crse_flag.const_array(mfi);
+                        Array4<EBCellFlag const> const& ebflagarr = ebflag.const_array();
+                        Array4<Real const> const& cvol = crse_vfrac.const_array(mfi);
+                        AMREX_HOST_DEVICE_FOR_4D(bxg1, m_ncomp, i, j, k, n,
                         {
-                            fab.resize(amrex::grow(bx,2),m_ncomp);
-                            fab.setVal(0.0);
-                            amrex_eb_rereflux_from_crse(BL_TO_FORTRAN_BOX(bx),
-                                                        BL_TO_FORTRAN_ANYD(fab),
-                                                        BL_TO_FORTRAN_ANYD(grown_crse_data[mfi]),
-                                                        BL_TO_FORTRAN_ANYD(m_crse_flag[mfi]),
-                                                        BL_TO_FORTRAN_ANYD(ebflag),
-                                                        BL_TO_FORTRAN_ANYD(crse_vfrac[mfi]),
-                                                        &m_ncomp);
-                            m_crse_data[mfi].plus(fab,bx,0,0,m_ncomp);
-                        }
+                            eb_rereflux_from_crse(i,j,k,n,bx,dfab,sfab,amrflag,ebflagarr,cvol);
+                        });
                     }
                 }
             }
@@ -304,10 +306,12 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state.Factory());
     auto const& flags = factory.getMultiEBCellFlagFab();
 
+    Dim3 ratio = m_ratio.dim3();
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(cf,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& cbx = mfi.tilebox();
         const Box& fbx = amrex::refine(cbx, m_ratio);
@@ -316,11 +320,13 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         
         if (ebflag.getType(fbx) != FabType::covered)
         {
-            amrex_eb_rereflux_to_fine(BL_TO_FORTRAN_BOX(cbx),
-                                      BL_TO_FORTRAN_ANYD(fine_state[mfi]),
-                                      BL_TO_FORTRAN_ANYD(cf[mfi]),
-                                      BL_TO_FORTRAN_ANYD(m_cfp_inside_mask[mfi]),
-                                      &m_ncomp, m_ratio.getVect());
+            Array4<Real> const& d = fine_state.array(mfi);
+            Array4<Real const> const& s = cf.const_array(mfi);
+            Array4<int const> const& m = m_cfp_inside_mask.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D(fbx,m_ncomp,i,j,k,n,
+            {
+                eb_rereflux_to_fine(i,j,k,n,d,s,m,ratio);
+            });
         }
     }
 }
