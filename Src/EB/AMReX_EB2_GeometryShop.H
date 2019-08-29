@@ -304,28 +304,14 @@ public:
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
-
-        if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
+        auto f = m_f;
+        bool run_on_gpu = (run_on == RunOn::Gpu && Gpu::inLaunchRegion());
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
         {
-            auto f = m_f;
-            amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                a(i,j,k) = f(AMREX_D_DECL(problo[0]+i*dx[0],
-                                          problo[1]+j*dx[1],
-                                          problo[2]+k*dx[2]));
-            });
-        }
-        else
-        {
-            amrex::LoopOnCpu(bx,
-            [=] (int i, int j, int k) noexcept
-            {
-                a(i,j,k) = m_f(AMREX_D_DECL(problo[0]+i*dx[0],
-                                            problo[1]+j*dx[1],
-                                            problo[2]+k*dx[2]));
-            });
-        }
+            a(i,j,k) = f(AMREX_D_DECL(problo[0]+i*dx[0],
+                                      problo[1]+j*dx[1],
+                                      problo[2]+k*dx[2]));
+        });
     }
 
     template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
@@ -364,50 +350,25 @@ public:
             Array4<Type_t const> const& type = type_fab[idim].array();
             const Box& bx = inter_fab[idim].box();
             int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
-            if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
+            bool run_on_gpu = (run_on == RunOn::Gpu && Gpu::inLaunchRegion());
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
             {
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (type(i,j,k) == Type::irregular) {
-                        IntVect ivlo(AMREX_D_DECL(i,j,k));
-                        IntVect ivhi(AMREX_D_DECL(i,j,k));
-                        ivhi[dir] += 1;
-                        inter(i,j,k) = BrentRootFinder
-                            ({AMREX_D_DECL(problo[0]+ivlo[0]*dx[0],
-                                           problo[1]+ivlo[1]*dx[1],
-                                           problo[2]+ivlo[2]*dx[2])},
-                             {AMREX_D_DECL(problo[0]+ivhi[0]*dx[0],
-                                           problo[1]+ivhi[1]*dx[1],
-                                           problo[2]+ivhi[2]*dx[2])},
-                                dir, f);
-                    } else {
-                        inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
-                    }
-                });
-            }
-            else
-            {
-                amrex::LoopOnCpu(bx,
-                [=] (int i, int j, int k) noexcept
-                {
-                    if (type(i,j,k) == Type::irregular) {
-                        IntVect ivlo(AMREX_D_DECL(i,j,k));
-                        IntVect ivhi(AMREX_D_DECL(i,j,k));
-                        ivhi[dir] += 1;
-                        inter(i,j,k) = BrentRootFinder
-                            ({AMREX_D_DECL(problo[0]+ivlo[0]*dx[0],
-                                           problo[1]+ivlo[1]*dx[1],
-                                           problo[2]+ivlo[2]*dx[2])},
-                             {AMREX_D_DECL(problo[0]+ivhi[0]*dx[0],
-                                           problo[1]+ivhi[1]*dx[1],
-                                           problo[2]+ivhi[2]*dx[2])},
-                                dir, f);
-                    } else {
-                        inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
-                    }
-                });
-            }
+                if (type(i,j,k) == Type::irregular) {
+                    IntVect ivlo(AMREX_D_DECL(i,j,k));
+                    IntVect ivhi(AMREX_D_DECL(i,j,k));
+                    ivhi[dir] += 1;
+                    inter(i,j,k) = BrentRootFinder
+                        ({AMREX_D_DECL(problo[0]+ivlo[0]*dx[0],
+                                       problo[1]+ivlo[1]*dx[1],
+                                       problo[2]+ivlo[2]*dx[2])},
+                         {AMREX_D_DECL(problo[0]+ivhi[0]*dx[0],
+                                       problo[1]+ivhi[1]*dx[1],
+                                       problo[2]+ivhi[2]*dx[2])},
+                            dir, f);
+                } else {
+                    inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
+                }
+            });
         }
     }
 
