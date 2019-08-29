@@ -57,7 +57,7 @@ void warpx_push_by_yee(int i, int j, int k, Array4<Real> const& By,
 #if defined WARPX_DIM_3D
     By(i,j,k) += + dtsdx * (Ez(i+1,j,k  ) - Ez(i,j,k))
                  - dtsdz * (Ex(i  ,j,k+1) - Ex(i,j,k));
-#elif (defined WARPX_DIM_XY) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     // Note that the 2D Cartesian and RZ mode 0 are the same
     By(i,j,0,0) += + dtsdx * (Ez(i+1,j  ,0,0) - Ez(i,j,0,0))
                    - dtsdz * (Ex(i  ,j+1,0,0) - Ex(i,j,0,0));
@@ -105,7 +105,7 @@ void warpx_push_ex_yee(int i, int j, int k, Array4<Real> const& Ex,
     Ex(i,j,k) += + dtsdy_c2 * (Bz(i,j,k) - Bz(i,j-1,k  ))
                  - dtsdz_c2 * (By(i,j,k) - By(i,j  ,k-1))
                  - mu_c2_dt  * Jx(i,j,k);
-#elif (defined WARPX_DIM_XY) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     // Note that the 2D Cartesian and RZ mode 0 are the same
     Ex(i,j,0,0) += - dtsdz_c2 * (By(i,j,0,0) - By(i,j-1,0,0))
                    - mu_c2_dt  * Jx(i,j,0,0);
