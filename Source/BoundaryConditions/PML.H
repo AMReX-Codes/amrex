@@ -48,13 +48,13 @@ struct SigmaBox
     using SigmaVect = std::array<Sigma,AMREX_SPACEDIM>;
 
     SigmaVect sigma;
-    SigmaVect sigma_cum;
+    SigmaVect sigma_cumsum;
     SigmaVect sigma_star;
-    SigmaVect sigma_star_cum;
+    SigmaVect sigma_star_cumsum;
     SigmaVect sigma_fac;
-    SigmaVect sigma_cum_fac;
+    SigmaVect sigma_cumsum_fac;
     SigmaVect sigma_star_fac;
-    SigmaVect sigma_star_cum_fac;
+    SigmaVect sigma_star_cumsum_fac;
 
 };
 

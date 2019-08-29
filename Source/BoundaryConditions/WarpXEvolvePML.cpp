@@ -121,55 +121,55 @@ WarpX::DampJPML (int lev, PatchType patch_type)
             auto const& pml_jxfab = pml_j[0]->array(mfi);
             auto const& pml_jyfab = pml_j[1]->array(mfi);
             auto const& pml_jzfab = pml_j[2]->array(mfi);
-            const Real* sigma_cum_fac_j_x = sigba[mfi].sigma_cum_fac[0].data();
-            const Real* sigma_star_cum_fac_j_x = sigba[mfi].sigma_star_cum_fac[0].data();
+            const Real* sigma_cumsum_fac_j_x = sigba[mfi].sigma_cumsum_fac[0].data();
+            const Real* sigma_star_cumsum_fac_j_x = sigba[mfi].sigma_star_cumsum_fac[0].data();
 #if (AMREX_SPACEDIM == 3)
-            const Real* sigma_cum_fac_j_y = sigba[mfi].sigma_cum_fac[1].data();
-            const Real* sigma_star_cum_fac_j_y = sigba[mfi].sigma_star_cum_fac[1].data();
-            const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[2].data();
-            const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[2].data();
+            const Real* sigma_cumsum_fac_j_y = sigba[mfi].sigma_cumsum_fac[1].data();
+            const Real* sigma_star_cumsum_fac_j_y = sigba[mfi].sigma_star_cumsum_fac[1].data();
+            const Real* sigma_cumsum_fac_j_z = sigba[mfi].sigma_cumsum_fac[2].data();
+            const Real* sigma_star_cumsum_fac_j_z = sigba[mfi].sigma_star_cumsum_fac[2].data();
 #else
-            const Real* sigma_cum_fac_j_y = nullptr;
-            const Real* sigma_star_cum_fac_j_y = nullptr;
-            const Real* sigma_cum_fac_j_z = sigba[mfi].sigma_cum_fac[1].data();
-            const Real* sigma_star_cum_fac_j_z = sigba[mfi].sigma_star_cum_fac[1].data();
+            const Real* sigma_cumsum_fac_j_y = nullptr;
+            const Real* sigma_star_cumsum_fac_j_y = nullptr;
+            const Real* sigma_cumsum_fac_j_z = sigba[mfi].sigma_cumsum_fac[1].data();
+            const Real* sigma_star_cumsum_fac_j_z = sigba[mfi].sigma_star_cumsum_fac[1].data();
 #endif
             const Box& tjx  = mfi.tilebox(jx_nodal_flag);
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
 
-            auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_cum_fac[0].lo();
+            auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_cumsum_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma_cum_fac[1].lo();
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cum_fac[2].lo();
+            auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
+            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cumsum_fac[2].lo();
 #else
             int y_lo = 0;
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cum_fac[1].lo();
+            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
 #endif
 
-            auto const& AMREX_RESTRICT xs_lo = sigba[mfi].sigma_star_cum_fac[0].lo();
+            auto const& AMREX_RESTRICT xs_lo = sigba[mfi].sigma_star_cumsum_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT ys_lo = sigba[mfi].sigma_star_cum_fac[1].lo();
-            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cum_fac[2].lo();
+            auto const& AMREX_RESTRICT ys_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
+            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cumsum_fac[2].lo();
 #else
             int ys_lo = 0;
-            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cum_fac[1].lo();
+            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
 #endif
 
             amrex::ParallelFor( tjx, tjy, tjz,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    damp_jx_pml(i, j, k, pml_jxfab, sigma_star_cum_fac_j_x,
-                                sigma_cum_fac_j_y, sigma_cum_fac_j_z,
+                    damp_jx_pml(i, j, k, pml_jxfab, sigma_star_cumsum_fac_j_x,
+                                sigma_cumsum_fac_j_y, sigma_cumsum_fac_j_z,
                                 xs_lo,y_lo, z_lo);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    damp_jy_pml(i, j, k, pml_jyfab, sigma_cum_fac_j_x,
-                                sigma_star_cum_fac_j_y, sigma_cum_fac_j_z,
+                    damp_jy_pml(i, j, k, pml_jyfab, sigma_cumsum_fac_j_x,
+                                sigma_star_cumsum_fac_j_y, sigma_cumsum_fac_j_z,
                                 x_lo,ys_lo, z_lo);
                 },
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                    damp_jz_pml(i, j, k, pml_jzfab, sigma_cum_fac_j_x,
-                                sigma_cum_fac_j_y, sigma_star_cum_fac_j_z,
+                    damp_jz_pml(i, j, k, pml_jzfab, sigma_cumsum_fac_j_x,
+                                sigma_cumsum_fac_j_y, sigma_star_cumsum_fac_j_z,
                                 x_lo,y_lo, zs_lo);
                 }
             );
