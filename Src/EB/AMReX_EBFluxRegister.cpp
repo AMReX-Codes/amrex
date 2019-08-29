@@ -127,31 +127,9 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     const Box& cbx = amrex::coarsen(tbx, m_ratio);
     const Box& fbx = amrex::refine(cbx, m_ratio);
 
-    std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
-    std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
-    std::array<Elixir,AMREX_SPACEDIM> ftmp_eli;
-    if (fbx != tbx) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            const Box& b = amrex::surroundingNodes(fbx,idim);
-            ftmp[idim].resize(b,nc);
-            if (run_on_gpu) ftmp_eli[idim] = ftmp[idim].elixir();
-            Array4<Real> const& atmp = ftmp[idim].array();
-            Array4<Real const> const& a_f = a_flux[idim]->const_array();
-            const Box& a_box = a_flux[idim]->box();
-            AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu,b,nc,i,j,k,n,
-            {
-                atmp(i,j,k,n) = 0.0;
-                if (a_f.contains(i,j,k)) {
-                    atmp(i,j,k,n) = a_f(i,j,k,n);
-                }
-            });
-            flux[idim] = &ftmp[idim];
-        }
-    }
-
-    AMREX_D_TERM(Array4<Real const> const& fx = flux[0]->const_array();,
-                 Array4<Real const> const& fy = flux[1]->const_array();,
-                 Array4<Real const> const& fz = flux[2]->const_array(););
+    AMREX_D_TERM(Array4<Real const> const& fx = a_flux[0]->const_array();,
+                 Array4<Real const> const& fy = a_flux[1]->const_array();,
+                 Array4<Real const> const& fz = a_flux[2]->const_array(););
 
     Array4<Real const> const& vfrac = volfrac.const_array();
     AMREX_D_TERM(Array4<Real const> const& apx = areafrac[0]->const_array();,

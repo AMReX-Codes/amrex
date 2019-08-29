@@ -54,9 +54,11 @@ void eb_flux_reg_fineadd_va_xlo (int i, int j, int k, int n, Array4<Real> const&
     int ii = (i+1)*ratio.x;
     Real fa = 0.0;
     for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
-        fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        if (f.contains(ii,jj,kk)) {
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -70,9 +72,11 @@ void eb_flux_reg_fineadd_va_xhi (int i, int j, int k, int n, Array4<Real> const&
     int ii = i*ratio.x;
     Real fa = 0.0;
     for (int jj = j*ratio.y; jj < (j+1)*ratio.y; ++jj) {
-        fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        if (f.contains(ii,jj,kk)) {
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -86,9 +90,11 @@ void eb_flux_reg_fineadd_va_ylo (int i, int j, int k, int n, Array4<Real> const&
     int jj = (j+1)*ratio.y;
     Real fa = 0.0;
     for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
-        fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        if (f.contains(ii,jj,kk)) {
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
     fa *= -fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
@@ -102,9 +108,11 @@ void eb_flux_reg_fineadd_va_yhi (int i, int j, int k, int n, Array4<Real> const&
     int jj = j*ratio.y;
     Real fa = 0.0;
     for (int ii = i*ratio.x; ii < (i+1)*ratio.x; ++ii) {
-        fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        if (f.contains(ii,jj,kk)) {
+            fa += f(ii,jj,kk,n) * a(ii,jj,kk);
+        }
     }
-    Real cvol = eb_flux_reg_cvol(i,j,k,vfrac,ratio);
+    Real cvol = eb_flux_reg_cvol(i,j,vfrac,ratio);
     fa *= fac*cvol;
     HostDevice::Atomic::Add(d.ptr(i,j,k,n), fa);
 }
