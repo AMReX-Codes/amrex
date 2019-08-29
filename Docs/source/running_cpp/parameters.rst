@@ -661,6 +661,18 @@ Boundary conditions
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
 
+* ``warpx.do_pml_in_domain`` (`int`; default: 0)
+    Whether to create the PML inside the simulation area or outside. If inside,
+    it allows the user to propagate particles in PML and to use extended PML
+
+* ``warpx.do_pml_has_particles`` (`int`; default: 0)
+    Whether to propagate particles in PML or not. Can only be done if PML are in simulation domain,
+    i.e. if `warpx.do_pml_in_domain = 1`.
+
+* ``warpx.do_pml_j_damping`` (`int`; default: 0)
+    Whether to damp current in PML. Can only be used if particles are propagated in PML,
+    i.e. if `warpx.do_pml_has_particles = 1`.
+
 * ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
     The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
 
