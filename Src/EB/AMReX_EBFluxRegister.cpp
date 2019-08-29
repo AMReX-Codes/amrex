@@ -205,27 +205,20 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
         }
     }
 
-    FArrayBox dmgrow(amrex::grow(fbx,m_ratio),nc);
-    dmgrow.setVal(0.0);
+    Real threshold = amrex_eb_get_reredistribution_threshold()*(AMREX_D_TERM(ratio.x,*ratio.y,*ratio.z));
     const Box& tbxg1 = amrex::grow(tbx,1);
-    dmgrow.copy(dm,tbxg1,0,tbxg1,0,nc);
-
     const Box& cbxg1 = amrex::grow(cbx,1);
-
-    FArrayBox cvol;
-
+    Array4<Real const> const& dma = dm.const_array();
     for (FArrayBox* cfp : cfp_fabs)
     {
         const Box& wbx = cbxg1 & cfp->box();
         if (wbx.ok())
         {
-            cvol.resize(wbx);
-            amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
-                                         BL_TO_FORTRAN_ANYD(*cfp),
-                                         BL_TO_FORTRAN_ANYD(dmgrow),
-                                         BL_TO_FORTRAN_ANYD(cvol),
-                                         BL_TO_FORTRAN_ANYD(volfrac),
-                                         dx, &nc, m_ratio.getVect());
+            Array4<Real> const& cfa = cfp->array();
+            AMREX_HOST_DEVICE_FOR_4D_FLAG(run_on_gpu, wbx, nc, i, j, k, n,
+            {
+                eb_flux_reg_fineadd_dm(i,j,k,n,tbxg1, cfa, dma, vfrac, ratio, threshold);
+            });
         }
     }
 }
