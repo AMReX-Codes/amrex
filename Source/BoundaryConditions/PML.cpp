@@ -737,57 +737,36 @@ void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
                 int do_pml_in_domain)
 {
-    if (do_pml_in_domain){
-        const IntVect& ngr = reg.nGrowVect();
-        const IntVect& ngp = pml.nGrowVect();
-        const int ncp = pml.nComp();
-        const auto& period = geom.periodicity();
+    BL_PROFILE("PML::Exchange");
 
-        MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-        tmpregmf.setVal(0.0, 0, ncp, ngr);
-        MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), ncp, ngp);
-        totpmlmf.setVal(0.0, 0, ncp, ngp);
-        // realise sum of splitted fields inside pml
-        MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
-        if (ncp == 3) {
-            MultiFab::Add(totpmlmf,pml,2,0,1,0);
-        }
-        totpmlmf.setVal(0.0, 1, ncp-1, 0);
-        reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), IntVect(0), period);
+    const IntVect& ngr = reg.nGrowVect();
+    const IntVect& ngp = pml.nGrowVect();
+    const int ncp = pml.nComp();
+    const auto& period = geom.periodicity();
 
-        if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
-        {
-            MultiFab::Copy(tmpregmf, reg, 0, 0, 1, IntVect(0));
-            MultiFab::Copy(totpmlmf, pml, 0, 0, ncp, ngp);
+    // Create temporary MultiFab to copy to and from the PML
+    MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
 
-            tmpregmf.setVal(0.0, 1, ncp-1, 0);
-            tmpregmf.ParallelCopy(totpmlmf,0, 0, ncp, IntVect(0), IntVect(0), period);
-            totpmlmf.ParallelCopy(tmpregmf,0, 0, ncp, IntVect(0), ngp, period);
-
-            MultiFab::Copy(pml, totpmlmf, 0, 0, ncp, ngp);
-        }
+    // Create the sum of the split fields, in the PML
+    MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0); // Allocate
+    MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0); // Sum
+    if (ncp == 3) {
+        MultiFab::Add(totpmlmf,pml,2,0,1,0); // Sum the third split component
     }
 
-    else {
-
-        const IntVect& ngr = reg.nGrowVect();
-        const IntVect& ngp = pml.nGrowVect();
-        const int ncp = pml.nComp();
-        const auto& period = geom.periodicity();
-
-        MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-
-        if (ngp.max() > 0)  // Copy from pml to the ghost cells of regular data
-        {
-            MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
-            MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
-            if (ncp == 3) {
-                MultiFab::Add(totpmlmf,pml,2,0,1,0);
-            }
-
+    // Copy from the sum of PML split field to valid cells of regular grid
+    if (do_pml_in_domain){
+        // Valid cells of the PML and of the regular grid overlap
+        // Copy from valid cells of the PML to valid cells of the regular grid
+        reg.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), IntVect(0), period);
+    } else {
+        // Valid cells of the PML only overlap with guard cells of regular grid
+        // (and outermost valid cell of the regular grid, for nodal direction)
+        // Copy from valid cells of PML to ghost cells of regular grid
+        // but avoid updating the outermost valid cell
+        if (ngr.max() > 0) {
             MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
             tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -795,22 +774,28 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom,
             {
                 const FArrayBox& src = tmpregmf[mfi];
                 FArrayBox& dst = reg[mfi];
-                Box test = mfi.validbox();
                 const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-                for (const Box& bx : bl)
-                {
+                // boxDiff avoids the outermost valid cell
+                for (const Box& bx : bl) {
                     dst.copy(src, bx, 0, bx, 0, 1);
                 }
             }
         }
-
-        // Copy from regular data to PML's first component
-        // Zero out the second (and third) component
-        MultiFab::Copy(tmpregmf,reg,0,0,1,0);
-        tmpregmf.setVal(0.0, 1, ncp-1, 0);
-        pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
     }
 
+    // Copy from valid cells of the regular grid to guard cells of the PML
+    // (and outermost valid cell in the nodal direction)
+    // More specifically, copy from regular data to PML's first component
+    // Zero out the second (and third) component
+    MultiFab::Copy(tmpregmf,reg,0,0,1,0); // Fill first component of tmpregmf
+    tmpregmf.setVal(0.0, 1, ncp-1, 0); // Zero out the second (and third) component
+    if (do_pml_in_domain){
+        // Where valid cells of tmpregmf overlap with PML valid cells,
+        // copy the PML (this is order to avoid overwriting PML valid cells,
+        // in the next `ParallelCopy`)
+        tmpregmf.ParallelCopy(pml,0, 0, ncp, IntVect(0), IntVect(0), period);
+    }
+    pml.ParallelCopy(tmpregmf, 0, 0, ncp, IntVect(0), ngp, period);
 }
 
 
