@@ -12,7 +12,6 @@ target_sources(amrex
    AMReX_EBSupport.H
    AMReX_EBFabFactory.H
    AMReX_EBFluxRegister.H
-   AMReX_EBMultiFabUtil_F.H
    AMReX_EBMultiFabUtil_C.H
    AMReX_EB_F.H
    AMReX_EB_levelset.H
@@ -36,7 +35,6 @@ target_sources(amrex
    AMReX_EBFluxRegister_${DIM}D_C.H
    AMReX_EBFluxRegister_C.H
    AMReX_EBFluxRegister_nd.F90
-   AMReX_EBMultiFabUtil_${DIM}d.F90
    AMReX_EBMultiFabUtil_${DIM}D_C.H
    AMReX_ebcellflag_mod.F90   
    AMReX_compute_normals.F90
