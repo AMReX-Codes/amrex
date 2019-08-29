@@ -492,7 +492,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                 &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+           &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
 
             if (pml_has_particles) {
                 // Update the E field in the PML, using the current
@@ -542,7 +542,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 				   BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
 				   BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
 				   BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                   &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
+           &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
 				   &WarpX::maxwell_fdtd_solver_id);
             }
         }

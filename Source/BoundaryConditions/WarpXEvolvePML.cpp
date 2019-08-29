@@ -12,9 +12,7 @@
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
 
-#ifndef PML_CURRENT_H_
 #include <PML_current.H>
-#endif
 
 using namespace amrex;
 
