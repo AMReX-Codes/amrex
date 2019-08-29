@@ -1,5 +1,4 @@
-nx = 128 # number of grid points along the x axis
-ny = 128 # number of grid points along the y axis 
-nz = 128 # number of grid points along the z axis
-
-max_grid_size = 32
+intersect.size = (128, 128, 128)
+intersect.max_grid_size = 32
+intersect.is_periodic = 0
+intersect.nlevs = 1
