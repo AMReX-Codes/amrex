@@ -255,6 +255,7 @@ struct ParticleTile
             ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
         for (int i = 0; i < NArrayInt; ++i)
             ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        ptd.m_size = numParticles();
         return ptd;
     }
 
@@ -266,6 +267,7 @@ struct ParticleTile
             ptd.m_rdata[i] = m_soa_tile.GetRealData(i).dataPtr();
         for (int i = 0; i < NArrayInt; ++i)
             ptd.m_idata[i] = m_soa_tile.GetIntData(i).dataPtr();
+        ptd.m_size = numParticles();
         return ptd;
     }
 
