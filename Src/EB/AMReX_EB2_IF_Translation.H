@@ -23,6 +23,7 @@ public:
         : m_f(a_f),
           m_offset(makeXDim3(a_offset))
         {}
+    ~TranslationIF () {}
 
     TranslationIF (const TranslationIF& rhs) = default;
     TranslationIF (TranslationIF&& rhs) = default;
