@@ -5,7 +5,7 @@ CEXE_sources += AMReX_EBFArrayBox.cpp
 CEXE_headers += AMReX_EBFabFactory.H
 CEXE_sources += AMReX_EBFabFactory.cpp
 
-CEXE_headers += AMReX_EBMultiFabUtil.H AMReX_EBMultiFabUtil_F.H AMReX_EBMultiFabUtil_C.H
+CEXE_headers += AMReX_EBMultiFabUtil.H AMReX_EBMultiFabUtil_C.H
 CEXE_headers += AMReX_EBMultiFabUtil_$(DIM)D_C.H
 CEXE_sources += AMReX_EBMultiFabUtil.cpp
 
@@ -21,7 +21,6 @@ CEXE_sources += AMReX_MultiCutFab.cpp
 CEXE_headers += AMReX_EBSupport.H
 
 F90EXE_sources += AMReX_ebcellflag_mod.F90
-F90EXE_sources += AMReX_EBMultiFabUtil_$(DIM)d.F90
 
 CEXE_headers += AMReX_EBInterpolater.H
 CEXE_sources += AMReX_EBInterpolater.cpp

@@ -10,7 +10,6 @@
 #include <AMReX_MLEBABecLap_K.H>
 #include <AMReX_MLLinOp_K.H>
 #include <AMReX_MLEBABecLap_F.H>
-#include <AMReX_EBMultiFabUtil_F.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_HypreABecLap3.H>
