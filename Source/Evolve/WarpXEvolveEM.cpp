@@ -141,6 +141,14 @@ WarpX::EvolveEM (int numsteps)
         bool do_insitu = ((step+1) >= insitu_start) &&
             (insitu_int > 0) && ((step+1) % insitu_int == 0);
 
+        if (do_boosted_frame_diagnostic) {
+            std::unique_ptr<MultiFab> cell_centered_data = nullptr;
+            if (WarpX::do_boosted_frame_fields) {
+                cell_centered_data = GetCellCenteredData();
+            }
+            myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
+        }
+        
         bool move_j = is_synchronized || to_make_plot || do_insitu;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
@@ -172,14 +180,6 @@ WarpX::EvolveEM (int numsteps)
         // sync up time
         for (int i = 0; i <= max_level; ++i) {
             t_new[i] = cur_time;
-        }
-
-        if (do_boosted_frame_diagnostic) {
-            std::unique_ptr<MultiFab> cell_centered_data = nullptr;
-            if (WarpX::do_boosted_frame_fields) {
-                cell_centered_data = GetCellCenteredData();
-            }
-            myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
         // slice gen //
@@ -277,6 +277,9 @@ WarpX::EvolveEM (int numsteps)
 void
 WarpX::OneStep_nosub (Real cur_time)
 {
+    // Loop over species. For each ionizable species, create particles in 
+    // product species.
+    mypc->doFieldIonization();
     // Push particle from x^{n} to x^{n+1}
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}
@@ -296,6 +299,10 @@ WarpX::OneStep_nosub (Real cur_time)
 
     SyncRho();
 
+    // For extended PML: copy J from regular grid to PML, and damp J in PML
+    if (do_pml && pml_has_particles) CopyJPML();
+    if (do_pml && do_pml_j_damping) DampJPML();
+
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
@@ -304,24 +311,6 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryE();
     FillBoundaryB();
 #else
-    if (do_pml && pml_has_particles){
-        for (int lev = 0; lev <= finest_level; ++lev)
-        {
-            if (pml[lev]->ok()){
-                pml[lev]->CopyJtoPMLs({ current_fp[lev][0].get(),
-                                      current_fp[lev][1].get(),
-                                      current_fp[lev][2].get() },
-                                    { current_cp[lev][0].get(),
-                                      current_cp[lev][1].get(),
-                                      current_cp[lev][2].get() });
-            }
-        }
-    }
-
-    if (do_pml && do_pml_j_damping){
-        DampJPML();
-    }
-
     EvolveF(0.5*dt[0], DtType::FirstHalf);
     FillBoundaryF();
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
@@ -359,6 +348,10 @@ void
 WarpX::OneStep_sub1 (Real curtime)
 {
     // TODO: we could save some charge depositions
+
+    // Loop over species. For each ionizable species, create particles in 
+    // product species.
+    mypc->doFieldIonization();
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;

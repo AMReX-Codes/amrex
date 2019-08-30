@@ -196,6 +196,8 @@ public:
     void DampJPML (int lev);
     void DampJPML (int lev, PatchType patch_type);
 
+    void CopyJPML ();
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
@@ -548,6 +550,7 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
+    std::string openpmd_backend {"h5"};
 #ifdef WARPX_USE_OPENPMD
     bool dump_plotfiles = false;
     bool dump_openpmd = true;

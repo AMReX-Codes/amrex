@@ -23,29 +23,5 @@ Then, ``cd`` into the directory ``WarpX`` and use the following set of commands 
     module load cuda
     make -j 4 USE_GPU=TRUE COMP=pgi
 
-In order to submit a simulation, create a file `submission_script` with
-the following text (replace bracketed variables):
-
-::
-
-    #!/bin/bash
-    #BSUB -J <jobName>
-    #BSUB -W <requestedTime>
-    #BSUB -nnodes <numberOfNodes>
-    #BSUB -P <accountNumber>
-
-    module load pgi
-    module load cuda
-
-    omp=1
-    export OMP_NUM_THREADS=${omp}
-    num_nodes=$(( $(printf '%s\n' ${LSB_HOSTS} | sort -u | wc -l) - 1 ))
-
-    jsrun -n ${num_nodes} -a 6 -g 6 -c 6 --bind=packed:${omp} --smpiargs="-gpu" <warpxExecutable> <inputScript>
-
-
-Then run
-
-::
-
-    bsub submission_script
+See :doc:`../running_cpp/platforms` for more information on how to run
+WarpX on Summit.

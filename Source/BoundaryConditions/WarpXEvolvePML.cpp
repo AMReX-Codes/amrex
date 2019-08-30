@@ -175,3 +175,20 @@ WarpX::DampJPML (int lev, PatchType patch_type)
 
     }
 }
+
+/* \brief Copy the current J from the regular grid to the PML */
+void
+WarpX::CopyJPML ()
+{
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        if (pml[lev]->ok()){
+            pml[lev]->CopyJtoPMLs({ current_fp[lev][0].get(),
+                                  current_fp[lev][1].get(),
+                                  current_fp[lev][2].get() },
+                                { current_cp[lev][0].get(),
+                                  current_cp[lev][1].get(),
+                                  current_cp[lev][2].get() });
+        }
+    }
+}

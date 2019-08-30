@@ -22,6 +22,8 @@ public:
 
     virtual void InitData () override;
 
+    void InitIonizationModule ();
+
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
@@ -104,6 +106,9 @@ public:
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
+    
+    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask) override;
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);

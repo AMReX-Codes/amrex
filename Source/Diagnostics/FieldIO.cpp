@@ -13,7 +13,7 @@ using namespace amrex;
 namespace
 {
     // Return true if any element in elems is in vect, false otherwise
-    static bool is_in_vector(std::vector<std::string> vect, 
+    static bool is_in_vector(std::vector<std::string> vect,
                              std::vector<std::string> elems)
     {
         bool value = false;
@@ -143,9 +143,16 @@ WriteOpenPMDFields( const std::string& filename,
   auto dataset = openPMD::Dataset(datatype, global_size);
 
   // Create new file and store the time/iteration info
-  auto series = openPMD::Series( filename,
-                                 openPMD::AccessType::CREATE,
-                                 MPI_COMM_WORLD );
+  auto series = [filename](){
+      if( ParallelDescriptor::NProcs() > 1 )
+          return openPMD::Series( filename,
+                                  openPMD::AccessType::CREATE,
+                                  ParallelDescriptor::Communicator() );
+      else
+          return openPMD::Series( filename,
+                                  openPMD::AccessType::CREATE );
+  }();
+
   auto series_iteration = series.iterations[iteration];
   series_iteration.setTime( time );
 
@@ -167,7 +174,7 @@ WriteOpenPMDFields( const std::string& filename,
         }
     }
 
-    // Setup the mesh accordingly
+    // Setup the mesh record accordingly
     auto mesh = series_iteration.meshes[field_name];
     mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab: Fortran order
     mesh.setAxisLabels( axis_labels );
@@ -175,11 +182,11 @@ WriteOpenPMDFields( const std::string& filename,
     mesh.setGridGlobalOffset( global_offset );
     setOpenPMDUnit( mesh, field_name );
 
-    // Create a new mesh record, and store the associated metadata
-    auto mesh_record = mesh[comp_name];
-    mesh_record.resetDataset( dataset );
+    // Create a new mesh record component, and store the associated metadata
+    auto mesh_comp = mesh[comp_name];
+    mesh_comp.resetDataset( dataset );
     // Cell-centered data: position is at 0.5 of a cell size.
-    mesh_record.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
+    mesh_comp.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
 
     // Loop through the multifab, and store each box as a chunk,
     // in the openPMD file.
@@ -195,8 +202,8 @@ WriteOpenPMDFields( const std::string& filename,
 
       // Write local data
       const double* local_data = fab.dataPtr(icomp);
-      mesh_record.storeChunk(openPMD::shareRaw(local_data),
-                             chunk_offset, chunk_size);
+      mesh_comp.storeChunk(openPMD::shareRaw(local_data),
+                           chunk_offset, chunk_size);
     }
   }
   // Flush data to disk after looping over all components
@@ -318,14 +325,14 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         + static_cast<int>(plot_finepatch)*6
         + static_cast<int>(plot_crsepatch)*6
         + static_cast<int>(costs[0] != nullptr);
-    
+
     // Loop over levels of refinement
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         // Allocate pointers to the `ncomp` fields that will be added
         mf_avg.push_back( MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-        // For E, B and J, if at least one component is requested, 
+        // For E, B and J, if at least one component is requested,
         // build cell-centered temporary MultiFab with 3 comps
         MultiFab mf_tmp_E, mf_tmp_B, mf_tmp_J;
         // Build mf_tmp_E is at least one component of E is requested
@@ -420,7 +427,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
                             {Bfield_aux[lev][0].get(),
                                     Bfield_aux[lev][1].get(),
                                     Bfield_aux[lev][2].get()},
-                            WarpX::CellSize(lev) );                
+                            WarpX::CellSize(lev) );
             } else if (fieldname == "divE"){
                 if (do_nodal) amrex::Abort("TODO: do_nodal && plot dive");
                 const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
