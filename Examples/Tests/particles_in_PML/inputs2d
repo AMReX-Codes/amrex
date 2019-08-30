@@ -26,7 +26,6 @@ warpx.do_pml_j_damping = 1
 # Algorithms
 algo.current_deposition = esirkepov
 algo.charge_deposition = standard
-algo.field_gathering = vectorized
 algo.particle_pusher = vay
 algo.maxwell_fdtd_solver = ckc
 warpx.cfl = 1.0
