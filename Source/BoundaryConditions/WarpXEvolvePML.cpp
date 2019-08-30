@@ -65,21 +65,21 @@ WarpX::DampPML (int lev, PatchType patch_type)
             auto const& pml_Bxfab = pml_B[0]->array(mfi);
             auto const& pml_Byfab = pml_B[1]->array(mfi);
             auto const& pml_Bzfab = pml_B[2]->array(mfi);
-            auto const& AMREX_RESTRICT sigma_fac_x = sigba[mfi].sigma_fac[0].data();
+            amrex::Real const * AMREX_RESTRICT sigma_fac_x = sigba[mfi].sigma_fac[0].data();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT sigma_fac_y = sigba[mfi].sigma_fac[1].data();
-            auto const& AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[2].data();
+            amrex::Real const * AMREX_RESTRICT sigma_fac_y = sigba[mfi].sigma_fac[1].data();
+            amrex::Real const * AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[2].data();
 #else
-            Real* AMREX_RESTRICT sigma_fac_y = nullptr;
-            auto const& AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[1].data();
+            amrex::Real const * AMREX_RESTRICT sigma_fac_y = nullptr;
+            amrex::Real const * AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[1].data();
 #endif
-            auto const& AMREX_RESTRICT sigma_star_fac_x = sigba[mfi].sigma_star_fac[0].data();
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_x = sigba[mfi].sigma_star_fac[0].data();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT sigma_star_fac_y = sigba[mfi].sigma_star_fac[1].data();
-            auto const& AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[2].data();
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_y = sigba[mfi].sigma_star_fac[1].data();
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[2].data();
 #else
-            Real* AMREX_RESTRICT sigma_star_fac_y = nullptr;
-            auto const& AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[1].data();
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_y = nullptr;
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[1].data();
 #endif
             auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
