@@ -189,7 +189,8 @@ private:
 #endif
 
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
-                                         const amrex::BoxArray& grid_ba, int ncell,
+                                         const amrex::BoxArray& grid_ba,
+                                         int ncell, int do_pml_in_domain,
                                          const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                                          const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 

@@ -391,8 +391,8 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     const BoxArray grid_ba_reduced = BoxArray(grid_ba.boxList().intersect(domain0));
 
     const BoxArray& ba = (do_pml_in_domain)?
-          MakeBoxArray(*geom, grid_ba_reduced, ncell, do_pml_Lo, do_pml_Hi) :
-          MakeBoxArray(*geom, grid_ba, ncell, do_pml_Lo, do_pml_Hi);
+          MakeBoxArray(*geom, grid_ba_reduced, ncell, do_pml_in_domain, do_pml_Lo, do_pml_Hi) :
+          MakeBoxArray(*geom, grid_ba, ncell, do_pml_in_domain, do_pml_Lo, do_pml_Hi);
 
     if (ba.size() == 0) {
         m_ok = false;
@@ -488,8 +488,8 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         const BoxArray grid_cba_reduced = BoxArray(grid_cba.boxList().intersect(domain0));
 
         const BoxArray& cba = (do_pml_in_domain) ?
-            MakeBoxArray(*cgeom, grid_cba_reduced, ncell, do_pml_Lo, do_pml_Hi) :
-            MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_Lo, do_pml_Hi);
+            MakeBoxArray(*cgeom, grid_cba_reduced, ncell, do_pml_in_domain, do_pml_Lo, do_pml_Hi) :
+            MakeBoxArray(*cgeom, grid_cba, ncell, do_pml_in_domain, do_pml_Lo, do_pml_Hi);
 
         DistributionMapping cdm{cba};
 
@@ -539,7 +539,8 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 }
 
 BoxArray
-PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell,
+PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba,
+                   int ncell, int do_pml_in_domain,
                    const amrex::IntVect do_pml_Lo, const amrex::IntVect do_pml_Hi)
 {
     Box domain = geom.Domain();
@@ -558,7 +559,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     {
         const Box& grid_bx = grid_ba[i];
         const IntVect& grid_bx_sz = grid_bx.size();
-        
+
         if (do_pml_in_domain == 0) {
             // Make sure that, in the case of several distinct refinement patches,
             //  the PML cells surrounding these patches cannot overlap
