@@ -4,7 +4,7 @@
 #include <cstring>
 
 // Define dictionary with correspondance between user-input strings,
-// and corresponding integer for use inside the code (e.g. in PICSAR).
+// and corresponding integer for use inside the code
 
 const std::map<std::string, int> maxwell_solver_algo_to_int = {
     {"yee",     MaxwellSolverAlgo::Yee },
