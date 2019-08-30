@@ -251,7 +251,7 @@ public:
             ReduceData<int,int,int> reduce_data(reduce_op);
             using ReduceTuple = typename decltype(reduce_data)::Type;
             reduce_op.eval(bx, reduce_data,
-            [=] AMREX_GPU_HOST_DEVICE (int i, int j, int k) -> ReduceTuple
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 Real v = f(AMREX_D_DECL(problo[0]+i*dx[0],
                                         problo[1]+j*dx[1],
@@ -319,7 +319,7 @@ public:
     {
         const Real* AMREX_RESTRICT problo = geom.ProbLo();
         const Real* AMREX_RESTRICT dx = geom.CellSize();
-        
+
         const Box& bx = levelset.box();
         const auto len = amrex::length(bx);
         const auto lo  = amrex::lbound(bx);
