@@ -50,6 +50,8 @@ class UnionIF
 public:
     using GpuTuple<Fs...>::GpuTuple;
 
+    ~UnionIF () {}
+
     inline Real operator() (const RealArray& p) const noexcept
     {
         return op_impl(p, makeIndexSequence<sizeof...(Fs)>());
