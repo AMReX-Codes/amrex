@@ -192,6 +192,12 @@ public:
     void DampPML (int lev);
     void DampPML (int lev, PatchType patch_type);
 
+    void DampJPML ();
+    void DampJPML (int lev);
+    void DampJPML (int lev, PatchType patch_type);
+
+    void CopyJPML ();
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
@@ -500,6 +506,9 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
+    int pml_has_particles = 0;
+    int do_pml_j_damping = 0;
+    int do_pml_in_domain = 0;
     amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector();
     amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector();
     amrex::Vector<std::unique_ptr<PML> > pml;
