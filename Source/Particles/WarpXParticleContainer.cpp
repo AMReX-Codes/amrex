@@ -85,17 +85,6 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     particle_comps["theta"] = PIdx::theta;
 #endif
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-    {
-        particle_comps["xold"]  = PIdx::nattribs;
-        particle_comps["yold"]  = PIdx::nattribs+1;
-        particle_comps["zold"]  = PIdx::nattribs+2;
-        particle_comps["uxold"] = PIdx::nattribs+3;
-        particle_comps["uyold"] = PIdx::nattribs+4;
-        particle_comps["uzold"] = PIdx::nattribs+5;
-
-    }
-
     // Initialize temporary local arrays for charge/current deposition
     int num_threads = 1;
     #ifdef _OPENMP
@@ -240,12 +229,6 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
             auto& ptile = DefineAndReturnParticleTile(0, 0, 0);            
-            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-            {
-                ptile.push_back_real(particle_comps["xold"], x[i]);
-                ptile.push_back_real(particle_comps["yold"], y[i]);
-                ptile.push_back_real(particle_comps["zold"], z[i]);
-            }
         }
 
         particle_tile.push_back(p);
@@ -260,12 +243,6 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
             auto& ptile = DefineAndReturnParticleTile(0, 0, 0);            
-            if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-            {
-                ptile.push_back_real(particle_comps["uxold"], vx + ibegin, vx + iend);
-                ptile.push_back_real(particle_comps["uyold"], vy + ibegin, vy + iend);
-                ptile.push_back_real(particle_comps["uzold"], vz + ibegin, vz + iend);
-            }
         }
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)

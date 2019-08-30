@@ -82,7 +82,7 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
             const int k = compute_shape_factor<depos_order>(sz,  z);
 
             // Deposit charge into rho_arr
-#if (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(

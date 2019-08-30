@@ -51,7 +51,7 @@ else
 ifeq ($(USE_RZ),TRUE)
   DEFINES += -DWARPX_DIM_RZ
 else
-  DEFINES += -DWARPX_DIM_2D
+  DEFINES += -DWARPX_DIM_XZ
 endif
 endif
 

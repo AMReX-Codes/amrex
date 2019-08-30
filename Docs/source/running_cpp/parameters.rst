@@ -320,6 +320,7 @@ Particle initialization
 * ``<species>.plot_vars`` (list of `strings` separated by spaces, optional)
     List of particle quantities to write to `plotfiles`. By defaults, all
     quantities are written to file. Choices are
+
     * ``w`` for the particle weight,
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
@@ -685,7 +686,13 @@ Diagnostics and output
     `openPMD <https://github.com/openPMD>`__ format.
     When WarpX is compiled with openPMD support, this is ``1`` by default.
 
-* ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
+* ``warpx.openpmd_backend`` (``h5``, ``bp`` or ``json``) optional
+    I/O backend for
+    `openPMD <https://github.com/openPMD>`__ dumps.
+    When WarpX is compiled with openPMD support, this is ``h5`` by default.
+    ``json`` only works with serial/single-rank jobs.
+
+* ``warpx.do_boosted_frame_diagnostic`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
