@@ -140,10 +140,10 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
        MFIter mfi_dst(mfDst);
        for (MFIter mfi(mfSrc); mfi.isValid(); ++mfi) {       
 
-           FArrayBox& Src_fabox = mfSrc[mfi];
+           Array4<Real const> const& Src_fabox = mfSrc.const_array(mfi);
 
            const Box& Dst_bx = mfi_dst.validbox();
-           FArrayBox& Dst_fabox = mfDst[mfi_dst];
+           Array4<Real> const& Dst_fabox = mfDst.array(mfi_dst);
 
            int scomp = 0;
            int dcomp = 0;

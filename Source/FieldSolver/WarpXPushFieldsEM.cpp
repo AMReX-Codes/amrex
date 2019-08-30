@@ -12,6 +12,8 @@
 #include <WarpX_py.H>
 #endif
 
+#include <PML_current.H>
+
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
@@ -60,7 +62,7 @@ WarpX::PushPSATD (amrex::Real a_dt)
     for (int lev = 0; lev <= finest_level; ++lev) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
         if (fft_hybrid_mpi_decomposition){
-#ifndef AMREX_USE_CUDA // Only available on CPU
+#ifdef WARPX_USE_PSATD_HYBRID
             PushPSATD_hybridFFT(lev, a_dt);
 #endif
         } else {
@@ -160,33 +162,29 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
         if (do_nodal) {
-            amrex::ParallelFor(tbx,
+            amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bx_nodal(j,k,l,Bxfab,Eyfab,Ezfab,dtsdy,dtsdz);
-            });
-            amrex::ParallelFor(tby,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_by_nodal(j,k,l,Byfab,Exfab,Ezfab,dtsdx,dtsdz);
-            });
-            amrex::ParallelFor(tbz,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_nodal(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy);
             });
         } else if (WarpX::maxwell_fdtd_solver_id == 0) {
-            amrex::ParallelFor(tbx,
+            amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bx_yee(j,k,l,Bxfab,Eyfab,Ezfab,dtsdy,dtsdz);
-            });
-            amrex::ParallelFor(tby,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_by_yee(j,k,l,Byfab,Exfab,Ezfab,dtsdx,dtsdz);
-            });
-            amrex::ParallelFor(tbz,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_yee(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy,dxinv,xmin);
@@ -199,23 +197,21 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                                              betaxy, betaxz, betayx, betayz, betazx, betazy,
                                              gammax, gammay, gammaz,
                                              alphax, alphay, alphaz);
-            amrex::ParallelFor(tbx,
+            amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bx_ckc(j,k,l,Bxfab,Eyfab,Ezfab,
                                   betaxy, betaxz, betayx, betayz, betazx, betazy,
                                   gammax, gammay, gammaz,
                                   alphax, alphay, alphaz);
-            });
-            amrex::ParallelFor(tby,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_by_ckc(j,k,l,Byfab,Exfab,Ezfab,
                                   betaxy, betaxz, betayx, betayz, betazx, betazy,
                                   gammax, gammay, gammaz,
                                   alphax, alphay, alphaz);
-            });
-            amrex::ParallelFor(tbz,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_bz_ckc(j,k,l,Bzfab,Exfab,Eyfab,
@@ -290,32 +286,32 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                                                 gammaz, alphax, alphay, alphaz);
 
                // BX
-               amrex::ParallelFor(tbx, 
+               amrex::ParallelFor(tbx,
                [=] AMREX_GPU_DEVICE (int i, int j, int k)
                {
                    warpx_push_pml_bx_ckc(i,j,k,pml_Bxfab,pml_Eyfab,pml_Ezfab,
-                                         betaxy, betaxz, betayx, betayz, 
-                                         betazx, betazy, gammax, gammay, 
+                                         betaxy, betaxz, betayx, betayz,
+                                         betazx, betazy, gammax, gammay,
                                          gammaz, alphax, alphay, alphaz);
-               });                
+               });
 
                // BY
-               amrex::ParallelFor(tby, 
+               amrex::ParallelFor(tby,
                [=] AMREX_GPU_DEVICE (int i, int j, int k)
                {
                    warpx_push_pml_by_ckc(i,j,k,pml_Byfab,pml_Exfab,pml_Ezfab,
                                          betaxy, betaxz, betayx, betayz,
-                                         betazx, betazy, gammax, gammay, 
+                                         betazx, betazy, gammax, gammay,
                                          gammaz, alphax, alphay, alphaz);
                });
 
                //// BZ
-               amrex::ParallelFor(tbz, 
+               amrex::ParallelFor(tbz,
                [=] AMREX_GPU_DEVICE (int i, int j, int k)
                {
                    warpx_push_pml_bz_ckc(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
-                                         betaxy, betaxz, betayx, betayz, 
-                                         betazx, betazy, gammax, gammay, 
+                                         betaxy, betaxz, betayx, betayz,
+                                         betazx, betazy, gammax, gammay,
                                          gammaz, alphax, alphay, alphaz);
                });
 
@@ -414,33 +410,29 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         auto const& jzfab = jz->array(mfi);
 
         if (do_nodal) {
-            amrex::ParallelFor(tex,
+            amrex::ParallelFor(tex, tey, tez,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ex_nodal(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdy_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tey,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ey_nodal(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,mu_c2_dt,dtsdx_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tez,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ez_nodal(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2);
             });
         } else {
-            amrex::ParallelFor(tex,
+            amrex::ParallelFor(tex, tey, tez,
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ex_yee(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdy_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tey,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ey_yee(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,mu_c2_dt,dtsdx_c2,dtsdz_c2,xmin);
-            });
-            amrex::ParallelFor(tez,
+            },
             [=] AMREX_GPU_DEVICE (int j, int k, int l)
             {
                 warpx_push_ez_yee(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2,dxinv,xmin);
@@ -451,17 +443,15 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
         {
             auto const& Ffab = F->array(mfi);
             if (WarpX::maxwell_fdtd_solver_id == 0) {
-                amrex::ParallelFor(tex,
+                amrex::ParallelFor(tex, tey, tez,
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ex_f_yee(j,k,l,Exfab,Ffab,dtsdx_c2);
-                });
-                amrex::ParallelFor(tey,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ey_f_yee(j,k,l,Eyfab,Ffab,dtsdy_c2);
-                });
-                amrex::ParallelFor(tez,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ez_f_yee(j,k,l,Ezfab,Ffab,dtsdz_c2);
@@ -475,23 +465,21 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                                                  betaxy, betaxz, betayx, betayz, betazx, betazy,
                                                  gammax, gammay, gammaz,
                                                  alphax, alphay, alphaz);
-                amrex::ParallelFor(tex,
+                amrex::ParallelFor(tex, tey, tez,
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ex_f_ckc(j,k,l,Exfab,Ffab,
                                         betaxy, betaxz, betayx, betayz, betazx, betazy,
                                         gammax, gammay, gammaz,
                                         alphax, alphay, alphaz);
-                });
-                amrex::ParallelFor(tey,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ey_f_ckc(j,k,l,Eyfab,Ffab,
                                         betaxy, betaxz, betayx, betayz, betazx, betazy,
                                         gammax, gammay, gammaz,
                                         alphax, alphay, alphaz);
-                });
-                amrex::ParallelFor(tez,
+                },
                 [=] AMREX_GPU_DEVICE (int j, int k, int l)
                 {
                     warpx_push_ez_f_ckc(j,k,l,Ezfab,Ffab,
@@ -517,11 +505,14 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
     if (do_pml && pml[lev]->ok())
     {
-        if (F) pml[lev]->ExchangeF(patch_type, F);
+        if (F) pml[lev]->ExchangeF(patch_type, F, do_pml_in_domain);
 
         const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+        const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+        const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
+                                                            : pml[lev]->GetMultiSigmaBox_cp();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -538,24 +529,57 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             auto const& pml_Byfab = pml_B[1]->array(mfi);
             auto const& pml_Bzfab = pml_B[2]->array(mfi);
 
-            amrex::ParallelFor(tex,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
+            amrex::ParallelFor(tex, tey, tez,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 warpx_push_pml_ex_yee(i,j,k,pml_Exfab,pml_Byfab,pml_Bzfab,
                                       dtsdy_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tey,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 warpx_push_pml_ey_yee(i,j,k,pml_Eyfab,pml_Bxfab,pml_Bzfab,
                                       dtsdx_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tez,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 warpx_push_pml_ez_yee(i,j,k,pml_Ezfab,pml_Bxfab,pml_Byfab,
                                       dtsdx_c2,dtsdy_c2);
             });
+
+            if (pml_has_particles) {
+                // Update the E field in the PML, using the current
+                // deposited by the particles in the PML
+                auto const& pml_jxfab = pml_j[0]->array(mfi);
+                auto const& pml_jyfab = pml_j[1]->array(mfi);
+                auto const& pml_jzfab = pml_j[2]->array(mfi);
+                const Real* sigmaj_x = sigba[mfi].sigma[0].data();
+                const Real* sigmaj_y = sigba[mfi].sigma[1].data();
+                const Real* sigmaj_z = sigba[mfi].sigma[2].data();
+
+                auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma[0].lo();
+#if (AMREX_SPACEDIM == 3)
+                auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma[1].lo();
+                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[2].lo();
+#else
+                int y_lo = 0;
+                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[1].lo();
+#endif
+                amrex::ParallelFor( tex, tey, tez,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        push_ex_pml_current(i,j,k,
+                            pml_Exfab, pml_jxfab, sigmaj_y, sigmaj_z,
+                            y_lo, z_lo, mu_c2_dt);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        push_ey_pml_current(i,j,k,
+                            pml_Eyfab, pml_jyfab, sigmaj_x, sigmaj_z,
+                            x_lo, z_lo, mu_c2_dt);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        push_ez_pml_current(i,j,k,
+                            pml_Ezfab, pml_jzfab, sigmaj_x, sigmaj_y,
+                            x_lo, y_lo, mu_c2_dt);
+                    }
+                );
+            }
+
 
             if (pml_F)
             {
@@ -564,21 +588,16 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
                if (WarpX::maxwell_fdtd_solver_id == 0) {
 
-                  amrex::ParallelFor(tex,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                  {
+                  amrex::ParallelFor(tex, tey, tez,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                       warpx_push_pml_ex_f_yee(i,j,k,pml_Exfab,pml_F_fab,dtsdx_c2);
-                  });
-                  amrex::ParallelFor(tey,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                  {
+                  },
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                       warpx_push_pml_ey_f_yee(i,j,k,pml_Eyfab,pml_F_fab,dtsdy_c2);
-                  });
-                  amrex::ParallelFor(tez,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                  {
+                  },
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                       warpx_push_pml_ez_f_yee(i,j,k,pml_Ezfab,pml_F_fab,dtsdz_c2);
-                  });               
+                  });
 
                } else if (WarpX::maxwell_fdtd_solver_id == 1) {
 
@@ -590,22 +609,22 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                                                    betazx, betazy, gammax, gammay,
                                                    gammaz, alphax, alphay, alphaz);
 
-                  amrex::ParallelFor(tex, 
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k) 
+                  amrex::ParallelFor(tex,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
                   {
                       warpx_push_pml_ex_f_ckc(i,j,k,pml_Exfab,pml_F_fab,
                                               alphax,betaxy,betaxz,gammax);
                   });
-#if (AMREX_SPACEDIM==3) 
-                  amrex::ParallelFor(tex, 
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k) 
+#if (AMREX_SPACEDIM==3)
+                  amrex::ParallelFor(tex,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
                   {
                       warpx_push_pml_ey_f_ckc(i,j,k,pml_Eyfab,pml_F_fab,
                                               alphay,betayx,betayz,gammay);
                   });
 #endif
-                  amrex::ParallelFor(tex, 
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k) 
+                  amrex::ParallelFor(tex,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
                   {
                       warpx_push_pml_ez_f_ckc(i,j,k,pml_Ezfab,pml_F_fab,
                                               alphaz,betazx,betazy,gammaz);
@@ -740,7 +759,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
 
         // Rescale current in r-z mode since the inverse volume factor was not
         // included in the current deposition.
-        amrex::ParallelFor(tbr,
+        amrex::ParallelFor(tbr, tbt, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             // Wrap the current density deposited in the guard cells around
@@ -754,8 +773,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
             // between on axis and off-axis factors
             const amrex::Real r = std::abs(rmin + (i - irmin + 0.5)*dr);
             Jr_arr(i,j,0) /= (2.*MathConst::pi*r);
-        });
-        amrex::ParallelFor(tbt,
+        },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             // Wrap the current density deposited in the guard cells around
@@ -773,8 +791,7 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
             } else {
                 Jt_arr(i,j,0) /= (2.*MathConst::pi*r);
             }
-        });
-        amrex::ParallelFor(tbz,
+        },
         [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             // Wrap the current density deposited in the guard cells around

@@ -51,7 +51,7 @@ else
 ifeq ($(USE_RZ),TRUE)
   DEFINES += -DWARPX_DIM_RZ
 else
-  DEFINES += -DWARPX_DIM_2D
+  DEFINES += -DWARPX_DIM_XZ
 endif
 endif
 
@@ -116,7 +116,7 @@ ifeq ($(USE_OPENPMD), TRUE)
    endif
    DEFINES += -DWARPX_USE_OPENPMD
 endif
-   
+
 
 ifeq ($(USE_PSATD),TRUE)
   USERSuffix := $(USERSuffix).PSATD
@@ -124,15 +124,17 @@ ifeq ($(USE_PSATD),TRUE)
   ifeq ($(USE_CUDA),FALSE) # Running on CPU
      # Use FFTW
      libraries += -lfftw3_mpi -lfftw3 -lfftw3_threads
-     FFTW_HOME ?= NOT_SET
-     ifneq ($(FFTW_HOME),NOT_SET)
-       VPATH_LOCATIONS += $(FFTW_HOME)/include
-       INCLUDE_LOCATIONS += $(FFTW_HOME)/include
-       LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+     ifeq ($(USE_PSATD_PICSAR),TRUE)
+        FFTW_HOME ?= NOT_SET
+        ifneq ($(FFTW_HOME),NOT_SET)
+          VPATH_LOCATIONS += $(FFTW_HOME)/include
+          INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+          LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+        endif
+        # Compile with PICSAR's Hybrid-MPI PSATD
+        DEFINES += -DWARPX_USE_PSATD_HYBRID
+        DEFINES += -DFFTW # PICSAR uses it
      endif
-     # Compile with PICSAR's Hybrid-MPI PSATD
-     DEFINES += -DWARPX_USE_PSATD_HYBRID
-     DEFINES += -DFFTW # PICSAR uses it
   else
     # Use cuFFT
     libraries += -lcufft
@@ -159,7 +161,7 @@ ifeq ($(USE_HDF5),TRUE)
     endif
     DEFINES += -DWARPX_USE_HDF5
     libraries += -lhdf5 -lz
-endif     
+endif
 
 # job_info support
 CEXE_sources += AMReX_buildInfo.cpp
@@ -206,7 +208,7 @@ else
 
 ifdef WarpxBinDir
 
-all: $(executable) 
+all: $(executable)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@if [ ! -d $(WarpxBinDir) ]; then mkdir -p $(WarpxBinDir); fi
 	$(SILENT) mv -f $(executable) $(WarpxBinDir)/
@@ -215,7 +217,7 @@ all: $(executable)
 
 else
 
-all: $(executable) 
+all: $(executable)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
@@ -223,7 +225,7 @@ endif
 
 endif
 
-AMReX_buildInfo.cpp: 
+AMReX_buildInfo.cpp:
 	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
           --amrex_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \

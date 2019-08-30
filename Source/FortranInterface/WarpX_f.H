@@ -1,4 +1,3 @@
-
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
@@ -387,6 +386,7 @@ extern "C"
                           const amrex::Real* sigby, int sigby_lo, int sigby_hi,
 #endif
                           const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
+
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(crse),
