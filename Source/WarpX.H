@@ -83,7 +83,6 @@ public:
     static amrex::Vector<amrex::Real> B_external;
 
     // Algorithms
-    static long use_picsar_deposition;
     static long current_deposition_algo;
     static long charge_deposition_algo;
     static long field_gathering_algo;

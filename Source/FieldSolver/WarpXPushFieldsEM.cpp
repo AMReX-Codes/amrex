@@ -138,7 +138,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
-    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // xmin is only used by the kernel for cylindrical geometry,
     // in which case it is actually rmin.
     const Real xmin = Geom(0).ProbLo(0);
 
@@ -325,7 +325,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
-    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // xmin is only used by the kernel for cylindrical geometry,
     // in which case it is actually rmin.
     const Real xmin = Geom(0).ProbLo(0);
 
