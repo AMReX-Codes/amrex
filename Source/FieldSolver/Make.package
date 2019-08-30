@@ -3,7 +3,7 @@ CEXE_headers += WarpX_FDTD.H
 CEXE_sources += WarpXPushFieldsEM.cpp
 ifeq ($(USE_PSATD),TRUE)
   include $(WARPX_HOME)/Source/FieldSolver/SpectralSolver/Make.package
-  ifeq ($(USE_CUDA),FALSE)
+  ifeq ($(USE_PSATD_PICSAR),TRUE)
     include $(WARPX_HOME)/Source/FieldSolver/PicsarHybridSpectralSolver/Make.package
   endif
 endif
