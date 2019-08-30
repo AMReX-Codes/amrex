@@ -18,18 +18,47 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
 
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getParticleCell (P const& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
+{
+    IntVect iv = IntVect(
+        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                     floor((p.pos(1)-plo[1])*dxi[1]),
+                     floor((p.pos(2)-plo[2])*dxi[2])));
+    iv += domain.smallEnd();
+    return iv;
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
-                     const Box& domain)
+                     const Box& domain) noexcept
 {
-    if (p.id() < 0) return -1;
-    IntVect iv = IntVect(
-            AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
-                         floor((p.pos(1)-plo[1])*dxi[1]),
-                         floor((p.pos(2)-plo[2])*dxi[2])));
-    iv += domain.smallEnd();
+    if (p.id() < 0) return -1;    
+    IntVect iv = getParticleCell(p, plo, dxi, domain);
     return mask(iv);
+}
+
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void enforcePeriodic (P& p,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
+                      amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (not is_per[idim]) continue;
+        if (p.pos(idim) > phi[idim]) { 
+            p.pos(idim) -= (phi[idim] - plo[idim]); 
+        } else if (p.pos(idim) < plo[idim]) {
+            p.pos(idim) += (phi[idim] - plo[idim]);
+        }
+    }
 }
 
 template <class PC>
