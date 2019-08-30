@@ -9,3 +9,4 @@ Running WarpX as an executable
    parameters
    profiling
    parallelization
+   platforms

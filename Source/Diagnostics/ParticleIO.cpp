@@ -76,14 +76,15 @@ MultiParticleContainer::Checkpoint (const std::string& dir) const
 void
 MultiParticleContainer::WritePlotFile (const std::string& dir) const
 {
-    Vector<std::string> int_names;    
-    Vector<int> int_flags;
 
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
         auto& pc = allcontainers[i];                
         if (pc->plot_species) {
 
             Vector<std::string> real_names;
+            Vector<std::string> int_names;
+            Vector<int> int_flags;
+
             real_names.push_back("weight");
 
             real_names.push_back("momentum_x");
@@ -102,17 +103,15 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             real_names.push_back("theta");
 #endif
             
-            if (WarpX::do_boosted_frame_diagnostic && pc->DoBoostedFrameDiags())
-            {
-                real_names.push_back("xold");
-                real_names.push_back("yold");
-                real_names.push_back("zold");
-                
-                real_names.push_back("uxold");
-                real_names.push_back("uyold");
-                real_names.push_back("uzold");
+            if(pc->do_field_ionization){
+                int_names.push_back("ionization_level");
+                // int_flags specifies, for each integer attribs, whether it is
+                // dumped to plotfiles. So far, ionization_level is the only
+                // integer attribs, and it is automatically dumped to plotfiles
+                // when ionization is on.
+                int_flags.resize(1, 1);
             }
-                        
+
             // Convert momentum to SI
             pc->ConvertUnits(ConvertDirection::WarpX_to_SI);
             // real_names contains a list of all particle attributes.
