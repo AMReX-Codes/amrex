@@ -312,7 +312,7 @@ void testRedistribute ()
         {
             DistributionMapping new_dm;
             Vector<int> pmap;
-            for (int i = 0; i < ba.size(); ++i) pmap.push_back((i+1) * NProcs);
+            for (int i = 0; i < ba.size(); ++i) pmap.push_back((i+1) % NProcs);
             new_dm.define(pmap);
             pc.SetParticleDistributionMap(0, new_dm);
             pc.RedistributeGlobal();
