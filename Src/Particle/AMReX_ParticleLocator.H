@@ -152,7 +152,7 @@ public:
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
-        amrex::ParallelFor(num_boxes, [=] AMREX_GPU_DEVICE (int i) noexcept
+        AMREX_FOR_1D(num_boxes, i,
         {
             unsigned int index = Gpu::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
             pperm[index] = i;
