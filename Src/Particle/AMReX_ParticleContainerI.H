@@ -1025,7 +1025,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
 
     // sanity checks
-    AMREX_ASSERT(local);
     AMREX_ASSERT(lev_min == 0);
     AMREX_ASSERT(lev_max == 0);
     AMREX_ASSERT(nGrow == 0);
