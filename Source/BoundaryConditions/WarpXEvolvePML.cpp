@@ -68,7 +68,7 @@ WarpX::DampPML (int lev, PatchType patch_type)
             auto const& AMREX_RESTRICT sigma_fac_y = sigba[mfi].sigma_fac[1].data();
             auto const& AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[2].data();
 #else
-            Real* sigma_fac_y ;
+            Real* AMREX_RESTRICT sigma_fac_y = nullptr;
             auto const& AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[1].data();
 #endif
             auto const& AMREX_RESTRICT sigma_star_fac_x = sigba[mfi].sigma_star_fac[0].data();
@@ -76,7 +76,7 @@ WarpX::DampPML (int lev, PatchType patch_type)
             auto const& AMREX_RESTRICT sigma_star_fac_y = sigba[mfi].sigma_star_fac[1].data();
             auto const& AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[2].data();
 #else
-            Real* sigma_star_fac_y = nullptr;
+            Real* AMREX_RESTRICT sigma_star_fac_y = nullptr;
             auto const& AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[1].data();
 #endif
             auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_fac[0].lo();
