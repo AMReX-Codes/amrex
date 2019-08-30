@@ -428,9 +428,7 @@ public:
 
     //! Set ncomp values in the boundary region, starting at start_comp to val.
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
-    void setBndry (value_type val,
-                   int        strt_comp,
-                   int        ncomp);
+    void setBndry (value_type val, int strt_comp, int ncomp);
 
    //! Set all values outside the Geometry domain to val.
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
