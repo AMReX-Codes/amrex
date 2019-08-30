@@ -63,6 +63,7 @@ public:
 
     void build (const BoxArray& ba)
     {
+        m_ba = ba;
         int num_boxes = ba.size();
         m_host_boxes.resize(0);
         for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
@@ -165,7 +166,15 @@ public:
                           m_bins_lo, m_bins_hi, m_bin_size);
     }
 
+    bool isValid (const BoxArray& ba) const noexcept
+    {
+        return BoxArray::SameRefs(m_ba, ba);
+    }
+        
+    
 protected:
+
+    BoxArray m_ba;
     
     IntVect m_bins_lo;
     IntVect m_bins_hi;
