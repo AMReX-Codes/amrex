@@ -61,8 +61,11 @@ class ParticleLocator
 {
 public:
 
+    ParticleLocator () : m_defined(false) {}
+
     void build (const BoxArray& ba)
     {
+        m_defined = true;
         m_ba = ba;
         int num_boxes = ba.size();
         m_host_boxes.resize(0);
@@ -162,18 +165,22 @@ public:
 
     assignGrid getGridAssignor () const noexcept 
     {
+        AMREX_ASSERT(m_defined);
         return assignGrid(m_device_boxes.dataPtr(), m_offsets.dataPtr(), m_permutation.dataPtr(),
                           m_bins_lo, m_bins_hi, m_bin_size);
     }
 
     bool isValid (const BoxArray& ba) const noexcept
     {
-        return BoxArray::SameRefs(m_ba, ba);
+        if (m_defined) return BoxArray::SameRefs(m_ba, ba);
+        return false;
     }
         
     
 protected:
 
+    bool m_defined;
+    
     BoxArray m_ba;
     
     IntVect m_bins_lo;
