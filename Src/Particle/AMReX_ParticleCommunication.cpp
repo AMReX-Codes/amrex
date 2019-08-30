@@ -205,6 +205,7 @@ void ParticleCopyPlan::doHandShake (const Vector<long>& Snds, Vector<long>& Rcvs
 
 void ParticleCopyPlan::doHandShakeLocal (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
+#ifdef BL_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
     const int num_rcvs = m_neighbor_procs.size();
     Vector<MPI_Status>  stats(num_rcvs);
@@ -236,10 +237,12 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<long>& Snds, Vector<long>&
     {
         ParallelDescriptor::Waitall(rreqs, stats);
     }
+#endif
 }
 
 void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>& Rcvs) const
 {
+#ifdef BL_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
     const int NProcs = ParallelDescriptor::NProcs();
 
@@ -273,6 +276,7 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<long>& Snds, Vector<long>
         const auto Who = stats[i].MPI_SOURCE;
         Rcvs[Who] = num_bytes_rcv[i];
     }
+#endif
 }
 
 void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
