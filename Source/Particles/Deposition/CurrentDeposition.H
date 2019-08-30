@@ -7,6 +7,10 @@
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param jx_arr       : Array4 of current density, either full array or tile.
  * \param jy_arr       : Array4 of current density, either full array or tile.
  * \param jz_arr       : Array4 of current density, either full array or tile.
@@ -26,6 +30,7 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Real * const uxp,
                         const amrex::Real * const uyp,
                         const amrex::Real * const uzp,
+                        const int * const ion_lev,
                         const amrex::Array4<amrex::Real>& jx_arr,
                         const amrex::Array4<amrex::Real>& jy_arr,
                         const amrex::Array4<amrex::Real>& jz_arr,
@@ -36,6 +41,9 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Real stagger_shift, 
                         const amrex::Real q)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
+    const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dzi = 1.0/dx[2];
     const amrex::Real dts2dx = 0.5*dt*dxi;
@@ -61,7 +69,10 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real gaminv = 1.0/std::sqrt(1.0 + uxp[ip]*uxp[ip]*clightsq
                                                      + uyp[ip]*uyp[ip]*clightsq
                                                      + uzp[ip]*uzp[ip]*clightsq);
-            const amrex::Real wq  = q*wp[ip];
+            amrex::Real wq  = q*wp[ip];
+            if (do_ionization){
+                wq *= ion_lev[ip];
+            }
             const amrex::Real vx  = uxp[ip]*gaminv;
             const amrex::Real vy  = uyp[ip]*gaminv;
             const amrex::Real vz  = uzp[ip]*gaminv;
@@ -98,31 +109,31 @@ void doDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real xmid = (xp[ip]-xmin)*dxi-dts2dx*vx;
 #endif
             // Compute shape factors for node-centered quantities
-            amrex::Real AMREX_RESTRICT sx [depos_order + 1];
+            amrex::Real sx [depos_order + 1];
             // j: leftmost grid point (node-centered) that the particle touches
             const int j  = compute_shape_factor<depos_order>(sx,  xmid);
             // Compute shape factors for cell-centered quantities
-            amrex::Real AMREX_RESTRICT sx0[depos_order + 1];
+            amrex::Real sx0[depos_order + 1];
             // j0: leftmost grid point (cell-centered) that the particle touches
             const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
                      
 #if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real ymid= (yp[ip]-ymin)*dyi-dts2dy*vy;
-            amrex::Real AMREX_RESTRICT sy [depos_order + 1];
+            amrex::Real sy [depos_order + 1];
             const int k  = compute_shape_factor<depos_order>(sy,  ymid);
-            amrex::Real AMREX_RESTRICT sy0[depos_order + 1];
+            amrex::Real sy0[depos_order + 1];
             const int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
 #endif
             // z direction
             const amrex::Real zmid= (zp[ip]-zmin)*dzi-dts2dz*vz;
-            amrex::Real AMREX_RESTRICT sz [depos_order + 1];
+            amrex::Real sz [depos_order + 1];
             const int l  = compute_shape_factor<depos_order>(sz,  zmid);
-            amrex::Real AMREX_RESTRICT sz0[depos_order + 1];
+            amrex::Real sz0[depos_order + 1];
             const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
 
             // Deposit current into jx_arr, jy_arr and jz_arr
-#if (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(
@@ -161,6 +172,10 @@ void doDepositionShapeN(const amrex::Real * const xp,
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
  * \param uxp uyp uzp  : Pointer to arrays of particle momentum.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param Jx_arr       : Array4 of current density, either full array or tile.
  * \param Jy_arr       : Array4 of current density, either full array or tile.
  * \param Jz_arr       : Array4 of current density, either full array or tile.
@@ -179,6 +194,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                   const amrex::Real * const uxp,
                                   const amrex::Real * const uyp,
                                   const amrex::Real * const uzp,
+                                  const int * ion_lev,
                                   const amrex::Array4<amrex::Real>& Jx_arr,
                                   const amrex::Array4<amrex::Real>& Jy_arr,
                                   const amrex::Array4<amrex::Real>& Jz_arr,
@@ -189,6 +205,9 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                   const amrex::Dim3 lo,
                                   const amrex::Real q)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
+    const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dtsdx0 = dt*dxi;
     const amrex::Real xmin = xyzmin[0];
@@ -205,7 +224,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
     const amrex::Real invdtdx = 1.0/(dt*dx[1]*dx[2]);
     const amrex::Real invdtdy = 1.0/(dt*dx[0]*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]*dx[1]);
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
     const amrex::Real invdtdx = 1.0/(dt*dx[2]);
     const amrex::Real invdtdz = 1.0/(dt*dx[0]);
     const amrex::Real invvol = 1.0/(dx[0]*dx[2]);
@@ -224,7 +243,10 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                                                          + uzp[ip]*uzp[ip]*clightsq);
 
             // wqx, wqy wqz are particle current in each direction
-            const amrex::Real wq = q*wp[ip];
+            amrex::Real wq = q*wp[ip];
+            if (do_ionization){
+                wq *= ion_lev[ip];
+            }
             const amrex::Real wqx = wq*invdtdx;
 #if (defined WARPX_DIM_3D)
             const amrex::Real wqy = wq*invdtdy;
@@ -260,7 +282,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                 sintheta = 0.;
             }
             const amrex::Real vy = (-uxp[ip]*sintheta + uyp[ip]*costheta)*gaminv;
-#elif (defined WARPX_DIM_2D)
+#elif (defined WARPX_DIM_XZ)
             const amrex::Real vy = uyp[ip]*gaminv;
 #endif
 
@@ -268,14 +290,14 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
             // Note that there are extra values above and below
             // to possibly hold the factor for the old particle
             // which can be at a different grid location.
-            amrex::Real AMREX_RESTRICT sx_new[depos_order + 3] = {0.};
-            amrex::Real AMREX_RESTRICT sx_old[depos_order + 3] = {0.};
+            amrex::Real sx_new[depos_order + 3] = {0.};
+            amrex::Real sx_old[depos_order + 3] = {0.};
 #if (defined WARPX_DIM_3D)
-            amrex::Real AMREX_RESTRICT sy_new[depos_order + 3] = {0.};
-            amrex::Real AMREX_RESTRICT sy_old[depos_order + 3] = {0.};
+            amrex::Real sy_new[depos_order + 3] = {0.};
+            amrex::Real sy_old[depos_order + 3] = {0.};
 #endif
-            amrex::Real AMREX_RESTRICT sz_new[depos_order + 3] = {0.};
-            amrex::Real AMREX_RESTRICT sz_old[depos_order + 3] = {0.};
+            amrex::Real sz_new[depos_order + 3] = {0.};
+            amrex::Real sz_old[depos_order + 3] = {0.};
 
             // --- Compute shape factors
             // Compute shape factors for position as they are now and at old positions
@@ -335,7 +357,7 @@ void doEsirkepovDepositionShapeN (const amrex::Real * const xp,
                 }
             }
 
-#elif (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
 
             for (int k=dkl; k<=depos_order+2-dku; k++) {
                 amrex::Real sdxi = 0.;

@@ -301,7 +301,7 @@ Particle initialization
       following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}`
       :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
-* ``<species_name>.do_backward_injection`` (`bool`)
+* ``<species_name>.do_backward_propagation`` (`bool`)
     Inject a backward-propagating beam to reduce the effect of charge-separation
     fields when running in the boosted frame. See examples.
 
@@ -320,6 +320,7 @@ Particle initialization
 * ``<species>.plot_vars`` (list of `strings` separated by spaces, optional)
     List of particle quantities to write to `plotfiles`. By defaults, all
     quantities are written to file. Choices are
+
     * ``w`` for the particle weight,
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
@@ -335,6 +336,23 @@ Particle initialization
 
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
+
+* ``<species>.do_field_ionization`` (`0` or `1`) optional (default `0`)
+    Do field ionization for this species (using the ADK theory).
+
+* ``<species>.physical_element`` (`string`)
+    Only read if `do_field_ionization = 1`. Symbol of chemical element for
+    this species. Example: for Helium, use ``physical_element = He``.
+
+* ``<species>.ionization_product_species`` (`string`)
+    Only read if `do_field_ionization = 1`. Name of species in which ionized
+    electrons are stored. This species must be created as a regular species
+    in the input file (in particular, it must be in `particles.species_names`).
+
+* ``<species>.ionization_initial_level`` (`int`) optional (default `0`)
+    Only read if `do_field_ionization = 1`. Initial ionization level of the
+    species (must be smaller than the atomic number of chemical element given
+    in `physical_element`).
 
 Laser initialization
 --------------------
@@ -661,6 +679,18 @@ Boundary conditions
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
 
+* ``warpx.do_pml_in_domain`` (`int`; default: 0)
+    Whether to create the PML inside the simulation area or outside. If inside,
+    it allows the user to propagate particles in PML and to use extended PML
+
+* ``warpx.do_pml_has_particles`` (`int`; default: 0)
+    Whether to propagate particles in PML or not. Can only be done if PML are in simulation domain,
+    i.e. if `warpx.do_pml_in_domain = 1`.
+
+* ``warpx.do_pml_j_damping`` (`int`; default: 0)
+    Whether to damp current in PML. Can only be used if particles are propagated in PML,
+    i.e. if `warpx.do_pml_has_particles = 1`.
+
 * ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
     The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
 
@@ -684,7 +714,13 @@ Diagnostics and output
     `openPMD <https://github.com/openPMD>`__ format.
     When WarpX is compiled with openPMD support, this is ``1`` by default.
 
-* ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
+* ``warpx.openpmd_backend`` (``h5``, ``bp`` or ``json``) optional
+    I/O backend for
+    `openPMD <https://github.com/openPMD>`__ dumps.
+    When WarpX is compiled with openPMD support, this is ``h5`` by default.
+    ``json`` only works with serial/single-rank jobs.
+
+* ``warpx.do_boosted_frame_diagnostic`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
@@ -702,6 +738,13 @@ Diagnostics and output
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
+
+* ``warpx.dz_snapshots_lab`` (`float`, in meters)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Distance between the lab-frame snapshots (expressed in the laboratory
+    frame). ``dt_snapshots_lab`` is then computed by
+    ``dt_snapshots_lab = dz_snapshots_lab/c``. Either `dt_snapshots_lab`
+    or `dz_snapshot_lab` is required.
 
 * ``warpx.do_boosted_frame_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.

@@ -67,11 +67,6 @@ elif direction == 'z':
     assert np.allclose( E[:,:,2:30], E_predicted, rtol=0.1 )
     assert np.allclose( E[:,:,34:-2], 0, atol=1.e-5 )
 
-# Check the B fields
-assert np.allclose( data['Bx'].to_ndarray(), 0, atol=1.e-12 )
-assert np.allclose( data['By'].to_ndarray(), 0, atol=1.e-12 )
-assert np.allclose( data['Bz'].to_ndarray(), 0, atol=1.e-12 )
-
 # Save an image to be displayed on the website
 t_plot = np.linspace(0.0, t, 200)
 plt.subplot(211)

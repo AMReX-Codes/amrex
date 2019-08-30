@@ -30,6 +30,7 @@ Vector<Real> WarpX::B_external(3, 0.0);
 
 int WarpX::do_moving_window = 0;
 int WarpX::moving_window_dir = -1;
+Real WarpX::moving_window_v = std::numeric_limits<amrex::Real>::max();
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
@@ -37,7 +38,7 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
-long WarpX::use_picsar_deposition = 1;
+long WarpX::use_picsar_deposition = 0;
 long WarpX::current_deposition_algo;
 long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
@@ -334,7 +335,19 @@ WarpX::ReadParameters ()
                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
         pp.get("num_snapshots_lab", num_snapshots_lab);
-        pp.get("dt_snapshots_lab", dt_snapshots_lab);
+
+        // Read either dz_snapshots_lab or dt_snapshots_lab
+        bool snapshot_interval_is_specified = 0;
+        Real dz_snapshots_lab = 0;
+        snapshot_interval_is_specified += pp.query("dt_snapshots_lab", dt_snapshots_lab);
+        if ( pp.query("dz_snapshots_lab", dz_snapshots_lab) ){
+            dt_snapshots_lab = dz_snapshots_lab/PhysConst::c;
+            snapshot_interval_is_specified = 1;
+        }
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            snapshot_interval_is_specified,
+            "When using back-transformed diagnostics, user should specify either dz_snapshots_lab or dt_snapshots_lab.");
+
         pp.get("gamma_boost", gamma_boost);
 
         pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
@@ -382,6 +395,9 @@ WarpX::ReadParameters ()
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
+        pp.query("pml_has_particles", pml_has_particles);
+        pp.query("do_pml_j_damping", do_pml_j_damping);
+        pp.query("do_pml_in_domain", do_pml_in_domain);
 
         Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
         pp.queryarr("do_pml_Lo", parse_do_pml_Lo);
@@ -398,8 +414,12 @@ WarpX::ReadParameters ()
         do_pml_Hi[2] = parse_do_pml_Hi[2];
 #endif
 
+        if ( (do_pml_j_damping==1)&&(do_pml_in_domain==0) ){
+          amrex::Abort("J-damping can only be done when PML are inside simulation domain (do_pml_in_domain=1)");
+        }
 
         pp.query("dump_openpmd", dump_openpmd);
+        pp.query("openpmd_backend", openpmd_backend);
         pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
@@ -890,6 +910,21 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
+        if (fft_hybrid_mpi_decomposition == false){
+            // Allocate and initialize the spectral solver
+            std::array<Real,3> cdx = CellSize(lev-1);
+    #if (AMREX_SPACEDIM == 3)
+            RealVect cdx_vect(cdx[0], cdx[1], cdx[2]);
+    #elif (AMREX_SPACEDIM == 2)
+            RealVect cdx_vect(cdx[0], cdx[2]);
+    #endif
+            // Get the cell-centered box, with guard cells
+            BoxArray realspace_ba = cba;  // Copy box
+            realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
+            // Define spectral solver
+            spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
+                nox_fft, noy_fft, noz_fft, do_nodal, cdx_vect, dt[lev] ) );
+        }
 #endif
     }
 
@@ -921,7 +956,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-            if (do_dive_cleaning || plot_rho) {
+            if (rho_cp[lev]) {
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
