@@ -1034,12 +1034,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
-    if (local > 0) BuildRedistributeMask(0, local);
-    this->defineBufferMap();
-
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     const BoxArray& ba   = ParticleBoxArray(lev);
+    
+    if (local > 0) BuildRedistributeMask(0, local);
+    if (not m_particle_locator.isValid(ba)) m_particle_locator.build(ba);
+    this->defineBufferMap();
+
     if ( (ba.size() == 1) and geom.isAllPeriodic() )
     {
         EnforcePeriodicGPU();
@@ -1659,10 +1661,6 @@ BuildRedistributeMask (int lev, int nghost) const
             }
         }
         RemoveDuplicates(neighbor_procs);
-
-#ifdef AMREX_USE_GPU
-        m_particle_locator.build(ba);
-#endif
     }    
 }
 
