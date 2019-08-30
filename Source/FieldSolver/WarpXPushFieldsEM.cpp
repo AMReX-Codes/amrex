@@ -529,21 +529,16 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             auto const& pml_Byfab = pml_B[1]->array(mfi);
             auto const& pml_Bzfab = pml_B[2]->array(mfi);
 
-            amrex::ParallelFor(tex,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
+            amrex::ParallelFor(tex, tey, tez,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 warpx_push_pml_ex_yee(i,j,k,pml_Exfab,pml_Byfab,pml_Bzfab,
                                       dtsdy_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tey,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 warpx_push_pml_ey_yee(i,j,k,pml_Eyfab,pml_Bxfab,pml_Bzfab,
                                       dtsdx_c2,dtsdz_c2);
-            });
-            amrex::ParallelFor(tez,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                 warpx_push_pml_ez_yee(i,j,k,pml_Ezfab,pml_Bxfab,pml_Byfab,
                                       dtsdx_c2,dtsdy_c2);
             });
@@ -593,19 +588,14 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
                if (WarpX::maxwell_fdtd_solver_id == 0) {
 
-                  amrex::ParallelFor(tex,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                  {
+                  amrex::ParallelFor(tex, tey, tez,
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                       warpx_push_pml_ex_f_yee(i,j,k,pml_Exfab,pml_F_fab,dtsdx_c2);
-                  });
-                  amrex::ParallelFor(tey,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                  {
+                  },
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                       warpx_push_pml_ey_f_yee(i,j,k,pml_Eyfab,pml_F_fab,dtsdy_c2);
-                  });
-                  amrex::ParallelFor(tez,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                  {
+                  },
+                  [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                       warpx_push_pml_ez_f_yee(i,j,k,pml_Ezfab,pml_F_fab,dtsdz_c2);
                   });
 
