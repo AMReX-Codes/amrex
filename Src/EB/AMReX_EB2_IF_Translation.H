@@ -23,6 +23,7 @@ public:
         : m_f(a_f),
           m_offset(makeXDim3(a_offset))
         {}
+    ~TranslationIF () {}
 
     TranslationIF (const TranslationIF& rhs) = default;
     TranslationIF (TranslationIF&& rhs) = default;
@@ -41,9 +42,9 @@ public:
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
-        return m_f({AMREX_D_DECL(x-m_offset.x,
-                                 y-m_offset.y,
-                                 z-m_offset.z)});
+        return m_f(AMREX_D_DECL(x-m_offset.x,
+                                y-m_offset.y,
+                                z-m_offset.z));
     }
 
 protected:
@@ -51,6 +52,10 @@ protected:
     F m_f;
     XDim3 m_offset;
 };
+
+template <class F>
+struct IsGPUable<TranslationIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+    : std::true_type {};
 
 template <class F>
 constexpr TranslationIF<typename std::decay<F>::type>
