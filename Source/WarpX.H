@@ -196,6 +196,8 @@ public:
     void DampJPML (int lev);
     void DampJPML (int lev, PatchType patch_type);
 
+    void CopyJPML ();
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
