@@ -4,8 +4,10 @@
 #include <AMReX_REAL.H>
 #include "WarpX_Complex.H"
 
+// wrapper around math functions, to run on CPU or accelerator.
 namespace MathFunc
 {
+  // exp function
     template<typename T>
     AMREX_GPU_HOST_DEVICE T exp (const T& val){
 #ifdef AMREX_USE_GPU
@@ -14,7 +16,8 @@ namespace MathFunc
         return std::exp(val);
 #endif
     }
-
+  
+  // sqrt function
     template<typename T>
     AMREX_GPU_HOST_DEVICE T sqrt (const T& val){
 #ifdef AMREX_USE_GPU
@@ -24,6 +27,7 @@ namespace MathFunc
 #endif
     }
 
+  // power function
   template<typename T1, typename T2>
   AMREX_GPU_HOST_DEVICE T1 pow (const T1& val, const T2& power){
 #ifdef AMREX_USE_GPU

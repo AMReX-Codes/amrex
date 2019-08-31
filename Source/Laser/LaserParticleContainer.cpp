@@ -18,10 +18,6 @@ namespace
     {
         return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
     }
-
-    // void (&a2)(int const&) = Bar::test2<int>
-    // Complex (&toto)(Complex const&) = std::exp<Complex>;
-    // Complex 
 }
 
 LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies, const std::string& name)
