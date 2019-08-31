@@ -48,6 +48,10 @@ public:
                                   amrex::Real const * const Yp, amrex::Real t,
                                   amrex::Real * const amplitude);
 
+    void harris_laser_profile ( int np, amrex::Real const * const Xp,
+                                amrex::Real const * const Yp, amrex::Real t,
+                                amrex::Real * const amplitude);
+
 protected:
     
     std::string laser_name;

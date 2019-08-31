@@ -484,9 +484,8 @@ LaserParticleContainer::Evolve (int lev,
             }
 
             if (profile == laser_t::Harris) {
-                warpx_harris_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                    &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-                                    &profile_focal_distance, amplitude_E.dataPtr() );
+                harris_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                                     t_lab, amplitude_E.dataPtr());
             }
 
             if (profile == laser_t::parse_field_function) {
@@ -642,21 +641,70 @@ LaserParticleContainer::gaussian_laser_profile (
     prefactor = prefactor / std::sqrt(diffract_factor);
 #endif
 
+    // Copy member variables to tmp copies for GPU runs.
+    Real tmp_profile_t_peak = profile_t_peak;
+    Real tmp_beta = beta;
+    Real tmp_zeta = zeta;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np, 
         [=] AMREX_GPU_DEVICE (int i) {
             const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
-                std::pow((t - profile_t_peak - 
-                          beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
+                std::pow((t - tmp_profile_t_peak - 
+                          tmp_beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
                           2.*MathConst::I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
-                          *( zeta - beta*profile_focal_distance ) * inv_complex_waist_2),2);
+                          *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * std::exp( - stc_exponent );
             // Exp argument for transverse envelope
             const Complex exp_argument = - ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_complex_waist_2;
             // stcfactor + transverse envelope
             amplitude[i] = ( stcfactor * std::exp( exp_argument ) ).real();
+        }
+        );
+}
+
+void 
+LaserParticleContainer::harris_laser_profile (
+    int np, Real const * const Xp, Real const * const Yp, Real t,
+    Real * const amplitude)
+{
+
+    // This function uses the Harris function as the temporal profile of the pulse
+    const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;
+    const Real zR = MathConst::pi * profile_waist*profile_waist / wavelength;
+    const Real wz = profile_waist * 
+        std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
+    const Real inv_wz_2 = 1./(wz*wz);
+    Real inv_Rz;
+    if (laser_focal_distance == 0.){ 
+        inv_Rz = 0.;
+    } else {
+        inv_Rz = -laser_focal_distance / 
+            ( laser_focal_distance*laser_focal_distance + zR*zR );
+    }
+    const Real arg_env = 2.*MathConst::pi*t/profile_duration;
+
+    // time envelope is given by the Harris function
+    Real time_envelope = 0.;
+    if (t < duration)
+        time_envelope = 1./32. * (10. - 15.*std::cos(arg_env) + 
+                                  6.*std::cos(2.*arg_env) - 
+                                  std::cos(3.*arg_env));
+
+    // Copy member variables to tmp copies for GPU runs.
+    Real tmp_e_max = e_max;
+    // Loop through the macroparticle to calculate the proper amplitude
+    amrex::ParallelFor(
+        np, 
+        [=] AMREX_GPU_DEVICE (int i) {
+            const Real space_envelope = 
+                std::exp(- ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_wz_2);
+            const Real arg_osc = omega0*t - omega0/PhysConst::c*
+                (Xp[i]*Xp[i] + Yp[i]*Yp[i]) * inv_Rz / 2.;
+            const Real oscillations = std::cos(arg_osc);
+            amplitude[i] = tmp_e_max * time_envelope *
+                space_envelope * oscillations;
         }
         );
 }
