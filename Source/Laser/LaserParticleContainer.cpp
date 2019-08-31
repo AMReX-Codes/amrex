@@ -613,7 +613,6 @@ LaserParticleContainer::gaussian_laser_profile (
     const int np, Real const * const Xp, Real const * const Yp,
     Real t, Real * const amplitude)
 {
-    Print()<<"TOTO\n";
     // Calculate a few factors which are independent of the macroparticle
     const Real k0 = 2.*MathConst::pi/wavelength;
     const Real inv_tau2 = 1. / (profile_duration * profile_duration);
@@ -784,8 +783,6 @@ LaserParticleContainer::update_laser_particle(
     Real const * const AMREX_RESTRICT tmp_p_X = p_X.dataPtr();
     Real const * const AMREX_RESTRICT tmp_nvec = nvec.dataPtr();
     
-    Print()<<"TARTINE\n";
-    
     // Copy member variables to tmp copies for GPU runs.
     Real tmp_mobility = mobility;
     Real gamma_boost = WarpX::gamma_boost;
@@ -795,7 +792,6 @@ LaserParticleContainer::update_laser_particle(
         [=] AMREX_GPU_DEVICE (int i) {
             // Calculate the velocity according to the amplitude of E
             const Real sign_charge = (pwp[i]>0) ? 1 : -1;
-            // sign_charge = SIGN( 1.0_amrex_real, wp(ip) )
             const Real v_over_c = sign_charge * tmp_mobility * amplitude[i];
             // The velocity is along the laser polarization p_X
             Real vx = PhysConst::c * v_over_c * tmp_p_X[0];
