@@ -501,7 +501,7 @@ LaserParticleContainer::Evolve (int lev,
             // Calculate the corresponding momentum and position for the particles
             update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),
                                   uzp.dataPtr(), wp.dataPtr(),
-                                  amplitude_E.dataPtr(), dt);
+                                  amplitude_E.dataPtr(), dt, thread_num);
             /*
             update_laser_particle(
                                   &np,
@@ -754,31 +754,35 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
 void
 LaserParticleContainer::update_laser_particle(
     const int np, Real * const puxp, Real * const puyp, Real * const puzp,
-    Real * const pwp, Real const * const amplitude, const Real dt)
+    Real * const pwp, Real const * const amplitude, const Real dt,
+    const int thread_num)
 {
-    Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT giv = m_giv[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT giv = m_giv[thread_num].dataPtr();
     Real const * const AMREX_RESTRICT tmp_p_X = p_X.dataPtr();
     Real const * const AMREX_RESTRICT tmp_nvec = nvec.dataPtr();
+    
+    Print()<<"TARTINE\n";
     
     // Copy member variables to tmp copies for GPU runs.
     Real tmp_mobility = mobility;
     Real gamma_boost = WarpX::gamma_boost;
     Real beta_boost = WarpX::beta_boost;
     amrex::ParallelFor(
+        np,
         [=] AMREX_GPU_DEVICE (int i) {
             // Calculate the velocity according to the amplitude of E
-            const Real sign_charge pwp[i]>0? 1 : -1;
+            const Real sign_charge = (pwp[i]>0) ? 1 : -1;
             // sign_charge = SIGN( 1.0_amrex_real, wp(ip) )
-            const Real v_over_c = sign_charge * tmp_mobility * amplitude[ip];
+            const Real v_over_c = sign_charge * tmp_mobility * amplitude[i];
             // The velocity is along the laser polarization p_X
             Real vx = PhysConst::c * v_over_c * tmp_p_X[0];
             Real vy = PhysConst::c * v_over_c * tmp_p_X[1];
             Real vz = PhysConst::c * v_over_c * tmp_p_X[2];
             // When running in the boosted-frame, their is additional velocity along nvec
-            if (tmp_gamma_boost > 1.){
+            if (gamma_boost > 1.){
                 vx -= PhysConst::c * beta_boost * tmp_nvec[0];
                 vy -= PhysConst::c * beta_boost * tmp_nvec[1];
                 vz -= PhysConst::c * beta_boost * tmp_nvec[2];
@@ -786,9 +790,9 @@ LaserParticleContainer::update_laser_particle(
             // Get the corresponding momenta
             const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);
             giv[i] = 1./gamma;
-            uxp[i] = gamma * vx;
-            uyp[i] = gamma * vy;
-            uzp[i] = gamma * vz;
+            puxp[i] = gamma * vx;
+            puyp[i] = gamma * vy;
+            puzp[i] = gamma * vz;
             // Push the the particle positions
             xp[i] += vx * dt;
 #if (AMREX_SPACEDIM == 3)

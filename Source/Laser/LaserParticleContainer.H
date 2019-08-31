@@ -56,10 +56,12 @@ public:
                                             amrex::Real * const pplane_Xp,
                                             amrex::Real * const pplane_Yp);
 
-    void update_laser_particle (const int np, Real * const puxp,
-                                Real * const puyp, Real * const puzp,
-                                Real * const pwp, Real const * const amplitude,
-                                const Real dt)
+    void update_laser_particle (const int np, amrex::Real * const puxp,
+                                amrex::Real * const puyp,
+                                amrex::Real * const puzp,
+                                amrex::Real * const pwp,
+                                amrex::Real const * const amplitude,
+                                const amrex::Real dt, const int thread_num);
 
 protected:
     
