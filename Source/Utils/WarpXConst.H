@@ -7,22 +7,29 @@
 namespace MathFunc
 {
     template<typename T>
-    T exp (const T& val){
+    __host__ __device__ T exp (const T& val){
 #ifdef AMREX_USE_GPU
-        // return thrust::exp<T>(val);
         return thrust::exp(val);
 #else
-        // return std::exp<T>(val);
         return std::exp(val);
 #endif
     }
 
     template<typename T>
-    T sqrt (const T& val){
+    __host__ __device__ T sqrt (const T& val){
 #ifdef AMREX_USE_GPU
         return thrust::sqrt(val);
 #else
         return std::sqrt(val);
+#endif
+    }
+
+  template<typename T1, typename T2>
+  __host__ __device__ T1 pow (const T1& val, const T2& power){
+#ifdef AMREX_USE_GPU
+    return thrust::pow(val, power);
+#else
+    return std::pow(val, power);
 #endif
     }
 }
@@ -31,7 +38,6 @@ namespace MathFunc
 namespace MathConst
 {
     static constexpr amrex::Real pi = 3.14159265358979323846;
-    static constexpr Complex I{0,1};
 }
 
 // Physical constants

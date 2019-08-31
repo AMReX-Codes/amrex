@@ -635,7 +635,7 @@ LaserParticleContainer::gaussian_laser_profile (
         2.*MathConst::I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
 
     // Amplitude and monochromatic oscillations
-    Complex prefactor = e_max * std::exp( MathConst::I * oscillation_phase );
+    Complex prefactor = e_max * MathFunc::exp( MathConst::I * oscillation_phase );
 
     // Because diffract_factor is a complex, the code below takes into
     // account the impact of the dimensionality on both the Gouy phase
@@ -643,21 +643,22 @@ LaserParticleContainer::gaussian_laser_profile (
 #if (AMREX_SPACEDIM == 3)
     prefactor = prefactor / diffract_factor;
 #elif (AMREX_SPACEDIM == 2)
-    prefactor = prefactor / std::sqrt(diffract_factor);
+    prefactor = prefactor / MathFunc::sqrt(diffract_factor);
 #endif
 
     // Copy member variables to tmp copies for GPU runs.
     Real tmp_profile_t_peak = profile_t_peak;
     Real tmp_beta = beta;
     Real tmp_zeta = zeta;
+    Complex I(0,1);
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np, 
         [=] AMREX_GPU_DEVICE (int i) {
             const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
-                std::pow((t - tmp_profile_t_peak - 
+                MathFunc::pow((t - tmp_profile_t_peak - 
                           tmp_beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
-                          2.*MathConst::I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
+                          2.*I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
                           *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
@@ -690,7 +691,7 @@ LaserParticleContainer::harris_laser_profile (
     const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;
     const Real zR = MathConst::pi * profile_waist*profile_waist / wavelength;
     const Real wz = profile_waist * 
-        std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
+      std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
     const Real inv_wz_2 = 1./(wz*wz);
     Real inv_Rz;
     if (profile_focal_distance == 0.){ 
@@ -715,7 +716,7 @@ LaserParticleContainer::harris_laser_profile (
         np,
         [=] AMREX_GPU_DEVICE (int i) {
             const Real space_envelope = 
-                MathFunc::exp(- ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_wz_2);
+                std::exp(- ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_wz_2);
             const Real arg_osc = omega0*t - omega0/PhysConst::c*
                 (Xp[i]*Xp[i] + Yp[i]*Yp[i]) * inv_Rz / 2.;
             const Real oscillations = std::cos(arg_osc);
@@ -808,7 +809,7 @@ LaserParticleContainer::update_laser_particle(
                 vz -= PhysConst::c * beta_boost * tmp_nvec[2];
             }
             // Get the corresponding momenta
-            const Real gamma = gamma_boost/MathFunc::sqrt(1. - v_over_c*v_over_c);
+            const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);
             giv[i] = 1./gamma;
             puxp[i] = gamma * vx;
             puyp[i] = gamma * vy;
