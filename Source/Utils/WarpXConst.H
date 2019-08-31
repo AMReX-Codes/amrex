@@ -2,11 +2,13 @@
 #define WARPX_CONST_H_
 
 #include <AMReX_REAL.H>
+#include "WarpX_Const.H"
 
 // Math constants
 namespace MathConst
 {
     static constexpr amrex::Real pi = 3.14159265358979323846;
+    static constexpr Complex I{0,1};
 }
 
 // Physical constants
