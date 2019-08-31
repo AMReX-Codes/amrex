@@ -142,7 +142,7 @@ SpectralKSpace::getSpectralShiftFactor( const DistributionMapping& dm,
             case ShiftType::TransformFromCellCentered: sign = -1.; break;
             case ShiftType::TransformToCellCentered: sign = 1.;
         }
-        const Complex I = MathConst::I;
+        const Complex I{0,1};
         for (int i=0; i<k.size(); i++ ){
 #ifdef AMREX_USE_GPU
             shift[i] = thrust::exp( I*sign*k[i]*0.5*dx[i_dim] );
