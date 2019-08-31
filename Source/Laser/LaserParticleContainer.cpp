@@ -6,6 +6,7 @@
 
 #include <WarpX.H>
 #include <WarpXConst.H>
+#include "WarpX_Complex.H"
 #include <WarpX_f.H>
 #include <MultiParticleContainer.H>
 
@@ -478,10 +479,14 @@ LaserParticleContainer::Evolve (int lev,
             // Calculate the laser amplitude to be emitted,
             // at the position of the emission plane
             if (profile == laser_t::Gaussian) {
-                warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                gaussian_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                                       t_lab, amplitude_E.dataPtr());
+                /*
+                  warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                                       &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
                                       &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
                                       &zeta, &beta, &phi2, &theta_stc );
+                */
             }
 
             if (profile == laser_t::Harris) {
@@ -606,4 +611,97 @@ LaserParticleContainer::PushP (int lev, Real dt,
                                const MultiFab&, const MultiFab&, const MultiFab&)
 {
     // I don't think we need to do anything.
+}
+
+
+
+
+
+
+
+
+
+
+
+#include "WarpX_Complex.H"
+
+
+/*
+#ifdef AMREX_USE_GPU
+using exp = thrust::exp;
+#else
+using exp = std::exp;
+#endif
+*/
+
+void 
+LaserParticleContainer::gaussian_laser_profile (
+    int np, Real const * const Xp, Real const * const Yp, Real t,
+    Real * const amplitude)
+{
+    // Calculate a few factors which are independent of the macroparticle
+    const Real k0 = 2.*MathConst::pi/wavelength;
+    const Real inv_tau2 = 1. / (profile_duration * profile_duration);
+    const Real oscillation_phase = k0 * PhysConst::c * ( t - profile_t_peak );
+    // The coefficients below contain info about Gouy phase,
+    // laser diffraction, and phase front curvature
+    const Complex diffract_factor = 1. + MathConst::I * profile_focal_distance
+        * 2./( k0 * profile_waist * profile_waist );
+    const Complex inv_complex_waist_2 = 1./( profile_waist*profile_waist * diffract_factor );
+
+    // Time stretching due to STCs and phi2 complex envelope
+    // (1 if zeta=0, beta=0, phi2=0)
+    const Complex stretch_factor = 1. + 4. * 
+        (zeta+beta*profile_focal_distance) * (zeta+beta*profile_focal_distance)
+        * (inv_tau2*inv_complex_waist_2) + 
+        2.*MathConst::I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
+
+    // Amplitude and monochromatic oscillations
+    Complex prefactor = e_max * std::exp( MathConst::I * oscillation_phase );
+
+    // Because diffract_factor is a complex, the code below takes into
+    // account the impact of the dimensionality on both the Gouy phase
+    // and the amplitude of the laser
+#if (AMREX_SPACEDIM == 3)
+    prefactor = prefactor / diffract_factor;
+#elif (AMREX_SPACEDIM == 2)
+    prefactor = prefactor / std::sqrt(diffract_factor);
+#endif
+
+    // Loop through the macroparticle to calculate the proper amplitude
+    amrex::ParallelFor(
+        np, 
+        [=] AMREX_GPU_DEVICE (int i) {
+            const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
+                std::pow((t - profile_t_peak - 
+                          beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
+                          2.*MathConst::I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
+                          *( zeta - beta*profile_focal_distance ) * inv_complex_waist_2),2);
+            // stcfactor = everything but complex transverse envelope
+            const Complex stcfactor = prefactor * std::exp( - stc_exponent );
+            // Exp argument for transverse envelope
+            const Complex exp_argument = - ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_complex_waist_2;
+            // stcfactor + transverse envelope
+            amplitude[i] = ( stcfactor * std::exp( exp_argument ) ).real();
+        }
+        );
+    /*
+    // !$acc parallel deviceptr(amplitude, Xp, Yp)
+    // !$acc loop
+    do i = 1, np
+      ! Exp argument for the temporal gaussian envelope + STCs
+      stc_exponent = 1./stretch_factor * inv_tau2 * &
+          (t - t_peak - beta*k0*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc)) - &
+          2*j*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc))*( zeta - beta*f ) * &
+          inv_complex_waist_2)**2
+      ! stcfactor = everything but complex transverse envelope
+      stcfactor = prefactor * exp( - stc_exponent )
+      ! Exp argument for transverse envelope
+      exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
+      ! stcfactor + transverse envelope
+      amplitude(i) = DREAL( stcfactor * exp( exp_argument ) )
+   enddo
+   !$acc end loop
+   !$acc end parallel
+    */
 }
