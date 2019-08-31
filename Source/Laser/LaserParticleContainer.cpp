@@ -617,13 +617,14 @@ LaserParticleContainer::gaussian_laser_profile (
     const int np, Real const * const Xp, Real const * const Yp,
     Real t, Real * const amplitude)
 {
+    Complex I(0,1);
     // Calculate a few factors which are independent of the macroparticle
     const Real k0 = 2.*MathConst::pi/wavelength;
     const Real inv_tau2 = 1. / (profile_duration * profile_duration);
     const Real oscillation_phase = k0 * PhysConst::c * ( t - profile_t_peak );
     // The coefficients below contain info about Gouy phase,
     // laser diffraction, and phase front curvature
-    const Complex diffract_factor = 1. + MathConst::I * profile_focal_distance
+    const Complex diffract_factor = 1. + I * profile_focal_distance
         * 2./( k0 * profile_waist * profile_waist );
     const Complex inv_complex_waist_2 = 1./( profile_waist*profile_waist * diffract_factor );
 
@@ -632,10 +633,10 @@ LaserParticleContainer::gaussian_laser_profile (
     const Complex stretch_factor = 1. + 4. * 
         (zeta+beta*profile_focal_distance) * (zeta+beta*profile_focal_distance)
         * (inv_tau2*inv_complex_waist_2) + 
-        2.*MathConst::I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
+        2.*I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
 
     // Amplitude and monochromatic oscillations
-    Complex prefactor = e_max * MathFunc::exp( MathConst::I * oscillation_phase );
+    Complex prefactor = e_max * MathFunc::exp( I * oscillation_phase );
 
     // Because diffract_factor is a complex, the code below takes into
     // account the impact of the dimensionality on both the Gouy phase
@@ -650,7 +651,6 @@ LaserParticleContainer::gaussian_laser_profile (
     Real tmp_profile_t_peak = profile_t_peak;
     Real tmp_beta = beta;
     Real tmp_zeta = zeta;
-    Complex I(0,1);
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np, 

@@ -7,7 +7,7 @@
 namespace MathFunc
 {
     template<typename T>
-    __host__ __device__ T exp (const T& val){
+    AMREX_GPU_HOST_DEVICE T exp (const T& val){
 #ifdef AMREX_USE_GPU
         return thrust::exp(val);
 #else
@@ -16,7 +16,7 @@ namespace MathFunc
     }
 
     template<typename T>
-    __host__ __device__ T sqrt (const T& val){
+    AMREX_GPU_HOST_DEVICE T sqrt (const T& val){
 #ifdef AMREX_USE_GPU
         return thrust::sqrt(val);
 #else
@@ -25,7 +25,7 @@ namespace MathFunc
     }
 
   template<typename T1, typename T2>
-  __host__ __device__ T1 pow (const T1& val, const T2& power){
+  AMREX_GPU_HOST_DEVICE T1 pow (const T1& val, const T2& power){
 #ifdef AMREX_USE_GPU
     return thrust::pow(val, power);
 #else
