@@ -4,6 +4,29 @@
 #include <AMReX_REAL.H>
 #include "WarpX_Complex.H"
 
+namespace MathFunc
+{
+    template<typename T>
+    T exp (const T& val){
+#ifdef AMREX_USE_GPU
+        // return thrust::exp<T>(val);
+        return thrust::exp(val);
+#else
+        // return std::exp<T>(val);
+        return std::exp(val);
+#endif
+    }
+
+    template<typename T>
+    T sqrt (const T& val){
+#ifdef AMREX_USE_GPU
+        return thrust::sqrt(val);
+#else
+        return std::sqrt(val);
+#endif
+    }
+}
+
 // Math constants
 namespace MathConst
 {

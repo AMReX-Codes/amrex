@@ -18,6 +18,10 @@ namespace
     {
         return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
     }
+
+    // void (&a2)(int const&) = Bar::test2<int>
+    // Complex (&toto)(Complex const&) = std::exp<Complex>;
+    // Complex 
 }
 
 LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies, const std::string& name)
@@ -656,11 +660,11 @@ LaserParticleContainer::gaussian_laser_profile (
                           2.*MathConst::I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
                           *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
-            const Complex stcfactor = prefactor * std::exp( - stc_exponent );
+            const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
             // Exp argument for transverse envelope
             const Complex exp_argument = - ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_complex_waist_2;
             // stcfactor + transverse envelope
-            amplitude[i] = ( stcfactor * std::exp( exp_argument ) ).real();
+            amplitude[i] = ( stcfactor * MathFunc::exp( exp_argument ) ).real();
         }
         );
 }
@@ -708,10 +712,10 @@ LaserParticleContainer::harris_laser_profile (
     Real tmp_e_max = e_max;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
-        np, 
+        np,
         [=] AMREX_GPU_DEVICE (int i) {
             const Real space_envelope = 
-                std::exp(- ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_wz_2);
+                MathFunc::exp(- ( Xp[i]*Xp[i] + Yp[i]*Yp[i] ) * inv_wz_2);
             const Real arg_osc = omega0*t - omega0/PhysConst::c*
                 (Xp[i]*Xp[i] + Yp[i]*Yp[i]) * inv_Rz / 2.;
             const Real oscillations = std::cos(arg_osc);
@@ -804,7 +808,7 @@ LaserParticleContainer::update_laser_particle(
                 vz -= PhysConst::c * beta_boost * tmp_nvec[2];
             }
             // Get the corresponding momenta
-            const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);
+            const Real gamma = gamma_boost/MathFunc::sqrt(1. - v_over_c*v_over_c);
             giv[i] = 1./gamma;
             puxp[i] = gamma * vx;
             puyp[i] = gamma * vy;
