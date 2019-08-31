@@ -44,17 +44,22 @@ public:
 
     virtual void PostRestart () final;
 
-    void gaussian_laser_profile ( int np, amrex::Real const * const Xp,
-                                  amrex::Real const * const Yp, amrex::Real t,
-                                  amrex::Real * const amplitude);
+    void gaussian_laser_profile (const int np, amrex::Real const * const Xp,
+                                 amrex::Real const * const Yp, amrex::Real t,
+                                 amrex::Real * const amplitude);
 
-    void harris_laser_profile ( int np, amrex::Real const * const Xp,
-                                amrex::Real const * const Yp, amrex::Real t,
-                                amrex::Real * const amplitude);
+    void harris_laser_profile (const int np, amrex::Real const * const Xp,
+                               amrex::Real const * const Yp, amrex::Real t,
+                               amrex::Real * const amplitude);
 
     void calculate_laser_plane_coordinates (const int np, const int thread_num,
                                             amrex::Real * const pplane_Xp,
                                             amrex::Real * const pplane_Yp);
+
+    void update_laser_particle (const int np, Real * const puxp,
+                                Real * const puyp, Real * const puzp,
+                                Real * const pwp, Real const * const amplitude,
+                                const Real dt)
 
 protected:
     

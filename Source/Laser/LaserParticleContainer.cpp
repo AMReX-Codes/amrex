@@ -499,6 +499,10 @@ LaserParticleContainer::Evolve (int lev,
                 }
             }
             // Calculate the corresponding momentum and position for the particles
+            update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),
+                                  uzp.dataPtr(), wp.dataPtr(),
+                                  amplitude_E.dataPtr(), dt);
+            /*
             update_laser_particle(
                                   &np,
                                   m_xp[thread_num].dataPtr(),
@@ -509,6 +513,7 @@ LaserParticleContainer::Evolve (int lev,
                                   wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
                                   &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
                                   &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
+            */
             BL_PROFILE_VAR_STOP(blp_pp);
 
             //
@@ -613,8 +618,8 @@ LaserParticleContainer::PushP (int lev, Real dt,
 
 void 
 LaserParticleContainer::gaussian_laser_profile (
-    int np, Real const * const Xp, Real const * const Yp, Real t,
-    Real * const amplitude)
+    const int np, Real const * const Xp, Real const * const Yp,
+    Real t, Real * const amplitude)
 {
     Print()<<"TOTO\n";
     // Calculate a few factors which are independent of the macroparticle
@@ -671,10 +676,9 @@ LaserParticleContainer::gaussian_laser_profile (
 
 void 
 LaserParticleContainer::harris_laser_profile (
-    int np, Real const * const Xp, Real const * const Yp, Real t,
-    Real * const amplitude)
+    const int np, Real const * const Xp, Real const * const Yp,
+    Real t, Real * const amplitude)
 {
-
     // This function uses the Harris function as the temporal profile of the pulse
     const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;
     const Real zR = MathConst::pi * profile_waist*profile_waist / wavelength;
@@ -747,10 +751,50 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
         );
 }
 
-/*
 void
-LaserParticleContainer::update_laser_particle()
+LaserParticleContainer::update_laser_particle(
+    const int np, Real * const puxp, Real * const puyp, Real * const puzp,
+    Real * const pwp, Real const * const amplitude, const Real dt)
 {
-
+    Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT giv = m_giv[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT tmp_p_X = p_X.dataPtr();
+    Real const * const AMREX_RESTRICT tmp_nvec = nvec.dataPtr();
+    
+    // Copy member variables to tmp copies for GPU runs.
+    Real tmp_mobility = mobility;
+    Real gamma_boost = WarpX::gamma_boost;
+    Real beta_boost = WarpX::beta_boost;
+    amrex::ParallelFor(
+        [=] AMREX_GPU_DEVICE (int i) {
+            // Calculate the velocity according to the amplitude of E
+            const Real sign_charge pwp[i]>0? 1 : -1;
+            // sign_charge = SIGN( 1.0_amrex_real, wp(ip) )
+            const Real v_over_c = sign_charge * tmp_mobility * amplitude[ip];
+            // The velocity is along the laser polarization p_X
+            Real vx = PhysConst::c * v_over_c * tmp_p_X[0];
+            Real vy = PhysConst::c * v_over_c * tmp_p_X[1];
+            Real vz = PhysConst::c * v_over_c * tmp_p_X[2];
+            // When running in the boosted-frame, their is additional velocity along nvec
+            if (tmp_gamma_boost > 1.){
+                vx -= PhysConst::c * beta_boost * tmp_nvec[0];
+                vy -= PhysConst::c * beta_boost * tmp_nvec[1];
+                vz -= PhysConst::c * beta_boost * tmp_nvec[2];
+            }
+            // Get the corresponding momenta
+            const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);
+            giv[i] = 1./gamma;
+            uxp[i] = gamma * vx;
+            uyp[i] = gamma * vy;
+            uzp[i] = gamma * vz;
+            // Push the the particle positions
+            xp[i] += vx * dt;
+#if (AMREX_SPACEDIM == 3)
+            yp[i] += vy * dt;
+#endif
+            zp[i] += vz * dt;
+        }
+        );
 }
-*/
