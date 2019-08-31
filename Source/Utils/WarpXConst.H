@@ -2,7 +2,7 @@
 #define WARPX_CONST_H_
 
 #include <AMReX_REAL.H>
-#include "WarpX_Const.H"
+#include "WarpX_Complex.H"
 
 // Math constants
 namespace MathConst

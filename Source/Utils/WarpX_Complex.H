@@ -7,20 +7,27 @@
 #ifdef AMREX_USE_GPU
 
 #include <thrust/complex.h>
-#include <cufft.h>
+
 using Complex = thrust::complex<amrex::Real>;
+
+#ifdef WARPX_USE_PSATD
+#include <cufft.h>
 static_assert( sizeof(Complex) == sizeof(cuDoubleComplex),
     "The complex types in WarpX and cuFFT do not match.");
+#endif // WARPX_USE_PSATD
 
 #else
 
 #include <complex>
-#include <fftw3.h>
 using Complex = std::complex<amrex::Real>;
+
+#ifdef WARPX_USE_PSATD
+#include <fftw3.h>
 static_assert( sizeof(Complex) == sizeof(fftw_complex),
     "The complex types in WarpX and FFTW do not match.");
+#endif // WARPX_USE_PSATD
 
-#endif
+#endif // AMREX_USE_GPU
 static_assert(sizeof(Complex) == sizeof(amrex::Real[2]),
               "Unexpected complex type.");
 
