@@ -469,6 +469,10 @@ LaserParticleContainer::Evolve (int lev,
             //
             BL_PROFILE_VAR_START(blp_pp);
             // Find the coordinates of the particles in the emission plane
+            calculate_laser_plane_coordinates(np, thread_num,
+                                              plane_Xp.dataPtr(),
+                                              plane_Yp.dataPtr());
+/*
             calculate_laser_plane_coordinates( &np,
                                                m_xp[thread_num].dataPtr(),
                                                m_yp[thread_num].dataPtr(),
@@ -476,6 +480,7 @@ LaserParticleContainer::Evolve (int lev,
                                                plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                                                &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
                                                &position[0], &position[1], &position[2] );
+*/
             // Calculate the laser amplitude to be emitted,
             // at the position of the emission plane
             if (profile == laser_t::Gaussian) {
@@ -677,17 +682,17 @@ LaserParticleContainer::harris_laser_profile (
         std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
     const Real inv_wz_2 = 1./(wz*wz);
     Real inv_Rz;
-    if (laser_focal_distance == 0.){ 
+    if (profile_focal_distance == 0.){ 
         inv_Rz = 0.;
     } else {
-        inv_Rz = -laser_focal_distance / 
-            ( laser_focal_distance*laser_focal_distance + zR*zR );
+        inv_Rz = -profile_focal_distance / 
+            ( profile_focal_distance*profile_focal_distance + zR*zR );
     }
     const Real arg_env = 2.*MathConst::pi*t/profile_duration;
 
     // time envelope is given by the Harris function
     Real time_envelope = 0.;
-    if (t < duration)
+    if (t < profile_duration)
         time_envelope = 1./32. * (10. - 15.*std::cos(arg_env) + 
                                   6.*std::cos(2.*arg_env) - 
                                   std::cos(3.*arg_env));
@@ -708,3 +713,44 @@ LaserParticleContainer::harris_laser_profile (
         }
         );
 }
+
+void
+LaserParticleContainer::calculate_laser_plane_coordinates (
+    const int np, const int thread_num,
+    Real * const pplane_Xp,
+    Real * const pplane_Yp)
+{
+    Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT tmp_u_X = u_X.dataPtr();
+    Real const * const AMREX_RESTRICT tmp_position = position.dataPtr();
+    amrex::ParallelFor(
+        np,
+        [=] AMREX_GPU_DEVICE (int i) {
+#if (AMREX_SPACEDIM == 3)
+            pplane_Xp[i] = 
+                tmp_u_X[0] * (xp[i] - tmp_position[0]) +
+                tmp_u_X[1] * (yp[i] - tmp_position[1]) +
+                tmp_u_X[2] * (zp[i] - tmp_position[2]);
+            pplane_Yp[i] = 
+                tmp_u_Y[0] * (xp[i] - tmp_position[0]) +
+                tmp_u_Y[1] * (yp[i] - tmp_position[1]) +
+                tmp_u_Y[2] * (zp[i] - tmp_position[2]);
+#elif (AMREX_SPACEDIM == 2)
+            pplane_Xp[i] = 
+                tmp_u_X[0] * (xp[i] - tmp_position[0]) +
+                tmp_u_X[2] * (zp[i] - tmp_position[2]);
+            pplane_Yp[i] = 0.;
+#endif
+        }
+        );
+}
+
+/*
+void
+LaserParticleContainer::update_laser_particle()
+{
+
+}
+*/

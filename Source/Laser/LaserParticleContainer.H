@@ -52,6 +52,10 @@ public:
                                 amrex::Real const * const Yp, amrex::Real t,
                                 amrex::Real * const amplitude);
 
+    void calculate_laser_plane_coordinates (const int np, const int thread_num,
+                                            amrex::Real * const pplane_Xp,
+                                            amrex::Real * const pplane_Yp);
+
 protected:
     
     std::string laser_name;
