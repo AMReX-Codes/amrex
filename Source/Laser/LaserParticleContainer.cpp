@@ -472,15 +472,7 @@ LaserParticleContainer::Evolve (int lev,
             calculate_laser_plane_coordinates(np, thread_num,
                                               plane_Xp.dataPtr(),
                                               plane_Yp.dataPtr());
-/*
-            calculate_laser_plane_coordinates( &np,
-                                               m_xp[thread_num].dataPtr(),
-                                               m_yp[thread_num].dataPtr(),
-                                               m_zp[thread_num].dataPtr(),
-                                               plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                               &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
-                                               &position[0], &position[1], &position[2] );
-*/
+
             // Calculate the laser amplitude to be emitted,
             // at the position of the emission plane
             if (profile == laser_t::Gaussian) {
@@ -502,18 +494,6 @@ LaserParticleContainer::Evolve (int lev,
             update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),
                                   uzp.dataPtr(), wp.dataPtr(),
                                   amplitude_E.dataPtr(), dt, thread_num);
-            /*
-            update_laser_particle(
-                                  &np,
-                                  m_xp[thread_num].dataPtr(),
-                                  m_yp[thread_num].dataPtr(),
-                                  m_zp[thread_num].dataPtr(),
-                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                  m_giv[thread_num].dataPtr(),
-                                  wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
-                                  &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
-                                  &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
-            */
             BL_PROFILE_VAR_STOP(blp_pp);
 
             //
@@ -616,6 +596,18 @@ LaserParticleContainer::PushP (int lev, Real dt,
     // I don't think we need to do anything.
 }
 
+/* \brief compute field amplitude for a Gaussian laser, at particles' position
+ *
+ * Both Xp and Yp are given in laser plane coordinate.
+ * For each particle with position Xp and Yp, this routine computes the
+ * amplitude of the laser electric field, stored in array amplitude.
+ * 
+ * \param np: number of laser particles
+ * \param Xp: pointer to first component of positions of laser particles
+ * \param Yp: pointer to second component of positions of laser particles
+ * \param t: Current physical time
+ * \param amplitude: pointer to array of field amplitude.
+ */
 void 
 LaserParticleContainer::gaussian_laser_profile (
     const int np, Real const * const Xp, Real const * const Yp,
@@ -674,6 +666,18 @@ LaserParticleContainer::gaussian_laser_profile (
         );
 }
 
+/* \brief compute field amplitude for a Harris laser function, at particles' position
+ *
+ * Both Xp and Yp are given in laser plane coordinate.
+ * For each particle with position Xp and Yp, this routine computes the
+ * amplitude of the laser electric field, stored in array amplitude.
+ * 
+ * \param np: number of laser particles
+ * \param Xp: pointer to first component of positions of laser particles
+ * \param Yp: pointer to second component of positions of laser particles
+ * \param t: Current physical time
+ * \param amplitude: pointer to array of field amplitude.
+ */
 void 
 LaserParticleContainer::harris_laser_profile (
     const int np, Real const * const Xp, Real const * const Yp,
@@ -718,6 +722,13 @@ LaserParticleContainer::harris_laser_profile (
         );
 }
 
+/* \brief compute particles position in laser plane coordinate.
+ *
+ * \param np: number of laser particles
+ * \param thread_num: thread number
+ * \param pplane_Xp, pplane_Yp: pointers to arrays of particle positions
+ * in laser plane coordinate. 
+ */
 void
 LaserParticleContainer::calculate_laser_plane_coordinates (
     const int np, const int thread_num,
@@ -751,6 +762,15 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
         );
 }
 
+/* \brief push laser particles, in simulation coordinates.
+ *
+ * \param np: number of laser particles
+ * \param puxp, puyp, puzp: pointers to arrays of particle momenta.
+ * \param pwp: pointer to array of particle weights.
+ * \param amplitude: Electric field amplitude at the position of each particle.
+ * \param dt: time step.
+ * \param thread_num: thread number
+ */
 void
 LaserParticleContainer::update_laser_particle(
     const int np, Real * const puxp, Real * const puyp, Real * const puzp,
