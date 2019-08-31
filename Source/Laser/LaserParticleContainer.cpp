@@ -653,9 +653,9 @@ LaserParticleContainer::gaussian_laser_profile (
         [=] AMREX_GPU_DEVICE (int i) {
             const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
                 MathFunc::pow((t - tmp_profile_t_peak - 
-                          tmp_beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
-                          2.*I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
-                          *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
+                               tmp_beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
+                               2.*I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
+                               *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
             // Exp argument for transverse envelope
@@ -687,7 +687,7 @@ LaserParticleContainer::harris_laser_profile (
     const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;
     const Real zR = MathConst::pi * profile_waist*profile_waist / wavelength;
     const Real wz = profile_waist * 
-      std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
+        std::sqrt(1. + profile_focal_distance*profile_focal_distance/zR*zR);
     const Real inv_wz_2 = 1./(wz*wz);
     Real inv_Rz;
     if (profile_focal_distance == 0.){ 
