@@ -481,12 +481,6 @@ LaserParticleContainer::Evolve (int lev,
             if (profile == laser_t::Gaussian) {
                 gaussian_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                                        t_lab, amplitude_E.dataPtr());
-                /*
-                  warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-                                      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
-                                      &zeta, &beta, &phi2, &theta_stc );
-                */
             }
 
             if (profile == laser_t::Harris) {
@@ -613,32 +607,12 @@ LaserParticleContainer::PushP (int lev, Real dt,
     // I don't think we need to do anything.
 }
 
-
-
-
-
-
-
-
-
-
-
-#include "WarpX_Complex.H"
-
-
-/*
-#ifdef AMREX_USE_GPU
-using exp = thrust::exp;
-#else
-using exp = std::exp;
-#endif
-*/
-
 void 
 LaserParticleContainer::gaussian_laser_profile (
     int np, Real const * const Xp, Real const * const Yp, Real t,
     Real * const amplitude)
 {
+    Print()<<"TOTO\n";
     // Calculate a few factors which are independent of the macroparticle
     const Real k0 = 2.*MathConst::pi/wavelength;
     const Real inv_tau2 = 1. / (profile_duration * profile_duration);
@@ -685,23 +659,4 @@ LaserParticleContainer::gaussian_laser_profile (
             amplitude[i] = ( stcfactor * std::exp( exp_argument ) ).real();
         }
         );
-    /*
-    // !$acc parallel deviceptr(amplitude, Xp, Yp)
-    // !$acc loop
-    do i = 1, np
-      ! Exp argument for the temporal gaussian envelope + STCs
-      stc_exponent = 1./stretch_factor * inv_tau2 * &
-          (t - t_peak - beta*k0*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc)) - &
-          2*j*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc))*( zeta - beta*f ) * &
-          inv_complex_waist_2)**2
-      ! stcfactor = everything but complex transverse envelope
-      stcfactor = prefactor * exp( - stc_exponent )
-      ! Exp argument for transverse envelope
-      exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
-      ! stcfactor + transverse envelope
-      amplitude(i) = DREAL( stcfactor * exp( exp_argument ) )
-   enddo
-   !$acc end loop
-   !$acc end parallel
-    */
 }
