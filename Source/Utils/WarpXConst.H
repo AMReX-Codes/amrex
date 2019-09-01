@@ -3,6 +3,7 @@
 
 #include <AMReX_REAL.H>
 #include "WarpX_Complex.H"
+#include <AMReX_Gpu.H>
 
 // wrapper around math functions, to run on CPU or accelerator.
 namespace MathFunc
