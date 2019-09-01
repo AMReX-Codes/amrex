@@ -739,6 +739,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
     Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
     Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
     Real const * const AMREX_RESTRICT tmp_u_X = u_X.dataPtr();
+    Real const * const AMREX_RESTRICT tmp_u_Y = u_Y.dataPtr();
     Real const * const AMREX_RESTRICT tmp_position = position.dataPtr();
     amrex::ParallelFor(
         np,
