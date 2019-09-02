@@ -25,7 +25,7 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
     f_log = open(cwd + 'log_jobids_tmp.txt' ,'r')
     for line in f_log.readlines():
         dependency = line.split()[1][1:-1]
-        batch_string += '#BSUB -w exit(' + dependency + ')\n'
+        batch_string += '#BSUB -w ended(' + dependency + ')\n'
 
     batch_string += 'python run_automated.py --compiler=' + \
         compiler + ' --architecture=' + architecture + \

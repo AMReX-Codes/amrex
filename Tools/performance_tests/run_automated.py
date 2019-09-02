@@ -40,8 +40,8 @@ parser.add_argument('--n_node_list',
 parser.add_argument('--start_date',
                     dest='start_date' )
 parser.add_argument('--compiler',
-                    choices=['gnu', 'intel'],
-                    default='intel', 
+                    choices=['gnu', 'intel', 'pgi'],
+                    default='intel',
                     help='which compiler to use')
 parser.add_argument('--architecture',
                     choices=['cpu', 'knl'],
@@ -156,7 +156,7 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 # -------------------
 compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
 module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache'}
-csv_files = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
+csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
 cwd = os.getcwd() + '/'
 bin_dir = cwd + 'Bin/'
 bin_name = executable_name(compiler, args.architecture)
