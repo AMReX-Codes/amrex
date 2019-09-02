@@ -6,6 +6,15 @@ import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
                                run_batch_nnode, extract_dataframe
 
+print(os.environ["LMOD_SYSTEM_NAME"])
+if os.environ["LMOD_SYSTEM_NAME"] == 'summit':
+    machine = 'summit'
+    from summit import executable_name
+if os.environ["$NERSC_HOST"] == 'cori':
+    machine = 'cori'
+    from cori import executable_name
+print("machine = " + machine)
+
 # typical use: python run_automated.py --n_node_list='1,8,16,32' --automated
 # Assume warpx, picsar, amrex and perf_logs repos ar in the same directory and
 # environment variable AUTOMATED_PERF_TESTS contains the path to this directory
@@ -142,12 +151,12 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 
 # Define dictionaries
 # -------------------
-compiler_name = {'intel': 'intel', 'gnu': 'gcc'}
-module_name = {'cpu': 'haswell', 'knl': 'mic-knl'}
+compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
 module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache'}
 cwd = os.getcwd() + '/'
 bin_dir = cwd + 'Bin/'
-bin_name = 'perf_tests3d.' + args.compiler + '.' + module_name[args.architecture] + '.TPROF.MPI.OMP.ex'
+bin_name = executable_name(args.compiler, args.architecture)
+
 log_dir  = cwd
 perf_database_file = cwd + perf_database_file
 day = time.strftime('%d')
@@ -159,27 +168,7 @@ year = time.strftime('%Y')
 if args.mode == 'run':
     start_date = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # Set default options for compilation and execution
-    config_command = ''
-    config_command += 'module unload darshan;' 
-    config_command += 'module load craype-hugepages4M;'
-    if args.architecture == 'knl':
-        if args.compiler == 'intel':
-            config_command += 'module unload PrgEnv-gnu;'
-            config_command += 'module load PrgEnv-intel;'
-        elif args.compiler == 'gnu':
-            config_command += 'module unload PrgEnv-intel;'
-            config_command += 'module load PrgEnv-gnu;'
-        config_command += 'module unload craype-haswell;'
-        config_command += 'module load craype-mic-knl;'
-    elif args.architecture == 'cpu':
-        if args.compiler == 'intel':
-            config_command += 'module unload PrgEnv-gnu;'
-            config_command += 'module load PrgEnv-intel;'
-        elif args.compiler == 'gnu':
-            config_command += 'module unload PrgEnv-intel;'
-            config_command += 'module load PrgEnv-gnu;'
-        config_command += 'module unload craype-mic-knl;'
-        config_command += 'module load craype-haswell;'
+    config_command = get_config_command(args.compiler, args.architecture)
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
         os.mkdir(res_dir_base)    
@@ -198,56 +187,11 @@ if args.mode == 'run':
         shutil.copyfile("../../GNUmakefile","./GNUmakefile")
         os.system(config_command + " make realclean COMP=%s" %compiler_name[args.compiler] ";  rm -r tmp_build_dir *.mod; make -j 16 COMP=%s" %compiler_name[args.compiler])
 
-        #with open(cwd + 'GNUmakefile_perftest') as makefile_handler:
-        #    makefile_text = makefile_handler.read()
-        #makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
-        #with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
-        #    makefile_handler.write( makefile_text )
-        #os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
-
         if os.path.exists( cwd + 'store_git_hashes.txt' ):
             os.remove( cwd + 'store_git_hashes.txt' )
         store_git_hash(repo_path=picsar_dir, filename=cwd + 'store_git_hashes.txt', name='picsar')
         store_git_hash(repo_path=amrex_dir , filename=cwd + 'store_git_hashes.txt', name='amrex' )
         store_git_hash(repo_path=warpx_dir , filename=cwd + 'store_git_hashes.txt', name='warpx' )
-
-# This function runs a batch script with 
-# dependencies to perform the analysis 
-# after all performance tests are done.
-def process_analysis():
-    dependencies = ''
-    f_log = open(cwd + 'log_jobids_tmp.txt' ,'r')
-    for line in f_log.readlines():
-        dependencies += line.split()[3] + ':'
-    batch_string = ''
-    batch_string += '#!/bin/bash\n'
-    batch_string += '#SBATCH --job-name=warpx_1node_read\n'
-    batch_string += '#SBATCH --time=00:07:00\n'
-    batch_string += '#SBATCH -C knl\n'
-    batch_string += '#SBATCH -N 1\n'
-    batch_string += '#SBATCH -S 4\n'
-    batch_string += '#SBATCH -q regular\n'
-    batch_string += '#SBATCH -e read_error.txt\n'
-    batch_string += '#SBATCH -o read_output.txt\n'
-    batch_string += '#SBATCH --mail-type=end\n'
-    batch_string += '#SBATCH --account=m2852\n'
-    batch_string += 'module load h5py-parallel\n'
-    batch_string += 'python ' + __file__ + ' --compiler=' + \
-                    args.compiler + ' --architecture=' + args.architecture + \
-                    ' --mode=read' + \
-                ' --n_node_list=' + '"' + args.n_node_list + '"' + \
-                ' --start_date=' + start_date
-    if args.automated == True:
-        batch_string += ' --automated'
-    batch_string += '\n'
-    batch_file = 'slurm_perfread'
-    f_exe = open(batch_file,'w')
-    f_exe.write(batch_string)
-    f_exe.close()
-    os.system('chmod 700 ' + batch_file)
-    print( 'process_analysis line:  ' + 'sbatch  --dependency afterok:' + dependencies[0:-1] + ' ' + batch_file)
-    os.system('sbatch  --dependency afterok:' + dependencies[0:-1] + ' ' + batch_file)
-    return 0
 
 # Loop over the tests and run all simulations:
 # One batch job submitted per n_node. Several
@@ -276,7 +220,7 @@ if args.mode == 'run':
                         n_node=n_node, runtime_param_list=runtime_param_list)
     os.chdir(cwd)
     # submit batch for analysis
-    process_analysis()
+    process_analysis(cwd, args.compiler, args.architecture, n_node_list, start_date)
 
 # read the output file from each test and store timers in
 # hdf5 file with pandas format
