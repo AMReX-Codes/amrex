@@ -50,29 +50,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                                 Cuda::ManagedDeviceVector<Real>& giv,
                                 Real dt)
 {
-    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
-    auto& attribs = pti.GetAttribs();
-    auto& uxp = attribs[PIdx::ux];
-    auto& uyp = attribs[PIdx::uy];
-    auto& uzp = attribs[PIdx::uz];
-    auto& Exp = attribs[PIdx::Ex];
-    auto& Eyp = attribs[PIdx::Ey];
-    auto& Ezp = attribs[PIdx::Ez];
-    auto& Bxp = attribs[PIdx::Bx];
-    auto& Byp = attribs[PIdx::By];
-    auto& Bzp = attribs[PIdx::Bz];
-    const long np  = pti.numParticles();
-
-    // Using new pusher for positions
-    const amrex_real zero_mass = 0.0;
-    warpx_particle_pusher_positions(&np,
-                      xp.dataPtr(),
-                      yp.dataPtr(),
-                      zp.dataPtr(),
-                      uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                      giv.dataPtr(),
-                      &zero_mass, &dt,
-                      &WarpX::particle_pusher_algo);
 }
 
 void
