@@ -6,14 +6,17 @@ import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
                                run_batch_nnode, extract_dataframe
 
-print(os.environ["LMOD_SYSTEM_NAME"])
+# print(os.environ["LMOD_SYSTEM_NAME"])
 
-if os.environ["LMOD_SYSTEM_NAME"] == 'summit':
+if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
-    from summit import executable_name, process_analysis
-if os.environ["$NERSC_HOST"] == 'cori':
+    from summit import executable_name, process_analysis, get_config_command, time_min
+if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
-    from cori   import executable_name, process_analysis
+    from cori   import executable_name, process_analysis, get_config_command, time_min
+
+machine = 'cori'
+from cori   import executable_name, process_analysis, get_config_command, time_min
 
 print("machine = " + machine)
 
@@ -187,7 +190,7 @@ if args.mode == 'run':
             git_repo.pull()
 
         shutil.copyfile("../../GNUmakefile","./GNUmakefile")
-        os.system(config_command + " make realclean COMP=%s" %compiler_name[args.compiler] ";  rm -r tmp_build_dir *.mod; make -j 16 COMP=%s" %compiler_name[args.compiler])
+        os.system(config_command + " make realclean COMP=%s" %compiler_name[args.compiler] + ";  rm -r tmp_build_dir *.mod; make -j 16 COMP=%s" %compiler_name[args.compiler])
 
         if os.path.exists( cwd + 'store_git_hashes.txt' ):
             os.remove( cwd + 'store_git_hashes.txt' )
@@ -217,7 +220,7 @@ if args.mode == 'run':
             runtime_param_string += ' max_step=' + str( current_run.n_step )
             runtime_param_list.append( runtime_param_string )
         # Run the simulations.
-        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, machine\
+        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, machine, \
                         architecture=args.architecture, Cname=module_Cname[args.architecture], \
                         n_node=n_node, runtime_param_list=runtime_param_list)
     os.chdir(cwd)
