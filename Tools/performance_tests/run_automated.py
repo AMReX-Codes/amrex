@@ -7,12 +7,14 @@ from functions_perftest import store_git_hash, get_file_content, \
                                run_batch_nnode, extract_dataframe
 
 print(os.environ["LMOD_SYSTEM_NAME"])
+
 if os.environ["LMOD_SYSTEM_NAME"] == 'summit':
     machine = 'summit'
-    from summit import executable_name
+    from summit import executable_name, process_analysis
 if os.environ["$NERSC_HOST"] == 'cori':
     machine = 'cori'
-    from cori import executable_name
+    from cori   import executable_name, process_analysis
+
 print("machine = " + machine)
 
 # typical use: python run_automated.py --n_node_list='1,8,16,32' --automated
@@ -215,7 +217,7 @@ if args.mode == 'run':
             runtime_param_string += ' max_step=' + str( current_run.n_step )
             runtime_param_list.append( runtime_param_string )
         # Run the simulations.
-        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command,\
+        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, machine\
                         architecture=args.architecture, Cname=module_Cname[args.architecture], \
                         n_node=n_node, runtime_param_list=runtime_param_list)
     os.chdir(cwd)
