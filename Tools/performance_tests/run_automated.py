@@ -194,12 +194,17 @@ if args.mode == 'run':
             git_repo.pull()
             git_repo = git.cmd.Git( warpx_dir  )
             git_repo.pull()
-        with open(cwd + 'GNUmakefile_perftest') as makefile_handler:
-            makefile_text = makefile_handler.read()
-        makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
-        with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
-            makefile_handler.write( makefile_text )
-        os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
+
+        shutil.copyfile("../../GNUmakefile","./GNUmakefile")
+        os.system(config_command + " make realclean COMP=%s" %compiler_name[args.compiler] ";  rm -r tmp_build_dir *.mod; make -j 16 COMP=%s" %compiler_name[args.compiler])
+
+        #with open(cwd + 'GNUmakefile_perftest') as makefile_handler:
+        #    makefile_text = makefile_handler.read()
+        #makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
+        #with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
+        #    makefile_handler.write( makefile_text )
+        #os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
+
         if os.path.exists( cwd + 'store_git_hashes.txt' ):
             os.remove( cwd + 'store_git_hashes.txt' )
         store_git_hash(repo_path=picsar_dir, filename=cwd + 'store_git_hashes.txt', name='picsar')
