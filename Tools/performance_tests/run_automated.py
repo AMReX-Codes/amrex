@@ -4,19 +4,19 @@ import os, sys, shutil, datetime, git
 import argparse, re, time, copy
 import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
-                               run_batch_nnode, extract_dataframe
+    run_batch_nnode, extract_dataframe
 
 # print(os.environ["LMOD_SYSTEM_NAME"])
 
 if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
-    from summit import executable_name, process_analysis, get_config_command, time_min
+    from summit import executable_name, process_analysis, get_config_command
 if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
-    from cori   import executable_name, process_analysis, get_config_command, time_min
+    from cori   import executable_name, process_analysis, get_config_command
 
-machine = 'cori'
-from cori   import executable_name, process_analysis, get_config_command, time_min
+# machine = 'cori'
+# from cori  import executable_name, process_analysis, get_config_command
 
 print("machine = " + machine)
 
@@ -86,6 +86,17 @@ if args.automated == True:
     pull_3_repos = True
     recompile = True
 
+
+
+
+
+recompile = False
+
+
+
+
+
+    
 # Each instance of this class contains information for a single test.
 class test_element():
     def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
@@ -148,7 +159,7 @@ test_list = [copy.deepcopy(item) for item in test_list_unq for _ in range(n_repe
 # Define directories
 # ------------------
 source_dir_base = os.environ['AUTOMATED_PERF_TESTS']
-warpx_dir = source_dir_base + '/WarpX/'
+warpx_dir = source_dir_base + '/warpx/'
 picsar_dir = source_dir_base + '/picsar/'
 amrex_dir = source_dir_base + '/amrex/'
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
@@ -180,6 +191,7 @@ if args.mode == 'run':
 
     # Recompile if requested
     # ----------------------
+    print(recompile)
     if recompile == True:
         if pull_3_repos == True:
             git_repo = git.cmd.Git( picsar_dir )
@@ -189,8 +201,19 @@ if args.mode == 'run':
             git_repo = git.cmd.Git( warpx_dir  )
             git_repo.pull()
 
+        print("toto")
+
+# AMREX_HOME  ?= $(WARPX_HOME)/../amrex
+# PICSAR_HOME ?= $(WARPX_HOME)/../picsar
+# OPENBC_HOME ?= $(WARPX_HOME)/../openbc_poisson
+        
         shutil.copyfile("../../GNUmakefile","./GNUmakefile")
-        os.system(config_command + " make realclean COMP=%s" %compiler_name[args.compiler] + ";  rm -r tmp_build_dir *.mod; make -j 16 COMP=%s" %compiler_name[args.compiler])
+        os.system(config_command + " make realclean WARPX_HOME=../.. "
+                  "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ "
+                  "EBASE=perf_tests COMP=%s" %compiler_name[args.compiler] + \
+                  ";  rm -r tmp_build_dir *.mod; make -j 16 WARPX_HOME=../.. "
+                  "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ "
+                  "EBASE=perf_tests COMP=%s" %compiler_name[args.compiler])
 
         if os.path.exists( cwd + 'store_git_hashes.txt' ):
             os.remove( cwd + 'store_git_hashes.txt' )

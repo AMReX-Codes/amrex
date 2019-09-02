@@ -72,9 +72,13 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
     return 0
 
 def run_batch_nnode(test_list, res_dir, bin_name, config_command, machine, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
+    if machine == 'cori':
+        from cori import time_min, get_batch_string, get_run_string
+    if machine == 'summit':
+        from summit import time_min, get_batch_string, get_run_string
     # Clean res_dir
     if os.path.exists(res_dir):
-        shutil.rmtree(res_dir, ignore_errors=True)
+         shutil.rmtree(res_dir, ignore_errors=True)
     os.makedirs(res_dir)
     # Copy files to res_dir
     cwd = os.environ['AUTOMATED_PERF_TESTS'] + '/warpx/Tools/performance_tests/'
@@ -84,11 +88,11 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, machine, archi
     # Calculate simulation time. Take 5 min + 2 min / simulation
     job_time_min = time_min(len(test_list)) 
     job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
-    batch_string = cori.get_batch_string()
+    batch_string = get_batch_string(test_list, job_time_str, Cname, n_node)
     
     for count, current_test in enumerate(test_list):
         shutil.copy(cwd + current_test.input_file, res_dir)
-        run_string = get_run_string()
+        run_string = get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_list)
         batch_string += run_string
         batch_string += 'rm -rf plotfiles ; rm -rf lab_frame_data\n'
     batch_file = 'batch_script.sh'

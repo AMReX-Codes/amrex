@@ -7,8 +7,7 @@ def executable_name(compiler, architecture):
 
 def get_config_command(compiler, architecture):
     config_command = ''
-    config_command += 'module unload darshan;' 
-    config_command += 'module load craype-hugepages4M;'
+    config_command += 'module unload darshan;'
     if architecture == 'knl':
         if compiler == 'intel':
             config_command += 'module unload PrgEnv-gnu;'
@@ -68,7 +67,7 @@ def process_analysis(cwd, compiler, architecture, n_node_list, start_date):
 
 # Calculate simulation time. Take 5 min + 5 min / simulation
 def time_min(nb_simulations):
-    return 5. + len(test_list)*5.
+    return 5. + nb_simulations*5.
 
 def get_batch_string(test_list, job_time_str, Cname, n_node):
     batch_string = ''
