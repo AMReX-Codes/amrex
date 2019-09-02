@@ -6,17 +6,12 @@ import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
     run_batch_nnode, extract_dataframe
 
-# print(os.environ["LMOD_SYSTEM_NAME"])
-
 if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
     from summit import executable_name, process_analysis, get_config_command
 if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
     from cori   import executable_name, process_analysis, get_config_command
-
-# machine = 'cori'
-# from cori  import executable_name, process_analysis, get_config_command
 
 print("machine = " + machine)
 
@@ -85,17 +80,6 @@ if args.automated == True:
     push_on_perf_log_repo = False
     pull_3_repos = True
     recompile = True
-
-
-
-
-
-recompile = False
-
-
-
-
-
     
 # Each instance of this class contains information for a single test.
 class test_element():
@@ -200,12 +184,6 @@ if args.mode == 'run':
             git_repo.pull()
             git_repo = git.cmd.Git( warpx_dir  )
             git_repo.pull()
-
-        print("toto")
-
-# AMREX_HOME  ?= $(WARPX_HOME)/../amrex
-# PICSAR_HOME ?= $(WARPX_HOME)/../picsar
-# OPENBC_HOME ?= $(WARPX_HOME)/../openbc_poisson
         
         shutil.copyfile("../../GNUmakefile","./GNUmakefile")
         os.system(config_command + " make realclean WARPX_HOME=../.. "
@@ -248,7 +226,7 @@ if args.mode == 'run':
                         n_node=n_node, runtime_param_list=runtime_param_list)
     os.chdir(cwd)
     # submit batch for analysis
-    process_analysis(cwd, args.compiler, args.architecture, n_node_list, start_date)
+    process_analysis(args.automated, cwd, args.compiler, args.architecture, args.n_node_list, start_date)
 
 # read the output file from each test and store timers in
 # hdf5 file with pandas format

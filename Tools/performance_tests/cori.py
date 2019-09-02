@@ -1,3 +1,4 @@
+import os
 
 module_name = {'cpu': 'haswell.', 'knl': 'mic-knl.', 'gpu':'.'}
 
@@ -31,7 +32,7 @@ def get_config_command(compiler, architecture):
 # This function runs a batch script with 
 # dependencies to perform the analysis 
 # after all performance tests are done.
-def process_analysis(cwd, compiler, architecture, n_node_list, start_date):
+def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
     dependencies = ''
     f_log = open(cwd + 'log_jobids_tmp.txt' ,'r')
     for line in f_log.readlines():
@@ -50,11 +51,11 @@ def process_analysis(cwd, compiler, architecture, n_node_list, start_date):
     batch_string += '#SBATCH --account=m2852\n'
     batch_string += 'module load h5py-parallel\n'
     batch_string += 'python run_automated.py --compiler=' + \
-                    compiler + ' --architecture=' + architecture + \
-                    ' --mode=read' + \
-                ' --n_node_list=' + '"' + n_node_list + '"' + \
-                ' --start_date=' + start_date
-    if args.automated == True:
+        compiler + ' --architecture=' + architecture + \
+        ' --mode=read' + \
+        ' --n_node_list=' + '"' + n_node_list + '"' + \
+        ' --start_date=' + start_date
+    if automated == True:
         batch_string += ' --automated'
     batch_string += '\n'
     batch_file = 'slurm_perfread'
