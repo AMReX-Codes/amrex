@@ -275,19 +275,6 @@ for n_node in n_node_list:
             # Write dataframe to file perf_database_file 
             # (overwrite if file exists)
             updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
- 
-        # Rename directory with precise date+hour for archive purpose
-        if rename_archive == True:
-            loc_counter = 0
-            res_dir_arch = res_dir_base
-            res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
-                                      args.architecture, str(n_node), str(loc_counter)]) + '/'
-            while os.path.exists( res_dir_arch ):
-                loc_counter += 1
-                res_dir_arch = res_dir_base
-                res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
-                                          args.architecture, str(n_node), str(loc_counter)]) + '/'
-            os.rename( res_dir, res_dir_arch )
 
 # Extract sub-set of pandas data frame, write it to
 # csv file and copy this file to perf_logs repo
@@ -320,3 +307,19 @@ if write_csv:
         git_repo.git.add('./logs_csv/' + csv_file[machine])
         index = git_repo.index
         index.commit("automated tests")
+
+for n_node in n_node_list:
+    if browse_output_files:
+        # Rename directory with precise date+hour for archive purpose
+        if rename_archive == True:
+            loc_counter = 0
+            res_dir_arch = res_dir_base
+            res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
+                                      args.architecture, str(n_node), str(loc_counter)]) + '/'
+            while os.path.exists( res_dir_arch ):
+                loc_counter += 1
+                res_dir_arch = res_dir_base
+                res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
+                                          args.architecture, str(n_node), str(loc_counter)]) + '/'
+            print("renaming " + res_dir + " to " + res_dir_arch)
+            os.rename( res_dir, res_dir_arch )
