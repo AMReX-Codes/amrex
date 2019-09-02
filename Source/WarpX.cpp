@@ -38,7 +38,6 @@ Vector<int> WarpX::boost_direction = {0,0,0};
 int WarpX::do_compute_max_step_from_zmax = 0;
 Real WarpX::zmax_plasma_to_compute_max_step = 0.;
 
-long WarpX::use_picsar_deposition = 0;
 long WarpX::current_deposition_algo;
 long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
@@ -395,6 +394,9 @@ WarpX::ReadParameters ()
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
         pp.query("pml_delta", pml_delta);
+        pp.query("pml_has_particles", pml_has_particles);
+        pp.query("do_pml_j_damping", do_pml_j_damping);
+        pp.query("do_pml_in_domain", do_pml_in_domain);
 
         Vector<int> parse_do_pml_Lo(AMREX_SPACEDIM,1);
         pp.queryarr("do_pml_Lo", parse_do_pml_Lo);
@@ -411,6 +413,9 @@ WarpX::ReadParameters ()
         do_pml_Hi[2] = parse_do_pml_Hi[2];
 #endif
 
+        if ( (do_pml_j_damping==1)&&(do_pml_in_domain==0) ){
+          amrex::Abort("J-damping can only be done when PML are inside simulation domain (do_pml_in_domain=1)");
+        }
 
         pp.query("dump_openpmd", dump_openpmd);
         pp.query("openpmd_backend", openpmd_backend);
@@ -526,10 +531,6 @@ WarpX::ReadParameters ()
 
     {
         ParmParse pp("algo");
-        // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version
-        // of the deposition does not support RZ
-        pp.query("use_picsar_deposition", use_picsar_deposition);
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
         field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");

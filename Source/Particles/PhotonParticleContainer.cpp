@@ -29,11 +29,13 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // store it into member data.
     pp.query("size_in_inches", size_in_inches);
 
+
 }
 
 void PhotonParticleContainer::InitData()
 {
     AddParticles(0); // Note - add on level 0
+
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
     }
@@ -47,6 +49,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                                 Cuda::ManagedDeviceVector<Real>& giv,
                                 Real dt)
 {
+
     // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     // Extract pointers to the different particle quantities
@@ -79,6 +82,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                             ux[i], uy[i], uz[i], dt );
         }
     );
+
 }
 
 void
@@ -106,3 +110,4 @@ PhotonParticleContainer::Evolve (int lev,
                                        cBx, cBy, cBz,
                                        t, dt);
 }
+

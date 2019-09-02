@@ -11,6 +11,8 @@
 #include <WarpX_py.H>
 #endif
 
+#include <PML_current.H>
+
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
 #endif
@@ -59,7 +61,7 @@ WarpX::PushPSATD (amrex::Real a_dt)
     for (int lev = 0; lev <= finest_level; ++lev) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dt[lev] == a_dt, "dt must be consistent");
         if (fft_hybrid_mpi_decomposition){
-#ifndef AMREX_USE_CUDA // Only available on CPU
+#ifdef WARPX_USE_PSATD_HYBRID
             PushPSATD_hybridFFT(lev, a_dt);
 #endif
         } else {
@@ -136,7 +138,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
-    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // xmin is only used by the kernel for cylindrical geometry,
     // in which case it is actually rmin.
     const Real xmin = Geom(0).ProbLo(0);
 
@@ -323,7 +325,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
     MultiFab* cost = costs[lev].get();
     const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
-    // xmin is only used by the picsar kernel with cylindrical geometry,
+    // xmin is only used by the kernel for cylindrical geometry,
     // in which case it is actually rmin.
     const Real xmin = Geom(0).ProbLo(0);
 
@@ -445,11 +447,14 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 
     if (do_pml && pml[lev]->ok())
     {
-        if (F) pml[lev]->ExchangeF(patch_type, F);
+        if (F) pml[lev]->ExchangeF(patch_type, F, do_pml_in_domain);
 
         const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+        const auto& pml_j = (patch_type == PatchType::fine) ? pml[lev]->Getj_fp() : pml[lev]->Getj_cp();
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+        const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
+                                                            : pml[lev]->GetMultiSigmaBox_cp();
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -458,6 +463,10 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
 
             WRPX_PUSH_PML_EVEC(
 			     tex.loVect(), tex.hiVect(),
@@ -469,7 +478,45 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                             &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+           &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+
+            if (pml_has_particles) {
+                // Update the E field in the PML, using the current
+                // deposited by the particles in the PML
+                auto const& pml_jxfab = pml_j[0]->array(mfi);
+                auto const& pml_jyfab = pml_j[1]->array(mfi);
+                auto const& pml_jzfab = pml_j[2]->array(mfi);
+                const Real* sigmaj_x = sigba[mfi].sigma[0].data();
+                const Real* sigmaj_y = sigba[mfi].sigma[1].data();
+                const Real* sigmaj_z = sigba[mfi].sigma[2].data();
+
+                auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma[0].lo();
+#if (AMREX_SPACEDIM == 3)
+                auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma[1].lo();
+                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[2].lo();
+#else
+                int y_lo = 0;
+                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[1].lo();
+#endif
+
+                amrex::ParallelFor( tex, tey, tez,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        push_ex_pml_current(i,j,k,
+                            pml_Exfab, pml_jxfab, sigmaj_y, sigmaj_z,
+                            y_lo, z_lo, mu_c2_dt);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        push_ey_pml_current(i,j,k,
+                            pml_Eyfab, pml_jyfab, sigmaj_x, sigmaj_z,
+                            x_lo, z_lo, mu_c2_dt);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                        push_ez_pml_current(i,j,k,
+                            pml_Ezfab, pml_jzfab, sigmaj_x, sigmaj_y,
+                            x_lo, y_lo, mu_c2_dt);
+                    }
+                );
+            }
 
             if (pml_F)
             {
@@ -481,7 +528,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
 				   BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
 				   BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
 				   BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                                   &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
+           &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
 				   &WarpX::maxwell_fdtd_solver_id);
             }
         }

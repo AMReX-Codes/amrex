@@ -61,22 +61,8 @@ and MPI decomposition and computer architecture used for the run:
 
 * Amount of high-bandwidth memory.
 
-Below is a list of experience-based parameters 
-that were observed to give good performance on given supercomputers.
-
-Rule of thumb for 3D runs on NERSC Cori KNL
--------------------------------------------
-
-For a 3D simulation with a few (1-4) particles per cell using FDTD Maxwell 
-solver on Cori KNL for a well load-balanced problem (in our case laser 
-wakefield acceleration simulation in a boosted frame in the quasi-linear 
-regime), the following set of parameters provided good performance:
-
-* ``amr.max_grid_size=64`` and ``amr.blocking_factor=64`` so that the size of 
-  each grid is fixed to ``64**3`` (we are not using load-balancing here).
-
-* **8 MPI ranks per KNL node**, with ``OMP_NUM_THREADS=8`` (that is 64 threads 
-  per KNL node, i.e. 1 thread per physical core, and 4 cores left to the 
-  system).
-
-* **2 grids per MPI**, *i.e.*, 16 grids per KNL node.
+Because these parameters put additional contraints on the domain size for a
+simulation, it can be cumbersome to calculate the number of cells and the
+physical size of the computational domain for a given resolution. This
+:download:`Python script<../../../Tools/compute_domain.py>` does it
+automatically.

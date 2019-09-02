@@ -173,7 +173,7 @@ If you re-use an existing input file, you can add arguments to
 #### Include documentation to your PR
 
 Now, let users know about your new feature by adding it to the 
-[WarpX documentation](https://ecp-warpx.github.io). Our documentation uses 
+[WarpX documentation](https://warpx.readthedocs.io). Our documentation uses 
 [Sphinx](http://www.sphinx-doc.org/en/master/usage/quickstart.html), and it is 
 located in `Docs/`. For instance, if you introduce a new runtime parameter in 
 the input file, you can add it to 

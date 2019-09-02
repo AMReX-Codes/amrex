@@ -320,6 +320,7 @@ Particle initialization
 * ``<species>.plot_vars`` (list of `strings` separated by spaces, optional)
     List of particle quantities to write to `plotfiles`. By defaults, all
     quantities are written to file. Choices are
+
     * ``w`` for the particle weight,
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
@@ -558,10 +559,6 @@ Numerics and algorithms
        (see `Esirkepov, Comp. Phys. Comm. (2001) <https://www.sciencedirect.com/science/article/pii/S0010465500002289>`__)
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
-     - ``direct-vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
-       mathematically equivalent to ``direct``, but uses an optimized algorithm
-       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
-       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
 
     If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
 
@@ -570,24 +567,12 @@ Numerics and algorithms
 
      - ``standard``: standard charge deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`.
-     - ``vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
-       mathematically equivalent to ``standard``, but uses an optimized algorithm
-       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
-       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
-
-    If ``algo.charge_deposition`` is not specified, ``vectorized`` is the default
-    whenever it is available ; ``standard`` is the default otherwise.
 
 * ``algo.field_gathering`` (`string`, optional)
     The algorithm for field gathering. Available options are:
 
      - ``standard``: gathers directly from the grid points (either staggered
        or nodal gridpoints depending on ``warpx.do_nodal``).
-     - ``vectorized`` (not available when running on GPU): mathematically
-       equivalent to ``standard``, but uses optimized vector instructions for CPU/KNL.
-
-    If ``algo.field_gathering`` is not specified, ``vectorized`` is the default
-    on CPU/KNL ; ``standard`` is the default on GPU.
 
 * ``algo.particle_pusher`` (`string`, optional)
     The algorithm for the particle pusher. Available options are:
@@ -677,6 +662,18 @@ Boundary conditions
 * ``warpx.pml_delta`` (`int`; default: 10)
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
+
+* ``warpx.do_pml_in_domain`` (`int`; default: 0)
+    Whether to create the PML inside the simulation area or outside. If inside,
+    it allows the user to propagate particles in PML and to use extended PML
+
+* ``warpx.do_pml_has_particles`` (`int`; default: 0)
+    Whether to propagate particles in PML or not. Can only be done if PML are in simulation domain,
+    i.e. if `warpx.do_pml_in_domain = 1`.
+
+* ``warpx.do_pml_j_damping`` (`int`; default: 0)
+    Whether to damp current in PML. Can only be used if particles are propagated in PML,
+    i.e. if `warpx.do_pml_has_particles = 1`.
 
 * ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
     The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
