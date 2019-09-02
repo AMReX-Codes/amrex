@@ -312,7 +312,7 @@ def _read_buffer(snapshot, header_fn, _component_names):
             for i in range(header.ncomp):
                 comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')
                 data = all_data[_component_names[i]]
-                data[[slice(l,h+1) for l, h in zip(lo, hi)]] = comp_data
+                data[tuple([slice(l,h+1) for l, h in zip(lo, hi)])] = comp_data
                 all_data[_component_names[i]] = data
     return all_data
 

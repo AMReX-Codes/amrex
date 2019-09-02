@@ -22,22 +22,44 @@ public:
 
     virtual void InitData () override;
 
+    void InitIonizationModule ();
+
 #ifdef WARPX_DO_ELECTROSTATIC    
     virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
 
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) override;
 #endif // WARPX_DO_ELECTROSTATIC
     
-    virtual void FieldGather(int lev,
-                             const amrex::MultiFab& Ex,
-                             const amrex::MultiFab& Ey,
-                             const amrex::MultiFab& Ez,
-                             const amrex::MultiFab& Bx,
-                             const amrex::MultiFab& By,
-                             const amrex::MultiFab& Bz) final;
+    virtual void FieldGather (int lev,
+                              const amrex::MultiFab& Ex,
+                              const amrex::MultiFab& Ey,
+                              const amrex::MultiFab& Ez,
+                              const amrex::MultiFab& Bx,
+                              const amrex::MultiFab& By,
+                              const amrex::MultiFab& Bz) final;
+
+    void FieldGather (WarpXParIter& pti,
+                      RealVector& Exp,
+                      RealVector& Eyp,
+                      RealVector& Ezp,
+                      RealVector& Bxp,
+                      RealVector& Byp,
+                      RealVector& Bzp,
+                      amrex::FArrayBox const * exfab,
+                      amrex::FArrayBox const * eyfab,
+                      amrex::FArrayBox const * ezfab,
+                      amrex::FArrayBox const * bxfab,
+                      amrex::FArrayBox const * byfab,
+                      amrex::FArrayBox const * bzfab,
+                      const int ngE, const int e_is_nodal,
+                      const long offset,
+                      const long np_to_gather,
+                      int thread_num,
+                      int lev,
+                      int depos_lev);
 
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex,
@@ -77,18 +99,21 @@ public:
                         const amrex::MultiFab& Bx,
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
+                        
+    void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
+                        const amrex::Real* yp, const amrex::Real* zp);
 
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
+    
+    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask) override;
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
+
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
-    void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
-#ifdef AMREX_USE_GPU
-    void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
-#endif
 
     void MapParticletoBoostedFrame(amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
 
@@ -117,16 +142,8 @@ protected:
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
 
-    long NumParticlesToAdd (const amrex::Box& overlap_box,
-			    const amrex::RealBox& overlap_realbox,
-			    const amrex::RealBox& tile_real_box,
-			    const amrex::RealBox& particle_real_box);
-  
-    int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
-    std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
-
     // Inject particles during the whole simulation
-    void ContinuousInjection(const amrex::RealBox& injection_box) override;
+    void ContinuousInjection (const amrex::RealBox& injection_box) override;
 
 };
 

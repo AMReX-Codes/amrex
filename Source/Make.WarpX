@@ -45,6 +45,16 @@ endif
   DEFINES += -DWARPX_USE_PY
 endif
 
+ifeq ($(DIM),3)
+  DEFINES += -DWARPX_DIM_3D
+else
+ifeq ($(USE_RZ),TRUE)
+  DEFINES += -DWARPX_DIM_RZ
+else
+  DEFINES += -DWARPX_DIM_XZ
+endif
+endif
+
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
@@ -102,40 +112,52 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
 endif
 
 ifeq ($(USE_OPENPMD), TRUE)
-   OPENPMD_LIB_PATH ?= NOT_SET
-   ifneq ($(OPENPMD_LIB_PATH),NOT_SET)
-     LIBRARY_LOCATIONS += $(OPENPMD_LIB_PATH)
+   # try pkg-config query
+   ifeq (0, $(shell pkg-config "openPMD >= 0.9.0"; echo $$?))
+       CXXFLAGS += $(shell pkg-config --cflags openPMD)
+       LDFLAGS += $(shell pkg-config --libs openPMD)
+       LDFLAGS += -Xlinker -rpath -Xlinker $(shell pkg-config --variable=libdir openPMD)
+   # fallback to manual settings
+   else
+       OPENPMD_LIB_PATH ?= NOT_SET
+       ifneq ($(OPENPMD_LIB_PATH),NOT_SET)
+         LIBRARY_LOCATIONS += $(OPENPMD_LIB_PATH)
+       endif
+       OPENPMD_INCLUDE_PATH ?= NOT_SET
+       ifneq ($(OPENPMD_INCLUDE_PATH),NOT_SET)
+         INCLUDE_LOCATIONS += $(OPENPMD_INCLUDE_PATH)
+       endif
+       libraries += -lopenPMD
    endif
-   OPENPMD_INCLUDE_PATH ?= NOT_SET
-   ifneq ($(OPENPMD_INCLUDE_PATH),NOT_SET)
-     INCLUDE_LOCATIONS += $(OPENPMD_INCLUDE_PATH)
-   endif
-   DEFINES += -DWARPX_USE_OPENPMD -DopenPMD_HAVE_MPI=1
-   LIBRARIES += -lopenPMD -lhdf5
+   DEFINES += -DWARPX_USE_OPENPMD
 endif
 
 
 ifeq ($(USE_PSATD),TRUE)
-  FFTW_HOME ?= NOT_SET
-  ifneq ($(FFTW_HOME),NOT_SET)
-    VPATH_LOCATIONS += $(FFTW_HOME)/include
-    INCLUDE_LOCATIONS += $(FFTW_HOME)/include
-    LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
-  endif
   USERSuffix := $(USERSuffix).PSATD
   DEFINES += -DWARPX_USE_PSATD
-  ifeq ($(USE_CUDA),TRUE)
-    DEFINES += -DFFTW -DCUDA_FFT=1 # PICSAR uses it
-    LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads -lcufft
+  ifeq ($(USE_CUDA),FALSE) # Running on CPU
+     # Use FFTW
+     libraries += -lfftw3_mpi -lfftw3 -lfftw3_threads
+     ifeq ($(USE_PSATD_PICSAR),TRUE)
+        FFTW_HOME ?= NOT_SET
+        ifneq ($(FFTW_HOME),NOT_SET)
+          VPATH_LOCATIONS += $(FFTW_HOME)/include
+          INCLUDE_LOCATIONS += $(FFTW_HOME)/include
+          LIBRARY_LOCATIONS += $(FFTW_HOME)/lib
+        endif
+        # Compile with PICSAR's Hybrid-MPI PSATD
+        DEFINES += -DWARPX_USE_PSATD_HYBRID
+        DEFINES += -DFFTW # PICSAR uses it
+     endif
   else
-    DEFINES += -DFFTW # PICSAR uses it
-    LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads
+    # Use cuFFT
+    libraries += -lcufft
   endif
 endif
 
 ifeq ($(USE_RZ),TRUE)
   USERSuffix := $(USERSuffix).RZ
-  DEFINES += -DWARPX_RZ
 endif
 
 ifeq ($(DO_ELECTROSTATIC),TRUE)
@@ -153,7 +175,11 @@ ifeq ($(USE_HDF5),TRUE)
         LIBRARY_LOCATIONS += $(HDF5_HOME)/lib
     endif
     DEFINES += -DWARPX_USE_HDF5
+<<<<<<< HEAD
     LIBRARIES += -lhdf5 -lz
+=======
+    libraries += -lhdf5 -lz
+>>>>>>> dev
 endif
 
 # job_info support

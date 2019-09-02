@@ -83,6 +83,10 @@ class PGroup(object):
         return _libwarpx.get_particle_y(self.ispecie)[self.igroup]
     yp = property(getyp)
 
+    def getrp(self):
+        return _libwarpx.get_particle_r(self.ispecie)[self.igroup]
+    rp = property(getrp)
+
     def getzp(self):
         return _libwarpx.get_particle_z(self.ispecie)[self.igroup]
     zp = property(getzp)
@@ -135,6 +139,10 @@ class PGroup(object):
     def getbz(self):
         return _libwarpx.get_particle_Bz(self.ispecie)[self.igroup]
     bz = property(getbz)
+
+    def gettheta(self):
+        return _libwarpx.get_particle_theta(self.ispecie)[self.igroup]
+    theta = property(gettheta)
 
 class PGroups(object):
     def __init__(self, ispecie=0):

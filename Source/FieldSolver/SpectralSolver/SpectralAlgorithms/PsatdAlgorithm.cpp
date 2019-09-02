@@ -22,59 +22,8 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     X2_coef = SpectralCoefficients(ba, dm, 1, 0);
     X3_coef = SpectralCoefficients(ba, dm, 1, 0);
 
-    // Fill them with the right values:
-    // Loop over boxes and allocate the corresponding coefficients
-    // for each box owned by the local MPI proc
-    for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
-
-        const Box& bx = ba[mfi];
-
-        // Extract pointers for the k vectors
-        const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
-#if (AMREX_SPACEDIM==3)
-        const Real* modified_ky = modified_ky_vec[mfi].dataPtr();
-#endif
-        const Real* modified_kz = modified_kz_vec[mfi].dataPtr();
-        // Extract arrays for the coefficients
-        Array4<Real> C = C_coef[mfi].array();
-        Array4<Real> S_ck = S_ck_coef[mfi].array();
-        Array4<Real> X1 = X1_coef[mfi].array();
-        Array4<Real> X2 = X2_coef[mfi].array();
-        Array4<Real> X3 = X3_coef[mfi].array();
-
-        // Loop over indices within one box
-        ParallelFor(bx,
-        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-        {
-            // Calculate norm of vector
-            const Real k_norm = std::sqrt(
-                std::pow(modified_kx[i], 2) +
-#if (AMREX_SPACEDIM==3)
-                std::pow(modified_ky[j], 2) +
-                std::pow(modified_kz[k], 2));
-#else
-                std::pow(modified_kz[j], 2));
-#endif
-
-            // Calculate coefficients
-            constexpr Real c = PhysConst::c;
-            constexpr Real ep0 = PhysConst::ep0;
-            if (k_norm != 0){
-                C(i,j,k) = std::cos(c*k_norm*dt);
-                S_ck(i,j,k) = std::sin(c*k_norm*dt)/(c*k_norm);
-                X1(i,j,k) = (1. - C(i,j,k))/(ep0 * c*c * k_norm*k_norm);
-                X2(i,j,k) = (1. - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
-                X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
-            } else { // Handle k_norm = 0, by using the analytical limit
-                C(i,j,k) = 1.;
-                S_ck(i,j,k) = dt;
-                X1(i,j,k) = 0.5 * dt*dt / ep0;
-                X2(i,j,k) = c*c * dt*dt / (6.*ep0);
-                X3(i,j,k) = - c*c * dt*dt / (3.*ep0);
-            }
-        });
-    }
-};
+    InitializeSpectralCoefficients(spectral_kspace, dm, dt);
+}
 
 /* Advance the E and B field in spectral space (stored in `f`)
  * over one time step */
@@ -130,12 +79,13 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
 #endif
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real inv_ep0 = 1./PhysConst::ep0;
-            constexpr Complex I = Complex{0,1};
+            const Complex I = Complex{0,1};
             const Real C = C_arr(i,j,k);
             const Real S_ck = S_ck_arr(i,j,k);
             const Real X1 = X1_arr(i,j,k);
             const Real X2 = X2_arr(i,j,k);
             const Real X3 = X3_arr(i,j,k);
+
 
             // Update E (see WarpX online documentation: theory section)
             fields(i,j,k,Idx::Ex) = C*Ex_old
@@ -160,3 +110,63 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
         });
     }
 };
+
+void PsatdAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spectral_kspace,
+                                    const amrex::DistributionMapping& dm,
+                                    const amrex::Real dt)
+{
+    const BoxArray& ba = spectral_kspace.spectralspace_ba;
+    // Fill them with the right values:
+    // Loop over boxes and allocate the corresponding coefficients
+    // for each box owned by the local MPI proc
+    for (MFIter mfi(ba, dm); mfi.isValid(); ++mfi){
+
+        const Box& bx = ba[mfi];
+
+        // Extract pointers for the k vectors
+        const Real* modified_kx = modified_kx_vec[mfi].dataPtr();
+#if (AMREX_SPACEDIM==3)
+        const Real* modified_ky = modified_ky_vec[mfi].dataPtr();
+#endif
+        const Real* modified_kz = modified_kz_vec[mfi].dataPtr();
+        // Extract arrays for the coefficients
+        Array4<Real> C = C_coef[mfi].array();
+        Array4<Real> S_ck = S_ck_coef[mfi].array();
+        Array4<Real> X1 = X1_coef[mfi].array();
+        Array4<Real> X2 = X2_coef[mfi].array();
+        Array4<Real> X3 = X3_coef[mfi].array();
+
+        // Loop over indices within one box
+        ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            // Calculate norm of vector
+            const Real k_norm = std::sqrt(
+                std::pow(modified_kx[i], 2) +
+#if (AMREX_SPACEDIM==3)
+                std::pow(modified_ky[j], 2) +
+                std::pow(modified_kz[k], 2));
+#else
+                std::pow(modified_kz[j], 2));
+#endif
+
+
+            // Calculate coefficients
+            constexpr Real c = PhysConst::c;
+            constexpr Real ep0 = PhysConst::ep0;
+            if (k_norm != 0){
+                C(i,j,k) = std::cos(c*k_norm*dt);
+                S_ck(i,j,k) = std::sin(c*k_norm*dt)/(c*k_norm);
+                X1(i,j,k) = (1. - C(i,j,k))/(ep0 * c*c * k_norm*k_norm);
+                X2(i,j,k) = (1. - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
+                X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
+            } else { // Handle k_norm = 0, by using the analytical limit
+                C(i,j,k) = 1.;
+                S_ck(i,j,k) = dt;
+                X1(i,j,k) = 0.5 * dt*dt / ep0;
+                X2(i,j,k) = c*c * dt*dt / (6.*ep0);
+                X3(i,j,k) = - c*c * dt*dt / (3.*ep0);
+            }
+        });
+     }
+}

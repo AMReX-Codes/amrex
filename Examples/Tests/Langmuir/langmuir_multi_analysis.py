@@ -66,13 +66,13 @@ ds = yt.load(fn)
 for species in ['electrons', 'positrons']:
     for field in ['particle_weight',
                   'particle_momentum_x',
-                  'particle_Bz',
                   'particle_Ey']:
         assert (species, field) in ds.field_list
     for field in ['particle_momentum_y',
                   'particle_momentum_z',
                   'particle_Bx',
                   'particle_By',
+                  'particle_Bz',
                   'particle_Ex',
                   'particle_Ez']:
         assert (species, field) not in ds.field_list

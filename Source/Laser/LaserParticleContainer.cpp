@@ -397,8 +397,8 @@ LaserParticleContainer::Evolve (int lev,
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
-    BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("Laser::ParticlePush", blp_pp);
+    BL_PROFILE_VAR_NS("Laser::CurrentDepo", blp_cd);
     BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
 
     Real t_lab = t;
@@ -453,12 +453,20 @@ LaserParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
+            if (rho) {
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
+                              np_current, thread_num, lev, lev);
+                if (crho) {
+                    DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             //
             // Particle Push
             //
-            BL_PROFILE_VAR_START(blp_pxr_pp);
+            BL_PROFILE_VAR_START(blp_pp);
             // Find the coordinates of the particles in the emission plane
             calculate_laser_plane_coordinates( &np,
                                                m_xp[thread_num].dataPtr(),
@@ -498,13 +506,23 @@ LaserParticleContainer::Evolve (int lev,
                                   wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
                                   &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
                                   &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
-            BL_PROFILE_VAR_STOP(blp_pxr_pp);
+            BL_PROFILE_VAR_STOP(blp_pp);
 
             //
             // Current Deposition
             //
-            DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
-                           cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
+            // Deposit inside domains
+            int* ion_lev = nullptr;
+            DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
+                           0, np_current, thread_num,
+                           lev, lev, dt);
+            bool has_buffer = cjx;
+            if (has_buffer){
+                // Deposit in buffers
+                DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
+                               np_current, np-np_current, thread_num,
+                               lev, lev-1, dt);
+            }
 
             //
             // copy particle data back
@@ -513,15 +531,24 @@ LaserParticleContainer::Evolve (int lev,
             pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
+            if (rho) {
+                int* AMREX_RESTRICT ion_lev = nullptr;
+                DepositCharge(pti, wp, ion_lev, rho, 1, 0,
+                              np_current, thread_num, lev, lev);
+                if (crho) {
+                    DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
+                                  np-np_current, thread_num, lev, lev-1);
+                }
+            }
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                FArrayBox* costfab = cost->fabPtr(pti);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                Array4<Real> const& costarr = cost->array(pti);
+                amrex::ParallelFor(tbx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    costfab->plus(wt, work_box);
+                    costarr(i,j,k) += wt;
                 });
             }
         }

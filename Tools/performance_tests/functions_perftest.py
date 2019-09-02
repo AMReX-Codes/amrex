@@ -144,9 +144,9 @@ def read_run_perf(filename, n_steps):
     pattern_list = ['\nParticleContainer::Redistribute().*',\
                     '\nFabArray::FillBoundary().*',\
                     '\nFabArray::ParallelCopy().*',\
-                    '\nPICSAR::CurrentDeposition.*',\
-                    '\nPICSAR::FieldGather.*',\
-                    '\nPICSAR::ParticlePush.*',\
+                    '\nPPC::CurrentDeposition.*',\
+                    '\nPPC::FieldGather.*',\
+                    '\nPPC::ParticlePush.*',\
                     '\nPPC::Evolve::Copy.*',\
                     '\nWarpX::EvolveEM().*',\
                     'Checkpoint().*',\

@@ -3,6 +3,8 @@ cEXE_sources += wp_parser_y.c wp_parser.tab.c wp_parser.lex.c wp_parser_c.c
 cEXE_headers += wp_parser_y.h wp_parser.tab.h wp_parser.lex.h wp_parser_c.h
 CEXE_sources += WarpXParser.cpp
 CEXE_headers += WarpXParser.H
+CEXE_headers += GpuParser.H
+CEXE_sources += GpuParser.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Parser
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Parser

@@ -32,4 +32,6 @@ electrons.num_particles_per_cell_each_dim = 2 2 2
 electrons.profile = constant
 electrons.density = 1.e25  # number of electrons per m^3
 electrons.momentum_distribution_type = "gaussian"
-electrons.u_th  = 0.01 # uth the std of the (unitless) momentum
+electrons.ux_th  = 0.01 # uth the std of the (unitless) momentum
+electrons.uy_th  = 0.01 # uth the std of the (unitless) momentum
+electrons.uz_th  = 0.01 # uth the std of the (unitless) momentum

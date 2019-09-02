@@ -62,12 +62,13 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
     CheckSliceInput(real_box, slice_cc_nd_box, slice_realbox, slice_cr_ratio,
                     dom_geom, SliceType, slice_lo, 
                     slice_hi, interp_lo);
+    int configuration_dim = 0;
     // Determine if interpolation is required and number of cells in slice //
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {    
               
        // Flag for interpolation if required //
        if ( interp_lo[idim] == 1) {
-          interpolate = 1;
+          interpolate = 1;          
        }
 
        // For the case when a dimension is reduced //
@@ -86,10 +87,14 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
              if ( slice_grid_size >= refined_ncells ) {
                 slice_grid_size = refined_ncells - 1;
              }
-
+          
           }
+          configuration_dim += 1;
        }
     }
+    if (configuration_dim==1) {
+       amrex::Warning("The slice configuration is 1D and cannot be visualized using yt.");
+    } 
 
     // Slice generation with index type inheritance //
     Box slice(slice_lo, slice_hi);
@@ -135,10 +140,10 @@ CreateSlice( const MultiFab& mf, const Vector<Geometry> &dom_geom,
        MFIter mfi_dst(mfDst);
        for (MFIter mfi(mfSrc); mfi.isValid(); ++mfi) {       
 
-           FArrayBox& Src_fabox = mfSrc[mfi];
+           Array4<Real const> const& Src_fabox = mfSrc.const_array(mfi);
 
            const Box& Dst_bx = mfi_dst.validbox();
-           FArrayBox& Dst_fabox = mfDst[mfi_dst];
+           Array4<Real> const& Dst_fabox = mfDst.array(mfi_dst);
 
            int scomp = 0;
            int dcomp = 0;

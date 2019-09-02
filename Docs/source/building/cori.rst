@@ -51,6 +51,9 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
         module swap PrgEnv-intel PrgEnv-gnu
         make -j 16 COMP=gnu
 
+See :doc:`../running_cpp/platforms` for more information on how to run
+WarpX on Cori.
+
 GPU Build
 ---------
 
@@ -65,7 +68,7 @@ Then, you need to load the following modules:
 
     ::
 
-        module load esslurm cuda pgi openmpi/3.1.0-ucx
+        module load modules/3.2.10.6 esslurm cgpu/1.0 pgi/19.5 cuda/10.1 mpich/3.3-pgi-19.5 
 
 Currently, you need to use OpenMPI; mvapich2 seems not to work.
 
@@ -95,8 +98,10 @@ First, load the appropriate modules:
 
     module swap craype-haswell craype-mic-knl
     module swap PrgEnv-intel PrgEnv-gnu
-    module load cmake/3.11.4
+    module load cmake/3.14.4
     module load cray-hdf5-parallel
+    module load adios/1.13.1
+    export CRAYPE_LINK_TYPE=dynamic
 
 Then, in the `warpx_directory`, download and build the openPMD API:
 
@@ -105,7 +110,7 @@ Then, in the `warpx_directory`, download and build the openPMD API:
     git clone https://github.com/openPMD/openPMD-api.git
     mkdir openPMD-api-build
     cd openPMD-api-build
-    cmake ../openPMD-api -DopenPMD_USE_PYTHON=OFF -DopenPMD_USE_JSON=OFF -DCMAKE_INSTALL_PREFIX=../openPMD-install/ -DBUILD_SHARED_LIBS=OFF
+    cmake ../openPMD-api -DopenPMD_USE_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=../openPMD-install/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_INSTALL_RPATH='$ORIGIN'
     cmake --build . --target install
 
 Finally, compile WarpX:
@@ -113,6 +118,7 @@ Finally, compile WarpX:
 ::
 
     cd ../WarpX
-    export OPENPMD_LIB_PATH=../openPMD-install/lib64
-    export OPENPMD_INCLUDE_PATH=../openPMD-install/include
+    export PKG_CONFIG_PATH=$PWD/../openPMD-install/lib64/pkgconfig:$PKG_CONFIG_PATH
     make -j 16 COMP=gnu USE_OPENPMD=TRUE
+
+In order to run WarpX, load the same modules again.
