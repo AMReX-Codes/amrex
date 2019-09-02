@@ -87,14 +87,13 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, machine, archi
     os.chdir(res_dir)
     # Calculate simulation time. Take 5 min + 2 min / simulation
     job_time_min = time_min(len(test_list)) 
-    job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
-    batch_string = get_batch_string(test_list, job_time_str, Cname, n_node)
+    batch_string = get_batch_string(test_list, job_time_min, Cname, n_node)
     
     for count, current_test in enumerate(test_list):
         shutil.copy(cwd + current_test.input_file, res_dir)
         run_string = get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_list)
         batch_string += run_string
-        batch_string += 'rm -rf plotfiles ; rm -rf lab_frame_data\n'
+        batch_string += 'rm -rf plotfiles lab_frame_data diags\n'
     batch_file = 'batch_script.sh'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)

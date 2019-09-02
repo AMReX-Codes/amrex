@@ -1,5 +1,3 @@
-#!/usr/common/software/python/2.7-anaconda-4.4/bin/python
-
 import os, sys, shutil, datetime, git
 import argparse, re, time, copy
 import pandas as pd
@@ -57,6 +55,7 @@ args = parser.parse_args()
 n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
 start_date = args.start_date
+compiler = args.compiler
 
 # Set behavior variables 
 ########################
@@ -80,7 +79,11 @@ if args.automated == True:
     push_on_perf_log_repo = False
     pull_3_repos = True
     recompile = True
-    
+    if machine == 'summit': compiler = 'pgi'
+
+recompile = False    
+pull_3_repos = False
+
 # Each instance of this class contains information for a single test.
 class test_element():
     def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
@@ -153,9 +156,10 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 # -------------------
 compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
 module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache'}
+csv_files = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
 cwd = os.getcwd() + '/'
 bin_dir = cwd + 'Bin/'
-bin_name = executable_name(args.compiler, args.architecture)
+bin_name = executable_name(compiler, args.architecture)
 
 log_dir  = cwd
 perf_database_file = cwd + perf_database_file
@@ -168,14 +172,13 @@ year = time.strftime('%Y')
 if args.mode == 'run':
     start_date = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # Set default options for compilation and execution
-    config_command = get_config_command(args.compiler, args.architecture)
+    config_command = get_config_command(compiler, args.architecture)
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
         os.mkdir(res_dir_base)    
 
     # Recompile if requested
     # ----------------------
-    print(recompile)
     if recompile == True:
         if pull_3_repos == True:
             git_repo = git.cmd.Git( picsar_dir )
@@ -186,12 +189,16 @@ if args.mode == 'run':
             git_repo.pull()
         
         shutil.copyfile("../../GNUmakefile","./GNUmakefile")
-        os.system(config_command + " make realclean WARPX_HOME=../.. "
-                  "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ "
-                  "EBASE=perf_tests COMP=%s" %compiler_name[args.compiler] + \
-                  ";  rm -r tmp_build_dir *.mod; make -j 16 WARPX_HOME=../.. "
-                  "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ "
-                  "EBASE=perf_tests COMP=%s" %compiler_name[args.compiler])
+        make_realclean_command = " make realclean WARPX_HOME=../.. " \
+            "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ " \
+            "EBASE=perf_tests COMP=%s" %compiler_name[compiler] + ";"
+        make_command = "make -j 16 WARPX_HOME=../.. " \
+            "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ " \
+            "EBASE=perf_tests COMP=%s" %compiler_name[compiler]
+        if machine == 'summit':
+            make_command += ' USE_GPU=TRUE '
+        os.system(config_command + make_realclean_command + \
+                  "rm -r tmp_build_dir *.mod; " + make_command )
 
         if os.path.exists( cwd + 'store_git_hashes.txt' ):
             os.remove( cwd + 'store_git_hashes.txt' )
@@ -209,7 +216,7 @@ if args.mode == 'run':
     # loop on n_node. One batch script per n_node
     for n_node in n_node_list:
         res_dir = res_dir_base
-        res_dir += '_'.join([run_name, args.compiler, args.architecture, str(n_node)]) + '/'
+        res_dir += '_'.join([run_name, compiler, args.architecture, str(n_node)]) + '/'
         runtime_param_list = []
         # Deep copy as we change the attribute n_cell of
         # each instance of class test_element
@@ -226,7 +233,7 @@ if args.mode == 'run':
                         n_node=n_node, runtime_param_list=runtime_param_list)
     os.chdir(cwd)
     # submit batch for analysis
-    process_analysis(args.automated, cwd, args.compiler, args.architecture, args.n_node_list, start_date)
+    process_analysis(args.automated, cwd, compiler, args.architecture, args.n_node_list, start_date)
 
 # read the output file from each test and store timers in
 # hdf5 file with pandas format
@@ -236,7 +243,7 @@ for n_node in n_node_list:
     if browse_output_files:
         for count, current_run in enumerate(test_list):
             res_dir = res_dir_base
-            res_dir += '_'.join([run_name, args.compiler,\
+            res_dir += '_'.join([run_name, compiler,\
                                  args.architecture, str(n_node)]) + '/'
             # Read performance data from the output file
             output_filename = 'out_' + '_'.join([current_run.input_file, str(n_node), str(current_run.n_mpi_per_node), str(current_run.n_omp), str(count)]) + '.txt'
@@ -273,12 +280,12 @@ for n_node in n_node_list:
         if rename_archive == True:
             loc_counter = 0
             res_dir_arch = res_dir_base
-            res_dir_arch += '_'.join([year, month, day, run_name, args.compiler,\
+            res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
                                       args.architecture, str(n_node), str(loc_counter)]) + '/'
             while os.path.exists( res_dir_arch ):
                 loc_counter += 1
                 res_dir_arch = res_dir_base
-                res_dir_arch += '_'.join([year, month, day, run_name, args.compiler,\
+                res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
                                           args.architecture, str(n_node), str(loc_counter)]) + '/'
             os.rename( res_dir, res_dir_arch )
 
@@ -297,7 +304,7 @@ if write_csv:
         df_small[ df_small['input_file']=='automated_test_6_output_2ppc' ]['time_WritePlotFile']
     df_small = df_small.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi_per_node', 'n_omp', 'rep', 'start_date', 'time_initialization', 'step_time'] ]
     # Write to csv
-    df_small.to_csv( 'cori_knl.csv' )
+    df_small.to_csv( csv_file[machine] )
     # Errors may occur depending on the version of pandas. I had errors with v0.21.0 solved with 0.23.0
     # Second, move files to perf_logs repo
     if update_perf_log_repo:
@@ -305,11 +312,11 @@ if write_csv:
         if push_on_perf_log_repo:
             git_repo.git.stash('save')
             git_repo.git.pull()
-        shutil.move( 'cori_knl.csv', perf_logs_repo + '/logs_csv/cori_knl.csv' )
+        shutil.move( csv_file[machine], perf_logs_repo + '/logs_csv/' + csv_file[machine] )
         os.chdir( perf_logs_repo )
         sys.path.append('./')
         import generate_index_html
         git_repo.git.add('./index.html')
-        git_repo.git.add('./logs_csv/cori_knl.csv')
+        git_repo.git.add('./logs_csv/' + csv_file[machine])
         index = git_repo.index
         index.commit("automated tests")

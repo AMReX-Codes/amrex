@@ -70,7 +70,10 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
 def time_min(nb_simulations):
     return 5. + nb_simulations*5.
 
-def get_batch_string(test_list, job_time_str, Cname, n_node):
+def get_batch_string(test_list, job_time_min, Cname, n_node):
+
+    job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
+
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + test_list[0].input_file + '\n'
