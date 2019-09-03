@@ -1,4 +1,5 @@
 CEXE_sources += LaserParticleContainer.cpp
+CEXE_sources += LaserProfiles.cpp
 CEXE_headers += LaserParticleContainer.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Laser
