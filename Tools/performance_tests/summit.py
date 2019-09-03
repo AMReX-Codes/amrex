@@ -82,6 +82,8 @@ def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_
     srun_string += ' ./' + bin_name + ' '
     srun_string += current_test.input_file + ' '
     srun_string += runtime_param_string
+    # TEMPORARY: turn LB off on GPU, as it has not been ported yet
+    srun_string += ' warpx.load_balance_int=-1 '
     srun_string += ' > ' + output_filename + '\n'
     return srun_string
 
@@ -99,9 +101,9 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
                                        n_mpi_per_node=6, 
                                        n_omp=1, 
-                                       n_cell=[512, 384, 256],
-                                       max_grid_size=256,
-                                       blocking_factor=128,
+                                       n_cell=[256, 512, 768],
+                                       max_grid_size=512,
+                                       blocking_factor=256,
                                        n_step=10) )
     test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc', 
                                        n_mpi_per_node=6, 
@@ -120,16 +122,16 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance', 
                                        n_mpi_per_node=6, 
                                        n_omp=1, 
-                                       n_cell=[384, 256, 128], 
+                                       n_cell=[384, 128, 128], 
                                        max_grid_size=256,
-                                       blocking_factor=128,
+                                       blocking_factor=64,
                                        n_step=10) )
     test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc', 
                                        n_mpi_per_node=6, 
                                        n_omp=1,
                                        n_cell=[384, 256, 128], 
                                        max_grid_size=256,
-                                       blocking_factor=128,
+                                       blocking_factor=64,
                                        n_step=0) )
     test_list = [copy.deepcopy(item) for item in test_list_unq for _ in range(n_repeat) ]
     return test_list
