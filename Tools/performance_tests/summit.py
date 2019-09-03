@@ -92,7 +92,7 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
                                        n_mpi_per_node=6,
                                        n_omp=1, 
-                                       n_cell=[128, 128, 384],
+                                       n_cell=[64, 128, 384],
                                        max_grid_size=256,
                                        blocking_factor=64,
                                        n_step=10) )
@@ -106,9 +106,9 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc', 
                                        n_mpi_per_node=6, 
                                        n_omp=1, 
-                                       n_cell=[128, 256, 384], 
+                                       n_cell=[128, 128, 384], 
                                        max_grid_size=256,
-                                       blocking_factor=128,
+                                       blocking_factor=64,
                                        n_step=10) )
     test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc', 
                                        n_mpi_per_node=6, 
