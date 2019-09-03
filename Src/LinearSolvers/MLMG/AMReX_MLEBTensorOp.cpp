@@ -230,13 +230,13 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                 AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
                              Array4<Real> const fyfab = fluxmf[1].array(mfi);,
                              Array4<Real> const fzfab = fluxmf[2].array(mfi););
-                Array4<Real const> const vfab = in.array(mfi);
-                AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
-                             Array4<Real const> const etayfab = etamf[1].array(mfi);,
-                             Array4<Real const> const etazfab = etamf[2].array(mfi););
-                AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
-                             Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
-                             Array4<Real const> const kapzfab = kapmf[2].array(mfi););
+                Array4<Real const> const vfab = in.const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
+                             Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
+                             Array4<Real const> const etazfab = etamf[2].const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
+                             Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
+                             Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
 
                 if (fabtyp == FabType::regular)
                 {
@@ -259,10 +259,10 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                 }
                 else
                 {
-                    AMREX_D_TERM(Array4<Real const> const& apx = area[0]->array(mfi);,
-                                 Array4<Real const> const& apy = area[1]->array(mfi);,
-                                 Array4<Real const> const& apz = area[2]->array(mfi););
-                    Array4<EBCellFlag const> const& flag = flags->array(mfi);
+                    AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                                 Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                                 Array4<Real const> const& apz = area[2]->const_array(mfi););
+                    Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
 
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA
                     ( xbx, txbx,
@@ -308,13 +308,13 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                              fyfab.setVal(0.0, ybx, 0, AMREX_SPACEDIM);,
                              fzfab.setVal(0.0, zbx, 0, AMREX_SPACEDIM););
             } else {
-                Array4<Real const> const vfab = in.array(mfi);
-                AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
-                             Array4<Real const> const etayfab = etamf[1].array(mfi);,
-                             Array4<Real const> const etazfab = etamf[2].array(mfi););
-                AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
-                             Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
-                             Array4<Real const> const kapzfab = kapmf[2].array(mfi););
+                Array4<Real const> const vfab = in.const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
+                             Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
+                             Array4<Real const> const etazfab = etamf[2].const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
+                             Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
+                             Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
                 AMREX_D_TERM(fluxfab_tmp[0].resize(xbx,AMREX_SPACEDIM);,
                              fluxfab_tmp[1].resize(ybx,AMREX_SPACEDIM);,
                              fluxfab_tmp[2].resize(zbx,AMREX_SPACEDIM););
@@ -329,10 +329,10 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
                 }
                 else
                 {
-                    AMREX_D_TERM(Array4<Real const> const& apx = area[0]->array(mfi);,
-                                 Array4<Real const> const& apy = area[1]->array(mfi);,
-                                 Array4<Real const> const& apz = area[2]->array(mfi););
-                    Array4<EBCellFlag const> const& flag = flags->array(mfi);
+                    AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                                 Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                                 Array4<Real const> const& apz = area[2]->const_array(mfi););
+                    Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
 
                     mlebtensor_cross_terms_fx(xbx,fluxfab_tmp[0].array(),vfab,etaxfab,kapxfab,
                                               apx,flag,dxinv);
@@ -369,9 +369,9 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         if (fabtyp == FabType::covered) continue;
 
         Array4<Real> const axfab = out.array(mfi);
-        AMREX_D_TERM(Array4<Real const> const fxfab = fluxmf[0].array(mfi);,
-                     Array4<Real const> const fyfab = fluxmf[1].array(mfi);,
-                     Array4<Real const> const fzfab = fluxmf[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const fxfab = fluxmf[0].const_array(mfi);,
+                     Array4<Real const> const fyfab = fluxmf[1].const_array(mfi);,
+                     Array4<Real const> const fzfab = fluxmf[2].const_array(mfi););
 
         if (fabtyp == FabType::regular)
         {
@@ -382,19 +382,19 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
         }
         else
         {
-            Array4<Real const> const& vfab = in.array(mfi);
-            Array4<Real const> const& etab = etaebmf.array(mfi);
-            Array4<Real const> const& kapb = kapebmf.array(mfi);
-            Array4<int const> const& ccm = mask.array(mfi);
-            Array4<EBCellFlag const> const& flag = flags->array(mfi);
-            Array4<Real const> const& vol = vfrac->array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apx = area[0]->array(mfi);,
-                         Array4<Real const> const& apy = area[1]->array(mfi);,
-                         Array4<Real const> const& apz = area[2]->array(mfi););
-            AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->array(mfi);,
-                         Array4<Real const> const& fcy = fcent[1]->array(mfi);,
-                         Array4<Real const> const& fcz = fcent[2]->array(mfi););
-            Array4<Real const> const& bc = bcent->array(mfi);
+            Array4<Real const> const& vfab = in.const_array(mfi);
+            Array4<Real const> const& etab = etaebmf.const_array(mfi);
+            Array4<Real const> const& kapb = kapebmf.const_array(mfi);
+            Array4<int const> const& ccm = mask.const_array(mfi);
+            Array4<EBCellFlag const> const& flag = flags->const_array(mfi);
+            Array4<Real const> const& vol = vfrac->const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                         Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                         Array4<Real const> const& apz = area[2]->const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                         Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                         Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+            Array4<Real const> const& bc = bcent->const_array(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
                 mlebtensor_cross_terms(tbx, axfab,

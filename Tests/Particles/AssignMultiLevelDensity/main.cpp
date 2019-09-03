@@ -61,7 +61,6 @@ void test_assign_density(TestParams& parms)
     Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
-    // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
         int n_fine = parms.nx*rr[0];
         IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 

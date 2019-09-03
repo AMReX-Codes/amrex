@@ -1083,7 +1083,7 @@ using :cpp:`Array4`.
     FArrayBox afab(...), bfab(...);
     IArrayBox ifab(...);
     Array4<Real> const& a = afab.array();
-    Array4<Real const> const b = bfab.array();
+    Array4<Real const> const b = bfab.const_array();
     Array4<int const> m = ifab.array();
     Dim3 lo = lbound(a);
     Dim3 hi = ubound(a);
@@ -1496,7 +1496,7 @@ they are different due to index types).
       {
           const Box& box = mfi.validbox();
 
-          Array4<Real const> const& u = U.array(mfi);
+          Array4<Real const> const& u = U.const_array(mfi);
           Array4<Real      > const& f = F.array(mfi);
 
           f2(box, u, f);
@@ -1609,7 +1609,7 @@ also requires only two minor changes.
           //                   tilebox() instead of validbox()
           const Box& box = mfi.tilebox();
 
-          Array4<Real const> const& u = U.array(mfi);
+          Array4<Real const> const& u = U.const_array(mfi);
           Array4<Real      > const& f = F.array(mfi);
           f2(box, u, f);
       }
@@ -2058,7 +2058,7 @@ example below.
         const Dim3 lo = amrex::lbound(bx);
         const Dim3 hi = amrex::ubound(bx);
 
-        Array4<Real const> const& src = sfab.array();
+        Array4<Real const> const& src = sfab.const_array();
         Array4<Real      > const& dst = dfab2.array();
 
         for         (int k = lo.z; k <= hi.z; ++k) {

@@ -477,9 +477,10 @@
 
 // FOR_4D
 
-#define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
+#define AMREX_GPU_HOST_DEVICE_FOR_4D(box,ancomp,i,j,k,n,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
+        int amrex_i_nc = ancomp; \
         int amrex_i_ncells = box.numPts();          \
         const auto amrex_i_lo  = amrex::lbound(box); \
         const auto amrex_i_len = amrex::length(box); \
@@ -494,7 +495,7 @@
                 i += amrex_i_lo.x; \
                 j += amrex_i_lo.y; \
                 k += amrex_i_lo.z; \
-                for (int n = 0; n < ncomp; ++n) block \
+                for (int n = 0; n < amrex_i_nc; ++n) block \
             } \
         }); \
         AMREX_GPU_ERROR_CHECK(); \
@@ -502,7 +503,7 @@
     else { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
-        for (int n = 0; n < ncomp; ++n) { \
+        for (int n = 0; n < ancomp; ++n) { \
         for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
         for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
         AMREX_PRAGMA_SIMD \
@@ -511,8 +512,9 @@
         }}}} \
     }
 
-#define AMREX_GPU_DEVICE_FOR_4D(box,ncomp,i,j,k,n,block) \
+#define AMREX_GPU_DEVICE_FOR_4D(box,ancomp,i,j,k,n,block) \
     { \
+        int amrex_i_nc = ancomp; \
         int amrex_i_ncells = box.numPts(); \
         const auto amrex_i_lo  = amrex::lbound(box); \
         const auto amrex_i_len = amrex::length(box); \
@@ -527,7 +529,7 @@
                 i += amrex_i_lo.x; \
                 j += amrex_i_lo.y; \
                 k += amrex_i_lo.z; \
-                for (int n = 0; n < ncomp; ++n) block \
+                for (int n = 0; n < amrex_i_nc; ++n) block \
             } \
         }); \
         AMREX_GPU_ERROR_CHECK(); \

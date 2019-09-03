@@ -312,6 +312,12 @@ public:
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     Array4<typename FabArray<FAB>::value_type> array (int K) noexcept;
 
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi) const noexcept;
+    //
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
+    Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept;
+
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
 
@@ -422,9 +428,7 @@ public:
 
     //! Set ncomp values in the boundary region, starting at start_comp to val.
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
-    void setBndry (value_type val,
-                   int        strt_comp,
-                   int        ncomp);
+    void setBndry (value_type val, int strt_comp, int ncomp);
 
    //! Set all values outside the Geometry domain to val.
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
@@ -645,10 +649,77 @@ public:
 		    value_type covered, value_type notcovered,
 		    value_type physbnd, value_type interior);
 
+    // The following are private functions.  But we have to make them public for cuda.
+
     template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false);
+
+    void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
+    void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
+                       int scomp, int dcomp, int ncomp, CpOp op);
+
+#ifdef AMREX_USE_GPU
+
+    void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
+    void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
+                       int scomp, int dcomp, int ncomp, CpOp op);
+
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10))
+
+    void FB_local_copy_cuda_graph_1 (const FB& TheFB, int scomp, int ncomp);
+
+#ifdef AMREX_USE_GPU
+    void FB_local_copy_cuda_graph_n (const FB& TheFB, int scomp, int ncomp);
+#endif
+
+#endif
+#endif
+
+#ifdef AMREX_USE_MPI
+
+#ifdef AMREX_USE_CUDA
+#if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
+
+    void FB_pack_send_buffer_cuda_graph (const FB& TheFB, int scomp, int ncomp,
+                                         Vector<char*>& send_data,
+                                         Vector<int> const& send_size,
+                                         Vector<const CopyComTagsContainer*> const& send_cctc);
+
+    void FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int ncomp,
+                                           Vector<char*> const& recv_data,
+                                           Vector<int> const& recv_size,
+                                           Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                           bool is_thread_safe);
+
+#endif
+
+    static void pack_send_buffer_gpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                      Vector<char*>& send_data,
+                                      Vector<int> const& send_size,
+                                      Vector<const CopyComTagsContainer*> const& send_cctc);
+
+    static void unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                        Vector<char*> const& recv_data,
+                                        Vector<int> const& recv_size,
+                                        Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                        CpOp op, bool is_thread_safe);
+
+#endif
+
+    static void pack_send_buffer_cpu (FabArray<FAB> const& src, int scomp, int ncomp,
+                                      Vector<char*>& send_data,
+                                      Vector<int> const& send_size,
+                                      Vector<const CopyComTagsContainer*> const& send_cctc);
+
+    static void unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
+                                        Vector<char*> const& recv_data,
+                                        Vector<int> const& recv_size,
+                                        Vector<const CopyComTagsContainer*> const& recv_cctc,
+                                        CpOp op, bool is_thread_safe);
+
+#endif
 
 protected:
 
@@ -732,8 +803,7 @@ private:
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
-                   int                                    SeqNum,
-                   int                                    preSeqNum);
+                   int                                    SeqNum);
 #endif
 
 #ifdef BL_USE_MPI3
@@ -866,7 +936,7 @@ template <class,class>
 Array4<typename FabArray<FAB>::value_type const>
 FabArray<FAB>::array (const MFIter& mfi) const noexcept
 {
-    return fabPtr(mfi)->array();
+    return fabPtr(mfi)->const_array();
 }
 
 template <class FAB>
@@ -882,7 +952,7 @@ template <class,class>
 Array4<typename FabArray<FAB>::value_type const>
 FabArray<FAB>::array (int K) const noexcept
 {
-    return fabPtr(K)->array();
+    return fabPtr(K)->const_array();
 }
 
 template <class FAB>
@@ -891,6 +961,22 @@ Array4<typename FabArray<FAB>::value_type>
 FabArray<FAB>::array (int K) noexcept
 {
     return fabPtr(K)->array();
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_array (const MFIter& mfi) const noexcept
+{
+    return fabPtr(mfi)->const_array();
+}
+
+template <class FAB>
+template <class,class>
+Array4<typename FabArray<FAB>::value_type const>
+FabArray<FAB>::const_array (int K) const noexcept
+{
+    return fabPtr(K)->const_array();
 }
 
 template <class FAB>
@@ -1121,11 +1207,11 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(*m_factory, info.arena, info.tags);
-    }
-
+        Gpu::synchronize();
 #ifdef BL_USE_TEAM
-    if (info.alloc) ParallelDescriptor::MyTeam().MemoryBarrier();
+        ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
+    }
 }
 
 template <class FAB>
@@ -1530,6 +1616,7 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
+    AMREX_ALWAYS_ASSERT(!omp_in_parallel());
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
