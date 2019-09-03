@@ -300,9 +300,9 @@ public:
 
     EBCellFlagFab (const EBCellFlagFab& rhs, MakeType make_type, int scomp, int ncomp);
 
-    EBCellFlagFab () noexcept = default;
+    EBCellFlagFab () = default;
     EBCellFlagFab (EBCellFlagFab&& rhs) = default;
-    ~EBCellFlagFab () noexcept = default;
+    ~EBCellFlagFab () = default;
 
     EBCellFlagFab (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
