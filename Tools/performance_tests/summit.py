@@ -82,8 +82,6 @@ def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_
     srun_string += ' ./' + bin_name + ' '
     srun_string += current_test.input_file + ' '
     srun_string += runtime_param_string
-    # TEMPORARY: turn LB off on GPU, as it has not been ported yet
-    srun_string += ' warpx.load_balance_int=-1 '
     srun_string += ' > ' + output_filename + '\n'
     return srun_string
 
