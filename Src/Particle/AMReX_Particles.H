@@ -41,6 +41,11 @@
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Functors.H>
 #include <AMReX_ParticleUtil.H>
+#include <AMReX_ParticleReduce.H>
+#include <AMReX_ParticleBufferMap.H>
+#include <AMReX_ParticleCommunication.H>
+#include <AMReX_ParticleLocator.H>
+#include <AMReX_Scan.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -119,11 +124,14 @@ class ParIterBase;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 class ParIter;
-    
-    /**
-     * \brief A distributed container for Particles sorted onto grids and tiles.
 
-     */
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+class ParConstIter;
+    
+/**
+ * \brief A distributed container for Particles sorted onto grids and tiles.
+ 
+ */
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParticleContainer
 {
@@ -134,6 +142,7 @@ public:
     //
     //! The type of Particles we hold.
     using ParticleType = Particle<NStructReal, NStructInt>;
+    using SuperParticleType = Particle<NStructReal+NArrayReal, NStructInt+NArrayInt>;
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
 #ifdef BL_SINGLE_PRECISION_PARTICLES
@@ -152,12 +161,13 @@ public:
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
 
-    using RealVector     = typename SoA::RealVector;
-    using IntVector      = typename SoA::IntVector;
-    using ParticleVector = typename AoS::ParticleVector;
-    using CharVector     = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer     = Gpu::PolymorphicDeviceVector<char>;
-    using MyParIter        = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+    using ParticleVector   = typename AoS::ParticleVector;
+    using CharVector       = Gpu::ManagedDeviceVector<char>;
+    using SendBuffer       = Gpu::PolymorphicDeviceVector<char>;
+    using ParIterType      = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParConstIterType = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     
     ParticleContainer ()
       :
@@ -748,9 +758,7 @@ public:
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-#ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU (std::map<int, SendBuffer>& not_ours);
-    
+#ifdef AMREX_USE_CUDA    
     void EnforcePeriodicGPU ();
 #endif
 
@@ -773,8 +781,20 @@ public:
         communicate_int_comp.push_back(communicate);
         SetParticleSize();
     }
-    
+
+    const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
+
+    virtual const Vector<int>& NeighborProcs() const 
+    {
+        return neighbor_procs;
+    };
+
+    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+
 protected:
+
+    mutable amrex::Vector<int> neighbor_procs;
+    mutable bool m_need_handshake;
 
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
@@ -806,10 +826,6 @@ protected:
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
-    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
-
-
-
     /**
     * \brief Helper function for Checkpoint() and WritePlotFile().
     *
@@ -832,8 +848,9 @@ protected:
     void BuildRedistributeMask(int lev, int nghost=1) const;
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
-    mutable amrex::Vector<int> neighbor_procs;
 
+    void defineBufferMap () const;
+    mutable ParticleBufferMap m_buffer_map;
 
     //! The member data.
     int         m_verbose;
@@ -848,7 +865,7 @@ protected:
     int maxnextidPrePost;
     mutable int nOutFilesPrePost;
     long nparticlesPrePost;
-    Vector<long> nParticlesAtLevelPrePost;      //!< ---- [level]
+    Vector<long> nParticlesAtLevelPrePost;          //!< ---- [level]
     mutable Vector<Vector<int>>  whichPrePost;      //!< ---- [level]
     mutable Vector<Vector<int>>  countPrePost;      //!< ---- [level]
     mutable Vector<Vector<long>> wherePrePost;      //!< ---- [level]
@@ -857,8 +874,8 @@ protected:
 
 #ifdef AMREX_USE_CUDA
     ParticleVector m_aos_r;
-    RealVector m_rdata_r;
-    IntVector  m_idata_r;
+    std::array<RealVector, NArrayReal> m_rdata_r;
+    std::array<IntVector, NArrayInt>  m_idata_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
 
     Gpu::ManagedDeviceVector<int> m_lo;
@@ -874,6 +891,17 @@ protected:
     Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
 
     std::map<int, SendBuffer> m_not_ours;
+
+    ParticleCopyOp redistribute_copy_op;
+    ParticleCopyPlan redistribute_copy_plan;
+    Gpu::DeviceVector<SuperParticleType> redistribute_snd_buffer;
+    Gpu::DeviceVector<SuperParticleType> redistribute_rcv_buffer;
+
+    Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
+    Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
+
+    mutable ParticleLocator m_particle_locator;
+    
 #endif
 
     int NumRuntimeRealComps () const { return m_num_runtime_real; }
@@ -977,7 +1005,13 @@ public:
                                    Container& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }
+
+    int GetLevel () const { return m_level; }
+
+    std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
+    
 protected:
+    
     int m_level;
     int m_pariter_index;
     Vector<int> m_valid_index;
@@ -1041,6 +1075,7 @@ public:
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParIterI.H"
+#include "AMReX_ParticleIO.H"
 
 }
 

@@ -12,10 +12,8 @@
 namespace amrex {
 
 #if defined(AMREX_USE_HIP)
-using gpuStream_t     = hipStream_t;
 using gpuDeviceProp_t = hipDeviceProp_t;
 #elif defined(AMREX_USE_CUDA)
-using gpuStream_t     = cudaStream_t;
 using gpuDeviceProp_t = cudaDeviceProp;
 #endif
 
@@ -35,10 +33,16 @@ public:
     // for backward compatibility
     static cudaStream_t cudaStream () noexcept { return gpu_stream; }
 #endif
-    static int numGpuStreams () noexcept { return max_gpu_streams; }
 #endif
+
+    static int numGpuStreams () noexcept { return max_gpu_streams; }
     static void setStreamIndex (const int idx) noexcept;
     static void resetStreamIndex () noexcept { setStreamIndex(-1); }
+
+#ifdef AMREX_USE_GPU
+    static gpuStream_t setStream (gpuStream_t s) noexcept;
+    static gpuStream_t resetStream () noexcept;
+#endif
 
     static int deviceId () noexcept;
 
@@ -48,6 +52,7 @@ public:
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     // Generic graph selection. These should be called by users. 
     static void startGraphRecording(bool first_iter);
+    static void startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphRecording(bool last_iter);
 
     // Capture graphs per iteration
@@ -57,13 +62,19 @@ public:
 
     // Capture graphs along streams
     static void startGraphStreamRecording();
+    static void startGraphStreamRecording(void* h_ptr, void* d_ptr, size_t sz);
     static cudaGraphExec_t stopGraphStreamRecording();
+    static cudaGraphExec_t stopGraphStreamRecording(cudaGraph_t rootGraph);
+
+    // Likely a temporary function while testing.
+    // Get whether StreamRecord was performed with events and memcpy in the graph or not.
+    static int memcpyInGraph () noexcept { return use_events; }
 
     // Instantiate a created cudaGtaph
     static cudaGraphExec_t instantiateGraph(cudaGraph_t graph);
 
     // Execute an instantiated cudaGraphExec
-    static void executeGraph(cudaGraphExec_t &graphExec);
+    static void executeGraph(const cudaGraphExec_t &graphExec, bool synch = true);
 
     // Set type of graph recording.
     // Currently 2 options, so bool used. Change later if needed. 
@@ -131,6 +142,13 @@ private:
 
 #ifdef AMREX_USE_GPU
     static constexpr int max_gpu_streams = 16;
+#else
+    // Equivalent to "single dependent stream". Fits best
+    //  with math this is used in ("x/max_streams").
+    static constexpr int max_gpu_streams = 1;
+#endif
+
+#ifdef AMREX_USE_GPU
     static dim3 numThreadsMin;
     static dim3 numBlocksOverride, numThreadsOverride;
 
@@ -140,6 +158,7 @@ private:
 #if ( defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 10) )
     static bool graph_per_stream;
     static Vector<cudaGraph_t> cuda_graphs;
+    static bool use_events;
 #endif
     static int max_blocks_per_launch;
 #endif
@@ -153,13 +172,13 @@ gpuStream () noexcept
 {
     return Device::gpuStream();
 }
+#endif
 
 inline int
 numGpuStreams () noexcept
 {
     return Device::numGpuStreams();
 }
-#endif
 
 inline void
 synchronize () noexcept

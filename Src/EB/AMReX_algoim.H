@@ -26,7 +26,8 @@ static constexpr int i_S_y_z2  = 14;
 static constexpr int i_S_x2_y2 = 15;
 static constexpr int i_S_x2_z2 = 16;
 static constexpr int i_S_y2_z2 = 17;
-static constexpr int numIntgs  = 18;
+static constexpr int i_S_xyz   = 18;
+static constexpr int numIntgs  = 19;
 
 }}
 

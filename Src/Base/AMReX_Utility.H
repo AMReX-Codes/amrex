@@ -189,6 +189,15 @@ namespace amrex
     */
     AMREX_GPU_HOST_DEVICE double Random (); // [0,1)
 
+
+
+#ifdef AMREX_USE_CUDA
+    // Locking mechanism functions for locking and unlocking
+    AMREX_GPU_DEVICE int get_state(int tid);
+    AMREX_GPU_DEVICE void free_state(int tid);
+#endif
+
+
     /**
     * \brief Generates one pseudorandom unsigned long integer which is
     *  uniformly distributed on [0,n-1]-interval for each call.

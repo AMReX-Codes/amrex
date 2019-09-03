@@ -30,7 +30,8 @@ contains
                                      time,  phierr)             &
     bind(C, name="amrex_eb_levelset_error")
 
-    use amrex_fort_module, only : amrex_real
+    use amrex_fort_module       , only : amrex_real
+    use amrex_constants_module  , only : half,zero
     use amrex_eb_levelset_module, only: amrex_eb_interp_levelset
 
     implicit none
@@ -49,14 +50,14 @@ contains
     integer          :: i, j, k
     real(amrex_real) :: pos(3), plo(3), ls_val
 
-    plo = (/ 0., 0., 0. /)
+    plo = (/ zero, zero, zero /)
 
     ! Tag on regions of high phi
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
 
-             pos = (/ i, j, k /)*dx + 0.5*dx
+             pos = (/ i, j, k /)*dx + half*dx
              call amrex_eb_interp_levelset ( &
                   pos, plo, 1,               &
                   state, state_lo, state_hi, &

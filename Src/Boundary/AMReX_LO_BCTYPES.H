@@ -21,6 +21,9 @@
 #define AMREX_LO_BOGUS    1729
 
 #ifdef __cplusplus
+
+#include <iosfwd>
+
 namespace amrex {
     enum struct LinOpBCType : int {
         interior         = 0,
@@ -33,7 +36,10 @@ namespace amrex {
         Periodic         = AMREX_LO_PERIODIC,
         bogus            = AMREX_LO_BOGUS
     };
+
+    std::ostream& operator<< (std::ostream& os, const amrex::LinOpBCType& t);
 }
+
 #endif
 
 #endif

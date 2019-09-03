@@ -14,7 +14,7 @@ include ../Source/Make.package
 VPATH_LOCATIONS  += ../Source
 INCLUDE_LOCATIONS += ../Source
 
-Pdirs 	:= Base Boundary AmrCore LinearSolvers/C_CellMG LinearSolvers/MLMG  SDC
+Pdirs 	:= Base Boundary AmrCore LinearSolvers/MLMG  SDC
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)

@@ -10,7 +10,6 @@
 #include <AMReX_MLEBABecLap_K.H>
 #include <AMReX_MLLinOp_K.H>
 #include <AMReX_MLEBABecLap_F.H>
-#include <AMReX_EBMultiFabUtil_F.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_HypreABecLap3.H>
@@ -196,9 +195,9 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
         } else {
             Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
             Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
-            Array4<Real const> const& phiin = phi.array(mfi);
-            Array4<Real const> const& betain = beta.array(mfi);
-            const auto& flag = flags->array(mfi);
+            Array4<Real const> const& phiin = phi.const_array(mfi);
+            Array4<Real const> const& betain = beta.const_array(mfi);
+            const auto& flag = flags->const_array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flag(i,j,k).isSingleValued()) {
@@ -251,8 +250,8 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
             betafab.setVal(0.0, bx, 0, ncomp);
         } else {
             Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
-            Array4<Real const> const& betain = beta.array(mfi);
-            const auto& flag = flags->array(mfi);
+            Array4<Real const> const& betain = beta.const_array(mfi);
+            const auto& flag = flags->const_array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flag(i,j,k).isSingleValued()) {
@@ -711,9 +710,9 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                                flux, sol, face_only, ncomp);
         if (fabtyp != FabType::regular && !face_only) {
             const auto& area = factory->getAreaFrac();
-            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->array(mfi);,
-                         Array4<Real const> const& ay = area[1]->array(mfi);,
-                         Array4<Real const> const& az = area[2]->array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
+                         Array4<Real const> const& ay = area[1]->const_array(mfi);,
+                         Array4<Real const> const& az = area[2]->const_array(mfi););
             AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(box,0);,
                          const Box& ybx = amrex::surroundingNodes(box,1);,
                          const Box& zbx = amrex::surroundingNodes(box,2););
@@ -848,9 +847,9 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             });
 #endif
             if (fabtyp != FabType::regular) {
-                AMREX_D_TERM(Array4<Real const> const& ax = area[0]->array(mfi);,
-                             Array4<Real const> const& ay = area[1]->array(mfi);,
-                             Array4<Real const> const& az = area[2]->array(mfi););
+                AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
+                             Array4<Real const> const& ay = area[1]->const_array(mfi);,
+                             Array4<Real const> const& az = area[2]->const_array(mfi););
                 AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(box,0);,
                              const Box& ybx = amrex::surroundingNodes(box,1);,
                              const Box& zbx = amrex::surroundingNodes(box,2););
@@ -1029,7 +1028,7 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
         if (fabtyp == FabType::regular)
         {
-            auto const cfab = crse.array(mfi);
+            auto const cfab = crse.const_array(mfi);
             auto       ffab = fine.array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
@@ -1179,8 +1178,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                     }
                     else // irregular
                     {
-                        const auto& ap = area[idim]->array(mfi);
-                        const auto& mask = ccmask.array(mfi);
+                        const auto& ap = area[idim]->const_array(mfi);
+                        const auto& mask = ccmask.const_array(mfi);
                         if (idim == 0) {
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                             blo, tboxlo, {

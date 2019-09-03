@@ -16,459 +16,109 @@ AMREX_GPU_HOST_DEVICE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
                   const IntVect& a_tile_size, Box& tbx);
 
-
-template <class PC, class F>
-auto
-ReduceSum (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+IntVect getParticleCell (P const& p,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                         const Box& domain) noexcept
 {
-    return ReduceSum(pc, lev, lev, std::move(f));
+    IntVect iv = IntVect(
+        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                     floor((p.pos(1)-plo[1])*dxi[1]),
+                     floor((p.pos(2)-plo[2])*dxi[2])));
+    iv += domain.smallEnd();
+    return iv;
 }
 
-template <class PC, class F>
-auto
-ReduceSum (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename PC::ParticleType()))
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
+                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
+                     const Box& domain) noexcept
 {
-    using value_type = decltype(f(typename PC::ParticleType()));
-    value_type sm = 0;
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
-    {
-        Gpu::DeviceScalar<value_type> ds_sm(sm);
-        value_type* d_sm = ds_sm.dataPtr();
-
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
-
-                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-                [=] AMREX_GPU_DEVICE () {
-                    Gpu::SharedMemory<value_type> gsm;
-                    value_type* block_sum = gsm.dataPtr();
-                    value_type* sdata = block_sum + 1;
-
-                    value_type tsum = 0.0;
-                    for (auto const i : Gpu::Range(np)) {
-                        tsum += f(pstruct[i]);
-                    }
-                    sdata[threadIdx.x] = tsum;
-                    __syncthreads();
-
-                    Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
-
-                    if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
-                });
-            }
-        }
-        sm = ds_sm.dataValue();
-    }
-    else
-#endif
-    {
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                for (int i = 0; i < np; ++i)
-                    sm += f(pstruct[i]);
-            }
-        }
-    }
-
-    return sm;
+    if (p.id() < 0) return -1;    
+    IntVect iv = getParticleCell(p, plo, dxi, domain);
+    return mask(iv);
 }
 
-template <class PC, class F>
-auto
-ReduceMax (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
+template <typename P>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void enforcePeriodic (P& p,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
+                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& phi,
+                      amrex::GpuArray<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
-    return ReduceMax(pc, lev, lev, std::move(f));
-}
-
-template <class PC, class F>
-auto
-ReduceMax (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename PC::ParticleType()))
-{
-    using value_type = decltype(f(typename PC::ParticleType()));
-    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
-    value_type r = value_lowest;
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        Gpu::DeviceScalar<value_type> ds_r(r);
-        value_type* d_r = ds_r.dataPtr();
-
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
-
-                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-                [=] AMREX_GPU_DEVICE () {
-                    Gpu::SharedMemory<value_type> gr;
-                    value_type* block_r = gr.dataPtr();
-                    value_type* sdata = block_r + 1;
-
-                    value_type tmax = value_lowest;
-                    for (auto const i : Gpu::Range(np)) {
-                        value_type local_tmax = f(pstruct[i]);
-                        tmax = amrex::max(tmax, local_tmax);
-                    }
-                    sdata[threadIdx.x] = tmax;
-                    __syncthreads();
-
-                    Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                    if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
-                });
-            }
-        }
-        r = ds_r.dataValue();
-    }
-    else
-#endif
-    {
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:r)
-#endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                for (int i = 0; i < np; ++i)
-                    r = std::max(r, f(pstruct[i]));
-            }
+        if (not is_per[idim]) continue;
+        if (p.pos(idim) > phi[idim]) { 
+            p.pos(idim) -= (phi[idim] - plo[idim]); 
+        } else if (p.pos(idim) < plo[idim]) {
+            p.pos(idim) += (phi[idim] - plo[idim]);
         }
     }
-
-    return r;
 }
 
-template <class PC, class F>
-auto
-ReduceMin (PC const& pc, int lev, F f) -> decltype(f(typename PC::ParticleType()))
-{
-    return ReduceMin(pc, lev, lev, std::move(f));
-}
-
-template <class PC, class F>
-auto
-ReduceMin (PC const& pc, int lev_min, int lev_max, F f) -> decltype(f(typename PC::ParticleType()))
-{
-    using value_type = decltype(f(typename PC::ParticleType()));
-    constexpr value_type value_max = std::numeric_limits<value_type>::max();
-    value_type r = value_max;
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
-    {
-        Gpu::DeviceScalar<value_type> ds_r(r);
-        value_type* d_r = ds_r.dataPtr();
-
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
-
-                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-                [=] AMREX_GPU_DEVICE () {
-                    Gpu::SharedMemory<value_type> gr;
-                    value_type* block_r = gr.dataPtr();
-                    value_type* sdata = block_r + 1;
-
-                    value_type tmin = value_max;
-                    for (auto const i : Gpu::Range(np)) {
-                        value_type local_tmin = f(pstruct[i]);
-                        tmin = amrex::min(tmin, local_tmin);
-                    }
-                    sdata[threadIdx.x] = tmin;
-                    __syncthreads();
-
-                    Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                    if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
-                });
-            }
-        }
-        r = ds_r.dataValue();
-    }
-    else
-#endif
-    {
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
-#endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                for (int i = 0; i < np; ++i)
-                    r = std::min(r, f(pstruct[i]));
-            }
-        }
-    }
-
-    return r;
-}
-
-template <class PC, class F>
+template <class PC>
 bool
-ReduceLogicalAnd (PC const& pc, int lev, F f)
+numParticlesOutOfRange (PC const& pc, int nGrow)
 {
-    return ReduceLogicalAnd(pc, lev, lev, std::move(f));
+    return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
 }
 
-template <class PC, class F>
+template <class PC>
 bool
-ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F f)
+numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
-    int r = true;
+    BL_PROFILE("numParticlesOutOfRange()");
 
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+    using ParIter = typename PC::ParConstIterType;
+    using ParticleType = typename PC::ParticleType;
+    int num_wrong = 0;
+    for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        Gpu::DeviceScalar<int> ds_r(r);
-        int* d_r = ds_r.dataPtr();
-
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
-
-                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::gpuStream()>>>(
-                [=] AMREX_GPU_DEVICE () {
-                    Gpu::SharedMemory<int> gr;
-                    int* block_r = gr.dataPtr();
-                    int* sdata = block_r + 1;
-
-                    int tr = true;
-                    for (auto const i : Gpu::Range(np)) {
-                        tr = tr && f(pstruct[i]);
-                    }
-                    sdata[threadIdx.x] = tr;
-                    __syncthreads();
-
-                    Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                    if (threadIdx.x == 0) Gpu::Atomic::And(d_r, *block_r);
-                });
-            }
-        }
-        r = ds_r.dataValue();
-    }
-    else
-#endif
-    {
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
+        const auto plo = pc.Geom(lev).ProbLoArray();
+        const auto dxi = pc.Geom(lev).InvCellSizeArray();
+        const Box domain = pc.Geom(lev).Domain();
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
+#pragma omp parallel if (Gpu::notInLaunchRegion() and !system::regtest_reduction) reduction(+:num_wrong)
 #endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                for (int i = 0; i < np; ++i)
-                    r = r && f(pstruct[i]);
-            }
-        }
-    }
-
-    return r;
-}
-
-template <class PC, class F>
-bool
-ReduceLogicalOr (PC const& pc, int lev, F f)
-{
-    return ReduceLogicalOr(pc, lev, lev, std::move(f));
-}
-
-template <class PC, class F>
-bool
-ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F f)
-{
-    int r = false;
-
-#ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
-    {
-        Gpu::DeviceScalar<int> ds_r(r);
-        int* d_r = ds_r.dataPtr();
-
-        for (int lev = lev_min; lev <= lev_max; ++lev)
+        for(ParIter pti(pc, lev); pti.isValid(); ++pti)
         {
-            const auto& plevel = pc.GetParticles(lev);
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
+            const auto& tile = pti.GetParticleTile();
+            const auto np = tile.numParticles();
+            const auto& aos = tile.GetArrayOfStructs();
+            const auto pstruct = aos().dataPtr();
             
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
+            Box box = pti.tilebox();
+            box.grow(nGrow);
 
-                constexpr int parts_per_thread = 32;
-                const auto ec = amrex::Gpu::ExecutionConfig(np/parts_per_thread);
+            ReduceOps<ReduceOpSum> reduce_op;
+            ReduceData<int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
 
-                amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::gpuStream()>>>(
-                [=] AMREX_GPU_DEVICE () {
-                    Gpu::SharedMemory<int> gr;
-                    int* block_r = gr.dataPtr();
-                    int* sdata = block_r + 1;
-
-                    int tr = false;
-                    for (auto const i : Gpu::Range(np)) {
-                        tr = tr || f(pstruct[i]);
-                    }
-                    sdata[threadIdx.x] = tr;
-                    __syncthreads();
-
-                    Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                    if (threadIdx.x == 0) Gpu::Atomic::Or(d_r, *block_r);
-                });
-            }
-        }
-        r = ds_r.dataValue();
-    }
-    else
-#endif
-    {
-        for (int lev = lev_min; lev <= lev_max; ++lev)
-        {
-            const auto& plevel = pc.GetParticles(lev);
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:r)
-#endif
-            for(MFIter mfi = pc.MakeMFIter(lev, true); mfi.isValid(); ++mfi)
+            reduce_op.eval(np, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
             {
-                auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());            
-                if(plevel.find(index) == plevel.end()) continue;            
-                const auto& tile = plevel.at(index);
-
-                const auto np = tile.numParticles();
-                if (np == 0) continue;
-            
-                const auto& aos = tile.GetArrayOfStructs();
-                const auto pstruct = aos().dataPtr();
-
-                for (int i = 0; i < np; ++i)
-                    r = r || f(pstruct[i]);
-            }
+                const ParticleType& p = pstruct[i];
+                IntVect iv = IntVect(
+                        AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
+                                     floor((p.pos(1)-plo[1])*dxi[1]),
+                                     floor((p.pos(2)-plo[2])*dxi[2])));
+                iv += domain.smallEnd();
+                return !box.contains(iv);
+            });
+            int hv = amrex::get<0>(reduce_data.value());
+            num_wrong += hv;
         }
     }
+    ParallelDescriptor::ReduceIntSum(num_wrong);
 
-    return r;
+    return num_wrong;
 }
-    
+
 }
 
 #endif // include guard

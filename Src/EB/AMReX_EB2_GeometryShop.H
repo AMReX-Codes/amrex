@@ -204,7 +204,92 @@ public:
     F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
-    int getBoxType (const Box& bx, const Geometry& geom) const;
+    int getBoxType_Cpu (const Box& bx, Geometry const& geom) const noexcept
+    {
+        const Real* problo = geom.ProbLo();
+        const Real* dx = geom.CellSize();
+        const auto& len3 = bx.length3d();
+        const int* blo = bx.loVect();
+        int nbody = 0, nzero = 0, nfluid = 0;
+        for         (int k = 0; k < len3[2]; ++k) {
+            for     (int j = 0; j < len3[1]; ++j) {
+                for (int i = 0; i < len3[0]; ++i) {
+                    RealArray xyz {AMREX_D_DECL(problo[0]+(i+blo[0])*dx[0],
+                                                problo[1]+(j+blo[1])*dx[1],
+                                                problo[2]+(k+blo[2])*dx[2])};
+                    Real v = m_f(xyz);
+                    if (v == 0.0) {
+                        ++nzero;
+                    } else if (v > 0.0) {
+                        ++nbody;
+                    } else {
+                        ++nfluid;
+                    }
+                    if (nbody > 0 && nfluid > 0) return mixedcells;
+                }
+            }
+        }
+
+        if (nbody == 0) {
+            return allregular;
+        } else if (nfluid == 0) {
+            return allcovered;
+        } else {
+            return mixedcells;
+        }
+    }
+
+    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
+    {
+        if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
+        {
+            const auto& problo = geom.ProbLoArray();
+            const auto& dx = geom.CellSizeArray();
+            auto f = m_f;
+            ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
+            ReduceData<int,int,int> reduce_data(reduce_op);
+            using ReduceTuple = typename decltype(reduce_data)::Type;
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                Real v = f(AMREX_D_DECL(problo[0]+i*dx[0],
+                                        problo[1]+j*dx[1],
+                                        problo[2]+k*dx[2]));
+                int nbody = 0, nzero = 0, nfluid = 0;
+                if (v == 0.0) {
+                    ++nzero;
+                } else if (v > 0.0) {
+                    ++nbody;
+                } else {
+                    ++nfluid;
+                }
+                return {nbody,nzero,nfluid};
+            });
+            ReduceTuple hv = reduce_data.value();
+            int nbody = amrex::get<0>(hv);
+            int nzero = amrex::get<1>(hv);
+            int nfluid = amrex::get<2>(hv);
+
+            if (nbody == 0) {
+                return allregular;
+            } else if (nfluid == 0) {
+                return allcovered;
+            } else {
+                return mixedcells;
+            }
+        }
+        else
+        {
+            return getBoxType_Cpu(bx, geom);
+        }
+    }
+
+    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* BAR = nullptr >
+    int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
+    {
+        return getBoxType_Cpu(bx, geom);
+    }
 
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
     static constexpr bool isGPUable () noexcept { return true; }
@@ -215,15 +300,13 @@ public:
     template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on) const noexcept
     {
-        Gpu::LaunchSafeGuard lsg(run_on == RunOn::Gpu && Gpu::inLaunchRegion());
-
         const auto problo = geom.ProbLoArray();
         const auto dx = geom.CellSizeArray();
         const Box& bx = levelset.box();
         const auto& a = levelset.array();
-
         auto f = m_f;
-        AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+        bool run_on_gpu = (run_on == RunOn::Gpu && Gpu::inLaunchRegion());
+        AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
         {
             a(i,j,k) = f(AMREX_D_DECL(problo[0]+i*dx[0],
                                       problo[1]+j*dx[1],
@@ -236,7 +319,7 @@ public:
     {
         const Real* AMREX_RESTRICT problo = geom.ProbLo();
         const Real* AMREX_RESTRICT dx = geom.CellSize();
-        
+
         const Box& bx = levelset.box();
         const auto len = amrex::length(bx);
         const auto lo  = amrex::lbound(bx);
@@ -259,8 +342,6 @@ public:
                        Array<BaseFab<Type_t>,AMREX_SPACEDIM> const& type_fab,
                        Geometry const& geom, RunOn run_on) const noexcept
     {
-        Gpu::LaunchSafeGuard lsg(run_on == RunOn::Gpu && Gpu::inLaunchRegion());
-
         auto const& dx = geom.CellSizeArray();
         auto const& problo = geom.ProbLoArray();
         auto f = m_f;
@@ -269,7 +350,8 @@ public:
             Array4<Type_t const> const& type = type_fab[idim].array();
             const Box& bx = inter_fab[idim].box();
             int dir = (AMREX_SPACEDIM==2) ? 1-idim : idim;
-            AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
+            bool run_on_gpu = (run_on == RunOn::Gpu && Gpu::inLaunchRegion());
+            AMREX_HOST_DEVICE_FOR_3D_FLAG(run_on_gpu, bx, i, j, k,
             {
                 if (type(i,j,k) == Type::irregular) {
                     IntVect ivlo(AMREX_D_DECL(i,j,k));
@@ -282,7 +364,7 @@ public:
                          {AMREX_D_DECL(problo[0]+ivhi[0]*dx[0],
                                        problo[1]+ivhi[1]*dx[1],
                                        problo[2]+ivhi[2]*dx[2])},
-                          dir, f);
+                            dir, f);
                 } else {
                     inter(i,j,k) = std::numeric_limits<Real>::quiet_NaN();
                 }
@@ -334,43 +416,6 @@ GeometryShop<typename std::decay<F>::type>
 makeShop (F&& f)
 {
     return GeometryShop<typename std::decay<F>::type>(std::forward<F>(f));
-}
-
-template <class F>
-int
-GeometryShop<F>::getBoxType (const Box& bx, const Geometry& geom) const
-{
-    const Real* problo = geom.ProbLo();
-    const Real* dx = geom.CellSize();
-    const auto& len3 = bx.length3d();
-    const int* blo = bx.loVect();
-    int nbody = 0, nzero = 0, nfluid = 0;
-    for         (int k = 0; k < len3[2]; ++k) {
-        for     (int j = 0; j < len3[1]; ++j) {
-            for (int i = 0; i < len3[0]; ++i) {
-                RealArray xyz {AMREX_D_DECL(problo[0]+(i+blo[0])*dx[0],
-                                            problo[1]+(j+blo[1])*dx[1],
-                                            problo[2]+(k+blo[2])*dx[2])};
-                Real v = m_f(xyz);
-                if (v == 0.0) {
-                    ++nzero;
-                } else if (v > 0.0) {
-                    ++nbody;
-                } else {
-                    ++nfluid;
-                }
-                if (nbody > 0 && nfluid > 0) return mixedcells;
-            }
-        }
-    }
-
-    if (nbody == 0) {
-        return allregular;
-    } else if (nfluid == 0) {
-        return allcovered;
-    } else {
-        return mixedcells;
-    }
 }
 
 }}

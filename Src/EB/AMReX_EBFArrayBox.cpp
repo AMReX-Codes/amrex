@@ -21,14 +21,14 @@ EBFArrayBox::EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps
       m_ebcellflag(&ebflag)
 {
     BL_ASSERT(ebflag.box().contains(amrex::enclosedCells(bx)));
-    const Box& sect = amrex::enclosedCells(bx) & ebflag.getRegion();
-    m_type = ebflag.getType(sect);
+    const Box& ccbx = amrex::enclosedCells(bx);
+    m_type = ebflag.getType(ccbx);
 }
 
 EBFArrayBox::EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type, int scomp, int ncomp)
     : FArrayBox(rhs, make_type, scomp, ncomp)
 {
-    m_type = rhs.m_type; // xxxxx TODO gpu
+    m_type = rhs.m_type;
     m_ebcellflag = rhs.m_ebcellflag;
 }
 

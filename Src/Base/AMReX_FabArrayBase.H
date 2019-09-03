@@ -411,7 +411,9 @@ public:
         ~RegionTag () { popRegionTag(); }
     };
 
+#ifndef AMREX_USE_GPU
 protected:
+#endif
 
     void clear ();
 
@@ -503,9 +505,6 @@ protected:
 
     //
     //! parallel copy or add
-#ifdef AMREX_USE_GPU
-public:
-#endif
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
@@ -547,9 +546,7 @@ public:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
-#ifdef AMREX_USE_GPU
-protected:
-#endif
+
     //
     typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
     typedef CPCache::iterator CPCacheIter;

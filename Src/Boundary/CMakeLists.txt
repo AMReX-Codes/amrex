@@ -17,6 +17,7 @@ target_sources(amrex
    AMReX_BoundCond.H
    AMReX_InterpBndryData.H
    AMReX_LO_BCTYPES.H
+   AMReX_LO_BCTYPES.cpp
    AMReX_MacBndry.H
    AMReX_InterpBndryData_K.H
    AMReX_InterpBndryData_${DIM}D_K.H

@@ -17,8 +17,6 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
 #if (AMREX_SPACEDIM == 2)
     amrex::Abort("amrex::algoim::compute_integrals is 3D only");
 #else
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
 
     nghost.min(intgmf.nGrowVect());
     AMREX_ASSERT(intgmf.nComp() >= numIntgs);
@@ -117,6 +115,8 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
                                                    { return x*x*z*z; });
                         intg(i,j,k,i_S_y2_z2) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real z) noexcept
                                                    { return y*y*z*z; });
+                        intg(i,j,k,i_S_xyz  ) = q([] AMREX_GPU_DEVICE (Real x, Real y, Real z) noexcept
+                                                   { return x*y*z; });
                     }
                 });
             }
@@ -175,6 +175,8 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
                                                    { return x*x*z*z; });
                         intg(i,j,k,i_S_y2_z2) = q.eval([](Real x, Real y, Real z) noexcept
                                                    { return y*y*z*z; });
+                        intg(i,j,k,i_S_xyz  ) = q.eval([](Real x, Real y, Real z) noexcept
+                                                   { return x*y*z; });
                     }
                 }
             }

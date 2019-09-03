@@ -170,6 +170,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     m_default_comm = ParallelContext::CommunicatorSub();
 
+    const RealBox& rb = a_geom[0].ProbDomain();
+    const int coord = a_geom[0].Coord();
+    const Array<int,AMREX_SPACEDIM>& is_per = a_geom[0].isPeriodic();
+
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
@@ -194,7 +198,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             ++(m_num_mg_levels[amrlev]);
 
-            m_geom[amrlev].emplace_back(cdom);
+            m_geom[amrlev].emplace_back(cdom, rb, coord, is_per);
 
             m_grids[amrlev].push_back(a_grids[amrlev]);
             AMREX_ASSERT(m_grids[amrlev].back().coarsenable(rr));
@@ -308,7 +312,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             for (int lev = 1; lev < last_coarsenableto_lev; ++lev)
             {
-                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr),rb,coord,is_per);
                 
                 m_grids[0].push_back(a_grids[0]);
                 m_grids[0].back().coarsen(rr);
@@ -320,7 +324,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             for (int lev = last_coarsenableto_lev; lev < nmaxlev; ++lev)
             {
-                m_geom[0].emplace_back(domainboxes[lev]);
+                m_geom[0].emplace_back(domainboxes[lev],rb,coord,is_per);
             
                 m_grids[0].emplace_back(boundboxes[lev]);
                 m_grids[0].back().maxSize(info.agg_grid_size);
@@ -349,7 +353,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                and a_geom[0].Domain().coarsenable(rr, mg_domain_min_width)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
-            m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+            m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr),rb,coord,is_per);
             
             m_grids[0].push_back(a_grids[0]);
             m_grids[0].back().coarsen(rr);

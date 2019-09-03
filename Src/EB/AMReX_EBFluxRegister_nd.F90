@@ -15,4 +15,9 @@ contains
     reredistribution_threshold = 1.d10
   end subroutine amrex_eb_disable_reredistribution
 
+  real(amrex_real) function amrex_eb_get_reredistribution_threshold () &
+       bind(c, name='amrex_eb_get_reredistribution_threshold')
+    amrex_eb_get_reredistribution_threshold = reredistribution_threshold
+  end function amrex_eb_get_reredistribution_threshold
+
 end module amrex_eb_flux_reg_nd_module

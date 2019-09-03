@@ -1,0 +1,10 @@
+redistribute.size = (256, 256, 384)
+redistribute.max_grid_size = 128
+redistribute.is_periodic = 1
+redistribute.num_ppc = 1
+redistribute.move_dir = (1, 1, 1)
+redistribute.do_random = 1
+redistribute.nsteps = 500
+redistribute.do_regrid = 1
+
+amrex.use_gpu_aware_mpi = 0
