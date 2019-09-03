@@ -11,10 +11,10 @@ if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
     from cori   import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
 
-machine = 'summit'
-from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
+# machine = 'summit'
+# from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
 
-print("machine = " + machine)
+# print("machine = " + machine)
 
 # typical use: python run_automated.py --n_node_list='1,8,16,32' --automated
 # Assume warpx, picsar, amrex and perf_logs repos ar in the same directory and
