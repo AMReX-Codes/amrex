@@ -946,7 +946,7 @@ PhysicalParticleContainer::Evolve (int lev,
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
+    BL_PROFILE_VAR_NS("PPC::FieldGather", blp_fg);
     BL_PROFILE_VAR_NS("PPC::ParticlePush", blp_ppc_pp);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
     
@@ -1212,7 +1212,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
-                BL_PROFILE_VAR_START(blp_pxr_fg);
+                BL_PROFILE_VAR_START(blp_fg);
                 FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                             exfab, eyfab, ezfab, bxfab, byfab, bzfab, 
                             Ex.nGrow(), e_is_nodal,
@@ -1293,7 +1293,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                 thread_num, lev, lev-1);
                 }
 
-                BL_PROFILE_VAR_STOP(blp_pxr_fg);
+                BL_PROFILE_VAR_STOP(blp_fg);
 
                 //
                 // Particle Push
@@ -1306,36 +1306,25 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Current Deposition
                 //
-                if (WarpX::use_picsar_deposition) {
-                    // Deposit inside domains
-                    DepositCurrentFortran(pti, wp, uxp, uyp, uzp, &jx, &jy, &jz,
-                                          0, np_current, thread_num,
-                                          lev, lev, dt);
-                    if (has_buffer){
-                        // Deposit in buffers
-                        DepositCurrentFortran(pti, wp, uxp, uyp, uzp, cjx, cjy, cjz,
-                                              np_current, np-np_current, thread_num,
-                                              lev, lev-1, dt);
-                    }
+
+                int* AMREX_RESTRICT ion_lev;
+                if (do_field_ionization){
+                    ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
                 } else {
-                    int* AMREX_RESTRICT ion_lev;
-                    if (do_field_ionization){
-                        ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
-                    } else {
-                        ion_lev = nullptr;
-                    }
-                    
-                    // Deposit inside domains
-                    DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
-                                   0, np_current, thread_num,
-                                   lev, lev, dt);
-                    if (has_buffer){
-                        // Deposit in buffers
-                        DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
-                                       np_current, np-np_current, thread_num,
-                                       lev, lev-1, dt);
-                    }
+                    ion_lev = nullptr;
                 }
+                
+                // Deposit inside domains
+                DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
+                               0, np_current, thread_num,
+                               lev, lev, dt);
+                if (has_buffer){
+                    // Deposit in buffers
+                    DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
+                                   np_current, np-np_current, thread_num,
+                                   lev, lev-1, dt);
+                }
+
 
                 //
                 // copy particle data back

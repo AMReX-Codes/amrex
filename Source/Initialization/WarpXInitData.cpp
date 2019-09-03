@@ -142,6 +142,7 @@ WarpX::InitPML ()
                              dt[0], nox_fft, noy_fft, noz_fft, do_nodal,
 #endif
                              do_dive_cleaning, do_moving_window,
+                             pml_has_particles, do_pml_in_domain,
                              do_pml_Lo_corrected, do_pml_Hi));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
@@ -159,6 +160,7 @@ WarpX::InitPML ()
                                    dt[lev], nox_fft, noy_fft, noz_fft, do_nodal,
 #endif
                                    do_dive_cleaning, do_moving_window,
+                                   pml_has_particles, do_pml_in_domain,
                                    do_pml_Lo_MR, amrex::IntVect::TheUnitVector()));
         }
     }

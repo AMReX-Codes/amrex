@@ -18,7 +18,8 @@ WarpX::ExchangeWithPmlB (int lev)
                               Bfield_fp[lev][2].get() },
                             { Bfield_cp[lev][0].get(),
                               Bfield_cp[lev][1].get(),
-                              Bfield_cp[lev][2].get() });
+                              Bfield_cp[lev][2].get() },
+                              do_pml_in_domain);
     }
 }
 
@@ -31,7 +32,8 @@ WarpX::ExchangeWithPmlE (int lev)
                               Efield_fp[lev][2].get() },
                             { Efield_cp[lev][0].get(),
                               Efield_cp[lev][1].get(),
-                              Efield_cp[lev][2].get() });
+                              Efield_cp[lev][2].get() },
+                              do_pml_in_domain);
     }
 }
 
@@ -40,7 +42,8 @@ WarpX::ExchangeWithPmlF (int lev)
 {
     if (do_pml && pml[lev]->ok()) {
         pml[lev]->ExchangeF(F_fp[lev].get(),
-                            F_cp[lev].get());
+                            F_cp[lev].get(),
+                            do_pml_in_domain);
     }
 }
 
@@ -250,9 +253,10 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         if (do_pml && pml[lev]->ok())
         {
     	    pml[lev]->ExchangeE(patch_type,
-	              		      { Efield_fp[lev][0].get(),
+                              { Efield_fp[lev][0].get(),
                                 Efield_fp[lev][1].get(),
-                                Efield_fp[lev][2].get() });
+                                Efield_fp[lev][2].get() },
+                                do_pml_in_domain);
     	    pml[lev]->FillBoundaryE(patch_type);
         }
 
@@ -265,9 +269,10 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         if (do_pml && pml[lev]->ok())
         {
         pml[lev]->ExchangeE(patch_type,
-			                { Efield_cp[lev][0].get(),
+                            { Efield_cp[lev][0].get(),
                               Efield_cp[lev][1].get(),
-                              Efield_cp[lev][2].get() });
+                              Efield_cp[lev][2].get() },
+                              do_pml_in_domain);
         pml[lev]->FillBoundaryE(patch_type);
         }
 
@@ -292,9 +297,10 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
         if (do_pml && pml[lev]->ok())
         {
 	    pml[lev]->ExchangeB(patch_type,
-        			        { Bfield_fp[lev][0].get(),
+                            { Bfield_fp[lev][0].get(),
                               Bfield_fp[lev][1].get(),
-                              Bfield_fp[lev][2].get() });
+                              Bfield_fp[lev][2].get() },
+                              do_pml_in_domain);
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& period = Geom(lev).periodicity();
@@ -306,9 +312,10 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
         if (do_pml && pml[lev]->ok())
         {
         pml[lev]->ExchangeB(patch_type,
-			                { Bfield_cp[lev][0].get(),
-			                  Bfield_cp[lev][1].get(),
-			                  Bfield_cp[lev][2].get() });
+                      { Bfield_cp[lev][0].get(),
+                        Bfield_cp[lev][1].get(),
+                        Bfield_cp[lev][2].get() },
+                        do_pml_in_domain);
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& cperiod = Geom(lev-1).periodicity();
@@ -331,7 +338,8 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-            pml[lev]->ExchangeF(patch_type, F_fp[lev].get());
+            pml[lev]->ExchangeF(patch_type, F_fp[lev].get(),
+                                do_pml_in_domain);
             pml[lev]->FillBoundaryF(patch_type);
         }
 
@@ -342,7 +350,8 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-        pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
+        pml[lev]->ExchangeF(patch_type, F_cp[lev].get(),
+                            do_pml_in_domain);
         pml[lev]->FillBoundaryF(patch_type);
         }
 
