@@ -87,7 +87,6 @@ if args.automated == True:
         compiler = 'pgi'
         architecture = 'gpu'
 
-recompile = False    
 pull_3_repos = False
 
 # List of tests to perform
@@ -203,10 +202,10 @@ if args.mode == 'run':
 for n_node in n_node_list:
     print(n_node)
     if browse_output_files:
+        res_dir = res_dir_base
+        res_dir += '_'.join([run_name, compiler,\
+                             architecture, str(n_node)]) + '/'
         for count, current_run in enumerate(test_list):
-            res_dir = res_dir_base
-            res_dir += '_'.join([run_name, compiler,\
-                                 architecture, str(n_node)]) + '/'
             # Read performance data from the output file
             output_filename = 'out_' + '_'.join([current_run.input_file, str(n_node), str(current_run.n_mpi_per_node), str(current_run.n_omp), str(count)]) + '.txt'
             # Read data for all test to put in hdf5 a database
@@ -274,7 +273,11 @@ if write_csv:
         index.commit("automated tests")
 
 for n_node in n_node_list:
+    print(n_node)
     if browse_output_files:
+        res_dir = res_dir_base
+        res_dir += '_'.join([run_name, compiler,\
+                             architecture, str(n_node)]) + '/'
         # Rename directory with precise date+hour for archive purpose
         if rename_archive == True:
             loc_counter = 0
