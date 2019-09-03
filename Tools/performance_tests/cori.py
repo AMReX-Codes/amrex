@@ -1,4 +1,6 @@
-import os
+import os, copy
+
+from functions_perftest import test_element
 
 module_name = {'cpu': 'haswell.', 'knl': 'mic-knl.', 'gpu':'.'}
 
@@ -70,6 +72,9 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
 def time_min(nb_simulations):
     return 5. + nb_simulations*5.
 
+def get_submit_job_command():
+    return ' sbatch '
+
 def get_batch_string(test_list, job_time_min, Cname, n_node):
 
     job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
@@ -85,7 +90,7 @@ def get_batch_string(test_list, job_time_min, Cname, n_node):
     batch_string += '#SBATCH --account=m2852\n'
     return batch_string
 
-def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_list):
+def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_string):
     srun_string = ''
     srun_string += 'export OMP_NUM_THREADS=' + str(current_test.n_omp) + '\n'
     # number of logical cores per MPI process
@@ -99,7 +104,7 @@ def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_
         ' -c ' + str(cflag_value)   + \
         ' ./'  + bin_name + \
         ' ' + current_test.input_file + \
-        runtime_param_list[ count ] + \
+        runtime_param_string + \
         ' > ' + output_filename + '\n'
     return srun_string
 

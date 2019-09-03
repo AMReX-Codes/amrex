@@ -1,9 +1,29 @@
-import os, shutil, re
+import os, shutil, re, copy
 import pandas as pd
 import numpy as np
 import git
-import cori
-import summit
+# import cori
+# import summit
+
+# Each instance of this class contains information for a single test.
+class test_element():
+    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
+                 n_omp=None, n_cell=None, n_step=None):
+        self.input_file = input_file
+        self.n_node = n_node
+        self.n_mpi_per_node = n_mpi_per_node
+        self.n_omp = n_omp
+        self.n_cell = n_cell
+        self.n_step = n_step
+
+    def scale_n_cell(self, n_node=0):
+        n_cell_scaled = copy.deepcopy(self.n_cell)
+        index_dim = 0
+        while n_node > 1:
+            n_cell_scaled[index_dim] *= 2
+            n_node /= 2
+            index_dim = (index_dim+1) % 3
+        self.n_cell = n_cell_scaled
 
 def scale_n_cell(ncell, n_node):
      ncell_scaled = ncell[:]
@@ -71,11 +91,11 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
     os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
     return 0
 
-def run_batch_nnode(test_list, res_dir, bin_name, config_command, machine, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
-    if machine == 'cori':
-        from cori import time_min, get_batch_string, get_run_string
-    if machine == 'summit':
-        from summit import time_min, get_batch_string, get_run_string
+def run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, submit_job_command):
+    #if machine == 'cori':
+    #    from cori import get_batch_string, get_run_string
+    #if machine == 'summit':
+    #    from summit import get_batch_string, get_run_string
     # Clean res_dir
     if os.path.exists(res_dir):
          shutil.rmtree(res_dir, ignore_errors=True)
@@ -85,24 +105,16 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, machine, archi
     bin_dir = cwd + 'Bin/'
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
-    # Calculate simulation time. Take 5 min + 2 min / simulation
-    job_time_min = time_min(len(test_list)) 
-    batch_string = get_batch_string(test_list, job_time_min, Cname, n_node)
     
     for count, current_test in enumerate(test_list):
         shutil.copy(cwd + current_test.input_file, res_dir)
-        run_string = get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_list)
-        batch_string += run_string
-        batch_string += 'rm -rf plotfiles lab_frame_data diags\n'
+        # run_string = get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_list)
+        # batch_string += run_string
     batch_file = 'batch_script.sh'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
     f_exe.close()
     os.system('chmod 700 ' + bin_name)
-    if machine == 'cori':
-         submit_job_command = ' sbatch '
-    if machine == 'summit':
-         submit_job_command = ' bsub '
     os.system(config_command + submit_job_command + batch_file +\
                    ' >> ' + cwd + 'log_jobids_tmp.txt')
 

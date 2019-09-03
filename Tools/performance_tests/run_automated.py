@@ -6,10 +6,13 @@ from functions_perftest import store_git_hash, get_file_content, \
 
 if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
-    from summit import executable_name, process_analysis, get_config_command, get_test_list
+    from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
 if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
-    from cori   import executable_name, process_analysis, get_config_command, get_test_list
+    from cori   import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
+
+machine = 'summit'
+from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
 
 print("machine = " + machine)
 
@@ -84,28 +87,9 @@ if args.automated == True:
 recompile = False    
 pull_3_repos = False
 
-# Each instance of this class contains information for a single test.
-class test_element():
-    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
-                 n_omp=None, n_cell=None, n_step=None):
-        self.input_file = input_file
-        self.n_node = n_node
-        self.n_mpi_per_node = n_mpi_per_node
-        self.n_omp = n_omp
-        self.n_cell = n_cell
-        self.n_step = n_step
-
-    def scale_n_cell(self, n_node=0):
-        n_cell_scaled = copy.deepcopy(self.n_cell)
-        index_dim = 0
-        while n_node > 1:
-            n_cell_scaled[index_dim] *= 2
-            n_node /= 2
-            index_dim = (index_dim+1) % 3
-        self.n_cell = n_cell_scaled
-
 # List of tests to perform
 # ------------------------
+from cori import get_test_list
 test_list = get_test_list()
 
 # Define directories
@@ -186,16 +170,22 @@ if args.mode == 'run':
         # Deep copy as we change the attribute n_cell of
         # each instance of class test_element
         test_list_n_node = copy.deepcopy(test_list)
+        job_time_min = time_min(len(test_list))
+        batch_string = get_batch_string(test_list_n_node, job_time_min, module_Cname[args.architecture], n_node)
         # Loop on tests
-        for current_run in test_list_n_node:
+        for count, current_run in enumerate(test_list_n_node):
             current_run.scale_n_cell(n_node)
             runtime_param_string  = ' amr.n_cell=' + ' '.join(str(i) for i in current_run.n_cell)
             runtime_param_string += ' max_step=' + str( current_run.n_step )
-            runtime_param_list.append( runtime_param_string )
+            # runtime_param_list.append( runtime_param_string )
+            run_string = get_run_string(current_run, args.architecture, n_node, count, bin_name, runtime_param_string)
+            batch_string += run_string
+            batch_string += 'rm -rf plotfiles lab_frame_data diags\n'
+            
+        submit_job_command = get_submit_job_command()
         # Run the simulations.
-        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, machine, \
-                        architecture=args.architecture, Cname=module_Cname[args.architecture], \
-                        n_node=n_node, runtime_param_list=runtime_param_list)
+        # run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, submit_job_command)
+        run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
     os.chdir(cwd)
     # submit batch for analysis
     process_analysis(args.automated, cwd, compiler, args.architecture, args.n_node_list, start_date)
