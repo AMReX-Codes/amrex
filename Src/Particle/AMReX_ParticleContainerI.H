@@ -1025,7 +1025,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
 
     // sanity checks
-    AMREX_ASSERT(local);
     AMREX_ASSERT(lev_min == 0);
     AMREX_ASSERT(lev_max == 0);
     AMREX_ASSERT(nGrow == 0);
@@ -1034,12 +1033,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
-    if (local > 0) BuildRedistributeMask(0, local);
-    this->defineBufferMap();
-
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     const BoxArray& ba   = ParticleBoxArray(lev);
+    
+    if (local > 0) BuildRedistributeMask(0, local);
+    if (not m_particle_locator.isValid(ba)) m_particle_locator.build(ba);
+    this->defineBufferMap();
+
     if ( (ba.size() == 1) and geom.isAllPeriodic() )
     {
         EnforcePeriodicGPU();
@@ -1637,8 +1638,8 @@ BuildRedistributeMask (int lev, int nghost) const
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
-            redistribute_mask_ptr->setVal(grid_id, box, 0, 1);
-            redistribute_mask_ptr->setVal(tile_id, box, 1, 1);
+            (*redistribute_mask_ptr)[mfi].setVal(grid_id, box, 0, 1);
+            (*redistribute_mask_ptr)[mfi].setVal(tile_id, box, 1, 1);
         }
         
         redistribute_mask_ptr->FillBoundary(geom.periodicity());
@@ -1659,10 +1660,6 @@ BuildRedistributeMask (int lev, int nghost) const
             }
         }
         RemoveDuplicates(neighbor_procs);
-
-#ifdef AMREX_USE_GPU
-        m_particle_locator.build(ba);
-#endif
     }    
 }
 

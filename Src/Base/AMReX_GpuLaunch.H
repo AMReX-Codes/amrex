@@ -37,10 +37,13 @@ namespace amrex {
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
     
     template<class L>
-    AMREX_GPU_DEVICE void call_device (L f0) noexcept { f0(); }
+    AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
     
     template<class L, class... Lambdas>
-    AMREX_GPU_DEVICE void call_device (L f0, Lambdas... fs) noexcept { f0(); call_device(fs...); }
+    AMREX_GPU_DEVICE void call_device (L&& f0, Lambdas&&... fs) noexcept {
+        f0();
+        call_device(std::forward<Lambdas>(fs)...);
+    }
     
 // CPU variation
 
