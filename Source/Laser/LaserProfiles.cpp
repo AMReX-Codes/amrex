@@ -1,4 +1,5 @@
 
+#include <WarpX_Complex.H>
 #include <LaserParticleContainer.H>
 
 using namespace amrex;

@@ -6,7 +6,7 @@
 
 #include <WarpX.H>
 #include <WarpXConst.H>
-#include "WarpX_Complex.H"
+#include <WarpX_Complex.H>
 #include <WarpX_f.H>
 #include <MultiParticleContainer.H>
 
