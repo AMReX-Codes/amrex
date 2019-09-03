@@ -1,6 +1,23 @@
 //
-// MultiComponent Linear Solve 
+// Tutorial:    MultiComponent Linear Solve
 //
+// File:        main.cpp
+//
+// Author:      Brandon Runnels
+//              University of Colorado Colorado Springs
+//              brunnels@uccs.edu
+//              solids.uccs.edu
+//
+// Date:        September 3, 2019
+// 
+// Description: This tutorial demonstrates how to implement a multi-component
+//              nodal linear operator. This tutorial demonstrates the
+//              "CFStrategy::ghostnodes" method for computing the reflux at
+//              the coarse/fine boundary. 
+//
+// See also:    ./MCNodalLinOp.H, ./MCNodalLinOp.cpp
+//              for implementation of the MC linear operator.
+// 
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
@@ -16,16 +33,41 @@ int main (int argc, char* argv[])
 {
     Initialize(argc, argv);
     
+    //
+    // Read in mesh structure (# amr levels, # nodes)
+    // Geometry will be a nnodes x nnodes (x nnodes) grid
+    // refined in the center up to nlevels.
+    //
     struct {
         int nlevels = 3;
         int nnodes = 32;
+        int max_grid_size = 10000000;
     } mesh;
     {
         ParmParse pp("mesh");
         pp.query("nlevels",mesh.nlevels);
         pp.query("nnodes",mesh.nnodes);
+        pp.query("max_grid_size",mesh.max_grid_size);
     }
     
+    //
+    // Read in linear operator parameters:
+    //    ncomp = number of components for a MC solve
+    //    coeff = ncomp x ncomp list of coefficients
+    //
+    struct {
+        int ncomp=1;
+        Vector<Real> coeff = {1.0};
+    } op;
+    {
+        ParmParse pp("op");
+        pp.query("ncomp",op.ncomp);
+        pp.queryarr("coeff",op.coeff);
+    }
+
+    //
+    // Read in MLMG solver parameters
+    //
     struct {
         int verbose = -1;
         int cg_verbose = -1;
@@ -49,39 +91,31 @@ int main (int argc, char* argv[])
         pp.query("fixed_iter",mlmg.fixed_iter);
     }
     
-    struct {
-        int ncomp=1;
-        Vector<Real> coeff = {1.0};
-    } op;
-    {
-        ParmParse pp("op");
-        pp.query("ncomp",op.ncomp);
-        pp.queryarr("coeff",op.coeff);
-    }
 
-    
+    // 
+    // Initialize geometry and grids
+    //    
     Vector<Geometry> geom;
   	Vector<BoxArray> cgrids, ngrids;
  	Vector<DistributionMapping> dmap;
   	Vector<MultiFab> solution, rhs;
-
  	geom.resize(mesh.nlevels);
  	cgrids.resize(mesh.nlevels);
  	ngrids.resize(mesh.nlevels);
  	dmap.resize(mesh.nlevels);
-
  	solution.resize(mesh.nlevels);
  	rhs.resize(mesh.nlevels);
-
 	RealBox rb({AMREX_D_DECL(0.0,0.0,0.0)},
 			          {AMREX_D_DECL(1.0,1.0,1.0)});
 	Geometry::Setup(&rb, 0);
-
 	Box NDomain(IntVect{AMREX_D_DECL(0,0,0)}, 
                 IntVect{AMREX_D_DECL(mesh.nnodes,mesh.nnodes,mesh.nnodes)}, 
                 IntVect::TheNodeVector());
 	Box CDomain = convert(NDomain, IntVect::TheCellVector());
 
+    //
+    // Refine the grid
+    // 
 	Box domain = CDomain;
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
  		{
@@ -89,17 +123,23 @@ int main (int argc, char* argv[])
  			domain.refine(2);
  		}
 	Box cdomain = CDomain;
-
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
 	{
 		cgrids[ilev].define(cdomain);
-		cgrids[ilev].maxSize(10000); // TODO
+		cgrids[ilev].maxSize(mesh.max_grid_size); // TODO
 		cdomain.grow(-mesh.nnodes/4); 
 		cdomain.refine(2); 
 		ngrids[ilev] = cgrids[ilev];
 		ngrids[ilev].convert(IntVect::TheNodeVector());
 	}
 
+    //
+    // Initialize the solution and rhs fabs.
+    // Initialize the RHS fab to the function:
+    //    RHS[0] = x1*(1-x1) * x2(1-x2) * x3(1-x3)
+    //    RHS[1] = 0 
+    //    RHS[2] = 0 ... etc
+    //
     int nghost = 2;
  	for (int ilev = 0; ilev < mesh.nlevels; ++ilev)
  	{
@@ -132,12 +172,18 @@ int main (int argc, char* argv[])
  	    }
     }
          
-
+    // 
+    // Set params to be passed to MLMG solver
+    //
     LPInfo info;
     if (mlmg.agglomeration >= 0)        info.setAgglomeration(mlmg.agglomeration);
     if (mlmg.consolidation >= 0)        info.setConsolidation(mlmg.consolidation);
     if (mlmg.max_coarsening_level >= 0) info.setMaxCoarseningLevel(mlmg.max_coarsening_level);
     
+    //
+    // Initialize the MCNodalLinOp linear operator 
+    // (see ./MCNodalLinOp.cpp, ./MCNodalLinOp.H for implementation)
+    //
     MCNodalLinOp linop;
     linop.setNComp(op.ncomp);
     linop.setCoeff(op.coeff);
@@ -146,21 +192,28 @@ int main (int argc, char* argv[])
                       {amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet,amrex::MLLinOp::BCType::Dirichlet});
     for (int ilev = 0; ilev < mesh.nlevels; ++ilev) linop.setLevelBC(ilev,&solution[ilev]);
 
+    //
+    // Initialize the MLMG solver
+    //
     MLMG solver(linop);
-    solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
-    //solver.setBottomSolver(amrex::BottomSolver::smoother);
     if (mlmg.verbose >= 0)     solver.setVerbose(mlmg.verbose);
     if (mlmg.cg_verbose >= 0)  solver.setCGVerbose(mlmg.cg_verbose);
     if (mlmg.fixed_iter >= 0)  solver.setFixedIter(mlmg.fixed_iter);
     if (mlmg.max_iter >= 0)    solver.setMaxIter(mlmg.max_iter);
     if (mlmg.max_fmg_iter >= 0)solver.setMaxFmgIter(mlmg.max_fmg_iter);
+    // IMPORTANT! Use the "CFStrategy::ghostnodes" strategy to avoid
+    // having to implement a complicated "reflux" routine!
+    solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
     
-
+    //
+    // Perform the solve
+    //
     Real tol_rel = 1E-8, tol_abs = 1E-8;
     solver.solve(GetVecOfPtrs(solution),GetVecOfConstPtrs(rhs),tol_rel,tol_abs);
 
+    //
+    // Write the output to ./solution
+    //
     WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
-    WriteMLMF ("rhs",GetVecOfConstPtrs(rhs),geom);
-    
 }
 

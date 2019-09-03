@@ -1,10 +1,22 @@
+//
+// Tutorial:    MultiComponent Linear Solve
+//
+// File:        MCNodalLinOp.cpp
+//
+// Author:      Brandon Runnels
+//              University of Colorado Colorado Springs
+//              brunnels@uccs.edu
+//              solids.uccs.edu
+//
+// Date:        September 3, 2019
+// 
+// Description: This file implements the multi-component linear operator
+//
+// See also:    ./MCNodalLinOp.H (for definitions and documentation of each function)
+//              ./main.cpp (for execution of the tutorial)
+// 
 
-#include <AMReX_MLNodeLinOp.H>
-#include <AMReX_MLCellLinOp.H>
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_SPACE.H>
 #include "MCNodalLinOp.H"
-#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -66,12 +78,6 @@ void MCNodalLinOp::Diag (int amrlev, int mglev, MultiFab& a_diag)
 			});
 	}
 }
-void MCNodalLinOp::averageDownCoeffs ()
-{
-	// Not needed
-}
-
-
 
 void MCNodalLinOp::Diagonal (bool recompute)
 {
@@ -87,7 +93,6 @@ void MCNodalLinOp::Diagonal (bool recompute)
 	}
 }
 
-// TODO: update to use fillboundary
 void MCNodalLinOp::Fsmooth (int amrlev, int mglev, amrex::MultiFab& a_x, const amrex::MultiFab& a_b) const
 {
 	BL_PROFILE("MCNodalLinOp::Fsmooth()");
@@ -148,35 +153,8 @@ void MCNodalLinOp::Fsmooth (int amrlev, int mglev, amrex::MultiFab& a_x, const a
 void MCNodalLinOp::normalize (int amrlev, int mglev, MultiFab& a_x) const
 {
 	BL_PROFILE("MCNodalLinOp::normalize()");
-	amrex::Box domain(m_geom[amrlev][mglev].Domain());
-	domain.convert(amrex::IntVect::TheNodeVector());
-
-	//int ncomp = getNComp();
-	int nghost = 1; //x.nGrow();
-
+	int nghost = 1; 
 	amrex::MultiFab::Divide(a_x,*m_diag[amrlev][mglev],0,0,ncomp,nghost); // Dx *= diag  (Dx = x*diag)
-
-//	for (MFIter mfi(a_x, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
-//	{
-//
-//		Box bx = mfi.tilebox();
-//		bx.grow(nghost);
-//		bx = bx & domain;
-//
-//		amrex::Array4<amrex::Real> const& x = a_x.array(mfi);
-//		amrex::Array4<const amrex::Real> const& diag = m_diag[amrlev][mglev]->array(mfi);
-//
-//		for (int n = 0; n < ncomp; n++)
-//		{
-//			amrex::ParallelFor (bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-//					
-//					std::cout << "amrlev="<<amrlev<<" mglev="<<mglev<<" (" <<i<<","<<j<<","<<k<<","<<n<<") diag=" << diag(i,j,k,n) << " x = " << x(i,j,k,n) << " ... ";
-//					x(i,j,k,n) /= diag(i,j,k,n);
-//					std::cout << "done" << std::endl;
-//
-//				} );
-//		}
-//	}
 }
 
  MCNodalLinOp::~MCNodalLinOp () {}
@@ -349,10 +327,8 @@ void MCNodalLinOp::buildMasks ()
 						   BL_TO_FORTRAN_BOX(nddomain),
 						   m_lobc.data(), m_hibc.data());
 		}
-		//WriteSingleLevelPlotfile ("bottom_dot_mask",m_bottom_dot_mask,{{"data"}},Geom(0,NMGLevels(0)-1),0.0,0);
 	}
 }
-
 
 void MCNodalLinOp::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
@@ -380,7 +356,6 @@ void MCNodalLinOp::prepareForSolve ()
 	BL_PROFILE("MCNodalLinOp::prepareForSolve()");
 	MLNodeLinOp::prepareForSolve();
 	buildMasks();
-	averageDownCoeffs();
 	Diagonal(true);
 }
 
@@ -548,8 +523,6 @@ void MCNodalLinOp::reflux (int crse_amrlev,
 {
 	BL_PROFILE("MCNodalLinOp::reflux()");
 
-	//int ncomp = getNComp();//AMREX_SPACEDIM;
-
 	amrex::Box cdomain(m_geom[crse_amrlev][0].Domain());
 	cdomain.convert(amrex::IntVect::TheNodeVector());
 
@@ -656,7 +629,6 @@ MCNodalLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const 
 			    const MultiFab*)
 {
 	const int mglev = 0;
-	//const int ncomp = b.nComp();
 	apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 2);
 	amrex::Geometry geom = m_geom[amrlev][mglev];
@@ -669,12 +641,7 @@ MCNodalLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiF
 {
 	resid.setVal(0.0);
 	apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
-	//int ncomp = b.nComp();
 	MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, resid.nGrow());
 	amrex::Geometry geom = m_geom[amrlev][mglev];
 	realFillBoundary(resid,geom);
-    //WriteSingleLevelPlotfile ("resid", resid,{{"data"}},Geom(amrlev,mglev),0.0,0);
-    //WriteSingleLevelPlotfile ("x",     x,{{"data"}},Geom(amrlev,mglev),0.0,0);
-    //WriteSingleLevelPlotfile ("b",     b,{{"data"}},Geom(amrlev,mglev),0.0,0);
-	//amrex::Abort();
 }
