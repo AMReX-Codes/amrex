@@ -229,8 +229,8 @@ for n_node in n_node_list:
             # Load file perf_database_file if exists, and
             # append with results from this scan
             if os.path.exists(perf_database_file):
-                df_base = pd.read_hdf(perf_database_file, 'all_data', format='table')
-                # df_base = pd.read_hdf(perf_database_file, 'all_data')
+                # df_base = pd.read_hdf(perf_database_file, 'all_data', format='table')
+                df_base = pd.read_hdf(perf_database_file, 'all_data')
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
@@ -286,5 +286,5 @@ for n_node in n_node_list:
                 res_dir_arch = res_dir_base
                 res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
                                           architecture, str(n_node), str(loc_counter)]) + '/'
-            print("renaming " + res_dir + " to " + res_dir_arch)
+            print("renaming " + res_dir + " -> " + res_dir_arch)
             os.rename( res_dir, res_dir_arch )
