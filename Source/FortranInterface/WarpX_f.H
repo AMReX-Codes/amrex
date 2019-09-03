@@ -63,31 +63,6 @@
 extern "C"
 {
 #endif
-    // Laser pusher
-	void warpx_gaussian_laser( const long* np,
-				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
-				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude,
-				amrex::Real* zeta, amrex::Real* beta, amrex::Real* phi2, amrex::Real* theta_stc );
-
-        void warpx_harris_laser( const long* np,
-                                 amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
-                                 amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
-
-  void calculate_laser_plane_coordinates( const long* np,
-       amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
-       amrex::Real* plane_Xp, amrex::Real* plane_Yp,
-       amrex::Real* u_Xx, amrex::Real* u_Xy, amrex::Real* u_Xz,
-       amrex::Real* u_Yx, amrex::Real* u_Yy, amrex::Real* u_Yz,
-       amrex::Real* positionx, amrex::Real* positiony, amrex::Real* positionz );
-
-  void update_laser_particle( const long* np,
-       amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
-       amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp,
-       amrex::Real* giv, amrex::Real* wp, amrex::Real* amplitude_E,
-       amrex::Real* p_Xx, amrex::Real* p_Xy, amrex::Real* p_Xz,
-       amrex::Real* nvecx, amrex::Real* nvecy, amrex::Real* nvecz,
-       amrex::Real* mobility, amrex::Real* dt,  const amrex::Real* c,
-       const amrex::Real* beta_boost, const amrex::Real* gamma_boost );
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);
