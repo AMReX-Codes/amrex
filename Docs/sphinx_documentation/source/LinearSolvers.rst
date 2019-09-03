@@ -301,5 +301,60 @@ Embedded Boundaries
 AMReX support solving linear systems with embedded boundaries.  See
 chapter :ref:`Chap:EB` for more details.
 
+Multi-Component Operators
+=========================
+
+This section discusses solving linear systems in which the solution variable :math:`\mathbf{\phi}` has multiple components.
+An example (implemented in the ``MultiComponent`` tutorial) might be:
+
+.. math::
+
+   D(\mathbf{\phi})_i = \sum_{i=1}^N \alpha_{ij} \nabla^2 \phi_j
+
+(Note: only operators of the form :math:`D:\mathbb{R}^n\to\mathbb{R}^n` are currently allowed.)
+
+- To implement a multi-component *cell-based* operator, inherit from the ``MLCellLinOp`` class.
+  Override the ``getNComp`` function to return the number of components (``N``)that the operator will use.
+  The solution and rhs fabs must also have at least one ghost node.
+  ``Fapply``, ``Fsmooth``, ``Fflux`` must be implemented such that the solution and rhs fabs all have ``N`` components.
+
+- Implementing a multi-component *node-based* operator is slightly different.
+  A MC nodal operator must specify that the reflux-free coarse/fine strategy is being used by the solver.
+
+  .. code::
+
+     solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
+
+  The reflux-free method circumvents the need to implement a special ``reflux`` at the coarse-fine boundary.
+  This is accomplished by using ghost nodes.
+  Each AMR level must have 2 layers of ghost nodes.
+  The second (outermost) layer of nodes is treated as constant by the relaxation, essentially acting as a Dirichlet boundary.
+  The first layer of nodes is evolved using the relaxation, in the same manner as the rest of the solution.
+  When the residual is restricted onto the coarse level (in ``reflux``) this allows the residual at the coarse-fine boundary to be interpolated using the first layer of ghost nodes.
+  :numref:`fig::refluxfreecoarsefine` illustrates the how the coarse-fine update takes place.
+
+  .. _fig::refluxfreecoarsefine:
+
+  .. figure:: ./LinearSolvers/refluxfreecoarsefine.svg
+	      :height: 2cm
+	      :align: center
+
+	      : Reflux-free coarse-fine boundary update.
+	      Level 2 ghost nodes (small dark blue) are interpolated from coarse boundary.
+	      Level 1 ghost nodes are updated during the relaxation along with all the other interior fine nodes.
+	      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
+	      and the first level of ghost nodes.
+	      Coarse nodes underneath level 2 ghost nodes are not updated.
+	      The remaining coarse nodes are updates by restriction.
+	      
+  The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
+  ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
+  `interpolation` and `restriction` can be implemented as usual.
+  `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
+  
+  See ``Tutorials/LinearOperator/MultiComponent`` for a complete working example.
+
+   
+
 .. solver reuse
 
