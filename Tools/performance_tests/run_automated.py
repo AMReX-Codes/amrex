@@ -92,8 +92,10 @@ pull_3_repos = False
 
 # List of tests to perform
 # ------------------------
+# Each test runs n_repeat times
+n_repeat = 2
 # from cori import get_test_list
-test_list = get_test_list()
+test_list = get_test_list(n_repeat)
 
 # Define directories
 # ------------------

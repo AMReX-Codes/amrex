@@ -108,10 +108,8 @@ def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_
         ' > ' + output_filename + '\n'
     return srun_string
 
-def get_test_list():
+def get_test_list(n_repeat):
     test_list_unq = []
-    # Each test runs n_repeat times
-    n_repeat = 2
     # n_node is kept to None and passed in functions as an external argument
     # That way, several test_element_instance run with the same n_node on the same batch job
     test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
