@@ -94,9 +94,9 @@ def get_test_list():
     test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
                                        n_mpi_per_node=6,
                                        n_omp=1, 
-                                       n_cell=[384, 256, 128],
+                                       n_cell=[128, 128, 384],
                                        max_grid_size=256,
-                                       blocking_factor=128,
+                                       blocking_factor=64,
                                        n_step=10) )
     test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
                                        n_mpi_per_node=6, 
