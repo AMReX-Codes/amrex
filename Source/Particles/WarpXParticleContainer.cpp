@@ -298,9 +298,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
     const long ngJ = jx->nGrow();
     const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
-    int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
     Real q = this->charge;
-    const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
 
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
     BL_PROFILE_VAR_NS("PPC::CurrentDeposition", blp_deposit);
@@ -357,18 +355,13 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     Real* AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
     Real* AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
 
-    // Lower corner of tile box physical domain
-    // Note that this includes guard cells since it is after tilebox.ngrow
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
-    // xyzmin is built on pti.tilebox(), so it does 
-    // not include staggering, so the stagger_shift has to be done by hand.
-    // Alternatively, we could define xyzminx from tbx (and the same for 3 
-    // directions and for jx, jy, jz). This way, sx0 would not be needed.
-    // Better for memory? worth trying?    
     const Dim3 lo = lbound(tilebox);
 
     BL_PROFILE_VAR_START(blp_deposit);
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
+        // Lower corner of tile box physical domain
+        // Note that this includes guard cells since it is after tilebox.ngrow
+        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
         if        (WarpX::nox == 1){
             doEsirkepovDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -386,24 +379,29 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
         }
     } else {
+        // Lower corner of tile box physical domain
+        // Note that this includes guard cells since it is after tilebox.ngrow
+        std::array<Real, 3> xyzminx = WarpX::LowerCornerWithCentering(tbx, depos_lev);
+        std::array<Real, 3> xyzminy = WarpX::LowerCornerWithCentering(tby, depos_lev);
+        std::array<Real, 3> xyzminz = WarpX::LowerCornerWithCentering(tbz, depos_lev);
         if        (WarpX::nox == 1){
             doDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
-                stagger_shift, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
+                xyzminx, xyzminy, xyzminz, lo, q);
         } else if (WarpX::nox == 2){
             doDepositionShapeN<2>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
-                stagger_shift, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
+                xyzminx, xyzminy, xyzminz, lo, q);
         } else if (WarpX::nox == 3){
             doDepositionShapeN<3>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo,
-                stagger_shift, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
+                xyzminx, xyzminy, xyzminz, lo, q);
         }
     }
     BL_PROFILE_VAR_STOP(blp_deposit);

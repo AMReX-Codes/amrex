@@ -17,9 +17,10 @@
  * \param np_to_depose : Number of particles for which current is deposited.
  * \param dt           : Time step for particle level
  * \param dx           : 3D cell size
- * \param xyzmin       : Physical lower bounds of domain.
+ * \param xyzminx      : Physical lower bounds of domain for jx.
+ * \param xyzminy      : Physical lower bounds of domain for jy.
+ * \param xyzminz      : Physical lower bounds of domain for jz.
  * \param lo           : Index lower bounds of domain.
- * \param stagger_shift: 0 if nodal, 0.5 if staggered.
  * /param q            : species charge.
  */
 template <int depos_order>
@@ -36,9 +37,10 @@ void doDepositionShapeN(const amrex::Real * const xp,
                         const amrex::Array4<amrex::Real>& jz_arr,
                         const long np_to_depose, const amrex::Real dt,
                         const std::array<amrex::Real,3>& dx,
-                        const std::array<amrex::Real, 3> xyzmin,
+                        const std::array<amrex::Real,3>& xyzminx,
+                        const std::array<amrex::Real,3>& xyzminy,
+                        const std::array<amrex::Real,3>& xyzminz,
                         const amrex::Dim3 lo,
-                        const amrex::Real stagger_shift, 
                         const amrex::Real q)
 {
     // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
@@ -56,9 +58,17 @@ void doDepositionShapeN(const amrex::Real * const xp,
     const amrex::Real invvol = dxi*dyi*dzi;
 #endif
 
-    const amrex::Real xmin = xyzmin[0];
-    const amrex::Real ymin = xyzmin[1];
-    const amrex::Real zmin = xyzmin[2];
+    // This assumes that the centering in the directions transverse
+    // to the direction of the current are the same.
+    const amrex::Real xmin_x  = xyzminx[0];
+    const amrex::Real xmin_yz = xyzminz[0];
+#if (defined WARPX_DIM_3D)
+    const amrex::Real ymin_y  = xyzminy[1];
+    const amrex::Real ymin_xz = xyzminx[1];
+#endif
+    const amrex::Real zmin_z  = xyzminz[2];
+    const amrex::Real zmin_xy = xyzminx[2];
+
     const amrex::Real clightsq = 1.0/PhysConst::c/PhysConst::c;
 
     // Loop over particles and deposit into jx_arr, jy_arr and jz_arr
@@ -104,47 +114,51 @@ void doDepositionShapeN(const amrex::Real * const xp,
             // x direction
             // Get particle position after 1/2 push back in position
 #if (defined WARPX_DIM_RZ)
-            const amrex::Real xmid = (rpmid-xmin)*dxi;
+            const amrex::Real xmid_yz = (rpmid - xmin_yz)*dxi;
+            const amrex::Real xmid_x  = (rpmid - xmin_x )*dxi;
 #else
-            const amrex::Real xmid = (xp[ip]-xmin)*dxi-dts2dx*vx;
+            const amrex::Real xmid_yz = (xp[ip] - xmin_yz)*dxi - dts2dx*vx;
+            const amrex::Real xmid_x  = (xp[ip] - xmin_x )*dxi - dts2dx*vx;
 #endif
-            // Compute shape factors for node-centered quantities
-            amrex::Real sx [depos_order + 1];
-            // j: leftmost grid point (node-centered) that the particle touches
-            const int j  = compute_shape_factor<depos_order>(sx,  xmid);
-            // Compute shape factors for cell-centered quantities
-            amrex::Real sx0[depos_order + 1];
-            // j0: leftmost grid point (cell-centered) that the particle touches
-            const int j0 = compute_shape_factor<depos_order>(sx0, xmid-stagger_shift);
+            // Compute shape factors for jy, jz, perpendicular to the x-axis
+            amrex::Real sx_yz[depos_order + 1];
+            // j_yz: leftmost grid point (node-centered) that the particle touches
+            const int j_yz = compute_shape_factor<depos_order>(sx_yz, xmid_yz);
+            // Compute shape factors for jx, parallel to the x-axis
+            amrex::Real sx_x[depos_order + 1];
+            // j_x: leftmost grid point (cell-centered) that the particle touches
+            const int j_x = compute_shape_factor<depos_order>(sx_x, xmid_x);
                      
 #if (defined WARPX_DIM_3D)
             // y direction
-            const amrex::Real ymid= (yp[ip]-ymin)*dyi-dts2dy*vy;
-            amrex::Real sy [depos_order + 1];
-            const int k  = compute_shape_factor<depos_order>(sy,  ymid);
-            amrex::Real sy0[depos_order + 1];
-            const int k0 = compute_shape_factor<depos_order>(sy0, ymid-stagger_shift);
+            const amrex::Real ymid_xz = (yp[ip] - ymin_xz)*dyi - dts2dy*vy;
+            const amrex::Real ymid_y  = (yp[ip] - ymin_y )*dyi - dts2dy*vy;
+            amrex::Real sy_xz[depos_order + 1];
+            const int k_xz = compute_shape_factor<depos_order>(sy_xz, ymid_xz);
+            amrex::Real sy_y[depos_order + 1];
+            const int k_y = compute_shape_factor<depos_order>(sy_y, ymid_y);
 #endif
             // z direction
-            const amrex::Real zmid= (zp[ip]-zmin)*dzi-dts2dz*vz;
-            amrex::Real sz [depos_order + 1];
-            const int l  = compute_shape_factor<depos_order>(sz,  zmid);
-            amrex::Real sz0[depos_order + 1];
-            const int l0 = compute_shape_factor<depos_order>(sz0, zmid-stagger_shift);
+            const amrex::Real zmid_xy = (zp[ip] - zmin_xy)*dzi - dts2dz*vz;
+            const amrex::Real zmid_z  = (zp[ip] - zmin_z )*dzi - dts2dz*vz;
+            amrex::Real sz_xy[depos_order + 1];
+            const int l_xy = compute_shape_factor<depos_order>(sz_xy, zmid_xy);
+            amrex::Real sz_z[depos_order + 1];
+            const int l_z = compute_shape_factor<depos_order>(sz_z, zmid_z);
 
             // Deposit current into jx_arr, jy_arr and jz_arr
 #if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(
-                        &jx_arr(lo.x+j0+ix, lo.y+l +iz, 0), 
-                        sx0[ix]*sz [iz]*wqx);
+                        &jx_arr(lo.x+j_x+ix, lo.y+l_xy+iz, 0, 0), 
+                        sx_x[ix]*sz_xy[iz]*wqx);
                     amrex::Gpu::Atomic::Add(
-                        &jy_arr(lo.x+j +ix, lo.y+l +iz, 0), 
-                        sx [ix]*sz [iz]*wqy);
+                        &jy_arr(lo.x+j_yz+ix, lo.y+l_xy+iz, 0, 0), 
+                        sx_yz[ix]*sz_xy[iz]*wqy);
                     amrex::Gpu::Atomic::Add(
-                        &jz_arr(lo.x+j +ix, lo.y+l0+iz, 0), 
-                        sx [ix]*sz0[iz]*wqz);
+                        &jz_arr(lo.x+j_yz+ix, lo.y+l_z+iz, 0, 0), 
+                        sx_yz[ix]*sz_z[iz]*wqz);
                 }
             }
 #elif (defined WARPX_DIM_3D)
@@ -152,14 +166,14 @@ void doDepositionShapeN(const amrex::Real * const xp,
                 for (int iy=0; iy<=depos_order; iy++){
                     for (int ix=0; ix<=depos_order; ix++){
                         amrex::Gpu::Atomic::Add(
-                            &jx_arr(lo.x+j0+ix, lo.y+k +iy, lo.z+l +iz),
-                            sx0[ix]*sy [iy]*sz [iz]*wqx);
+                            &jx_arr(lo.x+j_x+ix, lo.y+k_xz+iy, lo.z+l_xy+iz),
+                            sx_x[ix]*sy_xz[iy]*sz_xy[iz]*wqx);
                         amrex::Gpu::Atomic::Add(
-                            &jy_arr(lo.x+j +ix, lo.y+k0+iy, lo.z+l +iz), 
-                            sx [ix]*sy0[iy]*sz [iz]*wqy);
+                            &jy_arr(lo.x+j_yz+ix, lo.y+k_y+iy, lo.z+l_xy+iz), 
+                            sx_yz[ix]*sy_y[iy]*sz_xy[iz]*wqy);
                         amrex::Gpu::Atomic::Add(
-                            &jz_arr(lo.x+j +ix, lo.y+k +iy, lo.z+l0+iz),
-                            sx [ix]*sy [iy]*sz0[iz]*wqz);
+                            &jz_arr(lo.x+j_yz+ix, lo.y+k_xz+iy, lo.z+l_z+iz),
+                            sx_yz[ix]*sy_xz[iy]*sz_z[iz]*wqz);
                     }
                 }
             }
