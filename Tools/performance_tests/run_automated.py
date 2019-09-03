@@ -6,10 +6,10 @@ from functions_perftest import store_git_hash, get_file_content, \
 
 if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
-    from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
+    from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string, get_test_list
 if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
-    from cori   import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
+    from cori   import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string, get_test_list
 
 # machine = 'summit'
 # from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
@@ -59,6 +59,7 @@ n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
 start_date = args.start_date
 compiler = args.compiler
+architecture = args.architecture
 
 # Set behavior variables 
 ########################
@@ -82,14 +83,16 @@ if args.automated == True:
     push_on_perf_log_repo = False
     pull_3_repos = True
     recompile = True
-    if machine == 'summit': compiler = 'pgi'
+    if machine == 'summit': 
+        compiler = 'pgi'
+        architecture = 'gpu'
 
 recompile = False    
 pull_3_repos = False
 
 # List of tests to perform
 # ------------------------
-from cori import get_test_list
+# from cori import get_test_list
 test_list = get_test_list()
 
 # Define directories
@@ -104,11 +107,11 @@ perf_logs_repo = source_dir_base + 'perf_logs/'
 # Define dictionaries
 # -------------------
 compiler_name = {'intel': 'intel', 'gnu': 'gcc', 'pgi':'pgi'}
-module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache'}
+module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache', 'gpu':''}
 csv_file = {'cori':'cori_knl.csv', 'summit':'summit.csv'}
 cwd = os.getcwd() + '/'
 bin_dir = cwd + 'Bin/'
-bin_name = executable_name(compiler, args.architecture)
+bin_name = executable_name(compiler, architecture)
 
 log_dir  = cwd
 perf_database_file = cwd + perf_database_file
@@ -121,7 +124,7 @@ year = time.strftime('%Y')
 if args.mode == 'run':
     start_date = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # Set default options for compilation and execution
-    config_command = get_config_command(compiler, args.architecture)
+    config_command = get_config_command(compiler, architecture)
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
         os.mkdir(res_dir_base)    
@@ -165,20 +168,20 @@ if args.mode == 'run':
     # loop on n_node. One batch script per n_node
     for n_node in n_node_list:
         res_dir = res_dir_base
-        res_dir += '_'.join([run_name, compiler, args.architecture, str(n_node)]) + '/'
+        res_dir += '_'.join([run_name, compiler, architecture, str(n_node)]) + '/'
         runtime_param_list = []
         # Deep copy as we change the attribute n_cell of
         # each instance of class test_element
         test_list_n_node = copy.deepcopy(test_list)
         job_time_min = time_min(len(test_list))
-        batch_string = get_batch_string(test_list_n_node, job_time_min, module_Cname[args.architecture], n_node)
+        batch_string = get_batch_string(test_list_n_node, job_time_min, module_Cname[architecture], n_node)
         # Loop on tests
         for count, current_run in enumerate(test_list_n_node):
             current_run.scale_n_cell(n_node)
             runtime_param_string  = ' amr.n_cell=' + ' '.join(str(i) for i in current_run.n_cell)
             runtime_param_string += ' max_step=' + str( current_run.n_step )
             # runtime_param_list.append( runtime_param_string )
-            run_string = get_run_string(current_run, args.architecture, n_node, count, bin_name, runtime_param_string)
+            run_string = get_run_string(current_run, architecture, n_node, count, bin_name, runtime_param_string)
             batch_string += run_string
             batch_string += 'rm -rf plotfiles lab_frame_data diags\n'
             
@@ -188,7 +191,7 @@ if args.mode == 'run':
         run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
     os.chdir(cwd)
     # submit batch for analysis
-    process_analysis(args.automated, cwd, compiler, args.architecture, args.n_node_list, start_date)
+    process_analysis(args.automated, cwd, compiler, architecture, args.n_node_list, start_date)
 
 # read the output file from each test and store timers in
 # hdf5 file with pandas format
@@ -199,7 +202,7 @@ for n_node in n_node_list:
         for count, current_run in enumerate(test_list):
             res_dir = res_dir_base
             res_dir += '_'.join([run_name, compiler,\
-                                 args.architecture, str(n_node)]) + '/'
+                                 architecture, str(n_node)]) + '/'
             # Read performance data from the output file
             output_filename = 'out_' + '_'.join([current_run.input_file, str(n_node), str(current_run.n_mpi_per_node), str(current_run.n_omp), str(count)]) + '.txt'
             # Read data for all test to put in hdf5 a database
@@ -273,11 +276,11 @@ for n_node in n_node_list:
             loc_counter = 0
             res_dir_arch = res_dir_base
             res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
-                                      args.architecture, str(n_node), str(loc_counter)]) + '/'
+                                      architecture, str(n_node), str(loc_counter)]) + '/'
             while os.path.exists( res_dir_arch ):
                 loc_counter += 1
                 res_dir_arch = res_dir_base
                 res_dir_arch += '_'.join([year, month, day, run_name, compiler,\
-                                          args.architecture, str(n_node), str(loc_counter)]) + '/'
+                                          architecture, str(n_node), str(loc_counter)]) + '/'
             print("renaming " + res_dir + " to " + res_dir_arch)
             os.rename( res_dir, res_dir_arch )
