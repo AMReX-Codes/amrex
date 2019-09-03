@@ -15,6 +15,8 @@ class test_element():
         self.n_omp = n_omp
         self.n_cell = n_cell
         self.n_step = n_step
+        self.max_grid_size = max_grid_size
+        self.blocking_factor = blocking_factor
 
     def scale_n_cell(self, n_node=0):
         n_cell_scaled = copy.deepcopy(self.n_cell)

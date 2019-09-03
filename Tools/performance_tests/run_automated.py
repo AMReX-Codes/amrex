@@ -179,6 +179,8 @@ if args.mode == 'run':
         for count, current_run in enumerate(test_list_n_node):
             current_run.scale_n_cell(n_node)
             runtime_param_string  = ' amr.n_cell=' + ' '.join(str(i) for i in current_run.n_cell)
+            runtime_param_string += ' amr.max_grid_size=' + current_run.max_grid_size
+            runtime_param_string += ' amr.blocking_factor=' + current_run.blocking_factor
             runtime_param_string += ' max_step=' + str( current_run.n_step )
             # runtime_param_list.append( runtime_param_string )
             run_string = get_run_string(current_run, architecture, n_node, count, bin_name, runtime_param_string)
