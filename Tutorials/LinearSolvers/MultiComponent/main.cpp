@@ -32,6 +32,7 @@ using namespace amrex;
 int main (int argc, char* argv[])
 {
     Initialize(argc, argv);
+    {
     
     //
     // Read in mesh structure (# amr levels, # nodes)
@@ -215,5 +216,8 @@ int main (int argc, char* argv[])
     // Write the output to ./solution
     //
     WriteMLMF ("solution",GetVecOfConstPtrs(solution),geom);
+
+    }
+    Finalize();
 }
 
