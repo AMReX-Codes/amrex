@@ -8,7 +8,8 @@ import git
 # Each instance of this class contains information for a single test.
 class test_element():
     def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
-                 n_omp=None, n_cell=None, n_step=None):
+                 n_omp=None, n_cell=None, n_step=None, max_grid_size=None,
+                 blocking_factor=None):
         self.input_file = input_file
         self.n_node = n_node
         self.n_mpi_per_node = n_mpi_per_node
