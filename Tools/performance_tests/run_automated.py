@@ -303,7 +303,10 @@ if write_csv:
         os.chdir( perf_logs_repo )
         sys.path.append('./')
         import generate_index_html
-        git_repo.git.add('./index.html')
+        if machine == 'cori':
+            git_repo.git.add('./index.html')
+        if machine == 'summit':
+            git_repo.git.add('./index_summit.html')
         git_repo.git.add('./logs_csv/' + csv_file[machine])
         index = git_repo.index
         index.commit("automated tests")
