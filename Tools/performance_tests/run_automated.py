@@ -21,6 +21,13 @@ if os.getenv("NERSC_HOST") == 'cori':
 # Assume warpx, picsar, amrex and perf_logs repos ar in the same directory and
 # environment variable AUTOMATED_PERF_TESTS contains the path to this directory
 
+# requirements:
+# - python packages: gitpython and pandas
+# - AUTOMATED_PERF_TESTS: environment variables where warpx, 
+#   amrex and picsar are installed ($AUTOMATED_PERF_TESTS/warpx etc.)
+# - SCRATCH: environment variable where performance results are written.
+#   This script will create folder $SCRATCH/performance_warpx/
+
 # Handle parser
 ###############
 parser = argparse.ArgumentParser( description='Run performance tests and write results in files' )
@@ -87,8 +94,6 @@ if args.automated == True:
     if machine == 'summit': 
         compiler = 'pgi'
         architecture = 'gpu'
-
-pull_3_repos = False
 
 # List of tests to perform
 # ------------------------
@@ -200,6 +205,10 @@ if args.mode == 'run':
         run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
     os.chdir(cwd)
     # submit batch for analysis
+    if os.path.exists( 'read_error.txt' ):
+        os.remove( 'read_error.txt' )
+    if os.path.exists( 'read_output.txt' ):
+        os.remove( 'read_output.txt' )
     process_analysis(args.automated, cwd, compiler, architecture, args.n_node_list, start_date)
 
 # read the output file from each test and store timers in
