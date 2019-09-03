@@ -22,7 +22,7 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.get("nlevs", params.nlevs);
 }
 
-void testParticleMesh()
+void testIntersection()
 {
     TestParams params;
     get_test_params(params, "intersect");
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     
-    testParticleMesh();
+    testIntersection();
     
     amrex::Finalize();
 }
