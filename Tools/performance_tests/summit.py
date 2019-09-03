@@ -67,12 +67,52 @@ def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_
 
     output_filename = 'out_' + '_'.join([current_test.input_file, str(n_node), str(current_test.n_mpi_per_node), str(current_test.n_omp), str(count)]) + '.txt'
 
+    ngpu = str(current_test.n_mpi_per_node)
     srun_string = ''
     srun_string += 'jsrun '
     srun_string += ' -n ' + str(n_node)
-    srun_string += ' -a 6 -g 6 -c 6 --bind=packed:1 '
+    srun_string += ' -a ' + ngpu + ' -g ' + ngpu + ' -c ' + ngpu + ' --bind=packed:1 '
     srun_string += ' ./' + bin_name + ' '
     srun_string += current_test.input_file + ' '
     srun_string += runtime_param_list[ count ]
     srun_string += ' > ' + output_filename + '\n'
     return srun_string
+
+def get_test_list():
+    test_list_unq = []
+    # Each test runs n_repeat times
+    n_repeat = 2
+    # n_node is kept to None and passed in functions as an external argument
+    # That way, several test_element_instance run with the same n_node on the same batch job
+    test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
+                                       n_mpi_per_node=6,
+                                       n_omp=1, 
+                                       n_cell=[384, 256, 128], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
+                                       n_mpi_per_node=6, 
+                                       n_omp=1, 
+                                       n_cell=[512, 384, 256],
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc', 
+                                       n_mpi_per_node=6, 
+                                       n_omp=1, 
+                                       n_cell=[128, 256, 384], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc', 
+                                       n_mpi_per_node=6, 
+                                       n_omp=1,
+                                       n_cell=[384, 256, 128], 
+                                       n_step=50) )
+    test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance', 
+                                       n_mpi_per_node=6, 
+                                       n_omp=1, 
+                                       n_cell=[384, 256, 128], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc', 
+                                       n_mpi_per_node=6, 
+                                       n_omp=1,
+                                       n_cell=[384, 256, 128], 
+                                       n_step=0) )
+    test_list = [copy.deepcopy(item) for item in test_list_unq for _ in range(n_repeat) ]
+    return test_list

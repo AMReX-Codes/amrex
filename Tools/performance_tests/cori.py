@@ -102,3 +102,42 @@ def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_
         runtime_param_list[ count ] + \
         ' > ' + output_filename + '\n'
     return srun_string
+
+def get_test_list():
+    test_list_unq = []
+    # Each test runs n_repeat times
+    n_repeat = 2
+    # n_node is kept to None and passed in functions as an external argument
+    # That way, several test_element_instance run with the same n_node on the same batch job
+    test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
+                                       n_mpi_per_node=8, 
+                                       n_omp=8, 
+                                       n_cell=[128, 128, 128], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
+                                       n_mpi_per_node=8, 
+                                       n_omp=8, 
+                                       n_cell=[256, 256, 512], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc', 
+                                       n_mpi_per_node=8, 
+                                       n_omp=8, 
+                                       n_cell=[128, 128, 128], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc', 
+                                       n_mpi_per_node=8, 
+                                       n_omp=8, 
+                                       n_cell=[64, 64, 128], 
+                                       n_step=50) )
+    test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance', 
+                                       n_mpi_per_node=8, 
+                                       n_omp=8, 
+                                       n_cell=[128, 128, 128], 
+                                       n_step=10) )
+    test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc', 
+                                       n_mpi_per_node=8, 
+                                       n_omp=8, 
+                                       n_cell=[128, 256, 256], 
+                                       n_step=0) )
+    test_list = [copy.deepcopy(item) for item in test_list_unq for _ in range(n_repeat) ]
+    return test_list
