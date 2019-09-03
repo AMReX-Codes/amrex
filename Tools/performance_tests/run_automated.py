@@ -4,17 +4,18 @@ import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
     run_batch_nnode, extract_dataframe
 
+# Get name of supercomputer and import configuration functions from 
+# machine-specific file
 if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
-    from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string, get_test_list
+    from summit import executable_name, process_analysis, \
+        get_config_command, time_min, get_submit_job_command, \
+        get_batch_string, get_run_string, get_test_list
 if os.getenv("NERSC_HOST") == 'cori':
     machine = 'cori'
-    from cori   import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string, get_test_list
-
-# machine = 'summit'
-# from summit import executable_name, process_analysis, get_config_command, time_min, get_submit_job_command, get_batch_string, get_run_string
-
-# print("machine = " + machine)
+    from cori import executable_name, process_analysis, \
+        get_config_command, time_min, get_submit_job_command, \
+        get_batch_string, get_run_string, get_test_list
 
 # typical use: python run_automated.py --n_node_list='1,8,16,32' --automated
 # Assume warpx, picsar, amrex and perf_logs repos ar in the same directory and
@@ -93,7 +94,7 @@ pull_3_repos = False
 # ------------------------
 # Each test runs n_repeat times
 n_repeat = 2
-# from cori import get_test_list
+# test_list is machine-specific
 test_list = get_test_list(n_repeat)
 
 # Define directories
@@ -141,6 +142,10 @@ if args.mode == 'run':
             git_repo = git.cmd.Git( warpx_dir  )
             git_repo.pull()
         
+        # Copy WarpX/GNUmakefile to current directory and recompile
+        # with specific options for automated performance tests.
+        # This way, performance test compilation does not mess with user's
+        # compilation
         shutil.copyfile("../../GNUmakefile","./GNUmakefile")
         make_realclean_command = " make realclean WARPX_HOME=../.. " \
             "AMREX_HOME=../../../amrex/ PICSAR_HOME=../../../picsar/ " \
@@ -153,6 +158,8 @@ if args.mode == 'run':
         os.system(config_command + make_realclean_command + \
                   "rm -r tmp_build_dir *.mod; " + make_command )
 
+        # Store git hashes for WarpX, AMReX and PICSAR into file, so that
+        # they can be read when running the analysis.
         if os.path.exists( cwd + 'store_git_hashes.txt' ):
             os.remove( cwd + 'store_git_hashes.txt' )
         store_git_hash(repo_path=picsar_dir, filename=cwd + 'store_git_hashes.txt', name='picsar')
@@ -190,7 +197,6 @@ if args.mode == 'run':
             
         submit_job_command = get_submit_job_command()
         # Run the simulations.
-        # run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, submit_job_command)
         run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
     os.chdir(cwd)
     # submit batch for analysis
@@ -256,10 +262,12 @@ if write_csv:
     # Errors may occur depending on the version of pandas. I had errors with v0.21.0 solved with 0.23.0
     # Second, move files to perf_logs repo
     if update_perf_log_repo:
+        # get perf_logs repo
         git_repo = git.Repo( perf_logs_repo )
         if push_on_perf_log_repo:
             git_repo.git.stash('save')
             git_repo.git.pull()
+        # move csv file to perf_logs repon and commit the new version
         shutil.move( csv_file[machine], perf_logs_repo + '/logs_csv/' + csv_file[machine] )
         os.chdir( perf_logs_repo )
         sys.path.append('./')
@@ -272,8 +280,9 @@ if write_csv:
         index = git_repo.index
         index.commit("automated tests")
 
+# Rename all result directories for archiving purposes:
+# include date in the name, and a counter to avoid over-writing
 for n_node in n_node_list:
-    print(n_node)
     if browse_output_files:
         res_dir = res_dir_base
         res_dir += '_'.join([run_name, compiler,\
