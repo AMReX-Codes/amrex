@@ -23,6 +23,7 @@ addons:
       - texlive-latex-extra
       - texlive-lang-cjk
       - latexmk
+      - svg-extract
 
 install:
   - pip install sphinx sphinx_rtd_theme breathe
