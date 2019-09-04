@@ -133,13 +133,13 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
         {
             const Box& bx = mfi.tilebox();
             Array4<Real> const axfab = out.array(mfi);
-            Array4<Real const> const vfab = in.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
-                         Array4<Real const> const etayfab = etamf[1].array(mfi);,
-                         Array4<Real const> const etazfab = etamf[2].array(mfi););
-            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
-                         Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
-                         Array4<Real const> const kapzfab = kapmf[2].array(mfi););
+            Array4<Real const> const vfab = in.const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
+                         Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
+                         Array4<Real const> const etazfab = etamf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
+                         Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
+                         Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
@@ -313,13 +313,13 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
         for (MFIter mfi(sol, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            Array4<Real const> const vfab = sol.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
-                         Array4<Real const> const etayfab = etamf[1].array(mfi);,
-                         Array4<Real const> const etazfab = etamf[2].array(mfi););
-            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].array(mfi);,
-                         Array4<Real const> const kapyfab = kapmf[1].array(mfi);,
-                         Array4<Real const> const kapzfab = kapmf[2].array(mfi););
+            Array4<Real const> const vfab = sol.const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].const_array(mfi);,
+                         Array4<Real const> const etayfab = etamf[1].const_array(mfi);,
+                         Array4<Real const> const etazfab = etamf[2].const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const kapxfab = kapmf[0].const_array(mfi);,
+                         Array4<Real const> const kapyfab = kapmf[1].const_array(mfi);,
+                         Array4<Real const> const kapzfab = kapmf[2].const_array(mfi););
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
                          Box const ybx = amrex::surroundingNodes(bx,1);,
                          Box const zbx = amrex::surroundingNodes(bx,2););
@@ -352,7 +352,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
 	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
 	        const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
-		Array4<Real const> src = fluxfab_tmp[idim].array();
+		Array4<Real const> src = fluxfab_tmp[idim].const_array();
 		AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
                 {
                     dst(i,j,k,n) += bscalar*src(i,j,k,n);

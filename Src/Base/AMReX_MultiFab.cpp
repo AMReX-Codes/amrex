@@ -797,7 +797,7 @@ indexFromValue (MultiFab const& mf, int comp, int nghost, Real value, MPI_Op mml
         // The first is used as an atomic bool and the others for intvect.
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             const Box& bx = amrex::grow(mfi.validbox(), nghost);
-            const Array4<Real const> arr = mf.array(mfi);
+            const Array4<Real const> arr = mf.const_array(mfi);
             AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
             {
                 int* flag = p;

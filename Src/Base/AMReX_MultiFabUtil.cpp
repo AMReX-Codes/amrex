@@ -66,7 +66,7 @@ namespace amrex
         {
             const Box bx = mfi.growntilebox(ngrow);
             Array4<Real> const& ccarr = cc.array(mfi);
-            Array4<Real const> const& ndarr = nd.array(mfi);
+            Array4<Real const> const& ndarr = nd.const_array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -88,9 +88,9 @@ namespace amrex
         {
             const Box bx = mfi.growntilebox(ngrow);
             Array4<Real> const& ccarr = cc.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& exarr = edge[0]->array(mfi);,
-                         Array4<Real const> const& eyarr = edge[1]->array(mfi);,
-                         Array4<Real const> const& ezarr = edge[2]->array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& exarr = edge[0]->const_array(mfi);,
+                         Array4<Real const> const& eyarr = edge[1]->const_array(mfi);,
+                         Array4<Real const> const& ezarr = edge[2]->const_array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -129,9 +129,9 @@ namespace amrex
         {
             const Box bx = mfi.growntilebox(ngrow);
             Array4<Real> const& ccarr = cc.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->array(mfi);,
-                         Array4<Real const> const& fyarr = fc[1]->array(mfi);,
-                         Array4<Real const> const& fzarr = fc[2]->array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
+                         Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
+                         Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -160,9 +160,9 @@ namespace amrex
         {
             const Box bx = mfi.tilebox();
             Array4<Real> const& ccarr = cc.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->array(mfi);,
-                         Array4<Real const> const& fyarr = fc[1]->array(mfi);,
-                         Array4<Real const> const& fzarr = fc[2]->array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& fxarr = fc[0]->const_array(mfi);,
+                         Array4<Real const> const& fyarr = fc[1]->const_array(mfi);,
+                         Array4<Real const> const& fzarr = fc[2]->const_array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -207,7 +207,7 @@ namespace amrex
             AMREX_D_TERM(Array4<Real> const& fxarr = fc[0]->array(mfi);,
                          Array4<Real> const& fyarr = fc[1]->array(mfi);,
                          Array4<Real> const& fzarr = fc[2]->array(mfi););
-            Array4<Real const> const& ccarr = cc.array(mfi);
+            Array4<Real const> const& ccarr = cc.const_array(mfi);
             
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
@@ -273,8 +273,8 @@ namespace amrex
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& bx = mfi.tilebox();
             Array4<Real> const& crsearr = crse_S_fine.array(mfi);
-            Array4<Real const> const& finearr = S_fine.array(mfi);
-            Array4<Real const> const& finevolarr = fvolume.array(mfi);
+            Array4<Real const> const& finearr = S_fine.const_array(mfi);
+            Array4<Real const> const& finevolarr = fvolume.const_array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -323,7 +323,7 @@ namespace amrex
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& bx = mfi.growntilebox(nGrow);
             Array4<Real> const& crsearr = crse_S_fine.array(mfi);
-            Array4<Real const> const& finearr = S_fine.array(mfi);
+            Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -360,7 +360,7 @@ namespace amrex
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& bx = mfi.tilebox();
                 Array4<Real> const& crsearr = S_crse.array(mfi);
-                Array4<Real const> const& finearr = S_fine.array(mfi);
+                Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
                 if (is_cell_centered) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
@@ -387,7 +387,7 @@ namespace amrex
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& bx = mfi.tilebox();
                 Array4<Real> const& crsearr = crse_S_fine.array(mfi);
-                Array4<Real const> const& finearr = S_fine.array(mfi);
+                Array4<Real const> const& finearr = S_fine.const_array(mfi);
 
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
@@ -472,7 +472,7 @@ namespace amrex
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
                 Array4<Real> const& crsearr = crse.array(mfi);
-                Array4<Real const> const& finearr = fine.array(mfi);
+                Array4<Real const> const& finearr = fine.const_array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
@@ -535,7 +535,7 @@ namespace amrex
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
                 Array4<Real> const& crsearr = crse.array(mfi);
-                Array4<Real const> const& finearr = fine.array(mfi);
+                Array4<Real const> const& finearr = fine.const_array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
@@ -571,7 +571,7 @@ namespace amrex
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
                 Array4<Real> const& crsearr = crse.array(mfi);
-                Array4<Real const> const& finearr = fine.array(mfi);
+                Array4<Real const> const& finearr = fine.const_array(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
@@ -638,7 +638,7 @@ namespace amrex
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
             Array4<Real> const& slice_arr = slice->array(mfi);
-            Array4<Real const> const& full_arr = cc.array(full_gid);
+            Array4<Real const> const& full_arr = cc.const_array(full_gid);
 
             const Box& tile_box  = mfi.tilebox();
 
@@ -720,9 +720,9 @@ namespace amrex
         {
             const Box& bx = mfi.tilebox();
             Array4<Real> const& divuarr = divu.array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& uarr = umac[0]->array(mfi);,
-                         Array4<Real const> const& varr = umac[1]->array(mfi);,
-                         Array4<Real const> const& warr = umac[2]->array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& uarr = umac[0]->const_array(mfi);,
+                         Array4<Real const> const& varr = umac[1]->const_array(mfi);,
+                         Array4<Real const> const& warr = umac[2]->const_array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
@@ -743,9 +743,9 @@ namespace amrex
         {
             const Box& bx = mfi.tilebox();
             const auto& gradfab = grad.array(mfi);
-            AMREX_D_TERM(const auto& ufab = umac[0]->array(mfi);,
-                         const auto& vfab = umac[1]->array(mfi);,
-                         const auto& wfab = umac[2]->array(mfi););
+            AMREX_D_TERM(const auto& ufab = umac[0]->const_array(mfi);,
+                         const auto& vfab = umac[1]->const_array(mfi);,
+                         const auto& wfab = umac[2]->const_array(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
             {
