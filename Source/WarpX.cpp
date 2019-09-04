@@ -281,7 +281,8 @@ WarpX::ReadParameters ()
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
-    pp.query("do_subcycling", do_subcycling);
+        pp.query("do_subcycling", do_subcycling);
+        pp.query("override_sync_int", override_sync_int);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
                                      "Subcycling method 1 only works for 2 levels.");

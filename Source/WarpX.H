@@ -533,6 +533,9 @@ private:
     int load_balance_with_sfc = 0;
     amrex::Real load_balance_knapsack_factor = 1.24;
 
+    // Override sync every ? steps
+    int override_sync_int = 10;
+
     // Other runtime parameters
     int verbose = 1;
 
