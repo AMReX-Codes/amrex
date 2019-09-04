@@ -190,11 +190,6 @@ WarpX::WarpX ()
     current_buf.resize(nlevs_max);
     charge_buf.resize(nlevs_max);
 
-    current_fp_owner_masks.resize(nlevs_max);
-    current_cp_owner_masks.resize(nlevs_max);
-    rho_fp_owner_masks.resize(nlevs_max);
-    rho_cp_owner_masks.resize(nlevs_max);
-
     pml.resize(nlevs_max);
 
 #ifdef WARPX_DO_ELECTROSTATIC
@@ -640,13 +635,7 @@ WarpX::ClearLevel (int lev)
 	Efield_cax[lev][i].reset();
 	Bfield_cax[lev][i].reset();
         current_buf[lev][i].reset();
-
-        current_fp_owner_masks[lev][i].reset();
-        current_cp_owner_masks[lev][i].reset();
     }
-
-    rho_fp_owner_masks[lev].reset();
-    rho_cp_owner_masks[lev].reset();
 
     charge_buf[lev].reset();
 
@@ -815,15 +804,9 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,ncomps,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,ncomps,ngJ));
 
-    const auto& period = Geom(lev).periodicity();
-    current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
-    current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
-    current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
-
     if (do_dive_cleaning || plot_rho)
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
-        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
 
     if (do_subcycling == 1 && lev == 0)
@@ -841,7 +824,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     else
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
-        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
     if (fft_hybrid_mpi_decomposition == false){
         // Allocate and initialize the spectral solver
@@ -904,14 +886,8 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,ncomps,ngJ));
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,ncomps,ngJ));
 
-        const auto& cperiod = Geom(lev-1).periodicity();
-        current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
-        current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
-        current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
-
         if (do_dive_cleaning || plot_rho){
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
-            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
         if (do_dive_cleaning)
         {
@@ -921,7 +897,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         else
         {
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
-            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
         if (fft_hybrid_mpi_decomposition == false){
             // Allocate and initialize the spectral solver
