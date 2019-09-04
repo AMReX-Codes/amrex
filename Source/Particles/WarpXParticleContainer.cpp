@@ -336,9 +336,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     tby.grow(ngJ);
     tbz.grow(ngJ);
 
-    local_jx[thread_num].resize(tbx);
-    local_jy[thread_num].resize(tby);
-    local_jz[thread_num].resize(tbz);
+    local_jx[thread_num].resize(tbx, jx->nComp());
+    local_jy[thread_num].resize(tby, jy->nComp());
+    local_jz[thread_num].resize(tbz, jz->nComp());
 
     // local_jx[thread_num] is set to zero
     local_jx[thread_num].setVal(0.0);
@@ -373,17 +373,20 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
             doEsirkepovDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
+                WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doEsirkepovDepositionShapeN<2>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
+                WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doEsirkepovDepositionShapeN<3>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
+                WarpX::n_rz_azimuthal_modes);
         }
     } else {
         if        (WarpX::nox == 1){
@@ -412,9 +415,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     BL_PROFILE_VAR_START(blp_accumulate);
     // CPU, tiling: atomicAdd local_jx into jx
     // (same for jx and jz)
-    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, jx->nComp());
+    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, jy->nComp());
+    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, jz->nComp());
     BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
 }
@@ -471,15 +474,17 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     
     tilebox.grow(ngRho);
 
+    const int nc = (rho->nComp() == 1 ? 1 : rho->nComp()/2);
+
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: rho_arr points to the full rho array.
-    MultiFab rhoi(*rho, amrex::make_alias, icomp, 1);
+    MultiFab rhoi(*rho, amrex::make_alias, icomp*nc, nc);
     Array4<Real> const& rho_arr = rhoi.array(pti);
 #else
     // Tiling is on: rho_arr points to local_rho[thread_num]
     const Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
 
-    local_rho[thread_num].resize(tb);
+    local_rho[thread_num].resize(tb, nc);
 
     // local_rho[thread_num] is set to zero
     local_rho[thread_num].setVal(0.0);
@@ -515,7 +520,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
 
-    (*rho)[pti].atomicAdd(local_rho[thread_num], tb, tb, 0, icomp, 1);
+    (*rho)[pti].atomicAdd(local_rho[thread_num], tb, tb, 0, icomp*nc, nc);
 
     BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -569,7 +574,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
         BoxArray coarsened_fine_BA = fine_BA;
         coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
 
-        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
         coarsened_fine_data.setVal(0.0);
 
         IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
@@ -598,7 +603,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,WarpX::ncomps,ng));
     rho->setVal(0.0);
 
 #ifdef _OPENMP

@@ -94,6 +94,10 @@ public:
     static long noy;
     static long noz;
 
+    // Number of modes for the RZ multimode version
+    static long n_rz_azimuthal_modes;
+    static long ncomps;
+
     static bool use_fdtd_nci_corr;
     static int  l_lower_order_in_v;
 

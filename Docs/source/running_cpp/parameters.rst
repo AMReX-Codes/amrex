@@ -91,6 +91,9 @@ Setting up the field mesh
     in the list will deposit their charge/current directly on the main grid
     (i.e. the coarsest level), even if they are inside a refinement patch.
 
+* ``warpx.n_rz_azimuthal_modes`` (`integer`; 1 by default)
+    When using the RZ version, this is the number of azimuthal modes.
+
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
 
@@ -200,6 +203,10 @@ Particle initialization
       ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`),
       and optional argument ``<species_name>.do_symmetrize`` (whether to
       symmetrize the beam in the x and y directions).
+
+* ``<species_name>.num_particles_per_cell_each_dim`` (`3 integers in 3D and RZ, 2 integers in 2D`)
+    With the NUniformPerCell injection style, this specifies the number of particles along each axis
+    within a cell. Note that for RZ, the three axis are radius, theta, and z.
 
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at

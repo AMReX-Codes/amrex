@@ -29,7 +29,7 @@ namespace
             for (int j = 0; j < AMREX_SPACEDIM; ++j) {
                 (*shapes)[shapesize*i+j] = mf[mfi].box().length(j); 
             }
-            if (mf.nComp() > 1) (*shapes)[shapesize*i+2] = mf.nComp();
+            if (mf.nComp() > 1) (*shapes)[shapesize*i+AMREX_SPACEDIM] = mf.nComp();
         }
         return data;
     }
