@@ -1,4 +1,5 @@
 F90EXE_sources += utils_ES.F90
+CEXE_headers += WarpX_Complex.H
 CEXE_sources += WarpXMovingWindow.cpp
 CEXE_sources += WarpXTagging.cpp
 CEXE_sources += WarpXUtil.cpp
