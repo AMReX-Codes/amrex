@@ -1019,8 +1019,10 @@ WarpX::LowerCornerWithCentering(const Box& bx, int lev)
     if (!bx.type(0)) corner[0] += 0.5*dx[0];
 #if (AMREX_SPACEDIM == 3)
     if (!bx.type(1)) corner[1] += 0.5*dx[1];
-#endif
     if (!bx.type(2)) corner[2] += 0.5*dx[2];
+#else
+    if (!bx.type(1)) corner[2] += 0.5*dx[2];
+#endif
     return corner;
 }
 
