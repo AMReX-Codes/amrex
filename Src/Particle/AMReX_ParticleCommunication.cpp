@@ -63,21 +63,22 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
     {
         if (i == MyProc) continue;
         auto box_buffer_indices = map.allBucketsOnProc(i);
-        int nboxes = box_buffer_indices.size();
+        long nbytes = 0;
         for (auto bucket : box_buffer_indices)
 	{
             int dst = map.bucketToGrid(bucket);
             int npart = box_counts[bucket];
+            if (npart == 0) continue;
             m_snd_num_particles[i] += npart;
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
+            nbytes += 2*sizeof(int);
 	}
-	long nbytes = 2*nboxes*sizeof(int);
 	m_Snds[i] = nbytes;
 	m_NumSnds += nbytes;
     }
 
-    if (do_handshake) doHandShake(m_Snds, m_Rcvs);
+    doHandShake(m_Snds, m_Rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     long tot_snds_this_proc = 0;
