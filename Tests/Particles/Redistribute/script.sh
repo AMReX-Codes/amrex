@@ -1,6 +1,6 @@
 #!/bin/bash
 #BSUB -P CSC308
-#BSUB -W 2:00
+#BSUB -W 0:02
 #BSUB -nnodes 1
 #BSUB -J RedistributeTest
 #BSUB -o RedistributeTesto.%J

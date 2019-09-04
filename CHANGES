@@ -1,3 +1,20 @@
+# 19.09
+
+  -- First pass of Sr/EB on GPU.
+
+  -- Optimization of particle redistribution.
+
+  -- EB integral: add integral of x*y*z
+
+  -- HostDevice::Atomic::Add that does atomic add for both device and
+     host omp code.
+
+  -- makeFineMask: optional arguments specifying coarse and fine flag
+     values.
+
+  -- Optimization of FabArray communication for GPU by merging small
+     kernels.
+
 # 19.08
 
   -- MacProjector has the option to set maximal coarsening level.

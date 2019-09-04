@@ -248,7 +248,8 @@ fillNeighborsGPU ()
     neighbor_copy_op.clear();
     neighbor_copy_plan.clear();
     buildNeighborCopyOp();
-    neighbor_copy_plan.build(*this, neighbor_copy_op, true);
+    this->m_need_handshake = true;
+    neighbor_copy_plan.build(*this, neighbor_copy_op, this->m_need_handshake);
     updateNeighborsGPU();
 }
 

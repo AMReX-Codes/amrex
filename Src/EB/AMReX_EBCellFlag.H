@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <AMReX_Array.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
@@ -166,6 +167,47 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int numNeighbors () const noexcept {
+        int n = 1;
+        n += isConnected(-1,-1, 0);
+        n += isConnected( 0,-1, 0);
+        n += isConnected( 1,-1, 0);
+        //
+        n += isConnected(-1, 0, 0);
+        n += isConnected( 1, 0, 0);
+        //
+        n += isConnected(-1, 1, 0);
+        n += isConnected( 0, 1, 0);
+        n += isConnected( 1, 1, 0);
+#if (AMREX_SPACEDIM == 3)
+        n += isConnected(-1,-1,-1);
+        n += isConnected( 0,-1,-1);
+        n += isConnected( 1,-1,-1);
+        //
+        n += isConnected(-1, 0,-1);
+        n += isConnected( 0, 0,-1);
+        n += isConnected( 1, 0,-1);
+        //
+        n += isConnected(-1, 1,-1);
+        n += isConnected( 0, 1,-1);
+        n += isConnected( 1, 1,-1);
+        //
+        n += isConnected(-1,-1, 1);
+        n += isConnected( 0,-1, 1);
+        n += isConnected( 1,-1, 1);
+        //
+        n += isConnected(-1, 0, 1);
+        n += isConnected( 0, 0, 1);
+        n += isConnected( 1, 0, 1);
+        //
+        n += isConnected(-1, 1, 1);
+        n += isConnected( 0, 1, 1);
+        n += isConnected( 1, 1, 1);
+#endif
+        return n;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     uint32_t getValue() const noexcept
     {
         return flag;
@@ -258,31 +300,23 @@ public:
 
     EBCellFlagFab (const EBCellFlagFab& rhs, MakeType make_type, int scomp, int ncomp);
 
-    EBCellFlagFab () noexcept = default;
-    EBCellFlagFab (EBCellFlagFab&& rhs) noexcept = default;
-    ~EBCellFlagFab () noexcept = default;
+    EBCellFlagFab () = default;
+    EBCellFlagFab (EBCellFlagFab&& rhs) = default;
+    ~EBCellFlagFab () = default;
 
     EBCellFlagFab (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (EBCellFlagFab&&) = delete;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     FabType getType () const noexcept { return m_type; }
 
     FabType getType (const Box& bx) const noexcept;
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const Box& getRegion () const noexcept { return m_region; }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setType (FabType t) noexcept { m_type = t; }
-
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void setRegion (const Box& bx) noexcept { m_region = bx; }
 
 private:
     FabType m_type = FabType::undefined;
-    Box m_region;
+    mutable std::map<Box,FabType> m_typemap;
 };
 
 std::ostream& operator<< (std::ostream& os, const EBCellFlag& flag);

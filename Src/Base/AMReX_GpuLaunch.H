@@ -37,10 +37,13 @@ namespace amrex {
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
     
     template<class L>
-    AMREX_GPU_DEVICE void call_device (L f0) noexcept { f0(); }
+    AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
     
     template<class L, class... Lambdas>
-    AMREX_GPU_DEVICE void call_device (L f0, Lambdas... fs) noexcept { f0(); call_device(fs...); }
+    AMREX_GPU_DEVICE void call_device (L&& f0, Lambdas&&... fs) noexcept {
+        f0();
+        call_device(std::forward<Lambdas>(fs)...);
+    }
     
 // CPU variation
 
@@ -190,5 +193,61 @@ namespace Gpu {
 #define AMREX_HOST_DEVICE_FOR_1D(...) AMREX_GPU_HOST_DEVICE_FOR_1D(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_FOR_3D(...) AMREX_GPU_HOST_DEVICE_FOR_3D(__VA_ARGS__)
 #define AMREX_HOST_DEVICE_FOR_4D(...) AMREX_GPU_HOST_DEVICE_FOR_4D(__VA_ARGS__)
+
+#ifdef AMREX_USE_GPU
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    if (flag) \
+    { \
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
+            block \
+        ); \
+    }
+
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    if (flag) \
+    { \
+        amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    } \
+    else { \
+        amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+            block \
+        ); \
+    }
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
+    if (flag) { \
+        AMREX_LAUNCH_DEVICE_LAMBDA(box,tbox,block); \
+    } else { \
+        auto tbox = box; \
+        block; \
+    }
+
+#else
+
+#define AMREX_HOST_DEVICE_FOR_3D_FLAG(flag,box,i,j,k,block) \
+    amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
+        block \
+    );
+
+#define AMREX_HOST_DEVICE_FOR_4D_FLAG(flag,box,nc,i,j,k,n,block) \
+    amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+        block \
+    );
+
+#define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(flag,box,tbox,block) \
+    { \
+        auto tbox = box; \
+        block; \
+    }
+
+#endif
 
 #endif
