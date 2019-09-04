@@ -18,14 +18,14 @@ def get_config_command(compiler, architecture):
 # after all performance tests are done.
 def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
 
-    batch_string = ''
-    batch_string += '#!/bin/bash\n'
-    batch_string += '#BSUB -P APH114\n'
-    batch_string += '#BSUB -W 00:10\n'
-    batch_string += '#BSUB -nnodes 1\n'
-    batch_string += '#BSUB -J perf_test\n'
-    batch_string += '#BSUB -o read_output.txt\n'
-    batch_string += '#BSUB -e read_error.txt\n'
+    batch_string = '''#!/bin/bash
+#BSUB -P APH114
+#BSUB -W 00:10
+#BSUB -nnodes 1
+#BSUB -J perf_test
+#BSUB -o read_output.txt
+#BSUB -e read_error.txt
+'''
     f_log = open(cwd + 'log_jobids_tmp.txt' ,'r')
     for line in f_log.readlines():
         dependency = line.split()[1][1:-1]

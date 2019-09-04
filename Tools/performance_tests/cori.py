@@ -39,19 +39,20 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
     f_log = open(cwd + 'log_jobids_tmp.txt' ,'r')
     for line in f_log.readlines():
         dependencies += line.split()[3] + ':'
-    batch_string = ''
-    batch_string += '#!/bin/bash\n'
-    batch_string += '#SBATCH --job-name=warpx_1node_read\n'
-    batch_string += '#SBATCH --time=00:07:00\n'
-    batch_string += '#SBATCH -C knl\n'
-    batch_string += '#SBATCH -N 1\n'
-    batch_string += '#SBATCH -S 4\n'
-    batch_string += '#SBATCH -q regular\n'
-    batch_string += '#SBATCH -e read_error.txt\n'
-    batch_string += '#SBATCH -o read_output.txt\n'
-    batch_string += '#SBATCH --mail-type=end\n'
-    batch_string += '#SBATCH --account=m2852\n'
-    batch_string += 'module load h5py-parallel\n'
+
+    batch_string = '''#!/bin/bash
+#SBATCH --job-name=warpx_1node_read
+#SBATCH --time=00:07:00
+#SBATCH -C knl
+#SBATCH -N 1
+#SBATCH -S 4
+#SBATCH -q regular
+#SBATCH -e read_error.txt
+#SBATCH -o read_output.txt
+#SBATCH --mail-type=end
+#SBATCH --account=m2852
+module load h5py-parallel
+'''
     batch_string += 'python run_automated.py --compiler=' + \
         compiler + ' --architecture=' + architecture + \
         ' --mode=read' + \
