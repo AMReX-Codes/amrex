@@ -176,9 +176,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 ba.intersections(Box(iv, iv), isects, true, 0);
                 grid = isects.empty() ? -1 : isects[0].first;
 	    } else {
-                iv = Index(p, lev);
-                grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
                 iv = Index(p_prime, lev);
+                if (ba[local_grid].contains(iv))
+                {
+                    grid = local_grid;
+                }
+                else
+                {
+                    grid = (*redistribute_mask_ptr)[local_grid](Index(p, lev), 0);
+                }
 	    }
             
             if (grid >= 0) {
