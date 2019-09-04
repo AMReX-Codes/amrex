@@ -44,7 +44,7 @@ namespace MathFunc
         return std::exp(val);
 #endif
     }
-  
+
     // sqrt function
     template<typename T>
     AMREX_GPU_HOST_DEVICE T sqrt (const T& val){
