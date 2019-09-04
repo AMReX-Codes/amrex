@@ -61,7 +61,7 @@ analytic_plasma = picmi.AnalyticDistribution(density_expression = density,
                                              momentum_expressions = momentum_expressions)
 
 electrons = picmi.Species(particle_type='electron', name='electrons', initial_distribution=analytic_plasma)
-ions = picmi.Species(particle_type='proton', name='protons', initial_distribution=uniform_plasma)
+ions = picmi.Species(particle_type='proton', name='ions', initial_distribution=uniform_plasma)
 
 grid = picmi.CylindricalGrid(number_of_cells = [nr, nz],
                              n_azimuthal_modes = 3,
