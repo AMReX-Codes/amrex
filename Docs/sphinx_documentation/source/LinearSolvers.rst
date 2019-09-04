@@ -335,7 +335,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
 
   .. _fig::refluxfreecoarsefine:
 
-  .. figure:: ./LinearSolvers/refluxfreecoarsefine.svg
+  .. figure:: ./LinearSolvers/refluxfreecoarsefine.png
 	      :height: 2cm
 	      :align: center
 
