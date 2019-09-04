@@ -48,14 +48,32 @@ E_predicted = m_e * wp * u * c / e * np.sin(wp*t)
 # at the edges of the plasma
 if direction == 'x':
     E = data[ 'Ex' ].to_ndarray()
+    # compute and print errors
+    max_rel_error_nonzero = np.max(np.abs((E[2:30,:,:]-E_predicted)/E_predicted))
+    max_rel_error_zero = np.max(E[34:-2,:,:])
+    print('relative error: %s' %max_rel_error_nonzero)
+    print('absolute field error (where field should be 0): %s' %max_rel_error_zero)
+    # assert small errors
     assert np.allclose( E[2:30,:,:], E_predicted, rtol=0.1 )
     assert np.allclose( E[34:-2,:,:], 0, atol=1.e-5 )
 elif direction == 'y':
     E = data[ 'Ey' ].to_ndarray()
+    # compute and print errors
+    max_rel_error_nonzero = np.max(np.abs((E[:,2:30,:]-E_predicted)/E_predicted))
+    max_rel_error_zero = np.max(E[:,34:-2,:])
+    print('relative error: %s' %max_rel_error_nonzero)
+    print('absolute field error (where field should be 0): %s' %max_rel_error_zero)
+    # assert small errors
     assert np.allclose( E[:,2:30,:], E_predicted, rtol=0.1 )
     assert np.allclose( E[:,34:-2,:], 0, atol=1.e-5 )
 elif direction == 'z':
     E = data[ 'Ez' ].to_ndarray()
+    # compute and print errors
+    max_rel_error_nonzero = np.max(np.abs((E[:,:,2:30]-E_predicted)/E_predicted))
+    max_rel_error_zero = np.max(E[:,:,34:-2])
+    print('relative error: %s' %max_rel_error_nonzero)
+    print('absolute field error (where field should be 0): %s' %max_rel_error_zero)
+    # assert small errors
     assert np.allclose( E[:,:,2:30], E_predicted, rtol=0.1 )
     assert np.allclose( E[:,:,34:-2], 0, atol=1.e-5 )
 
