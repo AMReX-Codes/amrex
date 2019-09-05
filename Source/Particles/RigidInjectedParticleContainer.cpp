@@ -409,7 +409,8 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
-                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+                        Ex.nGrow(), e_is_nodal,
+                        0, np, thread_num, lev, lev);
 
             // Save the position and momenta, making copies
             auto uxp_save = uxp;

@@ -1,7 +1,7 @@
 #ifndef WARPX_SPECTRAL_K_SPACE_H_
 #define WARPX_SPECTRAL_K_SPACE_H_
 
-#include <WarpX_Complex.H>
+#include <WarpX_ComplexForFFT.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_LayoutData.H>
 
