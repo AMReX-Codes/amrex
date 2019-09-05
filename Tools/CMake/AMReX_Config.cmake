@@ -33,7 +33,7 @@ function (configure_amrex)
    # 
    include( AMReX_ThirdPartyProfilers )
    include( AMReX_Defines )
-   include( AMReX_Utils )
+   include( AMReXGenexHelpers )
    
    # 
    # Set properties for target "amrex"
