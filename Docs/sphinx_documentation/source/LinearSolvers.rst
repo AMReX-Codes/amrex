@@ -398,7 +398,25 @@ the MACProjector object and use it to perform a MAC projection.
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
 
+Note that in order to project the velocity onto a field with a specified divergence, :math:`D(U)=RHS`,
+one simply has to pass in an additional array of MultiFabs into the MacProjector constructor,
 
+.. highlight:: c++
+
+::
+
+    MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+                         {amrex::GetArrOfConstPtrs(beta)}, // beta
+                         {geom},                           // the geometry object
+			 lp_info,                  // structure for passing info to the operator
+                         {amrex::GetArrOfConstPtrs(RHS)}); // defines the specified RHS divergence			 
+                    
+This in turn solves :math:`D( \beta \nabla \phi) = D(U^*) - RHS`
+
+and then sets :math:`U = U^* - \beta \nabla \phi`
+
+where :math:`U` satisfies :math:`D(U)=RHS`.
+   
 Multi-Component Operators
 =========================
 
