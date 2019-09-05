@@ -31,7 +31,7 @@ sim = picmi.Simulation(solver = solver,
                        warpx_plot_int = 1,
                        warpx_current_deposition_algo = 'direct')
 
-sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,2], grid=grid))
+sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,1,2], grid=grid))
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.

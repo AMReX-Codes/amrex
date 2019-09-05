@@ -44,6 +44,9 @@ long WarpX::field_gathering_algo;
 long WarpX::particle_pusher_algo;
 int WarpX::maxwell_fdtd_solver_id;
 
+long WarpX::n_rz_azimuthal_modes = 1;
+long WarpX::ncomps = 1;
+
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
@@ -187,11 +190,6 @@ WarpX::WarpX ()
     current_buf.resize(nlevs_max);
     charge_buf.resize(nlevs_max);
 
-    current_fp_owner_masks.resize(nlevs_max);
-    current_cp_owner_masks.resize(nlevs_max);
-    rho_fp_owner_masks.resize(nlevs_max);
-    rho_cp_owner_masks.resize(nlevs_max);
-
     pml.resize(nlevs_max);
 
 #ifdef WARPX_DO_ELECTROSTATIC
@@ -278,7 +276,8 @@ WarpX::ReadParameters ()
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
-    pp.query("do_subcycling", do_subcycling);
+        pp.query("do_subcycling", do_subcycling);
+        pp.query("override_sync_int", override_sync_int);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
                                      "Subcycling method 1 only works for 2 levels.");
@@ -517,6 +516,10 @@ WarpX::ReadParameters ()
             // Use same shape factors in all directions, for gathering
             l_lower_order_in_v = false;
         }
+
+        // Only needs to be set with WARPX_DIM_RZ, otherwise defaults to 1.
+        pp.query("n_rz_azimuthal_modes", n_rz_azimuthal_modes);
+
     }
 
     {
@@ -632,13 +635,7 @@ WarpX::ClearLevel (int lev)
 	Efield_cax[lev][i].reset();
 	Bfield_cax[lev][i].reset();
         current_buf[lev][i].reset();
-
-        current_fp_owner_masks[lev][i].reset();
-        current_cp_owner_masks[lev][i].reset();
     }
-
-    rho_fp_owner_masks[lev].reset();
-    rho_cp_owner_masks[lev].reset();
 
     charge_buf[lev].reset();
 
@@ -782,48 +779,51 @@ void
 WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm,
                       const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho, int ngF)
 {
+
+#if defined WARPX_DIM_RZ
+    // With RZ multimode, there is a real and imaginary component
+    // for each mode, except mode 0 which is purely real
+    // Component 0 is mode 0.
+    // Odd components are the real parts.
+    // Even components are the imaginary parts.
+    ncomps = n_rz_azimuthal_modes*2 - 1;
+#endif
+
     //
     // The fine patch
     //
-    Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ngE));
-    Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ngE));
-    Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ngE));
+    Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,ncomps,ngE));
+    Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,ncomps,ngE));
+    Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,ncomps,ngE));
 
-    Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ngE));
-    Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ngE));
-    Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ngE));
+    Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,ncomps,ngE));
+    Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,ncomps,ngE));
+    Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,ncomps,ngE));
 
-    current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
-    current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
-    current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
-
-    const auto& period = Geom(lev).periodicity();
-    current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
-    current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
-    current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
+    current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,ncomps,ngJ));
+    current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,ncomps,ngJ));
+    current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,ncomps,ngJ));
 
     if (do_dive_cleaning || plot_rho)
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
-        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
     }
 
     if (do_subcycling == 1 && lev == 0)
     {
-        current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
-        current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
-        current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
+        current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,ncomps,ngJ));
+        current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,ncomps,ngJ));
+        current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,ncomps,ngJ));
     }
 
     if (do_dive_cleaning)
     {
-        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,ncomps, ngF));
     }
 #ifdef WARPX_USE_PSATD
     else
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
-        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
     }
     if (fft_hybrid_mpi_decomposition == false){
         // Allocate and initialize the spectral solver
@@ -848,19 +848,19 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     if (lev == 0)
     {
         for (int idir = 0; idir < 3; ++idir) {
-            Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, 1));
-            Bfield_aux[lev][idir].reset(new MultiFab(*Bfield_fp[lev][idir], amrex::make_alias, 0, 1));
+            Efield_aux[lev][idir].reset(new MultiFab(*Efield_fp[lev][idir], amrex::make_alias, 0, ncomps));
+            Bfield_aux[lev][idir].reset(new MultiFab(*Bfield_fp[lev][idir], amrex::make_alias, 0, ncomps));
         }
     }
     else
     {
-        Bfield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ngE));
-        Bfield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ngE));
-        Bfield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ngE));
+        Bfield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,ncomps,ngE));
+        Bfield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,ncomps,ngE));
+        Bfield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,ncomps,ngE));
 
-        Efield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ngE));
-        Efield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ngE));
-        Efield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ngE));
+        Efield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,ncomps,ngE));
+        Efield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,ncomps,ngE));
+        Efield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,ncomps,ngE));
     }
 
     //
@@ -872,38 +872,31 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         cba.coarsen(refRatio(lev-1));
 
         // Create the MultiFabs for B
-        Bfield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
-        Bfield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
-        Bfield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+        Bfield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
+        Bfield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
+        Bfield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,ncomps,ngE));
 
         // Create the MultiFabs for E
-        Efield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
-        Efield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
-        Efield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+        Efield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,ncomps,ngE));
+        Efield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,ncomps,ngE));
+        Efield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,ncomps,ngE));
 
         // Create the MultiFabs for the current
-        current_cp[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
-        current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
-        current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-
-        const auto& cperiod = Geom(lev-1).periodicity();
-        current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
-        current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
-        current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
+        current_cp[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,ncomps,ngJ));
+        current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,ncomps,ngJ));
+        current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,ncomps,ngJ));
 
         if (do_dive_cleaning || plot_rho){
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
-            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
         }
         if (do_dive_cleaning)
         {
-            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,ncomps, ngF));
         }
 #ifdef WARPX_USE_PSATD
         else
         {
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
-            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
         }
         if (fft_hybrid_mpi_decomposition == false){
             // Allocate and initialize the spectral solver
@@ -933,28 +926,28 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 
         if (n_field_gather_buffer > 0) {
             // Create the MultiFabs for B
-            Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
-            Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
-            Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
+            Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
+            Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,ncomps,ngE));
 
             // Create the MultiFabs for E
-            Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
-            Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
-            Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,ncomps,ngE));
+            Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,ncomps,ngE));
+            Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,ncomps,ngE));
 
-            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, ncomps, 1) );
             // Gather buffer masks have 1 ghost cell, because of the fact
             // that particles may move by more than one cell when using subcycling.
         }
 
         if (n_current_deposition_buffer > 0) {
-            current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
-            current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
-            current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+            current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,ncomps,ngJ));
+            current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,ncomps,ngJ));
+            current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,ncomps,ngJ));
             if (rho_cp[lev]) {
-                charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+                charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2*ncomps,ngRho));
             }
-            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, ncomps, 1) );
             // Current buffer masks have 1 ghost cell, because of the fact
             // that particles may move by more than one cell when using subcycling.
         }
