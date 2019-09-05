@@ -65,24 +65,6 @@ public:
                                 int depos_lev,
                                 amrex::Real dt)  {};
 
-
-    // DepositCurrentFortran should do nothing for photons
-    virtual void DepositCurrentFortran(WarpXParIter& pti,
-                                        RealVector& wp,
-                                        RealVector& uxp,
-                                        RealVector& uyp,
-                                        RealVector& uzp,
-                                        amrex::MultiFab* jx,
-                                        amrex::MultiFab* jy,
-                                        amrex::MultiFab* jz,
-                                        const long offset,
-                                        const long np_to_depose,
-                                        int thread_num,
-                                        int lev,
-                                        int depos_lev,
-                                        amrex::Real dt)  {};
-
-
 private:
 
     amrex::Real size_in_inches = 1.;
