@@ -363,7 +363,7 @@ WarpX::OneStep_sub1 (Real curtime)
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
     NodalSyncJ(fine_lev, PatchType::fine);
-    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2*ncomps);
     NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
@@ -390,7 +390,7 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(coarse_lev, curtime);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, 1);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, ncomps);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
@@ -417,7 +417,7 @@ WarpX::OneStep_sub1 (Real curtime)
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
     NodalSyncJ(fine_lev, PatchType::fine);
-    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, ncomps);
     NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
@@ -443,7 +443,7 @@ WarpX::OneStep_sub1 (Real curtime)
     // by only half a coarse step (second half)
     RestoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, 1, 1);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, ncomps, ncomps);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);
@@ -520,8 +520,22 @@ WarpX::ComputeDt ()
     if (maxwell_fdtd_solver_id == 0) {
         // CFL time step Yee solver
 #ifdef WARPX_DIM_RZ
-        // Derived semi-analytically by R. Lehe
-        deltat  = cfl * 1./( std::sqrt((1+0.2105)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
+        // In the rz case, the Courant limit has been evaluated
+        // semi-analytically by R. Lehe, and resulted in the following
+        // coefficients.
+        // NB : Here the coefficient for m=1 as compared to this document,
+        // as it was observed in practice that this coefficient was not
+        // high enough (The simulation became unstable).
+        Real multimode_coeffs[6] = { 0.2105, 1.0, 3.5234, 8.5104, 15.5059, 24.5037 };
+        Real multimode_alpha;
+        if (n_rz_azimuthal_modes < 7) {
+            // Use the table of the coefficients
+            multimode_alpha = multimode_coeffs[n_rz_azimuthal_modes-1];
+        } else {
+            // Use a realistic extrapolation
+            multimode_alpha = (n_rz_azimuthal_modes - 1)*(n_rz_azimuthal_modes - 1) - 0.4;
+        }
+        deltat  = cfl * 1./( std::sqrt((1+multimode_alpha)/(dx[0]*dx[0]) + 1./(dx[1]*dx[1])) * PhysConst::c );
 #else
         deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
                                                       + 1./(dx[1]*dx[1]),

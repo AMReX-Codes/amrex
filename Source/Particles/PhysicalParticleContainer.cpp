@@ -160,12 +160,12 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             npart /= 4;
         }
         for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 | WARPX_DIM_RZ)
+#if (defined WARPX_DIM_3D) || (WARPX_DIM_RZ)
             Real weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);
             Real z = distz(mt);
-#elif ( AMREX_SPACEDIM == 2 )
+#elif (defined WARPX_DIM_XZ)
             Real weight = q_tot/npart/charge/y_rms;
             Real x = distx(mt);
             Real y = 0.;
@@ -332,6 +332,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
     Real density_max = plasma_injector->density_max;
 
 #ifdef WARPX_DIM_RZ
+    const long nmodes = WarpX::n_rz_azimuthal_modes;
     bool radially_weighted = plasma_injector->radially_weighted;
 #endif
 
@@ -489,7 +490,12 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 #else
             Real x = overlap_corner[0] + (iv[0]+r.x)*dx[0];
             Real y = 0.0;
+#if   defined WARPX_DIM_XZ
             Real z = overlap_corner[1] + (iv[1]+r.y)*dx[1];
+#elif defined WARPX_DIM_RZ
+            // Note that for RZ, r.y will be theta
+            Real z = overlap_corner[1] + (iv[1]+r.z)*dx[1];
+#endif
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -510,9 +516,16 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
             Real yb = y;
 
 #ifdef WARPX_DIM_RZ
-            // Replace the x and y, choosing the angle randomly.
+            // Replace the x and y, setting an angle theta.
             // These x and y are used to get the momentum and density
-            Real theta = 2.*MathConst::pi*amrex::Random();
+            Real theta;
+            if (nmodes == 1) {
+                // With only 1 mode, the angle doesn't matter so
+                // choose it randomly.
+                theta = 2.*MathConst::pi*amrex::Random();
+            } else {
+                theta = 2.*MathConst::pi*r.y;
+            }
             x = xb*std::cos(theta);
             y = xb*std::sin(theta);
 #endif
@@ -903,7 +916,8 @@ PhysicalParticleContainer::FieldGather (int lev,
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
-                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+                        Ex.nGrow(), e_is_nodal,
+                        0, np, thread_num, lev, lev);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1201,7 +1215,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_START(blp_fg);
                 FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                             exfab, eyfab, ezfab, bxfab, byfab, bzfab, 
-                            Ex.nGrow(), e_is_nodal, 0, np_gather, thread_num, lev, lev);
+                            Ex.nGrow(), e_is_nodal,
+                            0, np_gather, thread_num, lev, lev);
 
                 if (np_gather < np)
                 {
@@ -1635,7 +1650,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
             FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
-                        Ex.nGrow(), e_is_nodal, 0, np, thread_num, lev, lev);
+                        Ex.nGrow(), e_is_nodal,
+                        0, np, thread_num, lev, lev);
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
@@ -1928,7 +1944,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
                                 ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift);
+                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doGatherShapeN<2,1>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
@@ -1936,7 +1952,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
                                 ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift);
+                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doGatherShapeN<3,1>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
@@ -1944,7 +1960,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
                                 ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift);
+                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
         }
     } else {
         if        (WarpX::nox == 1){
@@ -1954,7 +1970,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
                                 ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift);
+                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doGatherShapeN<2,0>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
@@ -1962,7 +1978,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
                                 ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift);
+                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doGatherShapeN<3,0>(xp, yp, zp,
                                 Exp.dataPtr() + offset, Eyp.dataPtr() + offset,
@@ -1970,7 +1986,7 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
                                 Byp.dataPtr() + offset, Bzp.dataPtr() + offset,
                                 ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                                 np_to_gather, dx,
-                                xyzmin, lo, stagger_shift);
+                                xyzmin, lo, stagger_shift, WarpX::n_rz_azimuthal_modes);
         }
     }
 }

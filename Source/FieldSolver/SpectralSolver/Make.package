@@ -1,4 +1,3 @@
-CEXE_headers += WarpX_Complex.H
 CEXE_headers += SpectralSolver.H
 CEXE_sources += SpectralSolver.cpp
 CEXE_headers += SpectralFieldData.H

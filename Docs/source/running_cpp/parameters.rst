@@ -91,6 +91,9 @@ Setting up the field mesh
     in the list will deposit their charge/current directly on the main grid
     (i.e. the coarsest level), even if they are inside a refinement patch.
 
+* ``warpx.n_rz_azimuthal_modes`` (`integer`; 1 by default)
+    When using the RZ version, this is the number of azimuthal modes.
+
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
 
@@ -200,6 +203,10 @@ Particle initialization
       ``<species_name>.x/y/z_rms`` (standard deviation in `x/y/z`),
       and optional argument ``<species_name>.do_symmetrize`` (whether to
       symmetrize the beam in the x and y directions).
+
+* ``<species_name>.num_particles_per_cell_each_dim`` (`3 integers in 3D and RZ, 2 integers in 2D`)
+    With the NUniformPerCell injection style, this specifies the number of particles along each axis
+    within a cell. Note that for RZ, the three axis are radius, theta, and z.
 
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at
@@ -769,7 +776,7 @@ Diagnostics and output
     ``Bx`` ``By`` ``Bz`` ``jx`` ``jy`` ``jz`` ``part_per_cell`` ``rho``
     ``F`` ``part_per_grid`` ``part_per_proc`` ``divE`` ``divB``.
     Default is
-    ``warpx_fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
+    ``warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
 
 * ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
     The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
