@@ -18,7 +18,7 @@ void UpdatePositionPhoton(
 
     // Update positions over one time step
     x += ux * c_over_umod * dt;
-#if (AMREX_SPACEDIM == 3) || (defined WARPX_DIM_RZ) // RZ pushes particles in 3D
+#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ) // RZ pushes particles in 3D
     y += uy * c_over_umod * dt;
 #endif
     z += uz * c_over_umod * dt;
