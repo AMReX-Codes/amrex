@@ -244,6 +244,8 @@ LaserParticleContainer::UpdateContinuousInjectionPosition(Real dt)
 void
 LaserParticleContainer::InitData ()
 {
+    // Call InitData on max level to inject one laser particle per
+    // finest cell.
     InitData(maxLevel());
 }
 
@@ -379,7 +381,8 @@ LaserParticleContainer::InitData (int lev)
     RealVector particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
-    AddNParticles(lev,
+    // Add particles on level 0. They will be redistributed afterwards
+    AddNParticles(0,
                   np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
                   particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
                   1, particle_w.dataPtr(), 1);

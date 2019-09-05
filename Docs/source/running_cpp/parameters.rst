@@ -655,6 +655,13 @@ Numerics and algorithms
     See `this section of the FFTW documentation <http://www.fftw.org/fftw3_doc/Planner-Flags.html>`__
     for more information.
 
+* ``warpx.override_sync_int`` (`integer`) optional (default `10`)
+    Number of time steps between synchronization of sources (`rho` and `J`) on
+    grid nodes at box boundaries. Since the grid nodes at the interface between
+    two neighbor boxes are duplicated in both boxes, an instability can occur
+    if they have too different values. This option makes sure that they are
+    synchronized periodically.
+
 Boundary conditions
 -------------------
 

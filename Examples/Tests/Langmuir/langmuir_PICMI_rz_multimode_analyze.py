@@ -61,7 +61,7 @@ analytic_plasma = picmi.AnalyticDistribution(density_expression = density,
                                              momentum_expressions = momentum_expressions)
 
 electrons = picmi.Species(particle_type='electron', name='electrons', initial_distribution=analytic_plasma)
-ions = picmi.Species(particle_type='proton', name='protons', initial_distribution=uniform_plasma)
+protons = picmi.Species(particle_type='proton', name='protons', initial_distribution=uniform_plasma)
 
 grid = picmi.CylindricalGrid(number_of_cells = [nr, nz],
                              n_azimuthal_modes = 3,
@@ -83,7 +83,7 @@ sim = picmi.Simulation(solver = solver,
                        warpx_particle_pusher_algo = 'boris')
 
 sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,16,2], grid=grid))
-sim.add_species(ions, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,16,2], grid=grid))
+sim.add_species(protons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[2,16,2], grid=grid))
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
