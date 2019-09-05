@@ -65,9 +65,9 @@ For :cpp:`MLABecLaplacian`, we next need to call member functions
 
 ::
 
-    void setScalars (Real alpha, Real beta);
-    void setACoeffs (int amrlev, const MultiFab& A);
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& B);
+    void setScalars (Real A, Real B);
+    void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
 to set up the coefficients for equation :eq:`eqn::abeclap`. This is unecessary for
 :cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`,
@@ -81,7 +81,7 @@ one needs to call the member function
 
 The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
-``A`` and ``B``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
+``alpha`` and ``beta``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
 mean the lowest level for the solver, which is not necessarily the lowest
 level in the AMR hierarchy. This is so solves can be done on different sections
 of the AMR hierarchy, e.g. on AMR levels 3 to 5.
@@ -305,13 +305,13 @@ of this velocity field as a MAC projection, in which we solve
 
 .. math::
 
-   D( B \nabla \phi) = D(U^*) 
+   D( \beta \nabla \phi) = D(U^*) 
 
 then set 
 
 .. math::
 
-   U = U^* - B \nabla \phi
+   U = U^* - \beta \nabla \phi
 
 
 where :math:`U^*` is a vector field (typically velocity) that we want to make divergence-free.
@@ -335,8 +335,6 @@ the MACProjector object and use it to perform a MAC projection.
 
 ::
 
-    // This object provides access to the EB database in the format of basic AMReX objects
-    // such as BaseFab, FArrayBox, FabArray, and MultiFab
     EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
     // allocate face-centered velocities and face-centered beta coefficient

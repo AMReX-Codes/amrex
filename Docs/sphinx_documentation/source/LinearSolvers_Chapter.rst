@@ -18,24 +18,26 @@ BiCGStab solvers for a single level as well as interfaces to the hypre library.
 In this Chapter we give an overview of the linear solvers in AMReX
 that solve linear systems in the canonical form
 
-.. math:: (\alpha A - \beta \nabla \cdot B \nabla ) \phi = f,
+.. math:: (A \alpha - B \nabla \cdot \beta \nabla ) \phi = f,
   :label: eqn::abeclap
 
-where :math:`\alpha` and :math:`\beta` are scalar constants,
-:math:`A` and :math:`B` are scalar fields, :math:`\phi` is the
-unknown, and :math:`f` is the right-hand side of the equation.  Note
+where :math:`A` and :math:`B` are scalar constants, 
+:math:`\alpha` and :math:`\beta` are scalar fields,
+:math:`\phi` is the unknown, 
+and :math:`f` is the right-hand side of the equation.  Note
 that Poisson's equation :math:`\nabla^2 \phi = f` is a special case
 of the canonical form.  The solution :math:`\phi` is at either
 cell centers or nodes.  
 
-For the cell-centered solver, :math:`A`, :math:`\phi` and :math:`f` 
+For the cell-centered solver, :math:`\alpha`, :math:`\phi` and :math:`f` 
 are represented by cell-centered MultiFabs,
-and :math:`B` is represented by ``AMREX_SPACEDIM`` face type
-MultiFabs, i.e.  there are separate MultiFabs for the :math:`B` 
+and :math:`\beta` is represented by ``AMREX_SPACEDIM`` face type
+MultiFabs, i.e.  there are separate MultiFabs for the :math:`\beta` 
 coefficient in each coordinate direction.
 
-For the nodal solver, :math:`A` is assumed to be zero, :math:`\phi` and :math:`f` are nodal,
-and :math:`B` is cell-centered.  
+For the nodal solver, :math:`A` and :math:\alpha` are assumed to be zero, 
+:math:`\phi` and :math:`f` are nodal,
+and :math:`\beta` (whcih we later refer to as :math:`\sigma`) is cell-centered.  
 
 In addition to these solvers, AMReX has support for tensor solves used
 to calculate the viscous terms that appear in the compressible Navier-Stokes
