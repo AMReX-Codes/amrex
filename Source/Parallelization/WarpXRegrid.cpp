@@ -62,7 +62,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_fp[lev][idim]->boxArray(),
                                                                   dm, current_fp[lev][idim]->nComp(), ng));
                 current_fp[lev][idim] = std::move(pmf);
-                current_fp_owner_masks[lev][idim] = std::move(current_fp[lev][idim]->OwnerMask(period));
             }
             if (current_store[lev][idim])
             {
@@ -88,7 +87,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_fp[lev]->boxArray(),
                                                               dm, nc, ng));
             rho_fp[lev] = std::move(pmf);
-            rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
         }
 
         // Aux patch
@@ -143,8 +141,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     auto pmf = std::unique_ptr<MultiFab>( new MultiFab(current_cp[lev][idim]->boxArray(),
                                                                        dm, current_cp[lev][idim]->nComp(), ng));
                     current_cp[lev][idim] = std::move(pmf);
-                    current_cp_owner_masks[lev][idim] = std::move(
-                        current_cp[lev][idim]->OwnerMask(cperiod));
                 }
             }
 
@@ -162,7 +158,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_cp[lev]->boxArray(),
                                                                   dm, nc, ng));
                 rho_cp[lev] = std::move(pmf);
-                rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
             }
         }
 
