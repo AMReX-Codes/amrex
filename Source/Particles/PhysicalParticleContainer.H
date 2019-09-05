@@ -24,7 +24,7 @@ public:
 
     void InitIonizationModule ();
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
 
@@ -32,7 +32,7 @@ public:
                            amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) override;
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,
                               const amrex::MultiFab& Ey,
@@ -99,14 +99,14 @@ public:
                         const amrex::MultiFab& Bx,
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
-                        
+
     void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
                         const amrex::Real* yp, const amrex::Real* zp);
 
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
-    
+
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask) override;
 
@@ -125,11 +125,19 @@ public:
                              std::array<amrex::Real, 3> u, amrex::Real weight);
 
     virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
-                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real z_new, const amrex::Real t_boost,
                                   const amrex::Real t_lab, const amrex::Real dt,
                                   DiagnosticParticles& diagnostic_particles) final;
 
     virtual void ConvertUnits (ConvertDirection convert_dir) override;
+
+#ifdef WARPX_QED
+    // a flag to enable/disable QED effects
+    bool do_qed=true; //QED_TO_CHANGE
+
+    // initializes an additional real component if QED effects are enabled
+    void InitLambda();
+#endif
 
 protected:
 
