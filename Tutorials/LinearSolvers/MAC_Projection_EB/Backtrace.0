@@ -1,0 +1,24 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: main3d.gnu.MPI.ex() [0x5786e9]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /home/almgren/GitCode/amrex/Src/Base/AMReX_BLBackTrace.cpp:167
+
+ 1: main3d.gnu.MPI.ex() [0x57a685]
+    amrex::BLBackTrace::handler(int) at /home/almgren/GitCode/amrex/Src/Base/AMReX_BLBackTrace.cpp:71
+
+ 2: main3d.gnu.MPI.ex() [0x4110b7]
+    main at /home/almgren/GitCode/amrex/Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp:69
+
+ 3: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf0) [0x7f6ba4910830]
+
+ 4: main3d.gnu.MPI.ex() [0x415149]
+    _start at ??:?
+
