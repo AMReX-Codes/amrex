@@ -11,8 +11,8 @@ AMREX_HOME ?= ../../..
 
 USE_EB = TRUE
 
-USE_HYPRE = FALSE
 USE_HYPRE = TRUE
+USE_HYPRE = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
