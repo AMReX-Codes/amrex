@@ -75,7 +75,7 @@ macro (generate_buildinfo _target )
       if (TARGET amrex)   # amrex included as subproject via add_subdirectory
          
       elseif (TARGET AMReX::amrex) # amrex used as library
-         string(REPLACE "/Tools" "" _amrex_home    "${AMREX_C_SCRIPTS_DIR")
+         string(REPLACE "/Tools" "" _amrex_home    "${AMREX_C_SCRIPTS_DIR}")
       else ()
 
       endif ()
