@@ -314,6 +314,7 @@ int main (int argc, char* argv[])
         macproj.setCGVerbose(cg_verbose);
 
         Real reltol = 1.e-8;
+        Real abstol = 1.e-15;
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Let's project the initial velocity to find " << std::endl;
@@ -322,7 +323,7 @@ int main (int argc, char* argv[])
         amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;  
         amrex::Print() << "******************************************************************** \n" << std::endl; 
 
-        macproj.project(reltol);
+        macproj.project(reltol,abstol);
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Done!" << std::endl;

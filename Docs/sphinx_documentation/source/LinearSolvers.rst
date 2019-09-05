@@ -317,7 +317,17 @@ then set
 where :math:`U^*` is a vector field (typically velocity) that we want to make divergence-free.
 
 The MACProjection class can be defined and used to perform the MAC projection with explcitly
-calling the solver directly.  The following code is taken from 
+calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
+the MacProjector first computes the divergence of the vector field ( :math:`D(U^*) 
+to compute a right-hand-side, and after the solve, subtracts the weighted gradient term to
+make the vector field result divergence-free.  Note that in the simplest case, 
+both the right-hand-side array and solution array are internal to the MacProjector object;
+the user does not allocate those arrays and does not have access to them.
+
+There is an alternative call -- commented out below -- in which a user does allocate 
+the solution array and passes it in/out.
+
+The following code is taken from 
 ``Tutorials/LinearOperator/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
 the MACProjector object and use it to perform a MAC projection.
 
@@ -334,6 +344,9 @@ the MACProjector object and use it to perform a MAC projection.
         beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0, MFInfo(), factory);
         beta[idim].setVal(1.0);
     }
+
+    // If we want to use phi elsewhere, we must create an array in which to return the solution 
+    // phi_inout.define(grids, dmap, 1, 1, MFInfo(), factory);
 
     // set initial velocity to U=(1,0,0)
     AMREX_D_TERM(vel[0].setVal(1.0);,
@@ -355,7 +368,9 @@ the MACProjector object and use it to perform a MAC projection.
     if (use_hypre) 
        macproj.setBottomSolver(MLMG::BottomSolver::hypre);
 
-    // Hard-wire teh boundary conditions to be Neumann in x-direction and periodic in the other two directions
+    // Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet on the high x-face,
+    //  and periodic in the other two directions  
+    //  (the first argument is for the low end, the second is for the high end)
     macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                       LinOpBCType::Periodic,
                                       LinOpBCType::Periodic)},
@@ -369,8 +384,14 @@ the MACProjector object and use it to perform a MAC projection.
     // Define the relative tolerance
     Real reltol = 1.e-8;
 
-    // Solve for :math:`\phi` and subtract from the velocity to make it divergence-free
-    macproj.project(reltol);
+    // Define the absolute tolerance; note that this argument is optional
+    Real abstol = 1.e-15;
+
+    // Solve for phi and subtract from the velocity to make it divergence-free
+    macproj.project(reltol,abstol);
+
+    // If we want to use phi elsewhere, we can pass in an array in which to return the solution 
+    // macproj.project(phi_inout,reltol,abstol);
 
 
 See ``Tutorials/LinearOperator/MAC_Projection_EB`` for the complete working example.
