@@ -1,5 +1,12 @@
 include(AMReXTargetHelpers)
 
+# 
+# Set paths
+#
+string(REPLACE "CMake" "C_scripts" AMREX_C_SCRIPTS_DIR ${CMAKE_CURRENT_LIST_DIR})
+set( AMREX_C_SCRIPTS_DIR ${AMREX_C_SCRIPTS_DIR} CACHE INTERNAL "Path to AMReX' C_scripts dir")
+set( AMREX_MAKEBUILD_SCRIPT "makebuildinfo_C.py" CACHE INTERNAL "")
+      
 macro (generate_buildinfo _target )
    
    cmake_parse_arguments("_arg" "REQUIRED" "" "" ${ARGN})
@@ -28,8 +35,10 @@ macro (generate_buildinfo _target )
       set(_lang CXX Fortran)
       set(_prop _includes _defines _flags _link_line )
 
-      foreach( _p IN LISTS _prop)
-         foreach(_l IN LISTS _lang)
+      # Loop over all combinations of language and property and extract 
+      # what you need 
+      foreach( _p IN LISTS _prop )
+         foreach( _l IN LISTS _lang )
 
             string(TOLOWER ${_l} _ll)
             
@@ -51,12 +60,9 @@ macro (generate_buildinfo _target )
                   string(REPLACE ";" " " _${_ll}${_p} "${_${_ll}${_p}}")
                endif ()              
 
-                  print(_${_ll}${_p})
-
             endif ()
 
             unset(_ll)
-
             
          endforeach()
       endforeach ()
@@ -69,20 +75,14 @@ macro (generate_buildinfo _target )
       if (TARGET amrex)   # amrex included as subproject via add_subdirectory
          
       elseif (TARGET AMReX::amrex) # amrex used as library
-         string(REPLACE "CMake" "" _c_scripts_dir "${AMReX_MODULES_PATH}")
-         string(REPLACE "/Tools" "" _amrex_home    "${_c_scripts_dir}")
-         set(_c_scripts_dir "${_c_scripts_dir}C_scripts/")
+         string(REPLACE "/Tools" "" _amrex_home    "${AMREX_C_SCRIPTS_DIR")
       else ()
 
       endif ()
 
-      set(_script "${_c_scripts_dir}makebuildinfo_C.py")
-      
-
-
 
       add_custom_command(
-         COMMAND ${Python_EXECUTABLE} ${_script}
+         COMMAND ${Python_EXECUTABLE} ${AMREX_C_SCRIPTS_DIR}/${AMREX_MAKEBUILD_SCRIPT}
                  --amrex_home ${_amrex_home}    
                  #  CXX
                  --COMP ${CMAKE_CXX_COMPILER_ID}
@@ -107,12 +107,12 @@ macro (generate_buildinfo _target )
 
       target_sources( ${_target}
          PRIVATE
-         ${_c_scripts_dir}AMReX_buildInfo.H
+         ${AMREX_C_SCRIPTS_DIR}/AMReX_buildInfo.H
          )
 
       target_include_directories( ${_target}
          PUBLIC
-         $<BUILD_INTERFACE:${_c_scripts_dir}>
+         $<BUILD_INTERFACE:${AMREX_C_SCRIPTS_DIR}>
          )
 
 
