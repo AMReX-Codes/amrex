@@ -47,6 +47,7 @@ public:
                         amrex::Real dt) override;
 
 
+
     // DepositCurrent should do nothing for photons
     virtual void DepositCurrent(WarpXParIter& pti,
                                 RealVector& wp,

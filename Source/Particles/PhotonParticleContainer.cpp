@@ -11,8 +11,10 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
+
 // Import low-level single-particle kernels
 #include <UpdatePositionPhoton.H>
+
 
 using namespace amrex;
 
@@ -28,7 +30,6 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // read <species>.size_in_inches in the input file, and
     // store it into member data.
     pp.query("size_in_inches", size_in_inches);
-
 
 }
 
@@ -109,5 +110,5 @@ PhotonParticleContainer::Evolve (int lev,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
                                        t, dt);
-}
 
+}
