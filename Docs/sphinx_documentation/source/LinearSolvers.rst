@@ -278,21 +278,22 @@ other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
 operators.
 
-hypre
-=====
+External Solvers
+================
 
-AMReX can use hypre BoomerAMG as a bottom solver (currently for
-cell-centered problems only), as we have mentioned.  For challenging
-problems, our geometric multigrid solver may have difficulty solving,
-whereas an algebraic multigrid method might be more robust.  We note
-that by default our solver always tries to geometrically coarsen the
+AMReX can use the hypre algebraic multigrid solver, BoomerAMG, 
+as a bottom solver for both cell-centered and node-based problems.
+For challenging problems, our geometric multigrid solver may have difficulty solving,
+whereas an algebraic multigrid method might be more robust.  
+We note that by default our solver always tries to geometrically coarsen the
 problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem.  To use hypre, one
-must include ``amrex/Src/Extern/HYPRE`` in the build system. For an
-example of using hypre, we refer the reader to
+residual correction form of the original problem.  
+
+To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
+For an example of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
 MAC Projection
