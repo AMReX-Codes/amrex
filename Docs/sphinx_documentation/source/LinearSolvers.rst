@@ -264,7 +264,7 @@ can be used to change the bottom solver.  Available choices are
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in HYPRE.  Currently for
+- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in hypre.  Currently for
   cell-centered only.
 
 Curvilinear Coordinates
@@ -278,10 +278,10 @@ other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
 operators.
 
-HYPRE
+hypre
 =====
 
-AMReX can use HYPRE BoomerAMG as a bottom solver (currently for
+AMReX can use hypre BoomerAMG as a bottom solver (currently for
 cell-centered problems only), as we have mentioned.  For challenging
 problems, our geometric multigrid solver may have difficulty solving,
 whereas an algebraic multigrid method might be more robust.  We note
@@ -290,16 +290,31 @@ problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem.  To use HYPRE, one
+residual correction form of the original problem.  To use hypre, one
 must include ``amrex/Src/Extern/HYPRE`` in the build system. For an
-example of using HYPRE, we refer the reader to
+example of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
-Embedded Boundaries
-===================
+MAC Projection
+=========================
 
-AMReX support solving linear systems with embedded boundaries.  See
-chapter :ref:`Chap:EB` for more details.
+Some codes define a velocity field :math:`U = (u,v,w)` on faces, i.e. 
+:math:`u` is defined on x-faces, :math:`v` is defined on y-faces,
+and :math:`w` is defined on z-faces.   We refer to the exact projection 
+of this velocity field as a MAC projection, in which we solve 
+
+.. math::
+
+   D( B \nabla \phi) = D(U^*) 
+
+then set 
+
+.. math::
+
+   U = U^* - B \nabla \phi
+
+
+where :math:`U^*` is a vector field (typically velocity) that we want to make divergence-free.
 
 Multi-Component Operators
 =========================
