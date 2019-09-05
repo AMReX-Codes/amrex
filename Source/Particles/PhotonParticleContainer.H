@@ -4,10 +4,6 @@
 #include <PhysicalParticleContainer.H>
 #include <AMReX_Vector.H>
 
-#ifdef WARPX_QED
-    #include "breit_wheeler_engine_wrapper.h"
-#endif
-
 class PhotonParticleContainer
     : public PhysicalParticleContainer
 {
@@ -51,6 +47,8 @@ public:
                         amrex::Real dt) override;
 
 
+
+    // DepositCurrent should do nothing for photons
     virtual void DepositCurrent(WarpXParIter& pti,
                                 RealVector& wp,
                                 RealVector& uxp,
@@ -65,14 +63,25 @@ public:
                                 int thread_num,
                                 int lev,
                                 int depos_lev,
-                                amrex::Real dt) override {};
+                                amrex::Real dt)  {};
 
-//This function initialises the optical depth of the photons
-#ifdef WARPX_QED
-    virtual void InitOpticalDepth(
-                                    WarpXParIter& pti,
-                                    warpx_breit_wheeler_engine& engine);
-#endif
+
+    // DepositCurrentFortran should do nothing for photons
+    virtual void DepositCurrentFortran(WarpXParIter& pti,
+                                        RealVector& wp,
+                                        RealVector& uxp,
+                                        RealVector& uyp,
+                                        RealVector& uzp,
+                                        amrex::MultiFab* jx,
+                                        amrex::MultiFab* jy,
+                                        amrex::MultiFab* jz,
+                                        const long offset,
+                                        const long np_to_depose,
+                                        int thread_num,
+                                        int lev,
+                                        int depos_lev,
+                                        amrex::Real dt)  {};
+
 
 private:
 
