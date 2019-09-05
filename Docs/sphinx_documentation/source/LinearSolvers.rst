@@ -324,51 +324,54 @@ the MACProjector object and use it to perform a MAC projection.
 .. highlight:: c++
 
 ::
-        // This object provides access to the EB database in the format of basic AMReX objects
-        // such as BaseFab, FArrayBox, FabArray, and MultiFab
-        EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1, MFInfo(), factory);
-            beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0, MFInfo(), factory);
-            beta[idim].setVal(1.0);
-        }
+    // This object provides access to the EB database in the format of basic AMReX objects
+    // such as BaseFab, FArrayBox, FabArray, and MultiFab
+    EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
-        // set initial velocity to U=(1,0,0)
-        AMREX_D_TERM(vel[0].setVal(1.0);,
-                     vel[1].setVal(0.0);,
-                     vel[2].setVal(0.0););
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1, MFInfo(), factory);
+        beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0, MFInfo(), factory);
+        beta[idim].setVal(1.0);
+    }
 
-        LPInfo lp_info;
+    // set initial velocity to U=(1,0,0)
+    AMREX_D_TERM(vel[0].setVal(1.0);,
+                 vel[1].setVal(0.0);,
+                 vel[2].setVal(0.0););
 
-        // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
-        if (use_hypre) 
-            lp_info.setMaxCoarseningLevel(0);
+    LPInfo lp_info;
 
-        MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
-                             {amrex::GetArrOfConstPtrs(beta)}, // beta
-                             {geom},                           // the geometry object
-                             lp_info);                         // structure for passing info to the operator
+    // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
+    if (use_hypre) 
+        lp_info.setMaxCoarseningLevel(0);
 
-        // Set bottom-solver to use hypre instead of native BiCGStab 
-        if (use_hypre) 
-           macproj.setBottomSolver(MLMG::BottomSolver::hypre);
+    MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+                         {amrex::GetArrOfConstPtrs(beta)}, // beta
+                         {geom},                           // the geometry object
+                         lp_info);                         // structure for passing info to the operator
 
-        macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
-                                          LinOpBCType::Periodic,
-                                          LinOpBCType::Periodic)},
-            {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                          LinOpBCType::Periodic,
-                          LinOpBCType::Periodic)});
+    // Set bottom-solver to use hypre instead of native BiCGStab 
+    if (use_hypre) 
+       macproj.setBottomSolver(MLMG::BottomSolver::hypre);
 
-        macproj.setVerbose(mg_verbose);
-        macproj.setCGVerbose(cg_verbose);
+    // Hard-wire teh boundary conditions to be Neumann in x-direction and periodic in the other two directions
+    macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+                                      LinOpBCType::Periodic,
+                                      LinOpBCType::Periodic)},
+                        {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                      LinOpBCType::Periodic,
+                                      LinOpBCType::Periodic)});
 
-        // Define the relative tolerance
-        Real reltol = 1.e-8;
+    macproj.setVerbose(mg_verbose);
+    macproj.setCGVerbose(cg_verbose);
 
-        // Solve for :math:`\phi` and subtract from the velocity to make it divergence-free
-        macproj.project(reltol);
+    // Define the relative tolerance
+    Real reltol = 1.e-8;
+
+    // Solve for :math:`\phi` and subtract from the velocity to make it divergence-free
+    macproj.project(reltol);
+
 
 See ``Tutorials/LinearOperator/MAC_Projection_EB`` for the complete working example.
 
