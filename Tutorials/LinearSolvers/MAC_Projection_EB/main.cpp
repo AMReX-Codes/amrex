@@ -11,7 +11,7 @@
 
 using namespace amrex;
 
-void write_plotfile(const auto& geom, const auto& plotmf)
+void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
 {
     std::stringstream sstream;
     sstream << "plt00000";
@@ -349,8 +349,7 @@ int main (int argc, char* argv[])
         }
 
         // copy processor id into plotfile_mf
-        for (MFIter mfi(vel[0]); mfi.isValid(); ++mfi)
-            plotfile_mf[mfi].setVal(ParallelDescriptor::MyProc());
+	plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
 
         // copy velocity into plotfile
         average_face_to_cellcenter(plotfile_mf,1,amrex::GetArrOfConstPtrs(vel));
