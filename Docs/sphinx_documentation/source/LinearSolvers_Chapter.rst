@@ -35,7 +35,7 @@ and :math:`\beta` is represented by ``AMREX_SPACEDIM`` face type
 MultiFabs, i.e.  there are separate MultiFabs for the :math:`\beta` 
 coefficient in each coordinate direction.
 
-For the nodal solver, :math:`A` and :math:\alpha` are assumed to be zero, 
+For the nodal solver, :math:`A` and :math:`\alpha` are assumed to be zero, 
 :math:`\phi` and :math:`f` are nodal,
 and :math:`\beta` (whcih we later refer to as :math:`\sigma`) is cell-centered.  
 
