@@ -11,7 +11,7 @@ set( AMREX_MAKEBUILD_SCRIPT "makebuildinfo_C.py" CACHE INTERNAL "")
 string(REPLACE "/Tools/CMake" "" AMREX_TOP_DIR ${CMAKE_CURRENT_LIST_DIR})
 set( AMREX_TOP_DIR ${AMREX_TOP_DIR} CACHE INTERNAL "Path to AMReX' dir")
 
-macro (generate_buildinfo _target )
+macro (generate_buildinfo _target _git_dir)
    
    cmake_parse_arguments("_arg" "REQUIRED" "" "" ${ARGN})
 
@@ -44,8 +44,10 @@ macro (generate_buildinfo _target )
       foreach( _p IN LISTS _prop )
          foreach( _l IN LISTS _lang )
 
-            string(TOLOWER ${_l} _ll)
-            
+            string(TOLOWER ${_l} _ll) # Lower case language name
+
+            # _${_ll}${_p} is a variable named as _lang_property,
+            # both lower case. 
             evaluate_genex(${_p} _${_ll}${_p}
                LANG ${_l}
                COMP ${CMAKE_${_l}_COMPILER_ID}
@@ -65,16 +67,26 @@ macro (generate_buildinfo _target )
                endif ()              
 
             endif ()
-
-            unset(_ll)
             
          endforeach()
       endforeach ()
+      
+      unset(_ll)
 
       string(TOUPPER ${CMAKE_BUILD_TYPE} _ubuild_type)
       set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
       set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")     
 
+      # Prep GIT info to feed to build info script
+      set(_git_cmd)
+      if (EXISTS ${_git_dir}/.git)
+         set(_git_cmd  ${_git_dir})
+         if (EXISTS ${AMREX_TOP_DIR}/.git)
+            set(_git_cmd  "${_git_cmd} ${AMREX_TOP_DIR}")
+         endif ()
+         set(_git_cmd --GIT "${_git_cmd}")
+      endif ()  
+      
       add_custom_command(
          COMMAND ${Python_EXECUTABLE} ${AMREX_C_SCRIPTS_DIR}/${AMREX_MAKEBUILD_SCRIPT}
                  --amrex_home ${AMREX_TOP_DIR}    
@@ -82,7 +94,7 @@ macro (generate_buildinfo _target )
                  --COMP ${CMAKE_CXX_COMPILER_ID}
                  --COMP_VERSION ${CMAKE_CXX_COMPILER_VERSION}
                  --CXX_comp_name ${CMAKE_CXX_COMPILER}
-                 --CXX_flags "${_ccx_defines} ${_cxx_includes} ${_cxx_flags}"
+                 --CXX_flags "${_cxx_defines} ${_cxx_includes} ${_cxx_flags}"
                  # Fortran
                  --FCOMP ${CMAKE_Fortran_COMPILER_ID}
                  --FCOMP_VERSION ${CMAKE_Fortran_COMPILER_VERSION}
@@ -90,6 +102,8 @@ macro (generate_buildinfo _target )
                  --F_flags "${_fortran_defines} ${_fortran_includes} ${_fortran_flags}"
                  #--link_flags
                  --libraries "${_cxx_link_line}"
+                 # GIT
+                 ${_git_cmd}                 
          OUTPUT AMReX_buildInfo.cpp
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
          COMMENT "Generating AMReX_buildInfo.cpp" )
