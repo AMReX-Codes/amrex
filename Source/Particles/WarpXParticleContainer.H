@@ -51,6 +51,9 @@ namespace ParticleStringNames
         {"Bx",    PIdx::Bx   },
         {"By",    PIdx::By   },
         {"Bz",    PIdx::Bz   }
+#ifdef WARPX_DIM_RZ
+        ,{"theta", PIdx::theta}
+#endif
     };
 }
 
@@ -204,21 +207,6 @@ public:
                                 int lev,
                                 int depos_lev,
                                 amrex::Real dt);
-
-    virtual void DepositCurrentFortran(WarpXParIter& pti,
-                                       RealVector& wp,
-                                       RealVector& uxp,
-                                       RealVector& uyp,
-                                       RealVector& uzp,
-                                       amrex::MultiFab* jx,
-                                       amrex::MultiFab* jy,
-                                       amrex::MultiFab* jz,
-                                       const long offset,
-                                       const long np_to_depose,
-                                       int thread_num,
-                                       int lev,
-                                       int depos_lev,
-                                       amrex::Real dt);
 
     // If particles start outside of the domain, ContinuousInjection 
     // makes sure that they are initialized when they enter the domain, and 

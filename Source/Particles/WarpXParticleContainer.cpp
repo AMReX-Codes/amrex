@@ -263,132 +263,6 @@ WarpXParticleContainer::AddNParticles (int lev,
     Redistribute();
 }
 
-/* \brief Current Deposition for thread thread_num using PICSAR
- * \param pti         : Particle iterator
- * \param wp          : Array of particle weights
- * \param uxp uyp uzp : Array of particle
- * \param jx jy jz    : Full array of current density
- * \param offset      : Index of first particle for which current is deposited
- * \param np_to_depose: Number of particles for which current is deposited.
-                        Particles [offset,offset+np_tp_depose] deposit their
-                        current
- * \param thread_num  : Thread number (if tiling)
- * \param lev         : Level of box that contains particles
- * \param depos_lev   : Level on which particles deposit (if buffers are used)
- * \param dt          : Time step for particle level
- */
-void
-WarpXParticleContainer::DepositCurrentFortran(WarpXParIter& pti,
-                                              RealVector& wp, RealVector& uxp,
-                                              RealVector& uyp, RealVector& uzp,
-                                              MultiFab* jx, MultiFab* jy, MultiFab* jz,
-                                              const long offset, const long np_to_depose,
-                                              int thread_num, int lev, int depos_lev,
-                                              Real dt)
-{
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
-                                     (depos_lev==(lev  )),
-                                     "Deposition buffers only work for lev-1");
-    // If no particles, do not do anything
-    if (np_to_depose == 0) return;
-
-    const long ngJ = jx->nGrow();
-    const std::array<Real,3>& dx = WarpX::CellSize(std::max(depos_lev,0));
-    const long lvect = 8;
-    int j_is_nodal = jx->is_nodal() and jy->is_nodal() and jz->is_nodal();
-
-    BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
-    BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
-
-    // Get tile box where current is deposited.
-    // The tile box is different when depositing in the buffers (depos_lev<lev)
-    // or when depositing inside the level (depos_lev=lev)
-    Box tilebox;
-    if (lev == depos_lev) {
-        tilebox = pti.tilebox();
-    } else {
-        const IntVect& ref_ratio = WarpX::RefRatio(depos_lev);
-        tilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
-    }
-    
-    // Staggered tile boxes (different in each direction)
-    Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
-    Box tby = convert(tilebox, WarpX::jy_nodal_flag);
-    Box tbz = convert(tilebox, WarpX::jz_nodal_flag);
-
-    // Lower corner of tile box physical domain
-    const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(tilebox, depos_lev);
-    const std::array<Real, 3>& xyzmin = xyzmin_tile;
-
-#ifdef AMREX_USE_GPU
-    // No tiling on GPU: jx_ptr points to the full
-    // jx array (same for jy_ptr and jz_ptr).
-    Real* jx_ptr = (*jx)[pti].dataPtr();
-    Real* jy_ptr = (*jy)[pti].dataPtr();
-    Real* jz_ptr = (*jz)[pti].dataPtr();
-    
-    auto jxntot = (*jx)[pti].length();
-    auto jyntot = (*jy)[pti].length();
-    auto jzntot = (*jz)[pti].length();
-#else
-    // Tiling is on: jx_ptr points to local_jx[thread_num]
-    // (same for jy_ptr and jz_ptr)
-    tbx.grow(ngJ);
-    tby.grow(ngJ);
-    tbz.grow(ngJ);
-
-    local_jx[thread_num].resize(tbx);
-    local_jy[thread_num].resize(tby);
-    local_jz[thread_num].resize(tbz);
-
-    Real* jx_ptr = local_jx[thread_num].dataPtr();
-    Real* jy_ptr = local_jy[thread_num].dataPtr();
-    Real* jz_ptr = local_jz[thread_num].dataPtr();
-
-    // local_jx[thread_num] is set to zero
-    local_jx[thread_num].setVal(0.0);
-    local_jy[thread_num].setVal(0.0);
-    local_jz[thread_num].setVal(0.0);
-
-    auto jxntot = local_jx[thread_num].length();
-    auto jyntot = local_jy[thread_num].length();
-    auto jzntot = local_jz[thread_num].length();
-#endif
-    // GPU, no tiling: deposit directly in jx
-    // CPU, tiling: deposit into local_jx
-    // (same for jx and jz)
-    BL_PROFILE_VAR_START(blp_pxr_cd);
-    warpx_current_deposition(
-        jx_ptr, &ngJ, jxntot.getVect(),
-        jy_ptr, &ngJ, jyntot.getVect(),
-        jz_ptr, &ngJ, jzntot.getVect(),
-        &np_to_depose,
-        m_xp[thread_num].dataPtr() + offset,
-        m_yp[thread_num].dataPtr() + offset,
-        m_zp[thread_num].dataPtr() + offset,
-        uxp.dataPtr() + offset,
-        uyp.dataPtr() + offset,
-        uzp.dataPtr() + offset,
-        m_giv[thread_num].dataPtr() + offset,
-        wp.dataPtr() + offset, &this->charge,
-        &xyzmin[0], &xyzmin[1], &xyzmin[2],
-        &dt, &dx[0], &dx[1], &dx[2],
-        &WarpX::nox,&WarpX::noy,&WarpX::noz, &j_is_nodal,
-        &lvect,&WarpX::current_deposition_algo);
-
-    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
-#ifndef AMREX_USE_GPU
-    BL_PROFILE_VAR_START(blp_accumulate);
-    // CPU, tiling: atomicAdd local_jx into jx
-    // (same for jx and jz)
-    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
-    BL_PROFILE_VAR_STOP(blp_accumulate);
-#endif
-}
-
 /* \brief Current Deposition for thread thread_num
  * \param pti         : Particle iterator
  * \param wp          : Array of particle weights
@@ -429,6 +303,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     const Real stagger_shift = j_is_nodal ? 0.0 : 0.5;
 
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
+    BL_PROFILE_VAR_NS("PPC::CurrentDeposition", blp_deposit);
+
 
     // Get tile box where current is deposited.
     // The tile box is different when depositing in the buffers (depos_lev<lev)
@@ -460,9 +336,9 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     tby.grow(ngJ);
     tbz.grow(ngJ);
 
-    local_jx[thread_num].resize(tbx);
-    local_jy[thread_num].resize(tby);
-    local_jz[thread_num].resize(tbz);
+    local_jx[thread_num].resize(tbx, jx->nComp());
+    local_jy[thread_num].resize(tby, jy->nComp());
+    local_jz[thread_num].resize(tbz, jz->nComp());
 
     // local_jx[thread_num] is set to zero
     local_jx[thread_num].setVal(0.0);
@@ -491,22 +367,26 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Better for memory? worth trying?    
     const Dim3 lo = lbound(tilebox);
 
+    BL_PROFILE_VAR_START(blp_deposit);
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
         if        (WarpX::nox == 1){
             doEsirkepovDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
+                WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 2){
             doEsirkepovDepositionShapeN<2>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
+                WarpX::n_rz_azimuthal_modes);
         } else if (WarpX::nox == 3){
             doEsirkepovDepositionShapeN<3>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
-                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q);
+                jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx, xyzmin, lo, q,
+                WarpX::n_rz_azimuthal_modes);
         }
     } else {
         if        (WarpX::nox == 1){
@@ -529,14 +409,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                 stagger_shift, q);
         }
     }
+    BL_PROFILE_VAR_STOP(blp_deposit);
 
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
     // CPU, tiling: atomicAdd local_jx into jx
     // (same for jx and jz)
-    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, 1);
-    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, 1);
-    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, 1);
+    (*jx)[pti].atomicAdd(local_jx[thread_num], tbx, tbx, 0, 0, jx->nComp());
+    (*jy)[pti].atomicAdd(local_jy[thread_num], tby, tby, 0, 0, jy->nComp());
+    (*jz)[pti].atomicAdd(local_jz[thread_num], tbz, tbz, 0, 0, jz->nComp());
     BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
 }
@@ -593,15 +474,17 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
     
     tilebox.grow(ngRho);
 
+    const int nc = (rho->nComp() == 1 ? 1 : rho->nComp()/2);
+
 #ifdef AMREX_USE_GPU
     // No tiling on GPU: rho_arr points to the full rho array.
-    MultiFab rhoi(*rho, amrex::make_alias, icomp, 1);
+    MultiFab rhoi(*rho, amrex::make_alias, icomp*nc, nc);
     Array4<Real> const& rho_arr = rhoi.array(pti);
 #else
     // Tiling is on: rho_arr points to local_rho[thread_num]
     const Box tb = amrex::convert(tilebox, IntVect::TheUnitVector());
 
-    local_rho[thread_num].resize(tb);
+    local_rho[thread_num].resize(tb, nc);
 
     // local_rho[thread_num] is set to zero
     local_rho[thread_num].setVal(0.0);
@@ -637,7 +520,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 #ifndef AMREX_USE_GPU
     BL_PROFILE_VAR_START(blp_accumulate);
 
-    (*rho)[pti].atomicAdd(local_rho[thread_num], tb, tb, 0, icomp, 1);
+    (*rho)[pti].atomicAdd(local_rho[thread_num], tb, tb, 0, icomp*nc, nc);
 
     BL_PROFILE_VAR_STOP(blp_accumulate);
 #endif
@@ -691,7 +574,7 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
         BoxArray coarsened_fine_BA = fine_BA;
         coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
 
-        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, rho[lev+1]->nComp(), 0);
         coarsened_fine_data.setVal(0.0);
 
         IntVect ratio(AMREX_D_DECL(2, 2, 2));  // FIXME
@@ -720,7 +603,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,WarpX::ncomps,ng));
     rho->setVal(0.0);
 
 #ifdef _OPENMP

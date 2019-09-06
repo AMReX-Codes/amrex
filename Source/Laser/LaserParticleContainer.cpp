@@ -6,6 +6,7 @@
 
 #include <WarpX.H>
 #include <WarpXConst.H>
+#include <WarpX_Complex.H>
 #include <WarpX_f.H>
 #include <MultiParticleContainer.H>
 
@@ -243,6 +244,8 @@ LaserParticleContainer::UpdateContinuousInjectionPosition(Real dt)
 void
 LaserParticleContainer::InitData ()
 {
+    // Call InitData on max level to inject one laser particle per
+    // finest cell.
     InitData(maxLevel());
 }
 
@@ -378,7 +381,8 @@ LaserParticleContainer::InitData (int lev)
     RealVector particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
-    AddNParticles(lev,
+    // Add particles on level 0. They will be redistributed afterwards
+    AddNParticles(0,
                   np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
                   particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
                   1, particle_w.dataPtr(), 1);
@@ -397,8 +401,8 @@ LaserParticleContainer::Evolve (int lev,
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
-    BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("Laser::ParticlePush", blp_pp);
+    BL_PROFILE_VAR_NS("Laser::CurrentDepo", blp_cd);
     BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
 
     Real t_lab = t;
@@ -466,28 +470,22 @@ LaserParticleContainer::Evolve (int lev,
             //
             // Particle Push
             //
-            BL_PROFILE_VAR_START(blp_pxr_pp);
+            BL_PROFILE_VAR_START(blp_pp);
             // Find the coordinates of the particles in the emission plane
-            calculate_laser_plane_coordinates( &np,
-                                               m_xp[thread_num].dataPtr(),
-                                               m_yp[thread_num].dataPtr(),
-                                               m_zp[thread_num].dataPtr(),
-                                               plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                               &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
-                                               &position[0], &position[1], &position[2] );
+            calculate_laser_plane_coordinates(np, thread_num,
+                                              plane_Xp.dataPtr(),
+                                              plane_Yp.dataPtr());
+
             // Calculate the laser amplitude to be emitted,
             // at the position of the emission plane
             if (profile == laser_t::Gaussian) {
-                warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-                                      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
-                                      &zeta, &beta, &phi2, &theta_stc );
+                gaussian_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                                       t_lab, amplitude_E.dataPtr());
             }
 
             if (profile == laser_t::Harris) {
-                warpx_harris_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
-                                    &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-                                    &profile_focal_distance, amplitude_E.dataPtr() );
+                harris_laser_profile(np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                                     t_lab, amplitude_E.dataPtr());
             }
 
             if (profile == laser_t::parse_field_function) {
@@ -496,17 +494,10 @@ LaserParticleContainer::Evolve (int lev,
                 }
             }
             // Calculate the corresponding momentum and position for the particles
-            update_laser_particle(
-                                  &np,
-                                  m_xp[thread_num].dataPtr(),
-                                  m_yp[thread_num].dataPtr(),
-                                  m_zp[thread_num].dataPtr(),
-                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                  m_giv[thread_num].dataPtr(),
-                                  wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
-                                  &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
-                                  &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
-            BL_PROFILE_VAR_STOP(blp_pxr_pp);
+            update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),
+                                  uzp.dataPtr(), wp.dataPtr(),
+                                  amplitude_E.dataPtr(), dt, thread_num);
+            BL_PROFILE_VAR_STOP(blp_pp);
 
             //
             // Current Deposition
@@ -606,4 +597,103 @@ LaserParticleContainer::PushP (int lev, Real dt,
                                const MultiFab&, const MultiFab&, const MultiFab&)
 {
     // I don't think we need to do anything.
+}
+
+/* \brief compute particles position in laser plane coordinate.
+ *
+ * \param np: number of laser particles
+ * \param thread_num: thread number
+ * \param pplane_Xp, pplane_Yp: pointers to arrays of particle positions
+ * in laser plane coordinate. 
+ */
+void
+LaserParticleContainer::calculate_laser_plane_coordinates (
+    const int np, const int thread_num,
+    Real * const pplane_Xp,
+    Real * const pplane_Yp)
+{
+    Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT tmp_u_X = u_X.dataPtr();
+    Real const * const AMREX_RESTRICT tmp_u_Y = u_Y.dataPtr();
+    Real const * const AMREX_RESTRICT tmp_position = position.dataPtr();
+    amrex::ParallelFor(
+        np,
+        [=] AMREX_GPU_DEVICE (int i) {
+#if (AMREX_SPACEDIM == 3)
+            pplane_Xp[i] = 
+                tmp_u_X[0] * (xp[i] - tmp_position[0]) +
+                tmp_u_X[1] * (yp[i] - tmp_position[1]) +
+                tmp_u_X[2] * (zp[i] - tmp_position[2]);
+            pplane_Yp[i] = 
+                tmp_u_Y[0] * (xp[i] - tmp_position[0]) +
+                tmp_u_Y[1] * (yp[i] - tmp_position[1]) +
+                tmp_u_Y[2] * (zp[i] - tmp_position[2]);
+#elif (AMREX_SPACEDIM == 2)
+            pplane_Xp[i] = 
+                tmp_u_X[0] * (xp[i] - tmp_position[0]) +
+                tmp_u_X[2] * (zp[i] - tmp_position[2]);
+            pplane_Yp[i] = 0.;
+#endif
+        }
+        );
+}
+
+/* \brief push laser particles, in simulation coordinates.
+ *
+ * \param np: number of laser particles
+ * \param puxp, puyp, puzp: pointers to arrays of particle momenta.
+ * \param pwp: pointer to array of particle weights.
+ * \param amplitude: Electric field amplitude at the position of each particle.
+ * \param dt: time step.
+ * \param thread_num: thread number
+ */
+void
+LaserParticleContainer::update_laser_particle(
+    const int np, Real * const puxp, Real * const puyp, Real * const puzp,
+    Real * const pwp, Real const * const amplitude, const Real dt,
+    const int thread_num)
+{
+    Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    Real * const AMREX_RESTRICT giv = m_giv[thread_num].dataPtr();
+    Real const * const AMREX_RESTRICT tmp_p_X = p_X.dataPtr();
+    Real const * const AMREX_RESTRICT tmp_nvec = nvec.dataPtr();
+    
+    // Copy member variables to tmp copies for GPU runs.
+    Real tmp_mobility = mobility;
+    Real gamma_boost = WarpX::gamma_boost;
+    Real beta_boost = WarpX::beta_boost;
+    amrex::ParallelFor(
+        np,
+        [=] AMREX_GPU_DEVICE (int i) {
+            // Calculate the velocity according to the amplitude of E
+            const Real sign_charge = (pwp[i]>0) ? 1 : -1;
+            const Real v_over_c = sign_charge * tmp_mobility * amplitude[i];
+            // The velocity is along the laser polarization p_X
+            Real vx = PhysConst::c * v_over_c * tmp_p_X[0];
+            Real vy = PhysConst::c * v_over_c * tmp_p_X[1];
+            Real vz = PhysConst::c * v_over_c * tmp_p_X[2];
+            // When running in the boosted-frame, their is additional velocity along nvec
+            if (gamma_boost > 1.){
+                vx -= PhysConst::c * beta_boost * tmp_nvec[0];
+                vy -= PhysConst::c * beta_boost * tmp_nvec[1];
+                vz -= PhysConst::c * beta_boost * tmp_nvec[2];
+            }
+            // Get the corresponding momenta
+            const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);
+            giv[i] = 1./gamma;
+            puxp[i] = gamma * vx;
+            puyp[i] = gamma * vy;
+            puzp[i] = gamma * vz;
+            // Push the the particle positions
+            xp[i] += vx * dt;
+#if (AMREX_SPACEDIM == 3)
+            yp[i] += vy * dt;
+#endif
+            zp[i] += vz * dt;
+        }
+        );
 }
