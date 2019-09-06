@@ -392,7 +392,11 @@ def get_particle_arrays(species_number, comp):
     particle_data = []
     for i in range(num_tiles.value):
         arr = np.ctypeslib.as_array(data[i], (particles_per_tile[i],))
-        arr.setflags(write=1)
+        try:
+            # This fails on some versions of numpy
+            arr.setflags(write=1)
+        except ValueError:
+            pass
         particle_data.append(arr)
 
     _libc.free(particles_per_tile)
@@ -623,7 +627,11 @@ def _get_mesh_field_list(warpx_func, level, direction, include_ghosts):
         shape = tuple([shapes[shapesize*i + d] for d in range(shapesize)])
         # --- The data is stored in Fortran order, hence shape is reversed and a transpose is taken.
         arr = np.ctypeslib.as_array(data[i], shape[::-1]).T
-        arr.setflags(write=1)
+        try:
+            # This fails on some versions of numpy
+            arr.setflags(write=1)
+        except ValueError:
+            pass
         if include_ghosts:
             grid_data.append(arr)
         else:

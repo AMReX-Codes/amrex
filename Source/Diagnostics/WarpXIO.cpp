@@ -421,13 +421,13 @@ WarpX::GetCellCenteredData() {
 
         int dcomp = 0;
         // first the electric field
-        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dmap[lev], dcomp, ng );
         dcomp += 3;
         // then the magnetic field
-        AverageAndPackVectorField( *cc[lev], Bfield_aux[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], Bfield_aux[lev], dmap[lev], dcomp, ng );
         dcomp += 3;
         // then the current density
-        AverageAndPackVectorField( *cc[lev], current_fp[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], current_fp[lev], dmap[lev], dcomp, ng );
         dcomp += 3;
         // then the charge density
         const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
@@ -584,7 +584,8 @@ WarpX::WritePlotFile () const
                 if (F_fp[lev]) WriteRawField( *F_fp[lev], dm, raw_pltname, level_prefix, "F_fp", lev, plot_raw_fields_guards);
                 if (plot_rho) {
                     // Use the component 1 of `rho_fp`, i.e. rho_new for time synchronization
-                    MultiFab rho_new(*rho_fp[lev], amrex::make_alias, 1, 1);
+                    // If nComp > 1, this is the upper half of the list of components.
+                    MultiFab rho_new(*rho_fp[lev], amrex::make_alias, rho_fp[lev]->nComp()/2, rho_fp[lev]->nComp()/2);
                     WriteRawField( rho_new, dm, raw_pltname, level_prefix, "rho_fp", lev, plot_raw_fields_guards);
                 }
             }
