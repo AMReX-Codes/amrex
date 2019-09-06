@@ -22,7 +22,7 @@ class distFcnElement2d {
                    std::vector<amrex::Real> diag,
                    std::vector<amrex::Real> diagplus,
                    std::vector<amrex::Real> rhs,
-                   std::vector<amrex::Real>& X);
+                   std::vector<amrex::Real> &X);
 };
 
 
@@ -69,7 +69,7 @@ class SplineDistFcnElement2d: public distFcnElement2d {
   void print_control_points() const;
   void print_spline() const;
 
-  void calc_D(bool clamped_bc = true);
+  void calc_D(bool clamped_bc = false);
 
   virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
   virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
