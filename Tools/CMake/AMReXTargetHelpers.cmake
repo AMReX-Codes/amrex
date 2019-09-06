@@ -1,3 +1,10 @@
+#[=======================================================================[
+AMReXTargetHelpers
+----------------
+
+Provides tools to perform non-standard operations on CMake targets
+#]=======================================================================]
+
 #
 # Recursively finds the properties associated to _target via all its dependecies.
 # Basically, it returns all ( including transitive ) includes, defines, flags,
