@@ -2140,7 +2140,7 @@ PhysicalParticleContainer::InitLambda()
 {
     if(!do_qed) return;
     // Add runtime real component for ionization level
-    AddRealComp("lambda");
+    AddRealComp("tau");
 
 }
 #endif
