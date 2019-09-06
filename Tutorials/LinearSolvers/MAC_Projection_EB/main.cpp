@@ -280,8 +280,12 @@ int main (int argc, char* argv[])
 			      MFInfo(), factory);
             beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0,
 			      MFInfo(), factory);
-            beta[idim].setVal(1.0);
+            beta[idim].setVal(1.0);  // set beta to 1
         }
+
+	// If we want to supply a non-zero S we must allocate and fill it outside the solver
+        // MultiFab S(grids, dmap, 1, 0, MFInfo(), factory);
+	// Set S here ... 
 
         // store plotfile variables; velocity and processor id
         plotfile_mf.define(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
@@ -301,6 +305,13 @@ int main (int argc, char* argv[])
                              {amrex::GetArrOfConstPtrs(beta)}, // beta
                              {geom},                           // the geometry object
                              lp_info);                         // structure for passing info to the operator
+	  
+	// Here we specifiy the desired divergence S
+	// MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+	//                      {amrex::GetArrOfConstPtrs(beta)}, // beta
+	//                      {geom},                           // the geometry object
+	//                      lp_info,                          // structure for passing info to the operator
+	//                      {&S});                            // defines the specified RHS divergence
 
         // Set bottom-solver to use hypre instead of native BiCGStab 
         if (use_hypre) 
@@ -336,9 +347,8 @@ int main (int argc, char* argv[])
         macproj.project(reltol,abstol);
 	
 	// If we want to use phi elsewhere, we can pass in an array in which to return the solution
-	// MultiFab phi_inout;
-	// phi_inout.define(grids, dmap, 1, 1, MFInfo(), factory);
-	// macproj.project(phi_inout,reltol,abstol);
+	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);	
+	// macproj.project({&phi_inout},reltol,abstol);
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Done!" << std::endl;
@@ -350,7 +360,7 @@ int main (int argc, char* argv[])
 
         // copy processor id into plotfile_mf
 	plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
-
+	
         // copy velocity into plotfile
         average_face_to_cellcenter(plotfile_mf,1,amrex::GetArrOfConstPtrs(vel));
 
