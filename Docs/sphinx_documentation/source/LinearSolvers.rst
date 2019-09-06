@@ -257,15 +257,22 @@ stabilized method as the bottom solver.  :cpp:`MLMG` member method
 
 can be used to change the bottom solver.  Available choices are
 
-- :cpp:`MLMG::BottomSolver::smoother`: Smoother such as Gauss-Seidel.
-
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in hypre.  Currently for
-  cell-centered only.
+- :cpp:`MLMG::BottomSolver::smoother`: Smoother such as Gauss-Seidel.
+
+- :cpp:`MLMG::BottomSolver::bicgcg`: Start with bicgstab. Switch to cg
+  if bicgstab fails.  The matrix must be symmetric.
+
+- :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
+  if cg fails.  The matrix must be symmetric.
+
+- :cpp:`MLMG::BottomSolver::hypre`: BoomerAMG in hypre.
+
+- :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
 Curvilinear Coordinates
 =======================
@@ -281,7 +288,7 @@ operators.
 External Solvers
 ================
 
-AMReX can use the hypre algebraic multigrid solver, BoomerAMG, 
+AMReX can use the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ algebraic multigrid solver, BoomerAMG, 
 as a bottom solver for both cell-centered and node-based problems.
 For challenging problems, our geometric multigrid solver may have difficulty solving,
 whereas an algebraic multigrid method might be more robust.  
@@ -295,6 +302,11 @@ residual correction form of the original problem.
 To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
 For an example of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C``.
+
+AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
+problems.  To use PETSc, one must include ``amrex/Src/Extern/PETSc``
+in the build system.  For an example of using PETSc, we refer the
+reader to ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
 MAC Projection
 =========================
