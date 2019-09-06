@@ -18,8 +18,6 @@ function (get_target_properties_flattened _target _includes _defines _flags _lin
    set(_local_link_line)
 
    get_target_prop_recursive(${_target} _local_includes _local_defines _local_flags _local_link_line)
-
-
    # Set results in parent scope
    set(${_includes}  "${_local_includes}"   PARENT_SCOPE)
    set(${_defines}   "${_local_defines}"    PARENT_SCOPE)
@@ -60,12 +58,25 @@ function (get_target_prop_recursive _target _lincludes _ldefines _lflags _llink_
 
    # libraries
    get_target_property(_interface_link_libraries ${_target} INTERFACE_LINK_LIBRARIES)
+
+   # INTERFACE_LINK_LIBRARIES may contain targets in the form target-name::@<hexadecimal-code>
+   # Remove the @<hexadecimal-code> bit to get the target name.
+   # check CMake doc regarding INTERFACE_LINK_LIBRARIES for an in-depth explanation of this
+   string(REGEX REPLACE ":*@+<[A-Za-z0-9]+>" "" _interface_link_libraries
+      "${_interface_link_libraries}")
+   
+   # Remove INTERFACE genex: choose build   
+   evaluate_genex(_interface_link_libraries
+      _interface_link_libraries
+      CONFIG ${CMAKE_BUILD_TYPE}
+      INTERFACE BUILD)
+   
    if (_interface_link_libraries)
-      foreach(_item IN LISTS _interface_link_libraries )        
+      foreach(_item IN LISTS _interface_link_libraries )
          if ( NOT TARGET ${_item} )
             list(APPEND ${_llink_line} ${_item})
          else ()
-            get_target_prop_recursive(${_item} ${_lincludes} ${_ldefines} ${_lflags} ${_llink_line})             
+            get_target_prop_recursive(${_item} ${_lincludes} ${_ldefines} ${_lflags} ${_llink_line})
          endif ()
       endforeach ()
    endif ()
