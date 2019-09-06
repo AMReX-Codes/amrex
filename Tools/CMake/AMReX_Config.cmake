@@ -62,11 +62,17 @@ function (configure_amrex)
    #
    if (ENABLE_OMP)
       find_package(OpenMP REQUIRED CXX Fortran)
+      
       target_link_libraries(amrex
          PUBLIC
          OpenMP::OpenMP_CXX
          OpenMP::OpenMP_Fortran)
-
+      
+      set_target_properties(
+         OpenMP::OpenMP_CXX OpenMP::OpenMP_Fortran
+         PROPERTIES
+         IMPORTED_GLOBAL True )
+      
       # We have to manually pass OpenMP flags to host compiler if CUDA is enabled
       # Since OpenMP imported targets are generated only for the Compiler ID in use, i.e.
       # they do not provide flags for all possible compiler ids, we assume the same compiler used
