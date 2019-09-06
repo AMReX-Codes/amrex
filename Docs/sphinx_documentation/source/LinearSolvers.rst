@@ -306,7 +306,7 @@ of this velocity field as a MAC projection, in which we solve
 
 .. math::
 
-   D( \beta \nabla \phi) = D(U^*) 
+   D( \beta \nabla \phi) = D(U^*) - S
 
 then set 
 
@@ -315,20 +315,20 @@ then set
    U = U^* - \beta \nabla \phi
 
 
-where :math:`U^*` is a vector field (typically velocity) that we want to make divergence-free.
+where :math:`U^*` is a vector field (typically velocity) that we want to satisfy 
+:math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
 
 The MACProjection class can be defined and used to perform the MAC projection without explcitly
 calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
-the MacProjector first computes the divergence of the vector field :math:`D(U^*)`
-to compute a right-hand-side, and after the solve, subtracts the weighted gradient term to
-make the vector field result divergence-free.  Note that in the simplest case, 
-both the right-hand-side array and solution array are internal to the MacProjector object;
-the user does not allocate those arrays and does not have access to them.
+the MacProjector internally computes the divergence of the vector field :math:`D(U^*)`
+to compute the right-hand-side, and after the solve, subtracts the weighted gradient term to
+make the vector field result satisfy the divergence constraint.  
 
-There is an alternative call -- commented out below -- in which a user does allocate 
-the solution array and passes it in/out.
+In the simplest form of the call, :math:`S` is assumed to be zero and does not need to be specified.
+Typically, the user does not allocate the solution array, but it is also possible to create and pass
+in the solution array and have :math:`\phi` returned as well as :math:`U`.  
 
-The following code is taken from 
+The code below is taken from 
 ``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
 the MACProjector object and use it to perform a MAC projection.
 
@@ -350,6 +350,10 @@ the MACProjector object and use it to perform a MAC projection.
     // If we want to use phi elsewhere, we must create an array in which to return the solution 
     // phi_inout.define(grids, dmap, 1, 1, MFInfo(), factory);
 
+    // If we want to supply a non-zero S we must allocate and define it outside the solver
+    // S.define(grids, dmap, 1, 0, MFInfo(), factory);
+    // Define S here ... 
+
     // set initial velocity to U=(1,0,0)
     AMREX_D_TERM(vel[0].setVal(1.0);,
                  vel[1].setVal(0.0);,
@@ -364,7 +368,14 @@ the MACProjector object and use it to perform a MAC projection.
     MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
                          {amrex::GetArrOfConstPtrs(beta)}, // beta
                          {geom},                           // the geometry object
-                         lp_info);                    // structure for passing info to the operator
+                         lp_info);                         // structure for passing info to the operator
+
+    // Here we specifiy the desired divergence S
+    // MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+    //                      {amrex::GetArrOfConstPtrs(beta)}, // beta
+    //                      {geom},                           // the geometry object
+    //                      lp_info,                          // structure for passing info to the operator
+    //                      {amrex::GetArrOfConstPtrs(S)});   // defines the specified RHS divergence			 
 
     // Set bottom-solver to use hypre instead of native BiCGStab 
     if (use_hypre) 
@@ -398,25 +409,6 @@ the MACProjector object and use it to perform a MAC projection.
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
 
-Note that in order to project the velocity onto a field with a specified divergence, :math:`D(U)=RHS`,
-one simply has to pass in an additional array of MultiFabs into the MacProjector constructor,
-
-.. highlight:: c++
-
-::
-
-    MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
-                         {amrex::GetArrOfConstPtrs(beta)}, // beta
-                         {geom},                           // the geometry object
-			 lp_info,                  // structure for passing info to the operator
-                         {amrex::GetArrOfConstPtrs(RHS)}); // defines the specified RHS divergence			 
-                    
-This in turn solves :math:`D( \beta \nabla \phi) = D(U^*) - RHS`
-
-and then sets :math:`U = U^* - \beta \nabla \phi`
-
-where :math:`U` satisfies :math:`D(U)=RHS`.
-   
 Multi-Component Operators
 =========================
 
