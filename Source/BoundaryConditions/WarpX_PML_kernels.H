@@ -320,9 +320,11 @@ void warpx_push_pml_ey_f_yee(int i, int j, int k,
                              Array4<Real const> const& F_fab,
                              Real dtsdy_c2)
 {
+#if (AMREX_SPACEDIM == 3)
     Eyfab(i,j,k,2) += dtsdy_c2 * (F_fab(i,j+1,k,0) - F_fab(i,j,k,0)
                          +        F_fab(i,j+1,k,1) - F_fab(i,j,k,1)
                          +        F_fab(i,j+1,k,2) - F_fab(i,j,k,2));
+#endif
 }
 
 // PML EZ F YEE
@@ -343,7 +345,7 @@ void warpx_push_pml_ez_f_yee(int i, int j, int k,
 #endif
 }
 
-// PML EX F CKC
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_pml_ex_f_ckc(int i, int j, int k,
                              Array4<Real> const&  Exfab,
@@ -386,13 +388,13 @@ void warpx_push_pml_ex_f_ckc(int i, int j, int k,
 
 }
 
-#if (AMREX_SPACEDIM==3)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_pml_ey_f_ckc(int i, int j, int k,
                              Array4<Real> const&  Eyfab,
                              Array4<Real const> const& F,
                              Real alphay, Real betayx, Real betayz,Real gammay)
 {
+#if (AMREX_SPACEDIM==3)
    Eyfab(i,j,k,2) +=  alphay*(
                         F(i  ,j+1,k  ,0) + F(i  ,j+1,k  ,1) + F(i  ,j+1,k  ,2)
                       - F(i  ,j  ,k  ,0) - F(i  ,j  ,k  ,1) - F(i  ,j  ,k  ,2))
@@ -415,8 +417,8 @@ void warpx_push_pml_ey_f_ckc(int i, int j, int k,
                       - F(i+1,j  ,k-1,0) - F(i+1,j  ,k-1,1) - F(i+1,j  ,k-1,2)
                       + F(i-1,j+1,k-1,0) + F(i-1,j+1,k-1,1) + F(i-1,j+1,k-1,2)
                       - F(i-1,j  ,k-1,0) - F(i-1,j  ,k-1,1) - F(i-1,j  ,k-1,2));
-}
 #endif
+}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_pml_ez_f_ckc(int i, int j, int k,
@@ -461,9 +463,6 @@ void warpx_push_pml_ez_f_ckc(int i, int j, int k,
 }
 
 
-
-
-// PML F YEE
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_push_pml_F(int i, int j, int k, Array4<Real> const& F_fab,
                       Array4<Real const> const& Exfab,
@@ -488,7 +487,7 @@ void warpx_push_pml_F(int i, int j, int k, Array4<Real> const& F_fab,
 #endif
 }
 
-// damp pml ex
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_damp_pml_ex (int i, int j, int k, Array4<Real> const& Ex,
                         const Real* const sigma_fac_y,
@@ -505,9 +504,6 @@ void warpx_damp_pml_ex (int i, int j, int k, Array4<Real> const& Ex,
     Ex(i,j,k,2) *= sigma_star_fac_x[i-xlo];
 }
 
-//// damp pml ey
-//AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-//
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_damp_pml_ey (int i, int j, int k, Array4<Real> const& Ey,
                         const Real* const sigma_fac_z,
@@ -524,11 +520,6 @@ void warpx_damp_pml_ey (int i, int j, int k, Array4<Real> const& Ey,
     Ey(i,j,k,1) *= sigma_fac_x[i-xlo];
 }
 
-
-
-//// damp pml ez
-//AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-//
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_damp_pml_ez (int i, int j, int k, Array4<Real> const& Ez,
                         const Real* const sigma_fac_x,
@@ -546,8 +537,6 @@ void warpx_damp_pml_ez (int i, int j, int k, Array4<Real> const& Ez,
 }
 
 
-
-//// damp pml bx
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_damp_pml_bx (int i, int j, int k, Array4<Real> const& Bx,
                         const Real* const sigma_star_fac_y,
@@ -562,10 +551,6 @@ void warpx_damp_pml_bx (int i, int j, int k, Array4<Real> const& Bx,
 #endif
 }
 
-
-
-//
-//// damp pml by
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_damp_pml_by (int i, int j, int k, Array4<Real> const& By,
                         const Real* const sigma_star_fac_z,
@@ -580,7 +565,6 @@ void warpx_damp_pml_by (int i, int j, int k, Array4<Real> const& By,
    By(i,j,k,1) *= sigma_star_fac_x[i-xlo];
 }
 
-//// damp pml bz
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void warpx_damp_pml_bz (int i, int j, int k, Array4<Real> const& Bz,
                         const Real* const sigma_star_fac_x,
