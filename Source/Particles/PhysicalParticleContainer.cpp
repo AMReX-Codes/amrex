@@ -2141,6 +2141,7 @@ PhysicalParticleContainer::InitLambda()
     if(!do_qed) return;
     // Add runtime real component for ionization level
     AddRealComp("tau");
+    plot_flags.resize(PIdx::nattribs + 1, 1);
 
 }
 #endif

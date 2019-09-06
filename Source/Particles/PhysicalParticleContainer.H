@@ -132,10 +132,8 @@ public:
     virtual void ConvertUnits (ConvertDirection convert_dir) override;
 
 #ifdef WARPX_QED
-    // a flag to enable/disable QED effects
-    bool do_qed=false;
-
     // initializes an additional real component if QED effects are enabled
+    // a flag to enable/disable QED effects (do_qed) is defined in WarpXParticleContainer
     void InitLambda();
 #endif
 
