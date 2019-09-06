@@ -384,6 +384,7 @@ the MACProjector object and use it to perform a MAC projection.
     // Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet
     //  on the high x-face, and periodic in the other two directions  
     //  (the first argument is for the low end, the second is for the high end)
+    // Note that Dirichlet boundary conditions are assumed to be homogeneous (i.e. phi = 0)
     macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                       LinOpBCType::Periodic,
                                       LinOpBCType::Periodic)},
