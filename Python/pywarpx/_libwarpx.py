@@ -667,7 +667,6 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getEfield, level, direction, include_ghosts)
 
 
@@ -695,7 +694,6 @@ def get_mesh_electric_field_cp(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getEfieldCP, level, direction, include_ghosts)
 
 
@@ -723,7 +721,6 @@ def get_mesh_electric_field_fp(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getEfieldFP, level, direction, include_ghosts)
 
 
@@ -752,7 +749,6 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getBfield, level, direction, include_ghosts)
 
 
@@ -780,7 +776,6 @@ def get_mesh_magnetic_field_cp(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getBfieldCP, level, direction, include_ghosts)
 
 
@@ -808,7 +803,6 @@ def get_mesh_magnetic_field_fp(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getBfieldFP, level, direction, include_ghosts)
 
 
@@ -835,7 +829,6 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getCurrentDensity, level, direction, include_ghosts)
 
 
@@ -863,7 +856,6 @@ def get_mesh_current_density_cp(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getCurrentDensityCP, level, direction, include_ghosts)
 
 
@@ -891,7 +883,6 @@ def get_mesh_current_density_fp(level, direction, include_ghosts=True):
 
     '''
 
-    assert(level == 0)
     return _get_mesh_field_list(libwarpx.warpx_getCurrentDensityFP, level, direction, include_ghosts)
 
 
