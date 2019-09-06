@@ -3,14 +3,30 @@ target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_D
 # MPI header is incapsulated in AMReX_ccse-mpi.H
 if (ENABLE_MPI)
    find_package(MPI REQUIRED C CXX)
-   target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX) 
+
+   # Make imported target "global" so that it can be seen
+   # from other directories in the project.
+   # This is especially useful when get_target_properties_flattened()
+   # (see module AMReXTargetHelpers.cmake) is called to recover dependecy tree info 
+   # in projects that use amrex directly in the build (via add_subdirectory()).
+   # Without this, get_target_properties_flattened() would not recognize
+   # MPI::MPI_C and MPI::MPI_CXX as targets because they would be visibile only in this
+   # folder and subfolders.
+   set_target_properties(
+      MPI::MPI_C MPI::MPI_CXX
+      PROPERTIES
+      IMPORTED_GLOBAL True )
+   
+   target_link_libraries(amrex PUBLIC MPI::MPI_C MPI::MPI_CXX)
 endif ()
 
 # We need threads 
 set( THREADS_PREFER_PTHREAD_FLAG on)
 find_package(Threads REQUIRED)
+set_target_properties( Threads::Threads PROPERTIES IMPORTED_GLOBAL True )
 target_link_libraries(amrex PUBLIC Threads::Threads)
- 
+
+
 target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------
