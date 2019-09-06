@@ -5,8 +5,12 @@ include(AMReXTargetHelpers)
 #
 string(REPLACE "CMake" "C_scripts" AMREX_C_SCRIPTS_DIR ${CMAKE_CURRENT_LIST_DIR})
 set( AMREX_C_SCRIPTS_DIR ${AMREX_C_SCRIPTS_DIR} CACHE INTERNAL "Path to AMReX' C_scripts dir")
+
 set( AMREX_MAKEBUILD_SCRIPT "makebuildinfo_C.py" CACHE INTERNAL "")
-      
+
+string(REPLACE "/Tools/CMake" "" AMREX_TOP_DIR ${CMAKE_CURRENT_LIST_DIR})
+set( AMREX_TOP_DIR ${AMREX_TOP_DIR} CACHE INTERNAL "Path to AMReX' dir")
+
 macro (generate_buildinfo _target )
    
    cmake_parse_arguments("_arg" "REQUIRED" "" "" ${ARGN})
@@ -69,21 +73,11 @@ macro (generate_buildinfo _target )
 
       string(TOUPPER ${CMAKE_BUILD_TYPE} _ubuild_type)
       set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
-      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")
-      
-      # Determine whether we are using AMReX as a library or as a sub-project
-      if (TARGET amrex)   # amrex included as subproject via add_subdirectory
-         
-      elseif (TARGET AMReX::amrex) # amrex used as library
-         string(REPLACE "/Tools" "" _amrex_home    "${AMREX_C_SCRIPTS_DIR}")
-      else ()
-
-      endif ()
-
+      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")     
 
       add_custom_command(
          COMMAND ${Python_EXECUTABLE} ${AMREX_C_SCRIPTS_DIR}/${AMREX_MAKEBUILD_SCRIPT}
-                 --amrex_home ${_amrex_home}    
+                 --amrex_home ${AMREX_TOP_DIR}    
                  #  CXX
                  --COMP ${CMAKE_CXX_COMPILER_ID}
                  --COMP_VERSION ${CMAKE_CXX_COMPILER_VERSION}
