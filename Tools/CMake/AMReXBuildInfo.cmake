@@ -1,3 +1,36 @@
+#[=======================================================================[
+AMReXBuildInfo
+----------------
+
+Provides the function "generate_buildinfo(_target _git_dir)".
+
+generate_buildinfo(_target _git_dir) add AMReXBuildInfo.H and
+AMReXBuildInfo.cpp to the source list of ${_target}.
+
+AMReXBuildInfo.H is a header file located in /path/to/amrex/Tools/C_Scripts
+which contains signature of functions designed to retrieve build info like
+compiler used, source directory paths, compilation flags and so on.
+
+AMReXBuildInfo.cpp is a source file containing the implementations of
+the prototypes defined in AMReXBuildInfo.H.
+It is created by generate_buildinfo(_target _git_dir) via invocation
+of the python script "makebuildinfo_C.py" located in
+/path/to/amrex/Tools/C_Scripts .
+AMReXBuildInfo.cpp has to be created by the build system once all the
+details of the build are known.
+
+This module 
+
+* sets internal variables AMREX_C_SCRIPTS_DIR, AMREX_MAKEBUILD_SCRIPT, 
+  and AMREX_TOP_DIR
+
+* provides function "generate_buildinfo(_target _git_dir)"
+
+#]=======================================================================]
+
+#
+# This include brings in function "get_target_properties_flattened()"
+# 
 include(AMReXTargetHelpers)
 
 # 
@@ -11,6 +44,19 @@ set( AMREX_MAKEBUILD_SCRIPT "makebuildinfo_C.py" CACHE INTERNAL "")
 string(REPLACE "/Tools/CMake" "" AMREX_TOP_DIR ${CMAKE_CURRENT_LIST_DIR})
 set( AMREX_TOP_DIR ${AMREX_TOP_DIR} CACHE INTERNAL "Path to AMReX' dir")
 
+
+#
+# FUNCTION: generate_buildinfo(_target _git_dir)
+#
+# Adds  AMReXBuildInfo.H and AMReXBuildInfo.cpp to the source
+# list of ${_target}.
+#
+# If ${_git_dir} is a path to a valid git directory, pass
+# this info to the build info script for GIT version retrieval.
+#
+# If the keyword REQUIRED is passed in, the function will issue
+# an error if Pyhon >=2.7 cannot be found.
+# 
 macro (generate_buildinfo _target _git_dir)
    
    cmake_parse_arguments("_arg" "REQUIRED" "" "" ${ARGN})
@@ -122,7 +168,6 @@ macro (generate_buildinfo _target _git_dir)
          PUBLIC
          $<BUILD_INTERFACE:${AMREX_C_SCRIPTS_DIR}>
          )
-
 
       #
       # Clean-up
