@@ -46,6 +46,10 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         "version of Redistribute in AMReX does not work with runtime parameters");
 #endif
 
+#ifdef WARPX_QED
+    pp.query("do_qed", do_qed);
+#endif
+
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
@@ -2130,14 +2134,13 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
 
 
 #ifdef WARPX_QED
-
 // initializes an additional real component if QED effects are enabled
 void
 PhysicalParticleContainer::InitLambda()
 {
     if(!do_qed) return;
-
     // Add runtime real component for ionization level
     AddRealComp("lambda");
+
 }
 #endif

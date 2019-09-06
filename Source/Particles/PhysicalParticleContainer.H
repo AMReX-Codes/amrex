@@ -133,7 +133,7 @@ public:
 
 #ifdef WARPX_QED
     // a flag to enable/disable QED effects
-    bool do_qed=true; //QED_TO_CHANGE
+    bool do_qed=false;
 
     // initializes an additional real component if QED effects are enabled
     void InitLambda();
