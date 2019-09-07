@@ -320,7 +320,7 @@ of this velocity field as a MAC projection, in which we solve
 
    D( \beta \nabla \phi) = D(U^*) - S
 
-then set 
+for :math:`\phi` and then set 
 
 .. math::
 
@@ -332,7 +332,7 @@ where :math:`U^*` is a vector field (typically velocity) that we want to satisfy
 
 The MACProjection class can be defined and used to perform the MAC projection without explcitly
 calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
-the MacProjector internally computes the divergence of the vector field :math:`D(U^*)`
+the MacProjector internally computes the divergence of the vector field, :math:`D(U^*)`,
 to compute the right-hand-side, and after the solve, subtracts the weighted gradient term to
 make the vector field result satisfy the divergence constraint.  
 
@@ -360,11 +360,11 @@ the MACProjector object and use it to perform a MAC projection.
     }
 
     // If we want to use phi elsewhere, we must create an array in which to return the solution 
-    // phi_inout.define(grids, dmap, 1, 1, MFInfo(), factory);
+    // MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);
 
-    // If we want to supply a non-zero S we must allocate and define it outside the solver
-    // S.define(grids, dmap, 1, 0, MFInfo(), factory);
-    // Define S here ... 
+    // If we want to supply a non-zero S we must allocate and fill it outside the solver
+    // MultiFab S(grids, dmap, 1, 0, MFInfo(), factory);
+    // Set S here ... 
 
     // set initial velocity to U=(1,0,0)
     AMREX_D_TERM(vel[0].setVal(1.0);,
@@ -387,14 +387,15 @@ the MACProjector object and use it to perform a MAC projection.
     //                      {amrex::GetArrOfConstPtrs(beta)}, // beta
     //                      {geom},                           // the geometry object
     //                      lp_info,                          // structure for passing info to the operator
-    //                      {amrex::GetArrOfConstPtrs(S)});   // defines the specified RHS divergence			 
+    //                      {&S});                            // defines the specified RHS divergence
 
     // Set bottom-solver to use hypre instead of native BiCGStab 
     if (use_hypre) 
        macproj.setBottomSolver(MLMG::BottomSolver::hypre);
 
-    // Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet
-    //  on the high x-face, and periodic in the other two directions  
+    // Set boundary conditions.
+    //  Here we use Neumann on the low x-face, Dirichlet on the high x-face,
+    //  and periodic in the other two directions  
     //  (the first argument is for the low end, the second is for the high end)
     // Note that Dirichlet boundary conditions are assumed to be homogeneous (i.e. phi = 0)
     macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
@@ -417,7 +418,7 @@ the MACProjector object and use it to perform a MAC projection.
     macproj.project(reltol,abstol);
 
     // If we want to use phi elsewhere, we can pass in an array in which to return the solution 
-    // macproj.project(phi_inout,reltol,abstol);
+    // macproj.project({&phi_inout},reltol,abstol);
 
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
