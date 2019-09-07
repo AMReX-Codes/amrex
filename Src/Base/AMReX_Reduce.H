@@ -155,6 +155,26 @@ private:
     Type* m_device_tuple;
 };
 
+namespace Reduce { namespace detail {
+    template <typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_f (F const& f, int i, int j, int k, IndexType)
+        noexcept -> decltype(f(0,0,0))
+    {
+        return f(i,j,k);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_f (F const& f, int i, int j, int k, IndexType t)
+        noexcept -> decltype(f(Box()))
+    {
+        return f(Box(IntVect(AMREX_D_DECL(i,j,k)),
+                     IntVect(AMREX_D_DECL(i,j,k)),
+                     t));
+    }
+}}
+
 template <typename... Ps>
 class ReduceOps
 {
@@ -169,6 +189,7 @@ public:
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        IndexType ixtype = box.ixType();
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
@@ -183,7 +204,7 @@ public:
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
-                auto pr = f(i,j,k);
+                auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
@@ -216,7 +237,7 @@ public:
                 j += lo.y;
                 k += lo.z;
                 for (N n = 0; n < ncomp; ++n) {
-                    auto pr = f(i,j,k);
+                    auto pr = f(i,j,k,n);
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 }
             }
@@ -393,14 +414,15 @@ private:
 template <typename... Ps>
 class ReduceOps
 {
-public:
+private:
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    AMREX_FORCE_INLINE
+    static auto call_f (Box const& box, D & reduce_data, F const& f)
+        noexcept -> decltype(f(0,0,0))
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple r = reduce_data.initialValue();
-        ReduceTuple& rr = reduce_data.reference();
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
         for (int k = lo.z; k <= hi.z; ++k) {
@@ -410,6 +432,25 @@ public:
             auto pr = f(i,j,k);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
         }}}
+        return r;
+    }
+
+    template <typename D, typename F>
+    AMREX_FORCE_INLINE
+    static auto call_f (Box const& box, D&, F const& f)
+        noexcept -> decltype(f(Box()))
+    {
+        return f(box);
+    }
+
+public:
+
+    template <typename D, typename F>
+    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    {
+        using ReduceTuple = typename D::Type;
+        ReduceTuple& rr = reduce_data.reference();
+        auto r = call_f(box, reduce_data, f);
         Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(rr,r);
     }
 
@@ -427,7 +468,7 @@ public:
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            auto pr = f(i,j,k);
+            auto pr = f(i,j,k,n);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
         }}}}
         Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(rr,r);
