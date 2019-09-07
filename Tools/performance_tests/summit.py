@@ -92,9 +92,9 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
                                        n_mpi_per_node=6,
                                        n_omp=1, 
-                                       n_cell=[64, 128, 384],
+                                       n_cell=[64, 128, 96],
                                        max_grid_size=256,
-                                       blocking_factor=64,
+                                       blocking_factor=32,
                                        n_step=10) )
     test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
                                        n_mpi_per_node=6, 
@@ -120,9 +120,9 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance', 
                                        n_mpi_per_node=6, 
                                        n_omp=1, 
-                                       n_cell=[384, 128, 128], 
+                                       n_cell=[64, 128, 96], 
                                        max_grid_size=256,
-                                       blocking_factor=64,
+                                       blocking_factor=32,
                                        n_step=10) )
     test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc', 
                                        n_mpi_per_node=6, 
