@@ -8,14 +8,14 @@ namespace amrex {
 
 namespace Reduce { namespace detail {
     template <std::size_t I, typename T, typename P>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_parallel (T& d, T const& s)
     {
         P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_parallel (T& d, T const& s)
     {
         P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
@@ -23,14 +23,14 @@ namespace Reduce { namespace detail {
     }
 
     template <std::size_t I, typename T, typename P>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_local (T& d, T const& s)
     {
         P().local_update(amrex::get<I>(d), amrex::get<I>(s));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_local (T& d, T const& s)
     {
         P().local_update(amrex::get<I>(d), amrex::get<I>(s));
@@ -54,11 +54,11 @@ namespace Reduce { namespace detail {
 struct ReduceOpSum
 {
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceSum(&d,s); }
 
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d += s; }
 
     template <typename T>
@@ -68,11 +68,11 @@ struct ReduceOpSum
 struct ReduceOpMin
 {
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMin(&d,s); }
 
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
@@ -82,15 +82,37 @@ struct ReduceOpMin
 struct ReduceOpMax
 {
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMax(&d,s); }
 
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
     void init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+};
+
+struct ReduceOpLogicalAnd
+{
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalAnd(&d,s); }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void local_update (int& d, int s) const noexcept { d = d && s; }
+
+    void init (int& t) const noexcept { t = true; }
+};
+
+struct ReduceOpLogicalOr
+{
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalOr(&d,s); }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void local_update (int& d, int s) const noexcept { d = d || s; }
+
+    void init (int& t) const noexcept { t = false; }
 };
 
 template <typename... Ps> class ReduceOps;
