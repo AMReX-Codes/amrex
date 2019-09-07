@@ -26,40 +26,24 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_sm(sm);
-        value_type* d_sm = ds_sm.dataPtr();
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_sum = gsm.dataPtr();
-                value_type* sdata = block_sum + 1;
-
-                const FAB fab(arr,bx.ixType());
-
-                value_type tsum = 0.0;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tsum += f(tbx, fab);
-                }
-                sdata[threadIdx.x] = tsum;
-                __syncthreads();
-
-                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB fab(arr,b.ixType());
+                return { f(b,fab) };
             });
         }
 
-        sm = ds_sm.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        sm = amrex::get<0>(hv);
     }
     else
 #endif
@@ -97,42 +81,26 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_sm(sm);
-        value_type* d_sm = ds_sm.dataPtr();
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_sum = gsm.dataPtr();
-                value_type* sdata = block_sum + 1;
-
-                const FAB1 fab1(arr1,bx.ixType());
-                const FAB2 fab2(arr2,bx.ixType());
-
-                value_type tsum = 0.0;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tsum += f(tbx, fab1, fab2);
-                }
-                sdata[threadIdx.x] = tsum;
-                __syncthreads();
-
-                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB1 fab1(arr1,b.ixType());
+                const FAB2 fab2(arr2,b.ixType());
+                return { f(b, fab1, fab2) };
             });
         }
 
-        sm = ds_sm.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        sm = amrex::get<0>(hv);
     }
     else
 #endif
@@ -170,8 +138,9 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_sm(sm);
-        value_type* d_sm = ds_sm.dataPtr();
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -179,35 +148,18 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
             const auto& arr3 = fa2.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_sum = gsm.dataPtr();
-                value_type* sdata = block_sum + 1;
-
-                const FAB1 fab1(arr1,bx.ixType());
-                const FAB2 fab2(arr2,bx.ixType());
-                const FAB3 fab3(arr3,bx.ixType());
-
-                value_type tsum = 0.0;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tsum += f(tbx, fab1, fab2, fab3);
-                }
-                sdata[threadIdx.x] = tsum;
-                __syncthreads();
-
-                Gpu::blockReduceSum<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_sum);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Add(d_sm, *block_sum);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB1 fab1(arr1,b.ixType());
+                const FAB2 fab2(arr2,b.ixType());
+                const FAB3 fab3(arr3,b.ixType());
+                return { f(b, fab1, fab2, fab3) };
             });
         }
 
-        sm = ds_sm.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        sm = amrex::get<0>(hv);
     }
     else
 #endif
@@ -244,45 +196,24 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_r(r);
-        value_type* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpMin> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_r = gsm.dataPtr();
-                value_type* sdata = block_r + 1;
-
-                const FAB fab(arr,bx.ixType());
-
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                value_type tmin = std::numeric_limits<value_type>::max();
-#else
-                value_type tmin = value_max;
-#endif
-                for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmin = f(tbx, fab);
-                    tmin = amrex::min(tmin, local_tmin);
-                }
-                sdata[threadIdx.x] = tmin;
-                __syncthreads();
-
-                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB fab(arr,b.ixType());
+                return { f(b, fab) };
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -320,47 +251,26 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_r(r);
-        value_type* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpMin> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_r = gsm.dataPtr();
-                value_type* sdata = block_r + 1;
-
-                const FAB1 fab1(arr1,bx.ixType());
-                const FAB2 fab2(arr2,bx.ixType());
-
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                value_type tmin = std::numeric_limits<value_type>::max();
-#else
-                value_type tmin = value_max;
-#endif
-                for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmin = f(tbx, fab1, fab2);
-                    tmin = amrex::min(tmin, local_tmin);
-                }
-                sdata[threadIdx.x] = tmin;
-                __syncthreads();
-
-                Gpu::blockReduceMin<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Min(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB1 fab1(arr1,b.ixType());
+                const FAB2 fab2(arr2,b.ixType());
+                return { f(b, fab1, fab2) };
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -398,45 +308,24 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_r(r);
-        value_type* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_r = gsm.dataPtr();
-                value_type* sdata = block_r + 1;
-
-                const FAB fab(arr,bx.ixType());
-
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                value_type tmax = std::numeric_limits<value_type>::lowest();
-#else
-                value_type tmax = value_lowest;
-#endif
-                for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmax = f(tbx, fab);
-                    tmax = amrex::max(tmax, local_tmax);
-                }
-                sdata[threadIdx.x] = tmax;
-                __syncthreads();
-
-                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB fab(arr,b.ixType());
+                return { f(b, fab) };
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -474,47 +363,26 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<value_type> ds_r(r);
-        value_type* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpMax> reduce_op;
+        ReduceData<value_type> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(value_type),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<value_type> gsm;
-                value_type* block_r = gsm.dataPtr();
-                value_type* sdata = block_r + 1;
-
-                const FAB1 fab1(arr1,bx.ixType());
-                const FAB2 fab2(arr2,bx.ixType());
-
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-                value_type tmax = std::numeric_limits<value_type>::lowest();
-#else
-                value_type tmax = value_lowest;
-#endif
-                for (auto const tbx : Gpu::Range(bx)) {
-                    value_type local_tmax = f(tbx, fab1, fab2);
-                    tmax = amrex::max(tmax, local_tmax);
-                }
-                sdata[threadIdx.x] = tmax;
-                __syncthreads();
-
-                Gpu::blockReduceMax<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::Max(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB1 fab1(arr1,b.ixType());
+                const FAB2 fab2(arr2,b.ixType());
+                return { f(b, fab1, fab2) };
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -550,40 +418,25 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<int> ds_r(r);
-        int* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpLogicalAnd> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<int> gsm;
-                int* block_r = gsm.dataPtr();
-                int* sdata = block_r + 1;
-
-                const FAB fab(arr,bx.ixType());
-
-                int tr = true;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr && f(tbx, fab);
-                }
-                sdata[threadIdx.x] = tr;
-                __syncthreads();
-
-                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB fab(arr,b.ixType());
+                int tr = f(b,fab);
+                return {tr};
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -621,42 +474,27 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<int> ds_r(r);
-        int* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpLogicalAnd> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<int> gsm;
-                int* block_r = gsm.dataPtr();
-                int* sdata = block_r + 1;
-
-                const FAB1 fab1(arr1,bx.ixType());
-                const FAB2 fab2(arr2,bx.ixType());
-
-                int tr = true;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr && f(tbx, fab1, fab2);
-                }
-                sdata[threadIdx.x] = tr;
-                __syncthreads();
-
-                Gpu::blockReduceAnd<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB1 fab1(arr1,b.ixType());
+                const FAB2 fab2(arr2,b.ixType());
+                int tr = f(b, fab1, fab2);
+                return {tr};
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -692,40 +530,25 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<int> ds_r(r);
-        int* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr = fa.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<int> gsm;
-                int* block_r = gsm.dataPtr();
-                int* sdata = block_r + 1;
-
-                const FAB fab(arr,bx.ixType());
-
-                int tr = false;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr || f(tbx, fab);
-                }
-                sdata[threadIdx.x] = tr;
-                __syncthreads();
-
-                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB fab(arr,b.ixType());
+                int tr = f(b, fab);
+                return {tr};
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
@@ -763,42 +586,26 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::DeviceScalar<int> ds_r(r);
-        int* d_r = ds_r.dataPtr();
+        ReduceOps<ReduceOpLogicalOr> reduce_op;
+        ReduceData<int> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
             const auto& arr1 = fa1.array(mfi);
             const auto& arr2 = fa2.array(mfi);
-
-            constexpr int n_per_thread = 32; // give each thread more works.
-            const auto ec = amrex::Gpu::ExecutionConfig(bx.numPts()/n_per_thread);
-
-            amrex::launch_global<<<ec.numBlocks, ec.numThreads, (ec.numThreads.x+1)*sizeof(int),
-                                   Gpu::gpuStream()>>>(
-            [=] AMREX_GPU_DEVICE () {
-                Gpu::SharedMemory<int> gsm;
-                int* block_r = gsm.dataPtr();
-                int* sdata = block_r + 1;
-
-                const FAB1 fab1(arr1,bx.ixType());
-                const FAB2 fab2(arr2,bx.ixType());
-
-                int tr = false;
-                for (auto const tbx : Gpu::Range(bx)) {
-                    tr = tr || f(tbx, fab1, fab2);
-                }
-                sdata[threadIdx.x] = tr;
-                __syncthreads();
-
-                Gpu::blockReduceOr<AMREX_GPU_MAX_THREADS,Gpu::Device::warp_size>(sdata, *block_r);
-
-                if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(d_r, *block_r);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& b) -> ReduceTuple
+            {
+                const FAB1 fab1(arr1,b.ixType());
+                const FAB2 fab2(arr2,b.ixType());
+                int tr = f(b, fab1, fab2);
             });
         }
 
-        r = ds_r.dataValue();
+        ReduceTuple hv = reduce_data.value();
+        r = amrex::get<0>(hv);
     }
     else
 #endif
