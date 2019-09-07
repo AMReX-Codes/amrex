@@ -8,6 +8,8 @@ import scipy.constants as scc
 This script loops over all WarpX plotfiles in a directory and, for each
 plotfile, saves an image showing the field and particles.
 
+Requires yt>3.5 and Python3
+
 It can be run serial:
 > python plot_parallel.py --path <path/to/plt/files>
 or parallel
