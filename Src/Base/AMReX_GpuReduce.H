@@ -29,7 +29,7 @@ struct warpReduce
 
 template <int warpSize, typename T, typename WARPREDUCE>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T blockReduce (T x, WARPREDUCE && warp_reduce)
+T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
 {
     __shared__ T shared[warpSize];
     int lane = threadIdx.x % warpSize;
@@ -38,7 +38,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce)
     if (lane == 0) shared[wid] = x;
     __syncthreads();
     bool b = (threadIdx.x < blockDim.x / warpSize);
-    x =  b ? shared[lane] : x;
+    x =  b ? shared[lane] : x0;
     if (wid == 0) x = warp_reduce(x);
     return x;
 }
@@ -48,7 +48,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >());
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), 0);
     if (threadIdx.x == 0) Gpu::Atomic::Add(dest, source);
 }
 
@@ -57,7 +57,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >());
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Less<T> >(), source);
     if (threadIdx.x == 0) Gpu::Atomic::Min(dest, source);
 }
 
@@ -66,7 +66,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >());
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Greater<T> >(), source);
     if (threadIdx.x == 0) Gpu::Atomic::Max(dest, source);
 }
 
@@ -74,7 +74,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalAnd (int * dest, int source) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >());
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalAnd<int> >(), true);
     if (threadIdx.x == 0) Gpu::Atomic::LogicalAnd(dest, source);
 }
 
@@ -82,7 +82,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceLogicalOr (int * dest, int source) noexcept
 {
     source = Gpu::blockReduce<Gpu::Device::warp_size>
-        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >());
+        (source, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::LogicalOr<int> >(), false);
     if (threadIdx.x == 0) Gpu::Atomic::LogicalOr(dest, source);
 }
 
