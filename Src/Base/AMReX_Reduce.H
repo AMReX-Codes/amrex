@@ -170,8 +170,6 @@ public:
 
     Type& hostRef () { return m_host_tuple; }
 
-    Type initialValue () const { return m_host_tuple; }
-
 private:
     Type m_host_tuple;
     Type* m_device_tuple;
@@ -206,7 +204,8 @@ public:
     void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val = reduce_data.initialValue();
+        ReduceTuple init_val;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
@@ -239,7 +238,8 @@ public:
     void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val = reduce_data.initialValue();
+        ReduceTuple init_val;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
@@ -273,7 +273,8 @@ public:
     void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val = reduce_data.initialValue();
+        ReduceTuple init_val;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         auto ec = Gpu::ExecutionConfig(n);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
@@ -426,8 +427,6 @@ public:
 
     Type& reference () { return m_tuple; }
 
-    Type initialValue () const { return m_init_val; }
-
 private:
     Type m_init_val;
     Type m_tuple;
@@ -444,7 +443,8 @@ private:
         noexcept -> decltype(f(0,0,0))
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple r = reduce_data.initialValue();
+        ReduceTuple r;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
         for (int k = lo.z; k <= hi.z; ++k) {
@@ -481,7 +481,8 @@ public:
     void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple r = reduce_data.initialValue();
+        ReduceTuple r;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         ReduceTuple& rr = reduce_data.reference();
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
@@ -501,7 +502,8 @@ public:
     void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple r = reduce_data.initialValue();
+        ReduceTuple r;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         ReduceTuple& rr = reduce_data.reference();
         AMREX_PRAGMA_SIMD
         for (N i = 0; i < n; ++i) {
