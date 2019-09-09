@@ -308,23 +308,21 @@ extern "C"
         return getMultiFabLoVects(mf, return_size, ngrow);
     }
 
-    double** warpx_getParticleStructs(int speciesnumber,
+    double** warpx_getParticleStructs(int speciesnumber, int lev,
                                       int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
-        const int level = 0;
-
         int i = 0;
-        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {}
+        for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti, ++i) {}
 
-        // *num_tiles = myspc.numLocalTilesAtLevel(level);
+        // *num_tiles = myspc.numLocalTilesAtLevel(lev);
         *num_tiles = i;
         *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
 
         double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
         i = 0;
-        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
+        for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti, ++i) {
             auto& aos = pti.GetArrayOfStructs();
             data[i] = (double*) aos.data();
             (*particles_per_tile)[i] = pti.numParticles();
@@ -332,23 +330,21 @@ extern "C"
         return data;
     }
 
-    double** warpx_getParticleArrays(int speciesnumber, int comp,
+    double** warpx_getParticleArrays(int speciesnumber, int comp, int lev,
                                      int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
-        const int level = 0;
-
         int i = 0;
-        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {}
+        for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti, ++i) {}
 
-        // *num_tiles = myspc.numLocalTilesAtLevel(level);
+        // *num_tiles = myspc.numLocalTilesAtLevel(lev);
         *num_tiles = i;
         *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
 
         double** data = (double**) malloc(*num_tiles*sizeof(double*));
         i = 0;
-        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
+        for (WarpXParIter pti(myspc, lev); pti.isValid(); ++pti, ++i) {
             auto& soa = pti.GetStructOfArrays();
             data[i] = (double*) soa.GetRealData(comp).dataPtr();
             (*particles_per_tile)[i] = pti.numParticles();

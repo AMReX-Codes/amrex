@@ -3,11 +3,11 @@ from . import fields
 from pywarpx import PGroup
 
 
-def warp_species(warp_type, picmie_species):
+def warp_species(warp_type, picmi_species, level=0):
     """Returns a Warp species that has a reference to the WarpX particles.
     """
-    elec_pgroups = PGroup.PGroups(ispecie=picmie_species.species_number)
-    return warp.Species(type=warp_type, pgroups=elec_pgroups)
+    pgroups = PGroup.PGroups(ispecie=picmi_species.species_number, level=level)
+    return warp.Species(type=warp_type, pgroups=pgroups)
 
 
 class _WarpX_FIELDtype(object):
