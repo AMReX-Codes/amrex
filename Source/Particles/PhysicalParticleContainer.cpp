@@ -1142,8 +1142,12 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                 }
 
+                // only deposit / gather to coarsest grid
                 if (deposit_on_main_grid && lev > 0) {
                     nfine_current = 0;
+                }
+                if (m_gather_from_main_grid && lev > 0) {
+                    nfine_gather = 0;
                 }
 
                 if (nfine_current != np || nfine_gather != np)

@@ -2,15 +2,16 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <memory>
-#include <map>
-#include <string>
-
 #include <AMReX_Particles.H>
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <LaserParticleContainer.H>
+
+#include <memory>
+#include <map>
+#include <string>
+#include <algorithm>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -167,6 +168,12 @@ public:
         return r;
     }
 
+    int nSpeciesGatherFromMainGrid() const {
+        bool const fromMainGrid = true;
+        auto const & v = m_gather_from_main_grid;
+        return std::count( v.begin(), v.end(), fromMainGrid );
+    }
+
     void GetLabFrameData(const std::string& snapshot_name,
                          const int i_lab, const int direction,
                          const amrex::Real z_old, const amrex::Real z_new,
@@ -194,7 +201,11 @@ protected:
 
     std::vector<std::string> lasers_names;
 
+    //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<int> deposit_on_main_grid;
+
+    //! instead of gathering fields from the finest patch level, gather from the coarsest
+    std::vector<bool> m_gather_from_main_grid;
 
     std::vector<PCTypes> species_types;
 
