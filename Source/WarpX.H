@@ -125,8 +125,8 @@ public:
     static int sort_int;
 
     // buffers
-    static int n_field_gather_buffer;
-    static int n_current_deposition_buffer;
+    static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
+    static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
 
     // do nodal
     static int do_nodal;
