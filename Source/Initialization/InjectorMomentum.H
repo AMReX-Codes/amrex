@@ -1,10 +1,11 @@
 #ifndef INJECTOR_MOMENTUM_H_
 #define INJECTOR_MOMENTUM_H_
 
+#include <CustomMomentumProb.H>
+#include <GpuParser.H>
+
 #include <AMReX_Gpu.H>
 #include <AMReX_Dim3.H>
-#include <GpuParser.H>
-#include <CustomMomentumProb.H>
 
 // struct whose getMomentum returns constant momentum.
 struct InjectorMomentumConstant

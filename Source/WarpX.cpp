@@ -1,17 +1,3 @@
-
-#include <limits>
-#include <algorithm>
-#include <cctype>
-#include <cmath>
-#include <numeric>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include <AMReX_ParmParse.H>
-#include <AMReX_MultiFabUtil.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
@@ -20,9 +6,21 @@
 #include <WarpXAlgorithmSelection.H>
 #include <WarpX_FDTD.H>
 
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
 #ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
+#   include <AMReX_AmrMeshInSituBridge.H>
 #endif
+
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
+
+#include <limits>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <numeric>
 
 using namespace amrex;
 

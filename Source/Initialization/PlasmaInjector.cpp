@@ -1,12 +1,13 @@
 #include "PlasmaInjector.H"
 
-#include <sstream>
-#include <functional>
-
 #include <WarpXConst.H>
 #include <WarpX_f.H>
-#include <AMReX.H>
 #include <WarpX.H>
+
+#include <AMReX.H>
+
+#include <sstream>
+#include <functional>
 
 using namespace amrex;
 
