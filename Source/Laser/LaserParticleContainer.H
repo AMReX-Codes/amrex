@@ -53,8 +53,8 @@ public:
                                amrex::Real * const amplitude);
 
     void calculate_laser_plane_coordinates (const int np, const int thread_num,
-                                            amrex::Real * const pplane_Xp,
-                                            amrex::Real * const pplane_Yp);
+                                            amrex::Real * const AMREX_RESTRICT pplane_Xp,
+                                            amrex::Real * const AMREX_RESTRICT pplane_Yp);
 
     void update_laser_particle (const int np, amrex::Real * const puxp,
                                 amrex::Real * const puyp,
