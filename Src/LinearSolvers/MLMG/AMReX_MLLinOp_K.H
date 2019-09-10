@@ -350,6 +350,96 @@ void mllinop_comp_interp_coef0_z (int side, Box const& box, int blen,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_innu_xlo (int i, int j, int k,
+                             Array4<Real> const& rhs,
+                             Array4<int const> const& mask,
+                             Array4<Real const> const& bcoef,
+                             BoundCond bct, Real bcl,
+                             Array4<Real const> const& bcval,
+                             Real dxinv, Real beta, bool has_bcoef, int icomp) noexcept
+{
+    if (bct == AMREX_LO_NEUMANN and mask(i,j,k) == 2) {
+        Real b = (has_bcoef) ? bcoef(i+1,j,k,icomp) : 1.0;
+        rhs(i+1,j,k,icomp) -= beta*b*dxinv*bcval(i,j,k,icomp);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_innu_xhi (int i, int j, int k,
+                             Array4<Real> const& rhs,
+                             Array4<int const> const& mask,
+                             Array4<Real const> const& bcoef,
+                             BoundCond bct, Real bcl,
+                             Array4<Real const> const& bcval,
+                             Real dxinv, Real beta, bool has_bcoef, int icomp) noexcept
+{
+    if (bct == AMREX_LO_NEUMANN and mask(i,j,k) == 2) {
+        Real b = (has_bcoef) ? bcoef(i,j,k,icomp) : 1.0;
+        rhs(i-1,j,k,icomp) += beta*b*dxinv*bcval(i,j,k,icomp);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_innu_ylo (int i, int j, int k,
+                             Array4<Real> const& rhs,
+                             Array4<int const> const& mask,
+                             Array4<Real const> const& bcoef,
+                             BoundCond bct, Real bcl,
+                             Array4<Real const> const& bcval,
+                             Real dyinv, Real beta, bool has_bcoef, int icomp) noexcept
+{
+    if (bct == AMREX_LO_NEUMANN and mask(i,j,k) == 2) {
+        Real b = (has_bcoef) ? bcoef(i,j+1,k,icomp) : 1.0;
+        rhs(i,j+1,k,icomp) -= beta*b*dyinv*bcval(i,j,k,icomp);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_innu_yhi (int i, int j, int k,
+                             Array4<Real> const& rhs,
+                             Array4<int const> const& mask,
+                             Array4<Real const> const& bcoef,
+                             BoundCond bct, Real bcl,
+                             Array4<Real const> const& bcval,
+                             Real dyinv, Real beta, bool has_bcoef, int icomp) noexcept
+{
+    if (bct == AMREX_LO_NEUMANN and mask(i,j,k) == 2) {
+        Real b = (has_bcoef) ? bcoef(i,j,k,icomp) : 1.0;
+        rhs(i,j-1,k,icomp) += beta*b*dyinv*bcval(i,j,k,icomp);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_innu_zlo (int i, int j, int k,
+                             Array4<Real> const& rhs,
+                             Array4<int const> const& mask,
+                             Array4<Real const> const& bcoef,
+                             BoundCond bct, Real bcl,
+                             Array4<Real const> const& bcval,
+                             Real dzinv, Real beta, bool has_bcoef, int icomp) noexcept
+{
+    if (bct == AMREX_LO_NEUMANN and mask(i,j,k) == 2) {
+        Real b = (has_bcoef) ? bcoef(i,j,k+1,icomp) : 1.0;
+        rhs(i,j,k+1,icomp) -= beta*b*dzinv*bcval(i,j,k,icomp);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mllinop_apply_innu_zhi (int i, int j, int k,
+                             Array4<Real> const& rhs,
+                             Array4<int const> const& mask,
+                             Array4<Real const> const& bcoef,
+                             BoundCond bct, Real bcl,
+                             Array4<Real const> const& bcval,
+                             Real dzinv, Real beta, bool has_bcoef, int icomp) noexcept
+{
+    if (bct == AMREX_LO_NEUMANN and mask(i,j,k) == 2) {
+        Real b = (has_bcoef) ? bcoef(i,j,k,icomp) : 1.0;
+        rhs(i,j,k-1,icomp) += beta*b*dzinv*bcval(i,j,k,icomp);
+    }
+}
+
 }
 
 #endif
