@@ -18,7 +18,7 @@
 // using laser) WarpXParticleContainer.  WarpXParticleContainer is
 // derived from amrex::ParticleContainer, and it is
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
-// concrete class dervied from WarpXParticlContainer.
+// concrete class derived from WarpXParticlContainer.
 //
 
 class MultiParticleContainer
@@ -161,11 +161,9 @@ public:
     int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
 
     int nSpeciesDepositOnMainGrid () const {
-        int r = 0;
-        for (int i : deposit_on_main_grid) {
-            if (i) ++r;
-        }
-        return r;
+        bool const onMainGrid = true;
+        auto const & v = m_deposit_on_main_grid;
+        return std::count( v.begin(), v.end(), onMainGrid );
     }
 
     int nSpeciesGatherFromMainGrid() const {
@@ -202,7 +200,7 @@ protected:
     std::vector<std::string> lasers_names;
 
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
-    std::vector<int> deposit_on_main_grid;
+    std::vector<bool> m_deposit_on_main_grid;
 
     //! instead of gathering fields from the finest patch level, gather from the coarsest
     std::vector<bool> m_gather_from_main_grid;

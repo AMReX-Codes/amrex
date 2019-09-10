@@ -1087,8 +1087,8 @@ PhysicalParticleContainer::Evolve (int lev,
 
             m_giv[thread_num].resize(np);
 
-            long nfine_current = np;
-            long nfine_gather = np;
+            long nfine_current = np; //! number of particles depositing to fine grid
+            long nfine_gather = np;  //! number of particles gathering from fine grid
             if (has_buffer && !do_not_push)
             {
                 BL_PROFILE_VAR_START(blp_partition);
@@ -1143,7 +1143,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 }
 
                 // only deposit / gather to coarsest grid
-                if (deposit_on_main_grid && lev > 0) {
+                if (m_deposit_on_main_grid && lev > 0) {
                     nfine_current = 0;
                 }
                 if (m_gather_from_main_grid && lev > 0) {

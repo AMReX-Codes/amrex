@@ -293,7 +293,7 @@ protected:
     amrex::Real mass;
 
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
-    bool deposit_on_main_grid = false;
+    bool m_deposit_on_main_grid = false;
 
     //! instead of gathering fields from the finest patch level, gather from the coarsest
     bool m_gather_from_main_grid = false;
