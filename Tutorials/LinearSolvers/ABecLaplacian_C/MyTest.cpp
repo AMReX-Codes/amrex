@@ -344,20 +344,20 @@ MyTest::solveABecLaplacianInhomNeumann ()
             
             mlabec.setMaxOrder(linop_maxorder);
             
-            // This is a 3d problem with homogeneous Neumann BC
-            mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
-                                             LinOpBCType::Neumann,
-                                             LinOpBCType::Neumann)},
-                               {AMREX_D_DECL(LinOpBCType::Neumann,
-                                             LinOpBCType::Neumann,
-                                             LinOpBCType::Neumann)});
+            // This is a 3d problem with inhomogeneous Neumann BC
+            mlabec.setDomainBC({AMREX_D_DECL(LinOpBCType::inhomogNeumann,
+                                             LinOpBCType::inhomogNeumann,
+                                             LinOpBCType::inhomogNeumann)},
+                               {AMREX_D_DECL(LinOpBCType::inhomogNeumann,
+                                             LinOpBCType::inhomogNeumann,
+                                             LinOpBCType::inhomogNeumann)});
             
             if (ilev > 0) {
                 mlabec.setCoarseFineBC(&solution[ilev-1], ref_ratio);
             }
 
-            // for problem with pure homogeneous Neumann BC, we could pass a nullptr
-            mlabec.setLevelBC(0, nullptr);
+            // for problem with inhomogeneous Neumann BC, we need to pass boundary values
+            mlabec.setLevelBC(0, &solution[ilev]);
 
             mlabec.setScalars(ascalar, bscalar);
 
