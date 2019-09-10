@@ -161,7 +161,7 @@ void actual_init_dphi_dx_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
 
-    amrex::Real x = prob_lo[0] + dx[0] * (i      );
+    amrex::Real x = prob_lo[0] + dx[0] * (i + 1.0);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
@@ -178,7 +178,7 @@ void actual_init_dphi_dx_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
 
-    amrex::Real x = prob_lo[0] + dx[0] * (i + 1.0);
+    amrex::Real x = prob_lo[0] + dx[0] * (i + 0.0);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
@@ -196,7 +196,7 @@ void actual_init_dphi_dy_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
     constexpr amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
-    amrex::Real y = prob_lo[1] + dx[1] * (j      );
+    amrex::Real y = prob_lo[1] + dx[1] * (j + 1.0 );
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
     fy(i,j,k) = std::sin(tpi*x) * (-tpi) * std::sin(tpi*y) * std::cos(tpi*z)
@@ -213,7 +213,7 @@ void actual_init_dphi_dy_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
     constexpr amrex::Real fpi =  4.*pi;
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
-    amrex::Real y = prob_lo[1] + dx[1] * (j + 1.0);
+    amrex::Real y = prob_lo[1] + dx[1] * (j + 0.0);
     amrex::Real z = prob_lo[2] + dx[2] * (k + 0.5);
 
     fy(i,j,k) = std::sin(tpi*x) * (-tpi) * std::sin(tpi*y) * std::cos(tpi*z)
@@ -231,7 +231,7 @@ void actual_init_dphi_dz_lo (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
-    amrex::Real z = prob_lo[2] + dx[2] * (k      );
+    amrex::Real z = prob_lo[2] + dx[2] * (k + 1.0);
 
     fz(i,j,k) = std::sin(tpi*x) * std::cos(tpi*y) * (-tpi) * std::sin(tpi*z)
         + .25 * std::cos(fpi*x) * std::sin(fpi*y) * (-fpi) * std::sin(fpi*z);
@@ -248,7 +248,7 @@ void actual_init_dphi_dz_hi (int i, int j, int k, amrex::Array4<amrex::Real> con
 
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
-    amrex::Real z = prob_lo[2] + dx[2] * (k + 1.0);
+    amrex::Real z = prob_lo[2] + dx[2] * (k + 0.0);
 
     fz(i,j,k) = std::sin(tpi*x) * std::cos(tpi*y) * (-tpi) * std::sin(tpi*z)
         + .25 * std::cos(fpi*x) * std::sin(fpi*y) * (-fpi) * std::sin(fpi*z);
