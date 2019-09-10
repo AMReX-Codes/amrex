@@ -18,8 +18,8 @@ using namespace amrex;
  */
 void 
 LaserParticleContainer::gaussian_laser_profile (
-    const int np, Real const * const Xp, Real const * const Yp,
-    Real t, Real * const amplitude)
+    const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    Real t, Real * AMREX_RESTRICT const amplitude)
 {
     Complex I(0,1);
     // Calculate a few factors which are independent of the macroparticle
@@ -90,8 +90,8 @@ LaserParticleContainer::gaussian_laser_profile (
  */
 void 
 LaserParticleContainer::harris_laser_profile (
-    const int np, Real const * const Xp, Real const * const Yp,
-    Real t, Real * const amplitude)
+    const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    Real t, Real * AMREX_RESTRICT const amplitude)
 {
     // This function uses the Harris function as the temporal profile of the pulse
     const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;

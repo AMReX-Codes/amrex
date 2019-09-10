@@ -611,8 +611,8 @@ LaserParticleContainer::PushP (int lev, Real dt,
 void
 LaserParticleContainer::calculate_laser_plane_coordinates (
     const int np, const int thread_num,
-    Real * const AMREX_RESTRICT pplane_Xp,
-    Real * const AMREX_RESTRICT pplane_Yp)
+    Real * AMREX_RESTRICT const pplane_Xp,
+    Real * AMREX_RESTRICT const pplane_Yp)
 {
     Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
     Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
@@ -662,8 +662,9 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
  */
 void
 LaserParticleContainer::update_laser_particle(
-    const int np, Real * const puxp, Real * const puyp, Real * const puzp,
-    Real * const pwp, Real const * const amplitude, const Real dt,
+    const int np, Real * AMREX_RESTRICT const puxp, Real * AMREX_RESTRICT const puyp,
+    Real * AMREX_RESTRICT const puzp, Real * AMREX_RESTRICT const pwp,
+    Real const * AMREX_RESTRICT const amplitude, const Real dt,
     const int thread_num)
 {
     Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
