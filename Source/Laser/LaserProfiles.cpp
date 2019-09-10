@@ -55,15 +55,17 @@ LaserParticleContainer::gaussian_laser_profile (
     Real tmp_profile_t_peak = profile_t_peak;
     Real tmp_beta = beta;
     Real tmp_zeta = zeta;
+    Real tmp_theta_stc = theta_stc;
+    Real tmp_profile_focal_distance = profile_focal_distance;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np, 
         [=] AMREX_GPU_DEVICE (int i) {
             const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
                 MathFunc::pow((t - tmp_profile_t_peak - 
-                               tmp_beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
-                               2.*I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
-                               *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
+                               tmp_beta*k0*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc)) -
+                               2.*I*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc))
+                               *( tmp_zeta - tmp_beta*tmp_profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
             // Exp argument for transverse envelope
