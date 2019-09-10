@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <map>
 #include <limits>
-#include <cfloat>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_MultiFab.H>

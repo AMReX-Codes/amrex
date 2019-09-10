@@ -11,7 +11,7 @@
 
 using namespace amrex;
 
-void write_plotfile(const auto& geom, const auto& plotmf)
+void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
 {
     std::stringstream sstream;
     sstream << "plt00000";
@@ -274,11 +274,18 @@ int main (int argc, char* argv[])
         // such as BaseFab, FArrayBox, FabArray, and MultiFab
         EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
+	// allocate face-centered velocities and face-centered beta coefficient
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1, MFInfo(), factory);
-            beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0, MFInfo(), factory);
-            beta[idim].setVal(1.0);
+            vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1,
+			      MFInfo(), factory);
+            beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0,
+			      MFInfo(), factory);
+            beta[idim].setVal(1.0);  // set beta to 1
         }
+
+	// If we want to supply a non-zero S we must allocate and fill it outside the solver
+        // MultiFab S(grids, dmap, 1, 0, MFInfo(), factory);
+	// Set S here ... 
 
         // store plotfile variables; velocity and processor id
         plotfile_mf.define(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
@@ -296,24 +303,37 @@ int main (int argc, char* argv[])
 
         MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // mac velocity
                              {amrex::GetArrOfConstPtrs(beta)}, // beta
-                             {geom},
-                             lp_info);                          // structure for passing info to the operator
+                             {geom},                           // the geometry object
+                             lp_info);                         // structure for passing info to the operator
+	  
+	// Here we specifiy the desired divergence S
+	// MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+	//                      {amrex::GetArrOfConstPtrs(beta)}, // beta
+	//                      {geom},                           // the geometry object
+	//                      lp_info,                          // structure for passing info to the operator
+	//                      {&S});                            // defines the specified RHS divergence
 
         // Set bottom-solver to use hypre instead of native BiCGStab 
         if (use_hypre) 
            macproj.setBottomSolver(MLMG::BottomSolver::hypre);
-
+	
+	// Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet
+	// on the high x-face, and periodic in the other two directions  
+	// (the first argument is for the low end, the second is for the high end)
         macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                           LinOpBCType::Periodic,
                                           LinOpBCType::Periodic)},
-            {AMREX_D_DECL(LinOpBCType::Dirichlet,
-                          LinOpBCType::Periodic,
-                          LinOpBCType::Periodic)});
+	                    {AMREX_D_DECL(LinOpBCType::Dirichlet,
+					  LinOpBCType::Periodic,
+					  LinOpBCType::Periodic)});
 
         macproj.setVerbose(mg_verbose);
         macproj.setCGVerbose(cg_verbose);
-
+	
+	// Define the relative tolerance
         Real reltol = 1.e-8;
+
+	// Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
@@ -323,7 +343,12 @@ int main (int argc, char* argv[])
         amrex::Print() << " The maximum grid size is " << max_grid_size                             << std::endl;  
         amrex::Print() << "******************************************************************** \n" << std::endl; 
 
+	// Solve for phi and subtract from the velocity to make it divergence-free
         macproj.project(reltol,abstol);
+	
+	// If we want to use phi elsewhere, we can pass in an array in which to return the solution
+	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);	
+	// macproj.project({&phi_inout},reltol,abstol);
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Done!" << std::endl;
@@ -334,9 +359,8 @@ int main (int argc, char* argv[])
         }
 
         // copy processor id into plotfile_mf
-        for (MFIter mfi(vel[0]); mfi.isValid(); ++mfi)
-            plotfile_mf[mfi].setVal(ParallelDescriptor::MyProc());
-
+	plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
+	
         // copy velocity into plotfile
         average_face_to_cellcenter(plotfile_mf,1,amrex::GetArrOfConstPtrs(vel));
 

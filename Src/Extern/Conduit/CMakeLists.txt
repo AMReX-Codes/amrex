@@ -17,9 +17,11 @@ target_sources(amrex
 find_package(Conduit REQUIRED)
 
 target_link_libraries(amrex PUBLIC conduit:conduit)
+set_target_properties(conduit:conduit PROPERTIES IMPORTED_GLOBAL True )
 
 if (ENABLE_MPI)
-   target_link_libraries(amrex PUBLIC conduit:conduit_mpi)   
+   target_link_libraries(amrex PUBLIC conduit:conduit_mpi)
+   set_target_properties(conduit:conduit_mpi PROPERTIES IMPORTED_GLOBAL True )   
 endif ()
 
 if (ENABLE_ASCENT)
@@ -27,9 +29,12 @@ if (ENABLE_ASCENT)
    
    if (ENABLE_MPI)
       target_link_libraries( amrex PUBLIC ascent::ascent_mpi )
+      set_target_properties( ascent::ascent_mpi PROPERTIES IMPORTED_GLOBAL True )
    else ()
       target_link_libraries( amrex PUBLIC ascent::ascent )
-   endif ()
-   
+      set_target_properties( ascent::ascent PROPERTIES IMPORTED_GLOBAL True )
+   endif ()   
 endif ()
+
+
 

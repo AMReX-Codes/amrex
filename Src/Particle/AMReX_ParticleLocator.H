@@ -20,8 +20,8 @@ struct assignGrid
     assignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size)
         : m_boxes_ptr(a_boxes_ptr),
-          m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3()),
-          m_poffset(a_poffset), m_pperm(a_pperm)
+          m_poffset(a_poffset), m_pperm(a_pperm),
+          m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3())
         {
             // clamp bin size to 1 for AMREX_SPACEDIM < 3
             m_bin_size.x = amrex::max(m_bin_size.x, 1);
@@ -130,7 +130,6 @@ public:
 
         unsigned int* pcell = m_cells.dataPtr();
         unsigned int* pcount = m_counts.dataPtr();
-        unsigned int* poffset = m_offsets.dataPtr();
         unsigned int* pperm = m_permutation.dataPtr();
 
         amrex::ParallelFor(num_boxes, [=] AMREX_GPU_DEVICE (int i) noexcept

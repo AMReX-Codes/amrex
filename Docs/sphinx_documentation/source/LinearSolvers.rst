@@ -65,9 +65,9 @@ For :cpp:`MLABecLaplacian`, we next need to call member functions
 
 ::
 
-    void setScalars (Real alpha, Real beta);
-    void setACoeffs (int amrlev, const MultiFab& A);
-    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& B);
+    void setScalars (Real A, Real B);
+    void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
 to set up the coefficients for equation :eq:`eqn::abeclap`. This is unecessary for
 :cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`,
@@ -81,7 +81,7 @@ one needs to call the member function
 
 The :cpp:`int amrlev` parameter should be zero for single-level
 solves.  For multi-level solves, each level needs to be provided with
-``A`` and ``B``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
+``alpha`` and ``beta``, or ``Sigma``.  For composite solves, :cpp:`amrlev` 0 will
 mean the lowest level for the solver, which is not necessarily the lowest
 level in the AMR hierarchy. This is so solves can be done on different sections
 of the AMR hierarchy, e.g. on AMR levels 3 to 5.
@@ -257,15 +257,22 @@ stabilized method as the bottom solver.  :cpp:`MLMG` member method
 
 can be used to change the bottom solver.  Available choices are
 
-- :cpp:`MLMG::BottomSolver::smoother`: Smoother such as Gauss-Seidel.
-
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in hypre.  Currently for
-  cell-centered only.
+- :cpp:`MLMG::BottomSolver::smoother`: Smoother such as Gauss-Seidel.
+
+- :cpp:`MLMG::BottomSolver::bicgcg`: Start with bicgstab. Switch to cg
+  if bicgstab fails.  The matrix must be symmetric.
+
+- :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
+  if cg fails.  The matrix must be symmetric.
+
+- :cpp:`MLMG::BottomSolver::hypre`: BoomerAMG in hypre.
+
+- :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
 Curvilinear Coordinates
 =======================
@@ -278,22 +285,28 @@ other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
 operators.
 
-hypre
-=====
+External Solvers
+================
 
-AMReX can use hypre BoomerAMG as a bottom solver (currently for
-cell-centered problems only), as we have mentioned.  For challenging
-problems, our geometric multigrid solver may have difficulty solving,
-whereas an algebraic multigrid method might be more robust.  We note
-that by default our solver always tries to geometrically coarsen the
+AMReX can use the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ algebraic multigrid solver, BoomerAMG, 
+as a bottom solver for both cell-centered and node-based problems.
+For challenging problems, our geometric multigrid solver may have difficulty solving,
+whereas an algebraic multigrid method might be more robust.  
+We note that by default our solver always tries to geometrically coarsen the
 problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem.  To use hypre, one
-must include ``amrex/Src/Extern/HYPRE`` in the build system. For an
-example of using hypre, we refer the reader to
+residual correction form of the original problem.  
+
+To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system. 
+For an example of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C``.
+
+AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
+problems.  To use PETSc, one must include ``amrex/Src/Extern/PETSc``
+in the build system.  For an example of using PETSc, we refer the
+reader to ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
 MAC Projection
 =========================
@@ -305,48 +318,53 @@ of this velocity field as a MAC projection, in which we solve
 
 .. math::
 
-   D( B \nabla \phi) = D(U^*) 
+   D( \beta \nabla \phi) = D(U^*) - S
 
-then set 
+for :math:`\phi` and then set 
 
 .. math::
 
-   U = U^* - B \nabla \phi
+   U = U^* - \beta \nabla \phi
 
 
-where :math:`U^*` is a vector field (typically velocity) that we want to make divergence-free.
+where :math:`U^*` is a vector field (typically velocity) that we want to satisfy 
+:math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
 
-The MACProjection class can be defined and used to perform the MAC projection with explcitly
+The MACProjection class can be defined and used to perform the MAC projection without explcitly
 calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
-the MacProjector first computes the divergence of the vector field ( :math:`D(U^*) 
-to compute a right-hand-side, and after the solve, subtracts the weighted gradient term to
-make the vector field result divergence-free.  Note that in the simplest case, 
-both the right-hand-side array and solution array are internal to the MacProjector object;
-the user does not allocate those arrays and does not have access to them.
+the MacProjector internally computes the divergence of the vector field, :math:`D(U^*)`,
+to compute the right-hand-side, and after the solve, subtracts the weighted gradient term to
+make the vector field result satisfy the divergence constraint.  
 
-There is an alternative call -- commented out below -- in which a user does allocate 
-the solution array and passes it in/out.
+In the simplest form of the call, :math:`S` is assumed to be zero and does not need to be specified.
+Typically, the user does not allocate the solution array, but it is also possible to create and pass
+in the solution array and have :math:`\phi` returned as well as :math:`U`.  
 
-The following code is taken from 
-``Tutorials/LinearOperator/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
+The code below is taken from 
+``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
 the MACProjector object and use it to perform a MAC projection.
 
 .. highlight:: c++
 
 ::
 
-    // This object provides access to the EB database in the format of basic AMReX objects
-    // such as BaseFab, FArrayBox, FabArray, and MultiFab
     EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
+    // allocate face-centered velocities and face-centered beta coefficient
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1, MFInfo(), factory);
-        beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0, MFInfo(), factory);
-        beta[idim].setVal(1.0);
+        vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1,
+                          MFInfo(), factory);
+        beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0,
+	                  MFInfo(), factory);
+        beta[idim].setVal(1.0);  // set beta to 1
     }
 
     // If we want to use phi elsewhere, we must create an array in which to return the solution 
-    // phi_inout.define(grids, dmap, 1, 1, MFInfo(), factory);
+    // MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);
+
+    // If we want to supply a non-zero S we must allocate and fill it outside the solver
+    // MultiFab S(grids, dmap, 1, 0, MFInfo(), factory);
+    // Set S here ... 
 
     // set initial velocity to U=(1,0,0)
     AMREX_D_TERM(vel[0].setVal(1.0);,
@@ -364,13 +382,22 @@ the MACProjector object and use it to perform a MAC projection.
                          {geom},                           // the geometry object
                          lp_info);                         // structure for passing info to the operator
 
+    // Here we specifiy the desired divergence S
+    // MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+    //                      {amrex::GetArrOfConstPtrs(beta)}, // beta
+    //                      {geom},                           // the geometry object
+    //                      lp_info,                          // structure for passing info to the operator
+    //                      {&S});                            // defines the specified RHS divergence
+
     // Set bottom-solver to use hypre instead of native BiCGStab 
     if (use_hypre) 
        macproj.setBottomSolver(MLMG::BottomSolver::hypre);
 
-    // Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet on the high x-face,
+    // Set boundary conditions.
+    //  Here we use Neumann on the low x-face, Dirichlet on the high x-face,
     //  and periodic in the other two directions  
     //  (the first argument is for the low end, the second is for the high end)
+    // Note that Dirichlet boundary conditions are assumed to be homogeneous (i.e. phi = 0)
     macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                       LinOpBCType::Periodic,
                                       LinOpBCType::Periodic)},
@@ -391,11 +418,10 @@ the MACProjector object and use it to perform a MAC projection.
     macproj.project(reltol,abstol);
 
     // If we want to use phi elsewhere, we can pass in an array in which to return the solution 
-    // macproj.project(phi_inout,reltol,abstol);
+    // macproj.project({&phi_inout},reltol,abstol);
 
 
-See ``Tutorials/LinearOperator/MAC_Projection_EB`` for the complete working example.
-
+See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
 
 Multi-Component Operators
 =========================
@@ -448,7 +474,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   `interpolation` and `restriction` can be implemented as usual.
   `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
   
-  See ``Tutorials/LinearOperator/MultiComponent`` for a complete working example.
+  See ``Tutorials/LinearSolvers/MultiComponent`` for a complete working example.
 
    
 
