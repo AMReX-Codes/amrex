@@ -51,6 +51,9 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
         module swap PrgEnv-intel PrgEnv-gnu
         make -j 16 COMP=gnu
 
+See :doc:`../running_cpp/platforms` for more information on how to run
+WarpX on Cori.
+
 GPU Build
 ---------
 
@@ -65,17 +68,18 @@ Then, you need to load the following modules:
 
     ::
 
-        module load modules/3.2.10.6 esslurm cgpu/1.0 pgi/19.5 cuda/10.1 mpich/3.3-pgi-19.5 
+        module load modules esslurm pgi cuda mvapich2 
 
-Currently, you need to use OpenMPI; mvapich2 seems not to work.
+You can also use OpenMPI-UCX instead of mvapich: openmpi/4.0.1-ucx-1.6
 
 Then, you need to use slurm to request access to a GPU node:
 
     ::
 
-        salloc -C gpu -N 1 -t 30 -c 10 --gres=gpu:1 --mem=30GB -A m1759
+        salloc -C gpu -N 1 -t 30 -c 10 --gres=gpu:1 -A m1759
        
-This reserves 10 logical cores (5 physical), 1 GPU, and 30 GB of RAM for your job.
+This reserves 10 logical cores (5 physical), 1 GPU.
+The latest documentation can be found here: https://docs-dev.nersc.gov/cgpu/access 
 Note that you can't cross-compile for the GPU nodes - you have to log on to one
 and then build your software.
 
@@ -97,7 +101,7 @@ First, load the appropriate modules:
     module swap PrgEnv-intel PrgEnv-gnu
     module load cmake/3.14.4
     module load cray-hdf5-parallel
-    module load adios/1.13.1 zlib
+    module load adios/1.13.1
     export CRAYPE_LINK_TYPE=dynamic
 
 Then, in the `warpx_directory`, download and build the openPMD API:
