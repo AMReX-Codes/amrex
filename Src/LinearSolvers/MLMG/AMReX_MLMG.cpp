@@ -1193,6 +1193,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         }
         MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, nghost);
         linop.applyMetricTerm(alev, 0, rhs[alev]);
+        linop.applyInhomogNeumannTerm(alev, rhs[alev]);
 
 #ifdef AMREX_USE_EB
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
