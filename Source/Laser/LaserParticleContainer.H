@@ -44,23 +44,23 @@ public:
 
     virtual void PostRestart () final;
 
-    void gaussian_laser_profile (const int np, amrex::Real const * const Xp,
-                                 amrex::Real const * const Yp, amrex::Real t,
-                                 amrex::Real * const amplitude);
+    void gaussian_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
+                                 amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
+                                 amrex::Real * AMREX_RESTRICT const amplitude);
 
-    void harris_laser_profile (const int np, amrex::Real const * const Xp,
-                               amrex::Real const * const Yp, amrex::Real t,
-                               amrex::Real * const amplitude);
+    void harris_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
+                               amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
+                               amrex::Real * AMREX_RESTRICT const amplitude);
 
     void calculate_laser_plane_coordinates (const int np, const int thread_num,
-                                            amrex::Real * const pplane_Xp,
-                                            amrex::Real * const pplane_Yp);
+                                            amrex::Real * AMREX_RESTRICT const pplane_Xp,
+                                            amrex::Real * AMREX_RESTRICT const pplane_Yp);
 
-    void update_laser_particle (const int np, amrex::Real * const puxp,
-                                amrex::Real * const puyp,
-                                amrex::Real * const puzp,
-                                amrex::Real * const pwp,
-                                amrex::Real const * const amplitude,
+    void update_laser_particle (const int np, amrex::Real * AMREX_RESTRICT const puxp,
+                                amrex::Real * AMREX_RESTRICT const puyp,
+                                amrex::Real * AMREX_RESTRICT const puzp,
+                                amrex::Real * AMREX_RESTRICT const pwp,
+                                amrex::Real const * AMREX_RESTRICT const amplitude,
                                 const amrex::Real dt, const int thread_num);
 
 protected:
