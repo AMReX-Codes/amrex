@@ -56,7 +56,7 @@ public:
         amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
     }
 
-    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const override;;
+    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const override;
 
     virtual void prepareForSolve () override {}
 

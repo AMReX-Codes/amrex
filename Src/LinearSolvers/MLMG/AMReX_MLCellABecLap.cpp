@@ -82,6 +82,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
     const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
     const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Box& domain = m_geom[amrlev][mglev].Domain();
 
     const Real beta = getBScalar();
     Array<MultiFab const*, AMREX_SPACEDIM> const& bcoef = getBCoeffs(amrlev,mglev);
@@ -117,12 +118,15 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
             const auto& mhi = maskvals[ohi].array(mfi);
             const auto& bvlo = bndry.bndryValues(olo).array(mfi);
             const auto& bvhi = bndry.bndryValues(ohi).array(mfi);
+            bool outside_domain_lo = !(domain.contains(blo));
+            bool outside_domain_hi = !(domain.contains(bhi));
+            if ((!outside_domain_lo) and (!outside_domain_hi)) continue;
             for (int icomp = 0; icomp < ncomp; ++icomp) {
                 const BoundCond bctlo = bdcv[icomp][olo];
                 const BoundCond bcthi = bdcv[icomp][ohi];
                 const Real bcllo = bdlv[icomp][olo];
                 const Real bclhi = bdlv[icomp][ohi];
-                if (m_lo_inhomog_neumann[icomp][idim])
+                if (m_lo_inhomog_neumann[icomp][idim] and outside_domain_lo)
                 {
                     if (idim == 0) {
                         AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
@@ -147,7 +151,7 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                         });
                     }
                 }
-                if (m_hi_inhomog_neumann[icomp][idim])
+                if (m_hi_inhomog_neumann[icomp][idim] and outside_domain_hi)
                 {
                     if (idim == 0) {
                         AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
