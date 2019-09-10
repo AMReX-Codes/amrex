@@ -310,7 +310,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     
-    if ((NProcs == 1) or (plan.m_NumSnds == 0)) return;
+    if (NProcs == 1) return;
+
+    ParallelDescriptor::Barrier();
 
     Vector<int> RcvProc;
     Vector<long> rOffset;    
