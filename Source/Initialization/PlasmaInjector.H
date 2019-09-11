@@ -5,12 +5,14 @@
 #include <InjectorDensity.H>
 #include <InjectorMomentum.H>
 
-#include <array>
-#include <AMReX_Vector.H>
 #include <WarpXConst.H>
 #include <WarpXParser.H>
+
+#include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
+
+#include <array>
 
 ///
 /// The PlasmaInjector class parses and stores information about the plasma

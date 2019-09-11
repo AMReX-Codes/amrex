@@ -1,11 +1,11 @@
 
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParmParse.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
+
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>

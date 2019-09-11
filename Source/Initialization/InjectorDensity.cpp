@@ -1,3 +1,4 @@
+#include <InjectorDensity.H>
 #include <PlasmaInjector.H>
 
 using namespace amrex;

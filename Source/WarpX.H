@@ -1,12 +1,17 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
-#include <iostream>
-#include <memory>
-#include <array>
+#include <MultiParticleContainer.H>
+#include <PML.H>
+#include <BoostedFrameDiagnostic.H>
+#include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef WARPX_USE_PSATD
+#   include <SpectralSolver.H>
+#endif
+#ifdef WARPX_USE_PSATD_HYBRID
+#   include <PicsarHybridFFTData.H>
 #endif
 
 #include <AMReX_AmrCore.H>
@@ -19,18 +24,13 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <MultiParticleContainer.H>
-#include <PML.H>
-#include <BoostedFrameDiagnostic.H>
-#include <BilinearFilter.H>
-#include <NCIGodfreyFilter.H>
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
 
-#ifdef WARPX_USE_PSATD
-#include <SpectralSolver.H>
-#endif
-#ifdef WARPX_USE_PSATD_HYBRID
-#include <PicsarHybridFFTData.H>
-#endif
+#include <iostream>
+#include <memory>
+#include <array>
 
 #if defined(BL_USE_SENSEI_INSITU)
 namespace amrex {
