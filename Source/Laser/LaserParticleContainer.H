@@ -59,7 +59,7 @@ public:
     void update_laser_particle (const int np, amrex::Real * AMREX_RESTRICT const puxp,
                                 amrex::Real * AMREX_RESTRICT const puyp,
                                 amrex::Real * AMREX_RESTRICT const puzp,
-                                amrex::Real * AMREX_RESTRICT const pwp,
+                                amrex::Real const * AMREX_RESTRICT const pwp,
                                 amrex::Real const * AMREX_RESTRICT const amplitude,
                                 const amrex::Real dt, const int thread_num);
 
