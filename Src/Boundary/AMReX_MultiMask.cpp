@@ -57,18 +57,17 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
     }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     if (initval)
     {
-        // TODO gpu
-
 	Vector<IntVect> pshifts(26);
 	std::vector< std::pair<int,Box> > isects;
 
 	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
 	{
 	    Mask& m = m_fa[mfi];
+            auto const& a = m.array();
 	    const Box& face_box = m.box();
 	    //
 	    // Now have to set as not_covered the periodic translates as well.
@@ -85,7 +84,11 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    m.shift(iv);
 		    const Box& target = geom.Domain() & m.box();
                     if (target.ok()) {
-                        m.setVal(BndryData::not_covered,target,0,ncomp);
+                        auto val = BndryData::not_covered;
+                        AMREX_HOST_DEVICE_FOR_4D (target, ncomp, i, j, k, n,
+                        {
+                            a(i,j,k,n) = val;
+                        });
                     }
 		    m.shift(-iv);
 		}
@@ -96,7 +99,12 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	    regba.intersections(face_box,isects);
 	    
 	    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-		m.setVal(BndryData::covered, isects[ii].second, 0, ncomp);
+                const Box& b = isects[ii].second;
+                auto val = BndryData::covered;
+                AMREX_HOST_DEVICE_FOR_4D(b,ncomp,i,j,k,n,
+                {
+                    a(i,j,k,n) = val;
+                });
 	    }
 	    
 	    if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
@@ -113,7 +121,12 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    m.shift(iv);
 		    regba.intersections(m.box(),isects);
 		    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-			m.setVal(BndryData::covered, isects[ii].second, 0, ncomp);
+                        const Box& b = isects[ii].second;
+                        auto val = BndryData::covered;
+                        AMREX_HOST_DEVICE_FOR_4D(b,ncomp,i,j,k,n,
+                        {
+                            a(i,j,k,n) = val;
+                        });
 		    }
 		    m.shift(-iv);
 		}
