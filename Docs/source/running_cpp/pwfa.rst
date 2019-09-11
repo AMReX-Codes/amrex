@@ -3,11 +3,14 @@ In-depth explanation of a PWFA example
 
 This example illustrates the simulation of a PWFA with realistic parameters in the bubble regime. The simulation is specified by 4 particle species, namely, the drive beam (driver), the witness beam (beam), the plasma electron (plasma_e), and the plasma ion (plasma_p). The species parameters are summarized in the following table.
 
-Species	Parameters
-driver	γ = 48923; N = 30x109; σz = 30 μm; σx = σy = 3.45 μm
-beam	γ = 48923; N = 10x109; σz = 10 mm; σx = σy = 0.1 mm
-plasma_e	n = 1x1023 m-3
-plasma_p	n = 1x1023 m-3
+======== ====================================================
+Species  Parameters
+======== ====================================================
+driver   γ = 48923; N = 30x109; σz = 30 μm; σx = σy = 3.45 μm
+beam     γ = 48923; N = 10x109; σz = 10 mm; σx = σy = 0.1 mm
+plasma_e n = 1x1023 m-3
+plasma_p n = 1x1023 m-3
+======== ====================================================
 
 The separation between the driver and witness beams is set to 115 μm.
 
