@@ -5,10 +5,10 @@
 [![Documentation Status](https://readthedocs.org/projects/warpx/badge/?version=latest)](https://warpx.readthedocs.io/en/latest/?badge=latest)
 [![GitHub commits since last release](https://img.shields.io/github/commits-since/ECP-WarpX/WarpX/latest/dev.svg)](https://github.com/ECP-WarpX/WarpX/compare/master...dev)
 [![Language](https://img.shields.io/badge/language-C%2B%2B11-orange.svg)](https://isocpp.org/)
-[![Development Status](https://img.shields.io/badge/development%20status-alpha-orange.svg)]()
+[![Development Status](https://img.shields.io/badge/development%20status-alpha-orange.svg)]()  
+[![Gitter](https://badges.gitter.im/ECP-WarpX/community.svg)](https://gitter.im/ECP-WarpX/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![License WarpX](https://img.shields.io/badge/license-BSD--3--Clause--LBNL-blue.svg)](https://spdx.org/licenses/BSD-3-Clause-LBNL.html)
 [![DOI](https://img.shields.io/badge/DOI-10.1016/j.nima.2018.01.035-blue.svg)](https://doi.org/10.1016/j.nima.2018.01.035)
-[![Gitter](https://badges.gitter.im/ECP-WarpX/community.svg)](https://gitter.im/ECP-WarpX/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ## Overview
 
