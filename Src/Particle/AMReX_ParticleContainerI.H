@@ -1029,7 +1029,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #ifdef AMREX_USE_CUDA
 
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
-
+    
     // sanity checks
     AMREX_ASSERT(lev_min == 0);
     AMREX_ASSERT(lev_max == 0);
@@ -1204,13 +1204,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     else
     {
         pinned_snd_buffer.resize(snd_buffer.size());
-        cudaMemcpyAsync(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);    
+        cudaMemcpy(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size()*sizeof(SuperParticleType), cudaMemcpyDeviceToHost);    
         plan.buildMPIFinish(BufferMap());
         communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         rcv_buffer.resize(pinned_rcv_buffer.size());   
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);        
-        cudaMemcpyAsync(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);    
+        cudaMemcpy(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size()*sizeof(SuperParticleType), cudaMemcpyHostToDevice);    
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
     }
 
