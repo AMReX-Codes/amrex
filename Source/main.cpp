@@ -29,20 +29,20 @@ int main(int argc, char* argv[])
     const Real strt_total = amrex::second();
 
     {
-	WarpX warpx;
+        WarpX warpx;
 
-	warpx.InitData();
+        warpx.InitData();
 
-	warpx.Evolve();
+        warpx.Evolve();
 
-	Real end_total = amrex::second() - strt_total;
+        Real end_total = amrex::second() - strt_total;
 
-	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (warpx.Verbose()) {
+        ParallelDescriptor::ReduceRealMax(end_total, ParallelDescriptor::IOProcessorNumber());
+        if (warpx.Verbose()) {
             amrex::Print() << "Total Time                     : " << end_total << '\n';
             amrex::Print() << "WarpX Version: " << WarpX::Version() << '\n';
             amrex::Print() << "PICSAR Version: " << WarpX::PicsarVersion() << '\n';
-	}
+        }
     }
 
     BL_PROFILE_VAR_STOP(pmain);

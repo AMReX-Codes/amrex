@@ -108,7 +108,7 @@ WarpXParticleContainer::ReadParameters ()
     static bool initialized = false;
     if (!initialized)
     {
-	ParmParse pp("particles");
+        ParmParse pp("particles");
 
 #ifdef AMREX_USE_GPU
         do_tiling = false; // By default, tiling is off on GPU
@@ -118,7 +118,7 @@ WarpXParticleContainer::ReadParameters ()
         pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
 
-	initialized = true;
+        initialized = true;
     }
 }
 
@@ -168,28 +168,28 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
 void
 WarpXParticleContainer::AddNParticles (int lev,
                                        int n, const Real* x, const Real* y, const Real* z,
-				       const Real* vx, const Real* vy, const Real* vz,
-				       int nattr, const Real* attr, int uniqueparticles, int id)
+                                       const Real* vx, const Real* vy, const Real* vz,
+                                       int nattr, const Real* attr, int uniqueparticles, int id)
 {
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
 
     int ibegin, iend;
     if (uniqueparticles) {
-	ibegin = 0;
-	iend = n;
+        ibegin = 0;
+        iend = n;
     } else {
-	int myproc = ParallelDescriptor::MyProc();
-	int nprocs = ParallelDescriptor::NProcs();
-	int navg = n/nprocs;
-	int nleft = n - navg * nprocs;
-	if (myproc < nleft) {
-	    ibegin = myproc*(navg+1);
-	    iend = ibegin + navg+1;
-	} else {
-	    ibegin = myproc*navg + nleft;
-	    iend = ibegin + navg;
-	}
+        int myproc = ParallelDescriptor::MyProc();
+        int nprocs = ParallelDescriptor::NProcs();
+        int navg = n/nprocs;
+        int nleft = n - navg * nprocs;
+        if (myproc < nleft) {
+            ibegin = myproc*(navg+1);
+            iend = ibegin + navg+1;
+        } else {
+            ibegin = myproc*navg + nleft;
+            iend = ibegin + navg;
+        }
     }
 
     //  Add to grid 0 and tile 0
@@ -206,12 +206,12 @@ WarpXParticleContainer::AddNParticles (int lev,
     for (int i = ibegin; i < iend; ++i)
     {
         ParticleType p;
-	if (id==-1)
-	{
-	    p.id() = ParticleType::NextID();
-	} else {
-	    p.id() = id;
-	}
+        if (id==-1)
+        {
+            p.id() = ParticleType::NextID();
+        } else {
+            p.id() = id;
+        }
         p.cpu() = ParallelDescriptor::MyProc();
 #if (AMREX_SPACEDIM == 3)
         p.pos(0) = x[i];

@@ -62,13 +62,13 @@ public:
                       int depos_lev);
 
     virtual void Evolve (int lev,
-			 const amrex::MultiFab& Ex,
+                         const amrex::MultiFab& Ex,
                          const amrex::MultiFab& Ey,
                          const amrex::MultiFab& Ez,
-			 const amrex::MultiFab& Bx,
+                         const amrex::MultiFab& Bx,
                          const amrex::MultiFab& By,
                          const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx,
+                         amrex::MultiFab& jx,
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
                          amrex::MultiFab* cjx,
@@ -86,7 +86,7 @@ public:
                          amrex::Real dt) override;
 
     virtual void PushPX(WarpXParIter& pti,
-	                amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& giv,

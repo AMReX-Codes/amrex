@@ -455,8 +455,8 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         std::size_t shared_mem_bytes = plasma_injector->sharedMemoryNeeded();
         int lrrfac = rrfac;
 
-	bool loc_do_field_ionization = do_field_ionization;
-	int loc_ionization_initial_level = ionization_initial_level;
+        bool loc_do_field_ionization = do_field_ionization;
+        int loc_ionization_initial_level = ionization_initial_level;
 
         // Loop over all new particles and inject them (creates too many
         // particles, in particular does not consider xmin, xmax etc.).
@@ -1501,13 +1501,13 @@ PhysicalParticleContainer::SplitParticles(int lev)
             }
         }
     }
-	// Add local arrays psplit_x etc. to the temporary
-	// particle container pctmp_split. Split particles
-	// are tagged with p.id()=NoSplitParticleID so that
-	// they are not re-split when entering a higher level
-	// AddNParticles calls Redistribute, so that particles
-	// in pctmp_split are in the proper grids and tiles
-	pctmp_split.AddNParticles(lev,
+    // Add local arrays psplit_x etc. to the temporary
+    // particle container pctmp_split. Split particles
+    // are tagged with p.id()=NoSplitParticleID so that
+    // they are not re-split when entering a higher level
+    // AddNParticles calls Redistribute, so that particles
+    // in pctmp_split are in the proper grids and tiles
+    pctmp_split.AddNParticles(lev,
                               np_split_to_add,
                               psplit_x.dataPtr(),
                               psplit_y.dataPtr(),
@@ -1518,9 +1518,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                               1,
                               psplit_w.dataPtr(),
                               1, NoSplitParticleID);
-	// Copy particles from tmp to current particle container
+    // Copy particles from tmp to current particle container
     addParticles(pctmp_split,1);
-	// Clear tmp container
+    // Clear tmp container
     pctmp_split.clearParticles();
 }
 

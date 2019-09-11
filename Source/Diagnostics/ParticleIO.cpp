@@ -69,7 +69,7 @@ void
 MultiParticleContainer::Checkpoint (const std::string& dir) const
 {
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->Checkpoint(dir, species_names[i]);
+        allcontainers[i]->Checkpoint(dir, species_names[i]);
     }
 }
 
@@ -129,7 +129,7 @@ void
 MultiParticleContainer::Restart (const std::string& dir)
 {
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->Restart(dir, species_names[i]);
+        allcontainers[i]->Restart(dir, species_names[i]);
     }
 }
 
@@ -137,7 +137,7 @@ void
 MultiParticleContainer::ReadHeader (std::istream& is)
 {
     for (auto& pc : allcontainers) {
-	pc->ReadHeader(is);
+        pc->ReadHeader(is);
     }
 }
 
@@ -145,7 +145,7 @@ void
 MultiParticleContainer::WriteHeader (std::ostream& os) const
 {
     for (const auto& pc : allcontainers) {
-	pc->WriteHeader(os);
+        pc->WriteHeader(os);
     }
 }
 

@@ -183,7 +183,7 @@ WarpX::EvolveEM (int numsteps)
         }
 
         // slice gen //
-	if (to_make_plot || do_insitu || to_make_slice_plot)
+        if (to_make_plot || do_insitu || to_make_slice_plot)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -199,7 +199,7 @@ WarpX::EvolveEM (int numsteps)
             last_insitu_step = step+1;
 
             if (to_make_plot)
-    	        WritePlotFile();
+                WritePlotFile();
 
             if (to_make_slice_plot)
             {
@@ -211,7 +211,7 @@ WarpX::EvolveEM (int numsteps)
 
             if (do_insitu)
                 UpdateInSitu();
-	}
+        }
 
         if (check_int > 0 && (step+1) % check_int == 0) {
             last_check_file_step = step+1;

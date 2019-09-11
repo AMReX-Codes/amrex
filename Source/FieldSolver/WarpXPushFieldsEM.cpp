@@ -249,17 +249,18 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
             WRPX_PUSH_PML_BVEC(
-			     tbx.loVect(), tbx.hiVect(),
-			     tby.loVect(), tby.hiVect(),
-			     tbz.loVect(), tbz.hiVect(),
-			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                             &dtsdx, &dtsdy, &dtsdz,
-			     &WarpX::maxwell_fdtd_solver_id);
+                tbx.loVect(), tbx.hiVect(),
+                tby.loVect(), tby.hiVect(),
+                tbz.loVect(), tbz.hiVect(),
+                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                &dtsdx, &dtsdy, &dtsdz,
+                &WarpX::maxwell_fdtd_solver_id
+            );
         }
     }
 }
@@ -471,16 +472,17 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             auto const& pml_Ezfab = pml_E[2]->array(mfi);
 
             WRPX_PUSH_PML_EVEC(
-			     tex.loVect(), tex.hiVect(),
-			     tey.loVect(), tey.hiVect(),
-			     tez.loVect(), tez.hiVect(),
-			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-           &dtsdx_c2, &dtsdy_c2, &dtsdz_c2);
+                tex.loVect(), tex.hiVect(),
+                tey.loVect(), tey.hiVect(),
+                tez.loVect(), tez.hiVect(),
+                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                &dtsdx_c2, &dtsdy_c2, &dtsdz_c2
+           );
 
             if (pml_has_particles) {
                 // Update the E field in the PML, using the current
@@ -523,15 +525,16 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(
-				   tex.loVect(), tex.hiVect(),
-				   tey.loVect(), tey.hiVect(),
-				   tez.loVect(), tez.hiVect(),
-				   BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-				   BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-           &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
-				   &WarpX::maxwell_fdtd_solver_id);
+                    tex.loVect(), tex.hiVect(),
+                    tey.loVect(), tey.hiVect(),
+                    tez.loVect(), tez.hiVect(),
+                    BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
+                    &dtsdx_c2, &dtsdy_c2, &dtsdz_c2,
+                    &WarpX::maxwell_fdtd_solver_id
+                );
             }
         }
     }
@@ -606,12 +609,14 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
         for ( MFIter mfi(*pml_F, TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.tilebox();
-            WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
-			  BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
-			  BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
-			  BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
-			  BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-			  &dtsdx[0], &dtsdx[1], &dtsdx[2]);
+            WRPX_PUSH_PML_F(
+                bx.loVect(), bx.hiVect(),
+                BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
+                BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
+                &dtsdx[0], &dtsdx[1], &dtsdx[2]
+            );
         }
     }
 }
