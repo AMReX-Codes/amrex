@@ -68,7 +68,7 @@ Then, you need to load the following modules:
 
     ::
 
-        module load modules esslurm pgi cuda mvapich2 
+        module load modules esslurm pgi cuda mvapich2
 
 You can also use OpenMPI-UCX instead of mvapich: openmpi/4.0.1-ucx-1.6
 
@@ -77,9 +77,9 @@ Then, you need to use slurm to request access to a GPU node:
     ::
 
         salloc -C gpu -N 1 -t 30 -c 10 --gres=gpu:1 -A m1759
-       
+
 This reserves 10 logical cores (5 physical), 1 GPU.
-The latest documentation can be found here: https://docs-dev.nersc.gov/cgpu/access 
+The latest documentation can be found here: https://docs-dev.nersc.gov/cgpu/access
 Note that you can't cross-compile for the GPU nodes - you have to log on to one
 and then build your software.
 
