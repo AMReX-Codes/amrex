@@ -22,7 +22,7 @@ It supports many features including Perfectly-Matched Layers (PML), mesh refinem
 In order to learn how to install and run the code, please see the online documentation:
 https://warpx.readthedocs.io
 
-To contact the developer, feel free to open an issue on this repo, or visit our Gitter room at https://gitter.im/ECP-WarpX/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link
+To contact the developers, feel free to open an issue on this repo, or visit our Gitter room at https://gitter.im/ECP-WarpX/community
 
 ## Contributing
 
