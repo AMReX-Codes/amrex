@@ -663,7 +663,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
 void
 LaserParticleContainer::update_laser_particle(
     const int np, Real * AMREX_RESTRICT const puxp, Real * AMREX_RESTRICT const puyp,
-    Real * AMREX_RESTRICT const puzp, Real * AMREX_RESTRICT const pwp,
+    Real * AMREX_RESTRICT const puzp, Real const * AMREX_RESTRICT const pwp,
     Real const * AMREX_RESTRICT const amplitude, const Real dt,
     const int thread_num)
 {
