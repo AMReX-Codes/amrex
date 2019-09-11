@@ -36,13 +36,13 @@ public:
 
     T& operator[] (std::size_t i) noexcept
     {
-	BL_ASSERT(static_cast<long>(i) < this->size());
+      BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
 	return this->std::vector<T, Allocator>::operator[](i);
     }
 
     const T& operator[] (std::size_t i) const noexcept
     {
-	BL_ASSERT(static_cast<long>(i) < this->size());
+      BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
 	return this->std::vector<T, Allocator>::operator[](i);
     }
 
