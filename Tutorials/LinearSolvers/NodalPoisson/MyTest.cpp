@@ -192,7 +192,7 @@ MyTest::initData ()
             const Box& bx = mfi.tilebox();
             Array4<Real> const phi = exact_solution[ilev].array(mfi);
             Array4<Real> const rh  = rhs[ilev].array(mfi);
-            amrex::ParallelFor(bx, [=] (int i, int j, int k)
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 constexpr Real pi = 3.1415926535897932;
                 constexpr Real tpi = 2.*pi;
