@@ -790,8 +790,9 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
 
-    virtual const Vector<int>& NeighborProcs() const 
+    const Vector<int>& NeighborProcs(int lev, int ngrow) const         
     {
+        BuildRedistributeMask(lev, ngrow);
         return neighbor_procs;
     };
 
