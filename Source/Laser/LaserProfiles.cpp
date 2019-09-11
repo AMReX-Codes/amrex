@@ -18,8 +18,8 @@ using namespace amrex;
  */
 void 
 LaserParticleContainer::gaussian_laser_profile (
-    const int np, Real const * const Xp, Real const * const Yp,
-    Real t, Real * const amplitude)
+    const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    Real t, Real * AMREX_RESTRICT const amplitude)
 {
     Complex I(0,1);
     // Calculate a few factors which are independent of the macroparticle
@@ -55,15 +55,17 @@ LaserParticleContainer::gaussian_laser_profile (
     Real tmp_profile_t_peak = profile_t_peak;
     Real tmp_beta = beta;
     Real tmp_zeta = zeta;
+    Real tmp_theta_stc = theta_stc;
+    Real tmp_profile_focal_distance = profile_focal_distance;
     // Loop through the macroparticle to calculate the proper amplitude
     amrex::ParallelFor(
         np, 
         [=] AMREX_GPU_DEVICE (int i) {
             const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
                 MathFunc::pow((t - tmp_profile_t_peak - 
-                               tmp_beta*k0*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc)) -
-                               2.*I*(Xp[i]*std::cos(theta_stc) + Yp[i]*std::sin(theta_stc))
-                               *( tmp_zeta - tmp_beta*profile_focal_distance ) * inv_complex_waist_2),2);
+                               tmp_beta*k0*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc)) -
+                               2.*I*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc))
+                               *( tmp_zeta - tmp_beta*tmp_profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
             // Exp argument for transverse envelope
@@ -88,8 +90,8 @@ LaserParticleContainer::gaussian_laser_profile (
  */
 void 
 LaserParticleContainer::harris_laser_profile (
-    const int np, Real const * const Xp, Real const * const Yp,
-    Real t, Real * const amplitude)
+    const int np, Real const * AMREX_RESTRICT const Xp, Real const * AMREX_RESTRICT const Yp,
+    Real t, Real * AMREX_RESTRICT const amplitude)
 {
     // This function uses the Harris function as the temporal profile of the pulse
     const Real omega0 = 2.*MathConst::pi*PhysConst::c/wavelength;

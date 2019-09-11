@@ -81,14 +81,19 @@ Setting up the field mesh
 
 * ``warpx.n_current_deposition_buffer`` (`integer`)
     When using mesh refinement: the particles that are located inside
-    a refinement patch, but within ``n_field_gather_buffer`` cells of
+    a refinement patch, but within ``n_current_deposition_buffer`` cells of
     the edge of this patch, will deposit their charge and current to the
     lower refinement level, instead of depositing to the refinement patch
     itself. See the section :doc:`../../theory/amr` for more details.
 
-* ``particles.deposit_on_main_grid`` (list of strings)
+* ``particles.deposit_on_main_grid`` (`list of strings`)
     When using mesh refinement: the particle species whose name are included
     in the list will deposit their charge/current directly on the main grid
+    (i.e. the coarsest level), even if they are inside a refinement patch.
+
+* ``particles.gather_from_main_grid`` (`list of strings`)
+    When using mesh refinement: the particle species whose name are included
+    in the list will gather their fields from the main grid
     (i.e. the coarsest level), even if they are inside a refinement patch.
 
 * ``warpx.n_rz_azimuthal_modes`` (`integer`; 1 by default)
@@ -654,6 +659,13 @@ Numerics and algorithms
     plans will simply be estimated (``FFTW_ESTIMATE`` mode).
     See `this section of the FFTW documentation <http://www.fftw.org/fftw3_doc/Planner-Flags.html>`__
     for more information.
+
+* ``warpx.override_sync_int`` (`integer`) optional (default `10`)
+    Number of time steps between synchronization of sources (`rho` and `J`) on
+    grid nodes at box boundaries. Since the grid nodes at the interface between
+    two neighbor boxes are duplicated in both boxes, an instability can occur
+    if they have too different values. This option makes sure that they are
+    synchronized periodically.
 
 Boundary conditions
 -------------------

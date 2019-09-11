@@ -20,11 +20,12 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         else if (species_types[i] == PCTypes::RigidInjected) {
             allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
         }
-        allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
+        allcontainers[i]->m_deposit_on_main_grid = m_deposit_on_main_grid[i];
+        allcontainers[i]->m_gather_from_main_grid = m_gather_from_main_grid[i];
     }
     
     for (int i = nspecies; i < nspecies+nlasers; ++i) {
-        allcontainers[i].reset(new LaserParticleContainer(amr_core,i, lasers_names[i-nspecies]));
+        allcontainers[i].reset(new LaserParticleContainer(amr_core, i, lasers_names[i-nspecies]));
     }
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
@@ -59,14 +60,24 @@ MultiParticleContainer::ReadParameters ()
             pp.getarr("species_names", species_names);
             BL_ASSERT(species_names.size() == nspecies);
 
-            deposit_on_main_grid.resize(nspecies, 0);
+            m_deposit_on_main_grid.resize(nspecies, false);
             std::vector<std::string> tmp;
             pp.queryarr("deposit_on_main_grid", tmp);
             for (auto const& name : tmp) {
                 auto it = std::find(species_names.begin(), species_names.end(), name);
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.deposit_on_main_grid must be part of particles.species_names");
                 int i = std::distance(species_names.begin(), it);
-                deposit_on_main_grid[i] = 1;
+                m_deposit_on_main_grid[i] = true;
+            }
+
+            m_gather_from_main_grid.resize(nspecies, false);
+            std::vector<std::string> tmp_gather;
+            pp.queryarr("gather_from_main_grid", tmp_gather);
+            for (auto const& name : tmp_gather) {
+                auto it = std::find(species_names.begin(), species_names.end(), name);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.gather_from_main_grid must be part of particles.species_names");
+                int i = std::distance(species_names.begin(), it);
+                m_gather_from_main_grid.at(i) = true;
             }
 
             species_types.resize(nspecies, PCTypes::Physical);

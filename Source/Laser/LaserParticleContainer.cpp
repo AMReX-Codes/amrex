@@ -493,6 +493,7 @@ LaserParticleContainer::Evolve (int lev,
                     amplitude_E[i] = parser.eval(plane_Xp[i], plane_Yp[i], t);
                 }
             }
+
             // Calculate the corresponding momentum and position for the particles
             update_laser_particle(np, uxp.dataPtr(), uyp.dataPtr(),
                                   uzp.dataPtr(), wp.dataPtr(),
@@ -507,6 +508,7 @@ LaserParticleContainer::Evolve (int lev,
             DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                            0, np_current, thread_num,
                            lev, lev, dt);
+
             bool has_buffer = cjx;
             if (has_buffer){
                 // Deposit in buffers
@@ -609,31 +611,40 @@ LaserParticleContainer::PushP (int lev, Real dt,
 void
 LaserParticleContainer::calculate_laser_plane_coordinates (
     const int np, const int thread_num,
-    Real * const pplane_Xp,
-    Real * const pplane_Yp)
+    Real * AMREX_RESTRICT const pplane_Xp,
+    Real * AMREX_RESTRICT const pplane_Yp)
 {
     Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
     Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
     Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT tmp_u_X = u_X.dataPtr();
-    Real const * const AMREX_RESTRICT tmp_u_Y = u_Y.dataPtr();
-    Real const * const AMREX_RESTRICT tmp_position = position.dataPtr();
+    Real tmp_u_X_0 = u_X[0];
+    Real tmp_u_X_2 = u_X[2];
+    Real tmp_position_0 = position[0];
+    Real tmp_position_2 = position[2];
+#if (AMREX_SPACEDIM == 3)
+    Real tmp_u_X_1 = u_X[1];
+    Real tmp_u_Y_0 = u_Y[0];
+    Real tmp_u_Y_1 = u_Y[1];
+    Real tmp_u_Y_2 = u_Y[2];
+    Real tmp_position_1 = position[1];
+#endif
+
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
 #if (AMREX_SPACEDIM == 3)
             pplane_Xp[i] = 
-                tmp_u_X[0] * (xp[i] - tmp_position[0]) +
-                tmp_u_X[1] * (yp[i] - tmp_position[1]) +
-                tmp_u_X[2] * (zp[i] - tmp_position[2]);
+                tmp_u_X_0 * (xp[i] - tmp_position_0) +
+                tmp_u_X_1 * (yp[i] - tmp_position_1) +
+                tmp_u_X_2 * (zp[i] - tmp_position_2);
             pplane_Yp[i] = 
-                tmp_u_Y[0] * (xp[i] - tmp_position[0]) +
-                tmp_u_Y[1] * (yp[i] - tmp_position[1]) +
-                tmp_u_Y[2] * (zp[i] - tmp_position[2]);
+                tmp_u_Y_0 * (xp[i] - tmp_position_0) +
+                tmp_u_Y_1 * (yp[i] - tmp_position_1) +
+                tmp_u_Y_2 * (zp[i] - tmp_position_2);
 #elif (AMREX_SPACEDIM == 2)
             pplane_Xp[i] = 
-                tmp_u_X[0] * (xp[i] - tmp_position[0]) +
-                tmp_u_X[2] * (zp[i] - tmp_position[2]);
+                tmp_u_X_0 * (xp[i] - tmp_position_0) +
+                tmp_u_X_2 * (zp[i] - tmp_position_2);
             pplane_Yp[i] = 0.;
 #endif
         }
@@ -651,16 +662,21 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
  */
 void
 LaserParticleContainer::update_laser_particle(
-    const int np, Real * const puxp, Real * const puyp, Real * const puzp,
-    Real * const pwp, Real const * const amplitude, const Real dt,
+    const int np, Real * AMREX_RESTRICT const puxp, Real * AMREX_RESTRICT const puyp,
+    Real * AMREX_RESTRICT const puzp, Real * AMREX_RESTRICT const pwp,
+    Real const * AMREX_RESTRICT const amplitude, const Real dt,
     const int thread_num)
 {
     Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
     Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
     Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
     Real * const AMREX_RESTRICT giv = m_giv[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT tmp_p_X = p_X.dataPtr();
-    Real const * const AMREX_RESTRICT tmp_nvec = nvec.dataPtr();
+    Real tmp_p_X_0 = p_X[0];
+    Real tmp_p_X_1 = p_X[1];
+    Real tmp_p_X_2 = p_X[2];
+    Real tmp_nvec_0 = nvec[0];
+    Real tmp_nvec_1 = nvec[1];
+    Real tmp_nvec_2 = nvec[2];
     
     // Copy member variables to tmp copies for GPU runs.
     Real tmp_mobility = mobility;
@@ -673,14 +689,14 @@ LaserParticleContainer::update_laser_particle(
             const Real sign_charge = (pwp[i]>0) ? 1 : -1;
             const Real v_over_c = sign_charge * tmp_mobility * amplitude[i];
             // The velocity is along the laser polarization p_X
-            Real vx = PhysConst::c * v_over_c * tmp_p_X[0];
-            Real vy = PhysConst::c * v_over_c * tmp_p_X[1];
-            Real vz = PhysConst::c * v_over_c * tmp_p_X[2];
+            Real vx = PhysConst::c * v_over_c * tmp_p_X_0;
+            Real vy = PhysConst::c * v_over_c * tmp_p_X_1;
+            Real vz = PhysConst::c * v_over_c * tmp_p_X_2;
             // When running in the boosted-frame, their is additional velocity along nvec
             if (gamma_boost > 1.){
-                vx -= PhysConst::c * beta_boost * tmp_nvec[0];
-                vy -= PhysConst::c * beta_boost * tmp_nvec[1];
-                vz -= PhysConst::c * beta_boost * tmp_nvec[2];
+                vx -= PhysConst::c * beta_boost * tmp_nvec_0;
+                vy -= PhysConst::c * beta_boost * tmp_nvec_1;
+                vz -= PhysConst::c * beta_boost * tmp_nvec_2;
             }
             // Get the corresponding momenta
             const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);

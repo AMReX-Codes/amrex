@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <WarpXConst.H>
 

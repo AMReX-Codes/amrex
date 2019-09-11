@@ -1,13 +1,12 @@
-
-#include <iostream>
+#include <WarpX.H>
+#include <WarpXUtil.H>
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#include <WarpX.H>
-#include <WarpXUtil.H>
+#include <iostream>
 
 using namespace amrex;
 

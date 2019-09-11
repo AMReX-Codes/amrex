@@ -1,8 +1,9 @@
-#include <map>
-#include <AMReX_AmrCore.H>
-
 #ifndef WARPX_IONIZATION_TABLE_H_
 #define WARPX_IONIZATION_TABLE_H_
+
+#include <AMReX_AmrCore.H>
+
+#include <map>
 
 std::map<std::string, int> ion_map_ids = {
     {"H", 0},
