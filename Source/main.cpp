@@ -25,18 +25,18 @@ int main(int argc, char* argv[])
     ConvertLabParamsToBoost();
 
     BL_PROFILE_VAR("main()", pmain);
-        
+
     const Real strt_total = amrex::second();
 
     {
 	WarpX warpx;
-	
+
 	warpx.InitData();
 
 	warpx.Evolve();
-	
+
 	Real end_total = amrex::second() - strt_total;
-	
+
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
 	if (warpx.Verbose()) {
             amrex::Print() << "Total Time                     : " << end_total << '\n';

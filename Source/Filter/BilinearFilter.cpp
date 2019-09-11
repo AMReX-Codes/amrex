@@ -23,8 +23,8 @@ namespace {
             new_s[0] = 0.5 * old_s[0];
             if (1<jmax) new_s[0] += 0.5 * old_s[1];
             loc = 0.;
-            // For each element j, apply the filter to 
-            // old_s to get new_s[j]. loc stores the tmp 
+            // For each element j, apply the filter to
+            // old_s to get new_s[j]. loc stores the tmp
             // filtered value.
             for(int j=1; j<jmax+1; j++){
                 loc = 0.5 * old_s[j];

@@ -17,7 +17,7 @@ class PMLPsatdAlgorithm : public SpectralBaseAlgorithm
 
         void InitializeSpectralCoefficients(
 	    const SpectralKSpace& spectral_kspace,
-	    const amrex::DistributionMapping& dm, 
+	    const amrex::DistributionMapping& dm,
 	    const amrex::Real dt);
 
         // Redefine functions from base class

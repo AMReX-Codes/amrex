@@ -34,4 +34,4 @@ print("Reflectivity", Reflectivity)
 print("Reflectivity_theory", Reflectivity_theory)
 
 assert( Reflectivity < 105./100 * Reflectivity_theory )
-    
+

@@ -228,7 +228,7 @@ WarpXParticleContainer::AddNParticles (int lev,
 #endif
 
         if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
-            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);            
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
         }
 
         particle_tile.push_back(p);
@@ -242,7 +242,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
         if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) ){
-            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);            
+            auto& ptile = DefineAndReturnParticleTile(0, 0, 0);
         }
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
@@ -289,7 +289,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                        const long offset, const long np_to_depose,
                                        int thread_num, int lev, int depos_lev,
                                        Real dt)
-{    
+{
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
                                      (depos_lev==(lev  )),
                                      "Deposition buffers only work for lev-1");
@@ -316,7 +316,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         const IntVect& ref_ratio = WarpX::RefRatio(depos_lev);
         tilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
     }
-    
+
     // Staggered tile boxes (different in each direction)
     Box tbx = convert(tilebox, WarpX::jx_nodal_flag);
     Box tby = convert(tilebox, WarpX::jy_nodal_flag);
@@ -360,11 +360,11 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
     const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
-    // xyzmin is built on pti.tilebox(), so it does 
+    // xyzmin is built on pti.tilebox(), so it does
     // not include staggering, so the stagger_shift has to be done by hand.
-    // Alternatively, we could define xyzminx from tbx (and the same for 3 
+    // Alternatively, we could define xyzminx from tbx (and the same for 3
     // directions and for jx, jy, jz). This way, sx0 would not be needed.
-    // Better for memory? worth trying?    
+    // Better for memory? worth trying?
     const Dim3 lo = lbound(tilebox);
 
     BL_PROFILE_VAR_START(blp_deposit);
@@ -431,7 +431,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                          ion_lev is a null pointer.
  * \param rho         : Full array of charge density
  * \param icomp       : Component of rho into which charge is deposited.
-                        0: old value (before particle push). 
+                        0: old value (before particle push).
                         1: new value (after particle push).
  * \param offset      : Index of first particle for which charge is deposited
  * \param np_to_depose: Number of particles for which charge is deposited.
@@ -471,7 +471,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
         const IntVect& ref_ratio = WarpX::RefRatio(depos_lev);
         tilebox = amrex::coarsen(pti.tilebox(),ref_ratio);
     }
-    
+
     tilebox.grow(ngRho);
 
     const int nc = (rho->nComp() == 1 ? 1 : rho->nComp()/2);

@@ -47,7 +47,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     batch_string += '#SBATCH -q regular\n'
     batch_string += '#SBATCH -e error.txt\n'
     batch_string += '#SBATCH --account=m2852\n'
-    
+
     for count, current_test in enumerate(test_list):
         shutil.copy(cwd + current_test.input_file, res_dir)
         srun_string = ''
@@ -177,14 +177,14 @@ def get_nsteps(run_name):
     return nsteps
 
 def extract_dataframe(filename, n_steps):
-    # Get init time and total time through Inclusive time                                                                                                                            
+    # Get init time and total time through Inclusive time
     partition_limit_start = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
     with open(filename) as file_handler:
         output_text = file_handler.read()
-    # get total simulation time                                                                                                                                                      
+    # get total simulation time
     line_match_totaltime = re.search('TinyProfiler total time across processes.*', output_text)
     total_time = float(line_match_totaltime.group(0).split()[8])
-    # get time performing steps as Inclusive WarpX::Evolve() time                                                                                                                    
+    # get time performing steps as Inclusive WarpX::Evolve() time
     search_area = output_text.partition(partition_limit_start)[2]
     line_match_looptime = re.search('\nWarpX::Evolve().*', search_area)
     time_wo_initialization = float(line_match_looptime.group(0).split()[3])
@@ -194,14 +194,14 @@ def extract_dataframe(filename, n_steps):
          time_WritePlotFile = float(line_match_WritePlotFile.group(0).split()[3])
     else:
          time_WritePlotFile = 0.
-    # Get timers for all routines                                                                                                                                                    
-    # Where to start and stop in the output_file                                                                                                                                     
+    # Get timers for all routines
+    # Where to start and stop in the output_file
     partition_limit_start = 'NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %'
     partition_limit_end   = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
-    # Put file content in a string                                                                                                                                                   
+    # Put file content in a string
     with open(filename) as file_handler:
         output_text = file_handler.read()
-    # Keep only profiling data                                                                                                                                                       
+    # Keep only profiling data
     search_area = output_text.partition(partition_limit_start)[2]\
                              .partition(partition_limit_end)[0]
     list_string = search_area.split('\n')[2:-4]
@@ -218,26 +218,26 @@ def extract_dataframe(filename, n_steps):
     # df['string_output'] = partition_limit_start + '\n' + search_area
     return df
 
-# Run a performance test in an interactive allocation                                                                                                                                                                                                                            
+# Run a performance test in an interactive allocation
 # def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
-#     # Clean res_dir                                                                                                                                                                                                                                                           #  
+#     # Clean res_dir                                                                                                                                                                                                                                                           #
 #     if os.path.exists(res_dir):
 #         shutil.rmtree(res_dir)
 #     os.makedirs(res_dir)
-#     # Copy files to res_dir                                                                                                                                                                                                                                                   #  
+#     # Copy files to res_dir                                                                                                                                                                                                                                                   #
 #     shutil.copyfile(bin_dir + bin_name, res_dir + bin_name)
 #     shutil.copyfile(cwd  + run_name, res_dir + 'inputs')
 #     os.chdir(res_dir)
 #     if args.architecture == 'cpu':
-#         cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives                                                                                                                                                                                                     #  
+#         cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives                                                                                                                                                                                                     #
 #         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
 #                        'srun --cpu_bind=cores '     + \
 #                        ' -n ' + str(n_node*n_mpi) + \
 #                        ' -c ' + str(cflag_value)   + \
 #                        ' ./'  + bin_name + ' inputs > perf_output.txt'
 #     elif args.architecture == 'knl':
-#         # number of logical cores per MPI process                                                                                                                                                                                                                             #  
-#         cflag_value = max(1,int(68/n_mpi) * 4) # Follow NERSC directives                                                                                                                                                                                                      #  
+#         # number of logical cores per MPI process                                                                                                                                                                                                                             #
+#         cflag_value = max(1,int(68/n_mpi) * 4) # Follow NERSC directives                                                                                                                                                                                                      #
 #         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
 #                        'srun --cpu_bind=cores '     + \
 #                        ' -n ' + str(n_node*n_mpi) + \

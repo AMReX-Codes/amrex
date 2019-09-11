@@ -60,7 +60,7 @@ public:
     virtual void ReadHeader (std::istream& is) override;
 
     virtual void WriteHeader (std::ostream& os) const override;
-    
+
 private:
 
     // User input quantities

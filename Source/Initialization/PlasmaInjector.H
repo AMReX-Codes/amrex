@@ -96,9 +96,9 @@ protected:
     std::unique_ptr<InjectorPosition> inj_pos;
     std::unique_ptr<InjectorDensity > inj_rho;
     std::unique_ptr<InjectorMomentum> inj_mom;
-    
+
     void parseDensity (amrex::ParmParse& pp);
-    void parseMomentum (amrex::ParmParse& pp);    
+    void parseMomentum (amrex::ParmParse& pp);
 };
 
 #endif

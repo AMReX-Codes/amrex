@@ -10,7 +10,7 @@ amr.max_level = 1
 amr.plot_file = "plotfiles/plt"
 amr.plot_int = 200
 
-warpx.fine_tag_lo = -2.e-6   -15.e-6 
+warpx.fine_tag_lo = -2.e-6   -15.e-6
 warpx.fine_tag_hi =  2.e-6    -7.e-6
 
 
@@ -28,9 +28,9 @@ warpx.use_filter = 1
 warpx.do_pml = 1
 warpx.do_subcycling = 1
 warpx.refine_plasma = 0
-warpx.plot_raw_fields = 1 
-warpx.plot_raw_fields_guards = 1 
-warpx.plot_finepatch = 1 
+warpx.plot_raw_fields = 1
+warpx.plot_raw_fields_guards = 1
+warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
 warpx.n_current_deposition_buffer = 0
 warpx.n_field_gather_buffer = 0

@@ -5,7 +5,7 @@
 #include <AMReX_Gpu.H>
 
 // When compiled for CPU, wrap WarpXParser and enable threading.
-// When compiled for GPU, store one copy of the parser in 
+// When compiled for GPU, store one copy of the parser in
 // CUDA managed memory for __device__ code, and one copy of the parser
 // in CUDA managed memory for __host__ code. This way, the parser can be
 // efficiently called from both host and device.
