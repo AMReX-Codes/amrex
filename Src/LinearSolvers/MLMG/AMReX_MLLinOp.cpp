@@ -523,17 +523,17 @@ MLLinOp::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
                 AMREX_ALWAYS_ASSERT(m_geom[0][0].isPeriodic(idim));
             }
 
-            if (m_lobc[n][idim] == LinOpBCType::inhomogNeumann) {
-                m_lobc[n][idim] = LinOpBCType::Neumann;
-                m_lo_inhomog_neumann[n][idim] = 1;
+            if (m_lobc[icomp][idim] == LinOpBCType::inhomogNeumann) {
+                m_lobc[icomp][idim] = LinOpBCType::Neumann;
+                m_lo_inhomog_neumann[icomp][idim] = 1;
             } else {
-                m_lo_inhomog_neumann[n][idim] = 0;
+                m_lo_inhomog_neumann[icomp][idim] = 0;
             }
-            if (m_hibc[n][idim] == LinOpBCType::inhomogNeumann) {
-                m_hibc[n][idim] = LinOpBCType::Neumann;
-                m_hi_inhomog_neumann[n][idim] = 1;
+            if (m_hibc[icomp][idim] == LinOpBCType::inhomogNeumann) {
+                m_hibc[icomp][idim] = LinOpBCType::Neumann;
+                m_hi_inhomog_neumann[icomp][idim] = 1;
             } else {
-                m_hi_inhomog_neumann[n][idim] = 0;
+                m_hi_inhomog_neumann[icomp][idim] = 0;
             }
         }
     }
