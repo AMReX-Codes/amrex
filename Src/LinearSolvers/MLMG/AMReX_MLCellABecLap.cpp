@@ -79,9 +79,13 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
 
     const int mglev = 0;
 
+    const auto problo = m_geom[amrlev][mglev].ProbLoArray();
+    const auto probhi = m_geom[amrlev][mglev].ProbHiArray();
     const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
     const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
     const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
+    const Real xlo = problo[0];
+    const Real dx = m_geom[amrlev][mglev].CellSize(0);
     const Box& domain = m_geom[amrlev][mglev].Domain();
 
     const Real beta = getBScalar();
@@ -129,50 +133,89 @@ MLCellABecLap::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
                 if (m_lo_inhomog_neumann[icomp][idim] and outside_domain_lo)
                 {
                     if (idim == 0) {
+                        Real fac = beta*dxi;
+                        if (m_has_metric_term and !has_bcoef) {
+#if (AMREX_SPACEDIM == 1)
+                            fac *= problo[0]*problo[0];
+#elif (AMREX_SPACEDIM == 2)
+                            fac *= problo[0];
+#endif
+                        }
                         AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                         {
                             mllinop_apply_innu_xlo(i,j,k, rhsfab, mlo, bfab,
-                                                   bctlo, bcllo, bvlo, dxi,
-                                                   beta, has_bcoef, icomp);
+                                                   bctlo, bcllo, bvlo,
+                                                   fac, has_bcoef, icomp);
                         });
                     } else if (idim == 1) {
-                        AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
-                        {
-                            mllinop_apply_innu_ylo(i,j,k, rhsfab, mlo, bfab,
-                                                   bctlo, bcllo, bvlo, dyi,
-                                                   beta, has_bcoef, icomp);
-                        });
+                        Real fac = beta*dyi;
+                        if (m_has_metric_term and !has_bcoef) {
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                mllinop_apply_innu_ylo_m(i,j,k, rhsfab, mlo,
+                                                         bctlo, bcllo, bvlo,
+                                                         fac, xlo, dx, icomp);
+                            });
+                        }
+                        else {
+                            AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
+                            {
+                                mllinop_apply_innu_ylo(i,j,k, rhsfab, mlo, bfab,
+                                                       bctlo, bcllo, bvlo,
+                                                       fac, has_bcoef, icomp);
+                            });
+                        }
                     } else {
+                        Real fac = beta*dzi;
                         AMREX_HOST_DEVICE_FOR_3D(blo, i, j, k,
                         {
                             mllinop_apply_innu_zlo(i,j,k, rhsfab, mlo, bfab,
-                                                   bctlo, bcllo, bvlo, dzi,
-                                                   beta, has_bcoef, icomp);
+                                                   bctlo, bcllo, bvlo,
+                                                   fac, has_bcoef, icomp);
                         });
                     }
                 }
                 if (m_hi_inhomog_neumann[icomp][idim] and outside_domain_hi)
                 {
                     if (idim == 0) {
+                        Real fac = beta*dxi;
+                        if (m_has_metric_term and !has_bcoef) {
+#if (AMREX_SPACEDIM == 1)
+                            fac *= probhi[0]*probhi[0];
+#elif (AMREX_SPACEDIM == 2)
+                            fac *= probhi[0];
+#endif
+                        }
                         AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                         {
                             mllinop_apply_innu_xhi(i,j,k, rhsfab, mhi, bfab,
-                                                   bcthi, bclhi, bvhi, dxi,
-                                                   beta, has_bcoef, icomp);
+                                                   bcthi, bclhi, bvhi,
+                                                   fac, has_bcoef, icomp);
                         });
                     } else if (idim == 1) {
-                        AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
-                        {
-                            mllinop_apply_innu_yhi(i,j,k, rhsfab, mhi, bfab,
-                                                   bcthi, bclhi, bvhi, dyi,
-                                                   beta, has_bcoef, icomp);
-                        });
+                        Real fac = beta*dyi;
+                        if (m_has_metric_term and !has_bcoef) {
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                mllinop_apply_innu_yhi_m(i,j,k, rhsfab, mhi,
+                                                         bcthi, bclhi, bvhi,
+                                                         fac, xlo, dx, icomp);
+                            });
+                        } else {
+                            AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
+                            {
+                                mllinop_apply_innu_yhi(i,j,k, rhsfab, mhi, bfab,
+                                                       bcthi, bclhi, bvhi,
+                                                       fac, has_bcoef, icomp);
+                            });
+                        }
                     } else {
+                        Real fac = beta*dzi;
                         AMREX_HOST_DEVICE_FOR_3D(bhi, i, j, k,
                         {
                             mllinop_apply_innu_zhi(i,j,k, rhsfab, mhi, bfab,
-                                                   bcthi, bclhi, bvhi, dzi,
-                                                   beta, has_bcoef, icomp);
+                                                   bcthi, bclhi, bvhi,
+                                                   fac, has_bcoef, icomp);
                         });
                     }
                 }
