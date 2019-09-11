@@ -95,9 +95,9 @@ private:
     amrex::Real* p;
 };
 
-// Base struct for density injector. 
-// InjectorDensity contains a union (called Object) that holds any one 
-// instance of: 
+// Base struct for density injector.
+// InjectorDensity contains a union (called Object) that holds any one
+// instance of:
 // - InjectorDensityConstant  : to generate constant density;
 // - InjectorDensityParser    : to generate density from parser;
 // - InjectorDensityCustom    : to generate density from custom profile;

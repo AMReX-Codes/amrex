@@ -49,7 +49,7 @@ InjectorDensityPredefined::InjectorDensityPredefined (
     ParmParse pp(a_species_name);
 
     std::vector<amrex::Real> v;
-    // Read parameters for the predefined plasma profile, 
+    // Read parameters for the predefined plasma profile,
     // and store them in managed memory
     pp.getarr("predefined_profile_params", v);
     p = static_cast<amrex::Real*>

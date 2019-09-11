@@ -27,7 +27,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
     charge = 1.0;
     mass = std::numeric_limits<Real>::max();
     do_boosted_frame_diags = 0;
-        
+
     ParmParse pp(laser_name);
 
 	// Parse the type of laser profile and set the corresponding flag `profile`
@@ -166,7 +166,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         // If laser antenna initially outside of the box, store its theoretical
         // position in z_antenna_th
         updated_position = position;
-        
+
         // Sanity checks
         int dir = WarpX::moving_window_dir;
         std::vector<Real> windir(3, 0.0);
@@ -175,16 +175,16 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 #else
         windir[dir] = 1.0;
 #endif
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  
-            (nvec[0]-windir[0]) + (nvec[1]-windir[1]) + (nvec[2]-windir[2]) 
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            (nvec[0]-windir[0]) + (nvec[1]-windir[1]) + (nvec[2]-windir[2])
             < 1.e-12, "do_continous_injection for laser particle only works" +
             " if moving window direction and laser propagation direction are the same");
         if ( WarpX::gamma_boost>1 ){
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) + 
-                (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) + 
+                (WarpX::boost_direction[0]-0)*(WarpX::boost_direction[0]-0) +
+                (WarpX::boost_direction[1]-0)*(WarpX::boost_direction[1]-0) +
                 (WarpX::boost_direction[2]-1)*(WarpX::boost_direction[2]-1) < 1.e-12,
-                "do_continous_injection for laser particle only works if " + 
+                "do_continous_injection for laser particle only works if " +
                 "warpx.boost_direction = z. TODO: all directions.");
         }
     }
@@ -192,13 +192,13 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 
 /* \brief Check if laser particles enter the box, and inject if necessary.
  * \param injection_box: a RealBox where particles should be injected.
- */ 
+ */
 void
 LaserParticleContainer::ContinuousInjection (const RealBox& injection_box)
 {
     // Input parameter injection_box contains small box where injection
     // should occur.
-    // So far, LaserParticleContainer::laser_injection_box contains the 
+    // So far, LaserParticleContainer::laser_injection_box contains the
     // outdated full problem domain at t=0.
 
     // Convert updated_position to Real* to use RealBox::contains().
@@ -258,7 +258,7 @@ LaserParticleContainer::InitData (int lev)
     ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
-    // LaserParticleContainer::position contains the initial position of the 
+    // LaserParticleContainer::position contains the initial position of the
     // laser antenna. In the boosted frame, the antenna is moving.
     // Update its position with updated_position.
     if (do_continuous_injection){
@@ -459,7 +459,7 @@ LaserParticleContainer::Evolve (int lev,
 
             if (rho) {
                 int* AMREX_RESTRICT ion_lev = nullptr;
-                DepositCharge(pti, wp, ion_lev, rho, 0, 0, 
+                DepositCharge(pti, wp, ion_lev, rho, 0, 0,
                               np_current, thread_num, lev, lev);
                 if (crho) {
                     DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
@@ -606,7 +606,7 @@ LaserParticleContainer::PushP (int lev, Real dt,
  * \param np: number of laser particles
  * \param thread_num: thread number
  * \param pplane_Xp, pplane_Yp: pointers to arrays of particle positions
- * in laser plane coordinate. 
+ * in laser plane coordinate.
  */
 void
 LaserParticleContainer::calculate_laser_plane_coordinates (
@@ -633,16 +633,16 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
         np,
         [=] AMREX_GPU_DEVICE (int i) {
 #if (AMREX_SPACEDIM == 3)
-            pplane_Xp[i] = 
+            pplane_Xp[i] =
                 tmp_u_X_0 * (xp[i] - tmp_position_0) +
                 tmp_u_X_1 * (yp[i] - tmp_position_1) +
                 tmp_u_X_2 * (zp[i] - tmp_position_2);
-            pplane_Yp[i] = 
+            pplane_Yp[i] =
                 tmp_u_Y_0 * (xp[i] - tmp_position_0) +
                 tmp_u_Y_1 * (yp[i] - tmp_position_1) +
                 tmp_u_Y_2 * (zp[i] - tmp_position_2);
 #elif (AMREX_SPACEDIM == 2)
-            pplane_Xp[i] = 
+            pplane_Xp[i] =
                 tmp_u_X_0 * (xp[i] - tmp_position_0) +
                 tmp_u_X_2 * (zp[i] - tmp_position_2);
             pplane_Yp[i] = 0.;
@@ -677,7 +677,7 @@ LaserParticleContainer::update_laser_particle(
     Real tmp_nvec_0 = nvec[0];
     Real tmp_nvec_1 = nvec[1];
     Real tmp_nvec_2 = nvec[2];
-    
+
     // Copy member variables to tmp copies for GPU runs.
     Real tmp_mobility = mobility;
     Real gamma_boost = WarpX::gamma_boost;

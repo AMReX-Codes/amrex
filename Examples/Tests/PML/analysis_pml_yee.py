@@ -31,4 +31,4 @@ Reflectivity = energy_end/energy_start
 Reflectivity_theory = 5.683000058954201e-07
 
 assert( abs(Reflectivity-Reflectivity_theory) < 5./100 * Reflectivity_theory )
-    
+

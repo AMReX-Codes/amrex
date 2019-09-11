@@ -8,7 +8,7 @@
 #include <WarpXUtil.H>
 #include <WarpX_py.H>
 
-namespace 
+namespace
 {
     double** getMultiFabPointers(const amrex::MultiFab& mf, int *num_boxes, int *ncomps, int *ngrow, int **shapes)
     {
@@ -19,7 +19,7 @@ namespace
         if (mf.nComp() > 1) shapesize += 1;
         *shapes = (int*) malloc(shapesize * (*num_boxes) * sizeof(int));
         double** data = (double**) malloc((*num_boxes) * sizeof(double*));
-        
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -27,7 +27,7 @@ namespace
             int i = mfi.LocalIndex();
             data[i] = (double*) mf[mfi].dataPtr();
             for (int j = 0; j < AMREX_SPACEDIM; ++j) {
-                (*shapes)[shapesize*i+j] = mf[mfi].box().length(j); 
+                (*shapes)[shapesize*i+j] = mf[mfi].box().length(j);
             }
             if (mf.nComp() > 1) (*shapes)[shapesize*i+AMREX_SPACEDIM] = mf.nComp();
         }
@@ -69,12 +69,12 @@ extern "C"
 	return WarpX::l_lower_order_in_v;
     }
 
-    int warpx_nComps() 
+    int warpx_nComps()
     {
-        return PIdx::nattribs;        
+        return PIdx::nattribs;
     }
 
-    int warpx_SpaceDim() 
+    int warpx_SpaceDim()
     {
         return AMREX_SPACEDIM;
     }
@@ -87,7 +87,7 @@ extern "C"
 #ifdef BL_USE_MPI
     void amrex_init_with_inited_mpi (int argc, char* argv[], MPI_Comm mpicomm)
     {
-	amrex::Initialize(argc,argv,true,mpicomm);	
+	amrex::Initialize(argc,argv,true,mpicomm);
     }
 #endif
 

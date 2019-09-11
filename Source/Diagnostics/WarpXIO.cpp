@@ -750,7 +750,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 /* \brief
  *  The raw slice data is written out in the plotfile format and can be visualized using yt.
- *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.  
+ *  The slice data is written to diags/slice_plotfiles/pltXXXXX at the plotting interval.
  */
 void
 WarpX::WriteSlicePlotFile () const
@@ -763,36 +763,36 @@ WarpX::WriteSlicePlotFile () const
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(slice_plotfile_headerversion);
     rfs.emplace_back("raw_fields");
-    
+
     const int nlevels = finestLevel() + 1;
-     
+
     // creating a temporary cell-centered dummy multifab //
     // to get around the issue of yt complaining about no field data //
     Vector< std::unique_ptr<MultiFab> > dummy_mf(nlevels);
     const DistributionMapping &dm2 = Efield_slice[0][0]->DistributionMap();
     Vector<std::string> varnames;
     IntVect cc(AMREX_D_DECL(0,0,0));
-    for (int lev = 0; lev < nlevels; ++lev) 
+    for (int lev = 0; lev < nlevels; ++lev)
     {
-       dummy_mf[lev].reset(new MultiFab( 
-                     amrex::convert(Efield_slice[lev][0]->boxArray(),cc), 
+       dummy_mf[lev].reset(new MultiFab(
+                     amrex::convert(Efield_slice[lev][0]->boxArray(),cc),
                      dm2, 1, 0 ));
        dummy_mf[lev]->setVal(0.0);
-    } 
+    }
     amrex::WriteMultiLevelPlotfile(slice_plotfilename, nlevels,
-                                   GetVecOfConstPtrs(dummy_mf), 
+                                   GetVecOfConstPtrs(dummy_mf),
                                    varnames, Geom(), t_new[0],
                                    istep, refRatio(),
-                                   "HyperCLaw-V1.1", 
+                                   "HyperCLaw-V1.1",
                                    "Level_", "Cell", rfs);
 
-    for (int lev = 0; lev < nlevels; ++lev) 
+    for (int lev = 0; lev < nlevels; ++lev)
     {
         const std::unique_ptr<MultiFab> empty_ptr;
         const std::string raw_spltname = slice_plotfilename + "/raw_fields";
         amrex::Print() << " raw spltname " << raw_spltname << "\n";
         const DistributionMapping &dm = Efield_slice[lev][0]->DistributionMap();
- 
+
         WriteRawField( *Efield_slice[lev][0], dm, raw_spltname, level_prefix, "Ex_slice", lev, 0);
         WriteRawField( *Efield_slice[lev][1], dm, raw_spltname, level_prefix, "Ey_slice", lev, 0);
         WriteRawField( *Efield_slice[lev][2], dm, raw_spltname, level_prefix, "Ez_slice", lev, 0);
@@ -807,8 +807,8 @@ WarpX::WriteSlicePlotFile () const
             MultiFab rho_new(*rho_slice[lev], amrex::make_alias, 1, 1);
             WriteRawField( rho_new, dm, raw_spltname, level_prefix, "rho_slice", lev, 0);
         }
-    } 
- 
+    }
+
     WriteJobInfo(slice_plotfilename);
 
     WriteWarpXHeader(slice_plotfilename);
@@ -817,7 +817,7 @@ WarpX::WriteSlicePlotFile () const
 }
 
 
-void 
+void
 WarpX::InitializeSliceMultiFabs ()
 {
 
@@ -828,12 +828,12 @@ WarpX::InitializeSliceMultiFabs ()
     current_slice.resize(nlevels);
     Efield_slice.resize(nlevels);
     Bfield_slice.resize(nlevels);
- 
+
 }
 
 
 // To generate slice that inherits index type of underlying data //
-void 
+void
 WarpX::SliceGenerationForDiagnostics ()
 {
 
@@ -841,20 +841,20 @@ WarpX::SliceGenerationForDiagnostics ()
     dom_geom = Geom();
 
     if (F_fp[0] ) {
-       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox, 
+       F_slice[0] = CreateSlice( *F_fp[0].get(), dom_geom, slice_realbox,
                                  slice_cr_ratio );
     }
     if (rho_fp[0]) {
-       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox, 
+       rho_slice[0] = CreateSlice( *rho_fp[0].get(), dom_geom, slice_realbox,
                                    slice_cr_ratio );
     }
 
     for (int idim = 0; idim < 3; ++idim) {
-       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(), 
+       Efield_slice[0][idim] = CreateSlice( *Efield_fp[0][idim].get(),
                                 dom_geom, slice_realbox, slice_cr_ratio );
-       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(), 
+       Bfield_slice[0][idim] = CreateSlice( *Bfield_fp[0][idim].get(),
                                dom_geom, slice_realbox, slice_cr_ratio );
-       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(), 
+       current_slice[0][idim] = CreateSlice( *current_fp[0][idim].get(),
                                dom_geom, slice_realbox, slice_cr_ratio );
     }
 
@@ -862,7 +862,7 @@ WarpX::SliceGenerationForDiagnostics ()
 }
 
 
-void 
+void
 WarpX::ClearSliceMultiFabs ()
 {
 
