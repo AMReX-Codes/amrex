@@ -8,6 +8,7 @@
 [![Development Status](https://img.shields.io/badge/development%20status-alpha-orange.svg)]()
 [![License WarpX](https://img.shields.io/badge/license-BSD--3--Clause--LBNL-blue.svg)](https://spdx.org/licenses/BSD-3-Clause-LBNL.html)
 [![DOI](https://img.shields.io/badge/DOI-10.1016/j.nima.2018.01.035-blue.svg)](https://doi.org/10.1016/j.nima.2018.01.035)
+[![Gitter](https://badges.gitter.im/ECP-WarpX/community.svg)](https://gitter.im/ECP-WarpX/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ## Overview
 
@@ -20,6 +21,8 @@ It supports many features including Perfectly-Matched Layers (PML), mesh refinem
 
 In order to learn how to install and run the code, please see the online documentation:
 https://warpx.readthedocs.io
+
+To contact the developer, feel free to open an issue on this repo, or visit our Gitter room at https://gitter.im/ECP-WarpX/community?utm_source=share-link&utm_medium=link&utm_campaign=share-link
 
 ## Contributing
 
