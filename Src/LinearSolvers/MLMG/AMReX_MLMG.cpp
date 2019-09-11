@@ -1475,6 +1475,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
                         MFInfo(), *linop.Factory(alev));
         MultiFab::Copy(rhstmp, *prhs, 0, 0, ncomp, nghost);
         linop.applyMetricTerm(alev, 0, rhstmp);
+        linop.applyInhomogNeumannTerm(alev, rhstmp);
         prhs = &rhstmp;
 #endif
         linop.solutionResidual(alev, *a_res[alev], *sol[alev], *prhs, crse_bcdata);
