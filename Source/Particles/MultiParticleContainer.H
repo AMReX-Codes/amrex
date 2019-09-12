@@ -24,6 +24,7 @@
 //
 #ifdef WARPX_QED
     #include "breit_wheeler_engine_wrapper.h"
+    #include "quantum_sync_engine_wrapper.h"
 #endif
 
 class MultiParticleContainer
@@ -92,7 +93,7 @@ public:
     void FieldGather (int lev,
                       const amrex::MultiFab& Ex, const amrex::MultiFab& Ey,
                       const amrex::MultiFab& Ez, const amrex::MultiFab& Bx,
-                      const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
+                      const amrex::MultiFab& By, const amrex::MultiFab& Bz);
 
     ///
     /// This evolves all the particles by one PIC time step, including current deposition, the
@@ -129,7 +130,7 @@ public:
     ///
     /// This deposits the particle charge onto a node-centered MultiFab and returns a unique ptr
     /// to it. The charge density is accumulated over all the particles in the MultiParticleContainer
-    ///    
+    ///
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void doFieldIonization ();
@@ -137,7 +138,7 @@ public:
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile (const std::string& dir) const;
-    
+
     void Restart (const std::string& dir);
 
     void PostRestart ();
@@ -191,9 +192,9 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-    //bw_engine is a public member of the MultiParticleContainer object
 #ifdef WARPX_QED
     warpx_breit_wheeler_engine bw_engine;
+    warpx_quantum_sync_engine qs_engine;
 #endif
 
 protected:
@@ -220,7 +221,7 @@ private:
 
     void mapSpeciesProduct ();
     int getSpeciesID (std::string product_str);
-    
+
     // Number of species dumped in BoostedFrameDiagnostics
     int nspecies_boosted_frame_diags = 0;
     // map_species_boosted_frame_diags[i] is the species ID in

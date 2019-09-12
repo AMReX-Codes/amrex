@@ -1,8 +1,10 @@
 CEXE_headers += qed_wrapper_commons.h
 CEXE_headers += amrex_rng_wrapper.h
 CEXE_headers += breit_wheeler_engine_wrapper.h
+CEXE_headers += quantum_syncs_engine_wrapper.h
 CEXE_sources += amrex_rng_wrapper.cpp
 CEXE_sources += breit_wheeler_engine_wrapper.cpp
+CEXE_sources += quantum_sync_engine_wrapper.cpp
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/QED
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/QED

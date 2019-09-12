@@ -1,5 +1,5 @@
 #ifndef WARPX_amrex_rng_wrapper_h_
-#define WARPX_rng_wrapper_h_
+#define WARPX_amrex_rng_wrapper_h_
 
 //This file provides a wrapper aroud the RNG
 //provided by the amrex library
@@ -17,4 +17,4 @@ public:
     amrex::Real exp(amrex::Real l);
 };
 
-#endif //amrex_rng_wrapper_hpp_
+#endif //WARPX_amrex_rng_wrapper_h_

@@ -61,6 +61,10 @@ electrons.uz_m = 500.
 electrons.ux_th = 2.
 electrons.uy_th = 2.
 electrons.uz_th = 50.
+##########QED####################
+electrons.do_qed = 1
+electrons.do_qed_quantum_sync = 1
+#################################
 
 photons.charge = -q_e
 photons.mass = m_e

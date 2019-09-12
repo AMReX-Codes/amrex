@@ -129,17 +129,17 @@ PhotonParticleContainer::Evolve (int lev,
 void PhotonParticleContainer::InitTauBreitWheeler()
 {
     BL_PROFILE("PhotonParticleContainer::InitOpticalDepth");
-//Looping over all the particles
-int num_levels = finestLevel() + 1;
-for (int lev=0; lev < num_levels; ++lev)
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti){
-        auto taus = pti.GetAttribs(particle_comps["tau"]).dataPtr();
-        amrex::ParallelFor(
-            pti.numParticles(),
-            [=] AMREX_GPU_DEVICE (long i) {
-                taus[i] = warpx_breit_wheeler_engine::get_optical_depth();
-            }
-        );
+    //Looping over all the particles
+    int num_levels = finestLevel() + 1;
+    for (int lev=0; lev < num_levels; ++lev)
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti){
+            auto taus = pti.GetAttribs(particle_comps["tau"]).dataPtr();
+            amrex::ParallelFor(
+                pti.numParticles(),
+                [=] AMREX_GPU_DEVICE (long i) {
+                    taus[i] = warpx_breit_wheeler_engine::get_optical_depth();
+                }
+                );
     }
 }
 #endif
