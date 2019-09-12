@@ -60,7 +60,7 @@ for element in ion_names:
         '\n\s+(\d+)\s+\|\s+%s\s+\w+\s+\|\s+\+*(\d+)\s+\|\s+\(*\[*(\d+\.*\d*)' \
         %element
     list_of_tuples = re.findall( regex_command, text_data )
-    for count, energy in enumerate([x[2] for x in list_of_tuples]): 
+    for count, energy in enumerate([x[2] for x in list_of_tuples]):
         if count%7==0: cpp_string += '\n    '
         cpp_string += energy + ', '
 cpp_string = cpp_string[:-2]

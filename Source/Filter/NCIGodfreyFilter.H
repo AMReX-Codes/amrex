@@ -20,7 +20,7 @@ public:
     static constexpr int stencil_width = 4;
 
 private:
-    
+
     godfrey_coeff_set coeff_set;
     amrex::Real cdtodz;
     int l_lower_order_in_v;

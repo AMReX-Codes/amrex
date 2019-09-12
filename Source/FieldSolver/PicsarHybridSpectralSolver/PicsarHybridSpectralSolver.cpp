@@ -336,7 +336,7 @@ WarpX::InitFFTDataPlan (int lev)
       // No FFT patch on this MPI rank (may happen with FFTW)
       // Still need to call the MPI-FFT initialization routines
     {
-	nullfftdata.reset(new FFTData());
+        nullfftdata.reset(new FFTData());
         warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
                                 nullfftdata->data, &FFTData::N,
                                 dx_fp.data(), &dt[lev], &fftw_plan_measure,
@@ -392,8 +392,8 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
     if (Efield_fp_fft[lev][0]->local_size() == 1)
        //Only one FFT patch on this MPI
     {
-    	for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
-    	{
+        for (MFIter mfi(*Efield_fp_fft[lev][0]); mfi.isValid(); ++mfi)
+        {
                 warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][0])[mfi]),
                                   WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][1])[mfi]),
                                   WARPX_TO_FORTRAN_ANYD((*Efield_fp_fft[lev][2])[mfi]),
@@ -405,29 +405,29 @@ WarpX::PushPSATD_hybridFFT (int lev, amrex::Real /* dt */)
                                   WARPX_TO_FORTRAN_ANYD((*current_fp_fft[lev][2])[mfi]),
                                   WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],0),
                                   WARPX_TO_FORTRAN_N_ANYD((*rho_fp_fft[lev])[mfi],1));
-    	}
+        }
     }
     else if (Efield_fp_fft[lev][0]->local_size() == 0)
       // No FFT patch on this MPI rank
       // Still need to call the MPI-FFT routine.
     {
-    	FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
-    	warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab),
-    			  WARPX_TO_FORTRAN_ANYD(fab));
+        FArrayBox fab(Box(IntVect::TheZeroVector(), IntVect::TheUnitVector()));
+        warpx_fft_push_eb(WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab),
+                          WARPX_TO_FORTRAN_ANYD(fab));
     }
     else
       // Multiple FFT patches on this MPI rank
     {
-	amrex::Abort("WarpX::PushPSATD: TODO");
+        amrex::Abort("WarpX::PushPSATD: TODO");
     }
     BL_PROFILE_VAR_STOP(blp_push_eb);
 

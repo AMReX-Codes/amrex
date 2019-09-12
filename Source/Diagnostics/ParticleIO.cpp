@@ -22,8 +22,8 @@ RigidInjectedParticleContainer::ReadHeader (std::istream& is)
         int zinject_plane_tmp;
         is >> zinject_plane_tmp;
         zinject_plane_levels.push_back(zinject_plane_tmp);
-        WarpX::GotoNextLine(is);        
-    } 
+        WarpX::GotoNextLine(is);
+    }
 
     for (int i = 0; i < nlevs; ++i)
     {
@@ -31,7 +31,7 @@ RigidInjectedParticleContainer::ReadHeader (std::istream& is)
         is >> done_injecting_tmp;
         done_injecting.push_back(done_injecting_tmp);
         WarpX::GotoNextLine(is);
-    }     
+    }
 }
 
 void
@@ -69,7 +69,7 @@ void
 MultiParticleContainer::Checkpoint (const std::string& dir) const
 {
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->Checkpoint(dir, species_names[i]);
+        allcontainers[i]->Checkpoint(dir, species_names[i]);
     }
 }
 
@@ -78,7 +78,7 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
 {
 
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-        auto& pc = allcontainers[i];                
+        auto& pc = allcontainers[i];
         if (pc->plot_species) {
 
             Vector<std::string> real_names;
@@ -90,19 +90,19 @@ MultiParticleContainer::WritePlotFile (const std::string& dir) const
             real_names.push_back("momentum_x");
             real_names.push_back("momentum_y");
             real_names.push_back("momentum_z");
-            
+
             real_names.push_back("Ex");
             real_names.push_back("Ey");
             real_names.push_back("Ez");
-            
+
             real_names.push_back("Bx");
             real_names.push_back("By");
             real_names.push_back("Bz");
-            
+
 #ifdef WARPX_DIM_RZ
             real_names.push_back("theta");
 #endif
-            
+
             if(pc->do_field_ionization){
                 int_names.push_back("ionization_level");
                 // int_flags specifies, for each integer attribs, whether it is
@@ -129,15 +129,15 @@ void
 MultiParticleContainer::Restart (const std::string& dir)
 {
     for (unsigned i = 0, n = species_names.size(); i < n; ++i) {
-	allcontainers[i]->Restart(dir, species_names[i]);
+        allcontainers[i]->Restart(dir, species_names[i]);
     }
 }
 
 void
-MultiParticleContainer::ReadHeader (std::istream& is) 
+MultiParticleContainer::ReadHeader (std::istream& is)
 {
     for (auto& pc : allcontainers) {
-	pc->ReadHeader(is);
+        pc->ReadHeader(is);
     }
 }
 
@@ -145,11 +145,11 @@ void
 MultiParticleContainer::WriteHeader (std::ostream& os) const
 {
     for (const auto& pc : allcontainers) {
-	pc->WriteHeader(os);
+        pc->WriteHeader(os);
     }
 }
 
-// Particle momentum is defined as gamma*velocity, which is neither 
+// Particle momentum is defined as gamma*velocity, which is neither
 // SI mass*gamma*velocity nor normalized gamma*velocity/c.
 // This converts momentum to SI units (or vice-versa) to write SI data
 // to file.

@@ -2,10 +2,6 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <memory>
-#include <map>
-#include <string>
-
 #include <AMReX_Particles.H>
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
@@ -13,12 +9,17 @@
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
 
+#include <memory>
+#include <map>
+#include <string>
+#include <algorithm>
+
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
 // using laser) WarpXParticleContainer.  WarpXParticleContainer is
 // derived from amrex::ParticleContainer, and it is
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
-// concrete class dervied from WarpXParticlContainer.
+// concrete class derived from WarpXParticlContainer.
 //
 
 //
@@ -36,7 +37,7 @@ public:
     ~MultiParticleContainer() {}
 
     WarpXParticleContainer& GetParticleContainer (int ispecies) {
-	return *allcontainers[ispecies];
+        return *allcontainers[ispecies];
     }
 
     std::array<amrex::Real, 3> meanParticleVelocity(int ispecies) {
@@ -92,7 +93,7 @@ public:
     void FieldGather (int lev,
                       const amrex::MultiFab& Ex, const amrex::MultiFab& Ey,
                       const amrex::MultiFab& Ez, const amrex::MultiFab& Bx,
-                      const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
+                      const amrex::MultiFab& By, const amrex::MultiFab& Bz);
 
     ///
     /// This evolves all the particles by one PIC time step, including current deposition, the
@@ -100,13 +101,13 @@ public:
     /// This is the electromagnetic version.
     ///
     void Evolve (int lev,
-		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-		 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz,
-		 amrex::MultiFab* cjx,  amrex::MultiFab* cjy, amrex::MultiFab* cjz,
+                 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+                 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz,
+                 amrex::MultiFab* cjx,  amrex::MultiFab* cjy, amrex::MultiFab* cjz,
                  amrex::MultiFab* rho, amrex::MultiFab* crho,
-		 const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
-		 const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
+                 const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
+                 const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
                  amrex::Real t, amrex::Real dt);
 
     ///
@@ -129,7 +130,7 @@ public:
     ///
     /// This deposits the particle charge onto a node-centered MultiFab and returns a unique ptr
     /// to it. The charge density is accumulated over all the particles in the MultiParticleContainer
-    ///    
+    ///
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void doFieldIonization ();
@@ -137,7 +138,7 @@ public:
     void Checkpoint (const std::string& dir) const;
 
     void WritePlotFile (const std::string& dir) const;
-    
+
     void Restart (const std::string& dir);
 
     void PostRestart ();
@@ -166,11 +167,15 @@ public:
     int doBoostedFrameDiags() const {return do_boosted_frame_diags;}
 
     int nSpeciesDepositOnMainGrid () const {
-        int r = 0;
-        for (int i : deposit_on_main_grid) {
-            if (i) ++r;
-        }
-        return r;
+        bool const onMainGrid = true;
+        auto const & v = m_deposit_on_main_grid;
+        return std::count( v.begin(), v.end(), onMainGrid );
+    }
+
+    int nSpeciesGatherFromMainGrid() const {
+        bool const fromMainGrid = true;
+        auto const & v = m_gather_from_main_grid;
+        return std::count( v.begin(), v.end(), fromMainGrid );
     }
 
     void GetLabFrameData(const std::string& snapshot_name,
@@ -191,11 +196,6 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-    //bw_engine is a public member of the MultiParticleContainer object
-#ifdef WARPX_QED
-    warpx_breit_wheeler_engine bw_engine;
-#endif
-
 protected:
 
     // Particle container types
@@ -205,7 +205,11 @@ protected:
 
     std::vector<std::string> lasers_names;
 
-    std::vector<int> deposit_on_main_grid;
+    //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
+    std::vector<bool> m_deposit_on_main_grid;
+
+    //! instead of gathering fields from the finest patch level, gather from the coarsest
+    std::vector<bool> m_gather_from_main_grid;
 
     std::vector<PCTypes> species_types;
 
@@ -220,7 +224,7 @@ private:
 
     void mapSpeciesProduct ();
     int getSpeciesID (std::string product_str);
-    
+
     // Number of species dumped in BoostedFrameDiagnostics
     int nspecies_boosted_frame_diags = 0;
     // map_species_boosted_frame_diags[i] is the species ID in
