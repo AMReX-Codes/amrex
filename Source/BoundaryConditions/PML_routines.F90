@@ -164,7 +164,7 @@ contains
                                                      -Ex(i+1,j  ,k  ,1)-Ex(i+1,j  ,k  ,2)-Ex(i+1,j  ,k  ,3)  &
                                                      +Ex(i-1,j  ,k+1,1)+Ex(i-1,j  ,k+1,2)+Ex(i-1,j  ,k+1,3)  &
                                                      -Ex(i-1,j  ,k  ,1)-Ex(i-1,j  ,k  ,2)-Ex(i-1,j  ,k  ,3)) &
-                                             +betaxy*(Ex(i  ,j+1,k+1,1)+Ex(i  ,j+1,k+1,2)+Ex(i  ,j+1,k+1,3)  &
+                                             +betazy*(Ex(i  ,j+1,k+1,1)+Ex(i  ,j+1,k+1,2)+Ex(i  ,j+1,k+1,3)  &
                                                      -Ex(i  ,j+1,k  ,1)-Ex(i  ,j+1,k  ,2)-Ex(i  ,j+1,k  ,3)  &
                                                      +Ex(i  ,j-1,k+1,1)+Ex(i  ,j-1,k+1,2)+Ex(i  ,j-1,k+1,3)  &
                                                      -Ex(i  ,j-1,k  ,1)-Ex(i  ,j-1,k  ,2)-Ex(i  ,j-1,k  ,3)) &
@@ -1005,5 +1005,6 @@ contains
        end do
     end do
   end subroutine warpx_damp_pml_f_3d
+
 
 end module warpx_pml_module

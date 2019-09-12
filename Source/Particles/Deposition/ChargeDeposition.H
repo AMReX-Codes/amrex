@@ -6,6 +6,10 @@
 /* \brief Charge Deposition for thread thread_num
  * /param xp, yp, zp   : Pointer to arrays of particle positions.
  * \param wp           : Pointer to array of particle weights.
+ * \param ion_lev      : Pointer to array of particle ionization level. This is
+                         required to have the charge of each macroparticle
+                         since q is a scalar. For non-ionizable species,
+                         ion_lev is a null pointer.
  * \param rho_arr      : Array4 of charge density, either full array or tile.
  * \param np_to_depose : Number of particles for which current is deposited.
  * \param dx           : 3D cell size
@@ -18,6 +22,7 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
                               const amrex::Real * const yp, 
                               const amrex::Real * const zp,
                               const amrex::Real * const wp,
+                              const int * const ion_lev,
                               const amrex::Array4<amrex::Real>& rho_arr,
                               const long np_to_depose,
                               const std::array<amrex::Real,3>& dx,
@@ -25,6 +30,9 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
                               const amrex::Dim3 lo,
                               const amrex::Real q)
 {
+    // Whether ion_lev is a null pointer (do_ionization=0) or a real pointer
+    // (do_ionization=1)
+    const bool do_ionization = ion_lev;
     const amrex::Real dxi = 1.0/dx[0];
     const amrex::Real dzi = 1.0/dx[2];
 #if (AMREX_SPACEDIM == 2)
@@ -43,7 +51,10 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
         np_to_depose,
         [=] AMREX_GPU_DEVICE (long ip) {
             // --- Get particle quantities
-            const amrex::Real wq = q*wp[ip]*invvol;
+            amrex::Real wq = q*wp[ip]*invvol;
+            if (do_ionization){
+                wq *= ion_lev[ip];
+            }
 
             // --- Compute shape factors
             // x direction
@@ -55,23 +66,23 @@ void doChargeDepositionShapeN(const amrex::Real * const xp,
             const amrex::Real x = (xp[ip] - xmin)*dxi;
 #endif
             // Compute shape factors for node-centered quantities
-            amrex::Real AMREX_RESTRICT sx[depos_order + 1];
+            amrex::Real sx[depos_order + 1];
             // i: leftmost grid point (node-centered) that the particle touches
             const int i = compute_shape_factor<depos_order>(sx,  x);
                      
 #if (defined WARPX_DIM_3D)
             // y direction
             const amrex::Real y = (yp[ip] - ymin)*dyi;
-            amrex::Real AMREX_RESTRICT sy[depos_order + 1];
+            amrex::Real sy[depos_order + 1];
             const int j = compute_shape_factor<depos_order>(sy,  y);
 #endif
             // z direction
             const amrex::Real z = (zp[ip] - zmin)*dzi;
-            amrex::Real AMREX_RESTRICT sz[depos_order + 1];
+            amrex::Real sz[depos_order + 1];
             const int k = compute_shape_factor<depos_order>(sz,  z);
 
             // Deposit charge into rho_arr
-#if (defined WARPX_DIM_2D) || (defined WARPX_DIM_RZ)
+#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
             for (int iz=0; iz<=depos_order; iz++){
                 for (int ix=0; ix<=depos_order; ix++){
                     amrex::Gpu::Atomic::Add(

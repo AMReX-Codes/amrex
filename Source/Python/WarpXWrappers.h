@@ -79,10 +79,10 @@ extern "C" {
     int* warpx_getCurrentDensityLoVects(int lev, int direction, 
                                         int *return_size, int* ngrow);
     
-    double** warpx_getParticleStructs(int speciesnumber,
+    double** warpx_getParticleStructs(int speciesnumber, int lev,
                                       int* num_tiles, int** particles_per_tile);
     
-    double** warpx_getParticleArrays(int speciesnumber, int comp,
+    double** warpx_getParticleArrays(int speciesnumber, int comp, int lev,
                                      int* num_tiles, int** particles_per_tile);
 
   void warpx_ComputeDt ();

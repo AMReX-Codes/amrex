@@ -91,6 +91,9 @@ Setting up the field mesh
     in the list will deposit their charge/current directly on the main grid
     (i.e. the coarsest level), even if they are inside a refinement patch.
 
+* ``warpx.n_rz_azimuthal_modes`` (`integer`; 1 by default)
+    When using the RZ version, this is the number of azimuthal modes.
+
 Distribution across MPI ranks and parallelization
 -------------------------------------------------
 
@@ -201,6 +204,10 @@ Particle initialization
       and optional argument ``<species_name>.do_symmetrize`` (whether to
       symmetrize the beam in the x and y directions).
 
+* ``<species_name>.num_particles_per_cell_each_dim`` (`3 integers in 3D and RZ, 2 integers in 2D`)
+    With the NUniformPerCell injection style, this specifies the number of particles along each axis
+    within a cell. Note that for RZ, the three axis are radius, theta, and z.
+
 * ``<species_name>.do_continuous_injection`` (`0` or `1`)
     Whether to inject particles during the simulation, and not only at
     initialization. This can be required whith a moving window and/or when
@@ -301,7 +308,7 @@ Particle initialization
       following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}`
       :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
-* ``<species_name>.do_backward_injection`` (`bool`)
+* ``<species_name>.do_backward_propagation`` (`bool`)
     Inject a backward-propagating beam to reduce the effect of charge-separation
     fields when running in the boosted frame. See examples.
 
@@ -320,6 +327,7 @@ Particle initialization
 * ``<species>.plot_vars`` (list of `strings` separated by spaces, optional)
     List of particle quantities to write to `plotfiles`. By defaults, all
     quantities are written to file. Choices are
+
     * ``w`` for the particle weight,
     * ``ux`` ``uy`` ``uz`` for the particle momentum,
     * ``Ex`` ``Ey`` ``Ez`` for the electric field on particles,
@@ -335,6 +343,23 @@ Particle initialization
 
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
+
+* ``<species>.do_field_ionization`` (`0` or `1`) optional (default `0`)
+    Do field ionization for this species (using the ADK theory).
+
+* ``<species>.physical_element`` (`string`)
+    Only read if `do_field_ionization = 1`. Symbol of chemical element for
+    this species. Example: for Helium, use ``physical_element = He``.
+
+* ``<species>.ionization_product_species`` (`string`)
+    Only read if `do_field_ionization = 1`. Name of species in which ionized
+    electrons are stored. This species must be created as a regular species
+    in the input file (in particular, it must be in `particles.species_names`).
+
+* ``<species>.ionization_initial_level`` (`int`) optional (default `0`)
+    Only read if `do_field_ionization = 1`. Initial ionization level of the
+    species (must be smaller than the atomic number of chemical element given
+    in `physical_element`).
 
 Laser initialization
 --------------------
@@ -541,10 +566,6 @@ Numerics and algorithms
        (see `Esirkepov, Comp. Phys. Comm. (2001) <https://www.sciencedirect.com/science/article/pii/S0010465500002289>`__)
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
-     - ``direct-vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
-       mathematically equivalent to ``direct``, but uses an optimized algorithm
-       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
-       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
 
     If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
 
@@ -553,24 +574,12 @@ Numerics and algorithms
 
      - ``standard``: standard charge deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`.
-     - ``vectorized`` (only available in 3D, and when running on CPU/KNL - as opposed to GPU):
-       mathematically equivalent to ``standard``, but uses an optimized algorithm
-       for vectorization on CPU/KNL (see `Vincenti, Comp. Phys. Comm. (2017)
-       <https://www.sciencedirect.com/science/article/pii/S0010465516302764>`__)
-
-    If ``algo.charge_deposition`` is not specified, ``vectorized`` is the default
-    whenever it is available ; ``standard`` is the default otherwise.
 
 * ``algo.field_gathering`` (`string`, optional)
     The algorithm for field gathering. Available options are:
 
      - ``standard``: gathers directly from the grid points (either staggered
        or nodal gridpoints depending on ``warpx.do_nodal``).
-     - ``vectorized`` (not available when running on GPU): mathematically
-       equivalent to ``standard``, but uses optimized vector instructions for CPU/KNL.
-
-    If ``algo.field_gathering`` is not specified, ``vectorized`` is the default
-    on CPU/KNL ; ``standard`` is the default on GPU.
 
 * ``algo.particle_pusher`` (`string`, optional)
     The algorithm for the particle pusher. Available options are:
@@ -646,6 +655,13 @@ Numerics and algorithms
     See `this section of the FFTW documentation <http://www.fftw.org/fftw3_doc/Planner-Flags.html>`__
     for more information.
 
+* ``warpx.override_sync_int`` (`integer`) optional (default `10`)
+    Number of time steps between synchronization of sources (`rho` and `J`) on
+    grid nodes at box boundaries. Since the grid nodes at the interface between
+    two neighbor boxes are duplicated in both boxes, an instability can occur
+    if they have too different values. This option makes sure that they are
+    synchronized periodically.
+
 Boundary conditions
 -------------------
 
@@ -660,6 +676,18 @@ Boundary conditions
 * ``warpx.pml_delta`` (`int`; default: 10)
     The characteristic depth, in number of cells, over which
     the absorption coefficients of the PML increases.
+
+* ``warpx.do_pml_in_domain`` (`int`; default: 0)
+    Whether to create the PML inside the simulation area or outside. If inside,
+    it allows the user to propagate particles in PML and to use extended PML
+
+* ``warpx.do_pml_has_particles`` (`int`; default: 0)
+    Whether to propagate particles in PML or not. Can only be done if PML are in simulation domain,
+    i.e. if `warpx.do_pml_in_domain = 1`.
+
+* ``warpx.do_pml_j_damping`` (`int`; default: 0)
+    Whether to damp current in PML. Can only be used if particles are propagated in PML,
+    i.e. if `warpx.do_pml_has_particles = 1`.
 
 * ``warpx.do_pml_Lo`` (`2 ints in 2D`, `3 ints in 3D`; default: `1 1 1`)
     The directions along which one wants a pml boundary condition for lower boundaries on mother grid.
@@ -684,7 +712,13 @@ Diagnostics and output
     `openPMD <https://github.com/openPMD>`__ format.
     When WarpX is compiled with openPMD support, this is ``1`` by default.
 
-* ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
+* ``warpx.openpmd_backend`` (``h5``, ``bp`` or ``json``) optional
+    I/O backend for
+    `openPMD <https://github.com/openPMD>`__ dumps.
+    When WarpX is compiled with openPMD support, this is ``h5`` by default.
+    ``json`` only works with serial/single-rank jobs.
+
+* ``warpx.do_boosted_frame_diagnostic`` (`0` or `1`)
     Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
     perform on-the-fly conversion to the laboratory frame, when running
     boosted-frame simulations)
@@ -702,6 +736,13 @@ Diagnostics and output
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
+
+* ``warpx.dz_snapshots_lab`` (`float`, in meters)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    Distance between the lab-frame snapshots (expressed in the laboratory
+    frame). ``dt_snapshots_lab`` is then computed by
+    ``dt_snapshots_lab = dz_snapshots_lab/c``. Either `dt_snapshots_lab`
+    or `dz_snapshot_lab` is required.
 
 * ``warpx.do_boosted_frame_fields`` (`0 or 1`)
     Whether to use the **back-transformed diagnostics** for the fields.
@@ -742,7 +783,7 @@ Diagnostics and output
     ``Bx`` ``By`` ``Bz`` ``jx`` ``jy`` ``jz`` ``part_per_cell`` ``rho``
     ``F`` ``part_per_grid`` ``part_per_proc`` ``divE`` ``divB``.
     Default is
-    ``warpx_fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
+    ``warpx.fields_to_plot = Ex Ey Ez Bx By Bz jx jy jz part_per_cell``.
 
 * ``slice.dom_lo`` and ``slice.dom_hi`` (`2 floats in 2D`, `3 floats in 3D`; in meters similar to the units of the simulation box.)
     The extent of the slice are defined by the co-ordinates of the lower corner (``slice.dom_lo``) and upper corner (``slice.dom_hi``). The slice could be 1D, 2D, or 3D, aligned with the co-ordinate axes and the first axis of the coordinates is x. For example: if for a 3D simulation, an x-z slice is to be extracted at y = 0.0, then the y-value of slice.dom_lo and slice.dom_hi must be equal to 0.0
