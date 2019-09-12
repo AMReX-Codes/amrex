@@ -100,47 +100,29 @@ macro (generate_buildinfo _target _git_dir)
                CONFIG ${CMAKE_BUILD_TYPE}
                INTERFACE BUILD)
 
-
-            # Add -I for includes and -D for defines            
             if (_${_ll}${_p})
+
                list(REMOVE_DUPLICATES _${_ll}${_p})
-               list(REMOVE_ITEM _${_ll}${_p} "") # Remove empty elements
                
                if ("${_p}" STREQUAL "_defines")
-                  list(TRANSFORM _${_ll}${_p} PREPEND "-D")
+                  string(REPLACE ";" " -D" _${_ll}${_p} "-D${_${_ll}${_p}}")
                elseif ("${_p}" STREQUAL "_includes")
-                  list(TRANSFORM _${_ll}${_p} PREPEND "-I")
+                  string(REPLACE ";" " -I" _${_ll}${_p} "-I${_${_ll}${_p}}")
+               else()
+                  string(REPLACE ";" " " _${_ll}${_p} "${_${_ll}${_p}}")
                endif ()              
 
             endif ()
-
+            
          endforeach()
       endforeach ()
       
       unset(_ll)
 
       string(TOUPPER ${CMAKE_BUILD_TYPE} _ubuild_type)
+      set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
+      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")     
 
-      # Add user defined flags 
-      set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}};${CMAKE_CXX_FLAGS};${_cxx_flags}")
-      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}};${CMAKE_Fortran_FLAGS};${_fortran_flags}")
-
-      # Incapsulate in _${lang}_flags the defines, includes and the flags itself for
-      # language ${lang}
-      set(_cxx_flags ${_cxx_defines} ${_cxx_includes} ${_cxx_flags})
-      set(_fortran_flags ${_fortran_defines} ${_fortran_includes} ${_fortran_flags})
-
-      # Replace empty spaces with ";" so that add_custom_command
-      # will expand the list in a series of elements separated by a space
-      # without adding any extra unwanted escape sequence.
-      # If we leave spaces, those will be replaced by escape sequences which
-      # may cause warnings/errors in C++ code when the generated AMReX_BuildInfo.cpp
-      # will be compiled.
-      foreach(_list  _cxx_flags  _fortran_flags _cxx_link_line)
-         string(REPLACE " " ";" ${_list} "${${_list}}")
-         list(TRANSFORM ${_list} STRIP)        
-      endforeach()
-      
       # Prep GIT info to feed to build info script
       set(_git_cmd)
       if (EXISTS ${_git_dir}/.git)
@@ -158,18 +140,18 @@ macro (generate_buildinfo _target _git_dir)
                  --COMP "\"${CMAKE_CXX_COMPILER_ID}\""
                  --COMP_VERSION "\"${CMAKE_CXX_COMPILER_VERSION}\""
                  --CXX_comp_name "\"${CMAKE_CXX_COMPILER}\""
-                 --CXX_flags "\"${_cxx_flags}\""
+                 --CXX_flags "\"${_cxx_defines} ${_cxx_includes} ${_cxx_flags}\""
                  # Fortran
                  --FCOMP "\"${CMAKE_Fortran_COMPILER_ID}\""
                  --FCOMP_VERSION "\"${CMAKE_Fortran_COMPILER_VERSION}\""
                  --F_comp_name "\"${CMAKE_Fortran_COMPILER}\""
-                 --F_flags "\"${_fortran_flags}\""
+                 --F_flags "\"${_fortran_defines} ${_fortran_includes} ${_fortran_flags}\""
                  #--link_flags
                  --libraries "\"${_cxx_link_line}\""
                  # GIT
                  ${_git_cmd}                 
          OUTPUT AMReX_buildInfo.cpp
-         COMMAND_EXPAND_LISTS
+         VERBATIM
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
          COMMENT "Generating AMReX_buildInfo.cpp" )
       
