@@ -1,7 +1,32 @@
-import os, shutil, re
+import os, shutil, re, copy
 import pandas as pd
 import numpy as np
 import git
+# import cori
+# import summit
+
+# Each instance of this class contains information for a single test.
+class test_element():
+    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
+                 n_omp=None, n_cell=None, n_step=None, max_grid_size=None,
+                 blocking_factor=None):
+        self.input_file = input_file
+        self.n_node = n_node
+        self.n_mpi_per_node = n_mpi_per_node
+        self.n_omp = n_omp
+        self.n_cell = n_cell
+        self.n_step = n_step
+        self.max_grid_size = max_grid_size
+        self.blocking_factor = blocking_factor
+
+    def scale_n_cell(self, n_node=0):
+        n_cell_scaled = copy.deepcopy(self.n_cell)
+        index_dim = 0
+        while n_node > 1:
+            n_cell_scaled[index_dim] *= 2
+            n_node /= 2
+            index_dim = (index_dim+1) % 3
+        self.n_cell = n_cell_scaled
 
 def scale_n_cell(ncell, n_node):
      ncell_scaled = ncell[:]
@@ -25,63 +50,12 @@ def get_file_content(filename=None):
     file_handler.close()
     return file_content
 
-def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
-    # Clean res_dir
-    if os.path.exists(res_dir):
-        shutil.rmtree(res_dir, ignore_errors=True)
-    os.makedirs(res_dir)
-    # Copy files to res_dir
-    cwd = os.environ['AUTOMATED_PERF_TESTS'] + '/WarpX/Tools/performance_tests/'
-    bin_dir = cwd + 'Bin/'
-    shutil.copy(bin_dir + bin_name, res_dir)
-    os.chdir(res_dir)
-    # Calculate simulation time. Take 5 min + 2 min / simulation
-    job_time_min = 5. + len(test_list)*5.
-    job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
-    batch_string = ''
-    batch_string += '#!/bin/bash\n'
-    batch_string += '#SBATCH --job-name=' + test_list[0].input_file + '\n'
-    batch_string += '#SBATCH --time=' + job_time_str + '\n'
-    batch_string += '#SBATCH -C ' + Cname + '\n'
-    batch_string += '#SBATCH -N ' + str(n_node) + '\n'
-    batch_string += '#SBATCH -q regular\n'
-    batch_string += '#SBATCH -e error.txt\n'
-    batch_string += '#SBATCH --account=m2852\n'
-
-    for count, current_test in enumerate(test_list):
-        shutil.copy(cwd + current_test.input_file, res_dir)
-        srun_string = ''
-        srun_string += 'export OMP_NUM_THREADS=' + str(current_test.n_omp) + '\n'
-        # number of logical cores per MPI process
-        if architecture == 'cpu':
-            cflag_value = max(1, int(32/current_test.n_mpi_per_node) * 2) # Follow NERSC directives
-        elif architecture == 'knl':
-            cflag_value = max(1, int(64/current_test.n_mpi_per_node) * 4) # Follow NERSC directives
-        output_filename = 'out_' + '_'.join([current_test.input_file, str(n_node), str(current_test.n_mpi_per_node), str(current_test.n_omp), str(count)]) + '.txt'
-        srun_string += 'srun --cpu_bind=cores '+ \
-                       ' -n ' + str(n_node*current_test.n_mpi_per_node) + \
-                       ' -c ' + str(cflag_value)   + \
-                       ' ./'  + bin_name + \
-                       ' ' + current_test.input_file + \
-                       runtime_param_list[ count ] + \
-                       ' > ' + output_filename + '\n'
-        batch_string += srun_string
-        batch_string += 'rm -rf plotfiles ; rm -rf lab_frame_data\n'
-    batch_file = 'slurm'
-    f_exe = open(batch_file,'w')
-    f_exe.write(batch_string)
-    f_exe.close()
-    os.system('chmod 700 ' + bin_name)
-    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
-    return 0
-
 def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
               Cname='knl', n_node=1, n_mpi=1, n_omp=1):
     # Clean res_dir
     if os.path.exists(res_dir):
         shutil.rmtree(res_dir)
     os.makedirs(res_dir)
-    # Copy files to res_dir
     # Copy files to res_dir
     cwd = os.environ['WARPX'] + '/Tools/performance_tests/'
     bin_dir = cwd + 'Bin/'
@@ -118,6 +92,27 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
     os.system('chmod 700 ' + bin_name)
     os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
     return 0
+
+def run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, submit_job_command):
+    # Clean res_dir
+    if os.path.exists(res_dir):
+         shutil.rmtree(res_dir, ignore_errors=True)
+    os.makedirs(res_dir)
+    # Copy files to res_dir
+    cwd = os.environ['AUTOMATED_PERF_TESTS'] + '/warpx/Tools/performance_tests/'
+    bin_dir = cwd + 'Bin/'
+    shutil.copy(bin_dir + bin_name, res_dir)
+    os.chdir(res_dir)
+    
+    for count, current_test in enumerate(test_list):
+        shutil.copy(cwd + current_test.input_file, res_dir)
+    batch_file = 'batch_script.sh'
+    f_exe = open(batch_file,'w')
+    f_exe.write(batch_string)
+    f_exe.close()
+    os.system('chmod 700 ' + bin_name)
+    os.system(config_command + submit_job_command + batch_file +\
+                   ' >> ' + cwd + 'log_jobids_tmp.txt')
 
 # Read output file and return init time and 1-step time
 def read_run_perf(filename, n_steps):

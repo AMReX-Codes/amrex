@@ -136,7 +136,7 @@ WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
                                         Real x, Real y, Real z,
                                         std::array<Real,PIdx::nattribs>& attribs)
 {
-    auto& particle_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+    auto& particle_tile = DefineAndReturnParticleTile(lev, grid, tile);
     AddOneParticle(particle_tile, x, y, z, attribs);
 }
 
@@ -163,6 +163,11 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
 
     particle_tile.push_back(p);
     particle_tile.push_back_real(attribs);
+
+    for (int i = PIdx::nattribs; i < NumRealComps(); ++i)
+    {
+        particle_tile.push_back_real(i, 0.0);
+    }
 }
 
 void
@@ -195,7 +200,7 @@ WarpXParticleContainer::AddNParticles (int lev,
     //  Add to grid 0 and tile 0
     // Redistribute() will move them to proper places.
     std::pair<int,int> key {0,0};
-    auto& particle_tile = GetParticles(lev)[key];
+    auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
 
     std::size_t np = iend-ibegin;
 
@@ -257,6 +262,11 @@ WarpXParticleContainer::AddNParticles (int lev,
 #else
             particle_tile.push_back_real(comp, np, 0.0);
 #endif
+        }
+
+        for (int i = PIdx::nattribs; i < NumRealComps(); ++i)
+        {
+            particle_tile.push_back_real(i, 0.0);
         }
     }
 
