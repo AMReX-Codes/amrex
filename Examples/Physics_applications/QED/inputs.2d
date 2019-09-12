@@ -17,10 +17,6 @@ warpx.fine_tag_hi =  5.e-6   -25.e-6
 #################################
 ############ NUMERICS ###########
 #################################
-algo.current_deposition = esirkepov
-algo.charge_deposition = standard
-algo.field_gathering = vectorized
-algo.particle_pusher = boris
 interpolation.nox = 3 # Particle interpolation order. Must be the same in x, y, and z
 interpolation.noy = 3
 interpolation.noz = 3
@@ -70,7 +66,7 @@ photons.y_rms = .5e-6
 photons.z_rms = .5e-6
 photons.x_m = 0.
 photons.y_m = 0.
-photons.z_m = -28.e-6
+photons.z_m = -20.e-6
 photons.npart = 100
 photons.q_tot = -1.e-12
 photons.profile = "constant"
