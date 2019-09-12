@@ -97,7 +97,7 @@ void doGatherShapeN(const amrex::Real * const xp,
             Bxp[ip] = 0;
             Byp[ip] = 0;
             Bzp[ip] = 0;
-            // Each field is gathered in a separate block of 
+            // Each field is gathered in a separate block of
             // AMREX_SPACEDIM nested loops because the deposition
             // order can differ for each component of each field
             // when lower_in_v is set to 1

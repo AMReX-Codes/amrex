@@ -22,6 +22,7 @@ warpx.verbose = 1
 interpolation.nox = 3
 interpolation.noy = 3
 interpolation.noz = 3
+warpx.do_pml = 0
 
 # CFL
 warpx.cfl = 1.0

@@ -1,11 +1,12 @@
 #ifndef INJECTOR_DENSITY_H_
 #define INJECTOR_DENSITY_H_
 
-#include <AMReX_Gpu.H>
-#include <AMReX_Dim3.H>
 #include <GpuParser.H>
 #include <CustomDensityProb.H>
 #include <WarpXConst.H>
+
+#include <AMReX_Gpu.H>
+#include <AMReX_Dim3.H>
 
 // struct whose getDensity returns constant density.
 struct InjectorDensityConstant
@@ -94,9 +95,9 @@ private:
     amrex::Real* p;
 };
 
-// Base struct for density injector. 
-// InjectorDensity contains a union (called Object) that holds any one 
-// instance of: 
+// Base struct for density injector.
+// InjectorDensity contains a union (called Object) that holds any one
+// instance of:
 // - InjectorDensityConstant  : to generate constant density;
 // - InjectorDensityParser    : to generate density from parser;
 // - InjectorDensityCustom    : to generate density from custom profile;

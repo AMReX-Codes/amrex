@@ -141,9 +141,9 @@ public:
                     const std::array<amrex::MultiFab*,3>& j_cp);
 
     void ExchangeB (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
+                    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
     void ExchangeE (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
+                    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
 
     void CopyJtoPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
