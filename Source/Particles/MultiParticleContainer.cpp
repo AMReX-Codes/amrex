@@ -137,31 +137,6 @@ MultiParticleContainer::InitData ()
     // For each species, get the ID of its product species.
     // This is used for ionization and pair creation processes.
     mapSpeciesProduct();
-
-#ifdef WARPX_QED
-
-    //Helper function
-    auto does_file_exist = [](const char *fileName)
-    {return (std::ifstream{fileName}).good(); };
-
-    //Initialize the lookup tables
-    //Generates tables if they do not exist
-    if(!does_file_exist("bw_engine_dndt.bin")){
-        bw_engine.compute_dN_dt_lookup_table(&std::cout);
-        bw_engine.write_dN_dt_table("bw_engine_dndt.bin");
-    }
-    else{
-        bw_engine.read_dN_dt_table("bw_engine_dndt.bin");
-    }
-
-    if(!does_file_exist("bw_engine_pair.bin")){
-        bw_engine.compute_cumulative_pair_table(&std::cout);
-        bw_engine.write_cumulative_pair_table("bw_engine_pair.bin");
-    }
-    else{
-        bw_engine.read_cumulative_pair_table("bw_engine_pair.bin");
-    }
-#endif
 }
 
 
@@ -490,7 +465,7 @@ MultiParticleContainer::doContinuousInjection () const
 }
 
 /* \brief Get ID of product species of each species.
- * The users specifies the name of the product species, 
+ * The users specifies the name of the product species,
  * this routine get its ID.
  */
 void
@@ -498,8 +473,8 @@ MultiParticleContainer::mapSpeciesProduct ()
 {
     for (int i=0; i<nspecies; i++){
         auto& pc = allcontainers[i];
-        // If species pc has ionization on, find species with name 
-        // pc->ionization_product_name and store its ID into 
+        // If species pc has ionization on, find species with name
+        // pc->ionization_product_name and store its ID into
         // pc->ionization_product.
         if (pc->do_field_ionization){
             int i_product = getSpeciesID(pc->ionization_product_name);
@@ -610,7 +585,7 @@ namespace
         }
         // --- product runtime attribs
         GpuArray<Real*,6> runtime_attribs_product;
-        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic 
+        bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
             && pc_product->DoBoostedFrameDiags();
         if (do_boosted_product) {
             std::map<std::string, int> comps_product = pc_product->getParticleComps();
@@ -657,7 +632,7 @@ namespace
                         attribs_product[ia][ip] = attribs_source[ia][is];
                     }
                     // Update xold etc. if boosted frame diagnostics required
-                    // for product species. Fill runtime attribs with a copy of 
+                    // for product species. Fill runtime attribs with a copy of
                     // current properties (xold = x etc.).
                     if (do_boosted_product) {
                         runtime_attribs_product[0][ip] = p_source.pos(0);
@@ -680,7 +655,7 @@ MultiParticleContainer::doFieldIonization ()
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
     for (auto& pc_source : allcontainers){
-    
+
         // Skip if not ionizable
         if (!pc_source->do_field_ionization){ continue; }
 
@@ -694,7 +669,7 @@ MultiParticleContainer::doFieldIonization ()
             // they do not exist (or if they were defined by default, i.e.,
             // without runtime component).
 #ifdef _OPENMP
-            // Touch all tiles of source species in serial if runtime attribs 
+            // Touch all tiles of source species in serial if runtime attribs
             for (MFIter mfi = pc_source->MakeMFIter(lev); mfi.isValid(); ++mfi) {
                 const int grid_id = mfi.index();
                 const int tile_id = mfi.LocalTileIndex();
@@ -716,7 +691,7 @@ MultiParticleContainer::doFieldIonization ()
             MFItInfo info;
             if (pc_source->do_tiling && Gpu::notInLaunchRegion()) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                    pc_product->do_tiling, 
+                    pc_product->do_tiling,
                     "For ionization, either all or none of the "
                     "particle species must use tiling.");
                 info.EnableTiling(pc_source->tile_size);
