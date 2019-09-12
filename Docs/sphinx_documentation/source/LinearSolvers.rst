@@ -427,6 +427,38 @@ the MACProjector object and use it to perform a MAC projection.
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
 
+Nodal Projection
+=========================
+
+Some codes define a velocity field :math:`U = (u,v,w)` with all
+components co-located on cell centers.  The nodal solver in AMReX 
+can be used to compute an approximate projection of the cell-centered
+velocity field, with pressure and velocity divergence defined on nodes.
+When we use the nodal solver this way, and subtract only the cell average
+of the gradient from the velocity, it is effectively an approximate projection.
+
+As with the MAC projection, consider that we want to solve 
+
+.. math::
+
+   D( \beta \nabla \phi) = D(U^*) - S
+
+for :math:`\phi` and then set 
+
+.. math::
+
+   U = U^* - \beta \nabla \phi
+
+where :math:`U^*` is a vector field defined on cell centers and we want to satisfy
+:math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
+
+Currently this nodal approximate projection does not exist in a separate
+operator like the MAC projection; instead we demonstrate below the steps needed
+to compute the approximate projection.  This means we must compute the divergence
+of the vector field,  :math:`D(U^*)`  to compute the right-hand-side, solve the
+variable coefficient Poisson equation, then subtract the weighted gradient term to
+make the vector field result satisfy the divergence constraint.  
+
 Multi-Component Operators
 =========================
 
