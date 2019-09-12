@@ -75,7 +75,6 @@ private:
     void InitTauBreitWheeler();
 #endif
 
-
 };
 
 #endif // #ifndef WARPX_PhotonParticleContainer_H_

@@ -7,11 +7,11 @@ module warpx_ES_deposit_cic
 
 contains
 
-! This routine computes the charge density due to the particles using cloud-in-cell 
+! This routine computes the charge density due to the particles using cloud-in-cell
 ! deposition. The Fab rho is assumed to be node-centered.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     weights   : the particle weights

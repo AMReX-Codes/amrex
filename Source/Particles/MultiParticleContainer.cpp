@@ -11,7 +11,6 @@ using namespace amrex;
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
 
-
     ReadParameters();
 
     allcontainers.resize(nspecies + nlasers);
@@ -25,11 +24,12 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         else if (species_types[i] == PCTypes::Photon) {
             allcontainers[i].reset(new PhotonParticleContainer(amr_core, i, species_names[i]));
         }
-        allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
+        allcontainers[i]->m_deposit_on_main_grid = m_deposit_on_main_grid[i];
+        allcontainers[i]->m_gather_from_main_grid = m_gather_from_main_grid[i];
     }
 
     for (int i = nspecies; i < nspecies+nlasers; ++i) {
-        allcontainers[i].reset(new LaserParticleContainer(amr_core,i, lasers_names[i-nspecies]));
+        allcontainers[i].reset(new LaserParticleContainer(amr_core, i, lasers_names[i-nspecies]));
     }
 
     pc_tmp.reset(new PhysicalParticleContainer(amr_core));
@@ -66,14 +66,24 @@ MultiParticleContainer::ReadParameters ()
             BL_ASSERT(species_names.size() == nspecies);
 
             // Get species to deposit on main grid
-            deposit_on_main_grid.resize(nspecies, 0);
+            m_deposit_on_main_grid.resize(nspecies, false);
             std::vector<std::string> tmp;
             pp.queryarr("deposit_on_main_grid", tmp);
             for (auto const& name : tmp) {
                 auto it = std::find(species_names.begin(), species_names.end(), name);
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.deposit_on_main_grid must be part of particles.species_names");
                 int i = std::distance(species_names.begin(), it);
-                deposit_on_main_grid[i] = 1;
+                m_deposit_on_main_grid[i] = true;
+            }
+
+            m_gather_from_main_grid.resize(nspecies, false);
+            std::vector<std::string> tmp_gather;
+            pp.queryarr("gather_from_main_grid", tmp_gather);
+            for (auto const& name : tmp_gather) {
+                auto it = std::find(species_names.begin(), species_names.end(), name);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.gather_from_main_grid must be part of particles.species_names");
+                int i = std::distance(species_names.begin(), it);
+                m_gather_from_main_grid.at(i) = true;
             }
 
             species_types.resize(nspecies, PCTypes::Physical);
@@ -95,7 +105,9 @@ MultiParticleContainer::ReadParameters ()
             if (!photon_species.empty()) {
                 for (auto const& name : photon_species) {
                     auto it = std::find(species_names.begin(), species_names.end(), name);
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                        it != species_names.end(), 
+                        "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
                     int i = std::distance(species_names.begin(), it);
                     species_types[i] = PCTypes::Photon;
                 }
@@ -247,8 +259,8 @@ MultiParticleContainer::Evolve (int lev,
     if (rho) rho->setVal(0.0);
     if (crho) crho->setVal(0.0);
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
-               rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
+        pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
+                   rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
     }
 }
 

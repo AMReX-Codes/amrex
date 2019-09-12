@@ -148,7 +148,7 @@ WarpX::EvolveEM (int numsteps)
             }
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
-        
+
         bool move_j = is_synchronized || to_make_plot || do_insitu;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
@@ -183,7 +183,7 @@ WarpX::EvolveEM (int numsteps)
         }
 
         // slice gen //
-	if (to_make_plot || do_insitu || to_make_slice_plot)
+        if (to_make_plot || do_insitu || to_make_slice_plot)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -199,7 +199,7 @@ WarpX::EvolveEM (int numsteps)
             last_insitu_step = step+1;
 
             if (to_make_plot)
-    	        WritePlotFile();
+                WritePlotFile();
 
             if (to_make_slice_plot)
             {
@@ -211,7 +211,7 @@ WarpX::EvolveEM (int numsteps)
 
             if (do_insitu)
                 UpdateInSitu();
-	}
+        }
 
         if (check_int > 0 && (step+1) % check_int == 0) {
             last_check_file_step = step+1;
@@ -277,7 +277,7 @@ WarpX::EvolveEM (int numsteps)
 void
 WarpX::OneStep_nosub (Real cur_time)
 {
-    // Loop over species. For each ionizable species, create particles in 
+    // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
     // Push particle from x^{n} to x^{n+1}
@@ -349,7 +349,7 @@ WarpX::OneStep_sub1 (Real curtime)
 {
     // TODO: we could save some charge depositions
 
-    // Loop over species. For each ionizable species, create particles in 
+    // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
 

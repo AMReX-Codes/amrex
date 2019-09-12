@@ -4,7 +4,7 @@ module warpx_openbc_module
   implicit none
 
   integer, parameter :: idecomp = 0 ! 0=xyz, 1=xy, 2=yz, 3=xz, 4=x, 5=y, 6=z.
-  integer, parameter :: igfflag = 1 ! =0 for ordinary 1/r Green function; 
+  integer, parameter :: igfflag = 1 ! =0 for ordinary 1/r Green function;
                                     ! =1 for integrated Green function
 
   integer, save :: gb_lo(3), gb_hi(3)

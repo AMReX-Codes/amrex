@@ -24,7 +24,7 @@ parser.add_argument('--commit',
 parser.add_argument('--automated',
                     dest='automated',
                     action='store_true',
-                    default=False, 
+                    default=False,
                     help='Use to run the automated test list')
 parser.add_argument('--n_node_list',
                     dest='n_node_list',
@@ -34,7 +34,7 @@ parser.add_argument('--start_date',
                     dest='start_date' )
 parser.add_argument('--compiler',
                     choices=['gnu', 'intel'],
-                    default='intel', 
+                    default='intel',
                     help='which compiler to use')
 parser.add_argument('--architecture',
                     choices=['cpu', 'knl'],
@@ -42,14 +42,14 @@ parser.add_argument('--architecture',
                     help='which architecture to cross-compile for NERSC machines')
 parser.add_argument('--mode',
                     choices=['run', 'read', 'browse_output_files', 'write_csv'],
-                    default='run', 
+                    default='run',
                     help='whether to run perftests or read their perf output. run calls read')
 args = parser.parse_args()
 n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
 start_date = args.start_date
 
-# Set behavior variables 
+# Set behavior variables
 ########################
 write_csv = False
 browse_output_files = False
@@ -74,7 +74,7 @@ if args.automated == True:
 
 # Each instance of this class contains information for a single test.
 class test_element():
-    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
+    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None,
                  n_omp=None, n_cell=None, n_step=None):
         self.input_file = input_file
         self.n_node = n_node
@@ -99,35 +99,35 @@ test_list_unq = []
 n_repeat = 2
 # n_node is kept to None and passed in functions as an external argument
 # That way, several test_element_instance run with the same n_node on the same batch job
-test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
-                                   n_mpi_per_node=8, 
-                                   n_omp=8, 
-                                   n_cell=[128, 128, 128], 
+test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc',
+                                   n_mpi_per_node=8,
+                                   n_omp=8,
+                                   n_cell=[128, 128, 128],
                                    n_step=10) )
-test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
-                                   n_mpi_per_node=8, 
-                                   n_omp=8, 
-                                   n_cell=[256, 256, 512], 
+test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc',
+                                   n_mpi_per_node=8,
+                                   n_omp=8,
+                                   n_cell=[256, 256, 512],
                                    n_step=10) )
-test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc', 
-                                   n_mpi_per_node=8, 
-                                   n_omp=8, 
-                                   n_cell=[128, 128, 128], 
+test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc',
+                                   n_mpi_per_node=8,
+                                   n_omp=8,
+                                   n_cell=[128, 128, 128],
                                    n_step=10) )
-test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc', 
-                                   n_mpi_per_node=8, 
-                                   n_omp=8, 
-                                   n_cell=[64, 64, 128], 
+test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc',
+                                   n_mpi_per_node=8,
+                                   n_omp=8,
+                                   n_cell=[64, 64, 128],
                                    n_step=50) )
-test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance', 
-                                   n_mpi_per_node=8, 
-                                   n_omp=8, 
-                                   n_cell=[128, 128, 128], 
+test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance',
+                                   n_mpi_per_node=8,
+                                   n_omp=8,
+                                   n_cell=[128, 128, 128],
                                    n_step=10) )
-test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc', 
-                                   n_mpi_per_node=8, 
-                                   n_omp=8, 
-                                   n_cell=[128, 256, 256], 
+test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc',
+                                   n_mpi_per_node=8,
+                                   n_omp=8,
+                                   n_cell=[128, 256, 256],
                                    n_step=0) )
 test_list = [copy.deepcopy(item) for item in test_list_unq for _ in range(n_repeat) ]
 
@@ -160,7 +160,7 @@ if args.mode == 'run':
     start_date = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # Set default options for compilation and execution
     config_command = ''
-    config_command += 'module unload darshan;' 
+    config_command += 'module unload darshan;'
     config_command += 'module load craype-hugepages4M;'
     if args.architecture == 'knl':
         if args.compiler == 'intel':
@@ -182,7 +182,7 @@ if args.mode == 'run':
         config_command += 'module load craype-haswell;'
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
-        os.mkdir(res_dir_base)    
+        os.mkdir(res_dir_base)
 
     # Recompile if requested
     # ----------------------
@@ -206,8 +206,8 @@ if args.mode == 'run':
         store_git_hash(repo_path=amrex_dir , filename=cwd + 'store_git_hashes.txt', name='amrex' )
         store_git_hash(repo_path=warpx_dir , filename=cwd + 'store_git_hashes.txt', name='warpx' )
 
-# This function runs a batch script with 
-# dependencies to perform the analysis 
+# This function runs a batch script with
+# dependencies to perform the analysis
 # after all performance tests are done.
 def process_analysis():
     dependencies = ''
@@ -246,7 +246,7 @@ def process_analysis():
 
 # Loop over the tests and run all simulations:
 # One batch job submitted per n_node. Several
-# tests run within the same batch job. 
+# tests run within the same batch job.
 # --------------------------------------------
 if args.mode == 'run':
     if os.path.exists( 'log_jobids_tmp.txt' ):
@@ -310,10 +310,10 @@ for n_node in n_node_list:
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
-            # Write dataframe to file perf_database_file 
+            # Write dataframe to file perf_database_file
             # (overwrite if file exists)
             updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
- 
+
         # Rename directory with precise date+hour for archive purpose
         if rename_archive == True:
             loc_counter = 0
@@ -331,7 +331,7 @@ for n_node in n_node_list:
 # csv file and copy this file to perf_logs repo
 # -------------------------------------------------
 if write_csv:
-    # Extract small data from data frame and write them to 
+    # Extract small data from data frame and write them to
     # First, generate csv files
     df = pd.read_hdf( perf_database_file )
     # One large file

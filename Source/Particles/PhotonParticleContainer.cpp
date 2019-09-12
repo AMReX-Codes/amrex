@@ -27,7 +27,6 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // where <species> is the name of your species
     ParmParse pp(species_name);
 
-
 #ifdef WARPX_QED
         //IF do_qed is enabled, find out if Breit Wheeler process is enabled
         if(do_qed)
@@ -108,7 +107,6 @@ PhotonParticleContainer::Evolve (int lev,
     // This does gather, push and depose.
     // Push and depose have been re-written for photon,
     // so they do not do anything.
-    // Currently, I guess photons do gather fields from the mesh.
     PhysicalParticleContainer::Evolve (lev,
                                        Ex, Ey, Ez,
                                        Bx, By, Bz,
