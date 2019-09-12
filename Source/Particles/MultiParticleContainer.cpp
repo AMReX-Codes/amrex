@@ -8,15 +8,8 @@
 
 using namespace amrex;
 
-#ifdef WARPX_QED
-MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core):
-    bw_engine{std::move(init_warpx_breit_wheeler_engine())}
-#else
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
-#endif
 {
-
-
 
     ReadParameters();
 
@@ -112,7 +105,9 @@ MultiParticleContainer::ReadParameters ()
             if (!photon_species.empty()) {
                 for (auto const& name : photon_species) {
                     auto it = std::find(species_names.begin(), species_names.end(), name);
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                        it != species_names.end(), 
+                        "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
                     int i = std::distance(species_names.begin(), it);
                     species_types[i] = PCTypes::Photon;
                 }
@@ -154,31 +149,6 @@ MultiParticleContainer::InitData ()
     // For each species, get the ID of its product species.
     // This is used for ionization and pair creation processes.
     mapSpeciesProduct();
-
-#ifdef WARPX_QED
-
-    //Helper function
-    auto does_file_exist = [](const char *fileName)
-    {return (std::ifstream{fileName}).good(); };
-
-    //Initialize the lookup tables
-    //Generates tables if they do not exist
-    if(!does_file_exist("bw_engine_dndt.bin")){
-        bw_engine.compute_dN_dt_lookup_table(&std::cout);
-        bw_engine.write_dN_dt_table("bw_engine_dndt.bin");
-    }
-    else{
-        bw_engine.read_dN_dt_table("bw_engine_dndt.bin");
-    }
-
-    if(!does_file_exist("bw_engine_pair.bin")){
-        bw_engine.compute_cumulative_pair_table(&std::cout);
-        bw_engine.write_cumulative_pair_table("bw_engine_pair.bin");
-    }
-    else{
-        bw_engine.read_cumulative_pair_table("bw_engine_pair.bin");
-    }
-#endif
 }
 
 

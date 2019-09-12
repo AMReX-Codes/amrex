@@ -22,11 +22,6 @@
 // concrete class derived from WarpXParticlContainer.
 //
 
-//
-#ifdef WARPX_QED
-    #include "breit_wheeler_engine_wrapper.h"
-#endif
-
 class MultiParticleContainer
 {
 
