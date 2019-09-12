@@ -55,18 +55,18 @@ extern "C"
 
     int warpx_nSpecies()
     {
-	auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
         return mypc.nSpecies();
     }
 
     bool warpx_use_fdtd_nci_corr()
     {
-	return WarpX::use_fdtd_nci_corr;
+        return WarpX::use_fdtd_nci_corr;
     }
 
     int warpx_l_lower_order_in_v()
     {
-	return WarpX::l_lower_order_in_v;
+        return WarpX::l_lower_order_in_v;
     }
 
     int warpx_nComps()
@@ -81,32 +81,32 @@ extern "C"
 
     void amrex_init (int argc, char* argv[])
     {
-	amrex::Initialize(argc,argv);
+        amrex::Initialize(argc,argv);
     }
 
 #ifdef BL_USE_MPI
     void amrex_init_with_inited_mpi (int argc, char* argv[], MPI_Comm mpicomm)
     {
-	amrex::Initialize(argc,argv,true,mpicomm);
+        amrex::Initialize(argc,argv,true,mpicomm);
     }
 #endif
 
     void amrex_finalize (int finalize_mpi)
     {
-	amrex::Finalize();
+        amrex::Finalize();
     }
 
     void warpx_init ()
     {
-	WarpX& warpx = WarpX::GetInstance();
-	warpx.InitData();
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.InitData();
         if (warpx_py_afterinit) warpx_py_afterinit();
         if (warpx_py_particleloader) warpx_py_particleloader();
     }
 
     void warpx_finalize ()
     {
-	WarpX::ResetInstance();
+        WarpX::ResetInstance();
     }
 
     void warpx_set_callback_py_afterinit (WARPX_CALLBACK_PY_FUNC_0 callback)
@@ -160,8 +160,8 @@ extern "C"
 
     void warpx_evolve (int numsteps)
     {
-	WarpX& warpx = WarpX::GetInstance();
-	warpx.Evolve(numsteps);
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.Evolve(numsteps);
     }
 
     void warpx_addNParticles(int speciesnumber, int lenx,
@@ -169,10 +169,10 @@ extern "C"
                              double* vx, double* vy, double* vz,
                              int nattr, double* attr, int uniqueparticles)
     {
-	auto & mypc = WarpX::GetInstance().GetPartContainer();
-	auto & myspc = mypc.GetParticleContainer(speciesnumber);
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & myspc = mypc.GetParticleContainer(speciesnumber);
         const int lev = 0;
-	myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+        myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 
     void warpx_ConvertLabParamsToBoost()
@@ -444,7 +444,7 @@ extern "C"
     }
 
     void mypc_Redistribute () {
-	    auto & mypc = WarpX::GetInstance().GetPartContainer();
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
         mypc.Redistribute();
     }
 

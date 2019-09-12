@@ -30,125 +30,125 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
 
     ParmParse pp(laser_name);
 
-	// Parse the type of laser profile and set the corresponding flag `profile`
-	std::string laser_type_s;
-	pp.get("profile", laser_type_s);
-	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
-	if (laser_type_s == "gaussian") {
-	    profile = laser_t::Gaussian;
+    // Parse the type of laser profile and set the corresponding flag `profile`
+    std::string laser_type_s;
+    pp.get("profile", laser_type_s);
+    std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
+    if (laser_type_s == "gaussian") {
+        profile = laser_t::Gaussian;
     } else if(laser_type_s == "harris") {
         profile = laser_t::Harris;
     } else if(laser_type_s == "parse_field_function") {
         profile = laser_t::parse_field_function;
-	} else {
-	    amrex::Abort("Unknown laser type");
-	}
+        } else {
+            amrex::Abort("Unknown laser type");
+        }
 
-	// Parse the properties of the antenna
-	pp.getarr("position", position);
-	pp.getarr("direction", nvec);
-	pp.getarr("polarization", p_X);
-	pp.query("pusher_algo", pusher_algo);
-	pp.get("wavelength", wavelength);
-	pp.get("e_max", e_max);
-    pp.query("do_continuous_injection", do_continuous_injection);
+        // Parse the properties of the antenna
+        pp.getarr("position", position);
+        pp.getarr("direction", nvec);
+        pp.getarr("polarization", p_X);
+        pp.query("pusher_algo", pusher_algo);
+        pp.get("wavelength", wavelength);
+        pp.get("e_max", e_max);
+        pp.query("do_continuous_injection", do_continuous_injection);
 
-	if ( profile == laser_t::Gaussian ) {
-	    // Parse the properties of the Gaussian profile
-        pp.get("profile_waist", profile_waist);
-        pp.get("profile_duration", profile_duration);
-        pp.get("profile_t_peak", profile_t_peak);
-        pp.get("profile_focal_distance", profile_focal_distance);
-        stc_direction = p_X;
-        pp.queryarr("stc_direction", stc_direction);
-        pp.query("zeta", zeta);
-        pp.query("beta", beta);
-        pp.query("phi2", phi2);
-	}
+        if ( profile == laser_t::Gaussian ) {
+            // Parse the properties of the Gaussian profile
+            pp.get("profile_waist", profile_waist);
+            pp.get("profile_duration", profile_duration);
+            pp.get("profile_t_peak", profile_t_peak);
+            pp.get("profile_focal_distance", profile_focal_distance);
+            stc_direction = p_X;
+            pp.queryarr("stc_direction", stc_direction);
+            pp.query("zeta", zeta);
+            pp.query("beta", beta);
+            pp.query("phi2", phi2);
+        }
 
-    if ( profile == laser_t::Harris ) {
-        // Parse the properties of the Harris profile
-        pp.get("profile_waist", profile_waist);
-        pp.get("profile_duration", profile_duration);
-        pp.get("profile_focal_distance", profile_focal_distance);
-    }
+        if ( profile == laser_t::Harris ) {
+            // Parse the properties of the Harris profile
+            pp.get("profile_waist", profile_waist);
+            pp.get("profile_duration", profile_duration);
+            pp.get("profile_focal_distance", profile_focal_distance);
+        }
 
-    if ( profile == laser_t::parse_field_function ) {
-        // Parse the properties of the parse_field_function profile
-        pp.get("field_function(X,Y,t)", field_function);
-        parser.define(field_function);
-        parser.registerVariables({"X","Y","t"});
+        if ( profile == laser_t::parse_field_function ) {
+            // Parse the properties of the parse_field_function profile
+            pp.get("field_function(X,Y,t)", field_function);
+            parser.define(field_function);
+            parser.registerVariables({"X","Y","t"});
 
-        ParmParse ppc("my_constants");
-        std::set<std::string> symbols = parser.symbols();
-        symbols.erase("X");
-        symbols.erase("Y");
-        symbols.erase("t"); // after removing variables, we are left with constants
-        for (auto it = symbols.begin(); it != symbols.end(); ) {
-            Real v;
-            if (ppc.query(it->c_str(), v)) {
-                parser.setConstant(*it, v);
-                it = symbols.erase(it);
-            } else {
-                ++it;
+            ParmParse ppc("my_constants");
+            std::set<std::string> symbols = parser.symbols();
+            symbols.erase("X");
+            symbols.erase("Y");
+            symbols.erase("t"); // after removing variables, we are left with constants
+            for (auto it = symbols.begin(); it != symbols.end(); ) {
+                Real v;
+                if (ppc.query(it->c_str(), v)) {
+                    parser.setConstant(*it, v);
+                    it = symbols.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            for (auto const& s : symbols) { // make sure there no unknown symbols
+                amrex::Abort("Laser Profile: Unknown symbol "+s);
             }
         }
-        for (auto const& s : symbols) { // make sure there no unknown symbols
-            amrex::Abort("Laser Profile: Unknown symbol "+s);
+
+        // Plane normal
+        Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
+        nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
+
+        if (WarpX::gamma_boost > 1.) {
+            // Check that the laser direction is equal to the boost direction
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  nvec[0]*WarpX::boost_direction[0]
+                                             + nvec[1]*WarpX::boost_direction[1]
+                                             + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
+                                               "The Lorentz boost should be in the same direction as the laser propagation");
+            // Get the position of the plane, along the boost direction, in the lab frame
+            // and convert the position of the antenna to the boosted frame
+            Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
+            Real Z0_boost = Z0_lab/WarpX::gamma_boost;
+            position[0] += (Z0_boost-Z0_lab)*nvec[0];
+            position[1] += (Z0_boost-Z0_lab)*nvec[1];
+            position[2] += (Z0_boost-Z0_lab)*nvec[2];
         }
-    }
 
-	// Plane normal
-	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
-	nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
+        // The first polarization vector
+        s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
+        p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
-    if (WarpX::gamma_boost > 1.) {
-        // Check that the laser direction is equal to the boost direction
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(  nvec[0]*WarpX::boost_direction[0]
-                                         + nvec[1]*WarpX::boost_direction[1]
-                                         + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
-                                           "The Lorentz boost should be in the same direction as the laser propagation");
-        // Get the position of the plane, along the boost direction, in the lab frame
-        // and convert the position of the antenna to the boosted frame
-        Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
-        Real Z0_boost = Z0_lab/WarpX::gamma_boost;
-        position[0] += (Z0_boost-Z0_lab)*nvec[0];
-        position[1] += (Z0_boost-Z0_lab)*nvec[1];
-        position[2] += (Z0_boost-Z0_lab)*nvec[2];
-    }
+        Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
+            "Laser plane vector is not perpendicular to the main polarization vector");
 
-	// The first polarization vector
-	s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
-	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
+        p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
-	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
-                                     "Laser plane vector is not perpendicular to the main polarization vector");
+        s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
+        stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
+        dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
+            "stc_direction is not perpendicular to the laser plane vector");
 
-	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
-
-	s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
-	stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
-	dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
-                                     "stc_direction is not perpendicular to the laser plane vector");
-
-	// Get angle between p_X and stc_direction
-	// in 2d, stcs are in the simulation plane
+        // Get angle between p_X and stc_direction
+        // in 2d, stcs are in the simulation plane
 #if AMREX_SPACEDIM == 3
-	theta_stc = acos(stc_direction[0]*p_X[0] +
+        theta_stc = acos(stc_direction[0]*p_X[0] +
                      stc_direction[1]*p_X[1] +
                      stc_direction[2]*p_X[2]);
 #else
-	theta_stc = 0.;
+        theta_stc = 0.;
 #endif
 
 #if AMREX_SPACEDIM == 3
-	u_X = p_X;
-	u_Y = p_Y;
+        u_X = p_X;
+        u_Y = p_Y;
 #else
-	u_X = CrossProduct({0., 1., 0.}, nvec);
-	u_Y = {0., 1., 0.};
+        u_X = CrossProduct({0., 1., 0.}, nvec);
+        u_Y = {0., 1., 0.};
 #endif
 
     laser_injection_box= Geom(0).ProbDomain();
@@ -327,19 +327,19 @@ LaserParticleContainer::InitData (int lev)
                          IntVect(plane_hi[0],plane_hi[1],0)};
     BoxArray plane_ba {plane_box};
     {
-	IntVect chunk(plane_box.size());
-	const int min_size = 8;
-	while (plane_ba.size() < nprocs && chunk[0] > min_size && chunk[1] > min_size)
-	{
-	    for (int j = 1; j >= 0 ; j--)
-	    {
-		chunk[j] /= 2;
+        IntVect chunk(plane_box.size());
+        const int min_size = 8;
+        while (plane_ba.size() < nprocs && chunk[0] > min_size && chunk[1] > min_size)
+        {
+            for (int j = 1; j >= 0 ; j--)
+            {
+                chunk[j] /= 2;
 
-		if (plane_ba.size() < nprocs) {
-		    plane_ba.maxSize(chunk);
-		}
-	    }
-	}
+                if (plane_ba.size() < nprocs) {
+                    plane_ba.maxSize(chunk);
+                }
+            }
+        }
     }
 #else
     BoxArray plane_ba { Box {IntVect(plane_lo[0],0), IntVect(plane_hi[0],0)} };
@@ -351,29 +351,29 @@ LaserParticleContainer::InitData (int lev)
     const Vector<int>& procmap = plane_dm.ProcessorMap();
     for (int i = 0, n = plane_ba.size(); i < n; ++i)
     {
-	if (procmap[i] == myproc)
-	{
-	    const Box& bx = plane_ba[i];
-	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
-	    {
-            const Vector<Real>& pos = Transform(cell[0], cell[1]);
-#if (AMREX_SPACEDIM == 3)
-            const Real* x = pos.dataPtr();
-#else
-            const Real x[2] = {pos[0], pos[2]};
-#endif
-            if (laser_injection_box.contains(x))
+        if (procmap[i] == myproc)
+        {
+            const Box& bx = plane_ba[i];
+            for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
             {
-                for (int k = 0; k<2; ++k) {
-                    particle_x.push_back(pos[0]);
-                    particle_y.push_back(pos[1]);
-                    particle_z.push_back(pos[2]);
+                const Vector<Real>& pos = Transform(cell[0], cell[1]);
+#if (AMREX_SPACEDIM == 3)
+                const Real* x = pos.dataPtr();
+#else
+                const Real x[2] = {pos[0], pos[2]};
+#endif
+                if (laser_injection_box.contains(x))
+                {
+                    for (int k = 0; k<2; ++k) {
+                        particle_x.push_back(pos[0]);
+                        particle_y.push_back(pos[1]);
+                        particle_z.push_back(pos[2]);
+                    }
+                    particle_w.push_back( weight);
+                    particle_w.push_back(-weight);
                 }
-                particle_w.push_back( weight);
-                particle_w.push_back(-weight);
             }
-	    }
-	}
+        }
     }
     const int np = particle_z.size();
     RealVector particle_ux(np, 0.0);

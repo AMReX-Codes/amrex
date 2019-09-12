@@ -11,12 +11,12 @@ enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 struct PIdx
 {
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
-	w = 0,  // weight
-	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
+        w = 0,  // weight
+        ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
 #ifdef WARPX_DIM_RZ
         theta, // RZ needs all three position components
 #endif
-	nattribs
+        nattribs
     };
 };
 
@@ -131,9 +131,9 @@ public:
 #endif // WARPX_DO_ELECTROSTATIC
 
     virtual void Evolve (int lev,
-			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                         const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+                         amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab* cjx, amrex::MultiFab* cjy, amrex::MultiFab* cjz,
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
@@ -231,8 +231,8 @@ public:
 
     void AddNParticles (int lev,
                         int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
-			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
-			int nattr, const amrex::Real* attr, int uniqueparticles, int id=-1);
+                        const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
+                        int nattr, const amrex::Real* attr, int uniqueparticles, int id=-1);
 
     void AddOneParticle (int lev, int grid, int tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,

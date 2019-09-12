@@ -567,7 +567,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                                  user_fields_to_dump);
     // If user specifies fields to dump, overwrite ncomp_to_dump,
     // map_actual_fields_to_dump and mesh_field_names.
-	for (int i = 0; i < 10; ++i) map_actual_fields_to_dump.push_back(i);
+    for (int i = 0; i < 10; ++i)
+        map_actual_fields_to_dump.push_back(i);
+
     if (do_user_fields){
         ncomp_to_dump = user_fields_to_dump.size();
         map_actual_fields_to_dump.resize(ncomp_to_dump);

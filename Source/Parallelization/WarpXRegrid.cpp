@@ -18,7 +18,7 @@ WarpX::LoadBalance ()
         const Real nprocs = ParallelDescriptor::NProcs();
         const int nmax = static_cast<int>(std::ceil(nboxes/nprocs*load_balance_knapsack_factor));
         const DistributionMapping newdm = (load_balance_with_sfc)
-	  ? DistributionMapping::makeSFC(*costs[lev], false)
+            ? DistributionMapping::makeSFC(*costs[lev], false)
             : DistributionMapping::makeKnapSack(*costs[lev], nmax);
         RemakeLevel(lev, t_new[lev], boxArray(lev), newdm);
     }

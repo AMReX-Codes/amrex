@@ -252,12 +252,12 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-    	    pml[lev]->ExchangeE(patch_type,
+            pml[lev]->ExchangeE(patch_type,
                               { Efield_fp[lev][0].get(),
                                 Efield_fp[lev][1].get(),
                                 Efield_fp[lev][2].get() },
                                 do_pml_in_domain);
-    	    pml[lev]->FillBoundaryE(patch_type);
+            pml[lev]->FillBoundaryE(patch_type);
         }
 
         const auto& period = Geom(lev).periodicity();
@@ -296,7 +296,7 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-	    pml[lev]->ExchangeB(patch_type,
+            pml[lev]->ExchangeB(patch_type,
                             { Bfield_fp[lev][0].get(),
                               Bfield_fp[lev][1].get(),
                               Bfield_fp[lev][2].get() },
