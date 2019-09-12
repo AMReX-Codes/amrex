@@ -341,6 +341,9 @@ In the simplest form of the call, :math:`S` is assumed to be zero and does not n
 Typically, the user does not allocate the solution array, but it is also possible to create and pass
 in the solution array and have :math:`\phi` returned as well as :math:`U`.  
 
+Caveat:  Currently the MAC projection only works when the base level covers the full domain; it does
+not yet have the interface to pass boundary conditions for a fine level that come from coarser data.
+
 The code below is taken from 
 ``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
 the MACProjector object and use it to perform a MAC projection.
