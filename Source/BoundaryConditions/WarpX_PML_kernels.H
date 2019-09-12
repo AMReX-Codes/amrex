@@ -130,7 +130,7 @@ void warpx_push_pml_by_ckc(int i, int j, int k, Array4<Real> const&By,
    By(i,j,k,0) += -alphaz*(Ex(i  ,j  ,k+1,0) + Ex(i  ,j  ,k+1,1) + Ex(i  ,j  ,k+1,2)
                          - Ex(i  ,j  ,k  ,0) - Ex(i  ,j  ,k  ,1) - Ex(i  ,j  ,k  ,2))
                   -betazx*(Ex(i+1,j  ,k+1,0) + Ex(i+1,j  ,k+1,1) + Ex(i+1,j  ,k+1,2)
-                         - Ex(i+1,j  ,k  ,0) - Ex(i+1,j  ,k+1,1) - Ex(i+1,j  ,k  ,2)
+                         - Ex(i+1,j  ,k  ,0) - Ex(i+1,j  ,k  ,1) - Ex(i+1,j  ,k  ,2)
                          + Ex(i-1,j  ,k+1,0) + Ex(i-1,j  ,k+1,1) + Ex(i-1,j  ,k+1,2)
                          - Ex(i-1,j  ,k  ,0) - Ex(i-1,j  ,k  ,1) - Ex(i-1,j  ,k  ,2))
                   -betazy*(Ex(i  ,j+1,k+1,0) + Ex(i  ,j+1,k+1,1) + Ex(i  ,j+1,k+1,2)
