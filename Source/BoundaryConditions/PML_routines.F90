@@ -762,7 +762,7 @@ contains
         rx = (dtsdx/delta)**2
         rz = (dtsdz/delta)**2
         betaxz = eighth*rz
- 	    betazx = eighth*rx
+        betazx = eighth*rx
         alphax = one - two*betaxz
         alphaz = one - two*betazx
 
