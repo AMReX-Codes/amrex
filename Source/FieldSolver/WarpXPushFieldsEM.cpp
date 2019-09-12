@@ -248,7 +248,6 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
             auto const& pml_Bxfab = pml_B[0]->array(mfi);
             auto const& pml_Byfab = pml_B[1]->array(mfi);
             auto const& pml_Bzfab = pml_B[2]->array(mfi);
@@ -299,7 +298,6 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real a_dt)
                });
 
             }
-
         }
     }
 }
@@ -681,7 +679,6 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real a_dt, DtType a_dt_type)
         for ( MFIter mfi(*pml_F, TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.tilebox();
-
 
             auto const& pml_F_fab = pml_F->array(mfi);
             auto const& pml_Exfab = pml_E[0]->array(mfi);

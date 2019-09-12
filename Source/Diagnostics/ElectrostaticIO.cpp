@@ -29,10 +29,10 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     const int nlevels = finestLevel()+1;
 
     {
-	Vector<std::string> varnames;
-	Vector<std::unique_ptr<MultiFab> > mf(finest_level+1);
+        Vector<std::string> varnames;
+        Vector<std::unique_ptr<MultiFab> > mf(finest_level+1);
 
-	for (int lev = 0; lev <= finest_level; ++lev) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
             int ncomp = 5;
             const int ngrow = 0;
             mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
@@ -114,7 +114,7 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     particle_varnames.push_back("Bz");
 
     Vector<std::string> int_names;
-        
+
     mypc->Checkpoint(plotfilename, particle_varnames, int_names);
 
     WriteJobInfo(plotfilename);

@@ -11,13 +11,13 @@ public:
 
     // Apply stencil on MultiFab.
     // Guard cells are handled inside this function
-    void ApplyStencil(amrex::MultiFab& dstmf, 
-                              const amrex::MultiFab& srcmf, int scomp=0, 
+    void ApplyStencil(amrex::MultiFab& dstmf,
+                              const amrex::MultiFab& srcmf, int scomp=0,
                               int dcomp=0, int ncomp=10000);
 
     // Apply stencil on a FabArray.
-    void ApplyStencil (amrex::FArrayBox& dstfab, 
-                       const amrex::FArrayBox& srcfab, const amrex::Box& tbx, 
+    void ApplyStencil (amrex::FArrayBox& dstfab,
+                       const amrex::FArrayBox& srcfab, const amrex::Box& tbx,
                        int scomp=0, int dcomp=0, int ncomp=10000);
 
     // public for cuda

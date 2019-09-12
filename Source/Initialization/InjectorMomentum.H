@@ -1,10 +1,11 @@
 #ifndef INJECTOR_MOMENTUM_H_
 #define INJECTOR_MOMENTUM_H_
 
+#include <CustomMomentumProb.H>
+#include <GpuParser.H>
+
 #include <AMReX_Gpu.H>
 #include <AMReX_Dim3.H>
-#include <GpuParser.H>
-#include <CustomMomentumProb.H>
 
 // struct whose getMomentum returns constant momentum.
 struct InjectorMomentumConstant
@@ -22,7 +23,7 @@ private:
     amrex::Real m_ux, m_uy, m_uz;
 };
 
-// struct whose getMomentum returns momentum for 1 particle, from random 
+// struct whose getMomentum returns momentum for 1 particle, from random
 // gaussian distribution.
 struct InjectorMomentumGaussian
 {
@@ -84,9 +85,9 @@ struct InjectorMomentumParser
     GpuParser m_ux_parser, m_uy_parser, m_uz_parser;
 };
 
-// Base struct for momentum injector. 
-// InjectorMomentum contains a union (called Object) that holds any one 
-// instance of: 
+// Base struct for momentum injector.
+// InjectorMomentum contains a union (called Object) that holds any one
+// instance of:
 // - InjectorMomentumConstant       : to generate constant density;
 // - InjectorMomentumGaussian       : to generate gaussian distribution;
 // - InjectorMomentumRadialExpansion: to generate radial expansion;
@@ -189,7 +190,7 @@ private:
     Type type;
 
     // An instance of union Object constructs and stores any one of
-    // the objects declared (constant or custom or gaussian or 
+    // the objects declared (constant or custom or gaussian or
     // radial_expansion or parser).
     union Object {
         Object (InjectorMomentumConstant*,
