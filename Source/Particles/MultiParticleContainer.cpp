@@ -17,7 +17,6 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
 
 
-
     ReadParameters();
 
     allcontainers.resize(nspecies + nlasers);

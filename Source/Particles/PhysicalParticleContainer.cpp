@@ -46,35 +46,46 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
         "version of Redistribute in AMReX does not work with runtime parameters");
 #endif
 
+
 #ifdef WARPX_QED
+    //Add real component if QED is enabled
     pp.query("do_qed", do_qed);
+    if(do_qed){
+        AddRealComp("tau");
+    }
 #endif
+
+    //variable to set plot_flags size
+    int plot_flag_size = PIdx::nattribs;
+    if(WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+        plot_flag_size += 6;
+
+#ifdef WARPX_QED
+    if(do_qed){
+        // plot_flag will have an entry for the optical depth
+        plot_flag_size ++;
+    }
+#endif
+    //_______________________________
 
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
     if (not do_user_plot_vars){
         // By default, all particle variables are dumped to plotfiles,
-        // including {x,y,z,ux,uy,uz}old variables when running in a 
+        // including {x,y,z,ux,uy,uz}old variables when running in a
         // boosted frame
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
-            plot_flags.resize(PIdx::nattribs + 6, 1);
-        } else {
-            plot_flags.resize(PIdx::nattribs, 1);
-        }
+        plot_flags.resize(plot_flag_size, 1);    
     } else {
         // Set plot_flag to 0 for all attribs
-        if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags){
-            plot_flags.resize(PIdx::nattribs + 6, 0);
-        } else {
-            plot_flags.resize(PIdx::nattribs, 0);
-        }
+        plot_flags.resize(plot_flag_size, 0);
+
         // If not none, set plot_flags values to 1 for elements in plot_vars.
         if (plot_vars[0] != "none"){
             for (const auto& var : plot_vars){
-                // Return error if var not in PIdx. 
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
-                    ParticleStringNames::to_index.count(var), 
+                // Return error if var not in PIdx.
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    ParticleStringNames::to_index.count(var),
                     "plot_vars argument not in ParticleStringNames");
                 plot_flags[ParticleStringNames::to_index.at(var)] = 1;
             }
@@ -927,6 +938,7 @@ PhysicalParticleContainer::FieldGather (int lev,
                         &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab, 
                         Ex.nGrow(), e_is_nodal,
                         0, np, thread_num, lev, lev);
+
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
@@ -2139,9 +2151,8 @@ void
 PhysicalParticleContainer::InitLambda()
 {
     if(!do_qed) return;
-    // Add runtime real component for ionization level
-    AddRealComp("tau");
-    plot_flags.resize(PIdx::nattribs + 1, 1);
+    // Add runtime real component for optical depth
+    //TODO
 
 }
 #endif
