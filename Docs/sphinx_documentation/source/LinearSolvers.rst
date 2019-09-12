@@ -158,14 +158,15 @@ function
     void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,  // for lower ends
                       const Array<BCType,AMREX_SPACEDIM>& hibc); // for higher ends
 
-The supported BC types at
-the physical domain boundaries are
+The supported BC types at the physical domain boundaries are
 
 - :cpp:`LinOpBCType::Periodic` for periodic boundary.
 
 - :cpp:`LinOpBCType::Dirichlet` for Dirichlet boundary condition.
 
 - :cpp:`LinOpBCType::Neumann` for homogeneous Neumann boundary condition.
+
+- :cpp:`LinOpBCType::inhomogNeumann` for inhomogeneous Neumann boundary condition.
 
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
