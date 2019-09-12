@@ -21,17 +21,7 @@ using namespace amrex;
 PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecies,
                                                   const std::string& name)
     : PhysicalParticleContainer(amr_core, ispecies, name)
-{
-
-    // This will read <species>.[...] from the inputs file
-    // where <species> is the name of your species
-    ParmParse pp(species_name);
-
-    // read <species>.size_in_inches in the input file, and
-    // store it into member data.
-    pp.query("size_in_inches", size_in_inches);
-
-}
+{}
 
 void PhotonParticleContainer::InitData()
 {
@@ -100,7 +90,6 @@ PhotonParticleContainer::Evolve (int lev,
     // This does gather, push and depose.
     // Push and depose have been re-written for photon,
     // so they do not do anything.
-    // Currently, I guess photons do gather fields from the mesh.
     PhysicalParticleContainer::Evolve (lev,
                                        Ex, Ey, Ez,
                                        Bx, By, Bz,

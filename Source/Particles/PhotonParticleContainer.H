@@ -65,10 +65,6 @@ public:
                                 int depos_lev,
                                 amrex::Real dt)  {};
 
-private:
-
-    amrex::Real size_in_inches = 1.;
-
 };
 
 #endif // #ifndef WARPX_PhotonParticleContainer_H_
