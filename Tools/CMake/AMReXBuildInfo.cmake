@@ -19,9 +19,9 @@ of the python script "makebuildinfo_C.py" located in
 AMReXBuildInfo.cpp has to be created by the build system once all the
 details of the build are known.
 
-This module 
+This module
 
-* sets internal variables AMREX_C_SCRIPTS_DIR, AMREX_MAKEBUILD_SCRIPT, 
+* sets internal variables AMREX_C_SCRIPTS_DIR, AMREX_MAKEBUILD_SCRIPT,
   and AMREX_TOP_DIR
 
 * provides function "generate_buildinfo(_target _git_dir)"
@@ -30,10 +30,10 @@ This module
 
 #
 # This include brings in function "get_target_properties_flattened()"
-# 
+#
 include(AMReXTargetHelpers)
 
-# 
+#
 # Set paths
 #
 string(REPLACE "CMake" "C_scripts" AMREX_C_SCRIPTS_DIR ${CMAKE_CURRENT_LIST_DIR})
@@ -56,21 +56,21 @@ set( AMREX_TOP_DIR ${AMREX_TOP_DIR} CACHE INTERNAL "Path to AMReX' dir")
 #
 # If the keyword REQUIRED is passed in, the function will issue
 # an error if Pyhon >=2.7 cannot be found.
-# 
+#
 macro (generate_buildinfo _target _git_dir)
-   
+
    cmake_parse_arguments("_arg" "REQUIRED" "" "" ${ARGN})
 
-   # 
+   #
    # check if _target is a valid target
-   # 
+   #
    if (NOT TARGET ${_target} )
       message(FATAL_ERROR "Target ${_target} does not exists")
    endif ()
-   
+
    #
    # Look for python
-   # 
+   #
    find_package(Python)
 
    # If Python >= 2.7 is available, generate AMReX_BuildInfo.cpp
@@ -85,15 +85,15 @@ macro (generate_buildinfo _target _git_dir)
       set(_lang CXX Fortran)
       set(_prop _includes _defines _flags _link_line )
 
-      # Loop over all combinations of language and property and extract 
-      # what you need 
+      # Loop over all combinations of language and property and extract
+      # what you need
       foreach( _p IN LISTS _prop )
          foreach( _l IN LISTS _lang )
 
             string(TOLOWER ${_l} _ll) # Lower case language name
 
             # _${_ll}${_p} is a variable named as _lang_property,
-            # both lower case. 
+            # both lower case.
             evaluate_genex(${_p} _${_ll}${_p}
                LANG ${_l}
                COMP ${CMAKE_${_l}_COMPILER_ID}
@@ -103,25 +103,25 @@ macro (generate_buildinfo _target _git_dir)
             if (_${_ll}${_p})
 
                list(REMOVE_DUPLICATES _${_ll}${_p})
-               
+
                if ("${_p}" STREQUAL "_defines")
                   string(REPLACE ";" " -D" _${_ll}${_p} "-D${_${_ll}${_p}}")
                elseif ("${_p}" STREQUAL "_includes")
                   string(REPLACE ";" " -I" _${_ll}${_p} "-I${_${_ll}${_p}}")
                else()
                   string(REPLACE ";" " " _${_ll}${_p} "${_${_ll}${_p}}")
-               endif ()              
+               endif ()
 
             endif ()
-            
+
          endforeach()
       endforeach ()
-      
+
       unset(_ll)
 
       string(TOUPPER ${CMAKE_BUILD_TYPE} _ubuild_type)
       set(_cxx_flags "${CMAKE_CXX_FLAGS_${_ubuild_type}} ${CMAKE_CXX_FLAGS} ${_cxx_flags}")
-      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")     
+      set(_fortran_flags "${CMAKE_Fortran_FLAGS_${_ubuild_type}} ${CMAKE_Fortran_FLAGS} ${_fortran_flags}")
 
       # Prep GIT info to feed to build info script
       set(_git_cmd)
@@ -130,30 +130,29 @@ macro (generate_buildinfo _target _git_dir)
          if (EXISTS ${AMREX_TOP_DIR}/.git)
             set(_git_cmd  "${_git_cmd} ${AMREX_TOP_DIR}")
          endif ()
-         set(_git_cmd --GIT "${_git_cmd}")
-      endif ()  
-      
+         set(_git_cmd "--GIT \"${_git_cmd}\"")
+      endif ()
+
+      file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/makebuildinfo.sh
+        CONTENT "${Python_EXECUTABLE} ${AMREX_C_SCRIPTS_DIR}/${AMREX_MAKEBUILD_SCRIPT}\
+        --amrex_home ${AMREX_TOP_DIR}\
+        --COMP ${CMAKE_CXX_COMPILER_ID}\
+        --COMP_VERSION ${CMAKE_CXX_COMPILER_VERSION}\
+        --CXX_comp_name ${CMAKE_CXX_COMPILER}\
+        --CXX_flags \"${_cxx_defines} ${_cxx_includes} ${_cxx_flags}\"\
+        --FCOMP ${CMAKE_Fortran_COMPILER_ID}\
+        --FCOMP_VERSION ${CMAKE_Fortran_COMPILER_VERSION}\
+        --F_comp_name ${CMAKE_Fortran_COMPILER}\
+        --F_flags \"${_fortran_defines} ${_fortran_includes} ${_fortran_flags}\"\
+        --libraries \\\'${_cxx_link_line}\\\'\
+        ${_git_cmd}"
+        )
       add_custom_command(
-         COMMAND ${Python_EXECUTABLE} ${AMREX_C_SCRIPTS_DIR}/${AMREX_MAKEBUILD_SCRIPT}
-                 --amrex_home ${AMREX_TOP_DIR}    
-                 #  CXX
-                 --COMP ${CMAKE_CXX_COMPILER_ID}
-                 --COMP_VERSION ${CMAKE_CXX_COMPILER_VERSION}
-                 --CXX_comp_name ${CMAKE_CXX_COMPILER}
-                 --CXX_flags "${_cxx_defines} ${_cxx_includes} ${_cxx_flags}"
-                 # Fortran
-                 --FCOMP ${CMAKE_Fortran_COMPILER_ID}
-                 --FCOMP_VERSION ${CMAKE_Fortran_COMPILER_VERSION}
-                 --F_comp_name ${CMAKE_Fortran_COMPILER}
-                 --F_flags "${_fortran_defines} ${_fortran_includes} ${_fortran_flags}"
-                 #--link_flags
-                 --libraries "${_cxx_link_line}"
-                 # GIT
-                 ${_git_cmd}                 
+         COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/makebuildinfo.sh
          OUTPUT AMReX_buildInfo.cpp
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
          COMMENT "Generating AMReX_buildInfo.cpp" )
-      
+
       target_sources( ${_target}
          PRIVATE
          ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp
@@ -179,23 +178,23 @@ macro (generate_buildinfo _target _git_dir)
 
       foreach( _p IN LISTS _prop)
          foreach(_l IN LISTS _lang)
-            unset(_${_ll}${_p})           
+            unset(_${_ll}${_p})
          endforeach()
       endforeach ()
 
       unset(_prop)
       unset(_lang)
-      
+
    else ()
-      
+
       if (_arg_REQUIRED)
          message(FATAL_ERROR "Cannot find Python > 2.7")
       else ()
          message(WARNING "Cannot find Python > 2.7: skipping generation of build info")
       endif ()
-      
+
    endif ()
 
    unset(_arg_REQUIRED)
-   
+
 endmacro ()
