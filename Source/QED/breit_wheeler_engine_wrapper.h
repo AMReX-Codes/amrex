@@ -5,28 +5,22 @@
 //provided by the standard template library
 
 //BW ENGINE
-//#define PXRMP_GPU __host__ __device__
-#define PXRMP_WITH_SI_UNITS
+#include "qed_wrapper_commons.h"
 #include "breit_wheeler_engine.hpp"
 
 #include "amrex_rng_wrapper.h"
 
-using warpx_breit_wheeler_engine =
-  picsar::multi_physics::breit_wheeler_engine<amrex::Real, amrex_rng_wrapper>;
+class warpx_breit_wheeler_engine :
+    public picsar::multi_physics::
+    breit_wheeler_engine<amrex::Real, amrex_rng_wrapper>
+{
+public:
+    warpx_breit_wheeler_engine();
 
-//Helper function to initialize the engine
-inline warpx_breit_wheeler_engine init_warpx_breit_wheeler_engine(){
-  return  warpx_breit_wheeler_engine{std::move(amrex_rng_wrapper{})};
-}
-
-//Interface for the get_optical_depth method of the BW engine
-inline
-AMREX_GPU_HOST_DEVICE
-amrex::Real warpx_breit_wheeler_get_optical_depth(){
-    return warpx_breit_wheeler_engine::
-        internal_get_optical_depth(amrex::Random());
-}
-
+    //Interface for the get_optical_depth method of the BW engine
+    static AMREX_GPU_HOST_DEVICE
+    amrex::Real get_optical_depth();
+};
 
 //___________________________________________
 

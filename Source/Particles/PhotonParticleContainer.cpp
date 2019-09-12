@@ -137,7 +137,7 @@ for (int lev=0; lev < num_levels; ++lev)
         amrex::ParallelFor(
             pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
-                taus[i] = warpx_breit_wheeler_get_optical_depth();
+                taus[i] = warpx_breit_wheeler_engine::get_optical_depth();
             }
         );
     }
