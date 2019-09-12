@@ -194,60 +194,60 @@ def get_git_hash(d):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prefix_chars="+")
 
-    parser.add_argument("--amrex_home", help="path to the AMReX source",
+    parser.add_argument("++amrex_home", help="path to the AMReX source",
                         type=str, default="")
 
-    parser.add_argument("--COMP",
+    parser.add_argument("++COMP",
                         help="Compiler system defined in AMReX's build system",
                         type=str, default="")
 
-    parser.add_argument("--COMP_VERSION", help="Compiler version",
+    parser.add_argument("++COMP_VERSION", help="Compiler version",
                         type=str, default="")
 
-    parser.add_argument("--CXX_comp_name",
+    parser.add_argument("++CXX_comp_name",
                         help="C++ compiler command", type=str, default="")
 
-    parser.add_argument("--CXX_flags",
+    parser.add_argument("++CXX_flags",
                         help="C++ compiler flags", type=str, default="")
 
-    parser.add_argument("--FCOMP",
+    parser.add_argument("++FCOMP",
                         help="Fortran compiler as defined by AMReX's build system (deprecated)",
                         type=str, default="")
 
-    parser.add_argument("--FCOMP_VERSION",
+    parser.add_argument("++FCOMP_VERSION",
                         help="Fortran compiler version (deprecated)",
                         type=str, default="")
 
-    parser.add_argument("--F_comp_name", help="Fortran compiler command",
+    parser.add_argument("++F_comp_name", help="Fortran compiler command",
                         type=str, default="")
 
-    parser.add_argument("--F_flags", help="Fortran compiler flags",
+    parser.add_argument("++F_flags", help="Fortran compiler flags",
                         type=str, default="")
 
-    parser.add_argument("--link_flags", help="linker flags", type=str, default="")
+    parser.add_argument("++link_flags", help="linker flags", type=str, default="")
 
-    parser.add_argument("--libraries", help="libraries linked", type=str, default="")
+    parser.add_argument("++libraries", help="libraries linked", type=str, default="")
 
-    parser.add_argument("--AUX",
+    parser.add_argument("++AUX",
                         help="auxillary information (EOS, network path) (deprecated)",
                         type=str, default="")
 
-    parser.add_argument("--MODULES",
+    parser.add_argument("++MODULES",
                        help="module information in the form of key=value (e.g., EOS=helmeos)",
                        type=str, default="")
 
-    parser.add_argument("--GIT",
+    parser.add_argument("++GIT",
                         help="the directories whose git hashes we should capture",
                         type=str, default="")
 
 
-    parser.add_argument("--build_git_name",
+    parser.add_argument("++build_git_name",
                         help="the name of the build directory if different from the main source -- we'll get the git hash of this.",
                         type=str, default="")
 
-    parser.add_argument("--build_git_dir",
+    parser.add_argument("++build_git_dir",
                         help="the full path to the build directory that corresponds to build_git_name",
                         type=str, default="")
 
