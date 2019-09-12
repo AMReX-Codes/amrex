@@ -31,6 +31,12 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // store it into member data.
     pp.query("size_in_inches", size_in_inches);
 
+#ifdef WARPX_QED
+        //IF do_qed is enabled, find out if Breit Wheeler process is enabled
+        if(do_qed)
+            pp.query("do_qed_breit_wheeler", do_qed_breit_wheeler);
+#endif
+
 }
 
 void PhotonParticleContainer::InitData()
