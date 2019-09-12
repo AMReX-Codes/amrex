@@ -113,7 +113,7 @@ def get_test_list(n_repeat):
     test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc',
                                        n_mpi_per_node=6,
                                        n_omp=1,
-                                       n_cell=[384, 256, 512],
+                                       n_cell=[384, 512, 512],
                                        max_grid_size=256,
                                        blocking_factor=128,
                                        n_step=50) )
