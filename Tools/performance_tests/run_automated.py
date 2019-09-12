@@ -50,7 +50,7 @@ parser.add_argument('--commit',
 parser.add_argument('--automated',
                     dest='automated',
                     action='store_true',
-                    default=False, 
+                    default=False,
                     help='Use to run the automated test list')
 parser.add_argument('--n_node_list',
                     dest='n_node_list',
@@ -68,7 +68,7 @@ parser.add_argument('--architecture',
                     help='which architecture to cross-compile for NERSC machines')
 parser.add_argument('--mode',
                     choices=['run', 'read', 'browse_output_files', 'write_csv'],
-                    default='run', 
+                    default='run',
                     help='whether to run perftests or read their perf output. run calls read')
 args = parser.parse_args()
 n_node_list_string   = args.n_node_list.split(',')
@@ -77,7 +77,7 @@ start_date = args.start_date
 compiler = args.compiler
 architecture = args.architecture
 
-# Set behavior variables 
+# Set behavior variables
 ########################
 write_csv = False
 browse_output_files = False
@@ -142,7 +142,7 @@ if args.mode == 'run':
     config_command = get_config_command(compiler, architecture)
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
-        os.mkdir(res_dir_base)    
+        os.mkdir(res_dir_base)
 
     # Recompile if requested
     # ----------------------
@@ -181,7 +181,7 @@ if args.mode == 'run':
 
 # Loop over the tests and run all simulations:
 # One batch job submitted per n_node. Several
-# tests run within the same batch job. 
+# tests run within the same batch job.
 # --------------------------------------------
 if args.mode == 'run':
     if os.path.exists( 'log_jobids_tmp.txt' ):
@@ -256,7 +256,7 @@ for n_node in n_node_list:
                 updated_df = df_base.append(df_newline, ignore_index=True)
             else:
                 updated_df = df_newline
-            # Write dataframe to file perf_database_file 
+            # Write dataframe to file perf_database_file
             # (overwrite if file exists)
             updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
 
@@ -264,7 +264,7 @@ for n_node in n_node_list:
 # csv file and copy this file to perf_logs repo
 # -------------------------------------------------
 if write_csv:
-    # Extract small data from data frame and write them to 
+    # Extract small data from data frame and write them to
     # First, generate csv files
     df = pd.read_hdf( perf_database_file )
     # One large file

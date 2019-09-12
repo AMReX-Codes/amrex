@@ -15,7 +15,7 @@ you can enable it in WarpX by changing the line
 
    USE_ASCENT_INSITU = FALSE
 
-in GNUmakefile to 
+in GNUmakefile to
 
 .. code-block:: bash
 
@@ -53,7 +53,7 @@ Visualization/Analysis Pipeline Configuration
 Ascent uses the file :code:`ascent_actions.json` to configure analysis and
 visualization pipelines. For example, the following :code:`ascent_actions.json`
 file extracts an isosurface of the field Ex for 15 levels and saves the
-resulting images to :code:`levels_<nnnn>.png`. `Ascent Actions 
+resulting images to :code:`levels_<nnnn>.png`. `Ascent Actions
 <https://ascent.readthedocs.io/en/latest/Actions/index.html>`_ provides an
 overview over all available analysis and visualization actions.
 
@@ -62,11 +62,11 @@ overview over all available analysis and visualization actions.
   [
     {
       "action": "add_pipelines",
-      "pipelines": 
+      "pipelines":
       {
-        "p1": 
+        "p1":
         {
-          "f1": 
+          "f1":
           {
             "type" : "contour",
             "params" :
@@ -82,12 +82,12 @@ overview over all available analysis and visualization actions.
       "action": "add_scenes",
       "scenes":
       {
-        "s1": 
+        "s1":
         {
           "image_prefix": "levels_%04d",
-          "plots": 
+          "plots":
           {
-          "p1": 
+          "p1":
             {
               "type": "pseudocolor",
               "pipeline": "p1",
@@ -97,11 +97,11 @@ overview over all available analysis and visualization actions.
         }
       }
     },
-  
+
     {
       "action": "execute"
     },
-  
+
     {
       "action": "reset"
     }
