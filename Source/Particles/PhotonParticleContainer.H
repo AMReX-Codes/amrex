@@ -67,8 +67,6 @@ public:
 
 private:
 
-    amrex::Real size_in_inches = 1.;
-
 #ifdef WARPX_QED
     // A flag to enable breit_wheeler process for photons
     bool do_qed_breit_wheeler = false;

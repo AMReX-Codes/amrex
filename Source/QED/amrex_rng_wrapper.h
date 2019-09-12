@@ -11,10 +11,12 @@ class amrex_rng_wrapper
 {
 public:
     //Get rnd number uniformly distributed in [a,b)
-    amrex::Real unf(amrex::Real a, amrex::Real b);
+    amrex::Real AMREX_GPU_HOST_DEVICE
+    unf(amrex::Real a, amrex::Real b);
 
     //Get rnd number with exponential distribution
-    amrex::Real exp(amrex::Real l);
+    amrex::Real AMREX_GPU_HOST_DEVICE
+    exp(amrex::Real l);
 };
 
 #endif //WARPX_amrex_rng_wrapper_h_

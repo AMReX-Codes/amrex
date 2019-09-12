@@ -27,9 +27,6 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     // where <species> is the name of your species
     ParmParse pp(species_name);
 
-    // read <species>.size_in_inches in the input file, and
-    // store it into member data.
-    pp.query("size_in_inches", size_in_inches);
 
 #ifdef WARPX_QED
         //IF do_qed is enabled, find out if Breit Wheeler process is enabled
