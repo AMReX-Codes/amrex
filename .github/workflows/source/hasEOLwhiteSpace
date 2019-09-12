@@ -18,7 +18,8 @@ pattern="\.c$|\.cpp$|\.F90$|\.h$|\.H$|\.ini$|\.py$|"\
 "CMakeLists\.txt|inputs"
 
 for i in $(find . \
-                -not -path "./.git/*" \
+                -not -path "./.git/*"  \
+                -not -path "./.idea/*" \
                 -type f | \
            grep -P "${pattern}")
 do
