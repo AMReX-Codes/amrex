@@ -57,7 +57,6 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
         shutil.rmtree(res_dir)
     os.makedirs(res_dir)
     # Copy files to res_dir
-    # Copy files to res_dir
     cwd = os.environ['WARPX'] + '/Tools/performance_tests/'
     bin_dir = cwd + 'Bin/'
     shutil.copy(bin_dir + bin_name, res_dir)
@@ -95,10 +94,6 @@ def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
     return 0
 
 def run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, submit_job_command):
-    #if machine == 'cori':
-    #    from cori import get_batch_string, get_run_string
-    #if machine == 'summit':
-    #    from summit import get_batch_string, get_run_string
     # Clean res_dir
     if os.path.exists(res_dir):
          shutil.rmtree(res_dir, ignore_errors=True)
@@ -111,8 +106,6 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, 
     
     for count, current_test in enumerate(test_list):
         shutil.copy(cwd + current_test.input_file, res_dir)
-        # run_string = get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_list)
-        # batch_string += run_string
     batch_file = 'batch_script.sh'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)

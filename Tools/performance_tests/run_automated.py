@@ -28,6 +28,14 @@ if os.getenv("NERSC_HOST") == 'cori':
 # - SCRATCH: environment variable where performance results are written.
 #   This script will create folder $SCRATCH/performance_warpx/
 
+if "AUTOMATED_PERF_TESTS" not in os.environ:
+    raise ValueError("environment variable AUTOMATED_PERF_TESTS is not defined.\n"
+                     "It should contain the path to the directory where WarpX, "
+                     "AMReX and PICSAR repos are.")
+if "SCRATCH" not in os.environ:
+    raise ValueError("environment variable SCRATCH is not defined.\n"
+                     "This script will create $SCRATCH/performance_warpx/ "
+                     "to store performance results.")
 # Handle parser
 ###############
 parser = argparse.ArgumentParser( description='Run performance tests and write results in files' )
