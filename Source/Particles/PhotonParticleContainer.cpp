@@ -23,8 +23,6 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
     : PhysicalParticleContainer(amr_core, ispecies, name)
 {
 
-    // This will read <species>.[...] from the inputs file
-    // where <species> is the name of your species
     ParmParse pp(species_name);
 
 #ifdef WARPX_QED
