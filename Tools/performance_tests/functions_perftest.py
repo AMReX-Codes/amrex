@@ -7,7 +7,7 @@ import git
 
 # Each instance of this class contains information for a single test.
 class test_element():
-    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None, 
+    def __init__(self, input_file=None, n_node=None, n_mpi_per_node=None,
                  n_omp=None, n_cell=None, n_step=None, max_grid_size=None,
                  blocking_factor=None):
         self.input_file = input_file
@@ -103,7 +103,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, batch_string, 
     bin_dir = cwd + 'Bin/'
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
-    
+
     for count, current_test in enumerate(test_list):
         shutil.copy(cwd + current_test.input_file, res_dir)
     batch_file = 'batch_script.sh'

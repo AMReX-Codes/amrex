@@ -106,7 +106,7 @@ MultiParticleContainer::ReadParameters ()
                 for (auto const& name : photon_species) {
                     auto it = std::find(species_names.begin(), species_names.end(), name);
                     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                        it != species_names.end(), 
+                        it != species_names.end(),
                         "ERROR: species in particles.rigid_injected_species must be part of particles.species_names");
                     int i = std::distance(species_names.begin(), it);
                     species_types[i] = PCTypes::Photon;
