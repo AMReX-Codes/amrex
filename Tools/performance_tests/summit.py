@@ -13,8 +13,8 @@ def get_config_command(compiler, architecture):
     config_command += 'module load cuda;'
     return config_command
 
-# This function runs a batch script with 
-# dependencies to perform the analysis 
+# This function runs a batch script with
+# dependencies to perform the analysis
 # after all performance tests are done.
 def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
 
@@ -44,7 +44,7 @@ def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_
     f_exe.write(batch_string)
     f_exe.close()
     os.system('chmod 700 ' + batch_file)
-    
+
     print( 'process_analysis line:  ' + 'bsub ' + batch_file)
     os.system('bsub ' + batch_file)
 
@@ -66,8 +66,8 @@ def get_batch_string(test_list, job_time_min, Cname, n_node):
     batch_string += '#BSUB -nnodes ' + str(n_node) + '\n'
     batch_string += '#BSUB -J ' + test_list[0].input_file + '\n'
     batch_string += '#BSUB -e error.txt\n'
-    batch_string += 'module load pgi\n' 
-    batch_string += 'module load cuda\n' 
+    batch_string += 'module load pgi\n'
+    batch_string += 'module load cuda\n'
     return batch_string
 
 def get_run_string(current_test, architecture, n_node, count, bin_name, runtime_param_string):

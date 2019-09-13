@@ -31,8 +31,8 @@ def get_config_command(compiler, architecture):
         config_command += 'module load craype-haswell;'
     return config_command
 
-# This function runs a batch script with 
-# dependencies to perform the analysis 
+# This function runs a batch script with
+# dependencies to perform the analysis
 # after all performance tests are done.
 def process_analysis(automated, cwd, compiler, architecture, n_node_list, start_date):
     dependencies = ''
@@ -113,45 +113,45 @@ def get_test_list(n_repeat):
     test_list_unq = []
     # n_node is kept to None and passed in functions as an external argument
     # That way, several test_element_instance run with the same n_node on the same batch job
-    test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc', 
-                                       n_mpi_per_node=8, 
-                                       n_omp=8, 
-                                       n_cell=[128, 128, 128], 
+    test_list_unq.append( test_element(input_file='automated_test_1_uniform_rest_32ppc',
+                                       n_mpi_per_node=8,
+                                       n_omp=8,
+                                       n_cell=[128, 128, 128],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=10) )
-    test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc', 
-                                       n_mpi_per_node=8, 
-                                       n_omp=8, 
-                                       n_cell=[256, 256, 512], 
+    test_list_unq.append( test_element(input_file='automated_test_2_uniform_rest_1ppc',
+                                       n_mpi_per_node=8,
+                                       n_omp=8,
+                                       n_cell=[256, 256, 512],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=10) )
-    test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc', 
-                                       n_mpi_per_node=8, 
-                                       n_omp=8, 
-                                       n_cell=[128, 128, 128], 
+    test_list_unq.append( test_element(input_file='automated_test_3_uniform_drift_4ppc',
+                                       n_mpi_per_node=8,
+                                       n_omp=8,
+                                       n_cell=[128, 128, 128],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=10) )
-    test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc', 
-                                       n_mpi_per_node=8, 
-                                       n_omp=8, 
-                                       n_cell=[64, 64, 128], 
+    test_list_unq.append( test_element(input_file='automated_test_4_labdiags_2ppc',
+                                       n_mpi_per_node=8,
+                                       n_omp=8,
+                                       n_cell=[64, 64, 128],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=50) )
-    test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance', 
-                                       n_mpi_per_node=8, 
-                                       n_omp=8, 
-                                       n_cell=[128, 128, 128], 
+    test_list_unq.append( test_element(input_file='automated_test_5_loadimbalance',
+                                       n_mpi_per_node=8,
+                                       n_omp=8,
+                                       n_cell=[128, 128, 128],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=10) )
-    test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc', 
-                                       n_mpi_per_node=8, 
-                                       n_omp=8, 
-                                       n_cell=[128, 256, 256], 
+    test_list_unq.append( test_element(input_file='automated_test_6_output_2ppc',
+                                       n_mpi_per_node=8,
+                                       n_omp=8,
+                                       n_cell=[128, 256, 256],
                                        max_grid_size=64,
                                        blocking_factor=32,
                                        n_step=0) )
