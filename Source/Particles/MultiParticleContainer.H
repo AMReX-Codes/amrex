@@ -196,14 +196,12 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-<<<<<<< HEAD
+
 #ifdef WARPX_QED
     warpx_breit_wheeler_engine bw_engine;
     warpx_quantum_sync_engine qs_engine;
 #endif
 
-=======
->>>>>>> dev
 protected:
 
     // Particle container types
