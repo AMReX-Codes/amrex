@@ -13,7 +13,7 @@ Anaconda installation or can be installed with ``pip`` or ``conda``:
 `os, matplotlib, sys, argparse, matplotlib, scipy`.
 
 Additional dependencies are ``yt >= 3.5`` ( or ``yt >= 3.6`` if you are using
-rigid injection, ``see section :doc:`yt` on how to install ``yt``) and ``mpi4py``.
+rigid injection, see section :doc:`yt` on how to install ``yt``), and ``mpi4py``.
 
 Run serial
 ----------
