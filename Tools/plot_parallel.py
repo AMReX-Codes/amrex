@@ -30,7 +30,7 @@ To get help, run
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', dest='path', default='.',
                     help='path to plotfiles. Plotfiles names must be plt?????')
-parser.add_argument('--plotlib', dest='plotlib', default='yt', 
+parser.add_argument('--plotlib', dest='plotlib', default='yt',
                     choices=['yt','matplotlib'],
                     help='Plotting library to use')
 parser.add_argument('--field', dest='field', default='Ez',
@@ -71,7 +71,7 @@ def get_species(a_file_list):
     for filename in a_file_list:
         ds = yt.load( filename )
         # get list of species in current plotfile
-        pslist_plotfile = list( set( [x[0] for x in ds.field_list 
+        pslist_plotfile = list( set( [x[0] for x in ds.field_list
                                       if x[1][:9]=='particle_'] ) )
         # append species in current plotfile to pslist, and uniquify
         pslist = list( set( pslist + pslist_plotfile ) )
@@ -93,9 +93,9 @@ def plot_snapshot(filename):
         F = all_data_level_0['boxlib', args.field].v.squeeze()
         if dim == 3:
             F = F[:,int(F.shape[1]+.5)//2,:]
-        extent = [ds.domain_left_edge[dim-1], ds.domain_right_edge[dim-1], 
+        extent = [ds.domain_left_edge[dim-1], ds.domain_right_edge[dim-1],
                   ds.domain_left_edge[0], ds.domain_right_edge[0]]
-        # Plot field quantities with matplotlib 
+        # Plot field quantities with matplotlib
         plt.imshow(F, aspect='auto', extent=extent, origin='lower')
         plt.colorbar()
         plt.xlim(ds.domain_left_edge[dim-1], ds.domain_right_edge[dim-1])
@@ -103,7 +103,7 @@ def plot_snapshot(filename):
         if args.use_vmax:
             plt.clim(-args.vmax, args.vmax)
     if plotlib == 'yt':
-        # Directly plot with yt 
+        # Directly plot with yt
         sl = yt.SlicePlot(ds, yt_slicedir[dim], args.field, aspect=yt_aspect[dim])
 
     # Plot particle quantities
@@ -128,7 +128,7 @@ def plot_snapshot(filename):
                 plt.scatter(zp,xp,c=pscolor[ispecies],s=pssize, linewidth=pssize,marker=',')
             if plotlib == 'yt':
                 # Directly plot particles with yt
-                sl.annotate_particles(width=(args.slicewidth, 'm'), p_size=pssize, 
+                sl.annotate_particles(width=(args.slicewidth, 'm'), p_size=pssize,
                                       ptype=pspecies, col=pscolor[ispecies])
     # Add labels to plot and save
     iteration = int(filename[-5:])
@@ -200,8 +200,8 @@ if args.parallel:
         print('list of species: ', pslist)
     if plot_Ey_max_evolution:
         my_zwin = np.zeros( max_buf_size )
-        my_maxF = np.zeros( max_buf_size )    
-    # Loop over files and 
+        my_maxF = np.zeros( max_buf_size )
+    # Loop over files and
     # - plot field snapshot
     # - store window position and field max in arrays
     for count, filename in enumerate(my_list):
@@ -240,10 +240,10 @@ else:
     if plot_Ey_max_evolution:
         zwin_arr = np.zeros( nfiles )
         maxF_arr = np.zeros( nfiles )
-    # Loop over files and 
+    # Loop over files and
     # - plot field snapshot
     # - store window position and field max in arrays
-    for count, filename in enumerate(file_list):    
+    for count, filename in enumerate(file_list):
         plot_snapshot( filename )
         if plot_Ey_max_evolution:
             zwin_arr[count], maxF_arr[count] = get_field_max( filename, 'Ey' )
