@@ -12,4 +12,4 @@
 export OMP_NUM_THREADS=1
 
 # Requires python3 and yt > 3.5
-srun -n 32 -c 16 python plot_parallel.py --path <path/to/plotfiles> --plotlib=yt --parallel=True 
+srun -n 32 -c 16 python plot_parallel.py --path <path/to/plotfiles> --plotlib=yt --parallel
