@@ -1,0 +1,39 @@
+"Off to the Races"
+
+This tutorial demonstrates the solution of a Poisson equation
+to compute a potential flow field obstacles. 
+
+****************************************************************************************************
+
+To run it in serial, 
+
+./main3d.ex inputs
+
+To run it in parallel, for example on 4 ranks:
+
+mpirun -n 4 ./main3d.ex inputs
+
+The following parameters can be set at run-time -- these are currently set in the inputs
+file but you can also set them on the command line.  
+
+n_cell = 128                             # number of cells in x-direction; we double this in the y-direction
+max_grid_size = 64                       # the maximum number of cells in any direction in a single grid
+
+obstacles = 0 1 2 3 4 5 6 7 8            # this is how we choose which obstacles to include
+
+****************************************************************************************************
+
+The output from your run should look something like this:
+
+********************************************************************
+ You specified 9 objects in the domain: 0 1 2 3 4 5 6 7 8
+ ********************************************************************
+
+********************************************************************
+ Let's project the initial velocity to find
+   the flow field around the obstacles ...
+********************************************************************
+
+********************************************************************
+ Done!  
+********************************************************************

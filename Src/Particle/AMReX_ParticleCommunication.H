@@ -96,9 +96,10 @@ struct ParticleCopyPlan
         AMREX_ASSERT(pc.numLevels() == 1);
         
         const int lev = 0;
+        const int ngrow = 1;
         const auto& geom = pc.Geom(lev);
                 
-        m_neighbor_procs.assign(pc.NeighborProcs().begin(), pc.NeighborProcs().end());
+        m_neighbor_procs.assign(pc.NeighborProcs(lev, ngrow).begin(), pc.NeighborProcs(lev, ngrow).end());
 
         int num_boxes = pc.ParticleBoxArray(lev).size();
         if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
@@ -310,7 +311,9 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
     
-    if ((NProcs == 1) or (plan.m_NumSnds == 0)) return;
+    if (NProcs == 1) return;
+
+    ParallelDescriptor::Barrier();
 
     Vector<int> RcvProc;
     Vector<long> rOffset;    

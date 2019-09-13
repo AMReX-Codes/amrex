@@ -103,6 +103,51 @@ void main_main ()
     }
 
     {
+        BL_PROFILE("FabReduceTuple-box");
+
+        ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax, ReduceOpSum> reduce_op;
+        ReduceData<Real, Real, Real, long> reduce_data(reduce_op);
+        // For iMultiFab::sum, we use long to avoid overflow.
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.validbox();
+            auto const& fab = mf.array(mfi);
+            auto const& ifab = imf.array(mfi);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (Box const& bx) -> ReduceTuple
+            {
+                Real rsum = 0.;
+                Real rmin =  1.e30; // If not because of cuda 9.2,
+                Real rmax = -1.e30; // we should use numeric_limits.
+                long lsum = 0;
+                amrex::Loop(bx,
+                [=,&rsum,&rmin,&rmax,&lsum] (int i, int j, int k) noexcept {
+                    Real x =  fab(i,j,k);
+                    long ix = static_cast<long>(ifab(i,j,k));
+                    rsum += x;
+                    rmin = amrex::min(rmin,x);
+                    rmax = amrex::max(rmax,x);
+                    lsum += ix;
+                });
+                return {rsum,rmin,rmax,lsum};
+            });
+        }
+
+        ReduceTuple hv = reduce_data.value();
+        // MPI reduce
+        ParallelDescriptor::ReduceRealSum(amrex::get<0>(hv));
+        ParallelDescriptor::ReduceRealMin(amrex::get<1>(hv));
+        ParallelDescriptor::ReduceRealMax(amrex::get<2>(hv));
+        ParallelDescriptor::ReduceLongSum(amrex::get<3>(hv));
+        amrex::Print().SetPrecision(17) << "sum: "  << get<0>(hv) << "\n"
+                                        << "min: "  << get<1>(hv) << "\n"
+                                        << "max: "  << get<2>(hv) << "\n"
+                                        << "isum: " << get<3>(hv) << "\n";
+    }
+
+    {
         BL_PROFILE("FabReduce-sum");
 
         ReduceOps<ReduceOpSum> reduce_op;
