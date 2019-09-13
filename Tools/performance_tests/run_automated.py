@@ -4,7 +4,7 @@ import pandas as pd
 from functions_perftest import store_git_hash, get_file_content, \
     run_batch_nnode, extract_dataframe
 
-# Get name of supercomputer and import configuration functions from 
+# Get name of supercomputer and import configuration functions from
 # machine-specific file
 if os.getenv("LMOD_SYSTEM_NAME") == 'summit':
     machine = 'summit'
@@ -23,7 +23,7 @@ if os.getenv("NERSC_HOST") == 'cori':
 
 # requirements:
 # - python packages: gitpython and pandas
-# - AUTOMATED_PERF_TESTS: environment variables where warpx, 
+# - AUTOMATED_PERF_TESTS: environment variables where warpx,
 #   amrex and picsar are installed ($AUTOMATED_PERF_TESTS/warpx etc.)
 # - SCRATCH: environment variable where performance results are written.
 #   This script will create folder $SCRATCH/performance_warpx/
@@ -99,7 +99,7 @@ if args.automated == True:
     push_on_perf_log_repo = False
     pull_3_repos = True
     recompile = True
-    if machine == 'summit': 
+    if machine == 'summit':
         compiler = 'pgi'
         architecture = 'gpu'
 
@@ -154,7 +154,7 @@ if args.mode == 'run':
             git_repo.pull()
             git_repo = git.cmd.Git( warpx_dir  )
             git_repo.pull()
-        
+
         # Copy WarpX/GNUmakefile to current directory and recompile
         # with specific options for automated performance tests.
         # This way, performance test compilation does not mess with user's
@@ -207,7 +207,7 @@ if args.mode == 'run':
             run_string = get_run_string(current_run, architecture, n_node, count, bin_name, runtime_param_string)
             batch_string += run_string
             batch_string += 'rm -rf plotfiles lab_frame_data diags\n'
-            
+
         submit_job_command = get_submit_job_command()
         # Run the simulations.
         run_batch_nnode(test_list_n_node, res_dir, bin_name, config_command, batch_string, submit_job_command)
