@@ -97,8 +97,9 @@ MLTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
-                           m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
+            // MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+            //                m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
+	    m_b_coeffs[amrlev][0][idim].mult(2.,icomp,1,0);
         }
     }
 
@@ -116,7 +117,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
+    //applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
+    applyBCTensor(amrlev, mglev, in, bc_mode);
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -180,7 +182,8 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
 void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                           BCMode bc_mode, const MLMGBndry* bndry) const
+                           BCMode bc_mode, const MLMGBndry* bndry
+			   ) const
 {
 #if (AMREX_SPACEDIM > 1)
 
@@ -190,11 +193,23 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& maskvals = m_maskvals[amrlev][mglev];
 
     FArrayBox foofab(Box::TheUnitBox(),3);
-    const auto& foo = foofab.array();
+    const auto& constfoo = foofab.array();
+    auto foo = foofab.array();
 
+    // fixme???
+    // this is what get passed in as bndry. Why do we need to pass as parameter
+    // when we already have access to it here?
+    //MLMGBndry* bndry = m_bndry_sol[amrlev].get();
+    const BndryRegister* crsebndry = m_crse_sol_br[amrlev].get();
+    // is this how to make sure this works for multilevel/composite solve too???
+    int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
+    const IntVect& ratio{cr};
+    
+    const auto rr = ratio.dim3();
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
+    const int use_crsedata = (crsebndry!=nullptr && inhomog);
+    
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
@@ -203,6 +218,12 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
+	Box testbox = vbx;
+	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+	  if (m_geom[amrlev][mglev].isPeriodic(idim)) {
+            testbox.grow(idim,1);
+	  }
+	}
 
         const auto& velfab = vel.array(mfi);
 
@@ -218,7 +239,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                 bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
                 bcl[iface*AMREX_SPACEDIM+icomp] = bdlv[icomp][ori];
             }
-        }
+        }	      
 
 #if (AMREX_SPACEDIM == 2)
         const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
@@ -226,22 +247,46 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
-        const auto& bvxlo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::low )).array(mfi) : foo;
-        const auto& bvylo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::low )).array(mfi) : foo;
-        const auto& bvxhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::high)).array(mfi) : foo;
-        const auto& bvyhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
+	
+        auto bvxlo = (bndry != nullptr) ?
+	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
+        auto bvylo = (bndry != nullptr) ?
+	  (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
+        auto bvxhi = (bndry != nullptr) ?
+	  (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
+        auto bvyhi = (bndry != nullptr) ?
+	  (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
 
+	const auto& cbvxlo = (crsebndry != nullptr) ?
+	  (*crsebndry)[Orientation(0,Orientation::low )].array(mfi) : constfoo;
+        const auto& cbvylo = (crsebndry != nullptr) ?
+	  (*crsebndry)[Orientation(1,Orientation::low )].array(mfi) : constfoo;
+        const auto& cbvxhi = (crsebndry != nullptr) ?
+	  (*crsebndry)[Orientation(0,Orientation::high)].array(mfi) : constfoo;
+        const auto& cbvyhi = (crsebndry != nullptr) ?
+	  (*crsebndry)[Orientation(1,Orientation::high)].array(mfi) : constfoo;
+
+	    // //fixme
+	    // IntVect mypt={1,35};
+	    // if (vbx.contains(mypt)) {
+	    //   int i=-1, j=31;
+	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxlo(i,j,0)<<" "<<mylo(i,j,0)<<"\n";
+	    //   i=-1; j=48;
+	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxlo(i,j,0)<<" "<<myhi(i,j,0)<<"\n";
+	    //   i=16; j=31;
+	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxhi(i,j,0)<<" "<<mylo(i,j,0)<<"\n";
+	    //   i=16; j=48;
+	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxhi(i,j,0)<<" "<<myhi(i,j,0)<<"\n";
+	    // }
+	
         AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
         {
             mltensor_fill_corners(icorner, vbx, velfab,
                                   mxlo, mylo, mxhi, myhi,
                                   bvxlo, bvylo, bvxhi, bvyhi,
-                                  bct, bcl, inhomog, imaxorder,
-                                  dxinv, domain);
+				  cbvxlo, cbvylo, cbvxhi, cbvyhi,
+                                  bct, bcl, inhomog, imaxorder, use_crsedata,
+                                  dxinv, rr, testbox);
         });
 #else
         const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
@@ -269,7 +314,9 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             mltensor_fill_edges(iedge, vbx, velfab,
                                 mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                 bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-                                bct, bcl, inhomog, imaxorder, dxinv, domain);
+				cbvxlo, cbvylo, cbvzlo, cbvxhi, cbvyhi, cbvzhi,
+                                bct, bcl, inhomog, imaxorder, use_crsedata,
+				dxinv, rr, testbox);
         });
 
         AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
@@ -296,7 +343,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     const int ncomp = getNComp();
     MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous); //, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
