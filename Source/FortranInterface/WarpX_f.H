@@ -19,12 +19,6 @@
 #define WRPX_SYNC_CURRENT                warpx_sync_current_3d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_3d
 
-#define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_3d
-#define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
-#define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_3d
-#define WRPX_PUSH_PML_F                  warpx_push_pml_f_3d
-#define WRPX_DAMP_PML                    warpx_damp_pml_3d
-#define WRPX_DAMP_PML_F                  warpx_damp_pml_f_3d
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_3d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_3d
 #define WRPX_BUILD_MASK                  warpx_build_mask_3d
@@ -39,13 +33,6 @@
 
 #define WRPX_SYNC_CURRENT                warpx_sync_current_2d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
-
-#define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_2d
-#define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_2d
-#define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_2d
-#define WRPX_PUSH_PML_F                  warpx_push_pml_f_2d
-#define WRPX_DAMP_PML                    warpx_damp_pml_2d
-#define WRPX_DAMP_PML_F                  warpx_damp_pml_f_2d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_2d
 #define WRPX_ZERO_OUT_BNDRY              warpx_zero_out_bndry_2d
@@ -70,11 +57,11 @@ extern "C"
 #endif
 
     void warpx_compute_E (const int* lo, const int* hi,
-			  const BL_FORT_FAB_ARG_3D(phi),
-			  BL_FORT_FAB_ARG_3D(Ex),
-			  BL_FORT_FAB_ARG_3D(Ey),
-			  BL_FORT_FAB_ARG_3D(Ez),
-			  const amrex::Real* dx);
+                          const BL_FORT_FAB_ARG_3D(phi),
+                          BL_FORT_FAB_ARG_3D(Ex),
+                          BL_FORT_FAB_ARG_3D(Ey),
+                          BL_FORT_FAB_ARG_3D(Ez),
+                          const amrex::Real* dx);
 
 ///
 /// These functions are used in electrostatic mode.
@@ -169,9 +156,9 @@ extern "C"
                             BL_FORT_FAB_ARG_3D(by),
                             BL_FORT_FAB_ARG_3D(bz),
                             const amrex::Real* dtsdx,
-			    const amrex::Real* dtsdy,
-			    const amrex::Real* dtsdz,
-			    const int* maxwell_fdtd_solver_id);
+                            const amrex::Real* dtsdy,
+                            const amrex::Real* dtsdz,
+                            const int* maxwell_fdtd_solver_id);
 
 
     void WRPX_PUSH_PML_EVEC(const int* xlo, const int* xhi,

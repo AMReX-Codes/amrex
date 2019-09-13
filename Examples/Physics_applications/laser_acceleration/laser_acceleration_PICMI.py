@@ -15,11 +15,11 @@ laser_duration        = 15e-15    # Duration of the laser (in seconds)
 laser_polarization    = np.pi/2.  # Polarization angle (in rad)
 laser_injection_loc   = 9.e-6     # Position of injection (in meters, along z)
 laser_focal_distance  = 100.e-6   # Focal distance from the injection (in meters)
-laser_t_peak          = 30.e-15   # The time at which the laser reaches its peak 
+laser_t_peak          = 30.e-15   # The time at which the laser reaches its peak
                                   #   at the antenna injection location (in seconds)
 # --- plasma
 
-plasma_density = 1.e24 
+plasma_density = 1.e24
 plasma_min     = [-20.e-6, -20.e-6,  0.0e-6]
 plasma_max     = [ 20.e-6,  20.e-6,  1.e-3]
 
@@ -55,12 +55,12 @@ number_per_cell_each_dim = [2, 2, 1]
 
 # --- laser
 
-laser = picmi.GaussianLaser(wavelength            = laser_wavelength,  
-                            waist                 = laser_waist,                    
-                            duration              = laser_duration,              
-                            focal_position        = [0., 0., laser_focal_distance + laser_injection_loc],  
-                            centroid_position     = [0., 0., laser_injection_loc - picmi.c*laser_t_peak], 
-                            polarization_angle    = laser_polarization,  
+laser = picmi.GaussianLaser(wavelength            = laser_wavelength,
+                            waist                 = laser_waist,
+                            duration              = laser_duration,
+                            focal_position        = [0., 0., laser_focal_distance + laser_injection_loc],
+                            centroid_position     = [0., 0., laser_injection_loc - picmi.c*laser_t_peak],
+                            polarization_angle    = laser_polarization,
                             propagation_direction = [0,0,1],
                             E0 = laser_a0*2.*np.pi*picmi.m_e*picmi.c**2/(picmi.q_e*laser_wavelength)) # Maximum amplitude of the laser field (in V/m)
 

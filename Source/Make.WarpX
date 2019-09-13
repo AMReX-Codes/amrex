@@ -81,6 +81,21 @@ ifeq ($(USE_SENSEI_INSITU),TRUE)
   include $(AMREX_HOME)/Src/Extern/SENSEI/Make.package
 endif
 
+ifeq ($(QED),TRUE)
+  BOOST_ROOT ?= NOT_SET
+  ifneq ($(BOOST_ROOT),NOT_SET)
+    VPATH_LOCATIONS += $(BOOST_ROOT)
+    INCLUDE_LOCATIONS += $(BOOST_ROOT)
+  endif
+  INCLUDE_LOCATIONS += $(PICSAR_HOME)/src/multi_physics/QED/src
+  CXXFLAGS += -DWARPX_QED
+  CFLAGS   += -DWARPX_QED
+  FFLAGS   += -DWARPX_QED
+  F90FLAGS += -DWARPX_QED
+  include $(WARPX_HOME)/Source/QED/Make.package
+endif
+
+
 include $(PICSAR_HOME)/src/Make.package
 
 WARPX_GIT_VERSION := $(shell cd $(WARPX_HOME); git describe --abbrev=12 --dirty --always --tags)
@@ -160,7 +175,11 @@ ifeq ($(USE_HDF5),TRUE)
         LIBRARY_LOCATIONS += $(HDF5_HOME)/lib
     endif
     DEFINES += -DWARPX_USE_HDF5
+<<<<<<< HEAD
+    LIBRARIES += -lhdf5 -lz
+=======
     libraries += -lhdf5 -lz
+>>>>>>> dev
 endif
 
 # job_info support

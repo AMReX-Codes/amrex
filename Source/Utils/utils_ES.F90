@@ -16,9 +16,9 @@ contains
     integer, intent(in)             ::  lrat(3)
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(amrex_real), intent(in)    :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    
+
     integer :: i, j, k, ii, jj, kk
-    
+
     do k        = lo(3), hi(3)
        kk       = k * lrat(3)
        do j     = lo(2), hi(2)
@@ -27,7 +27,7 @@ contains
              ii = i * lrat(1)
              crse(i,j,k)  =  fine(ii,jj,kk)                              + &
 ! These six fine nodes are shared by two coarse nodes...
-                  0.5d0   * (fine(ii-1,jj,kk)     + fine(ii+1,jj,kk)     + & 
+                  0.5d0   * (fine(ii-1,jj,kk)     + fine(ii+1,jj,kk)     + &
                              fine(ii,jj-1,kk)     + fine(ii,jj+1,kk)     + &
                              fine(ii,jj,kk-1)     + fine(ii,jj,kk+1))    + &
 ! ... these twelve are shared by four...
@@ -59,16 +59,16 @@ contains
     integer, intent(in)             ::  lrat(2)
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
     real(amrex_real), intent(in)    :: fine(flo(1):fhi(1),flo(2):fhi(2))
-    
+
     integer :: i, j, ii, jj
-    
+
     do j     = lo(2), hi(2)
        jj    = j * lrat(2)
        do i  = lo(1), hi(1)
           ii = i * lrat(1)
           crse(i,j)  =  fine(ii,jj)                             + &
 ! These four fine nodes are shared by two coarse nodes...
-               0.5d0   * (fine(ii-1,jj)     + fine(ii+1,jj)     + & 
+               0.5d0   * (fine(ii-1,jj)     + fine(ii+1,jj)     + &
                fine(ii,jj-1)     + fine(ii,jj+1))               + &
 ! ... and these four are shared by four...
                0.25d0  * (fine(ii-1,jj-1)   + fine(ii-1,jj+1)   + &
@@ -87,12 +87,12 @@ contains
     double precision, intent(inout) :: input_data(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
     double precision, intent(inout) :: bndry_data(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
     integer(c_int),   intent(in   ) :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
-    
+
     integer :: i, j, k
-    
+
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
-          do i = lo(1), hi(1)          
+          do i = lo(1), hi(1)
              if (mask(i,j,k) .eq. 1) then
                 bndry_data(i,j,k) = input_data(i,j,k)
                 input_data(i,j,k) = 0.d0
@@ -110,11 +110,11 @@ contains
     double precision, intent(inout) :: input_data(lo(1):hi(1),lo(2):hi(2))
     double precision, intent(inout) :: bndry_data(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
     integer(c_int),   intent(in   ) :: mask (lo(1):hi(1),lo(2):hi(2))
-    
+
     integer :: i, j
-    
+
     do j = lo(2), hi(2)
-       do i = lo(1), hi(1)          
+       do i = lo(1), hi(1)
           if (mask(i,j) .eq. 1) then
              bndry_data(i,j) = input_data(i,j)
              input_data(i,j) = 0.d0
@@ -145,7 +145,7 @@ contains
                    end do
                 end do
              end do
-             
+
              if (total .gt. 0) then
                 mask(i,j,k) = 1
              else
@@ -169,14 +169,14 @@ contains
 
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          
+
           total = 0
           do ii = i-ncells, i+ncells
              do jj = j-ncells, j+ncells
                 total = total + tmp_mask(ii, jj)
              end do
           end do
-             
+
           if (total .gt. 0) then
              mask(i,j) = 1
           else

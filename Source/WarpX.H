@@ -1,12 +1,17 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
-#include <iostream>
-#include <memory>
-#include <array>
+#include <MultiParticleContainer.H>
+#include <PML.H>
+#include <BoostedFrameDiagnostic.H>
+#include <BilinearFilter.H>
+#include <NCIGodfreyFilter.H>
 
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef WARPX_USE_PSATD
+#   include <SpectralSolver.H>
+#endif
+#ifdef WARPX_USE_PSATD_HYBRID
+#   include <PicsarHybridFFTData.H>
 #endif
 
 #include <AMReX_AmrCore.H>
@@ -19,18 +24,13 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <MultiParticleContainer.H>
-#include <PML.H>
-#include <BoostedFrameDiagnostic.H>
-#include <BilinearFilter.H>
-#include <NCIGodfreyFilter.H>
+#ifdef _OPENMP
+#   include <omp.h>
+#endif
 
-#ifdef WARPX_USE_PSATD
-#include <SpectralSolver.H>
-#endif
-#ifdef WARPX_USE_PSATD_HYBRID
-#include <PicsarHybridFFTData.H>
-#endif
+#include <iostream>
+#include <memory>
+#include <array>
 
 #if defined(BL_USE_SENSEI_INSITU)
 namespace amrex {
@@ -125,8 +125,8 @@ public:
     static int sort_int;
 
     // buffers
-    static int n_field_gather_buffer;
-    static int n_current_deposition_buffer;
+    static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
+    static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
 
     // do nodal
     static int do_nodal;
@@ -300,20 +300,20 @@ protected:
     //! DistributionMapping.  Only used during initialization.  Called
     //! by AmrCoreInitFromScratch.
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					  const amrex::DistributionMapping& dm) final;
+                                          const amrex::DistributionMapping& dm) final;
 
     //! Make a new level using provided BoxArray and
     //! DistributionMapping and fill with interpolated coarse level
     //! data.  Called by AmrCore::regrid.
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					 const amrex::DistributionMapping& dm) final
+                                         const amrex::DistributionMapping& dm) final
         { amrex::Abort("MakeNewLevelFromCoarse: To be implemented"); }
 
     //! Remake an existing level using provided BoxArray and
     //! DistributionMapping and fill with existing fine and coarse
     //! data.  Called by AmrCore::regrid.
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-			      const amrex::DistributionMapping& dm) final;
+                              const amrex::DistributionMapping& dm) final;
 
     //! Delete level data.  Called by AmrCore::regrid.
     virtual void ClearLevel (int lev) final;
