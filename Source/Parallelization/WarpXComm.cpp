@@ -582,7 +582,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             }
             else if (current_buf[lev+1][idim]) // but no filter
             {
-                MultiFab::Copy(*current_buf[lev+1][idim],
+                MultiFab::Add(*current_buf[lev+1][idim],
                                *current_cp [lev+1][idim], 0, 0, current_buf[lev+1][idim]->nComp(),
                                current_cp[lev+1][idim]->nGrow());
                 mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, current_buf[lev+1][idim]->nComp(),
