@@ -1,3 +1,6 @@
+#ifndef BL_PARTICLEIO_H
+#define BL_PARTICLEIO_H
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
@@ -1491,3 +1494,4 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
         amrex::Print() << "ParticleContainer::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
     }
 }
+#endif /*BL_PARTICLEIO_H*/
