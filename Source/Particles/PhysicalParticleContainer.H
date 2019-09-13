@@ -89,7 +89,6 @@ public:
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& giv,
                         amrex::Real dt);
 
     virtual void PushP (int lev, amrex::Real dt,
