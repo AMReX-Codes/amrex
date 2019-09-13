@@ -210,7 +210,6 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                                        Cuda::ManagedDeviceVector<Real>& xp,
                                        Cuda::ManagedDeviceVector<Real>& yp,
                                        Cuda::ManagedDeviceVector<Real>& zp,
-                                       Cuda::ManagedDeviceVector<Real>& giv,
                                        Real dt)
 {
 
@@ -227,7 +226,6 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     Real* const AMREX_RESTRICT x = xp.dataPtr();
     Real* const AMREX_RESTRICT y = yp.dataPtr();
     Real* const AMREX_RESTRICT z = zp.dataPtr();
-    Real* const AMREX_RESTRICT gi = giv.dataPtr();
     Real* const AMREX_RESTRICT ux = uxp.dataPtr();
     Real* const AMREX_RESTRICT uy = uyp.dataPtr();
     Real* const AMREX_RESTRICT uz = uzp.dataPtr();
@@ -269,7 +267,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         );
     }
 
-    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, giv, dt);
+    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, dt);
 
     if (!done_injecting_lev) {
 
@@ -292,14 +290,14 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                 ux[i] = ux_save[i];
                 uy[i] = uy_save[i];
                 uz[i] = uz_save[i];
-                gi[i] = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_csq);
                 x[i] = x_save[i];
                 y[i] = y_save[i];
                 if (rigid) {
                     z[i] = z_save[i] + dt*vz_ave_boosted;
                 }
                 else {
-                    z[i] = z_save[i] + dt*uz[i]*gi[i];
+                    const Real gi = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_csq);
+                    z[i] = z_save[i] + dt*uz[i]*gi;
                 }
             }
         }
@@ -399,8 +397,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
 
-            m_giv[thread_num].resize(np);
-
             //
             // copy data from particle container to temp arrays
             //
@@ -420,7 +416,6 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
             const Real* const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
-            Real* const AMREX_RESTRICT gi = m_giv[thread_num].dataPtr();
             Real* const AMREX_RESTRICT uxpp = uxp.dataPtr();
             Real* const AMREX_RESTRICT uypp = uyp.dataPtr();
             Real* const AMREX_RESTRICT uzpp = uzp.dataPtr();
@@ -437,14 +432,14 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumBoris( uxpp[i], uypp[i], uzpp[i], gi[i],
+                        UpdateMomentumBoris( uxpp[i], uypp[i], uzpp[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );
             } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumVay( uxpp[i], uypp[i], uzpp[i], gi[i],
+                        UpdateMomentumVay( uxpp[i], uypp[i], uzpp[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );

@@ -327,7 +327,7 @@ protected:
     using DataContainer = amrex::Gpu::ManagedDeviceVector<amrex::Real>;
     using PairIndex = std::pair<int, int>;
 
-    amrex::Vector<DataContainer> m_xp, m_yp, m_zp, m_giv;
+    amrex::Vector<DataContainer> m_xp, m_yp, m_zp;
 
     // Whether to dump particle quantities.
     // If true, particle position is always dumped.
