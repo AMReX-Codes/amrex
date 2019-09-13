@@ -124,6 +124,7 @@ public:
                     const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
     void ExchangeE (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
+
     void CopyJtoPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
 
@@ -142,6 +143,8 @@ public:
 
     void CheckPoint (const std::string& dir) const;
     void Restart (const std::string& dir);
+
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
 
 private:
     bool m_ok;
@@ -174,7 +177,6 @@ private:
                                          const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                                          const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 
-    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
     static void CopyToPML (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 
