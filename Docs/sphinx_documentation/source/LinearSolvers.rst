@@ -148,7 +148,7 @@ of the physical domain, whereas coarse/fine boundaries refer to the
 boundaries between AMR levels. The following steps must be
 followed in the exact order.
 
-First we need to set physical domain boundary types via :cpp:`MLLinOp` member
+1) First we need to set physical domain boundary types via :cpp:`MLLinOp` member
 function
 
 .. highlight:: c++
@@ -170,13 +170,12 @@ The supported BC types at the physical domain boundaries are
 
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
-The second step is to set up coarse/fine Dirichlet boundary
-conditions.  This step is not always needed.  But when it is, it
-must be completed before step 3. This step is not needed when the
-coarsest level in the solver covers the whole computational domain
-(e.g., the coarsest level is AMR level 0).  Note that this step is
-still needed in the case that the solver is used to do a single-level
-solve on a fine AMR level not covering the whole domain.  The
+2) If we want to do a MAC projection where the boundary conditions on the 
+coarsest AMR level of the solve come from a coarser level (e.g. the
+base AMR level of the solve is > 0 and does not cover the entire domain), 
+we must explicitly provide the coarser data.  Boundary conditions from a 
+coarser level are always Dirichlet.  Note that this step, if needed, must
+be performed before the step below.  Then
 :cpp:`MLLinOp` member function for this step is
 
 .. highlight:: c++
@@ -190,8 +189,7 @@ values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
 level below it.
 
-In the third step, for each level, we call :cpp:`MLLinOp` member
-function
+3) Before the solve one must always call the :cpp:`MLLinOp` member function 
 
 .. highlight:: c++
 
@@ -199,16 +197,31 @@ function
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
-to set up Dirichlet boundary values.  Here the ``MultiFab`` must have
-one ghost cell.  Although ``MultiFab`` is used to pass the data, only
-the values in the ghost cells at Dirichlet boundaries are used.  If
-there are no Dirichlet boundaries, we still need to make this call,
-but we could call it with :cpp:`nullptr`.  It should be emphasized
-that the data in ``levelbcdata`` for Dirichlet boundaries are assumed
-to be exactly on the face of the physical domain even though for
-cell-centered solvers the sought unknowns are at cell centers.  And
-for cell-centered solvers, the ``MultiFab`` argument must have the
-cell-centered type.
+If we want to supply any Dirichlet boundary conditions,
+or inhomogeneous Neumann boundary conditions, at the domain boundaries, 
+we must supply those values in ``MultiFab* levelbcdata``, 
+which must have at least one ghost cell. 
+
+If the boundary condition is inhomogeneous Dirichlet the ghost cells outside the
+domain boundary of ``levelbcdata`` must hold the value of the solution
+at the domain boundary; 
+if the boundary condition is Neumann those ghost cells must hold
+the value of the gradient of the solution normal to the boundary
+(e.g. it would hold dphi/dx on both the low and high facees in the x-direction).
+
+If there are no Dirichlet or Neumann boundaries, or the 
+Neumann boundaries are homogeneous, we can pass :cpp:`nullptr`.  
+instead of a MultiFab.
+
+We can use the solution array itself to hold these values;
+the values are copied to internal arrays and will not be over-written
+when the solution array itself is being updated by the solver. 
+Note, however, that this call does not provide an initial guess for the solve.
+
+It should be emphasized that the data in ``levelbcdata`` for 
+Dirichlet or Neumann boundaries are assumed to be exactly on the face 
+of the physical domain; storing these values in the ghost cell of
+a cell-centered array is a convenience of implementation.
 
 .. _sec:linearsolver:pars:
 
