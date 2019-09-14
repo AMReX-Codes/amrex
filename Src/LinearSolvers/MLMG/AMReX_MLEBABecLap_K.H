@@ -3,6 +3,14 @@
 
 #include <AMReX_MLLinOp_K.H>
 
+#include <AMReX_EBCellFlag.H>
+
+#if (AMREX_SPACEDIM == 2)
+#include <AMReX_MLEBABecLap_2D_K.H>
+#else
+#include <AMReX_MLEBABecLap_3D_K.H>
+#endif
+
 namespace amrex {
 
 // note that the mask in these functions is different from masks in bndry registers
