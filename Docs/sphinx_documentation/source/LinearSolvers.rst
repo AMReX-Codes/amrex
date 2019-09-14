@@ -69,7 +69,7 @@ For :cpp:`MLABecLaplacian`, we next need to call member functions
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
-to set up the coefficients for equation :eq:`eqn::abeclap`. This is unecessary for
+to set up the coefficients for equation :eq:`eqn::abeclap`. This is unnecessary for
 :cpp:`MLPoisson`, as there are no coefficients to set.  For :cpp:`MLNodeLaplacian`,
 one needs to call the member function
 
@@ -495,7 +495,7 @@ make the vector field result satisfy the divergence constraint.
 
 
    //
-   // Setup linear operator, AKA the nodal laplacian
+   // Setup linear operator, AKA the nodal Laplacian
    // 
    LPInfo            info;
    info.setMaxCoarseningLevel(nodal_mg_max_coarsening_level); // Max level of coarsening
@@ -509,12 +509,11 @@ make the vector field result satisfy the divergence constraint.
    // (the first argument is for the low end, the second is for the high end)
    // Note that Dirichlet boundary conditions are assumed to be homogeneous (i.e. phi = 0)
    matrix.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
-   LinOpBCType::Periodic,
-   LinOpBCType::Periodic)},
-   {AMREX_D_DECL(LinOpBCType::Dirichlet,
-   LinOpBCType::Periodic,
-   LinOpBCType::Periodic)});
-
+                                    LinOpBCType::Periodic,
+                                    LinOpBCType::Periodic)},
+                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Periodic,
+                                    LinOpBCType::Periodic)});
 
    // Set matrix attributes to be used by MLMG solver
    matrix.setGaussSeidel(true);
@@ -533,7 +532,6 @@ make the vector field result satisfy the divergence constraint.
    divu.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
    matrix.compDivergence(GetVecOfPtrs({divu}), GetVecOfPtrs({vel}));
 
-
    //
    // Create the cell-centered sigma field and set it to 1 for this example
    //
@@ -544,7 +542,6 @@ make the vector field result satisfy the divergence constraint.
    // Set sigma 
    matrix.setSigma(0, *sigma);
 
-
    //
    // Create node-centered phi
    //
@@ -554,9 +551,8 @@ make the vector field result satisfy the divergence constraint.
    phi.reset(new MultiFab(nd_grids, dmap, 1, nghost, MFInfo(), factory));
    phi.setVal(0.0);
 
-
    //
-   // Setup MGML solver
+   // Setup MLMG solver
    //
    MLMG nodal_solver(matrix);
 
@@ -566,7 +562,7 @@ make the vector field result satisfy the divergence constraint.
    nodal_solver.setCGMaxIter(nodal_mg_cg_maxiter);
 
    //
-   // Set bottom seolver
+   // Set bottom solver
    //  
    if (nodal_bottom_solver_type == "smoother")
    {
@@ -593,7 +589,6 @@ make the vector field result satisfy the divergence constraint.
    nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
    }
 
-
    //
    // Solve div( sigma * grad(phi) ) = div(vel)
    //
@@ -604,13 +599,11 @@ make the vector field result satisfy the divergence constraint.
    // 
    std::unique_ptr<MultiFab> fluxes;
    fluxes.reset(new MultiFab(vel.boxArray(), vel.DistributionMap(),
-   vel.nComp(), 1, MFInfo(),
-   factory ));
+                             vel.nComp(), 1, MFInfo(), factory ));
    fluxes.setVal(0.0);
 
    // Get fluxes from solver
    nodal_solver.getFluxes( GetVecOfPtrs({fluxes}) );
-
 
    //
    // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
