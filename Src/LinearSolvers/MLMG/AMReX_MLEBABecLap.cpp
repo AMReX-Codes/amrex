@@ -91,7 +91,7 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
     }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
@@ -104,14 +104,18 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
                 const BoxArray& ba = mask.boxArray();
                 for (MFIter mfi(mask); mfi.isValid(); ++mfi)
                 {
-                    IArrayBox& fab = mask[mfi];
-                    const Box& bx = fab.box();
+                    Array4<int> const& fab = mask.array(mfi);
+                    const Box& bx = mfi.fabbox();
                     for (const auto& iv : pshifts)
                     {
                         ba.intersections(bx+iv, isects);
                         for (const auto& is : isects)
                         {
-                            fab.setVal(1, is.second-iv);
+                            const Box& b = is.second-iv;
+                            AMREX_HOST_DEVICE_FOR_3D ( b, i, j, k,
+                            {
+                                fab(i,j,k) = 1;
+                            });
                         }
                     }
                 }
@@ -159,9 +163,6 @@ MLEBABecLap::setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>
 void
 MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
-
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
@@ -180,21 +181,24 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(phi, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(phi, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox& phifab = (*m_eb_phi[amrlev])[mfi];
-        FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
+        Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (FabType::regular == t or FabType::covered == t) {
-            phifab.setVal(0.0, bx, 0, ncomp);
-            betafab.setVal(0.0, bx, 0, ncomp);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                phiout(i,j,k,n) = 0.0;
+                betaout(i,j,k,n) = 0.0;
+            });
         } else {
-            Array4<Real> const& phiout = m_eb_phi[amrlev]->array(mfi);
-            Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
             Array4<Real const> const& phiin = phi.const_array(mfi);
             Array4<Real const> const& betain = beta.const_array(mfi);
             const auto& flag = flags->const_array(mfi);
@@ -202,7 +206,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
             {
                 if (flag(i,j,k).isSingleValued()) {
                     phiout(i,j,k,n) = phiin(i,j,k,n);
-                    betaout(i,j,k,n) = betain(i,j,k,0);
+                    betaout(i,j,k,n) = betain(i,j,k,n);
                 } else {
                     phiout(i,j,k,n) = 0.0;
                     betaout(i,j,k,n) = 0.0;
@@ -215,9 +219,6 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
 void
 MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
-
     const int ncomp = getNComp();
     if (m_eb_phi[amrlev] == nullptr) {
         const int mglev = 0;
@@ -236,26 +237,33 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*m_eb_phi[amrlev], MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_eb_phi[amrlev], mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox& phifab = (*m_eb_phi[amrlev])[mfi];
-        FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
+        Array4<Real> const& phifab = m_eb_phi[amrlev]->array(mfi);
+        Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        phifab.setVal(0.0, bx, 0, ncomp);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            phifab(i,j,k,n) = 0.0;
+        });
         if (FabType::regular == t or FabType::covered == t) {
-            betafab.setVal(0.0, bx, 0, ncomp);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                betaout(i,j,k,n) = 0.0;
+            });
         } else {
-            Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
             Array4<Real const> const& betain = beta.const_array(mfi);
             const auto& flag = flags->const_array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flag(i,j,k).isSingleValued()) {
-                    betaout(i,j,k,n) = betain(i,j,k,0);
+                    betaout(i,j,k,n) = betain(i,j,k,n);
                 } else {
                     betaout(i,j,k,n) = 0.0;
                 }
