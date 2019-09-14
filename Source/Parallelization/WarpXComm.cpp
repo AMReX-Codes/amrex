@@ -688,7 +688,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
         }
         else if (charge_buf[lev+1]) // but no filter
         {
-            MultiFab::Copy(*charge_buf[lev+1],
+            MultiFab::Add(*charge_buf[lev+1],
                            *rho_cp[lev+1], icomp, icomp, ncomp,
                            rho_cp[lev+1]->nGrow());
             mf.ParallelAdd(*charge_buf[lev+1], icomp, 0,
