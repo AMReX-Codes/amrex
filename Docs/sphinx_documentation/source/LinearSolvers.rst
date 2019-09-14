@@ -148,7 +148,7 @@ of the physical domain, whereas coarse/fine boundaries refer to the
 boundaries between AMR levels. The following steps must be
 followed in the exact order.
 
-1) First we need to set physical domain boundary types via :cpp:`MLLinOp` member
+1) First we need to set physical domain boundary types via the :cpp:`MLLinOp` member
 function
 
 .. highlight:: c++
@@ -175,8 +175,7 @@ coarsest AMR level of the solve come from a coarser level (e.g. the
 base AMR level of the solve is > 0 and does not cover the entire domain), 
 we must explicitly provide the coarser data.  Boundary conditions from a 
 coarser level are always Dirichlet.  Note that this step, if needed, must
-be performed before the step below.  Then
-:cpp:`MLLinOp` member function for this step is
+be performed before the step below.  The :cpp:`MLLinOp` member function for this step is
 
 .. highlight:: c++
 
@@ -197,21 +196,20 @@ level below it.
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
-If we want to supply any Dirichlet boundary conditions,
-or inhomogeneous Neumann boundary conditions, at the domain boundaries, 
+If we want to supply any inhomogeneous 
+Dirichlet or Neumann boundary conditions at the domain boundaries, 
 we must supply those values in ``MultiFab* levelbcdata``, 
 which must have at least one ghost cell. 
 
-If the boundary condition is inhomogeneous Dirichlet the ghost cells outside the
+If the boundary condition is Dirichlet the ghost cells outside the
 domain boundary of ``levelbcdata`` must hold the value of the solution
 at the domain boundary; 
 if the boundary condition is Neumann those ghost cells must hold
 the value of the gradient of the solution normal to the boundary
 (e.g. it would hold dphi/dx on both the low and high facees in the x-direction).
 
-If there are no Dirichlet or Neumann boundaries, or the 
-Neumann boundaries are homogeneous, we can pass :cpp:`nullptr`.  
-instead of a MultiFab.
+If there are no inhomogeneous Dirichlet or Neumann boundaries
+we can pass :cpp:`nullptr` instead of a MultiFab.
 
 We can use the solution array itself to hold these values;
 the values are copied to internal arrays and will not be over-written
@@ -344,7 +342,7 @@ for :math:`\phi` and then set
 where :math:`U^*` is a vector field (typically velocity) that we want to satisfy 
 :math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
 
-The MACProjection class can be defined and used to perform the MAC projection without explicitly
+The MacProjection class can be defined and used to perform the MAC projection without explicitly
 calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
 the MacProjector internally computes the divergence of the vector field, :math:`D(U^*)`,
 to compute the right-hand-side, and after the solve, subtracts the weighted gradient term to
@@ -356,6 +354,11 @@ in the solution array and have :math:`\phi` returned as well as :math:`U`.
 
 Caveat:  Currently the MAC projection only works when the base level covers the full domain; it does
 not yet have the interface to pass boundary conditions for a fine level that come from coarser data.
+
+Also note that any Dirichlet or Neumann boundary conditions at domain boundaries
+are assumed to be homogeneous.  The call to the :cpp:`MLLinOp` member function 
+:cpp:`setLevelBC` occurs inside the MacProjection class; one does not need to call that
+explicitly when using the MacProjection class.
 
 The code below is taken from 
 ``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
@@ -391,7 +394,7 @@ the MACProjector object and use it to perform a MAC projection.
     LPInfo lp_info;
 
     // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
-    if (use_hypre) 
+    if (use_hypre_as_full_solver)
         lp_info.setMaxCoarseningLevel(0);
 
     MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
@@ -407,14 +410,14 @@ the MACProjector object and use it to perform a MAC projection.
     //                      {&S});                            // defines the specified RHS divergence
 
     // Set bottom-solver to use hypre instead of native BiCGStab 
-    if (use_hypre) 
+    if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
        macproj.setBottomSolver(MLMG::BottomSolver::hypre);
 
     // Set boundary conditions.
     //  Here we use Neumann on the low x-face, Dirichlet on the high x-face,
     //  and periodic in the other two directions  
     //  (the first argument is for the low end, the second is for the high end)
-    // Note that Dirichlet boundary conditions are assumed to be homogeneous (i.e. phi = 0)
+    // Note that Dirichlet and Neumann boundary conditions are assumed to be homogeneous.
     macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
                                       LinOpBCType::Periodic,
                                       LinOpBCType::Periodic)},
@@ -441,7 +444,7 @@ the MACProjector object and use it to perform a MAC projection.
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
 
 Nodal Projection
-=========================
+================
 
 Some codes define a velocity field :math:`U = (u,v,w)` with all
 components co-located on cell centers.  The nodal solver in AMReX 
@@ -510,10 +513,14 @@ make the vector field result satisfy the divergence constraint.
    //
    // Setup linear operator, AKA the nodal Laplacian
    // 
-   LPInfo            info;
-   info.setMaxCoarseningLevel(nodal_mg_max_coarsening_level); // Max level of coarsening
+   LPInfo lp_info;
+   lp_info.setMaxCoarseningLevel(nodal_mg_max_coarsening_level); // Max level of coarsening
 
-   MLNodeLaplacian  matrix(geom, grids, dmap, info, amrex::GetVecOfConstPtrs({factory}));
+   // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
+   if (use_hypre_as_full_solver)
+       lp_info.setMaxCoarseningLevel(0);
+
+   MLNodeLaplacian matrix(geom, grids, dmap, lp_info, amrex::GetVecOfConstPtrs({factory}));
 
 
    // Set boundary conditions.
@@ -542,15 +549,31 @@ make the vector field result satisfy the divergence constraint.
    //       that compDivergence method can be used
    // 
    std::unique_ptr<MultiFab> > divu;
-   divu.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
+   divu.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
    matrix.compDivergence(GetVecOfPtrs({divu}), GetVecOfPtrs({vel}));
+
+   //
+   // Note that if we want to solve div( sigma * grad(phi) ) = div(vel) - S
+   //   we must do the subtraction ourselves
+   //
+
+   std::unique_ptr<MultiFab> > rhs;
+
+   const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
+   rhs.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
+
+   // here Fill rhs with the "S" on nodes
+   // ...
+
+   // Then define rhs = div(vel) - S
+   MultiFab::Subtract(*divu, *rhs, 0, 0, 1, 0);
 
    //
    // Create the cell-centered sigma field and set it to 1 for this example
    //
    std::unique_ptr<MultiFab> > sigma;
    sigma.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
-   sigma.setVal(1.0);
+   sigma->setVal(1.0);
 
    // Set sigma 
    matrix.setSigma(0, *sigma);
@@ -560,9 +583,8 @@ make the vector field result satisfy the divergence constraint.
    //
    std::unique_ptr<MultiFab> > phi;
 
-   const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
    phi.reset(new MultiFab(nd_grids, dmap, 1, nghost, MFInfo(), factory));
-   phi.setVal(0.0);
+   phi->setVal(0.0);
 
    //
    // Setup MLMG solver
@@ -574,38 +596,21 @@ make the vector field result satisfy the divergence constraint.
    nodal_solver.setCGVerbose(nodal_mg_cg_verbose);
    nodal_solver.setCGMaxIter(nodal_mg_cg_maxiter);
 
-   //
-   // Set bottom solver
-   //  
-   if (nodal_bottom_solver_type == "smoother")
-   {
-   nodal_solver.setBottomSolver(MLMG::BottomSolver::smoother);
-   }
-   else if (nodal_bottom_solver_type == "bicg")
-   {
-   nodal_solver.setBottomSolver(MLMG::BottomSolver::bicgstab);
-   }
-   else if (nodal_bottom_solver_type == "cg")
-   {
-   nodal_solver.setBottomSolver(MLMG::BottomSolver::cg);
-   }
-   else if (nodal_bottom_solver_type == "bicgcg")
-   {
-   nodal_solver.setBottomSolver(MLMG::BottomSolver::bicgcg);
-   }
-   else if (nodal_bottom_solver_type == "cgbicg")
-   {
-   nodal_solver.setBottomSolver(MLMG::BottomSolver::cgbicg);
-   }
-   else if (nodal_bottom_solver_type == "hypre")
-   {
-   nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
-   }
+   // Set bottom-solver to use hypre instead of native BiCGStab 
+   //   ( we could also have set this to cg, bicgcg, cgbicg)
+   if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
+       nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
+
+   // Define the relative tolerance
+   Real reltol = 1.e-8;
+
+   // Define the absolute tolerance; note that this argument is optional
+   Real abstol = 1.e-15;
 
    //
    // Solve div( sigma * grad(phi) ) = div(vel)
    //
-   nodal_solver.solve( GetVecOfPtrs({phi}), GetVecOfConstPtrs({divu}), rtol, atol);
+   nodal_solver.solve( GetVecOfPtrs({phi}), GetVecOfConstPtrs({divu}), reltol, abstol);
 
    //
    // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
