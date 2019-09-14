@@ -11,5 +11,5 @@ jobs:
     - uses: actions/checkout@v1
     - name: TABs
       run: .github/workflows/source/hasTabs
-    # - name: End-of-Line whitespaces
-    #   run: .github/workflows/source/hasEOLwhiteSpace
+    - name: End-of-Line whitespaces
+      run: .github/workflows/source/hasEOLwhiteSpace

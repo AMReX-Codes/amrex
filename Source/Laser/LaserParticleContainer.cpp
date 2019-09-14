@@ -444,8 +444,6 @@ LaserParticleContainer::Evolve (int lev,
             // For now, laser particles do not take the current buffers into account
             const long np_current = np;
 
-            m_giv[thread_num].resize(np);
-
             plane_Xp.resize(np);
             plane_Yp.resize(np);
             amplitude_E.resize(np);
@@ -670,7 +668,6 @@ LaserParticleContainer::update_laser_particle(
     Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
     Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
     Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
-    Real * const AMREX_RESTRICT giv = m_giv[thread_num].dataPtr();
     Real tmp_p_X_0 = p_X[0];
     Real tmp_p_X_1 = p_X[1];
     Real tmp_p_X_2 = p_X[2];
@@ -700,7 +697,6 @@ LaserParticleContainer::update_laser_particle(
             }
             // Get the corresponding momenta
             const Real gamma = gamma_boost/std::sqrt(1. - v_over_c*v_over_c);
-            giv[i] = 1./gamma;
             puxp[i] = gamma * vx;
             puyp[i] = gamma * vy;
             puzp[i] = gamma * vz;

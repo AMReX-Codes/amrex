@@ -52,7 +52,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                                 Cuda::ManagedDeviceVector<Real>& xp,
                                 Cuda::ManagedDeviceVector<Real>& yp,
                                 Cuda::ManagedDeviceVector<Real>& zp,
-                                Cuda::ManagedDeviceVector<Real>& giv,
                                 Real dt)
 {
 
@@ -62,7 +61,6 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
     Real* const AMREX_RESTRICT x = xp.dataPtr();
     Real* const AMREX_RESTRICT y = yp.dataPtr();
     Real* const AMREX_RESTRICT z = zp.dataPtr();
-    Real* const AMREX_RESTRICT gi = giv.dataPtr();
     Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
     Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
     Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
