@@ -148,7 +148,7 @@ of the physical domain, whereas coarse/fine boundaries refer to the
 boundaries between AMR levels. The following steps must be
 followed in the exact order.
 
-1) First we need to set physical domain boundary types via the :cpp:`MLLinOp` member
+1) For any type of solver, we first need to set physical domain boundary types via the :cpp:`MLLinOp` member
 function
 
 .. highlight:: c++
@@ -170,7 +170,8 @@ The supported BC types at the physical domain boundaries are
 
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
-2) If we want to do a MAC projection where the boundary conditions on the 
+2) Cell-centered solvers only: 
+if we want to do a linear solve where the boundary conditions on the 
 coarsest AMR level of the solve come from a coarser level (e.g. the
 base AMR level of the solve is > 0 and does not cover the entire domain), 
 we must explicitly provide the coarser data.  Boundary conditions from a 
@@ -188,7 +189,8 @@ values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
 level below it.
 
-3) Before the solve one must always call the :cpp:`MLLinOp` member function 
+3) Cell-centered solvers only: 
+before the solve one must always call the :cpp:`MLLinOp` member function 
 
 .. highlight:: c++
 
@@ -196,10 +198,9 @@ level below it.
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
-If we want to supply any inhomogeneous 
-Dirichlet or Neumann boundary conditions at the domain boundaries, 
-we must supply those values in ``MultiFab* levelbcdata``, 
-which must have at least one ghost cell. 
+If we want to supply any inhomogeneous Dirichlet or Neumann boundary 
+conditions at the domain boundaries, we must supply those values 
+in ``MultiFab* levelbcdata``, which must have at least one ghost cell. 
 
 If the boundary condition is Dirichlet the ghost cells outside the
 domain boundary of ``levelbcdata`` must hold the value of the solution
@@ -208,7 +209,7 @@ if the boundary condition is Neumann those ghost cells must hold
 the value of the gradient of the solution normal to the boundary
 (e.g. it would hold dphi/dx on both the low and high facees in the x-direction).
 
-If there are no inhomogeneous Dirichlet or Neumann boundaries
+If the boundary conditions contain no inhomogeneous Dirichlet or Neumann boundaries,
 we can pass :cpp:`nullptr` instead of a MultiFab.
 
 We can use the solution array itself to hold these values;
