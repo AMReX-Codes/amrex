@@ -5,6 +5,13 @@
 
 #include <AMReX_EBCellFlag.H>
 
+namespace amrex { namespace {
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real get_dx_eb (Real kappa) noexcept {
+        return amrex::max(0.3,(kappa*kappa-0.25)/(2.0*kappa));
+    }
+}}
+
 #if (AMREX_SPACEDIM == 2)
 #include <AMReX_MLEBABecLap_2D_K.H>
 #else
