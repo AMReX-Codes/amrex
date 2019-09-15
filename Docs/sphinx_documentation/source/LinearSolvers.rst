@@ -175,8 +175,10 @@ if we want to do a linear solve where the boundary conditions on the
 coarsest AMR level of the solve come from a coarser level (e.g. the
 base AMR level of the solve is > 0 and does not cover the entire domain), 
 we must explicitly provide the coarser data.  Boundary conditions from a 
-coarser level are always Dirichlet.  Note that this step, if needed, must
-be performed before the step below.  The :cpp:`MLLinOp` member function for this step is
+coarser level are always Dirichlet.  
+
+Note that this step, if needed, must be performed before the step below.  
+The :cpp:`MLLinOp` member function for this step is
 
 .. highlight:: c++
 
@@ -187,7 +189,9 @@ be performed before the step below.  The :cpp:`MLLinOp` member function for this
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
-level below it.
+level below it.  The MultiFb crse does not need to have ghost cells itself. 
+If the coarse grid bc's for the solve are identically zero, :cpp:`nullptr` 
+can be passed instead of :cpp:`crse`.
 
 3) Cell-centered solvers only: 
 before the solve one must always call the :cpp:`MLLinOp` member function 
@@ -201,6 +205,9 @@ before the solve one must always call the :cpp:`MLLinOp` member function
 If we want to supply any inhomogeneous Dirichlet or Neumann boundary 
 conditions at the domain boundaries, we must supply those values 
 in ``MultiFab* levelbcdata``, which must have at least one ghost cell. 
+Note that the argument :cpp:`amrlev` is relative to the solve, not
+necessarily the full AMR hierarchy; amrlev = 0 refers to the coarsest
+level of the solve.
 
 If the boundary condition is Dirichlet the ghost cells outside the
 domain boundary of ``levelbcdata`` must hold the value of the solution
