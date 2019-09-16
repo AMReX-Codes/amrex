@@ -1,8 +1,8 @@
 #ifndef WARPX_quantum_sync_engine_wrapper_h_
 #define WARPX_quantum_sync_engine_wrapper_h_
 
-//This file provides a wrapper aroud the quantum_synchrotron_engine
-//provided by the standard template library
+//This file provides a wrapper aroud the breit_wheeler engine
+//provided by the QED modules of the PICSAR library
 
 //BW ENGINE
 #include "qed_wrapper_commons.h"

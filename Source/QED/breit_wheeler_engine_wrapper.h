@@ -2,7 +2,7 @@
 #define WARPX_breit_wheeler_engine_wrapper_h_
 
 //This file provides a wrapper aroud the breit_wheeler engine
-//provided by the standard template library
+//provided by the QED modules of the PICSAR library
 
 //BW ENGINE
 #include "qed_wrapper_commons.h"
