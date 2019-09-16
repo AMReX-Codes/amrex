@@ -5,7 +5,7 @@
 #include <AMReX_MLTensor_nd_K.H>
 
 namespace amrex {
-  
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                             Array4<Real> const& vel,
@@ -46,9 +46,12 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
         switch (icorner) {
         case 0: {
+	  //
+	  //fixme?
+	  // does it matter whether we check x or y first?
+	  //
             // xlo & ylo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1);
-	    //const auto blo  = amrex::lbound(bx);
             if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  // fill corners of bndry from coarse data using first order interpolation 
@@ -59,7 +62,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
             }
-            if (vlo.y == dlo.y) {
+            else if (vlo.y == dlo.y) {
 	        int offset = AMREX_SPACEDIM * oylo;
 		if ( use_crsedata )
 		  // fill corners of bndry from coarse data using first order interpolation 
@@ -91,7 +94,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
             }
-            if (vlo.y == dlo.y) {
+            else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
@@ -116,7 +119,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
             }
-            if (vhi.y == dhi.y) {
+            else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
@@ -163,7 +166,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
             }
-            if (vhi.y == dhi.y) {
+            else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
@@ -197,9 +200,7 @@ void mltensor_cross_terms_fx (Box const& box, Array4<Real> const& fx,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudy = (vel(i,j+1,0,0)+vel(i-1,j+1,0,0)-vel(i,j-1,0,0)-vel(i-1,j-1,0,0))*(0.25*dyi);
             Real dvdy = (vel(i,j+1,0,1)+vel(i-1,j+1,0,1)-vel(i,j-1,0,1)-vel(i-1,j-1,0,1))*(0.25*dyi);
-            //Real divu = dvdy;
-	    //fixme
-	    Real divu = 0.;
+            Real divu = dvdy;
             Real xif = kapx(i,j,0);
             Real mun = 0.75*(etax(i,j,0,0)-xif);  // restore the original eta
             Real mut =       etax(i,j,0,1);
@@ -226,34 +227,40 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
         for (int i = lo.x; i <= hi.x; ++i) {
             Real dudx = (vel(i+1,j,0,0)+vel(i+1,j-1,0,0)-vel(i-1,j,0,0)-vel(i-1,j-1,0,0))*(0.25*dxi);
             Real dvdx = (vel(i+1,j,0,1)+vel(i+1,j-1,0,1)-vel(i-1,j,0,1)-vel(i-1,j-1,0,1))*(0.25*dxi);
-            //Real divu = dudx;
-	    //fixme
-	    Real divu = 0.;
+            Real divu = dudx;
             Real xif = kapy(i,j,0);
             Real mun = 0.75*(etay(i,j,0,1)-xif);  // restore the original eta
             Real mut =       etay(i,j,0,0);
             fy(i,j,0,0) = -mut*dvdx;
             fy(i,j,0,1) = -mun*(-twoThirds*divu) - xif*divu;
 	    //fixme
-	    // IntVect mypt={0,0};
-	    // if (box.contains(mypt)) {
-	    // 	if (i==0 && j==0){
-	    // 	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    // 	  Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
-	    // 	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	    // 	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	    // 	  Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n";
-	    // 	}
-	    // 	if (i==0 && j==15){
-	    // 	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    // 	  Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
-	    // 	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	    // 	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	    // 	  Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n";
-	    // 	}
-	    //   }
-	    //  mypt={0,47};
-	    // if (box.contains(mypt)) {
+	    IntVect mypt={0,95};
+	    if (box.contains(mypt)) {
+	      // 	if (i==0 && j==0){
+	      // 	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
+	      // 	  Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
+	      // 	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
+	      // 	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
+	      // 	  Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n";
+	      // 	}
+	      // 	if (i==0 && j==15){
+	      // 	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
+	      // 	  Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
+	      // 	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
+	      // 	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
+	      // 	  Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n";
+	      // 	}
+	      if (i==0 && j==95){
+	    	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
+	    	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
+	    	  Print()<<"vel(-1,+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
+	    	  Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
+	    	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
+	    	}
+
+	    }
+	      mypt={8,55};
+	     if (box.contains(mypt)) {
 	    	// if (i==0 && j==32){
 	    	//   Print()<<" i,j: "<<i<< ","<<j<<"\n";
 	    	//   Print()<<"vel(-1,-1) "<<vel(i-1,j-1,0,0)<<" "<<vel(i-1,j-1,0,1)<<"\n";
@@ -261,13 +268,13 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
 	    	//   Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
 	    	//   Print()<<"vel(0,-1) "<<vel(i,j-1,0,0)<<" "<<vel(i,j-1,0,1)<<"\n\n";
 	    	// }
-	    	// if (i==0 && j==47){
-	    	//   Print()<<" i,j: "<<i<< ","<<j<<"\n";
-	    	//   Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
-	    	//   Print()<<"vel(-1,+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
-	    	//   Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
-	    	//   Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
-	    	// }
+	    	if (i==0 && j==55){
+	    	  Print()<<" i,j: "<<i<< ","<<j<<"\n";
+	    	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
+	    	  Print()<<"vel(-1,+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
+	    	  Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
+	    	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
+	    	}
 	    	// if (i==15 && j==47){
 	    	//   Print()<<" i,j: "<<i<< ","<<j<<"\n";
 	    	//   Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
@@ -275,7 +282,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
 	    	//   Print()<<"vel(+1,+1) "<<vel(i+1,j+1,0,0)<<" "<<vel(i+1,j+1,0,1)<<"\n";
 	    	//   Print()<<"vel(+1,0) "<<vel(i+1,j,0,0)<<" "<<vel(i+1,j,0,1)<<"\n\n";
 	    	// }
-	     //  }
+	       }
 	    // IntVect mypt={1,35};
 	    // if (box.contains(mypt)) {
 	    // 	if (i==0 && j==32){
