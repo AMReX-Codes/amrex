@@ -29,6 +29,14 @@ PhotonParticleContainer::PhotonParticleContainer (AmrCore* amr_core, int ispecie
         //IF do_qed is enabled, find out if Breit Wheeler process is enabled
         if(do_qed)
             pp.query("do_qed_breit_wheeler", do_qed_breit_wheeler);
+
+        //Check for processes which do not make sense for photons
+        bool test_quantum_sync;
+        pp.query("do_qed_quantum_sync", test_quantum_sync);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        test_quantum_sync == 0,
+        "ERROR: do_qed_quantum_sync can be 1 for species NOT listed in particles.photon_species only!");
+        //_________________________________________________________
 #endif
 
 }
