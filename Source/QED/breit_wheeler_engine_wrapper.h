@@ -18,7 +18,7 @@ public:
     warpx_breit_wheeler_engine();
 
     //Interface for the get_optical_depth method of the BW engine
-    static AMREX_GPU_HOST_DEVICE
+    static AMREX_GPU_DEVICE
     amrex::Real get_optical_depth();
 };
 

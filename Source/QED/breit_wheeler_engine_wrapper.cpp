@@ -10,7 +10,7 @@ warpx_breit_wheeler_engine::warpx_breit_wheeler_engine():
 
 //Interface for the get_optical_depth method of the BW engine
 amrex::Real
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_DEVICE
 warpx_breit_wheeler_engine::get_optical_depth(){
     return internal_get_optical_depth(amrex::Random());
 }
