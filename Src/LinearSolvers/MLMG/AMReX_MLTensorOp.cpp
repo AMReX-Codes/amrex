@@ -97,9 +97,9 @@ MLTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            // MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
-            //                m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
-	    m_b_coeffs[amrlev][0][idim].mult(2.,icomp,1,0);
+            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+                           m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
+	    //m_b_coeffs[amrlev][0][idim].mult(2.,icomp,1,0);
         }
     }
 
@@ -117,8 +117,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    //applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
-    applyBCTensor(amrlev, mglev, in, bc_mode);
+    applyBCTensor(amrlev, mglev, in, bc_mode); //, bndry);
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -182,7 +181,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
 void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                           BCMode bc_mode, const MLMGBndry* bndry
+                           BCMode bc_mode//, const MLMGBndry* bndry
 			   ) const
 {
 #if (AMREX_SPACEDIM > 1)
@@ -196,17 +195,17 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& constfoo = foofab.array();
     auto foo = foofab.array();
 
-    // fixme???
-    // this is what get passed in as bndry. Why do we need to pass as parameter
-    // when we already have access to it here?
-    //MLMGBndry* bndry = m_bndry_sol[amrlev].get();
+    // must get pointer to MLMGBndry object this way, so that we can
+    // alter the data
+    MLMGBndry* bndry = m_bndry_sol[amrlev].get();
     const BndryRegister* crsebndry = m_crse_sol_br[amrlev].get();
     // is this how to make sure this works for multilevel/composite solve too???
     int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
-    const IntVect& ratio{cr};
+    const IntVect ratio{cr};
     
-    const auto rr = ratio.dim3();
+    const auto& rr = ratio.dim3();
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    //const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
     const int use_crsedata = (crsebndry!=nullptr && inhomog);
     
@@ -219,12 +218,17 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     {
         const Box& vbx = mfi.validbox();
 	Box testbox = vbx;
-	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	  if (m_geom[amrlev][mglev].isPeriodic(idim)) {
-            testbox.grow(idim,1);
+	// fixme?
+	// not sure why bndry has resaonable data when AllPeriodic
+	// but then has nans in the side with periodic BC if !AllPeriodic
+	if ( !m_geom[amrlev][mglev].isAllPeriodic() ) {
+	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+	    if (m_geom[amrlev][mglev].isPeriodic(idim)) {
+	      testbox.grow(idim,1);
+	    }
 	  }
 	}
-
+	
         const auto& velfab = vel.array(mfi);
 
         const auto & bdlv = bcondloc.bndryLocs(mfi);
@@ -239,7 +243,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                 bct[iface*AMREX_SPACEDIM+icomp] = bdcv[icomp][ori];
                 bcl[iface*AMREX_SPACEDIM+icomp] = bdlv[icomp][ori];
             }
-        }	      
+        }
 
 #if (AMREX_SPACEDIM == 2)
         const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
@@ -247,14 +251,14 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
-	
-        auto bvxlo = (bndry != nullptr) ?
+	// not sure about this const qualifier here
+        const auto& bvxlo = (bndry != nullptr) ?
 	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
-        auto bvylo = (bndry != nullptr) ?
+        const auto& bvylo = (bndry != nullptr) ?
 	  (*bndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
-        auto bvxhi = (bndry != nullptr) ?
+        const auto& bvxhi = (bndry != nullptr) ?
 	  (*bndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
-        auto bvyhi = (bndry != nullptr) ?
+        const auto& bvyhi = (bndry != nullptr) ?
 	  (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
 
 	const auto& cbvxlo = (crsebndry != nullptr) ?
