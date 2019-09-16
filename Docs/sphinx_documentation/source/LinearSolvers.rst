@@ -478,20 +478,21 @@ where :math:`U^*` is a vector field defined on cell centers and we want to satis
 
 Currently this nodal approximate projection does not exist in a separate
 operator like the MAC projection; instead we demonstrate below the steps needed
-to compute the approximate projection.  This means we must compute the divergence
-of the vector field,  :math:`D(U^*)`  to compute the right-hand-side, solve the
-variable coefficient Poisson equation, then subtract the weighted gradient term to
-make the vector field result satisfy the divergence constraint.
+to compute the approximate projection.  This means we must compute explicitly the
+right-hand-side , including the the divergence of the vector field, :math:`D(U^*)`,
+solve the variable coefficient Poisson equation, then subtract the weighted
+gradient term to make the vector field result satisfy the divergence constraint.
 
 .. highlight:: c++
 
 ::
                   
    //
-   // Given a cell-centered velocity (vel) field and a cell-centered
-   // scalar field (sigma) field, solve:
+   // Given a cell-centered velocity (vel) field, a cell-centered
+   // scalar field (sigma) field, and a source term S (either node-
+   // or cell-centered )solve:
    //
-   //   div( sigma * grad(phi) ) = div(vel)
+   //   div( sigma * grad(phi) ) = div(vel) - S
    //
    // and then perform the projection:
    //
@@ -548,33 +549,35 @@ make the vector field result satisfy the divergence constraint.
    matrix.setHarmonicAverage(false);
 
    //
-   // Compute divergence of vel and store it in divu
+   // Compute RHS 
    //
-   // NOTE: it's up to the user to compute the RHS divergence, as opposed
+   // NOTE: it's up to the user to compute the RHS. as opposed
    //       to the MAC projection case !!!
    //
    // NOTE: do this operation AFTER setting up the linear operator so
-   //       that compDivergence method can be used
+   //       that compRHS method can be used
    // 
-   std::unique_ptr<MultiFab> > divu;
-   divu.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
-   matrix.compDivergence(GetVecOfPtrs({divu}), GetVecOfPtrs({vel}));
 
-   //
-   // Note that if we want to solve div( sigma * grad(phi) ) = div(vel) - S
-   //   we must do the subtraction ourselves
-   //
-
-   std::unique_ptr<MultiFab> > rhs;
-
+   // RHS is nodal
    const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
+
+   // Multifab to host RHS
+   std::unique_ptr<MultiFab> > rhs;
    rhs.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
 
-   // here Fill rhs with the "S" on nodes
-   // ...
+   // Cell-centered contributions to RHS
+   std::unique_ptr<MultiFab>  S_cc;  // cell-centered source
+   S_cc.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
+   S_cc.setVal(0.0); // Set it to zero for this example
 
-   // Then define rhs = div(vel) - S
-   MultiFab::Subtract(*divu, *rhs, 0, 0, 1, 0);
+   // Node-centered contributions to RHS
+   std::unique_ptr<MultiFab>  S_nd;  // node-centered source
+   S_nd.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
+   S_nd.setVal(0.0); // Set it to zero for this example 
+
+   // Compute RHS -- vel must be cell-centered
+   matrix.compRHS(GetVecOfPtrs({rhs}), GetVecOfPtrs({vel}), GetVecOfPtrs({S_nd}),
+                  GetVecOfPtrs({S_cc}) );
 
    //
    // Create the cell-centered sigma field and set it to 1 for this example
@@ -590,9 +593,8 @@ make the vector field result satisfy the divergence constraint.
    // Create node-centered phi
    //
    std::unique_ptr<MultiFab> > phi;
-
    phi.reset(new MultiFab(nd_grids, dmap, 1, nghost, MFInfo(), factory));
-   phi->setVal(0.0);
+   phi.setVal(0.0);
 
    //
    // Setup MLMG solver
@@ -616,9 +618,9 @@ make the vector field result satisfy the divergence constraint.
    Real abstol = 1.e-15;
 
    //
-   // Solve div( sigma * grad(phi) ) = div(vel)
+   // Solve div( sigma * grad(phi) ) = RHS
    //
-   nodal_solver.solve( GetVecOfPtrs({phi}), GetVecOfConstPtrs({divu}), reltol, abstol);
+   nodal_solver.solve( GetVecOfPtrs({phi}), GetVecOfConstPtrs({rhs}), reltol, abstol);
 
    //
    // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
