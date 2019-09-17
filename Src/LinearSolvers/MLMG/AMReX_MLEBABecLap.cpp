@@ -206,7 +206,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
             {
                 if (flag(i,j,k).isSingleValued()) {
                     phiout(i,j,k,n) = phiin(i,j,k,n);
-                    betaout(i,j,k,n) = betain(i,j,k,n);
+                    betaout(i,j,k,n) = betain(i,j,k,0);
                 } else {
                     phiout(i,j,k,n) = 0.0;
                     betaout(i,j,k,n) = 0.0;
@@ -263,7 +263,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flag(i,j,k).isSingleValued()) {
-                    betaout(i,j,k,n) = betain(i,j,k,n);
+                    betaout(i,j,k,n) = betain(i,j,k,0);
                 } else {
                     betaout(i,j,k,n) = 0.0;
                 }
