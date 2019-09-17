@@ -58,8 +58,7 @@ void UpdateMomentumBorisWithRadiationReaction(
 
     //Radiation reaction constant
     const amrex::Real RRcoeff =
-        2.0*std::pow(PhysConst::q_e,4)/
-        (3.0*std::pow(PhysConst::m_e,2)*std::pow(PhysConst::c,5)) ; //CHECK CAREFULLY!
+        2.0*std::pow(q,4)/(3.0*std::pow(m,2)*std::pow(PhysConst::c,5)) ; //CHECK CAREFULLY!
 
     //Compute the components of the RR force
     const amrex::Real frx =
