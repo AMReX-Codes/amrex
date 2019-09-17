@@ -41,9 +41,9 @@ void UpdateMomentumBorisWithRadiationReaction(
     const amrex::Real inv_gamma_n = 1.0/gamma_n;
 
     //Estimation of the velocity at intermediate (integer) time
-    const amrex::Real vx_n = ux_n*inv_gamma;
-    const amrex::Real vy_n = uy_n*inv_gamma;
-    const amrex::Real vz_n = uz_n*inv_gamma;
+    const amrex::Real vx_n = ux_n*inv_gamma_n;
+    const amrex::Real vy_n = uy_n*inv_gamma_n;
+    const amrex::Real vz_n = uz_n*inv_gamma_n;
 
     //Lorentz force
     const amrex::Real flx = q*(Ex + vy_n*Bz - vz_n*By);
