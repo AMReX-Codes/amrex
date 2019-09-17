@@ -96,6 +96,13 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
             }
         }
     }
+
+    #ifdef WARPX_QED
+        if(do_qed){
+            //Optical depths is always plotted if QED is on
+            plot_flags[plot_flag_size-1] = 1;
+        }
+    #endif
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
