@@ -13,9 +13,7 @@ using namespace amrex;
 
 void write_plotfile(const Geometry& geom, const MultiFab& plotmf)
 {
-    std::stringstream sstream;
-    sstream << "plt00000";
-    std::string plotfile_name = sstream.str();
+    std::string plotfile_name("plt00000");
 
     amrex::Print() << "Writing " << plotfile_name << std::endl;    
     
@@ -79,20 +77,16 @@ int main (int argc, char* argv[])
         DistributionMapping dmap;
         {
             RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(xlen,ylen,zlen)});
-
             Array<int,AMREX_SPACEDIM> isp{AMREX_D_DECL(0,1,1)};
-            Geometry::Setup(&rb, 0, isp.data());
             Box domain(IntVect{AMREX_D_DECL(0,0,0)},
                        IntVect{AMREX_D_DECL(n_cell_x-1,n_cell_y-1,n_cell_z-1)});
-            geom.define(domain);
+            geom.define(domain, rb, CoordSys::cartesian, isp);
 
             grids.define(domain);
             grids.maxSize(max_grid_size);
 
             dmap.define(grids);
         }
-
-        MultiFab plotfile_mf;
 
         int required_coarsening_level = 0; // typically the same as the max AMR level index
         int max_coarsening_level = 100;    // typically a huge number so MG coarsens as much as possible
@@ -160,13 +154,11 @@ int main (int argc, char* argv[])
         //
         //  Create the cell-centered velocity field we want to project  
         //
-        std::unique_ptr<MultiFab> vel;
-        vel.reset(new MultiFab(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory));
+        MultiFab vel(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
 
-        // Set velocity field to (1,0,0) for this example
-        vel->setVal(1.0, 0, 1);
-        vel->setVal(0.0, 1, 1);
-        vel->setVal(0.0, 2, 1);
+        // Set velocity field to (1,0,0) including ghost cells for this example
+        vel.setVal(1.0, 0, 1, 1);
+        vel.setVal(0.0, 1, AMREX_SPACEDIM-1, 1);
 
         //
         // Setup linear operator, AKA the nodal Laplacian
@@ -177,8 +169,8 @@ int main (int argc, char* argv[])
         // if (use_hypre_as_full_solver)
         //    lp_info.setMaxCoarseningLevel(0);
 
-        MLNodeLaplacian matrix({&geom}, {&grids}, {&dmap}, lp_info, {&factory});
-        // matrix.compRHS(GetVecOfPtrs({&rhs}), GetVecOfPtrs({&vel}), GetVecOfPtrs({&S_nd}),
+        MLNodeLaplacian matrix({geom}, {grids}, {dmap}, lp_info,
+                               Vector<EBFArrayBoxFactory const*>{&factory});
 
         // Set boundary conditions.
         // Here we use Neumann on the low x-face, Dirichlet on the high x-face,
@@ -206,41 +198,35 @@ int main (int argc, char* argv[])
         // 
 
         // RHS is nodal
-        const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
+        const BoxArray & nd_grids = amrex::convert(grids, IntVect::TheNodeVector()); // nodal grids
  
         // Multifab to host RHS
-        std::unique_ptr<MultiFab> rhs;
-        rhs.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
+        MultiFab rhs(nd_grids, dmap, 1, 1, MFInfo(), factory);
  
         // Cell-centered contributions to RHS
-        std::unique_ptr<MultiFab>  S_cc;  // cell-centered source
-        S_cc.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
-        S_cc->setVal(0.0); // Set it to zero for this example
+        MultiFab S_cc(grids, dmap, 1, 1, MFInfo(), factory);
+        S_cc.setVal(0.0); // Set it to zero for this example
   
        // Node-centered contributions to RHS
-        std::unique_ptr<MultiFab>  S_nd;  // node-centered source
-        S_nd.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
-        S_nd->setVal(0.0); // Set it to zero for this example 
+        MultiFab S_nd(nd_grids, dmap, 1, 1, MFInfo(), factory);
+        S_nd.setVal(0.0); // Set it to zero for this example 
   
         // Compute RHS -- vel must be cell-centered
-        matrix.compRHS(GetVecOfPtrs({&rhs}), GetVecOfPtrs({&vel}), GetVecOfPtrs({&S_nd}),
-                       GetVecOfPtrs({&S_cc}) );
+        matrix.compRHS({&rhs}, {&vel}, {&S_nd}, {&S_cc});
  
         //
         // Create the cell-centered sigma field and set it to 1 for this example
         //
-        std::unique_ptr<MultiFab> sigma;
-        sigma.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
-        sigma->setVal(1.0);
+        MultiFab sigma(grids, dmap, 1, 1, MFInfo(), factory);
+        sigma.setVal(1.0);
   
         // Set sigma 
-        matrix.setSigma(0, *sigma);
+        matrix.setSigma(0, sigma);
   
         //
         // Create node-centered phi
         //
-        std::unique_ptr<MultiFab> phi;
-        phi.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
+        MultiFab phi(nd_grids, dmap, 1, 1, MFInfo(), factory);
         phi.setVal(0.0);
  
         //
@@ -254,7 +240,7 @@ int main (int argc, char* argv[])
  
         nodal_solver.setVerbose(mg_verbose);
         nodal_solver.setCGVerbose(cg_verbose);
- 
+
         // Set bottom-solver to use hypre instead of native BiCGStab 
         //   ( we could also have set this to cg, bicgcg, cgbicg)
         // if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
@@ -285,9 +271,8 @@ int main (int argc, char* argv[])
         //
         // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
         // 
-        std::unique_ptr<MultiFab> fluxes;
-        fluxes.reset(new MultiFab(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory ));
-        fluxes->setVal(0.0);
+        MultiFab fluxes(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
+        fluxes.setVal(0.0);
  
         // Get fluxes from solver
         nodal_solver.getFluxes( {&fluxes} );
@@ -295,21 +280,21 @@ int main (int argc, char* argv[])
         //
         // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
         // 
-        MultiFab::Add( *vel, *fluxes, 0, 0, AMREX_SPACEDIM, 0);
+        MultiFab::Add( vel, fluxes, 0, 0, AMREX_SPACEDIM, 0);
  
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Done with full projection operation" << std::endl;
         amrex::Print() << "******************************************************************** \n" << std::endl; 
  
         // Store plotfile variables; velocity and processor id
-        plotfile_mf.define(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
+        MultiFab plotfile_mf(grids, dmap, AMREX_SPACEDIM+1, 0, MFInfo(), factory);
  
         // copy processor id into plotfile_mf
         plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
         plotfile_mf.setVal(ParallelDescriptor::MyProc(), 0, 1);
  
         // copy velocity into plotfile
-        MultiFab::Copy(plotfile_mf, *vel, 0, 0, AMREX_SPACEDIM, 0);
+        MultiFab::Copy(plotfile_mf, vel, 0, 1, AMREX_SPACEDIM, 0);
 
         write_plotfile(geom, plotfile_mf); 
     }
