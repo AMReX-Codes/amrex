@@ -265,8 +265,8 @@ int main (int argc, char* argv[])
         nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
  
         amrex::Print() << " \n********************************************************************" << std::endl; 
-        amrex::Print() << " Done solving the equation ... now subtracting off sigmna grad phi from vel" << std::endl;
-        amrex::Print() << "******************************************************************** \n" << std::endl; 
+        amrex::Print() << " Done solving the equation " << std::endl;
+        amrex::Print() << " ... now subtracting off sigmna grad phi from vel" << std::endl;
  
         //
         // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
@@ -282,8 +282,7 @@ int main (int argc, char* argv[])
         // 
         MultiFab::Add( vel, fluxes, 0, 0, AMREX_SPACEDIM, 0);
  
-        amrex::Print() << " \n********************************************************************" << std::endl; 
-        amrex::Print() << " Done with full projection operation" << std::endl;
+        amrex::Print() << " ... now done with full projection operation" << std::endl;
         amrex::Print() << "******************************************************************** \n" << std::endl; 
  
         // Store plotfile variables; velocity and processor id
