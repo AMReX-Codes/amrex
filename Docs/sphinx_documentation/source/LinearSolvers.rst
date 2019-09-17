@@ -506,18 +506,16 @@ gradient term to make the vector field result satisfy the divergence constraint.
    // 
    EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
-
    //
    //  Create the CELL CENTERED velocity field we want to project  
    //
-   std::unique_ptr<MultiFab> > vel;
+   std::unique_ptr<MultiFab> vel;
    vel.reset(new MultiFab(grids, dmap, 3, nghost, MFInfo(), factory));
 
    // Set velocity field to (1,0,0) for this example
-   vel.setVal(1.0, 0, 1);
-   vel.setVal(0.0, 1, 1);
-   vel.setVal(0.0, 2, 1);
-
+   vel->setVal(1.0, 0, 1);
+   vel->setVal(0.0, 1, 1);
+   vel->setVal(0.0, 2, 1);
 
    //
    // Setup linear operator, AKA the nodal Laplacian
@@ -562,18 +560,18 @@ gradient term to make the vector field result satisfy the divergence constraint.
    const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
 
    // Multifab to host RHS
-   std::unique_ptr<MultiFab> > rhs;
+   std::unique_ptr<MultiFab> rhs;
    rhs.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
 
    // Cell-centered contributions to RHS
    std::unique_ptr<MultiFab>  S_cc;  // cell-centered source
    S_cc.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
-   S_cc.setVal(0.0); // Set it to zero for this example
+   S_cc->setVal(0.0); // Set it to zero for this example
 
    // Node-centered contributions to RHS
    std::unique_ptr<MultiFab>  S_nd;  // node-centered source
    S_nd.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
-   S_nd.setVal(0.0); // Set it to zero for this example 
+   S_nd->setVal(0.0); // Set it to zero for this example 
 
    // Compute RHS -- vel must be cell-centered
    matrix.compRHS(GetVecOfPtrs({rhs}), GetVecOfPtrs({vel}), GetVecOfPtrs({S_nd}),
@@ -582,7 +580,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    // Create the cell-centered sigma field and set it to 1 for this example
    //
-   std::unique_ptr<MultiFab> > sigma;
+   std::unique_ptr<MultiFab> sigma;
    sigma.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
    sigma->setVal(1.0);
 
@@ -592,7 +590,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    // Create node-centered phi
    //
-   std::unique_ptr<MultiFab> > phi;
+   std::unique_ptr<MultiFab> phi;
    phi.reset(new MultiFab(nd_grids, dmap, 1, nghost, MFInfo(), factory));
    phi.setVal(0.0);
 
@@ -628,7 +626,7 @@ gradient term to make the vector field result satisfy the divergence constraint.
    std::unique_ptr<MultiFab> fluxes;
    fluxes.reset(new MultiFab(vel.boxArray(), vel.DistributionMap(),
                              vel.nComp(), 1, MFInfo(), factory ));
-   fluxes.setVal(0.0);
+   fluxes->setVal(0.0);
 
    // Get fluxes from solver
    nodal_solver.getFluxes( GetVecOfPtrs({fluxes}) );
@@ -636,9 +634,9 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
    // 
-   MultiFab::Add( vel, fluxes, 0, 0, 3, 0);
+   MultiFab::Add( *vel, *fluxes, 0, 0, 3, 0);
 
-
+See ``Tutorials/LinearSolvers/Nodal_Projection_EB`` for the complete working example.
 
 Multi-Component Operators
 =========================
