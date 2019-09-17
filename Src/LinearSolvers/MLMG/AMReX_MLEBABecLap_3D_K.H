@@ -207,7 +207,14 @@ void mlebabeclap_gsrb (Box const& box, Array4<Real> const& phi,
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+//    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    // amrex::Loop here causes gcc 8 to crash.
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i)
     {
         if ((i+j+k+redblack) % 2 == 0)
         {
@@ -440,7 +447,8 @@ void mlebabeclap_gsrb (Box const& box, Array4<Real> const& phi,
                 }
             }
         }
-    });
+    }}}}
+//    });
 }
 
 }
