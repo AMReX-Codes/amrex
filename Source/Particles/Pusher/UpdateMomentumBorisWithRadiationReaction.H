@@ -14,7 +14,7 @@ void UpdateMomentumBorisWithRadiationReaction(
     const amrex::Real Bx, const amrex::Real By, const amrex::Real Bz,
     const amrex::Real q, const amrex::Real m, const amrex::Real dt )
 {
-    //RR algorithm needs to store old value of momentum
+    //RR algorithm needs to store old value of the normalized momentum
     const amrex::Real ux_old = ux;
     const amrex::Real uy_old = uy;
     const amrex::Real uz_old = uz;
@@ -30,7 +30,7 @@ void UpdateMomentumBorisWithRadiationReaction(
         Bx, By, Bz,
         q, m, dt );
 
-    //Estimation of the momentum at intermediate (integer) time
+    //Estimation of the normalized momentum at intermediate (integer) time
     const amrex::Real ux_n = (ux-ux_old)*0.5;
     const amrex::Real uy_n = (uy-uy_old)*0.5;
     const amrex::Real uz_n = (uz-uz_old)*0.5;
@@ -51,17 +51,28 @@ void UpdateMomentumBorisWithRadiationReaction(
     const amrex::Real flz = q*(Ez + vx_n*By - vy_n*Bx);
     const amrex::Real fl2 = flx*flx + fly*fly + flz*flz;
 
-    //TO DO !
-    const amrex::Real RRcoeff = 1.0; //WRONG! SHOULD PUT THE RIGHT VALUE
-    const amrex::Real frx = 0.0; //WRONG! SHOULD PUT THE RIGHT VALUE
-    const amrex::Real fry = 0.0; //WRONG! SHOULD PUT THE RIGHT VALUE
-    const amrex::Real frz = 0.0; //WRONG! SHOULD PUT THE RIGHT VALUE
-    //TO DO !
+    //Calculation of auxiliary quantities
+    const amrex::Real vdotE = vx_n*Ex + vy_n*Ey + vz_n*Ez;
+    const amrex::Real vdotE2 = vdotE*vdotE;
+    const amrex::Real coeff = gamma_n*gamma_n*(fl2-vdotE2);
+
+    //Radiation reaction constant
+    const amrex::Real RRcoeff =
+        2.0*std::pow(PhysConst::q_e,4)/
+        (3.0*std::pow(PhysConst::m_e,2)*std::pow(PhysConst::c,5)) ; //CHECK CAREFULLY!
+
+    //Compute the components of the RR force
+    const amrex::Real frx =
+        -RRcoeff*(fly*Bz - flz*By - vdotE*Ex + coeff*vx_n);
+    const amrex::Real fry =
+        -RRcoeff*(flz*Bx - flx*Bz - vdotE*Ey + coeff*vy_n);
+    const amrex::Real frz =
+        -RRcoeff*(flx*By - fly*Bx - vdotE*Ez + coeff*vz_n);
 
     //Update momentum using the RR force
-    ux -= frx*dt;
-    uy -= fry*dt;
-    uz -= frz*dt;
+    ux += frx*dt;
+    uy += fry*dt;
+    uz += frz*dt;
 }
 
 #endif // WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_BORIS_WITHRR_H_
