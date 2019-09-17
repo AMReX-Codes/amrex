@@ -21,6 +21,7 @@ This section describes some of the tools available to visualize the data:
    picviewer
    openpmdviewer
    advanced
+   plot_parallel
 
 
 In addition, WarpX also has In-Situ Visualization capabilities (i.e.
