@@ -67,7 +67,6 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
 	{
 	    Mask& m = m_fa[mfi];
-            auto const& a = m.array();
 	    const Box& face_box = m.box();
 	    //
 	    // Now have to set as not_covered the periodic translates as well.
@@ -85,6 +84,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    const Box& target = geom.Domain() & m.box();
                     if (target.ok()) {
                         auto val = BndryData::not_covered;
+                        auto const& a = m.array();
                         AMREX_HOST_DEVICE_FOR_4D (target, ncomp, i, j, k, n,
                         {
                             a(i,j,k,n) = val;
@@ -97,10 +97,11 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	    // Turn mask off on intersection with regba
 	    //
 	    regba.intersections(face_box,isects);
-	    
+
 	    for (int ii = 0, N = isects.size(); ii < N; ii++) {
                 const Box& b = isects[ii].second;
                 auto val = BndryData::covered;
+                auto const& a = m.array();
                 AMREX_HOST_DEVICE_FOR_4D(b,ncomp,i,j,k,n,
                 {
                     a(i,j,k,n) = val;
@@ -123,6 +124,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		    for (int ii = 0, N = isects.size(); ii < N; ii++) {
                         const Box& b = isects[ii].second;
                         auto val = BndryData::covered;
+                        auto const& a = m.array();
                         AMREX_HOST_DEVICE_FOR_4D(b,ncomp,i,j,k,n,
                         {
                             a(i,j,k,n) = val;
