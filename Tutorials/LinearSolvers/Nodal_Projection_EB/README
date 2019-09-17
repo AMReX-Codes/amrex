@@ -1,4 +1,3 @@
-"Off to the Races"
 
 This tutorial demonstrates the solution of a nodal Poisson equation
 to compute a potential flow field around nine obstacles. 
@@ -32,36 +31,43 @@ The output from your run should look something like this:
 
 MLMG: # of AMR levels: 1
       # of MG levels on the coarsest AMR level: 3
-MLMG: Initial rhs               = 128
-MLMG: Initial residual (resid0) = 128
-MLCGSolver_BiCGStab: Initial error (error0) =        0.00585083279
-MLCGSolver_BiCGStab: Final: Iteration  131 rel. err. 8.316094303e-05
-MLMG: Iteration   1 Fine resid/bnorm = 0.5844966018
-MLCGSolver_BiCGStab: Initial error (error0) =        0.0001712929542
-MLCGSolver_BiCGStab: Final: Iteration  117 rel. err. 9.471637432e-05
-MLMG: Iteration   2 Fine resid/bnorm = 0.008993801295
-MLCGSolver_BiCGStab: Initial error (error0) =        7.062486538e-06
-MLCGSolver_BiCGStab: Final: Iteration  126 rel. err. 8.921885015e-05
-MLMG: Iteration   3 Fine resid/bnorm = 0.0003448363733
-MLCGSolver_BiCGStab: Initial error (error0) =        3.522653229e-07
-MLCGSolver_BiCGStab: Final: Iteration  131 rel. err. 6.102633163e-05
-MLMG: Iteration   4 Fine resid/bnorm = 1.818381726e-05
-MLCGSolver_BiCGStab: Initial error (error0) =        1.869194089e-08
-MLCGSolver_BiCGStab: Final: Iteration  131 rel. err. 6.35413132e-05
-MLMG: Iteration   5 Fine resid/bnorm = 1.023441528e-06
-MLCGSolver_BiCGStab: Initial error (error0) =        1.017130677e-09
-MLCGSolver_BiCGStab: Final: Iteration   93 rel. err. 9.168336176e-05
-MLMG: Iteration   6 Fine resid/bnorm = 5.871105663e-08
-MLCGSolver_BiCGStab: Initial error (error0) =        5.645789832e-11
-MLCGSolver_BiCGStab: Final: Iteration  132 rel. err. 8.280742281e-05
-MLMG: Iteration   7 Fine resid/bnorm = 3.394263815e-09
-MLMG: Final Iter. 7 resid, resid/bnorm = 4.344657683e-07, 3.394263815e-09
-MLMG: Timers: Solve = 1.15662553 Iter = 1.132159153 Bottom = 0.499076789
+MLMG: Initial rhs               = 126.3307824
+MLMG: Initial residual (resid0) = 126.3307824
+MLCGSolver_BiCGStab: Initial error (error0) =        0.0278389093
+MLCGSolver_BiCGStab: Final: Iteration   77 rel. err. 6.543689448e-05
+MLMG: Iteration   1 Fine resid/bnorm = 0.2499102826
+MLCGSolver_BiCGStab: Initial error (error0) =        0.001461454468
+MLCGSolver_BiCGStab: Final: Iteration   76 rel. err. 8.877403781e-05
+MLMG: Iteration   2 Fine resid/bnorm = 0.02600341945
+MLCGSolver_BiCGStab: Initial error (error0) =        0.0001077472471
+MLCGSolver_BiCGStab: Final: Iteration   72 rel. err. 9.553802864e-05
+MLMG: Iteration   3 Fine resid/bnorm = 0.00249434023
+MLCGSolver_BiCGStab: Initial error (error0) =        1.011498575e-05
+MLCGSolver_BiCGStab: Final: Iteration   79 rel. err. 8.516182967e-05
+MLMG: Iteration   4 Fine resid/bnorm = 0.0002272675105
+MLCGSolver_BiCGStab: Initial error (error0) =        9.876710493e-07
+MLCGSolver_BiCGStab: Final: Iteration   77 rel. err. 7.625053604e-05
+MLMG: Iteration   5 Fine resid/bnorm = 2.011881569e-05
+MLCGSolver_BiCGStab: Initial error (error0) =        9.475250695e-08
+MLCGSolver_BiCGStab: Final: Iteration   75 rel. err. 9.507528184e-05
+MLMG: Iteration   6 Fine resid/bnorm = 1.760482725e-06
+MLCGSolver_BiCGStab: Initial error (error0) =        9.039312908e-09
+MLCGSolver_BiCGStab: Final: Iteration   76 rel. err. 8.428185988e-05
+MLMG: Iteration   7 Fine resid/bnorm = 1.532406399e-07
+MLCGSolver_BiCGStab: Initial error (error0) =        8.618104966e-10
+MLCGSolver_BiCGStab: Final: Iteration   76 rel. err. 7.620489259e-05
+MLMG: Iteration   8 Fine resid/bnorm = 1.317566921e-08
+MLCGSolver_BiCGStab: Initial error (error0) =        8.18305383e-11
+MLCGSolver_BiCGStab: Final: Iteration   77 rel. err. 6.119534384e-05
+MLMG: Iteration   9 Fine resid/bnorm = 1.138344394e-09
+MLMG: Final Iter. 9 resid, resid/bnorm = 1.43807938e-07, 1.138344394e-09
+MLMG: Timers: Solve = 2.50906984 Iter = 1.970112343 Bottom = 0.559133407
 
 ********************************************************************
- Done!
+ Done solving the equation
+ ... now subtracting off sigmna grad phi from vel
+ ... now done with full projection operation
 ********************************************************************
 
 Writing plt00000
-Total run time 1.435699991
-
+Total run time 2.873842965
