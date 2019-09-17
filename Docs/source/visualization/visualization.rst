@@ -8,7 +8,8 @@ Particle-In-Cell codes).
 .. note::
 
     This is controlled by the parameters ``warpx.dump_plotfiles`` and
-    ``warpx.dump_openpmd`` in the section :doc:`../running_cpp/parameters`.
+    ``warpx.dump_openpmd`` & ``warpx.openpmd_backend`` in the section
+    :doc:`../running_cpp/parameters`.
 
 This section describes some of the tools available to visualize the data:
 
@@ -20,6 +21,7 @@ This section describes some of the tools available to visualize the data:
    picviewer
    openpmdviewer
    advanced
+   plot_parallel
 
 
 In addition, WarpX also has In-Situ Visualization capabilities (i.e.

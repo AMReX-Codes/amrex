@@ -1,9 +1,18 @@
-CEXE_sources += CustomDensityProb.cpp
-CEXE_sources += PlasmaProfiles.cpp
 CEXE_sources += WarpXInitData.cpp
-CEXE_sources += CustomMomentumProb.cpp
+
 CEXE_sources += PlasmaInjector.cpp
 CEXE_headers += PlasmaInjector.H
+
+CEXE_headers += InjectorPosition.H
+
+CEXE_headers += InjectorDensity.H
+CEXE_sources += InjectorDensity.cpp
+
+CEXE_headers += InjectorMomentum.H
+CEXE_sources += InjectorMomentum.cpp
+
+CEXE_headers += CustomDensityProb.H
+CEXE_headers += CustomMomentumProb.H
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Initialization
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Initialization

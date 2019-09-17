@@ -3,34 +3,35 @@
 
 #include <WarpX.H>
 #ifdef WARPX_USE_OPENPMD
-#include <openPMD/openPMD.hpp>
+#   include <openPMD/openPMD.hpp>
 #endif
 
-using namespace amrex;
+void
+PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
+          const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
 void
-PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
-          const std::array<std::unique_ptr<MultiFab>,3>& data);
-
-void
-AverageAndPackVectorField( MultiFab& mf_avg,
-                         const std::array< std::unique_ptr<MultiFab>, 3 >& vector_field,
+AverageAndPackVectorField( amrex::MultiFab& mf_avg,
+                         const std::array< std::unique_ptr<amrex::MultiFab>, 3 >& vector_field,
+                         const amrex::DistributionMapping& dm,
                          const int dcomp, const int ngrow );
 
 void
-AverageAndPackScalarField( MultiFab& mf_avg,
-                         const MultiFab & scalar_field,
+AverageAndPackScalarField( amrex::MultiFab& mf_avg,
+                         const amrex::MultiFab & scalar_field,
                          const int dcomp, const int ngrow );
 
 void
-WriteRawField( const MultiFab& F, const DistributionMapping& dm,
-             const std::string& filename,
-             const std::string& level_prefix,
-             const std::string& field_name,
-             const int lev, const bool plot_guards );
+WriteRawField( const amrex::MultiFab& F,
+               const amrex::DistributionMapping& dm,
+               const std::string& filename,
+               const std::string& level_prefix,
+               const std::string& field_name,
+               const int lev, const bool plot_guards );
 
 void
-WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
+WriteZeroRawField( const amrex::MultiFab& F,
+             const amrex::DistributionMapping& dm,
              const std::string& filename,
              const std::string& level_prefix,
              const std::string& field_name,
@@ -38,9 +39,9 @@ WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
 
 void
 WriteCoarseScalar( const std::string field_name,
-    const std::unique_ptr<MultiFab>& F_cp,
-    const std::unique_ptr<MultiFab>& F_fp,
-    const DistributionMapping& dm,
+    const std::unique_ptr<amrex::MultiFab>& F_cp,
+    const std::unique_ptr<amrex::MultiFab>& F_fp,
+    const amrex::DistributionMapping& dm,
     const std::string& filename,
     const std::string& level_prefix,
     const int lev, const bool plot_guards,
@@ -48,39 +49,41 @@ WriteCoarseScalar( const std::string field_name,
 
 void
 WriteCoarseVector( const std::string field_name,
-    const std::unique_ptr<MultiFab>& Fx_cp,
-    const std::unique_ptr<MultiFab>& Fy_cp,
-    const std::unique_ptr<MultiFab>& Fz_cp,
-    const std::unique_ptr<MultiFab>& Fx_fp,
-    const std::unique_ptr<MultiFab>& Fy_fp,
-    const std::unique_ptr<MultiFab>& Fz_fp,
-    const DistributionMapping& dm,
+    const std::unique_ptr<amrex::MultiFab>& Fx_cp,
+    const std::unique_ptr<amrex::MultiFab>& Fy_cp,
+    const std::unique_ptr<amrex::MultiFab>& Fz_cp,
+    const std::unique_ptr<amrex::MultiFab>& Fx_fp,
+    const std::unique_ptr<amrex::MultiFab>& Fy_fp,
+    const std::unique_ptr<amrex::MultiFab>& Fz_fp,
+    const amrex::DistributionMapping& dm,
     const std::string& filename,
     const std::string& level_prefix,
     const int lev, const bool plot_guards );
 
-std::unique_ptr<MultiFab>
+std::unique_ptr<amrex::MultiFab>
 getInterpolatedScalar(
-    const MultiFab& F_cp, const MultiFab& F_fp,
-    const DistributionMapping& dm, const int r_ratio,
-    const Real* dx, const int ngrow );
+    const amrex::MultiFab& F_cp, const amrex::MultiFab& F_fp,
+    const amrex::DistributionMapping& dm, const int r_ratio,
+    const amrex::Real* dx, const int ngrow );
 
-std::array<std::unique_ptr<MultiFab>, 3>
+std::array<std::unique_ptr<amrex::MultiFab>, 3>
 getInterpolatedVector(
-    const std::unique_ptr<MultiFab>& Fx_cp,
-    const std::unique_ptr<MultiFab>& Fy_cp,
-    const std::unique_ptr<MultiFab>& Fz_cp,
-    const std::unique_ptr<MultiFab>& Fx_fp,
-    const std::unique_ptr<MultiFab>& Fy_fp,
-    const std::unique_ptr<MultiFab>& Fz_fp,
-    const DistributionMapping& dm,
-    const int r_ratio, const Real* dx,
+    const std::unique_ptr<amrex::MultiFab>& Fx_cp,
+    const std::unique_ptr<amrex::MultiFab>& Fy_cp,
+    const std::unique_ptr<amrex::MultiFab>& Fz_cp,
+    const std::unique_ptr<amrex::MultiFab>& Fx_fp,
+    const std::unique_ptr<amrex::MultiFab>& Fy_fp,
+    const std::unique_ptr<amrex::MultiFab>& Fz_fp,
+    const amrex::DistributionMapping& dm,
+    const int r_ratio, const amrex::Real* dx,
     const int ngrow );
 
 void
 coarsenCellCenteredFields(
-    Vector<MultiFab>& coarse_mf, Vector<Geometry>& coarse_geom,
-    const Vector<MultiFab>& source_mf, const Vector<Geometry>& source_geom,
+    amrex::Vector<amrex::MultiFab>& coarse_mf,
+    amrex::Vector<amrex::Geometry>& coarse_geom,
+    const amrex::Vector<amrex::MultiFab>& source_mf,
+    const amrex::Vector<amrex::Geometry>& source_geom,
     int coarse_ratio, int finest_level );
 
 #ifdef WARPX_USE_OPENPMD
@@ -88,15 +91,15 @@ void
 setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name );
 
 std::vector<std::uint64_t>
-getReversedVec( const IntVect& v );
+getReversedVec( const amrex::IntVect& v );
 
 std::vector<double>
-getReversedVec( const Real* v );
+getReversedVec( const amrex::Real* v );
 
 void
 WriteOpenPMDFields( const std::string& filename,
                     const std::vector<std::string>& varnames,
-                    const MultiFab& mf, const Geometry& geom,
+                    const amrex::MultiFab& mf, const amrex::Geometry& geom,
                     const int iteration, const double time );
 #endif // WARPX_USE_OPENPMD
 

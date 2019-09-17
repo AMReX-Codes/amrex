@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.3.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2019 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +31,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+/* Undocumented macros, especially those whose name start with YY_,
+   are private implementation details.  Do not rely on them.  */
+
 #ifndef YY_YY_WP_PARSER_TAB_H_INCLUDED
 # define YY_YY_WP_PARSER_TAB_H_INCLUDED
 /* Debug traces.  */
@@ -52,8 +56,14 @@ extern int yydebug;
     F2 = 262,
     EOL = 263,
     POW = 264,
-    NEG = 265,
-    UPLUS = 266
+    GEQ = 265,
+    LEQ = 266,
+    EQ = 267,
+    NEQ = 268,
+    AND = 269,
+    OR = 270,
+    NEG = 271,
+    UPLUS = 272
   };
 #endif
 
@@ -62,7 +72,7 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 19 "wp_parser.y" /* yacc.c:1909  */
+#line 19 "wp_parser.y" /* yacc.c:1921  */
 
     struct wp_node* n;
     double d;
@@ -70,7 +80,7 @@ union YYSTYPE
     enum wp_f1_t f1;
     enum wp_f2_t f2;
 
-#line 74 "wp_parser.tab.h" /* yacc.c:1909  */
+#line 84 "wp_parser.tab.h" /* yacc.c:1921  */
 };
 
 typedef union YYSTYPE YYSTYPE;

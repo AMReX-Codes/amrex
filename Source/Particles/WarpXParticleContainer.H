@@ -11,12 +11,12 @@ enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 struct PIdx
 {
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
-	w = 0,  // weight
-	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
-#ifdef WARPX_RZ
+        w = 0,  // weight
+        ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
+#ifdef WARPX_DIM_RZ
         theta, // RZ needs all three position components
 #endif
-	nattribs
+        nattribs
     };
 };
 
@@ -25,6 +25,15 @@ struct DiagIdx
     enum {
         w = 0,
         x, y, z, ux, uy, uz,
+        nattribs
+    };
+};
+
+struct TmpIdx
+{
+    enum {
+        xold = 0,
+        yold, zold, uxold, uyold, uzold,
         nattribs
     };
 };
@@ -42,6 +51,9 @@ namespace ParticleStringNames
         {"Bx",    PIdx::Bx   },
         {"By",    PIdx::By   },
         {"Bz",    PIdx::Bz   }
+#ifdef WARPX_DIM_RZ
+        ,{"theta", PIdx::theta}
+#endif
     };
 }
 
@@ -61,20 +73,24 @@ public:
                       const amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
                       const amrex::Cuda::ManagedDeviceVector<amrex::Real>& z);
 #endif
-    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
-        return GetStructOfArrays().GetRealData(); 
-    }
-    
-    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
-        return GetStructOfArrays().GetRealData(); 
+    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
+        return GetStructOfArrays().GetRealData();
     }
 
-    const RealVector& GetAttribs (int comp) const { 
+    std::array<RealVector, PIdx::nattribs>& GetAttribs () {
+        return GetStructOfArrays().GetRealData();
+    }
+
+    const RealVector& GetAttribs (int comp) const {
         return GetStructOfArrays().GetRealData(comp);
     }
-    
-    RealVector& GetAttribs (int comp) { 
+
+    RealVector& GetAttribs (int comp) {
         return GetStructOfArrays().GetRealData(comp);
+    }
+
+    IntVector& GetiAttribs (int comp) {
+        return GetStructOfArrays().GetIntData(comp);
     }
 };
 
@@ -86,15 +102,15 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
-    // amrex::StructOfArrays with DiagIdx::nattribs amrex::Real components 
+    // amrex::StructOfArrays with DiagIdx::nattribs amrex::Real components
     // and 0 int components for the particle data.
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
     // DiagnosticParticles is a vector, with one element per MR level.
-    // DiagnosticParticles[lev] is typically a key-value pair where the key is 
-    // a pair [grid_index, tile_index], and the value is the corresponding 
+    // DiagnosticParticles[lev] is typically a key-value pair where the key is
+    // a pair [grid_index, tile_index], and the value is the corresponding
     // DiagnosticParticleData (see above) on this tile.
     using DiagnosticParticles = amrex::Vector<std::map<std::pair<int, int>, DiagnosticParticleData> >;
-    
+
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
@@ -104,19 +120,20 @@ public:
                                 const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) {}
 
     virtual void FieldGather (int lev,
-                              const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-                              const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
+                              const amrex::MultiFab& Ex, const amrex::MultiFab& Ey,
+                              const amrex::MultiFab& Ez, const amrex::MultiFab& Bx,
+                              const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
+                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) = 0;
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     virtual void Evolve (int lev,
-			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                         const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+                         amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab* cjx, amrex::MultiFab* cjy, amrex::MultiFab* cjz,
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
@@ -126,10 +143,10 @@ public:
     virtual void PostRestart () = 0;
 
     virtual void GetParticleSlice(const int direction,     const amrex::Real z_old,
-                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real z_new, const amrex::Real t_boost,
                                   const amrex::Real t_lab, const amrex::Real dt,
                                   DiagnosticParticles& diagnostic_particles) {}
-    
+
     void AllocData ();
 
     ///
@@ -137,7 +154,7 @@ public:
     /// It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint.
     /// This is the electrostatic version of the particle push.
-    /// 
+    ///
     void PushXES (amrex::Real dt);
 
     ///
@@ -145,13 +162,13 @@ public:
     /// It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint.
     /// This is the electromagnetic version of the particle push.
-    /// 
+    ///
     void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);
 
     ///
     /// This pushes the particle momenta by dt.
-    /// 
+    ///
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,
                         const amrex::MultiFab& Ey,
@@ -164,36 +181,36 @@ public:
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-   virtual void DepositCharge(WarpXParIter& pti,
-                             RealVector& wp,
-                             amrex::MultiFab* rhomf,
-                             amrex::MultiFab* crhomf,
-                             int icomp,
-                             const long np_current,
-                             const long np,
-                             int thread_num,
-                             int lev );
-  
-  virtual void DepositCurrent(WarpXParIter& pti,
-                              RealVector& wp,
-                              RealVector& uxp,
-                              RealVector& uyp,
-                              RealVector& uzp,
-                              amrex::MultiFab& jx,
-                              amrex::MultiFab& jy,
-                              amrex::MultiFab& jz,
-                              amrex::MultiFab* cjx,
-                              amrex::MultiFab* cjy,
-                              amrex::MultiFab* cjz,
-                              const long np_current,
-                              const long np,
-                              int thread_num,
-                              int lev,
-                              amrex::Real dt );
+    virtual void DepositCharge(WarpXParIter& pti,
+                               RealVector& wp,
+                               const int * const ion_lev,
+                               amrex::MultiFab* rho,
+                               int icomp,
+                               const long offset,
+                               const long np_to_depose,
+                               int thread_num,
+                               int lev,
+                               int depos_lev);
 
-    // If particles start outside of the domain, ContinuousInjection 
-    // makes sure that they are initialized when they enter the domain, and 
-    // NOT before. Virtual function, overriden by derived classes. 
+    virtual void DepositCurrent(WarpXParIter& pti,
+                                RealVector& wp,
+                                RealVector& uxp,
+                                RealVector& uyp,
+                                RealVector& uzp,
+                                const int * const ion_lev,
+                                amrex::MultiFab* jx,
+                                amrex::MultiFab* jy,
+                                amrex::MultiFab* jz,
+                                const long offset,
+                                const long np_to_depose,
+                                int thread_num,
+                                int lev,
+                                int depos_lev,
+                                amrex::Real dt);
+
+    // If particles start outside of the domain, ContinuousInjection
+    // makes sure that they are initialized when they enter the domain, and
+    // NOT before. Virtual function, overriden by derived classes.
     // Current status:
     // PhysicalParticleContainer: implemented.
     // LaserParticleContainer: implemented.
@@ -202,7 +219,7 @@ public:
     // Update optional sub-class-specific injection location.
     virtual void UpdateContinuousInjectionPosition(amrex::Real dt) {}
 
-    /// 
+    ///
     /// This returns the total charge for all the particles in this ParticleContainer.
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
     ///
@@ -214,8 +231,8 @@ public:
 
     void AddNParticles (int lev,
                         int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
-			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
-			int nattr, const amrex::Real* attr, int uniqueparticles, int id=-1);
+                        const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
+                        int nattr, const amrex::Real* attr, int uniqueparticles, int id=-1);
 
     void AddOneParticle (int lev, int grid, int tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,
@@ -235,14 +252,16 @@ public:
 
     static int NextID () { return ParticleType::NextID(); }
 
+    void setNextID(int next_id) { ParticleType::NextID(next_id); }
+
     bool do_splitting = false;
 
     // split along axes (0) or diagonals (1)
     int split_type = 0;
 
-    using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddRealComp; 
+    using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddRealComp;
     using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddIntComp;
-   
+
     void AddRealComp (const std::string& name, bool comm=true)
     {
         particle_comps[name] = NumRealComps();
@@ -251,30 +270,52 @@ public:
 
     void AddIntComp (const std::string& name, bool comm=true)
     {
-        particle_comps[name] = NumIntComps();
+        particle_icomps[name] = NumIntComps();
         AddIntComp(comm);
     }
 
     int DoBoostedFrameDiags () const { return do_boosted_frame_diags; }
-    
+
+    virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
+                                      amrex::Gpu::ManagedDeviceVector<int>& ionization_mask)
+    {};
+
+    std::map<std::string, int> getParticleComps () { return particle_comps;}
+
 protected:
 
     std::map<std::string, int> particle_comps;
-    
+    std::map<std::string, int> particle_icomps;
+
     int species_id;
 
     amrex::Real charge;
     amrex::Real mass;
 
-    bool deposit_on_main_grid = false;
+    //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
+    bool m_deposit_on_main_grid = false;
+
+    //! instead of gathering fields from the finest patch level, gather from the coarsest
+    bool m_gather_from_main_grid = false;
 
     static int do_not_push;
 
-    // Whether to allow particles outside of the simulation domain to be 
+    // Whether to allow particles outside of the simulation domain to be
     // initialized when they enter the domain.
-    // This is currently required because continuous injection does not 
+    // This is currently required because continuous injection does not
     // support all features allowed by direct injection.
     int do_continuous_injection = 0;
+
+    int do_field_ionization = 0;
+    int ionization_product;
+    std::string ionization_product_name;
+    int ion_atomic_number;
+    int ionization_initial_level = 0;
+    amrex::Gpu::ManagedVector<amrex::Real> ionization_energies;
+    amrex::Gpu::ManagedVector<amrex::Real> adk_power;
+    amrex::Gpu::ManagedVector<amrex::Real> adk_prefactor;
+    amrex::Gpu::ManagedVector<amrex::Real> adk_exp_prefactor;
+    std::string physical_element;
 
     int do_boosted_frame_diags = 1;
 
@@ -283,16 +324,21 @@ protected:
     amrex::Vector<amrex::FArrayBox> local_jy;
     amrex::Vector<amrex::FArrayBox> local_jz;
 
-    amrex::Vector<amrex::Cuda::ManagedDeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
+    using DataContainer = amrex::Gpu::ManagedDeviceVector<amrex::Real>;
+    using PairIndex = std::pair<int, int>;
 
-    // Whether to dump particle quantities. 
+    amrex::Vector<DataContainer> m_xp, m_yp, m_zp;
+
+    // Whether to dump particle quantities.
     // If true, particle position is always dumped.
     int plot_species = 1;
-    // For all particle attribs (execept position), whether or not 
+    // For all particle attribs (execept position), whether or not
     // to dump to file.
     amrex::Vector<int> plot_flags;
     // list of names of attributes to dump.
     amrex::Vector<std::string> plot_vars;
+
+    amrex::Vector<std::map<PairIndex, std::array<DataContainer, TmpIdx::nattribs> > > tmp_particle_data;
 
 private:
     virtual void particlePostLocate(ParticleType& p, const amrex::ParticleLocData& pld,

@@ -68,7 +68,7 @@ void ConvertLabParamsToBoost()
     BL_ASSERT(slice_lo.size() == AMREX_SPACEDIM);
     pp_slice.queryarr("dom_hi",slice_hi,0,AMREX_SPACEDIM);
     BL_ASSERT(slice_hi.size() == AMREX_SPACEDIM);
-    
+
 
     pp_amr.query("max_level", max_level);
     if (max_level > 0){
@@ -113,7 +113,7 @@ void ConvertLabParamsToBoost()
 
 }
 
-/* \brief Function that sets the value of MultiFab MF to zero for z between 
+/* \brief Function that sets the value of MultiFab MF to zero for z between
  * zmin and zmax.
  */
 void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax){
@@ -143,7 +143,7 @@ void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax)
                     const Real z_gridpoint = zmin_box+(k-lo_ind)*dz;
 #else
                     const Real z_gridpoint = zmin_box+(j-lo_ind)*dz;
-#endif 
+#endif
                     if ( (z_gridpoint >= zmin) && (z_gridpoint < zmax) ) {
                         arr(i,j,k) = 0.;
                     };

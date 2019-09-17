@@ -18,12 +18,12 @@ public:
 
     virtual void InitData () final;
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                            amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     virtual void Evolve (int lev,
                          const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
                          const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
@@ -44,8 +44,27 @@ public:
 
     virtual void PostRestart () final;
 
+    void gaussian_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
+                                 amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
+                                 amrex::Real * AMREX_RESTRICT const amplitude);
+
+    void harris_laser_profile (const int np, amrex::Real const * AMREX_RESTRICT const Xp,
+                               amrex::Real const * AMREX_RESTRICT const Yp, amrex::Real t,
+                               amrex::Real * AMREX_RESTRICT const amplitude);
+
+    void calculate_laser_plane_coordinates (const int np, const int thread_num,
+                                            amrex::Real * AMREX_RESTRICT const pplane_Xp,
+                                            amrex::Real * AMREX_RESTRICT const pplane_Yp);
+
+    void update_laser_particle (const int np, amrex::Real * AMREX_RESTRICT const puxp,
+                                amrex::Real * AMREX_RESTRICT const puyp,
+                                amrex::Real * AMREX_RESTRICT const puzp,
+                                amrex::Real const * AMREX_RESTRICT const pwp,
+                                amrex::Real const * AMREX_RESTRICT const amplitude,
+                                const amrex::Real dt, const int thread_num);
+
 protected:
-    
+
     std::string laser_name;
 
 private:
@@ -88,11 +107,11 @@ private:
     // Theoretical position of the antenna. Used if do_continuous_injection=1.
     // Track the position of the antenna until it enters the simulation domain.
     amrex::Vector<amrex::Real> updated_position;
-    
+
     void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
     void InitData (int lev);
-    // Inject the laser antenna during the simulation, if it started 
+    // Inject the laser antenna during the simulation, if it started
     // outside of the simulation domain and enters it.
     void ContinuousInjection(const amrex::RealBox& injection_box) override;
     // Update position of the antenna

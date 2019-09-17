@@ -1,6 +1,5 @@
 CEXE_sources += PML.cpp WarpXEvolvePML.cpp
 CEXE_headers += PML.H
-F90EXE_sources += PML_routines.F90
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/BoundaryConditions
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/BoundaryConditions

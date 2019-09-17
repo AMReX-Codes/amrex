@@ -1,14 +1,15 @@
 #include <WarpXAlgorithmSelection.H>
+
 #include <map>
 #include <algorithm>
 #include <cstring>
 
 // Define dictionary with correspondance between user-input strings,
-// and corresponding integer for use inside the code (e.g. in PICSAR).
+// and corresponding integer for use inside the code
 
 const std::map<std::string, int> maxwell_solver_algo_to_int = {
     {"yee",     MaxwellSolverAlgo::Yee },
-#ifndef WARPX_RZ // Not available in RZ
+#ifndef WARPX_DIM_RZ // Not available in RZ
     {"ckc",     MaxwellSolverAlgo::CKC },
 #endif
     {"default", MaxwellSolverAlgo::Yee }
@@ -23,30 +24,17 @@ const std::map<std::string, int> particle_pusher_algo_to_int = {
 const std::map<std::string, int> current_deposition_algo_to_int = {
     {"esirkepov",            CurrentDepositionAlgo::Esirkepov },
     {"direct",               CurrentDepositionAlgo::Direct },
-#if (!defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
-    {"direct-vectorized",    CurrentDepositionAlgo::DirectVectorized },
-#endif
     {"default",              CurrentDepositionAlgo::Esirkepov }
 };
 
 const std::map<std::string, int> charge_deposition_algo_to_int = {
     {"standard",   ChargeDepositionAlgo::Standard },
-#if (!defined AMREX_USE_GPU)&&(AMREX_SPACEDIM == 3) // Only available on CPU and 3D
-    {"vectorized", ChargeDepositionAlgo::Vectorized },
-    {"default",    ChargeDepositionAlgo::Vectorized }
-#else
     {"default",    ChargeDepositionAlgo::Standard }
-#endif
 };
 
 const std::map<std::string, int> gathering_algo_to_int = {
     {"standard",   GatheringAlgo::Standard },
-#ifndef AMREX_USE_GPU // Only available on CPU
-    {"vectorized", GatheringAlgo::Vectorized },
-    {"default",    GatheringAlgo::Vectorized }
-#else
     {"default",    GatheringAlgo::Standard }
-#endif
 };
 
 

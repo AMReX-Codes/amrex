@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <WarpXConst.H>
 
@@ -77,7 +76,7 @@ WarpX::MoveWindow (bool move_j)
            new_slice_lo[i] = current_slice_lo[i];
            new_slice_hi[i] = current_slice_hi[i];
        }
-       int num_shift_base_slice = static_cast<int> ((moving_window_x - 
+       int num_shift_base_slice = static_cast<int> ((moving_window_x -
                                   current_slice_lo[dir]) / cdx[dir]);
        new_slice_lo[dir] = current_slice_lo[dir] + num_shift_base_slice*cdx[dir];
        new_slice_hi[dir] = current_slice_hi[dir] + num_shift_base_slice*cdx[dir];
