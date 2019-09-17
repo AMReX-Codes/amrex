@@ -498,8 +498,6 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    //     vel = vel - sigma * grad(phi)
    // 
-   // NOTE: phi is node centered !!!
-
 
    //
    // Create the EB factory
@@ -507,28 +505,25 @@ gradient term to make the vector field result satisfy the divergence constraint.
    EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
 
    //
-   //  Create the CELL CENTERED velocity field we want to project  
+   //  Create the cell-centered velocity field we want to project  
    //
-   std::unique_ptr<MultiFab> vel;
-   vel.reset(new MultiFab(grids, dmap, 3, nghost, MFInfo(), factory));
+   MultiFab vel(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
 
-   // Set velocity field to (1,0,0) for this example
-   vel->setVal(1.0, 0, 1);
-   vel->setVal(0.0, 1, 1);
-   vel->setVal(0.0, 2, 1);
+   // Set velocity field to (1,0,0) including ghost cells for this example
+   vel.setVal(1.0, 0, 1, 1);
+   vel.setVal(0.0, 1, AMREX_SPACEDIM-1, 1);
 
    //
    // Setup linear operator, AKA the nodal Laplacian
    // 
    LPInfo lp_info;
-   lp_info.setMaxCoarseningLevel(nodal_mg_max_coarsening_level); // Max level of coarsening
 
    // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
-   if (use_hypre_as_full_solver)
-       lp_info.setMaxCoarseningLevel(0);
+   // if (use_hypre_as_full_solver)
+   //     lp_info.setMaxCoarseningLevel(0);
 
-   MLNodeLaplacian matrix(geom, grids, dmap, lp_info, amrex::GetVecOfConstPtrs({factory}));
-
+   MLNodeLaplacian matrix({geom}, {grids}, {dmap}, lp_info,
+                          Vector<EBFArrayBoxFactory const*>{&factory});
 
    // Set boundary conditions.
    // Here we use Neumann on the low x-face, Dirichlet on the high x-face,
@@ -560,38 +555,32 @@ gradient term to make the vector field result satisfy the divergence constraint.
    const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
 
    // Multifab to host RHS
-   std::unique_ptr<MultiFab> rhs;
-   rhs.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
+   MultiFab rhs(nd_grids, dmap, 1, 1, MFInfo(), factory);
 
    // Cell-centered contributions to RHS
-   std::unique_ptr<MultiFab>  S_cc;  // cell-centered source
-   S_cc.reset(new MultiFab(grids, dmap, 1, 1, MFInfo(), factory));
-   S_cc->setVal(0.0); // Set it to zero for this example
+   MultiFab S_cc(grids, dmap, 1, 1, MFInfo(), factory);
+   S_cc.setVal(0.0); // Set it to zero for this example
 
    // Node-centered contributions to RHS
-   std::unique_ptr<MultiFab>  S_nd;  // node-centered source
-   S_nd.reset(new MultiFab(nd_grids, dmap, 1, 1, MFInfo(), factory));
-   S_nd->setVal(0.0); // Set it to zero for this example 
+   MultiFab S_nd(nd_grids, dmap, 1, 1, MFInfo(), factory);
+   S_nd.setVal(0.0); // Set it to zero for this example
 
    // Compute RHS -- vel must be cell-centered
-   matrix.compRHS(GetVecOfPtrs({rhs}), GetVecOfPtrs({vel}), GetVecOfPtrs({S_nd}),
-                  GetVecOfPtrs({S_cc}) );
+   matrix.compRHS({&rhs}, {&vel}, {&S_nd}, {&S_cc});
 
    //
    // Create the cell-centered sigma field and set it to 1 for this example
    //
-   std::unique_ptr<MultiFab> sigma;
-   sigma.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
-   sigma->setVal(1.0);
+   MultiFab sigma(grids, dmap, 1, 1, MFInfo(), factory);
+   sigma.setVal(1.0);
 
-   // Set sigma 
-   matrix.setSigma(0, *sigma);
+   // Set sigma
+   matrix.setSigma(0, sigma);
 
    //
    // Create node-centered phi
    //
-   std::unique_ptr<MultiFab> phi;
-   phi.reset(new MultiFab(nd_grids, dmap, 1, nghost, MFInfo(), factory));
+   MultiFab phi(nd_grids, dmap, 1, 1, MFInfo(), factory);
    phi.setVal(0.0);
 
    //
@@ -599,15 +588,17 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    MLMG nodal_solver(matrix);
 
-   nodal_solver.setMaxIter(nodal_mg_maxiter);
-   nodal_solver.setVerbose(nodal_mg_verbose);
-   nodal_solver.setCGVerbose(nodal_mg_cg_verbose);
-   nodal_solver.setCGMaxIter(nodal_mg_cg_maxiter);
+   // We can specify the maximum number of iterations
+   nodal_solver.setMaxIter(mg_maxiter);
+   nodal_solver.setCGMaxIter(mg_cg_maxiter);
+
+   nodal_solver.setVerbose(mg_verbose);
+   nodal_solver.setCGVerbose(mg_cg_verbose);
 
    // Set bottom-solver to use hypre instead of native BiCGStab 
    //   ( we could also have set this to cg, bicgcg, cgbicg)
-   if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
-       nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
+   // if (use_hypre_as_full_solver || use_hypre_as_bottom_solver) 
+   //     nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
 
    // Define the relative tolerance
    Real reltol = 1.e-8;
@@ -618,23 +609,22 @@ gradient term to make the vector field result satisfy the divergence constraint.
    //
    // Solve div( sigma * grad(phi) ) = RHS
    //
-   nodal_solver.solve( GetVecOfPtrs({phi}), GetVecOfConstPtrs({rhs}), reltol, abstol);
+   nodal_solver.solve( {&phi}, {&rhs}, reltol, abstol);
 
    //
    // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
    // 
-   std::unique_ptr<MultiFab> fluxes;
-   fluxes.reset(new MultiFab(vel.boxArray(), vel.DistributionMap(),
-                             vel.nComp(), 1, MFInfo(), factory ));
-   fluxes->setVal(0.0);
+   //
+   MultiFab fluxes(grids, dmap, AMREX_SPACEDIM, 1, MFInfo(), factory);
+   fluxes.setVal(0.0);
 
    // Get fluxes from solver
-   nodal_solver.getFluxes( GetVecOfPtrs({fluxes}) );
+   nodal_solver.getFluxes( {&fluxes} );
 
    //
    // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
    // 
-   MultiFab::Add( *vel, *fluxes, 0, 0, 3, 0);
+   MultiFab::Add( *vel, *fluxes, 0, 0, AMREX_SPACEDIM, 0);
 
 See ``Tutorials/LinearSolvers/Nodal_Projection_EB`` for the complete working example.
 
