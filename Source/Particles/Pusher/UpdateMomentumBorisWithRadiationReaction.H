@@ -31,9 +31,9 @@ void UpdateMomentumBorisWithRadiationReaction(
         q, m, dt );
 
     //Estimation of the normalized momentum at intermediate (integer) time
-    const amrex::Real ux_n = (ux-ux_old)*0.5;
-    const amrex::Real uy_n = (uy-uy_old)*0.5;
-    const amrex::Real uz_n = (uz-uz_old)*0.5;
+    const amrex::Real ux_n = (ux+ux_old)*0.5;
+    const amrex::Real uy_n = (uy+uy_old)*0.5;
+    const amrex::Real uz_n = (uz+uz_old)*0.5;
 
     // Compute Lorentz factor (and inverse) at intermediate (integer) time
     const amrex::Real gamma_n = std::sqrt( 1. +
