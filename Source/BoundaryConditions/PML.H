@@ -6,24 +6,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
-#if (AMREX_SPACEDIM == 3)
-
-#define WRPX_PML_TO_FORTRAN(x)                              \
-    (x).sigma_fac[0].data(), (x).sigma_fac[0].m_lo, (x).sigma_fac[0].m_hi, \
-    (x).sigma_fac[1].data(), (x).sigma_fac[1].m_lo, (x).sigma_fac[1].m_hi, \
-    (x).sigma_fac[2].data(), (x).sigma_fac[2].m_lo, (x).sigma_fac[2].m_hi, \
-    (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
-    (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi, \
-    (x).sigma_star_fac[2].data(), (x).sigma_star_fac[2].m_lo, (x).sigma_star_fac[2].m_hi
-
-#else
-
-#define WRPX_PML_TO_FORTRAN(x)                              \
-    (x).sigma_fac[0].data(), (x).sigma_fac[0].m_lo, (x).sigma_fac[0].m_hi, \
-    (x).sigma_fac[1].data(), (x).sigma_fac[1].m_lo, (x).sigma_fac[1].m_hi, \
-    (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
-    (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi
-
+#ifdef WARPX_USE_PSATD
+#include <SpectralSolver.H>
 #endif
 
 struct Sigma : amrex::Vector<amrex::Real>
@@ -43,10 +27,15 @@ struct SigmaBox
 
     using SigmaVect = std::array<Sigma,AMREX_SPACEDIM>;
 
-    SigmaVect sigma;      // sigma/epsilon
-    SigmaVect sigma_star; // sigma_star/mu
+    SigmaVect sigma;
+    SigmaVect sigma_cumsum;
+    SigmaVect sigma_star;
+    SigmaVect sigma_star_cumsum;
     SigmaVect sigma_fac;
+    SigmaVect sigma_cumsum_fac;
     SigmaVect sigma_star_fac;
+    SigmaVect sigma_star_cumsum_fac;
+
 };
 
 namespace amrex {
@@ -93,14 +82,23 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window);
+         int ncell, int delta, int ref_ratio,
+#ifdef WARPX_USE_PSATD
+         amrex::Real dt, int nox_fft, int noy_fft, int noz_fft, bool do_nodal,
+#endif
+         int do_dive_cleaning, int do_moving_window,
+         int pml_has_particles, int do_pml_in_domain,
+         const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
+         const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 
     void ComputePMLFactors (amrex::Real dt);
 
     std::array<amrex::MultiFab*,3> GetE_fp ();
     std::array<amrex::MultiFab*,3> GetB_fp ();
+    std::array<amrex::MultiFab*,3> Getj_fp ();
     std::array<amrex::MultiFab*,3> GetE_cp ();
     std::array<amrex::MultiFab*,3> GetB_cp ();
+    std::array<amrex::MultiFab*,3> Getj_cp ();
 
     amrex::MultiFab* GetF_fp ();
     amrex::MultiFab* GetF_cp ();
@@ -111,17 +109,27 @@ public:
     const MultiSigmaBox& GetMultiSigmaBox_cp () const
         { return *sigba_cp; }
 
-    void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
-                    const std::array<amrex::MultiFab*,3>& B_cp);
-    void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
-                    const std::array<amrex::MultiFab*,3>& E_cp);
-    void ExchangeB (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Bp);
-    void ExchangeE (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Ep);
+#ifdef WARPX_USE_PSATD
+    void PushPSATD ();
+#endif
 
-    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp);
-    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp);
+    void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
+                    const std::array<amrex::MultiFab*,3>& B_cp, int do_pml_in_domain);
+    void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
+                    const std::array<amrex::MultiFab*,3>& E_cp, int do_pml_in_domain);
+    void CopyJtoPMLs (const std::array<amrex::MultiFab*,3>& j_fp,
+                    const std::array<amrex::MultiFab*,3>& j_cp);
+
+    void ExchangeB (PatchType patch_type,
+                    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
+    void ExchangeE (PatchType patch_type,
+                    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
+
+    void CopyJtoPMLs (PatchType patch_type,
+                    const std::array<amrex::MultiFab*,3>& jp);
+
+    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp, int do_pml_in_domain);
+    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp, int do_pml_in_domain);
 
     void FillBoundary ();
     void FillBoundaryE ();
@@ -136,6 +144,8 @@ public:
     void CheckPoint (const std::string& dir) const;
     void Restart (const std::string& dir);
 
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
+
 private:
     bool m_ok;
 
@@ -144,9 +154,11 @@ private:
 
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_fp;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_fp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_j_fp;
 
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_cp;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_cp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_j_cp;
 
     std::unique_ptr<amrex::MultiFab> pml_F_fp;
     std::unique_ptr<amrex::MultiFab> pml_F_cp;
@@ -154,10 +166,24 @@ private:
     std::unique_ptr<MultiSigmaBox> sigba_fp;
     std::unique_ptr<MultiSigmaBox> sigba_cp;
 
-    static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
-                                         const amrex::BoxArray& grid_ba, int ncell);
+#ifdef WARPX_USE_PSATD
+    std::unique_ptr<SpectralSolver> spectral_solver_fp;
+    std::unique_ptr<SpectralSolver> spectral_solver_cp;
+#endif
 
-    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
+    static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
+                                         const amrex::BoxArray& grid_ba,
+                                         int ncell, int do_pml_in_domain,
+                                         const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
+                                         const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
+
+    static void CopyToPML (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
+
+#ifdef WARPX_USE_PSATD
+void PushPMLPSATDSinglePatch( SpectralSolver& solver,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_E,
+    std::array<std::unique_ptr<amrex::MultiFab>,3>& pml_B );
+#endif
 
 #endif

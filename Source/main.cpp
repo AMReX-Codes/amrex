@@ -1,13 +1,12 @@
-
-#include <iostream>
+#include <WarpX.H>
+#include <WarpXUtil.H>
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#include <WarpX.H>
-#include <WarpXUtil.H>
+#include <iostream>
 
 using namespace amrex;
 
@@ -26,24 +25,24 @@ int main(int argc, char* argv[])
     ConvertLabParamsToBoost();
 
     BL_PROFILE_VAR("main()", pmain);
-        
+
     const Real strt_total = amrex::second();
 
     {
-	WarpX warpx;
-	
-	warpx.InitData();
+        WarpX warpx;
 
-	warpx.Evolve();
-	
-	Real end_total = amrex::second() - strt_total;
-	
-	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (warpx.Verbose()) {
+        warpx.InitData();
+
+        warpx.Evolve();
+
+        Real end_total = amrex::second() - strt_total;
+
+        ParallelDescriptor::ReduceRealMax(end_total, ParallelDescriptor::IOProcessorNumber());
+        if (warpx.Verbose()) {
             amrex::Print() << "Total Time                     : " << end_total << '\n';
             amrex::Print() << "WarpX Version: " << WarpX::Version() << '\n';
             amrex::Print() << "PICSAR Version: " << WarpX::PicsarVersion() << '\n';
-	}
+        }
     }
 
     BL_PROFILE_VAR_STOP(pmain);

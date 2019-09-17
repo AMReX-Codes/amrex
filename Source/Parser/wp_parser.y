@@ -32,12 +32,21 @@
 %token <f2> F2
 %token EOL
 %token POW "**" '^'
+%token GEQ ">="
+%token LEQ "<="
+%token EQ "=="
+%token NEQ "!="
+%token AND "and"
+%token OR "or"
 
 %nonassoc F1 F2
 %right '='
+%left OR
+%left AND
+%left EQ NEQ
+%left '<' '>' GEQ LEQ
 %left '+' '-'
 %left '*' '/'
-%left '<' '>'
 %nonassoc NEG UPLUS
 %right POW
 
@@ -74,6 +83,12 @@ exp:
 | '(' exp ')'                { $$ = $2; }
 | exp '<' exp                { $$ = wp_newf2(WP_LT, $1, $3); }
 | exp '>' exp                { $$ = wp_newf2(WP_GT, $1, $3); }
+| exp LEQ exp                { $$ = wp_newf2(WP_LEQ, $1, $3); }
+| exp GEQ exp                { $$ = wp_newf2(WP_GEQ, $1, $3); }
+| exp EQ exp                 { $$ = wp_newf2(WP_EQ, $1, $3); }
+| exp NEQ exp                { $$ = wp_newf2(WP_NEQ, $1, $3); }
+| exp AND exp                { $$ = wp_newf2(WP_AND, $1, $3); }
+| exp OR exp                 { $$ = wp_newf2(WP_OR, $1, $3); }
 | '-'exp %prec NEG           { $$ = wp_newnode(WP_NEG, $2, NULL); }
 | '+'exp %prec UPLUS         { $$ = $2; }
 | exp POW exp                { $$ = wp_newf2(WP_POW, $1, $3); }

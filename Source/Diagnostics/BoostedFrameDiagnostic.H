@@ -14,10 +14,10 @@
 #include "WarpXConst.H"
 
 ///
-/// BoostedFrameDiagnostic is for handling IO when running in a boosted 
+/// BoostedFrameDiagnostic is for handling IO when running in a boosted
 /// frame of reference. Because of the relativity of simultaneity, events that
-/// are synchronized in the simulation frame are not synchronized in the 
-/// lab frame. Thus, at a given t_boost, we must write slices of data to 
+/// are synchronized in the simulation frame are not synchronized in the
+/// lab frame. Thus, at a given t_boost, we must write slices of data to
 /// multiple output files, each one corresponding to a given time in the lab frame.
 ///
 
@@ -120,7 +120,6 @@ class LabFrameSlice : public LabFrameDiag {
 };
 
 class BoostedFrameDiagnostic {
-
     amrex::Real gamma_boost_;
     amrex::Real inv_gamma_boost_;
     amrex::Real beta_boost_;
@@ -147,8 +146,8 @@ class BoostedFrameDiagnostic {
                                const std::string& name, const std::string& species_name);
 #endif
 public:
-    
-    BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab, 
+
+    BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab,
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
                            int N_snapshots, amrex::Real dt_slice_snapshots_lab, 
                            int N_slice_snapshots, amrex::Real gamma_boost,
@@ -156,36 +155,36 @@ public:
                            const amrex::Geometry& geom, amrex::RealBox& slice_realbox);
     
     void Flush(const amrex::Geometry& geom);
-    
+
     void writeLabFrameData(const amrex::MultiFab* cell_centered_data,
                            const MultiParticleContainer& mypc,
                            const amrex::Geometry& geom,
                            const amrex::Real t_boost, const amrex::Real dt);
-    
+
     void writeMetaData();
 
 private:
     // Map field names and component number in cell_centered_data
     std::map<std::string, int> possible_fields_to_dump = {
-        {"Ex" , 0}, 
-        {"Ey" , 1}, 
-        {"Ez" , 2}, 
-        {"Bx" , 3}, 
-        {"By" , 4}, 
-        {"Bz" , 5}, 
-        {"jx" , 6}, 
-        {"jy" , 7}, 
-        {"jz" , 8}, 
+        {"Ex" , 0},
+        {"Ey" , 1},
+        {"Ez" , 2},
+        {"Bx" , 3},
+        {"By" , 4},
+        {"Bz" , 5},
+        {"jx" , 6},
+        {"jy" , 7},
+        {"jz" , 8},
         {"rho", 9} };
 
-    // maps field index in data_buffer_[i] -> cell_centered_data for 
+    // maps field index in data_buffer_[i] -> cell_centered_data for
     // snapshots i. By default, all fields in cell_centered_data are dumped.
     // Needs to be amrex::Vector because used in a ParallelFor kernel.
-	amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump;
+    amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump;
     // Name of fields to dump. By default, all fields in cell_centered_data.
     // Needed for file headers only.
-    std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez", 
-                                                 "Bx", "By", "Bz", 
+    std::vector<std::string> mesh_field_names = {"Ex", "Ey", "Ez",
+                                                 "Bx", "By", "Bz",
                                                  "jx", "jy", "jz", "rho"};
     int ncomp_to_dump = 10;
 

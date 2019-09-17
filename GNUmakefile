@@ -2,11 +2,13 @@ AMREX_HOME  ?= ../amrex
 PICSAR_HOME ?= ../picsar
 OPENBC_HOME ?= ../openbc_poisson
 
-DEBUG	= FALSE
+DEBUG = FALSE
 #DEBUG	= TRUE
 
 #DIM     = 2
-DIM	= 3
+DIM = 3
+
+#QED	= TRUE
 
 COMP = gcc
 #COMP = intel
@@ -17,7 +19,7 @@ TINY_PROFILE   = TRUE
 #COMM_PROFILE  = TRUE
 #TRACE_PROFILE = TRUE
 
-USE_OMP   = TRUE
+USE_OMP   = FALSE
 USE_GPU   = FALSE
 
 EBASE     = main
@@ -30,6 +32,7 @@ USE_ASCENT_INSITU = FALSE
 WarpxBinDir = Bin
 
 USE_PSATD = FALSE
+USE_PSATD_PICSAR = FALSE
 USE_RZ = FALSE
 
 DO_ELECTROSTATIC = FALSE

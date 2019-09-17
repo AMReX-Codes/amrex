@@ -10,6 +10,9 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
+#include <WarpXAlgorithmSelection.H>
+#include <UpdateMomentumBoris.H>
+#include <UpdateMomentumVay.H>
 
 using namespace amrex;
 
@@ -204,58 +207,54 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               Cuda::ManagedDeviceVector<Real>& xp,
+                                       Cuda::ManagedDeviceVector<Real>& xp,
                                        Cuda::ManagedDeviceVector<Real>& yp,
                                        Cuda::ManagedDeviceVector<Real>& zp,
-                                       Cuda::ManagedDeviceVector<Real>& giv,
                                        Real dt)
 {
 
-    // This wraps the call to warpx_particle_pusher so that inheritors can modify the call.
+    // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     auto& uxp = attribs[PIdx::ux];
     auto& uyp = attribs[PIdx::uy];
     auto& uzp = attribs[PIdx::uz];
-    auto& Exp = attribs[PIdx::Ex];
-    auto& Eyp = attribs[PIdx::Ey];
-    auto& Ezp = attribs[PIdx::Ez];
-    auto& Bxp = attribs[PIdx::Bx];
-    auto& Byp = attribs[PIdx::By];
-    auto& Bzp = attribs[PIdx::Bz];
-    const long np  = pti.numParticles();
-
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
-    {
-        auto& xpold    = pti.GetAttribs(particle_comps["xold"]);
-        auto& ypold    = pti.GetAttribs(particle_comps["yold"]);
-        auto& zpold    = pti.GetAttribs(particle_comps["zold"]);
-        auto& uxpold   = pti.GetAttribs(particle_comps["uxold"]);
-        auto& uypold   = pti.GetAttribs(particle_comps["uyold"]);
-        auto& uzpold   = pti.GetAttribs(particle_comps["uzold"]);
-
-        warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                           xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
-                           uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
-    }
 
     // Save the position and momenta, making copies
     Cuda::ManagedDeviceVector<Real> xp_save, yp_save, zp_save;
     RealVector uxp_save, uyp_save, uzp_save;
 
+    Real* const AMREX_RESTRICT x = xp.dataPtr();
+    Real* const AMREX_RESTRICT y = yp.dataPtr();
+    Real* const AMREX_RESTRICT z = zp.dataPtr();
+    Real* const AMREX_RESTRICT ux = uxp.dataPtr();
+    Real* const AMREX_RESTRICT uy = uyp.dataPtr();
+    Real* const AMREX_RESTRICT uz = uzp.dataPtr();
+    Real* const AMREX_RESTRICT Exp = attribs[PIdx::Ex].dataPtr();
+    Real* const AMREX_RESTRICT Eyp = attribs[PIdx::Ey].dataPtr();
+    Real* const AMREX_RESTRICT Ezp = attribs[PIdx::Ez].dataPtr();
+    Real* const AMREX_RESTRICT Bxp = attribs[PIdx::Bx].dataPtr();
+    Real* const AMREX_RESTRICT Byp = attribs[PIdx::By].dataPtr();
+    Real* const AMREX_RESTRICT Bzp = attribs[PIdx::Bz].dataPtr();
+
     if (!done_injecting_lev) {
+        // If the old values are not already saved, create copies here.
         xp_save = xp;
         yp_save = yp;
         zp_save = zp;
         uxp_save = uxp;
         uyp_save = uyp;
         uzp_save = uzp;
+
         // Scale the fields of particles about to cross the injection plane.
         // This only approximates what should be happening. The particles
         // should by advanced a fraction of a time step instead.
         // Scaling the fields is much easier and may be good enough.
-        for (int i=0 ; i < zp.size() ; i++) {
-            const Real dtscale = dt - (zinject_plane_lev_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
+        const Real v_boost = WarpX::beta_boost*PhysConst::c;
+        const Real z_plane_previous = zinject_plane_lev_previous;
+        const Real vz_ave_boosted = vzbeam_ave_boosted;
+        amrex::ParallelFor( pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+            const Real dtscale = dt - (z_plane_previous - z[i])/(vz_ave_boosted + v_boost);
             if (0. < dtscale && dtscale < dt) {
                 Exp[i] *= dtscale;
                 Eyp[i] *= dtscale;
@@ -265,46 +264,45 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                 Bzp[i] *= dtscale;
             }
         }
+        );
     }
 
-    warpx_particle_pusher(&np,
-                          xp.dataPtr(),
-                          yp.dataPtr(),
-                          zp.dataPtr(),
-                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                          giv.dataPtr(),
-                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                          &this->charge, &this->mass, &dt,
-                          &WarpX::particle_pusher_algo);
+    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, dt);
 
     if (!done_injecting_lev) {
-#ifdef _OPENMP
-        const int tid = omp_get_thread_num();
-#else
-        const int tid = 0;
-#endif
+
+        Real* AMREX_RESTRICT x_save = xp_save.dataPtr();
+        Real* AMREX_RESTRICT y_save = yp_save.dataPtr();
+        Real* AMREX_RESTRICT z_save = zp_save.dataPtr();
+        Real* AMREX_RESTRICT ux_save = uxp_save.dataPtr();
+        Real* AMREX_RESTRICT uy_save = uyp_save.dataPtr();
+        Real* AMREX_RESTRICT uz_save = uzp_save.dataPtr();
+
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
-        for (int i=0 ; i < zp.size() ; i++) {
-            if (zp[i] <= zinject_plane_lev) {
-                uxp[i] = uxp_save[i];
-                uyp[i] = uyp_save[i];
-                uzp[i] = uzp_save[i];
-                giv[i] = 1./std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/(PhysConst::c*PhysConst::c));
-                xp[i] = xp_save[i];
-                yp[i] = yp_save[i];
-                if (rigid_advance) {
-                    zp[i] = zp_save[i] + dt*vzbeam_ave_boosted;
+        const Real z_plane_lev = zinject_plane_lev;
+        const Real vz_ave_boosted = vzbeam_ave_boosted;
+        const bool rigid = rigid_advance;
+        const Real inv_csq = 1./(PhysConst::c*PhysConst::c);
+        amrex::ParallelFor( pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+            if (z[i] <= z_plane_lev) {
+                ux[i] = ux_save[i];
+                uy[i] = uy_save[i];
+                uz[i] = uz_save[i];
+                x[i] = x_save[i];
+                y[i] = y_save[i];
+                if (rigid) {
+                    z[i] = z_save[i] + dt*vz_ave_boosted;
                 }
                 else {
-                    zp[i] = zp_save[i] + dt*uzp[i]*giv[i];
+                    const Real gi = 1./std::sqrt(1. + (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_csq);
+                    z[i] = z_save[i] + dt*uz[i]*gi;
                 }
-                done_injecting_temp[tid] = 0;
             }
         }
+        );
     }
-
 }
 
 void
@@ -324,28 +322,26 @@ RigidInjectedParticleContainer::Evolve (int lev,
     zinject_plane_levels[lev] -= dt*WarpX::beta_boost*PhysConst::c;
     zinject_plane_lev = zinject_plane_levels[lev];
 
-    // Setup check of whether more particles need to be injected
-#ifdef _OPENMP
-    const int nthreads = omp_get_max_threads();
-#else
-    const int nthreads = 1;
-#endif
-    done_injecting_temp.assign(nthreads, 1); // We do not use bool because vector<bool> is special.
+    // Set the done injecting flag whan the inject plane moves out of the
+    // simulation domain.
+    // It is much easier to do this check, rather than checking if all of the
+    // particles have crossed the inject plane.
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+    const int zdir = AMREX_SPACEDIM-1;
+    done_injecting[lev] = ((zinject_plane_levels[lev] < plo[zdir] && WarpX::moving_window_v + WarpX::beta_boost*PhysConst::c >= 0.) ||
+                           (zinject_plane_levels[lev] > phi[zdir] && WarpX::moving_window_v + WarpX::beta_boost*PhysConst::c <= 0.));
     done_injecting_lev = done_injecting[lev];
 
     PhysicalParticleContainer::Evolve (lev,
-				       Ex, Ey, Ez,
-				       Bx, By, Bz,
-				       jx, jy, jz,
+                                       Ex, Ey, Ez,
+                                       Bx, By, Bz,
+                                       jx, jy, jz,
                                        cjx, cjy, cjz,
                                        rho, crho,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
                                        t, dt);
-
-    // Check if all done_injecting_temp are still true.
-    done_injecting[lev] = std::all_of(done_injecting_temp.begin(), done_injecting_temp.end(),
-                                      [](int i) -> bool { return i; });
 }
 
 void
@@ -353,6 +349,8 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                                        const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
+    BL_PROFILE("RigidInjectedParticleContainer::PushP");
+
     if (do_not_push) return;
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -361,8 +359,11 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-        Cuda::ManagedDeviceVector<Real> xp, yp, zp, giv;
-
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const Box& box = pti.validbox();
@@ -396,65 +397,72 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
 
-            giv.resize(np);
-
             //
             // copy data from particle container to temp arrays
             //
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin_grid = box.loVect();
-
-            const int ll4symtry          = false;
-            const int l_lower_order_in_v = true;
-            long lvect_fieldgathe = 64;
-            warpx_geteb_energy_conserving(
-                &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
-                ixyzmin_grid,
-                &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                BL_TO_FORTRAN_ANYD(exfab),
-                BL_TO_FORTRAN_ANYD(eyfab),
-                BL_TO_FORTRAN_ANYD(ezfab),
-                BL_TO_FORTRAN_ANYD(bxfab),
-                BL_TO_FORTRAN_ANYD(byfab),
-                BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &l_lower_order_in_v, &WarpX::do_nodal,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        &exfab, &eyfab, &ezfab, &bxfab, &byfab, &bzfab,
+                        Ex.nGrow(), e_is_nodal,
+                        0, np, thread_num, lev, lev);
 
             // Save the position and momenta, making copies
             auto uxp_save = uxp;
             auto uyp_save = uyp;
             auto uzp_save = uzp;
 
-            warpx_particle_pusher_momenta(&np,
-                                          xp.dataPtr(),
-                                          yp.dataPtr(),
-                                          zp.dataPtr(),
-                                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                          giv.dataPtr(),
-                                          Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                                          Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                                          &this->charge, &this->mass, &dt,
-                                          &WarpX::particle_pusher_algo);
+            // This wraps the momentum advance so that inheritors can modify the call.
+            // Extract pointers to the different particle quantities
+            const Real* const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+            Real* const AMREX_RESTRICT uxpp = uxp.dataPtr();
+            Real* const AMREX_RESTRICT uypp = uyp.dataPtr();
+            Real* const AMREX_RESTRICT uzpp = uzp.dataPtr();
+            const Real* const AMREX_RESTRICT Expp = Exp.dataPtr();
+            const Real* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
+            const Real* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
+            const Real* const AMREX_RESTRICT Bxpp = Bxp.dataPtr();
+            const Real* const AMREX_RESTRICT Bypp = Byp.dataPtr();
+            const Real* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
+
+            // Loop over the particles and update their momentum
+            const Real q = this->charge;
+            const Real m = this->mass;
+            if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumBoris( uxpp[i], uypp[i], uzpp[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumVay( uxpp[i], uypp[i], uzpp[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else {
+              amrex::Abort("Unknown particle pusher");
+            };
 
             // Undo the push for particles not injected yet.
             // It is assumed that PushP will only be called on the first and last steps
             // and that no particles will cross zinject_plane.
-            for (int i=0 ; i < zp.size() ; i++) {
-                if (zp[i] <= zinject_plane_levels[lev]) {
-                    uxp[i] = uxp_save[i];
-                    uyp[i] = uyp_save[i];
-                    uzp[i] = uzp_save[i];
+            const Real* const AMREX_RESTRICT ux_save = uxp_save.dataPtr();
+            const Real* const AMREX_RESTRICT uy_save = uyp_save.dataPtr();
+            const Real* const AMREX_RESTRICT uz_save = uzp_save.dataPtr();
+            const Real zz = zinject_plane_levels[lev];
+            amrex::ParallelFor( pti.numParticles(),
+                [=] AMREX_GPU_DEVICE (long i) {
+                if (zp[i] <= zz) {
+                    uxpp[i] = ux_save[i];
+                    uypp[i] = uy_save[i];
+                    uzpp[i] = uz_save[i];
                 }
             }
+            );
 
         }
     }

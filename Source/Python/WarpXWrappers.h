@@ -26,9 +26,9 @@ extern "C" {
 #endif
 
     void amrex_finalize (int finalize_mpi);
-    
+
     void warpx_init ();
-    
+
     void warpx_finalize ();
 
     typedef void(*WARPX_CALLBACK_PY_FUNC_0)();
@@ -47,42 +47,42 @@ extern "C" {
     void warpx_set_callback_py_appliedfields (WARPX_CALLBACK_PY_FUNC_0);
 
     void warpx_evolve (int numsteps);  // -1 means the inputs parameter will be used.
-    
+
     void warpx_addNParticles(int speciesnumber, int lenx,
                              double* x, double* y, double* z,
                              double* vx, double* vy, double* vz,
                              int nattr, double* attr, int uniqueparticles);
 
     void warpx_ConvertLabParamsToBoost();
-  
+
     double warpx_getProbLo(int dir);
-    
+
     double warpx_getProbHi(int dir);
-    
+
     long warpx_getNumParticles(int speciesnumber);
-    
-    double** warpx_getEfield(int lev, int direction, 
-                             int *return_size, int* ngrow, int **shapes);
-    
-    int* warpx_getEfieldLoVects(int lev, int direction, 
+
+    double** warpx_getEfield(int lev, int direction,
+                             int *return_size, int* ncomps, int* ngrow, int **shapes);
+
+    int* warpx_getEfieldLoVects(int lev, int direction,
                                 int *return_size, int* ngrow);
-    
-    double** warpx_getBfield(int lev, int direction, 
-                             int *return_size, int* ngrow, int **shapes);
-    
-    int* warpx_getBfieldLoVects(int lev, int direction, 
+
+    double** warpx_getBfield(int lev, int direction,
+                             int *return_size, int* ncomps, int* ngrow, int **shapes);
+
+    int* warpx_getBfieldLoVects(int lev, int direction,
                                 int *return_size, int* ngrow);
-    
-    double** warpx_getCurrentDensity(int lev, int direction, 
-                                     int *return_size, int* ngrow, int **shapes);
-    
-    int* warpx_getCurrentDensityLoVects(int lev, int direction, 
+
+    double** warpx_getCurrentDensity(int lev, int direction,
+                                     int *return_size, int* ncomps, int* ngrow, int **shapes);
+
+    int* warpx_getCurrentDensityLoVects(int lev, int direction,
                                         int *return_size, int* ngrow);
-    
-    double** warpx_getParticleStructs(int speciesnumber,
+
+    double** warpx_getParticleStructs(int speciesnumber, int lev,
                                       int* num_tiles, int** particles_per_tile);
-    
-    double** warpx_getParticleArrays(int speciesnumber, int comp,
+
+    double** warpx_getParticleArrays(int speciesnumber, int comp, int lev,
                                      int* num_tiles, int** particles_per_tile);
 
   void warpx_ComputeDt ();

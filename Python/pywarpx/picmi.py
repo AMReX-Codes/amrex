@@ -1,19 +1,23 @@
 """Classes following the PICMI standard
 """
+import re
 import picmistandard
 import numpy as np
 import pywarpx
+import periodictable
 
 codename = 'warpx'
 picmistandard.register_codename(codename)
 
-# --- Values from WarpXConst.H
-c = 299792458.
-ep0 = 8.854187817e-12
-mu0 = 1.2566370614359173e-06
-q_e = 1.602176462e-19
-m_e = 9.10938291e-31
-m_p = 1.6726231e-27
+class constants:
+    # --- Put the constants in their own namespace
+    # --- Values from WarpXConst.H
+    c = 299792458.
+    ep0 = 8.854187817e-12
+    mu0 = 1.2566370614359173e-06
+    q_e = 1.602176462e-19
+    m_e = 9.10938291e-31
+    m_p = 1.6726231e-27
 
 
 class Species(picmistandard.PICMI_Species):
@@ -31,9 +35,26 @@ class Species(picmistandard.PICMI_Species):
         elif self.particle_type == 'anti-proton':
             if self.charge is None: self.charge = '-q_e'
             if self.mass is None: self.mass = 'm_p'
-        elif self.particle_type == 'H' and self.charge_state == 1:
-            if self.charge is None: self.charge = 'q_e'
-            if self.mass is None: self.mass = 'm_p'
+        else:
+            if self.charge is None and self.charge_state is not None:
+                self.charge = self.charge_state*constants.q_e
+            # Match a string of the format '#nXx', with the '#n' optional isotope number.
+            m = re.match('(?P<iso>#[\d+])*(?P<sym>[A-Za-z]+)', self.particle_type)
+            if m is not None:
+                element = periodictable.elements.symbol(m['sym'])
+                if m['iso'] is not None:
+                    element = element[m['iso'][1:]]
+                if self.charge_state is not None:
+                    assert self.charge_state <= element.number, Exception('%s charge state not valid'%self.particle_type)
+                    try:
+                        element = element.ion[self.charge_state]
+                    except ValueError:
+                        # Note that not all valid charge states are defined in elements,
+                        # so this value error can be ignored.
+                        pass
+                self.element = element
+                if self.mass is None:
+                    self.mass = element.mass*periodictable.constants.atomic_mass_constant
 
     def initialize_inputs(self, layout):
         self.species_number = pywarpx.particles.nspecies
@@ -51,16 +72,18 @@ class Species(picmistandard.PICMI_Species):
         pywarpx.Particles.particles_list.append(self.species)
 
         if self.initial_distribution is not None:
-            self.initial_distribution.initialize_inputs(self.species_number, layout, self.species)
+            self.initial_distribution.initialize_inputs(self.species_number, layout, self.species, self.density_scale)
 
 
 picmistandard.PICMI_MultiSpecies.Species_class = Species
 class MultiSpecies(picmistandard.PICMI_MultiSpecies):
-    pass
+    def initialize_inputs(self, layout):
+        for species in self.species_instances_list:
+            species.initialize_inputs(layout)
 
 
 class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
         species.injection_style = "gaussian_beam"
         species.x_m = self.centroid_position[0]
         species.y_m = self.centroid_position[1]
@@ -75,10 +98,12 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
         # --- Calculate the total charge. Note that charge might be a string instead of a number.
         charge = species.charge
         if charge == 'q_e' or charge == '+q_e':
-            charge = q_e
+            charge = constants.q_e
         elif charge == '-q_e':
-            charge = -q_e
+            charge = -constants.q_e
         species.q_tot = self.n_physical_particles*charge
+        if density_scale is not None:
+            species.q_tot *= density_scale
 
         # --- These need to be defined even though they are not used
         species.profile = "constant"
@@ -97,26 +122,26 @@ class GaussianBunchDistribution(picmistandard.PICMI_GaussianBunchDistribution):
         # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.velocity_divergence, 0.)):
             species.momentum_distribution_type = "radial_expansion"
-            species.u_over_r = self.velocity_divergence[0]/c
-            #species.u_over_y = self.velocity_divergence[1]/c
-            #species.u_over_z = self.velocity_divergence[2]/c
+            species.u_over_r = self.velocity_divergence[0]/constants.c
+            #species.u_over_y = self.velocity_divergence[1]/constants.c
+            #species.u_over_z = self.velocity_divergence[2]/constants.c
         elif np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.centroid_velocity[0]/c
-            species.uy_m = self.centroid_velocity[1]/c
-            species.uz_m = self.centroid_velocity[2]/c
-            species.ux_th = self.rms_velocity[0]/c
-            species.uy_th = self.rms_velocity[1]/c
-            species.uz_th = self.rms_velocity[2]/c
+            species.ux_m = self.centroid_velocity[0]/constants.c
+            species.uy_m = self.centroid_velocity[1]/constants.c
+            species.uz_m = self.centroid_velocity[2]/constants.c
+            species.ux_th = self.rms_velocity[0]/constants.c
+            species.uy_th = self.rms_velocity[1]/constants.c
+            species.uz_th = self.rms_velocity[2]/constants.c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.centroid_velocity[0]/c
-            species.uy = self.centroid_velocity[1]/c
-            species.uz = self.centroid_velocity[2]/c
+            species.ux = self.centroid_velocity[0]/constants.c
+            species.uy = self.centroid_velocity[1]/constants.c
+            species.uz = self.centroid_velocity[2]/constants.c
 
 
 class UniformDistribution(picmistandard.PICMI_UniformDistribution):
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
 
         if isinstance(layout, GriddedLayout):
             # --- Note that the grid attribute of GriddedLayout is ignored
@@ -139,28 +164,30 @@ class UniformDistribution(picmistandard.PICMI_UniformDistribution):
         # --- Only constant density is supported at this time
         species.profile = "constant"
         species.density = self.density
+        if density_scale is not None:
+            species.density *= density_scale
 
         # --- Note that WarpX takes gamma*beta as input
         if np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.directed_velocity[0]/c
-            species.uy_m = self.directed_velocity[1]/c
-            species.uz_m = self.directed_velocity[2]/c
-            species.ux_th = self.rms_velocity[0]/c
-            species.uy_th = self.rms_velocity[1]/c
-            species.uz_th = self.rms_velocity[2]/c
+            species.ux_m = self.directed_velocity[0]/constants.c
+            species.uy_m = self.directed_velocity[1]/constants.c
+            species.uz_m = self.directed_velocity[2]/constants.c
+            species.ux_th = self.rms_velocity[0]/constants.c
+            species.uy_th = self.rms_velocity[1]/constants.c
+            species.uz_th = self.rms_velocity[2]/constants.c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.directed_velocity[0]/c
-            species.uy = self.directed_velocity[1]/c
-            species.uz = self.directed_velocity[2]/c
+            species.ux = self.directed_velocity[0]/constants.c
+            species.uy = self.directed_velocity[1]/constants.c
+            species.uz = self.directed_velocity[2]/constants.c
 
         if self.fill_in:
             species.do_continuous_injection = 1
 
 
 class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
 
         if isinstance(layout, GriddedLayout):
             # --- Note that the grid attribute of GriddedLayout is ignored
@@ -180,31 +207,49 @@ class AnalyticDistribution(picmistandard.PICMI_AnalyticDistribution):
         species.zmin = self.lower_bound[2]
         species.zmax = self.upper_bound[2]
 
-        # --- Only constant density is supported at this time
         species.profile = "parse_density_function"
-        species.__setattr__('density_function(x,y,z)', self.density_expression)
+        if density_scale is None:
+            species.__setattr__('density_function(x,y,z)', self.density_expression)
+        else:
+            species.__setattr__('density_function(x,y,z)', "{}*({})".format(density_scale, self.density_expression))
 
         for k,v in self.user_defined_kw.items():
             setattr(pywarpx.my_constants, k, v)
 
         # --- Note that WarpX takes gamma*beta as input
-        if np.any(np.not_equal(self.rms_velocity, 0.)):
+        if np.any(np.not_equal(self.momentum_expressions, None)):
+            species.momentum_distribution_type = 'parse_momentum_function'
+            self.setup_parse_momentum_functions(species)
+        elif np.any(np.not_equal(self.rms_velocity, 0.)):
             species.momentum_distribution_type = "gaussian"
-            species.ux_m = self.directed_velocity[0]/c
-            species.uy_m = self.directed_velocity[1]/c
-            species.uz_m = self.directed_velocity[2]/c
-            species.ux_th = self.rms_velocity[0]/c
-            species.uy_th = self.rms_velocity[1]/c
-            species.uz_th = self.rms_velocity[2]/c
+            species.ux_m = self.directed_velocity[0]/constants.c
+            species.uy_m = self.directed_velocity[1]/constants.c
+            species.uz_m = self.directed_velocity[2]/constants.c
+            species.ux_th = self.rms_velocity[0]/constants.c
+            species.uy_th = self.rms_velocity[1]/constants.c
+            species.uz_th = self.rms_velocity[2]/constants.c
         else:
             species.momentum_distribution_type = "constant"
-            species.ux = self.directed_velocity[0]/c
-            species.uy = self.directed_velocity[1]/c
-            species.uz = self.directed_velocity[2]/c
+            species.ux = self.directed_velocity[0]/constants.c
+            species.uy = self.directed_velocity[1]/constants.c
+            species.uz = self.directed_velocity[2]/constants.c
 
         if self.fill_in:
             species.do_continuous_injection = 1
 
+    def setup_parse_momentum_functions(self, species):
+        if self.momentum_expressions[0] is not None:
+            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[0], constants.c))
+        else:
+            species.__setattr__('momentum_function_ux(x,y,z)', '({0})/{1}'.format(self.directed_velocity[0], constants.c))
+        if self.momentum_expressions[1] is not None:
+            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[1], constants.c))
+        else:
+            species.__setattr__('momentum_function_uy(x,y,z)', '({0})/{1}'.format(self.directed_velocity[1], constants.c))
+        if self.momentum_expressions[2] is not None:
+            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.momentum_expressions[2], constants.c))
+        else:
+            species.__setattr__('momentum_function_uz(x,y,z)', '({0})/{1}'.format(self.directed_velocity[2], constants.c))
 
 class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
     def init(self, kw):
@@ -212,12 +257,14 @@ class ParticleListDistribution(picmistandard.PICMI_ParticleListDistribution):
         if len(x) > 1:
             raise Exception('Only a single particle can be loaded')
 
-    def initialize_inputs(self, species_number, layout, species):
+    def initialize_inputs(self, species_number, layout, species, density_scale):
 
         species.injection_style = "singleparticle"
         species.single_particle_pos = [self.x[0], self.y[0], self.z[0]]
-        species.single_particle_vel = [self.ux[0]/c, self.uy[0]/c, self.uz[0]/c]
+        species.single_particle_vel = [self.ux[0]/constants.c, self.uy[0]/constants.c, self.uz[0]/constants.c]
         species.single_particle_weight = self.weight
+        if density_scale is not None:
+            species.single_particle_weight *= density_scale
 
         # --- These need to be defined even though they are not used
         species.profile = "constant"
@@ -236,11 +283,22 @@ class GriddedLayout(picmistandard.PICMI_GriddedLayout):
 class PseudoRandomLayout(picmistandard.PICMI_PseudoRandomLayout):
     def init(self, kw):
         if self.seed is not None:
-            print('Warning: WarpX does not support specifying the random number seed')
+            print('Warning: WarpX does not support specifying the random number seed in PseudoRandomLayout')
 
 
 class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
-    pass
+    def initialize_inputs(self, solver):
+        pywarpx.warpx.use_filter = 1
+        if self.n_pass is None:
+            # If not specified, do at least one pass in each direction.
+            self.n_pass = 1
+        try:
+            # Check if n_pass is a vector
+            len(self.n_pass)
+        except TypeError:
+            # If not, make it a vector
+            self.n_pass = solver.grid.number_of_dimensions*[self.n_pass]
+        pywarpx.warpx.filter_npass_each_dir = self.n_pass
 
 
 class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
@@ -259,13 +317,13 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
 
         assert self.lower_bound[0] >= 0., Exception('Lower radial boundary must be >= 0.')
         assert self.bc_rmin != 'periodic' and self.bc_rmax != 'periodic', Exception('Radial boundaries can not be periodic')
-        assert self.n_azimuthal_modes is None or self.n_azimuthal_modes == 1, Exception('Only one azimuthal mode supported')
 
         # Geometry
         pywarpx.geometry.coord_sys = 1  # RZ
         pywarpx.geometry.is_periodic = '0 %d'%(self.bc_zmin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
+        pywarpx.warpx.n_rz_azimuthal_modes = self.n_azimuthal_modes
 
         if self.moving_window_velocity is not None and np.any(np.not_equal(self.moving_window_velocity, 0.)):
             pywarpx.warpx.do_moving_window = 1
@@ -273,7 +331,7 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
                 raise Exception('In cylindrical coordinates, a moving window in r can not be done')
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'z'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -308,10 +366,10 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
             pywarpx.warpx.do_moving_window = 1
             if self.moving_window_velocity[0] != 0.:
                 pywarpx.warpx.moving_window_dir = 'x'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/constants.c  # in units of the speed of light
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'y'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -348,13 +406,13 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
             pywarpx.warpx.do_moving_window = 1
             if self.moving_window_velocity[0] != 0.:
                 pywarpx.warpx.moving_window_dir = 'x'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[0]/constants.c  # in units of the speed of light
             if self.moving_window_velocity[1] != 0.:
                 pywarpx.warpx.moving_window_dir = 'y'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/constants.c  # in units of the speed of light
             if self.moving_window_velocity[2] != 0.:
                 pywarpx.warpx.moving_window_dir = 'z'
-                pywarpx.warpx.moving_window_v = self.moving_window_velocity[2]/c  # in units of the speed of light
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[2]/constants.c  # in units of the speed of light
 
         if self.refined_regions:
             assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
@@ -381,15 +439,13 @@ class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
         pywarpx.warpx.pml_ncell = self.pml_ncell
 
         # --- Same method names are used, though mapped to lower case.
-        pywarpx.warpx.maxwell_fdtd_solver = self.method
+        pywarpx.algo.maxwell_fdtd_solver = self.method
 
         if self.cfl is not None:
             pywarpx.warpx.cfl = self.cfl
 
-        if self.stencil_order is not None:
-            pywarpx.interpolation.nox = self.stencil_order[0]
-            pywarpx.interpolation.noy = self.stencil_order[1]
-            pywarpx.interpolation.noz = self.stencil_order[2]
+        if self.source_smoother is not None:
+            self.source_smoother.initialize_inputs(self)
 
 
 class ElectrostaticSolver(picmistandard.PICMI_ElectrostaticSolver):
@@ -407,7 +463,7 @@ class GaussianLaser(picmistandard.PICMI_GaussianLaser):
         self.laser.profile = "Gaussian"
         self.laser.wavelength = self.wavelength  # The wavelength of the laser (in meters)
         self.laser.e_max = self.E0  # Maximum amplitude of the laser field (in V/m)
-        self.laser.polarization = [np.cos(self.polarization_angle), np.sin(self.polarization_angle), 0.]  # The main polarization vector
+        self.laser.polarization = self.polarization_direction  # The main polarization vector
         self.laser.profile_waist = self.waist  # The waist of the laser (in meters)
         self.laser.profile_duration = self.duration  # The duration of the laser (in seconds)
         self.laser.zeta = self.zeta
@@ -420,7 +476,7 @@ class LaserAntenna(picmistandard.PICMI_LaserAntenna):
         laser.laser.position = self.position  # This point is on the laser plane
         laser.laser.direction = self.normal_vector  # The plane normal direction
         laser.laser.profile_focal_distance = laser.focal_position[2] - self.position[2]  # Focal distance from the antenna (in meters)
-        laser.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/c  # The time at which the laser reaches its peak (in seconds)
+        laser.laser.profile_t_peak = (self.position[2] - laser.centroid_position[2])/constants.c  # The time at which the laser reaches its peak (in seconds)
 
 
 class Simulation(picmistandard.PICMI_Simulation):
@@ -453,7 +509,7 @@ class Simulation(picmistandard.PICMI_Simulation):
 
         if self.gamma_boost is not None:
             pywarpx.warpx.gamma_boost = self.gamma_boost
-            pywarpx.warpx.boost_direction = 'z'
+            pywarpx.warpx.boost_direction = None
 
         pywarpx.amr.plot_int = self.plot_int
         pywarpx.amr.plot_file = self.plot_file
@@ -570,7 +626,7 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnostic):
     def initialize_inputs(self):
@@ -581,7 +637,7 @@ class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnos
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 
 class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
@@ -600,7 +656,7 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         if self.write_dir is not None:
             plot_file = self.write_dir + '/plotfiles/plt'
             pywarpx.amr.check_consistency('plot_file', plot_file, 'The plot directory must be the same for all simulation frame diagnostics')
-            pywarpx.warpx.plot_file = plot_file
+            pywarpx.amr.plot_file = plot_file
 
 
 # ----------------------------

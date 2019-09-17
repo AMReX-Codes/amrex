@@ -28,7 +28,7 @@ energyB = np.sum(1./scc.mu_0/2*(Bx**2+By**2+Bz**2))
 energy_end = energyE + energyB
 
 Reflectivity = energy_end/energy_start
-Reflectivity_theory = 5.683000058954201e-07
+Reflectivity_theory = 1.3806831258153887e-06
 
 assert( abs(Reflectivity-Reflectivity_theory) < 5./100 * Reflectivity_theory )
-    
+

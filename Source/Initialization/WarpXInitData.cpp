@@ -1,13 +1,11 @@
 
-#include <numeric>
-
-#include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParmParse.H>
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <BilinearFilter.H>
 #include <NCIGodfreyFilter.H>
+
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -27,11 +25,11 @@ WarpX::InitData ()
     }
     else
     {
-	InitFromCheckpoint();
+        InitFromCheckpoint();
         if (is_synchronized) {
             ComputeDt();
         }
-	PostRestart();
+        PostRestart();
     }
 
     ComputePMLFactors();
@@ -94,7 +92,7 @@ WarpX::InitDiagnostics () {
 	Real zmax_lab = current_hi[moving_window_dir]/( (1.+beta_boost)*gamma_boost );
         
         myBFD.reset(new BoostedFrameDiagnostic(zmin_lab,
-					       zmax_lab,
+                                               zmax_lab,
                                                moving_window_v, dt_snapshots_lab,
                                                num_snapshots_lab, 
                                                dt_slice_snapshots_lab,
@@ -121,10 +119,10 @@ WarpX::InitFromScratch ()
 
     InitPML();
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     if (do_electrostatic) {
         getLevelMasks(masks);
-        
+
         // the plus one is to convert from num_cells to num_nodes
         getLevelMasks(gather_masks, n_buffer + 1);
     }
@@ -136,14 +134,37 @@ WarpX::InitPML ()
 {
     if (do_pml)
     {
+        amrex::IntVect do_pml_Lo_corrected = do_pml_Lo;
+
+#ifdef WARPX_DIM_RZ
+        do_pml_Lo_corrected[0] = 0; // no PML at r=0, in cylindrical geometry
+#endif
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window));
+                             pml_ncell, pml_delta, 0,
+#ifdef WARPX_USE_PSATD
+                             dt[0], nox_fft, noy_fft, noz_fft, do_nodal,
+#endif
+                             do_dive_cleaning, do_moving_window,
+                             pml_has_particles, do_pml_in_domain,
+                             do_pml_Lo_corrected, do_pml_Hi));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
+            amrex::IntVect do_pml_Lo_MR = amrex::IntVect::TheUnitVector();
+#ifdef WARPX_DIM_RZ
+            //In cylindrical geometry, if the edge of the patch is at r=0, do not add PML
+            if ((max_level > 0) && (fine_tag_lo[0]==0.)) {
+                do_pml_Lo_MR[0] = 0;
+            }
+#endif
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
-                                   pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning,
-                                   do_moving_window));
+                                   pml_ncell, pml_delta, refRatio(lev-1)[0],
+#ifdef WARPX_USE_PSATD
+                                   dt[lev], nox_fft, noy_fft, noz_fft, do_nodal,
+#endif
+                                   do_dive_cleaning, do_moving_window,
+                                   pml_has_particles, do_pml_in_domain,
+                                   do_pml_Lo_MR, amrex::IntVect::TheUnitVector()));
         }
     }
 }
@@ -229,13 +250,13 @@ WarpX::InitOpenbc ()
     Vector<int> alllohi(6*nprocs,100000);
 
     MPI_Allgather(lohi, 6, MPI_INT, alllohi.data(), 6, MPI_INT, ParallelDescriptor::Communicator());
-    
+
     BoxList bl{IndexType::TheNodeType()};
     for (int i = 0; i < nprocs; ++i)
     {
-	bl.push_back(Box(IntVect(alllohi[6*i  ],alllohi[6*i+1],alllohi[6*i+2]),
-			 IntVect(alllohi[6*i+3],alllohi[6*i+4],alllohi[6*i+5]),
-			 IndexType::TheNodeType()));
+        bl.push_back(Box(IntVect(alllohi[6*i  ],alllohi[6*i+1],alllohi[6*i+2]),
+                         IntVect(alllohi[6*i+3],alllohi[6*i+4],alllohi[6*i+5]),
+                         IndexType::TheNodeType()));
     }
     BoxArray ba{bl};
 
@@ -255,7 +276,7 @@ WarpX::InitOpenbc ()
     rho_openbc.copy(*rho, 0, 0, 1, rho->nGrow(), 0, gm.periodicity(), FabArrayBase::ADD);
 
     const Real* dx = gm.CellSize();
-    
+
     warpx_openbc_potential(rho_openbc[myproc].dataPtr(), phi_openbc[myproc].dataPtr(), dx);
 
     BoxArray nba = boxArray(lev);
@@ -268,13 +289,13 @@ WarpX::InitOpenbc ()
 #endif
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.validbox();
-	warpx_compute_E(bx.loVect(), bx.hiVect(),
-			BL_TO_FORTRAN_3D(phi[mfi]),
-			BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
-			BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
-			BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
-			dx);
+        const Box& bx = mfi.validbox();
+        warpx_compute_E(bx.loVect(), bx.hiVect(),
+                        BL_TO_FORTRAN_3D(phi[mfi]),
+                        BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+                        BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+                        BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+                        dx);
     }
 }
 #endif
@@ -283,9 +304,9 @@ void
 WarpX::InitLevelData (int lev, Real time)
 {
     for (int i = 0; i < 3; ++i) {
-	current_fp[lev][i]->setVal(0.0);
-	Efield_fp[lev][i]->setVal(0.0);
-	Bfield_fp[lev][i]->setVal(0.0);
+        current_fp[lev][i]->setVal(0.0);
+        Efield_fp[lev][i]->setVal(0.0);
+        Bfield_fp[lev][i]->setVal(0.0);
     }
 
     if (lev > 0) {
@@ -320,12 +341,12 @@ WarpX::InitLevelData (int lev, Real time)
     }
 }
 
-#ifdef WARPX_USE_PSATD
+#ifdef WARPX_USE_PSATD_HYBRID
 
 void
 WarpX::InitLevelDataFFT (int lev, Real time)
 {
- 
+
     Efield_fp_fft[lev][0]->setVal(0.0);
     Efield_fp_fft[lev][1]->setVal(0.0);
     Efield_fp_fft[lev][2]->setVal(0.0);

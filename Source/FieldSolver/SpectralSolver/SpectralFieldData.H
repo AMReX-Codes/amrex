@@ -1,16 +1,23 @@
 #ifndef WARPX_SPECTRAL_FIELD_DATA_H_
 #define WARPX_SPECTRAL_FIELD_DATA_H_
 
-#include <WarpX_Complex.H>
+#include <WarpX_ComplexForFFT.H>
 #include <SpectralKSpace.H>
 #include <AMReX_MultiFab.H>
 
 // Declare type for spectral fields
 using SpectralField = amrex::FabArray< amrex::BaseFab <Complex> >;
 
-/* Index for the fields that will be stored in spectral space */
+/* Index for the regular fields, when stored in spectral space */
 struct SpectralFieldIndex {
   enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, rho_old, rho_new, n_fields };
+  // n_fields is automatically the total number of fields
+};
+
+/* Index for the PML fields, when stored in spectral space */
+struct SpectralPMLIndex {
+  enum { Exy=0, Exz, Eyx, Eyz, Ezx, Ezy,
+           Bxy, Bxz, Byx, Byz, Bzx, Bzy, n_fields };
   // n_fields is automatically the total number of fields
 };
 
@@ -19,7 +26,6 @@ struct SpectralFieldIndex {
  */
 class SpectralFieldData
 {
-    friend class PsatdAlgorithm;
 
     // Define the FFTplans type, which holds one fft plan per box
     // (plans are only initialized for the boxes that are owned by
@@ -32,8 +38,9 @@ class SpectralFieldData
 
     public:
         SpectralFieldData( const amrex::BoxArray& realspace_ba,
-                      const SpectralKSpace& k_space,
-                      const amrex::DistributionMapping& dm );
+                           const SpectralKSpace& k_space,
+                           const amrex::DistributionMapping& dm,
+                           const int n_field_required );
         SpectralFieldData() = default; // Default constructor
         SpectralFieldData& operator=(SpectralFieldData&& field_data) = default;
         ~SpectralFieldData();
@@ -41,10 +48,10 @@ class SpectralFieldData
                                const int field_index, const int i_comp);
         void BackwardTransform( amrex::MultiFab& mf,
                                const int field_index, const int i_comp);
-
-    private:
         // `fields` stores fields in spectral space, as multicomponent FabArray
         SpectralField fields;
+
+    private:
         // tmpRealField and tmpSpectralField store fields
         // right before/after the Fourier transform
         SpectralField tmpSpectralField; // contains Complexs

@@ -1,6 +1,5 @@
 CEXE_headers   += WarpX_f.H
 F90EXE_sources += WarpX_f.F90
-F90EXE_sources += WarpX_picsar.F90
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/FortranInterface
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/FortranInterface

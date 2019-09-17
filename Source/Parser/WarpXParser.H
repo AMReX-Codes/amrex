@@ -13,6 +13,8 @@
 #include <omp.h>
 #endif
 
+class GpuParser;
+
 class WarpXParser
 {
 public:
@@ -45,6 +47,8 @@ public:
     std::string const& expr () const;
 
     std::set<std::string> symbols () const;
+
+    friend class GpuParser;
 
 private:
     void clear ();

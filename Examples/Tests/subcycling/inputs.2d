@@ -1,6 +1,5 @@
-# stop_time = 1.12966840205e-10
 amrex.v=1
-max_step = 2500
+max_step = 500
 amr.n_cell = 64 256
 
 amr.max_grid_size = 4096
@@ -11,7 +10,7 @@ amr.max_level = 1
 amr.plot_file = "plotfiles/plt"
 amr.plot_int = 200
 
-warpx.fine_tag_lo = -2.e-6   -15.e-6 
+warpx.fine_tag_lo = -2.e-6   -15.e-6
 warpx.fine_tag_hi =  2.e-6    -7.e-6
 
 
@@ -27,11 +26,11 @@ warpx.plot_raw_fields = 1
 warpx.do_dive_cleaning = 0
 warpx.use_filter = 1
 warpx.do_pml = 1
-warpx.do_subcycling = 0
+warpx.do_subcycling = 1
 warpx.refine_plasma = 0
-warpx.plot_raw_fields = 1 
-warpx.plot_raw_fields_guards = 1 
-warpx.plot_finepatch = 1 
+warpx.plot_raw_fields = 1
+warpx.plot_raw_fields_guards = 1
+warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
 warpx.n_current_deposition_buffer = 0
 warpx.n_field_gather_buffer = 0
@@ -43,15 +42,12 @@ algo.maxwell_fdtd_solver = "ckc"
 warpx.cfl = .9999
 particles.nspecies = 4
 particles.species_names = driver beam plasma_e plasma_p
+particles.deposit_on_main_grid = plasma_e plasma_p
 
 # interpolation
 interpolation.nox = 3
 interpolation.noy = 3
 interpolation.noz = 3
-
-#
-# The driver species information
-#
 
 driver.charge = -q_e
 driver.mass = m_e
@@ -64,24 +60,11 @@ driver.y_m = 0.
 driver.z_m = -3.e-6
 driver.npart = 10000
 driver.q_tot = -1.e-10
-driver.profile = "constant"
-driver.density = 5.e24                   # number of particles per m^3
 driver.momentum_distribution_type = "gaussian"
 driver.ux_m = 0.0
 driver.uy_m = 0.0
 driver.uz_m = 1e6
 driver.uz_th = 0.
-#driver.ux_th = 2.
-#driver.uy_th = 2.
-#driver.uz_th = 20000.
-driver.zinject_plane = 0.
-driver.rigid_advance = true
-driver.projected = true
-driver.focused = false
-
-#
-# The beam species information
-#
 
 beam.charge = -q_e
 beam.mass = m_e
@@ -94,17 +77,10 @@ beam.y_m = 0.
 beam.z_m = -11.e-6
 beam.npart = 10000
 beam.q_tot = -1.e-12
-beam.profile = "constant"
-beam.density = 1.e24
 beam.momentum_distribution_type = "gaussian"
 beam.ux_m = 0.0
 beam.uy_m = 0.0
 beam.uz_m = 20.
-beam.u_th = 0.
-
-#
-# The plasma species information
-#
 
 plasma_e.charge = -q_e
 plasma_e.mass = m_e

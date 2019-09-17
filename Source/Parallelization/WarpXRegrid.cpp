@@ -18,7 +18,7 @@ WarpX::LoadBalance ()
         const Real nprocs = ParallelDescriptor::NProcs();
         const int nmax = static_cast<int>(std::ceil(nboxes/nprocs*load_balance_knapsack_factor));
         const DistributionMapping newdm = (load_balance_with_sfc)
-	  ? DistributionMapping::makeSFC(*costs[lev], false)
+            ? DistributionMapping::makeSFC(*costs[lev], false)
             : DistributionMapping::makeKnapSack(*costs[lev], nmax);
         RemakeLevel(lev, t_new[lev], boxArray(lev), newdm);
     }
@@ -33,11 +33,11 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
     {
         if (ParallelDescriptor::NProcs() == 1) return;
 
-#ifdef WARPX_DO_ELECTROSTATIC        
+#ifdef WARPX_DO_ELECTROSTATIC
         AMREX_ALWAYS_ASSERT(masks[lev] == nullptr);
         AMREX_ALWAYS_ASSERT(gather_masks[lev] == nullptr);
 #endif // WARPX_DO_ELECTROSTATIC
-        
+
         // Fine patch
 
         const auto& period = Geom(lev).periodicity();
@@ -46,29 +46,28 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             {
                 const IntVect& ng = Bfield_fp[lev][idim]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_fp[lev][idim]->boxArray(),
-                                                                  dm, 1, ng));
-                pmf->Redistribute(*Bfield_fp[lev][idim], 0, 0, 1, ng);
+                                                                  dm, Bfield_fp[lev][idim]->nComp(), ng));
+                pmf->Redistribute(*Bfield_fp[lev][idim], 0, 0, Bfield_fp[lev][idim]->nComp(), ng);
                 Bfield_fp[lev][idim] = std::move(pmf);
             }
             {
                 const IntVect& ng = Efield_fp[lev][idim]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_fp[lev][idim]->boxArray(),
-                                                                  dm, 1, ng));
-                pmf->Redistribute(*Efield_fp[lev][idim], 0, 0, 1, ng);
+                                                                  dm, Efield_fp[lev][idim]->nComp(), ng));
+                pmf->Redistribute(*Efield_fp[lev][idim], 0, 0, Efield_fp[lev][idim]->nComp(), ng);
                 Efield_fp[lev][idim] = std::move(pmf);
             }
             {
                 const IntVect& ng = current_fp[lev][idim]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_fp[lev][idim]->boxArray(),
-                                                                  dm, 1, ng));
+                                                                  dm, current_fp[lev][idim]->nComp(), ng));
                 current_fp[lev][idim] = std::move(pmf);
-                current_fp_owner_masks[lev][idim] = std::move(current_fp[lev][idim]->OwnerMask(period));
             }
             if (current_store[lev][idim])
             {
                 const IntVect& ng = current_store[lev][idim]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_store[lev][idim]->boxArray(),
-                                                                  dm, 1, ng));
+                                                                  dm, current_store[lev][idim]->nComp(), ng));
                 // no need to redistribute
                 current_store[lev][idim] = std::move(pmf);
             }
@@ -77,8 +76,8 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
         if (F_fp[lev] != nullptr) {
             const IntVect& ng = F_fp[lev]->nGrowVect();
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(F_fp[lev]->boxArray(),
-                                                              dm, 1, ng));
-            pmf->Redistribute(*F_fp[lev], 0, 0, 1, ng);
+                                                              dm, F_fp[lev]->nComp(), ng));
+            pmf->Redistribute(*F_fp[lev], 0, 0, F_fp[lev]->nComp(), ng);
             F_fp[lev] = std::move(pmf);
         }
 
@@ -88,7 +87,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_fp[lev]->boxArray(),
                                                               dm, nc, ng));
             rho_fp[lev] = std::move(pmf);
-            rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
         }
 
         // Aux patch
@@ -96,8 +94,8 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
         if (lev == 0)
         {
             for (int idim = 0; idim < 3; ++idim) {
-                Bfield_aux[lev][idim].reset(new MultiFab(*Bfield_fp[lev][idim], amrex::make_alias, 0, 1));
-                Efield_aux[lev][idim].reset(new MultiFab(*Efield_fp[lev][idim], amrex::make_alias, 0, 1));
+                Bfield_aux[lev][idim].reset(new MultiFab(*Bfield_fp[lev][idim], amrex::make_alias, 0, Bfield_aux[lev][idim]->nComp()));
+                Efield_aux[lev][idim].reset(new MultiFab(*Efield_fp[lev][idim], amrex::make_alias, 0, Efield_aux[lev][idim]->nComp()));
             }
         } else {
             for (int idim=0; idim < 3; ++idim)
@@ -105,15 +103,15 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 {
                     const IntVect& ng = Bfield_aux[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_aux[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    // pmf->Redistribute(*Bfield_aux[lev][idim], 0, 0, 1, ng);
+                                                                      dm, Bfield_aux[lev][idim]->nComp(), ng));
+                    // pmf->Redistribute(*Bfield_aux[lev][idim], 0, 0, Bfield_aux[lev][idim]->nComp(), ng);
                     Bfield_aux[lev][idim] = std::move(pmf);
                 }
                 {
                     const IntVect& ng = Efield_aux[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_aux[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    // pmf->Redistribute(*Efield_aux[lev][idim], 0, 0, 1, ng);
+                                                                      dm, Efield_aux[lev][idim]->nComp(), ng));
+                    // pmf->Redistribute(*Efield_aux[lev][idim], 0, 0, Efield_aux[lev][idim]->nComp(), ng);
                     Efield_aux[lev][idim] = std::move(pmf);
                 }
             }
@@ -127,32 +125,30 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 {
                     const IntVect& ng = Bfield_cp[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_cp[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    pmf->Redistribute(*Bfield_cp[lev][idim], 0, 0, 1, ng);
+                                                                      dm, Bfield_cp[lev][idim]->nComp(), ng));
+                    pmf->Redistribute(*Bfield_cp[lev][idim], 0, 0, Bfield_cp[lev][idim]->nComp(), ng);
                     Bfield_cp[lev][idim] = std::move(pmf);
                 }
                 {
                     const IntVect& ng = Efield_cp[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_cp[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    pmf->Redistribute(*Efield_cp[lev][idim], 0, 0, 1, ng);
+                                                                      dm, Efield_cp[lev][idim]->nComp(), ng));
+                    pmf->Redistribute(*Efield_cp[lev][idim], 0, 0, Efield_cp[lev][idim]->nComp(), ng);
                     Efield_cp[lev][idim] = std::move(pmf);
                 }
                 {
                     const IntVect& ng = current_cp[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>( new MultiFab(current_cp[lev][idim]->boxArray(),
-                                                                       dm, 1, ng));
+                                                                       dm, current_cp[lev][idim]->nComp(), ng));
                     current_cp[lev][idim] = std::move(pmf);
-                    current_cp_owner_masks[lev][idim] = std::move(
-                        current_cp[lev][idim]->OwnerMask(cperiod));
                 }
             }
 
             if (F_cp[lev] != nullptr) {
                 const IntVect& ng = F_cp[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(F_cp[lev]->boxArray(),
-                                                                  dm, 1, ng));
-                pmf->Redistribute(*F_cp[lev], 0, 0, 1, ng);
+                                                                  dm, F_cp[lev]->nComp(), ng));
+                pmf->Redistribute(*F_cp[lev], 0, 0, F_cp[lev]->nComp(), ng);
                 F_cp[lev] = std::move(pmf);
             }
 
@@ -162,7 +158,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_cp[lev]->boxArray(),
                                                                   dm, nc, ng));
                 rho_cp[lev] = std::move(pmf);
-                rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
             }
         }
 
@@ -173,24 +168,24 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 {
                     const IntVect& ng = Bfield_cax[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_cax[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    // pmf->ParallelCopy(*Bfield_cax[lev][idim], 0, 0, 1, ng, ng);
+                                                                      dm, Bfield_cax[lev][idim]->nComp(), ng));
+                    // pmf->ParallelCopy(*Bfield_cax[lev][idim], 0, 0, Bfield_cax[lev][idim]->nComp(), ng, ng);
                     Bfield_cax[lev][idim] = std::move(pmf);
                 }
                 if (Efield_cax[lev][idim])
                 {
                     const IntVect& ng = Efield_cax[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_cax[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    // pmf->ParallelCopy(*Efield_cax[lev][idim], 0, 0, 1, ng, ng);
+                                                                      dm, Efield_cax[lev][idim]->nComp(), ng));
+                    // pmf->ParallelCopy(*Efield_cax[lev][idim], 0, 0, Efield_cax[lev][idim]->nComp(), ng, ng);
                     Efield_cax[lev][idim] = std::move(pmf);
                 }
                 if (current_buf[lev][idim])
                 {
                     const IntVect& ng = current_buf[lev][idim]->nGrowVect();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_buf[lev][idim]->boxArray(),
-                                                                      dm, 1, ng));
-                    // pmf->ParallelCopy(*current_buf[lev][idim], 0, 0, 1, ng, ng);
+                                                                      dm, current_buf[lev][idim]->nComp(), ng));
+                    // pmf->ParallelCopy(*current_buf[lev][idim], 0, 0, current_buf[lev][idim]->nComp(), ng, ng);
                     current_buf[lev][idim] = std::move(pmf);
                 }
             }
@@ -198,25 +193,25 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             {
                 const IntVect& ng = charge_buf[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(charge_buf[lev]->boxArray(),
-                                                                  dm, 1, ng));
-                // pmf->ParallelCopy(*charge_buf[lev][idim], 0, 0, 1, ng, ng);
+                                                                  dm, charge_buf[lev]->nComp(), ng));
+                // pmf->ParallelCopy(*charge_buf[lev][idim], 0, 0, charge_buf[lev]->nComp(), ng, ng);
                 charge_buf[lev] = std::move(pmf);
             }
             if (current_buffer_masks[lev])
             {
                 const IntVect& ng = current_buffer_masks[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(current_buffer_masks[lev]->boxArray(),
-                                                                    dm, 1, ng));
-                // pmf->ParallelCopy(*current_buffer_masks[lev], 0, 0, 1, ng, ng);
-                current_buffer_masks[lev] = std::move(pmf);                
+                                                                    dm, current_buffer_masks[lev]->nComp(), ng));
+                // pmf->ParallelCopy(*current_buffer_masks[lev], 0, 0, current_buffer_masks[lev]->nComp(), ng, ng);
+                current_buffer_masks[lev] = std::move(pmf);
             }
             if (gather_buffer_masks[lev])
             {
                 const IntVect& ng = gather_buffer_masks[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(gather_buffer_masks[lev]->boxArray(),
-                                                                    dm, 1, ng));
-                // pmf->ParallelCopy(*gather_buffer_masks[lev], 0, 0, 1, ng, ng);
-                gather_buffer_masks[lev] = std::move(pmf);                
+                                                                    dm, gather_buffer_masks[lev]->nComp(), ng));
+                // pmf->ParallelCopy(*gather_buffer_masks[lev], 0, 0, gather_buffer_masks[lev]->nComp(), ng, ng);
+                gather_buffer_masks[lev] = std::move(pmf);
             }
         }
 

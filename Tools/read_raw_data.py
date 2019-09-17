@@ -72,7 +72,7 @@ def read_lab_snapshot(snapshot, global_header):
         direction = 1
     else:
         direction = 2
-    
+
     buffer_fullsize = 0
     buffer_allsizes = [0]
     for i, hdr in enumerate(hdrs):
@@ -80,7 +80,7 @@ def read_lab_snapshot(snapshot, global_header):
         buffer_fullsize += buffer_data[field1].shape[direction]
         buffer_allsizes.append(buffer_data[field1].shape[direction])
     buffer_allstarts = np.cumsum(buffer_allsizes)
-    
+
     data = {}
     for i in range(header.ncomp):
         if space_dim == 3:
@@ -95,10 +95,10 @@ def read_lab_snapshot(snapshot, global_header):
         else:
             for k,v in buffer_data.items():
                 data[k][..., buffer_allstarts[i]:buffer_allstarts[i+1]] = v[...]
-            
+
 
     info = local_info
-    # Add some handy info 
+    # Add some handy info
     x = np.linspace(local_info['xmin'], local_info['xmax'], local_info['nx'])
     y = np.linspace(local_info['ymin'], local_info['ymax'], local_info['ny'])
     z = np.linspace(local_info['zmin'], local_info['zmax'], local_info['nz'])
@@ -114,7 +114,7 @@ def read_lab_snapshot(snapshot, global_header):
 #     xmin = local_info['axes_lo'][0]
 #     xmax = local_info['axes_hi'][0]
 #     x = np.linspace(xmin, xmax, data['Bx'].shape[0])
-#     info.update({ 'xmin' : xmin, 'xmax' : xmax, 'x' : x })    
+#     info.update({ 'xmin' : xmin, 'xmax' : xmax, 'x' : x })
 #     zmin = local_info['axes_lo'][-1]
 #     zmax = local_info['axes_hi'][-1]
 #     z = np.linspace(zmin, zmax, data['Bx'].shape[-1])
@@ -126,7 +126,7 @@ def read_lab_snapshot(snapshot, global_header):
 #         info.update({ 'ymin' : ymin, 'ymax' : ymax, 'y' : y })
 #     return data, info
 
-# For the moment, the back-transformed diagnostics must be read with 
+# For the moment, the back-transformed diagnostics must be read with
 # custom functions like this one.
 # It should be OpenPMD-compliant hdf5 files soon, making this part outdated.
 def get_particle_field(snapshot, species, field):
@@ -312,7 +312,7 @@ def _read_buffer(snapshot, header_fn, _component_names):
             for i in range(header.ncomp):
                 comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')
                 data = all_data[_component_names[i]]
-                data[[slice(l,h+1) for l, h in zip(lo, hi)]] = comp_data
+                data[tuple([slice(l,h+1) for l, h in zip(lo, hi)])] = comp_data
                 all_data[_component_names[i]] = data
     return all_data
 
