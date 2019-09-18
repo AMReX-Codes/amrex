@@ -158,7 +158,7 @@ def get_field_max( filename, a_field ):
     maxF = np.amax(F)
     return zwin, maxF
 
-def plot_field_max():
+def plot_field_max(zwin_arr, maxF_arr):
     plt.figure()
     plt.plot(zwin_arr, maxF_arr)
     plt.xlabel('z (m)')
@@ -174,79 +174,50 @@ plot_Ey_max_evolution = args.plot_Ey_max_evolution
 file_list = glob.glob(args.path + '/plt?????')
 file_list.sort()
 nfiles = len(file_list)
-number_list = range(nfiles)
 
+# Get list of particle speciess to plot
+pslist = get_species(file_list);
+
+rank = 0
+size = 1
 if args.parallel:
-    ### Parallel analysis ###
-    # Split plotfile list among MPI ranks
-    from mpi4py import MPI
-    comm_world = MPI.COMM_WORLD
-    rank = comm_world.Get_rank()
-    size = comm_world.Get_size()
-    max_buf_size = nfiles//size+1
-    if rank == 0:
-        print('Parallel analysis')
-        print('number of MPI ranks: ' + str(size))
-        print('Number of plotfiles: %s' %nfiles)
-    # List of files processed by current MPI rank
-    my_list = file_list[ (rank*nfiles)//size : ((rank+1)*nfiles)//size ]
-    my_number_list = number_list[ (rank*nfiles)//size : ((rank+1)*nfiles)//size ]
-    my_nfiles = len( my_list )
-    nfiles_list = None
-    nfiles_list = comm_world.gather(my_nfiles, root=0)
-    # Get list of particles to plot
-    pslist = get_species(file_list);
-    if rank == 0:
-        print('list of species: ', pslist)
-    if plot_Ey_max_evolution:
-        my_zwin = np.zeros( max_buf_size )
-        my_maxF = np.zeros( max_buf_size )
-    # Loop over files and
-    # - plot field snapshot
-    # - store window position and field max in arrays
-    for count, filename in enumerate(my_list):
-        plot_snapshot( filename )
-        if plot_Ey_max_evolution:
-            my_zwin[count], my_maxF[count] = get_field_max( filename, 'Ey' )
+    try:
+        from mpi4py import MPI
+        comm_world = MPI.COMM_WORLD
+        rank = comm_world.Get_rank()
+        size = comm_world.Get_size()
+    except ImportError:
+        pass
 
-    if plot_Ey_max_evolution:
-        # Gather window position and field max arrays to rank 0
-        zwin_rbuf = None
-        maxF_rbuf = None
-        if rank == 0:
-            zwin_rbuf = np.empty([size, max_buf_size], dtype='d')
-            maxF_rbuf = np.empty([size, max_buf_size], dtype='d')
-        comm_world.Gather(my_zwin, zwin_rbuf, root=0)
-        comm_world.Gather(my_maxF, maxF_rbuf, root=0)
-        # Re-format 2D arrays zwin_rbuf and maxF_rbuf on rank 0
-        # into 1D arrays, and plot them
-        if rank == 0:
-            zwin_arr = np.zeros( nfiles )
-            maxF_arr = np.zeros( nfiles )
-            istart = 0
-            for i in range(size):
-                nelem = nfiles_list[i]
-                zwin_arr[istart:istart+nelem] = zwin_rbuf[i,0:nelem]
-                maxF_arr[istart:istart+nelem] = maxF_rbuf[i,0:nelem]
-                istart += nelem
-            # Plot evolution of field max
-            plot_field_max()
-else:
-    ### Serial analysis ###
-    print('Serial analysis')
-    print('Number of plotfiles: %s' %nfiles)
-    pslist = get_species(file_list);
+if rank == 0:
+    print('number of MPI ranks: %d'%size)
+    print('Number of plotfiles: %s'%nfiles)
     print('list of species: ', pslist)
+
+if plot_Ey_max_evolution:
+    # Fill with a value less than any possible value
+    zwin = np.full(nfiles, np.finfo(float).min)
+    maxF = np.full(nfiles, np.finfo(float).min)
+
+# Loop over files, splitting plotfile list among MPI ranks
+# - plot field snapshot
+# - store window position and field max in arrays
+for count, filename in enumerate(file_list):
+    if count%size != rank:
+        continue
+
+    plot_snapshot( filename )
     if plot_Ey_max_evolution:
-        zwin_arr = np.zeros( nfiles )
-        maxF_arr = np.zeros( nfiles )
-    # Loop over files and
-    # - plot field snapshot
-    # - store window position and field max in arrays
-    for count, filename in enumerate(file_list):
-        plot_snapshot( filename )
-        if plot_Ey_max_evolution:
-            zwin_arr[count], maxF_arr[count] = get_field_max( filename, 'Ey' )
-    # Plot evolution of field max
-    if plot_Ey_max_evolution:
-        plot_field_max()
+        zwin[count], maxF[count] = get_field_max( filename, 'Ey' )
+
+if plot_Ey_max_evolution:
+    if size > 1:
+        global_zwin = np.empty_like(zwin)
+        global_maxF = np.empty_like(maxF)
+        comm_world.Reduce(zwin, global_zwin, op=MPI.MAX)
+        comm_world.Reduce(maxF, global_maxF, op=MPI.MAX)
+        zwin = global_zwin
+        maxF = global_maxF
+    if rank == 0:
+        plot_field_max(zwin, maxF)
+
