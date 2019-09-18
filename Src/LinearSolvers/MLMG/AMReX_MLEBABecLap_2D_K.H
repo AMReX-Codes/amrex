@@ -120,23 +120,23 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_gsrb (Box const& box, Array4<Real> const& phi,
-                       Array4<Real const> const& rhs, Array4<Real const> const& a,
+void mlebabeclap_gsrb (Box const& box,
+                       Array4<Real> const& phi, Array4<Real const> const& rhs,
+                       Real alpha, Array4<Real const> const& a,
+                       Real dhx, Real dhy,
                        Array4<Real const> const& bX, Array4<Real const> const& bY,
-                       Array4<const int> const& ccm, Array4<int const> const& m0,
-                       Array4<int const> const& m2, Array4<int const> const& m1,
-                       Array4<int const> const& m3, Array4<Real const> const& f0,
-                       Array4<Real const> const& f2, Array4<Real const> const& f1,
-                       Array4<Real const> const& f3, Array4<EBCellFlag const> const& flag,
-                       Array4<Real const> const& vfrc, Array4<Real const> const& apx,
-                       Array4<Real const> const& apy, Array4<Real const> const& fcx,
-                       Array4<Real const> const& fcy, Array4<Real const> const& ba,
-                       Array4<Real const> const& bc, Array4<Real const> const& beb,
-                       bool is_dirichlet, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                       Real alpha, Real beta, Box const& vbox, int redblack, int ncomp)
+                       Array4<int const> const& m0, Array4<int const> const& m2,
+                       Array4<int const> const& m1, Array4<int const> const& m3,
+                       Array4<Real const> const& f0, Array4<Real const> const& f2,
+                       Array4<Real const> const& f1, Array4<Real const> const& f3, 
+                       Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
+                       Array4<Real const> const& vfrc,
+                       Array4<Real const> const& apx, Array4<Real const> const& apy,
+                       Array4<Real const> const& fcx, Array4<Real const> const& fcy,
+                       Array4<Real const> const& ba, Array4<Real const> const& bc,
+                       Array4<Real const> const& beb,
+                       bool is_dirichlet, Box const& vbox, int redblack, int ncomp)
 {
-    Real dhx = beta*dxinv[0]*dxinv[0];
-    Real dhy = beta*dxinv[1]*dxinv[1];
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
