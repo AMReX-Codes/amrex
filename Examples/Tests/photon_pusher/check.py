@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import yt
 import numpy as np
+import sys
 
 filename = sys.argv[1]
 data_set_end = yt.load(filename)
