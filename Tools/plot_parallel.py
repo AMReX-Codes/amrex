@@ -20,7 +20,7 @@ between MPI ranks.
 This script also proposes an option to plot one quantity over all timesteps.
 The data of all plotfiles are gathered to rank 0, and the quantity evolution
 is plotted and saved to file. For the illustration, this quantity is the max
-of Ey. Use " --plot_Ey_max_evolution " to activate this option.
+of Ey. Use " --plot_max_evolution Ey" to activate this option.
 
 To get help, run
 > python plot_parallel --help
@@ -47,10 +47,11 @@ parser.add_argument('--parallel', dest='parallel', action='store_true', default=
                     help='whether or not to do the analysis in parallel (e.g., 1 plotfile per MPI rank)')
 parser.add_argument('--species', dest='pslist', nargs='+', type=str, default=None,
                     help='Species to be plotted, e.g., " --species beam plasma_e ". By default, all species in the simulation are shown')
-parser.add_argument('--plot_Ey_max_evolution', dest='plot_Ey_max_evolution', action='store_true', default=False,
-                    help='Whether to plot evolution of max(Ey) to illustrate how to plot one quantity across all plotfiles.')
+parser.add_argument('--plot_max_evolution', type=str, default=None,
+                    help='Quantity to plot the max of across all data files')
 args = parser.parse_args()
 
+plot_max_evolution = args.plot_max_evolution
 # Sanity check
 if int(sys.version[0]) != 3:
     print('WARNING: Parallel analysis was only tested with Python3')
@@ -162,15 +163,14 @@ def plot_field_max(zwin_arr, maxF_arr):
     plt.figure()
     plt.plot(zwin_arr, maxF_arr)
     plt.xlabel('z (m)')
-    plt.ylabel('Field (S.I.)')
+    plt.ylabel('%s (S.I.)'%plot_max_evolution)
     plt.title('Field max evolution')
-    plt.savefig('max_field_evolution.pdf', bbox_inches='tight')
+    plt.savefig('max_%s_evolution.pdf'%plot_max_evolution, bbox_inches='tight')
 
 ### Analysis ###
 
 # Get list of plotfiles
 plotlib  = args.plotlib
-plot_Ey_max_evolution = args.plot_Ey_max_evolution
 file_list = glob.glob(args.path + '/plt?????')
 file_list.sort()
 nfiles = len(file_list)
@@ -194,7 +194,7 @@ if rank == 0:
     print('Number of plotfiles: %s'%nfiles)
     print('list of species: ', pslist)
 
-if plot_Ey_max_evolution:
+if plot_max_evolution is not None:
     # Fill with a value less than any possible value
     zwin = np.full(nfiles, np.finfo(float).min)
     maxF = np.full(nfiles, np.finfo(float).min)
@@ -207,10 +207,10 @@ for count, filename in enumerate(file_list):
         continue
 
     plot_snapshot( filename )
-    if plot_Ey_max_evolution:
-        zwin[count], maxF[count] = get_field_max( filename, 'Ey' )
+    if plot_max_evolution is not None:
+        zwin[count], maxF[count] = get_field_max( filename, plot_max_evolution )
 
-if plot_Ey_max_evolution:
+if plot_max_evolution is not None:
     if size > 1:
         global_zwin = np.empty_like(zwin)
         global_maxF = np.empty_like(maxF)
