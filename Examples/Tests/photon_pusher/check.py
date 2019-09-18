@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import yt
 import numpy as np
 
