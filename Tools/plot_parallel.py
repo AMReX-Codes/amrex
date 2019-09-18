@@ -164,7 +164,7 @@ def plot_field_max():
     plt.xlabel('z (m)')
     plt.ylabel('Field (S.I.)')
     plt.title('Field max evolution')
-    plt.savefig('max_field_evolution.pdf', bbox_inches='tight')
+    plt.savefig(args.path + '/max_field_evolution.pdf', bbox_inches='tight')
 
 ### Analysis ###
 
