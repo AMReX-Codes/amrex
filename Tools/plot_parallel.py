@@ -111,14 +111,14 @@ def plot_snapshot(filename):
         if pspecies in [x[0] for x in ds.field_list]:
             if plotlib == 'matplotlib':
                 # Read particle quantities from yt dataset
-                xp = ad[pspecies, 'particle_position_x'].v
+                xp = all_data_level_0[pspecies, 'particle_position_x'].v
                 if dim == 3:
-                    yp = ad[pspecies, 'particle_position_y'].v
-                    zp = ad[pspecies, 'particle_position_z'].v
+                    yp = all_data_level_0[pspecies, 'particle_position_y'].v
+                    zp = all_data_level_0[pspecies, 'particle_position_z'].v
                     select = yp**2<(args.slicewidth/2)**2
                     xp = xp[select] ; yp = yp[select] ; zp = zp[select]
                 if dim == 2:
-                    zp = ad[pspecies, 'particle_position_y'].v
+                    zp = all_data_level_0[pspecies, 'particle_position_y'].v
                 # Select randomly one every pjump particles
                 random_indices = np.random.choice(xp.shape[0], int(xp.shape[0]/args.pjump))
                 if dim == 2:
