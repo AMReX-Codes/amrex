@@ -549,6 +549,87 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real const> const& sol,
+                         Array4<Real const> const& apx, Array4<Real const> const& fcx,
+                         Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
+                         Real dxi, int ncomp)
+{
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (apx(i,j,k) == 0.0) {
+            gx(i,j,k,n) = 0.0;
+        } else if (apx(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+            gx(i,j,k,n) = dxi*(sol(i,j,k,n)-sol(i-1,j,k,n));
+        } else {
+            Real gxm = (sol(i,j,k,n) - sol(i-1,j,k,n));
+            int jj = j + static_cast<int>(std::copysign(1.0, fcx(i,j,k,0)));
+            int kk = k + static_cast<int>(std::copysign(1.0, fcx(i,j,k,1)));
+            Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k,0)) : 0.0;
+            Real fracz = (ccm(i-1,j,kk) || ccm(i,j,kk)) ? std::abs(fcx(i,j,k,1)) : 0.0;
+            gxm = (1.0-fracy)*(1.0-fracz)*gxm +
+                fracy*(1.0-fracz)*(sol(i,jj,k ,n)-sol(i-1,jj,k ,n)) +
+                fracz*(1.0-fracy)*(sol(i,j ,kk,n)-sol(i-1,j ,kk,n)) +
+                fracy*     fracz *(sol(i,jj,kk,n)-sol(i-1,jj,kk,n));
+            gx(i,j,k,n) = dxi*gxm;
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real const> const& sol,
+                         Array4<Real const> const& apy, Array4<Real const> const& fcy,
+                         Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
+                         Real dyi, int ncomp)
+{
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (apy(i,j,k) == 0.0) {
+            gy(i,j,k,n) = 0.0;
+        } else if (apy(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+            gy(i,j,k,n) = dyi*(sol(i,j,k,n)-sol(i,j-1,k,n));
+        } else {
+            Real gym = (sol(i,j,k,n) - sol(i,j-1,k,n));
+            int ii = i + static_cast<int>(std::copysign(1.0,fcy(i,j,k,0)));
+            int kk = k + static_cast<int>(std::copysign(1.0,fcy(i,j,k,1)));
+            Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k,0)) : 0.0;
+            Real fracz = (ccm(i,j-1,kk) || ccm(i,j,kk)) ? std::abs(fcy(i,j,k,1)) : 0.0;
+            gym = (1.0-fracx)*(1.0-fracz)*gym +
+                fracx*(1.0-fracz)*(sol(ii,j,k ,n)-sol(ii,j-1,k ,n)) +
+                fracz*(1.0-fracx)*(sol(i ,j,kk,n)-sol(i ,j-1,kk,n)) +
+                fracx*     fracz *(sol(ii,j,kk,n)-sol(ii,j-1,kk,n));
+            gy(i,j,k,n) = dyi*gym;
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_grad_z (Box const& box, Array4<Real> const& gz, Array4<Real const> const& sol,
+                         Array4<Real const> const& apz, Array4<Real const> const& fcz,
+                         Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
+                         Real dzi, int ncomp)
+{
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (apz(i,j,k) == 0.0) {
+            gz(i,j,k,n) = 0.0;
+        } else if (apz(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+            gz(i,j,k,n) = dzi*(sol(i,j,k,n)-sol(i,j,k-1,n));
+        } else {
+            Real gzm = (sol(i,j,k,n) - sol(i,j,k-1,n));
+            int ii = i + static_cast<int>(std::copysign(1.0,fcz(i,j,k,0)));
+            int jj = j + static_cast<int>(std::copysign(1.0,fcz(i,j,k,1)));
+            Real fracx = (ccm(ii,j,k-1) || ccm(ii,j,k)) ? std::abs(fcz(i,j,k,0)) : 0.0;
+            Real fracy = (ccm(i,jj,k-1) || ccm(i,jj,k)) ? std::abs(fcz(i,j,k,1)) : 0.0;
+            gzm = (1.0-fracx)*(1.0-fracy)*gzm +
+                fracx*(1.0-fracy)*(sol(ii,j ,k,n)-sol(ii,j ,k-1,n)) +
+                fracy*(1.0-fracx)*(sol(i ,jj,k,n)-sol(i ,jj,k-1,n)) +
+                fracx*     fracy *(sol(ii,jj,k,n)-sol(ii,jj,k-1,n));
+            gz(i,j,k,n) = dzi*gzm;
+        }
+    });
+}
+
 }
 
 #endif

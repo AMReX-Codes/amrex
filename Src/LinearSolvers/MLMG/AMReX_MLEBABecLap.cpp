@@ -757,8 +757,6 @@ void
 MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                        MultiFab& sol, Location loc) const
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::compGrad()");
 
     const int ncomp = getNComp();
@@ -767,7 +765,6 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[amrlev].get());
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     AMREX_D_TERM(const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);,
                  const Real dyi = m_geom[amrlev][mglev].InvCellSize(1);,
                  const Real dzi = m_geom[amrlev][mglev].InvCellSize(2););
@@ -780,37 +777,52 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
     auto fcent = (factory) ? factory->getFaceCent():
         Array<const MultiCutFab*, AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.tilebox(); 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(box) :FabType::regular;
-        Array<Box,AMREX_SPACEDIM> fbx{AMREX_D_DECL(mfi.nodaltilebox(0),
-                                                   mfi.nodaltilebox(1),
-                                                   mfi.nodaltilebox(2))};
+        AMREX_D_TERM(Box const& fbx = mfi.nodaltilebox(0);,
+                     Box const& fby = mfi.nodaltilebox(1);,
+                     Box const& fbz = mfi.nodaltilebox(2););
+        AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
+                     const auto& gy = grad[1]->array(mfi);,
+                     const auto& gz = grad[2]->array(mfi););
         if (fabtyp == FabType::covered) {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                grad[idim]->setVal(0.0, fbx[idim], 0, ncomp);
-            }
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(
+                  fbx, txbx, {
+                      amrex::Loop(txbx,ncomp, [=] (int i, int j, int k, int n) noexcept
+                                  { gx(i,j,k,n) = 0.0; });
+                  }
+                , fby, tybx, {
+                      amrex::Loop(tybx,ncomp, [=] (int i, int j, int k, int n) noexcept
+                                  { gy(i,j,k,n) = 0.0; });
+                  }
+#if (AMREX_SPACEDIM == 3)
+                , fbz, tzbx, {
+                      amrex::Loop(tzbx,ncomp, [=] (int i, int j, int k, int n) noexcept
+                                  { gz(i,j,k,n) = 0.0; });
+                  }
+#endif
+            );
         } else if(fabtyp == FabType::regular || !at_centroid) {
-            const auto& s = sol.array(mfi);
-            AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
-                         const auto& gy = grad[1]->array(mfi);,
-                         const auto& gz = grad[2]->array(mfi););
-            AMREX_HOST_DEVICE_FOR_4D ( fbx[0], ncomp, i, j, k, n,
+            const auto& s = sol.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
             {
                 gx(i,j,k,n) = dxi*(s(i,j,k,n) - s(i-1,j,k,n));
             });
 #if (AMREX_SPACEDIM >= 2)
-            AMREX_HOST_DEVICE_FOR_4D ( fbx[1], ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( fby, ncomp, i, j, k, n,
             {
                 gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
             });
 #endif
 #if (AMREX_SPACEDIM == 3)
-            AMREX_HOST_DEVICE_FOR_4D ( fbx[2], ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( fbz, ncomp, i, j, k, n,
             {
                 gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
             });
@@ -819,71 +831,57 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                 AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                              Array4<Real const> const& ay = area[1]->const_array(mfi);,
                              Array4<Real const> const& az = area[2]->const_array(mfi););
-                AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(box,0);,
-                             const Box& ybx = amrex::surroundingNodes(box,1);,
-                             const Box& zbx = amrex::surroundingNodes(box,2););
-                AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
-                             const auto& gy = grad[1]->array(mfi);,
-                             const auto& gz = grad[2]->array(mfi););
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                    xbx, txbx,
+                    fbx, txbx,
                     {
-                        const auto lo = amrex::lbound(txbx);
-                        const auto hi = amrex::ubound(txbx);
-                        for (int n = 0; n < ncomp; ++n) {
-                            for (int k = lo.z; k <= hi.z; ++k) {
-                            for (int j = lo.y; j <= hi.y; ++j) {
-                            for (int i = lo.x; i <= hi.x; ++i) {
-                                if (ax(i,j,k) == 0.0) gx(i,j,k,n) = 0.0;
-                            }}}
-                        }
+                        amrex::Loop(txbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
+                            if (ax(i,j,k) == 0.0) gx(i,j,k,n) = 0.0;
+                        });
                     }
-                    ,ybx, tybx,
+                    ,fby, tybx,
                     {
-                        const auto lo = amrex::lbound(tybx);
-                        const auto hi = amrex::ubound(tybx);
-                        for (int n = 0; n < ncomp; ++n) {
-                            for (int k = lo.z; k <= hi.z; ++k) {
-                            for (int j = lo.y; j <= hi.y; ++j) {
-                            for (int i = lo.x; i <= hi.x; ++i) {
-                                if (ay(i,j,k) == 0.0) gy(i,j,k,n) = 0.0;
-                            }}}
-                        }
+                        amrex::Loop(tybx, ncomp, [=] (int i, int j, int k, int n) noexcept {
+                            if (ay(i,j,k) == 0.0) gy(i,j,k,n) = 0.0;
+                        });
                     }
 #if (AMREX_SPACEDIM == 3)
-                    ,zbx, tzbx,
+                    ,fbz, tzbx,
                     {
-                        const auto lo = amrex::lbound(tzbx);
-                        const auto hi = amrex::ubound(tzbx);
-                        for (int n = 0; n < ncomp; ++n) {
-                            for (int k = lo.z; k <= hi.z; ++k) {
-                            for (int j = lo.y; j <= hi.y; ++j) {
-                            for (int i = lo.x; i <= hi.x; ++i) {
-                                if (az(i,j,k) == 0.0) gz(i,j,k,n) = 0.0;
-                            }}}
-                        }
+                        amrex::Loop(tzbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
+                            if (az(i,j,k) == 0.0) gz(i,j,k,n) = 0.0;
+                        });
                     }
 #endif
                     );
             }
         } else {
-           amrex_mlebabeclap_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(fbx[0]),
-                                               BL_TO_FORTRAN_BOX(fbx[1]),
-                                               BL_TO_FORTRAN_BOX(fbx[2])),
-                                  BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                               BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                  BL_TO_FORTRAN_ANYD(ccmask[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*flags)[mfi]), dxinv, ncomp);
+            AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                         Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                         Array4<Real const> const& apz = area[2]->const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                         Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                         Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+            Array4<Real const> const& phi = sol.const_array(mfi);
+            Array4<int const> const& msk = ccmask.const_array(mfi);
+            Array4<EBCellFlag const> flg = flags->const_array(mfi);
 
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                fbx, txbx,
+                {
+                    mlebabeclap_grad_x(txbx, gx, phi, apx, fcx, msk, flg, dxi, ncomp);
+                }
+                , fby, tybx,
+                {
+                    mlebabeclap_grad_y(tybx, gy, phi, apy, fcy, msk, flg, dyi, ncomp);
+                }
+#if (AMREX_SPACEDIM == 3)
+                , fbz, tzbx,
+                {
+                    mlebabeclap_grad_z(tzbx, gz, phi, apz, fcz, msk, flg, dzi, ncomp);
+                }
+#endif
+            );
         }
     }
 }
