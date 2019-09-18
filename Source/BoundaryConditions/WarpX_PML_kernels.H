@@ -99,7 +99,7 @@ void warpx_push_pml_bx_ckc(int i, int j, int k, Array4<Real> const&Bx,
                           - Ey(i+1,j+1,k  ,0) - Ey(i+1,j+1,k  ,1) - Ey(i+1,j+1,k  ,2)
                           + Ey(i-1,j+1,k+1,0) + Ey(i-1,j+1,k+1,1) + Ey(i-1,j+1,k+1,2)
                           - Ey(i-1,j+1,k  ,0) - Ey(i-1,j+1,k  ,1) - Ey(i-1,j+1,k  ,2)
-                          + Ey(i+1,j-1,k+1,0) + Ey(i+1,j-1,k+1,1) + Ey(i+1,j-2,k+1,2)
+                          + Ey(i+1,j-1,k+1,0) + Ey(i+1,j-1,k+1,1) + Ey(i+1,j-1,k+1,2)
                           - Ey(i+1,j-1,k  ,0) - Ey(i+1,j-1,k  ,1) - Ey(i+1,j-1,k  ,2)
                           + Ey(i-1,j-1,k+1,0) + Ey(i-1,j-1,k+1,1) + Ey(i-1,j-1,k+1,1)
                           - Ey(i-1,j-1,k  ,0) - Ey(i-1,j-1,k  ,1) - Ey(i-1,j-1,k  ,2));
