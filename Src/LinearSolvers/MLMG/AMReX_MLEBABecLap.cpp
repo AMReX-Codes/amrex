@@ -428,7 +428,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
     {
@@ -643,8 +643,6 @@ void
 MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                     const FArrayBox& sol, Location loc, const int face_only) const
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::FFlux()");
     const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
     const int mglev = 0; 
@@ -654,17 +652,37 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize(); 
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
                  const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
                  const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
+    AMREX_D_TERM(Box const& xbx = amrex::surroundingNodes(box,0);,
+                 Box const& ybx = amrex::surroundingNodes(box,1);,
+                 Box const& zbx = amrex::surroundingNodes(box,2););
+    AMREX_D_TERM(Array4<Real> const& fx = flux[0]->array();,
+                 Array4<Real> const& fy = flux[1]->array();,
+                 Array4<Real> const& fz = flux[2]->array(););
+
     const auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
     if (fabtyp == FabType::covered) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            flux[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, ncomp);
-        }
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(
+              xbx, txbx, {
+                  amrex::Loop(txbx,ncomp, [=] (int i, int j, int k, int n) noexcept
+                              { fx(i,j,k,n) = 0.0; });
+              }
+            , ybx, tybx, {
+                  amrex::Loop(tybx,ncomp, [=] (int i, int j, int k, int n) noexcept
+                              { fy(i,j,k,n) = 0.0; });
+              }
+#if (AMREX_SPACEDIM == 3)
+            , zbx, tzbx, {
+                  amrex::Loop(tzbx,ncomp, [=] (int i, int j, int k, int n) noexcept
+                              { fz(i,j,k,n) = 0.0; });
+              }
+#endif
+        );
     } else if (fabtyp == FabType::regular || !at_centroid) {
         MLABecLaplacian::FFlux(box, dxinv, m_b_scalar,
                                Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&bx,&by,&bz)},
@@ -674,74 +692,64 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
             AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
                          Array4<Real const> const& ay = area[1]->const_array(mfi);,
                          Array4<Real const> const& az = area[2]->const_array(mfi););
-            AMREX_D_TERM(const Box& xbx = amrex::surroundingNodes(box,0);,
-                         const Box& ybx = amrex::surroundingNodes(box,1);,
-                         const Box& zbx = amrex::surroundingNodes(box,2););
-            AMREX_D_TERM(Array4<Real> const& fx = flux[0]->array();,
-                         Array4<Real> const& fy = flux[1]->array();,
-                         Array4<Real> const& fz = flux[2]->array(););
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 xbx, txbx,
                 {
-                    const auto lo = amrex::lbound(txbx);
-                    const auto hi = amrex::ubound(txbx);
-                    for (int n = 0; n < ncomp; ++n) {
-                        for (int k = lo.z; k <= hi.z; ++k) {
-                        for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            if (ax(i,j,k) == 0.0) fx(i,j,k,n) = 0.0;
-                        }}}
-                    }
+                    amrex::Loop(txbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
+                        if (ax(i,j,k) == 0.0) fx(i,j,k,n) = 0.0;
+                    });
                 }
                 ,ybx, tybx,
                 {
-                    const auto lo = amrex::lbound(tybx);
-                    const auto hi = amrex::ubound(tybx);
-                    for (int n = 0; n < ncomp; ++n) {
-                        for (int k = lo.z; k <= hi.z; ++k) {
-                        for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            if (ay(i,j,k) == 0.0) fy(i,j,k,n) = 0.0;
-                        }}}
-                    }
+                    amrex::Loop(tybx, ncomp, [=] (int i, int j, int k, int n) noexcept {
+                        if (ay(i,j,k) == 0.0) fy(i,j,k,n) = 0.0;
+                    });
                 }
 #if (AMREX_SPACEDIM == 3)
                 ,zbx, tzbx,
                 {
-                    const auto lo = amrex::lbound(tzbx);
-                    const auto hi = amrex::ubound(tzbx);
-                    for (int n = 0; n < ncomp; ++n) {
-                        for (int k = lo.z; k <= hi.z; ++k) {
-                        for (int j = lo.y; j <= hi.y; ++j) {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            if (az(i,j,k) == 0.0) fz(i,j,k,n) = 0.0;
-                        }}}
-                    }
+                    amrex::Loop(tzbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
+                        if (az(i,j,k) == 0.0) fz(i,j,k,n) = 0.0;
+                    });
                 }
 #endif
-                );
+            );
         }
     } else {
         const auto& area = factory->getAreaFrac();
         const auto& fcent = factory->getFaceCent();
+        AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                     Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                     Array4<Real const> const& apz = area[2]->const_array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                     Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                     Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+        Array4<Real const> const& phi = sol.const_array();
+        AMREX_D_TERM(Array4<Real const> const& bxcoef = bx.const_array();,
+                     Array4<Real const> const& bycoef = by.const_array();,
+                     Array4<Real const> const& bzcoef = bz.const_array(););
+        Array4<int const> const& msk = ccmask.const_array(mfi);
+        Array4<EBCellFlag const> flg = flags->const_array(mfi);
+        AMREX_D_TERM(Real dhx = m_b_scalar*dxinv[0];,
+                     Real dhy = m_b_scalar*dxinv[1];,
+                     Real dhz = m_b_scalar*dxinv[2];);
 
-        amrex_mlebabeclap_flux(BL_TO_FORTRAN_BOX(box), 
-                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
-                                            BL_TO_FORTRAN_ANYD(*flux[1]), 
-                                            BL_TO_FORTRAN_ANYD(*flux[2])),
-                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]), 
-                                            BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                               BL_TO_FORTRAN_ANYD(sol),
-                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
-                                            BL_TO_FORTRAN_ANYD(by),
-                                            BL_TO_FORTRAN_ANYD(bz)),
-                               BL_TO_FORTRAN_ANYD(ccmask[mfi]),
-                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                               dxinv, m_b_scalar, face_only, ncomp);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            xbx, txbx,
+            {
+                mlebabeclap_flux_x(txbx, fx, apx, fcx, phi, bxcoef, msk, flg, dhx, face_only, ncomp, xbx);
+            }
+            , ybx, tybx,
+            {
+                mlebabeclap_flux_y(tybx, fy, apy, fcy, phi, bycoef, msk, flg, dhy, face_only, ncomp, ybx);
+            }
+#if (AMREX_SPACEDIM == 3)
+            , zbx, tzbx,
+            {
+                mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, flg, dhz, face_only, ncomp, zbx);
+            }
+#endif
+        );
     }
 }
 

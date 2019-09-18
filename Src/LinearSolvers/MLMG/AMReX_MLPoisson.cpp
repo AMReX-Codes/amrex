@@ -501,18 +501,22 @@ MLPoisson::makeNLinOp (int grid_size) const
     alpha.setVal(1.e30*dxscale*dxscale);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
         
         for (MFIter mfi(alpha, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
-            FArrayBox& fab = alpha[mfi];
-            myba.intersections(fab.box(), isects);
+            Box const& box = mfi.fabbox();
+            Array4<Real> const& fab = alpha.array(mfi);
+            myba.intersections(box, isects);
             for (const auto& is : isects)
             {
-                fab.setVal(0.0, is.second, 0, 1);
+                Box const& b = is.second;
+                AMREX_HOST_DEVICE_FOR_3D(b, i, j, k, {
+                    fab(i,j,k) = 0.0;
+                });
             }
         }
     }

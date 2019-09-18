@@ -301,6 +301,60 @@ void mlebabeclap_gsrb (Box const& box,
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& apx,
+                         Array4<Real const> const& fcx, Array4<Real const> const& sol,
+                         Array4<Real const> const& bX, Array4<int const> const& ccm,
+                         Array4<EBCellFlag const> const& flag, Real dhx,
+                         int face_only, int ncomp, Box const& xbox)
+{
+    int lof = xbox.smallEnd(0);
+    int hif = xbox.bigEnd(0);
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (!face_only or lof == i or hif == i) {
+            if (apx(i,j,k) == 0.0) {
+                fx(i,j,k,n) = 0.0;
+            } else if (apx(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+                fx(i,j,k,n) = -dhx*bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+            } else {
+                Real fxm = bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+                int jj = j + static_cast<int>(std::copysign(1.0,fcx(i,j,k)));
+                Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx(i,j,k)) : 0.0;
+                fxm = (1.0-fracy)*fxm + fracy*bX(i,jj,k,n)*(sol(i,jj,k,n)-sol(i-1,jj,k,n));
+                fx(i,j,k,n) = -fxm*dhx;
+            }
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& apy,
+                         Array4<Real const> const& fcy, Array4<Real const> const& sol,
+                         Array4<Real const> const& bY, Array4<int const> const& ccm,
+                         Array4<EBCellFlag const> const& flag, Real dhy,
+                         int face_only, int ncomp, Box const& ybox)
+{
+    int lof = ybox.smallEnd(1);
+    int hif = ybox.bigEnd(1);
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (!face_only or lof == j or hif == j) {
+            if (apy(i,j,k) == 0.0) {
+                fy(i,j,k,n) = 0.0;
+            } else if (apy(i,j,k) == 1.0 or flag(i,j,k).isRegular()) {
+                fy(i,j,k,n) = -dhy*bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+            } else {
+                Real fym = bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+                int ii = i + static_cast<int>(std::copysign(1.0,fcy(i,j,k)));
+                Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy(i,j,k)) : 0.0;
+                fym = (1.0-fracx)*fym + fracx*bY(ii,j,k,n)*(sol(ii,j,k,n)-sol(ii,j-1,k,n));
+                fy(i,j,k,n) = -fym*dhy;
+            }
+        }
+    });
+}
+
 }
 
 #endif
