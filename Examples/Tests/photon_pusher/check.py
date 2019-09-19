@@ -5,7 +5,6 @@ import sys
 
 filename = sys.argv[1]
 data_set_end = yt.load(filename)
-print(filename)
 
 sim_time = data_set_end.current_time.to_value()
 
