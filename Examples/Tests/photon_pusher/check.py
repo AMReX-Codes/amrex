@@ -5,7 +5,7 @@ import sys
 
 #This script checks if photons initialized with different momenta and
 #different initial directions propagate along straight lines at the speed of
-#light.
+#light. The plotfile to be analyzed is passed as a command line argument.
 
 #If the script is run without a command line argument, it regenerates a new
 #inputfile according to the initial conditions listed below.
