@@ -32,7 +32,7 @@ public:
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
-                         amrex::Real t, amrex::Real dt) final;
+                         amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full) final;
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& ,

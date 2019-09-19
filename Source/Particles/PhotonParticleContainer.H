@@ -37,13 +37,14 @@ public:
                          const amrex::MultiFab* cBy,
                          const amrex::MultiFab* cBz,
                          amrex::Real t,
-                         amrex::Real dt) override;
+                         amrex::Real dt,
+                         DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
-                        amrex::Real dt) override;
+                        amrex::Real dt, DtType a_dt_type=DtType::Full) override;
 
 
 
