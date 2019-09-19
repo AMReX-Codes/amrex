@@ -5,11 +5,9 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFArrayBox.H>
 
-#include <AMReX_MG_K.H>
 #include <AMReX_MLABecLap_K.H>
 #include <AMReX_MLEBABecLap_K.H>
 #include <AMReX_MLLinOp_K.H>
-#include <AMReX_MLEBABecLap_F.H>
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_HypreABecLap3.H>
@@ -968,8 +966,8 @@ MLEBABecLap::restriction (int, int, MultiFab& crse, MultiFab& fine) const
 void
 MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
+    BL_PROFILE("MLEBABecLap::interpolation()");
+
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][fmglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
@@ -978,29 +976,36 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        const Box& bx    = mfi.tilebox();
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::refine(bx,2)) : FabType::regular;
+        const Box& bx = mfi.tilebox();
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+
+        Array4<Real const> const& cfab = crse.const_array(mfi);
+        Array4<Real> const& ffab = fine.array(mfi);
 
         if (fabtyp == FabType::regular)
         {
-            auto const cfab = crse.const_array(mfi);
-            auto       ffab = fine.array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
-                mg_cc_interp(i,j,k,n,ffab,cfab);
+                int ic = amrex::coarsen(i,2);
+                int jc = amrex::coarsen(j,2);
+                int kc = amrex::coarsen(k,2);
+                ffab(i,j,k,n) += cfab(ic,jc,kc,n);
             });
         }
         else if (fabtyp == FabType::singlevalued)
         {
-            const FArrayBox& cfab = crse[mfi];
-            FArrayBox&       ffab = fine[mfi];
-            amrex_eb_mg_interp(BL_TO_FORTRAN_BOX(bx),
-                               BL_TO_FORTRAN_ANYD(ffab),
-                               BL_TO_FORTRAN_ANYD(cfab),
-                               BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                               &ncomp);
+            Array4<EBCellFlag const> const& flg = flags->const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                if (!flg(i,j,k).isCovered()) {
+                    int ic = amrex::coarsen(i,2);
+                    int jc = amrex::coarsen(j,2);
+                    int kc = amrex::coarsen(k,2);
+                    ffab(i,j,k,n) += cfab(ic,jc,kc,n);
+                }
+            });
         }
     }
 }
@@ -1019,8 +1024,6 @@ void
 MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::applyBC()");
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.

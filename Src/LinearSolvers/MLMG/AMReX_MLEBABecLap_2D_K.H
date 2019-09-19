@@ -557,9 +557,6 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                     sy = std::copysign(1.0,anrmy);
                 }
 
-                int ii = i - static_cast<int>(sx);
-                int jj = j - static_cast<int>(sy);
-
                 Real phig_gamma = (1.0 + gx*sx + gy*sy + gx*gy*sx*sy);
                 Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
                 gamma += vfrcinv*(-dhx)*feb_gamma;

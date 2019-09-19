@@ -858,9 +858,6 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real sx = std::copysign(1.0,anrmx);
                 Real sy = std::copysign(1.0,anrmy);
                 Real sz = std::copysign(1.0,anrmz);
-                int ii = i - static_cast<int>(sx);
-                int jj = j - static_cast<int>(sy);
-                int kk = k - static_cast<int>(sz);
 
                 gx *= sx;
                 gy *= sy;

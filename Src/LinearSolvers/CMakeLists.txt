@@ -49,8 +49,6 @@ target_sources(amrex
    MLMG/AMReX_MLTensor_${DIM}D_K.H
    MLMG/AMReX_MacProjector.H
    MLMG/AMReX_MacProjector.cpp
-   MLMG/AMReX_MG_K.H
-   MLMG/AMReX_MG_${DIM}D_K.H
    )
 
 if (ENABLE_EB)
@@ -58,8 +56,6 @@ if (ENABLE_EB)
       MLMG/AMReX_MLEBABecLap.H
       MLMG/AMReX_MLEBABecLap.cpp
       MLMG/AMReX_MLEBABecLap_K.H
-      MLMG/AMReX_MLEBABecLap_F.H
-      MLMG/AMReX_MLEBABecLap_${DIM}d.F90
       MLMG/AMReX_MLEBABecLap_${DIM}D_K.H
       MLMG/AMReX_MLEBTensorOp.H
       MLMG/AMReX_MLEBTensorOp.cpp
