@@ -1785,8 +1785,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 if ( !slice_box.intersects(tile_real_box) ) continue;
 
-//                pti.GetPosition(xp_new, yp_new, zp_new);
-                // for gpu //
                 pti.GetPosition(m_xp[thread_num],m_yp[thread_num],m_zp[thread_num]);
                 Real *const AMREX_RESTRICT xpnew = m_xp[thread_num].dataPtr();
                 Real *const AMREX_RESTRICT ypnew = m_yp[thread_num].dataPtr();
@@ -1794,25 +1792,12 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 
                 auto& attribs = pti.GetAttribs();
 
-//                auto& wp = attribs[PIdx::w ];
-                // for gpu //
                 Real* const AMREX_RESTRICT wpnew = attribs[PIdx::w].dataPtr();
 
-//                auto& uxp_new = attribs[PIdx::ux   ];
-//                auto& uyp_new = attribs[PIdx::uy   ];
-//                auto& uzp_new = attribs[PIdx::uz   ];
-                // for gpu //
                 Real* const AMREX_RESTRICT uxpnew = attribs[PIdx::ux   ].dataPtr();
                 Real* const AMREX_RESTRICT uypnew = attribs[PIdx::uy   ].dataPtr();
                 Real* const AMREX_RESTRICT uzpnew = attribs[PIdx::uz   ].dataPtr();
 
-//                auto&  xp_old = tmp_particle_data[lev][index][TmpIdx::xold];
-//                auto&  yp_old = tmp_particle_data[lev][index][TmpIdx::yold];
-//                auto&  zp_old = tmp_particle_data[lev][index][TmpIdx::zold];
-//                auto& uxp_old = tmp_particle_data[lev][index][TmpIdx::uxold];
-//                auto& uyp_old = tmp_particle_data[lev][index][TmpIdx::uyold];
-//                auto& uzp_old = tmp_particle_data[lev][index][TmpIdx::uzold];
-                // for gpu //
                 Real* const AMREX_RESTRICT  xpold = tmp_particle_data[lev][index][TmpIdx::xold].dataPtr();
                 Real* const AMREX_RESTRICT  ypold = tmp_particle_data[lev][index][TmpIdx::yold].dataPtr();
                 Real* const AMREX_RESTRICT  zpold = tmp_particle_data[lev][index][TmpIdx::zold].dataPtr();
@@ -1825,9 +1810,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
                 Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
 
-//#ifdef AMREX_USE_GPU
                 // temporary arrays to store copy_flag and copy_index for particles that cross the z-plane
-
                 amrex::Gpu::ManagedDeviceVector<int> FlagForPartCopy(np);
                 amrex::Gpu::ManagedDeviceVector<int> IndexForPartCopy(np);
 
@@ -1904,56 +1887,6 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                          diag_uzp[loc] = uzp;
                     }
                 });
-//#else
-// 
-//                for (long i = 0; i < np; ++i) {
-//
-//                    // if the particle did not cross the plane of z_boost in the last
-//                    // timestep, skip it.
-//
-//                    if ( not (((zp_new[i] >= z_new) && (zp_old[i] <= z_old)) ||
-//                              ((zp_new[i] <= z_new) && (zp_old[i] >= z_old))) ) continue;
-// 
-//                    // Lorentz transform particles to lab frame
-//                    Real gamma_new_p = std::sqrt(1.0 + inv_c2*(uxp_new[i]*uxp_new[i] + uyp_new[i]*uyp_new[i] + uzp_new[i]*uzp_new[i]));
-//                    Real t_new_p = WarpX::gamma_boost*t_boost - uzfrm*zp_new[i]*inv_c2;
-//                    Real z_new_p = WarpX::gamma_boost*(zp_new[i] + WarpX::beta_boost*PhysConst::c*t_boost);
-//                    Real uz_new_p = WarpX::gamma_boost*uzp_new[i] - gamma_new_p*uzfrm;
-//
-//                    Real gamma_old_p = std::sqrt(1.0 + inv_c2*(uxp_old[i]*uxp_old[i] + uyp_old[i]*uyp_old[i] + uzp_old[i]*uzp_old[i]));
-//                    Real t_old_p = WarpX::gamma_boost*(t_boost - dt) - uzfrm*zp_old[i]*inv_c2;
-//                    Real z_old_p = WarpX::gamma_boost*(zp_old[i] + WarpX::beta_boost*PhysConst::c*(t_boost-dt));
-//                    Real uz_old_p = WarpX::gamma_boost*uzp_old[i] - gamma_old_p*uzfrm;
-//
-//                    // interpolate in time to t_lab
-//                    Real weight_old = (t_new_p - t_lab) / (t_new_p - t_old_p);
-//                    Real weight_new = (t_lab - t_old_p) / (t_new_p - t_old_p);
-//
-//                    Real xp = xp_old[i]*weight_old + xp_new[i]*weight_new;
-//                    Real yp = yp_old[i]*weight_old + yp_new[i]*weight_new;
-//                    Real zp = z_old_p  *weight_old + z_new_p  *weight_new;
-//
-//                    Real uxp = uxp_old[i]*weight_old + uxp_new[i]*weight_new;
-//                    Real uyp = uyp_old[i]*weight_old + uyp_new[i]*weight_new;
-//                    Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
-//                  
-//
-//                    ++counter_for_ParticleCopy;
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::w).push_back(wp[i]);
-//
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::x).push_back(xp);
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::y).push_back(yp);
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::z).push_back(zp);
-//
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::ux).push_back(uxp);
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::uy).push_back(uyp);
-//                    diagnostic_particles[lev][index].GetRealData(DiagIdx::uz).push_back(uzp);
-//                }
-//                if (counter_for_ParticleCopy > 0) 
-//                {
-//                    amrex::Print() << " counter index " << counter_for_ParticleCopy << "\n";
-//                }
-//#endif
             }
         }
     }
