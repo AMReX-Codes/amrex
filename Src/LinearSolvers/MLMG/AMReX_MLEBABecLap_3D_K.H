@@ -16,7 +16,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                         Array4<Real const> const& bc, Array4<Real const> const& beb,
                         bool is_dirichlet, Array4<Real const> const& phieb,
                         bool is_inhomog, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real alpha, Real beta, int ncomp)
+                        Real alpha, Real beta, int ncomp) noexcept
 {
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
@@ -202,7 +202,7 @@ void mlebabeclap_gsrb (Box const& box,
                        Array4<Real const> const& fcz,
                        Array4<Real const> const& ba, Array4<Real const> const& bc,
                        Array4<Real const> const& beb,
-                       bool is_dirichlet, Box const& vbox, int redblack, int ncomp)
+                       bool is_dirichlet, Box const& vbox, int redblack, int ncomp) noexcept
 {
     constexpr Real omega = 1.15;
 
@@ -458,11 +458,11 @@ void mlebabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real con
                          Array4<Real const> const& fcx, Array4<Real const> const& sol,
                          Array4<Real const> const& bX, Array4<int const> const& ccm,
                          Array4<EBCellFlag const> const& flag, Real dhx,
-                         int face_only, int ncomp, Box const& xbox)
+                         int face_only, int ncomp, Box const& xbox) noexcept
 {
     int lof = xbox.smallEnd(0);
     int hif = xbox.bigEnd(0);
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (!face_only or lof == i or hif == i) {
             if (apx(i,j,k) == 0.0) {
@@ -490,11 +490,11 @@ void mlebabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real con
                          Array4<Real const> const& fcy, Array4<Real const> const& sol,
                          Array4<Real const> const& bY, Array4<int const> const& ccm,
                          Array4<EBCellFlag const> const& flag, Real dhy,
-                         int face_only, int ncomp, Box const& ybox)
+                         int face_only, int ncomp, Box const& ybox) noexcept
 {
     int lof = ybox.smallEnd(1);
     int hif = ybox.bigEnd(1);
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (!face_only or lof == j or hif == j) {
             if (apy(i,j,k) == 0.0) {
@@ -522,11 +522,11 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
                          Array4<Real const> const& fcz, Array4<Real const> const& sol,
                          Array4<Real const> const& bZ, Array4<int const> const& ccm,
                          Array4<EBCellFlag const> const& flag, Real dhz,
-                         int face_only, int ncomp, Box const& zbox)
+                         int face_only, int ncomp, Box const& zbox) noexcept
 {
     int lof = zbox.smallEnd(2);
     int hif = zbox.bigEnd(2);
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (!face_only or lof == k or hif == k) {
             if (apz(i,j,k) == 0.0) {
@@ -550,12 +550,69 @@ void mlebabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real con
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_flux_x_0 (Box const& box, Array4<Real> const& fx, Array4<Real const> const& apx,
+                           Array4<Real const> const& sol, Array4<Real const> const& bX,
+                           Real dhx, int face_only, int ncomp, Box const& xbox) noexcept
+{
+    int lof = xbox.smallEnd(0);
+    int hif = xbox.bigEnd(0);
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (!face_only or lof == i or hif == i) {
+            if (apx(i,j,k) == 0.0) {
+                fx(i,j,k,n) = 0.0;
+            } else {
+                fx(i,j,k,n) = -dhx*bX(i,j,k,n)*(sol(i,j,k,n)-sol(i-1,j,k,n));
+            }
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_flux_y_0 (Box const& box, Array4<Real> const& fy, Array4<Real const> const& apy,
+                           Array4<Real const> const& sol, Array4<Real const> const& bY,
+                           Real dhy, int face_only, int ncomp, Box const& ybox) noexcept
+{
+    int lof = ybox.smallEnd(1);
+    int hif = ybox.bigEnd(1);
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (!face_only or lof == j or hif == j) {
+            if (apy(i,j,k) == 0.0) {
+                fy(i,j,k,n) = 0.0;
+            } else {
+                fy(i,j,k,n) = -dhy*bY(i,j,k,n)*(sol(i,j,k,n)-sol(i,j-1,k,n));
+            }
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_flux_z_0 (Box const& box, Array4<Real> const& fz, Array4<Real const> const& apz,
+                           Array4<Real const> const& sol, Array4<Real const> const& bZ,
+                           Real dhz, int face_only, int ncomp, Box const& zbox) noexcept
+{
+    int lof = zbox.smallEnd(2);
+    int hif = zbox.bigEnd(2);
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (!face_only or lof == k or hif == k) {
+            if (apz(i,j,k) == 0.0) {
+                fz(i,j,k,n) = 0.0;
+            } else {
+                fz(i,j,k,n) = -dhz*bZ(i,j,k,n)*(sol(i,j,k,n)-sol(i,j,k-1,n));
+            }
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_x (Box const& box, Array4<Real> const& gx, Array4<Real const> const& sol,
                          Array4<Real const> const& apx, Array4<Real const> const& fcx,
                          Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
-                         Real dxi, int ncomp)
+                         Real dxi, int ncomp) noexcept
 {
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apx(i,j,k) == 0.0) {
             gx(i,j,k,n) = 0.0;
@@ -580,9 +637,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_y (Box const& box, Array4<Real> const& gy, Array4<Real const> const& sol,
                          Array4<Real const> const& apy, Array4<Real const> const& fcy,
                          Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
-                         Real dyi, int ncomp)
+                         Real dyi, int ncomp) noexcept
 {
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apy(i,j,k) == 0.0) {
             gy(i,j,k,n) = 0.0;
@@ -607,9 +664,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_grad_z (Box const& box, Array4<Real> const& gz, Array4<Real const> const& sol,
                          Array4<Real const> const& apz, Array4<Real const> const& fcz,
                          Array4<int const> const& ccm, Array4<EBCellFlag const> const& flag,
-                         Real dzi, int ncomp)
+                         Real dzi, int ncomp) noexcept
 {
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     {
         if (apz(i,j,k) == 0.0) {
             gz(i,j,k,n) = 0.0;
@@ -626,6 +683,48 @@ void mlebabeclap_grad_z (Box const& box, Array4<Real> const& gz, Array4<Real con
                 fracy*(1.0-fracx)*(sol(i ,jj,k,n)-sol(i ,jj,k-1,n)) +
                 fracx*     fracy *(sol(ii,jj,k,n)-sol(ii,jj,k-1,n));
             gz(i,j,k,n) = dzi*gzm;
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_grad_x_0 (Box const& box, Array4<Real> const& gx, Array4<Real const> const& sol,
+                           Array4<Real const> const& apx, Real dxi, int ncomp) noexcept
+{
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (apx(i,j,k) == 0.0) {
+            gx(i,j,k,n) = 0.0;
+        } else {
+            gx(i,j,k,n) = dxi*(sol(i,j,k,n)-sol(i-1,j,k,n));
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_grad_y_0 (Box const& box, Array4<Real> const& gy, Array4<Real const> const& sol,
+                           Array4<Real const> const& apy, Real dyi, int ncomp) noexcept
+{
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (apy(i,j,k) == 0.0) {
+            gy(i,j,k,n) = 0.0;
+        } else {
+            gy(i,j,k,n) = dyi*(sol(i,j,k,n)-sol(i,j-1,k,n));
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_grad_z_0 (Box const& box, Array4<Real> const& gz, Array4<Real const> const& sol,
+                           Array4<Real const> const& apz, Real dzi, int ncomp) noexcept
+{
+    amrex::LoopConcurrent(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (apz(i,j,k) == 0.0) {
+            gz(i,j,k,n) = 0.0;
+        } else {
+            gz(i,j,k,n) = dzi*(sol(i,j,k,n)-sol(i,j,k-1,n));
         }
     });
 }

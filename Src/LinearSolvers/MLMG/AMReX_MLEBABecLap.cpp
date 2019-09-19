@@ -667,55 +667,25 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
 
     const auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
     if (fabtyp == FabType::covered) {
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(
-              xbx, txbx, {
-                  amrex::Loop(txbx,ncomp, [=] (int i, int j, int k, int n) noexcept
-                              { fx(i,j,k,n) = 0.0; });
-              }
-            , ybx, tybx, {
-                  amrex::Loop(tybx,ncomp, [=] (int i, int j, int k, int n) noexcept
-                              { fy(i,j,k,n) = 0.0; });
-              }
+        AMREX_HOST_DEVICE_FOR_4D(xbx, ncomp, i, j, k, n,
+        {
+            fx(i,j,k,n) = 0.0;
+        });
+        AMREX_HOST_DEVICE_FOR_4D(ybx, ncomp, i, j, k, n,
+        {
+            fy(i,j,k,n) = 0.0;
+        });
 #if (AMREX_SPACEDIM == 3)
-            , zbx, tzbx, {
-                  amrex::Loop(tzbx,ncomp, [=] (int i, int j, int k, int n) noexcept
-                              { fz(i,j,k,n) = 0.0; });
-              }
+        AMREX_HOST_DEVICE_FOR_4D(zbx, ncomp, i, j, k, n,
+        {
+            fz(i,j,k,n) = 0.0;
+        });
 #endif
-        );
-    } else if (fabtyp == FabType::regular || !at_centroid) {
+    } else if (fabtyp == FabType::regular) {
         MLABecLaplacian::FFlux(box, dxinv, m_b_scalar,
                                Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&bx,&by,&bz)},
                                flux, sol, face_only, ncomp);
-        if (fabtyp != FabType::regular && !face_only) {
-            const auto& area = factory->getAreaFrac();
-            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
-                         Array4<Real const> const& ay = area[1]->const_array(mfi);,
-                         Array4<Real const> const& az = area[2]->const_array(mfi););
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                xbx, txbx,
-                {
-                    amrex::Loop(txbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
-                        if (ax(i,j,k) == 0.0) fx(i,j,k,n) = 0.0;
-                    });
-                }
-                ,ybx, tybx,
-                {
-                    amrex::Loop(tybx, ncomp, [=] (int i, int j, int k, int n) noexcept {
-                        if (ay(i,j,k) == 0.0) fy(i,j,k,n) = 0.0;
-                    });
-                }
-#if (AMREX_SPACEDIM == 3)
-                ,zbx, tzbx,
-                {
-                    amrex::Loop(tzbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
-                        if (az(i,j,k) == 0.0) fz(i,j,k,n) = 0.0;
-                    });
-                }
-#endif
-            );
-        }
-    } else {
+    } else if (at_centroid) {
         const auto& area = factory->getAreaFrac();
         const auto& fcent = factory->getFaceCent();
         AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
@@ -747,6 +717,35 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
             , zbx, tzbx,
             {
                 mlebabeclap_flux_z(tzbx, fz, apz, fcz, phi, bzcoef, msk, flg, dhz, face_only, ncomp, zbx);
+            }
+#endif
+        );
+    } else {
+        const auto& area = factory->getAreaFrac();
+        AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
+                     Array4<Real const> const& apy = area[1]->const_array(mfi);,
+                     Array4<Real const> const& apz = area[2]->const_array(mfi););
+        Array4<Real const> const& phi = sol.const_array();
+        AMREX_D_TERM(Array4<Real const> const& bxcoef = bx.const_array();,
+                     Array4<Real const> const& bycoef = by.const_array();,
+                     Array4<Real const> const& bzcoef = bz.const_array(););
+        AMREX_D_TERM(Real dhx = m_b_scalar*dxinv[0];,
+                     Real dhy = m_b_scalar*dxinv[1];,
+                     Real dhz = m_b_scalar*dxinv[2];);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+            xbx, txbx,
+            {
+                mlebabeclap_flux_x_0(txbx, fx, apx, phi, bxcoef, dhx, face_only, ncomp, xbx);
+            }
+            , ybx, tybx,
+            {
+                mlebabeclap_flux_y_0(tybx, fy, apy, phi, bycoef, dhy, face_only, ncomp, ybx);
+            }
+#if (AMREX_SPACEDIM == 3)
+            , zbx, tzbx,
+            {
+                mlebabeclap_flux_z_0(tzbx, fz, apz, phi, bzcoef, dhz, face_only, ncomp, zbx);
             }
 #endif
         );
@@ -792,93 +791,80 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
         AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
                      const auto& gy = grad[1]->array(mfi);,
                      const auto& gz = grad[2]->array(mfi););
+        const auto& s = sol.const_array(mfi);
         if (fabtyp == FabType::covered) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(
-                  fbx, txbx, {
-                      amrex::Loop(txbx,ncomp, [=] (int i, int j, int k, int n) noexcept
-                                  { gx(i,j,k,n) = 0.0; });
-                  }
-                , fby, tybx, {
-                      amrex::Loop(tybx,ncomp, [=] (int i, int j, int k, int n) noexcept
-                                  { gy(i,j,k,n) = 0.0; });
-                  }
+            AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+            {
+                gx(i,j,k,n) = 0.0;
+            });
+            AMREX_HOST_DEVICE_FOR_4D(fby, ncomp, i, j, k, n,
+            {
+                gy(i,j,k,n) = 0.0;
+            });
 #if (AMREX_SPACEDIM == 3)
-                , fbz, tzbx, {
-                      amrex::Loop(tzbx,ncomp, [=] (int i, int j, int k, int n) noexcept
-                                  { gz(i,j,k,n) = 0.0; });
-                  }
+            AMREX_HOST_DEVICE_FOR_4D(fbz, ncomp, i, j, k, n,
+            {
+                gz(i,j,k,n) = 0.0;
+            });
 #endif
-            );
-        } else if(fabtyp == FabType::regular || !at_centroid) {
-            const auto& s = sol.const_array(mfi);
+        } else if(fabtyp == FabType::regular) {
             AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
             {
                 gx(i,j,k,n) = dxi*(s(i,j,k,n) - s(i-1,j,k,n));
             });
-#if (AMREX_SPACEDIM >= 2)
             AMREX_HOST_DEVICE_FOR_4D ( fby, ncomp, i, j, k, n,
             {
                 gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
             });
-#endif
 #if (AMREX_SPACEDIM == 3)
             AMREX_HOST_DEVICE_FOR_4D ( fbz, ncomp, i, j, k, n,
             {
                 gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
             });
 #endif
-            if (fabtyp != FabType::regular) {
-                AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
-                             Array4<Real const> const& ay = area[1]->const_array(mfi);,
-                             Array4<Real const> const& az = area[2]->const_array(mfi););
-
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                    fbx, txbx,
-                    {
-                        amrex::Loop(txbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
-                            if (ax(i,j,k) == 0.0) gx(i,j,k,n) = 0.0;
-                        });
-                    }
-                    ,fby, tybx,
-                    {
-                        amrex::Loop(tybx, ncomp, [=] (int i, int j, int k, int n) noexcept {
-                            if (ay(i,j,k) == 0.0) gy(i,j,k,n) = 0.0;
-                        });
-                    }
-#if (AMREX_SPACEDIM == 3)
-                    ,fbz, tzbx,
-                    {
-                        amrex::Loop(tzbx, ncomp, [=] (int i, int j, int k, int n) noexcept {
-                            if (az(i,j,k) == 0.0) gz(i,j,k,n) = 0.0;
-                        });
-                    }
-#endif
-                    );
-            }
-        } else {
+        } else if (at_centroid) {
             AMREX_D_TERM(Array4<Real const> const& apx = area[0]->const_array(mfi);,
                          Array4<Real const> const& apy = area[1]->const_array(mfi);,
                          Array4<Real const> const& apz = area[2]->const_array(mfi););
             AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
-            Array4<Real const> const& phi = sol.const_array(mfi);
             Array4<int const> const& msk = ccmask.const_array(mfi);
             Array4<EBCellFlag const> flg = flags->const_array(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
                 fbx, txbx,
                 {
-                    mlebabeclap_grad_x(txbx, gx, phi, apx, fcx, msk, flg, dxi, ncomp);
+                    mlebabeclap_grad_x(txbx, gx, s, apx, fcx, msk, flg, dxi, ncomp);
                 }
                 , fby, tybx,
                 {
-                    mlebabeclap_grad_y(tybx, gy, phi, apy, fcy, msk, flg, dyi, ncomp);
+                    mlebabeclap_grad_y(tybx, gy, s, apy, fcy, msk, flg, dyi, ncomp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 , fbz, tzbx,
                 {
-                    mlebabeclap_grad_z(tzbx, gz, phi, apz, fcz, msk, flg, dzi, ncomp);
+                    mlebabeclap_grad_z(tzbx, gz, s, apz, fcz, msk, flg, dzi, ncomp);
+                }
+#endif
+            );
+        } else {
+            AMREX_D_TERM(Array4<Real const> const& ax = area[0]->const_array(mfi);,
+                         Array4<Real const> const& ay = area[1]->const_array(mfi);,
+                         Array4<Real const> const& az = area[2]->const_array(mfi););
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                fbx, txbx,
+                {
+                    mlebabeclap_grad_x_0(txbx, gx, s, ax, dxi, ncomp);
+                }
+                , fby, tybx,
+                {
+                    mlebabeclap_grad_y_0(tybx, gy, s, ay, dyi, ncomp);
+                }
+#if (AMREX_SPACEDIM == 3)
+                , fbz, tzbx,
+                {
+                    mlebabeclap_grad_z_0(tzbx, gz, s, az, dzi, ncomp);
                 }
 #endif
             );
