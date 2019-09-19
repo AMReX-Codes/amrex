@@ -71,6 +71,7 @@ struct ParticleCopyPlan
     Gpu::ManagedDeviceVector<int> m_rcv_box_counts;
     Gpu::ManagedDeviceVector<int> m_rcv_box_offsets;
     Gpu::ManagedDeviceVector<int> m_rcv_box_ids;
+    Gpu::ManagedDeviceVector<int> m_rcv_box_levs;
 
     long m_NumSnds;
     int m_nrcvs;
@@ -111,7 +112,8 @@ struct ParticleCopyPlan
         m_box_counts.resize(num_boxes, 0);
         m_box_offsets.resize(num_boxes+1);
         auto p_dst_box_counts = m_box_counts.dataPtr();
-        auto p_box_perm = pc.BufferMap().gridToBucketPtr();
+        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
+        auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
         
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
 
@@ -134,7 +136,8 @@ struct ParticleCopyPlan
             {
                 int dst_box = p_boxes[i];
                 if (dst_box < 0) continue;
-                int index = Gpu::Atomic::Inc(&p_dst_box_counts[p_box_perm[dst_box]], max_unsigned_int);
+                int index = Gpu::Atomic::Inc(&p_dst_box_counts[p_box_perm[p_lev_offsets[lev]+dst_box]], 
+                                             max_unsigned_int);
                 p_dst_indices[i] = index;
             });
         }
@@ -212,14 +215,15 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         auto p_dst_indices = plan.m_dst_indices.at(gid).dataPtr();
 	auto p_periodic_shift = op.m_periodic_shift.at(gid).dataPtr();
 	auto p_box_offsets = plan.m_box_offsets.dataPtr();
-        auto p_box_perm = pc.BufferMap().gridToBucketPtr();
+        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
+        auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
 	AMREX_FOR_1D ( num_copies, i,
         {
             int dst_box = p_boxes[i];
             if (dst_box < 0) continue;
-            int box_offset = p_box_offsets[p_box_perm[dst_box]];
+            int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+dst_box]];
             int dst_index = box_offset + p_dst_indices[i];
             int src_index = p_src_indices[i];
             p_snd_buffer[dst_index] = ptd.getSuperParticle(src_index);
@@ -261,7 +265,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
         auto& tile = plev[index];
-	int num_copies = plan.m_box_counts[pc.BufferMap().gridToBucket(gid)];
+	int num_copies = plan.m_box_counts[pc.BufferMap().gridAndLevToBucket(gid, lev)];
         sizes.push_back(num_copies);
         tiles.push_back(&tile);
     }
@@ -283,7 +287,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         auto& aos   = tile.GetArrayOfStructs();
 
 	auto p_box_offsets = plan.m_box_offsets.dataPtr();
-	auto p_box_perm = pc.BufferMap().gridToBucketPtr();
+        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
+	auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
 	auto p_snd_buffer = snd_buffer.dataPtr();
 
         int offset = offsets[uindex];
@@ -293,7 +298,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
         auto ptd = tile.getParticleTileData();
         AMREX_FOR_1D ( size, i,
         {
-            int box_offset = p_box_offsets[p_box_perm[gid]];
+            int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+gid]];
             int src_index = box_offset + i;
             int dst_index = offset + i;
             ptd.setSuperParticle(p_snd_buffer[src_index], dst_index);
