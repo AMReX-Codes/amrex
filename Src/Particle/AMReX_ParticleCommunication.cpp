@@ -5,16 +5,25 @@ using namespace amrex;
 
 void ParticleCopyOp::clear ()
 {
-    m_boxes.clear();
-    m_src_indices.clear();
-    m_periodic_shift.clear();
+    m_boxes.resize(0);
+    m_levels.resize(0);
+    m_src_indices.resize(0);
+    m_periodic_shift.resize(0);
 }
 
-void ParticleCopyOp::resize (const int gid, const int size)
+void ParticleCopyOp::resize (const int gid, const int lev, const int size)
 {
-    m_boxes[gid].resize(size);
-    m_src_indices[gid].resize(size);
-    m_periodic_shift[gid].resize(size);
+    if (lev >= m_boxes.size())
+    {
+        m_boxes.resize(lev+1);
+        m_levels.resize(lev+1);
+        m_src_indices.resize(lev+1);
+        m_periodic_shift.resize(lev+1);
+    }
+    m_boxes[lev][gid].resize(size);
+    m_levels[lev][gid].resize(size);
+    m_src_indices[lev][gid].resize(size);
+    m_periodic_shift[lev][gid].resize(size);
 }
 
 void ParticleCopyPlan::clear ()

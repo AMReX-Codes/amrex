@@ -907,7 +907,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local)
 {
 #ifdef AMREX_USE_CUDA
-    if ((lev_min == 0) and (lev_max == 0) and (nGrow == 0) and Gpu::inLaunchRegion())
+    if ( (nGrow == 0) and Gpu::inLaunchRegion() )
     {
         RedistributeGPU(lev_min, lev_max, nGrow, local);
     }
@@ -1031,144 +1031,153 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (local) AMREX_ASSERT(numParticlesOutOfRange(*this, local) == 0);
     
     // sanity checks
-    AMREX_ASSERT(lev_min == 0);
-    AMREX_ASSERT(lev_max == 0);
     AMREX_ASSERT(nGrow == 0);
     AMREX_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const BoxArray& ba   = ParticleBoxArray(lev);
-    
     if (local > 0) BuildRedistributeMask(0, local);
-    if (not m_particle_locator.isValid(ba)) m_particle_locator.build(ba);
     this->defineBufferMap();
 
-    if ( (ba.size() == 1) and geom.isAllPeriodic() )
+    if (numLevels() == 1)
     {
-        EnforcePeriodicGPU();
-        AMREX_ASSERT(OK());
-        return;
+        const auto& ba = ParticleBoxArray(0);
+        const auto& geom = Geom(0);
+        if ((ba.size() == 1) and geom.isAllPeriodic())
+        {
+            EnforcePeriodicGPU();
+            AMREX_ASSERT(OK());
+            return;
+        }
     }
-
-    const DistributionMapping& dmap = ParticleDistributionMap(lev);
-    auto& plev       = m_particles[lev];
-    const auto plo   = Geom(lev).ProbLoArray();
-    const auto dxi   = Geom(lev).InvCellSizeArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const auto is_per = Geom(lev).isPeriodicArray();
-    const Box domain = Geom(lev).Domain();
-
-    auto assign_grid = m_particle_locator.getGridAssignor();
 
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
-    std::map<int, int> new_sizes;
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    Vector<std::map<int, int> > new_sizes(numLevels());
+    for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
+        const Geometry& geom = Geom(lev);
+        const BoxArray& ba   = ParticleBoxArray(lev);
+        const DistributionMapping& dmap = ParticleDistributionMap(lev);
 
-        auto& src_tile = plev[index];
-        auto& aos = src_tile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
-        
-        m_aos_r.resize(np);
-        for (int i = 0; i < NArrayReal; ++i) m_rdata_r[i].resize(np);
-        for (int i = 0; i < NArrayInt;  ++i) m_idata_r[i].resize(np);
+        if (not m_particle_locator.isValid(ba)) m_particle_locator.build(ba);
 
-        m_grids_tmp.resize(np);
-        m_grids_r.resize(np);
-        
-        auto grids_ptr = m_grids_tmp.dataPtr();
-        ParticleType* p_ptr = &(aos[0]);
-        amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
+        auto& plev = m_particles[lev];
+        const auto plo = Geom(lev).ProbLoArray();
+        const auto dxi = Geom(lev).InvCellSizeArray();
+        const auto phi = Geom(lev).ProbHiArray();
+        const auto is_per = Geom(lev).isPeriodicArray();
+        const Box domain = Geom(lev).Domain();
+
+        auto assign_grid = m_particle_locator.getGridAssignor();
+
+        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            auto& p = p_ptr[i];
-            if (p.id() < 0) 
-            {    
-                grids_ptr[i] = -1;
-            }
-            else
-            {
-                enforcePeriodic(p, plo, phi, is_per);
-                IntVect iv = getParticleCell(p, plo, dxi, domain);
-                grids_ptr[i] = assign_grid(iv);
-            }
-        });
-
-        int num_stay;
-        {
-            auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
-            {
-                return grids_ptr[i] == gid;
-            };
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
             
-            const auto src_data = src_tile.getConstParticleTileData();
-            typename ParticleTileType::ParticleTileDataType dst_data;
-            dst_data.m_aos = m_aos_r.dataPtr();
-            for (int i = 0; i < NArrayReal; ++i)
-                dst_data.m_rdata[i] = m_rdata_r[i].dataPtr();
-            for (int i = 0; i < NArrayInt; ++i)
-                dst_data.m_idata[i] = m_idata_r[i].dataPtr();
+            auto& src_tile = plev[index];
+            auto& aos = src_tile.GetArrayOfStructs();
+            const size_t np = aos.numParticles();
+            
+            m_aos_r.resize(np);
+            for (int i = 0; i < NArrayReal; ++i) m_rdata_r[i].resize(np);
+            for (int i = 0; i < NArrayInt;  ++i) m_idata_r[i].resize(np);
+            
+            m_grids_tmp.resize(np);
+            m_grids_r.resize(np);
+            
+            auto grids_ptr = m_grids_tmp.dataPtr();
+            ParticleType* p_ptr = &(aos[0]);
+            amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
+            {
+                auto& p = p_ptr[i];
+                if (p.id() < 0) 
+                {    
+                    grids_ptr[i] = -1;
+                }
+                else
+                {
+                    enforcePeriodic(p, plo, phi, is_per);
+                    IntVect iv = getParticleCell(p, plo, dxi, domain);
+                    grids_ptr[i] = assign_grid(iv);
+                }
+            });
+
+            int num_stay;
+            {
+                auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
+                {
+                    return grids_ptr[i] == gid;
+                };
+            
+                const auto src_data = src_tile.getConstParticleTileData();
+                typename ParticleTileType::ParticleTileDataType dst_data;
+                dst_data.m_aos = m_aos_r.dataPtr();
+                for (int i = 0; i < NArrayReal; ++i)
+                    dst_data.m_rdata[i] = m_rdata_r[i].dataPtr();
+                for (int i = 0; i < NArrayInt; ++i)
+                    dst_data.m_idata[i] = m_idata_r[i].dataPtr();
+                auto dst_grids_ptr = m_grids_r.dataPtr();
+                
+                num_stay = Scan::PrefixSum<int> (np, 
+                    [=] AMREX_GPU_DEVICE (int i) -> int 
+                    {
+                        return particle_stays(i);
+                    },
+                    [=] AMREX_GPU_DEVICE (int i, int const& s)
+                    {
+                        if (particle_stays(i)) {
+                            dst_data.m_aos[s] = src_data.m_aos[i];
+                            for (int j = 0; j < NArrayReal; ++j)
+                                dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
+                            for (int j = 0; j < NArrayInt; ++j)
+                                dst_data.m_idata[j][s] = src_data.m_idata[j][i];                        
+                            dst_grids_ptr[s] = grids_ptr[i];
+                        } else {
+                            dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
+                            for (int j = 0; j < NArrayReal; ++j)
+                                dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
+                            for (int j = 0; j < NArrayInt; ++j)
+                                dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
+                            dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
+                        }
+                    }, 
+                    Scan::Type::exclusive);
+
+                aos().swap(m_aos_r);
+                for (int i = 0; i < NArrayReal; ++i)
+                {
+                    auto& rdata = src_tile.GetStructOfArrays().GetRealData(i);
+                    rdata.swap(m_rdata_r[i]);
+                }
+                for (int i = 0; i < NArrayInt; ++i)
+                {
+                    auto& idata = src_tile.GetStructOfArrays().GetIntData(i);
+                    idata.swap(m_idata_r[i]);
+                }
+            }
+
+            int num_move = np - num_stay;
+            new_sizes[lev][gid] = num_stay;
+            op.resize(gid, lev, num_move);
+
+            auto p_boxes = op.m_boxes[lev][gid].dataPtr();
+            auto p_levs = op.m_levels[lev][gid].dataPtr();
+            auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
+            auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
             auto dst_grids_ptr = m_grids_r.dataPtr();
 
-            num_stay = Scan::PrefixSum<int> (np,
-                [=] AMREX_GPU_DEVICE (int i) -> int
-                {
-                    return particle_stays(i);
-                },
-                [=] AMREX_GPU_DEVICE (int i, int const& s)
-                {
-                    if (particle_stays(i)) {
-                        dst_data.m_aos[s] = src_data.m_aos[i];
-                        for (int j = 0; j < NArrayReal; ++j)
-                            dst_data.m_rdata[j][s] = src_data.m_rdata[j][i];
-                        for (int j = 0; j < NArrayInt; ++j)
-                            dst_data.m_idata[j][s] = src_data.m_idata[j][i];                        
-                        dst_grids_ptr[s] = grids_ptr[i];
-                    } else {
-                        dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
-                        for (int j = 0; j < NArrayReal; ++j)
-                            dst_data.m_rdata[j][np-1-(i-s)] = src_data.m_rdata[j][i];
-                        for (int j = 0; j < NArrayInt; ++j)
-                            dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
-                        dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
-                    }
-                }, 
-                Scan::Type::exclusive);
-            aos().swap(m_aos_r);
-            for (int i = 0; i < NArrayReal; ++i)
+	    AMREX_FOR_1D ( num_move, i,
             {
-                auto& rdata = src_tile.GetStructOfArrays().GetRealData(i);
-                rdata.swap(m_rdata_r[i]);
-            }
-            for (int i = 0; i < NArrayInt; ++i)
-            {
-                auto& idata = src_tile.GetStructOfArrays().GetIntData(i);
-                idata.swap(m_idata_r[i]);
-            }
+                p_boxes[i] = dst_grids_ptr[i + num_stay];
+                p_levs[i] = 0;  // note, fix.
+                p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
+                p_src_indices[i] = i+num_stay;
+            });
         }
-
-        int num_move = np - num_stay;
-        new_sizes[gid] = num_stay;
-	op.resize(gid, num_move);
-
-	auto p_boxes = op.m_boxes[gid].dataPtr();
-	auto p_src_indices = op.m_src_indices[gid].dataPtr();
-	auto p_periodic_shift = op.m_periodic_shift[gid].dataPtr();
-        auto dst_grids_ptr = m_grids_r.dataPtr();
-
-	AMREX_FOR_1D ( num_move, i,
-        {
-            p_boxes[i] = dst_grids_ptr[i + num_stay];
-            p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
-            p_src_indices[i] = i+num_stay;
-	});
     }
     BL_PROFILE_VAR_STOP(blp_partition);
 
@@ -1183,14 +1192,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     packBuffer(*this, op, plan, snd_buffer);
 
     // clear particles from container
-    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+    for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-        auto& tile = plev[index];
-        tile.resize(new_sizes[gid]);
-    }    
+        auto& plev = m_particles[lev];
+        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+            auto& tile = plev[index];
+            tile.resize(new_sizes[lev][gid]);
+        }
+    }
 
     if (ParallelDescriptor::UseGpuAwareMpi())
     {
