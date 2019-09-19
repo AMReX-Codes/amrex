@@ -1025,14 +1025,16 @@ writeMetaData ()
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
-        const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
+        //const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
+        const std::string fullpath = WarpX::lab_data_directory ;
         if (!UtilCreateDirectory(fullpath, 0755))
             CreateDirectoryFailed(fullpath);
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream HeaderFile;
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        std::string HeaderFileName(WarpX::lab_data_directory + "/snapshots/Header");
+        //std::string HeaderFileName(WarpX::lab_data_directory + "/snapshots/Header");
+        std::string HeaderFileName(WarpX::lab_data_directory + "/Header");
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
@@ -1097,7 +1099,9 @@ LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_,
    updateCurrentZPositions(t_boost, inv_gamma_boost_, inv_beta_boost_);
    Real zmin_lab = prob_domain_lab_.lo(AMREX_SPACEDIM-1);
    initial_i = (current_z_lab - zmin_lab) / dz_lab_ ;
-   file_name = Concatenate(WarpX::lab_data_directory + "/snapshots/snapshot",
+   //file_name = Concatenate(WarpX::lab_data_directory + "/snapshots/snapshot",
+   //                        file_num, 5);
+   file_name = Concatenate(WarpX::lab_data_directory + "/snapshot",
                            file_num, 5);
    createLabFrameDirectories();
    buff_counter_ = 0;
