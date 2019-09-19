@@ -465,6 +465,110 @@ void mlebabeclap_grad_y_0 (Box const& box, Array4<Real> const& gy, Array4<Real c
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
+                            Real alpha, Array4<Real const> const& a,
+                            Real dhx, Real dhy,
+                            Array4<Real const> const& bX, Array4<Real const> const& bY,
+                            Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
+                            Array4<Real const> const& vfrc,
+                            Array4<Real const> const& apx, Array4<Real const> const& apy,
+                            Array4<Real const> const& fcx, Array4<Real const> const& fcy,
+                            Array4<Real const> const& ba, Array4<Real const> const& bc,
+                            Array4<Real const> const& beb,
+                            bool is_dirichlet, int ncomp) noexcept
+{
+    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    {
+        if (flag(i,j,k).isRegular())
+        {
+            phi(i,j,k,n) /= alpha*a(i,j,k) + dhx*(bX(i,j,k,n) + bX(i+1,j,k,n))
+                                           + dhy*(bY(i,j,k,n) + bY(i,j+1,k,n));
+        }
+        else if (flag(i,j,k).isSingleValued())
+        {
+            Real kappa = vfrc(i,j,k);
+            Real apxm = apx(i,j,k);
+            Real apxp = apx(i+1,j,k);
+            Real apym = apy(i,j,k);
+            Real apyp = apy(i,j+1,k);
+
+            Real sxm =  bX(i,j,k,n);
+            if (apxm != 0.0 and apxm != 1.0) {
+                int jj = j + static_cast<int>(std::copysign(1.0,fcx(i,j,k)));
+                Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k))
+                    ? std::abs(fcx(i,j,k)) : 0.0;
+                sxm = (1.0-fracy)*sxm;
+            }
+
+            Real sxp = -bX(i+1,j,k,n);
+            if (apxp != 0.0 and apxp != 1.0) {
+                int jj = j + static_cast<int>(std::copysign(1.0,fcx(i+1,j,k)));
+                Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k))
+                    ? std::abs(fcx(i+1,j,k)) : 0.0;
+                sxp = (1.0-fracy)*sxp;
+            }
+
+            Real sym =  bY(i,j,k,n);
+            if (apym != 0.0 and apym != 1.0) {
+                int ii = i + static_cast<int>(std::copysign(1.0,fcy(i,j,k)));
+                Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k))
+                    ? std::abs(fcy(i,j,k)) : 0.0;
+                sym = (1.0-fracx)*sym;
+            }
+
+            Real syp = -bY(i,j+1,k,n);
+            if (apyp != 0.0 and apyp != 1.0) {
+                int ii = i + static_cast<int>(std::copysign(1.0,fcy(i,j+1,k)));
+                Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k))
+                    ? std::abs(fcy(i,j+1,k)) : 0.0;
+                syp = (1.0-fracx)*syp;
+            }
+
+            Real vfrcinv = (1.0/kappa);
+            Real gamma = alpha*a(i,j,k) + vfrcinv *
+                (dhx*(apxm*sxm-apxp*sxp) +
+                 dhy*(apym*sym-apyp*syp));
+
+            if (is_dirichlet) {
+                Real dapx = apxm-apxp;
+                Real dapy = apym-apyp;
+                Real anorm = std::hypot(dapx,dapy);
+                Real anorminv = 1.0/anorm;
+                Real anrmx = dapx * anorminv;
+                Real anrmy = dapy * anorminv;
+
+                Real bctx = bc(i,j,k,0);
+                Real bcty = bc(i,j,k,1);
+                Real dx_eb = get_dx_eb(vfrc(i,j,k));
+
+                Real dg, gx, gy, sx, sy;
+                if (std::abs(anrmx) > std::abs(anrmy)) {
+                    dg = dx_eb / std::abs(anrmx);
+                    gx = bctx - dg*anrmx;
+                    gy = bcty - dg*anrmy;
+                    sx = std::copysign(1.0,anrmx);
+                    sy = std::copysign(1.0,anrmy);
+                } else {
+                    dg = dx_eb / std::abs(anrmy);
+                    gx = bctx - dg*anrmx;
+                    gy = bcty - dg*anrmy;
+                    sx = std::copysign(1.0,anrmx);
+                    sy = std::copysign(1.0,anrmy);
+                }
+
+                int ii = i - static_cast<int>(sx);
+                int jj = j - static_cast<int>(sy);
+
+                Real phig_gamma = (1.0 + gx*sx + gy*sy + gx*gy*sx*sy);
+                Real feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k,n);
+                gamma += vfrcinv*(-dhx)*feb_gamma;
+            }
+
+            phi(i,j,k,n) /= gamma;
+        }
+    });
 }
 
+}
 #endif
