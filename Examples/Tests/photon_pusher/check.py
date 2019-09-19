@@ -52,7 +52,8 @@ tol_mom = 0.0; #momentum should be conserved exactly
 inputname = "inputs"
 #________________________________________
 
-
+# This function reads the WarpX plotfile given as the first command-line
+# argument, and check if the position of each photon agrees with theory.
 def check():
     filename = sys.argv[1]
     data_set_end = yt.load(filename)
@@ -88,6 +89,7 @@ def check():
 
     assert ((max(disc_pos) <= tol_pos) and (max(disc_mom) <= tol_mom))
 
+# This function generates the input file to test the photon pusher.
 def generate():
     with open(inputname,'w') as f:
         f.write("#Automatically generated inputfile\n")
