@@ -127,9 +127,9 @@ def generate():
             f.write("{}.charge = -q_e\n".format(name))
             f.write("{}.mass = m_e\n".format(name))
             f.write('{}.injection_style = "SingleParticle"\n'.format(name))
-            f.write("{}.single_particle_pos = {} {} {} \n".
+            f.write("{}.single_particle_pos = {} {} {}\n".
                 format(name, init_pos[0], init_pos[1], init_pos[2]))
-            f.write("{}.single_particle_vel = {} {} {} \n".
+            f.write("{}.single_particle_vel = {} {} {}\n".
                 format(name, velx, vely, velz))
             f.write("{}.single_particle_weight = 1.0\n".format(name))
             f.write("\n".format(name))

@@ -59,112 +59,112 @@ p_dn_10.plot_vars  = ux uy uz
 p_xp_1.charge = -q_e
 p_xp_1.mass = m_e
 p_xp_1.injection_style = "SingleParticle"
-p_xp_1.single_particle_pos = 0.0 0.0 0.0 
-p_xp_1.single_particle_vel = 1.0 0.0 0.0 
+p_xp_1.single_particle_pos = 0.0 0.0 0.0
+p_xp_1.single_particle_vel = 1.0 0.0 0.0
 p_xp_1.single_particle_weight = 1.0
 
 p_xn_1.charge = -q_e
 p_xn_1.mass = m_e
 p_xn_1.injection_style = "SingleParticle"
-p_xn_1.single_particle_pos = 0.0 0.0 0.0 
-p_xn_1.single_particle_vel = -1.0 0.0 0.0 
+p_xn_1.single_particle_pos = 0.0 0.0 0.0
+p_xn_1.single_particle_vel = -1.0 0.0 0.0
 p_xn_1.single_particle_weight = 1.0
 
 p_yp_1.charge = -q_e
 p_yp_1.mass = m_e
 p_yp_1.injection_style = "SingleParticle"
-p_yp_1.single_particle_pos = 0.0 0.0 0.0 
-p_yp_1.single_particle_vel = 0.0 1.0 0.0 
+p_yp_1.single_particle_pos = 0.0 0.0 0.0
+p_yp_1.single_particle_vel = 0.0 1.0 0.0
 p_yp_1.single_particle_weight = 1.0
 
 p_yn_1.charge = -q_e
 p_yn_1.mass = m_e
 p_yn_1.injection_style = "SingleParticle"
-p_yn_1.single_particle_pos = 0.0 0.0 0.0 
-p_yn_1.single_particle_vel = 0.0 -1.0 0.0 
+p_yn_1.single_particle_pos = 0.0 0.0 0.0
+p_yn_1.single_particle_vel = 0.0 -1.0 0.0
 p_yn_1.single_particle_weight = 1.0
 
 p_zp_1.charge = -q_e
 p_zp_1.mass = m_e
 p_zp_1.injection_style = "SingleParticle"
-p_zp_1.single_particle_pos = 0.0 0.0 0.0 
-p_zp_1.single_particle_vel = 0.0 0.0 1.0 
+p_zp_1.single_particle_pos = 0.0 0.0 0.0
+p_zp_1.single_particle_vel = 0.0 0.0 1.0
 p_zp_1.single_particle_weight = 1.0
 
 p_zn_1.charge = -q_e
 p_zn_1.mass = m_e
 p_zn_1.injection_style = "SingleParticle"
-p_zn_1.single_particle_pos = 0.0 0.0 0.0 
-p_zn_1.single_particle_vel = 0.0 0.0 -1.0 
+p_zn_1.single_particle_pos = 0.0 0.0 0.0
+p_zn_1.single_particle_vel = 0.0 0.0 -1.0
 p_zn_1.single_particle_weight = 1.0
 
 p_dp_1.charge = -q_e
 p_dp_1.mass = m_e
 p_dp_1.injection_style = "SingleParticle"
-p_dp_1.single_particle_pos = 0.0 0.0 0.0 
-p_dp_1.single_particle_vel = 1.0 1.0 1.0 
+p_dp_1.single_particle_pos = 0.0 0.0 0.0
+p_dp_1.single_particle_vel = 1.0 1.0 1.0
 p_dp_1.single_particle_weight = 1.0
 
 p_dn_1.charge = -q_e
 p_dn_1.mass = m_e
 p_dn_1.injection_style = "SingleParticle"
-p_dn_1.single_particle_pos = 0.0 0.0 0.0 
-p_dn_1.single_particle_vel = -1.0 -1.0 -1.0 
+p_dn_1.single_particle_pos = 0.0 0.0 0.0
+p_dn_1.single_particle_vel = -1.0 -1.0 -1.0
 p_dn_1.single_particle_weight = 1.0
 
 p_xp_10.charge = -q_e
 p_xp_10.mass = m_e
 p_xp_10.injection_style = "SingleParticle"
-p_xp_10.single_particle_pos = 0.0 0.0 0.0 
-p_xp_10.single_particle_vel = 10.0 0.0 0.0 
+p_xp_10.single_particle_pos = 0.0 0.0 0.0
+p_xp_10.single_particle_vel = 10.0 0.0 0.0
 p_xp_10.single_particle_weight = 1.0
 
 p_xn_10.charge = -q_e
 p_xn_10.mass = m_e
 p_xn_10.injection_style = "SingleParticle"
-p_xn_10.single_particle_pos = 0.0 0.0 0.0 
-p_xn_10.single_particle_vel = -10.0 0.0 0.0 
+p_xn_10.single_particle_pos = 0.0 0.0 0.0
+p_xn_10.single_particle_vel = -10.0 0.0 0.0
 p_xn_10.single_particle_weight = 1.0
 
 p_yp_10.charge = -q_e
 p_yp_10.mass = m_e
 p_yp_10.injection_style = "SingleParticle"
-p_yp_10.single_particle_pos = 0.0 0.0 0.0 
-p_yp_10.single_particle_vel = 0.0 10.0 0.0 
+p_yp_10.single_particle_pos = 0.0 0.0 0.0
+p_yp_10.single_particle_vel = 0.0 10.0 0.0
 p_yp_10.single_particle_weight = 1.0
 
 p_yn_10.charge = -q_e
 p_yn_10.mass = m_e
 p_yn_10.injection_style = "SingleParticle"
-p_yn_10.single_particle_pos = 0.0 0.0 0.0 
-p_yn_10.single_particle_vel = 0.0 -10.0 0.0 
+p_yn_10.single_particle_pos = 0.0 0.0 0.0
+p_yn_10.single_particle_vel = 0.0 -10.0 0.0
 p_yn_10.single_particle_weight = 1.0
 
 p_zp_10.charge = -q_e
 p_zp_10.mass = m_e
 p_zp_10.injection_style = "SingleParticle"
-p_zp_10.single_particle_pos = 0.0 0.0 0.0 
-p_zp_10.single_particle_vel = 0.0 0.0 10.0 
+p_zp_10.single_particle_pos = 0.0 0.0 0.0
+p_zp_10.single_particle_vel = 0.0 0.0 10.0
 p_zp_10.single_particle_weight = 1.0
 
 p_zn_10.charge = -q_e
 p_zn_10.mass = m_e
 p_zn_10.injection_style = "SingleParticle"
-p_zn_10.single_particle_pos = 0.0 0.0 0.0 
-p_zn_10.single_particle_vel = 0.0 0.0 -10.0 
+p_zn_10.single_particle_pos = 0.0 0.0 0.0
+p_zn_10.single_particle_vel = 0.0 0.0 -10.0
 p_zn_10.single_particle_weight = 1.0
 
 p_dp_10.charge = -q_e
 p_dp_10.mass = m_e
 p_dp_10.injection_style = "SingleParticle"
-p_dp_10.single_particle_pos = 0.0 0.0 0.0 
-p_dp_10.single_particle_vel = 10.0 10.0 10.0 
+p_dp_10.single_particle_pos = 0.0 0.0 0.0
+p_dp_10.single_particle_vel = 10.0 10.0 10.0
 p_dp_10.single_particle_weight = 1.0
 
 p_dn_10.charge = -q_e
 p_dn_10.mass = m_e
 p_dn_10.injection_style = "SingleParticle"
-p_dn_10.single_particle_pos = 0.0 0.0 0.0 
-p_dn_10.single_particle_vel = -10.0 -10.0 -10.0 
+p_dn_10.single_particle_pos = 0.0 0.0 0.0
+p_dn_10.single_particle_vel = -10.0 -10.0 -10.0
 p_dn_10.single_particle_weight = 1.0
 
