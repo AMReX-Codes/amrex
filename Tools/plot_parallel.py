@@ -28,7 +28,7 @@ between MPI ranks.
 This script also proposes an option to plot one quantity over all timesteps.
 The data of all plotfiles are gathered to rank 0, and the quantity evolution
 is plotted and saved to file. For the illustration, this quantity is the max
-of Ey. Use " --plot_max_evolution Ey" to activate this option.
+of Ey. Use " --plot_evolution Ey" to activate this option.
 
 To get help, run
 > python plot_parallel --help
@@ -36,8 +36,10 @@ To get help, run
 
 # Parse command line for options.
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', default='diags/plotfiles',
-                    help='path to plotfiles. Plotfiles names must be plt?????')
+parser.add_argument('--path', default=None,
+                    help='path to plotfiles, defaults to diags/plotfiles. Plotfiles names must be plt?????')
+parser.add_argument('--image_dir', default=None,
+                    help='path where images are placed, defaults to diags/plotfiles or path if specified.')
 parser.add_argument('--plotlib', default='yt',
                     choices=['yt','matplotlib'],
                     help='Plotting library to use')
@@ -53,13 +55,20 @@ parser.add_argument('--serial', action='store_true', default=False,
                     help='Specifies running in serial, avoiding the import of MPI')
 parser.add_argument('--species', dest='pslist', nargs='+', type=str, default=None,
                     help='Species to be plotted, e.g., " --species beam plasma_e ". By default, all species in the simulation are shown')
-parser.add_argument('--plot_max_evolution', type=str, default=None,
-                    help='Quantity to plot the max of across all data files')
+parser.add_argument('--plot_evolution', type=str, default=None,
+                    help='Quantity to plot the evolution of across all data files')
 args = parser.parse_args()
 
+path = args.path
+image_dir = args.image_dir
 plotlib = args.plotlib
-plot_max_evolution = args.plot_max_evolution
+plot_evolution = args.plot_evolution
 vmax = args.vmax
+
+if path is None:
+    path = 'diags/plotfiles'
+if image_dir is None:
+    image_dir = path
 
 # Sanity check
 if int(sys.version[0]) != 3:
@@ -123,14 +132,15 @@ def plot_snapshot(filename):
         if pspecies in [x[0] for x in ds.field_list]:
             if plotlib == 'matplotlib':
                 # Read particle quantities from yt dataset
-                xp = all_data_level_0[pspecies, 'particle_position_x'].v
+                ad = ds.all_data()
+                xp = ad[pspecies, 'particle_position_x'].v
                 if dim == 3:
-                    yp = all_data_level_0[pspecies, 'particle_position_y'].v
-                    zp = all_data_level_0[pspecies, 'particle_position_z'].v
+                    yp = ad[pspecies, 'particle_position_y'].v
+                    zp = ad[pspecies, 'particle_position_z'].v
                     select = yp**2<(args.slicewidth/2)**2
                     xp = xp[select] ; yp = yp[select] ; zp = zp[select]
                 if dim == 2:
-                    zp = all_data_level_0[pspecies, 'particle_position_y'].v
+                    zp = ad[pspecies, 'particle_position_y'].v
                 # Select randomly one every pjump particles
                 random_indices = np.random.choice(xp.shape[0], int(xp.shape[0]/args.pjump))
                 if dim == 2:
@@ -144,41 +154,42 @@ def plot_snapshot(filename):
                                       ptype=pspecies, col=pscolor[ispecies])
     # Add labels to plot and save
     iteration = int(filename[-5:])
+    image_file_name = os.path.join(image_dir, 'plt_%s_%s_%05d.png'%(args.field, plotlib, iteration))
     if plotlib == 'matplotlib':
         plt.xlabel('z (m)')
         plt.ylabel('x (m)')
         plt.title('%s at iteration %d, time = %e s'%(args.field, iteration, ds.current_time))
-        plt.savefig('plt_%s_%s_%05d.png'%(args.field, plotlib, iteration), bbox_inches='tight', dpi=300)
+        plt.savefig(image_file_name, bbox_inches='tight', dpi=300)
         plt.close()
     if plotlib == 'yt':
         sl.annotate_grids()
-        sl.save('plt_%s_%s_%05d.png'%(args.field, plotlib, iteration))
+        sl.save(image_file_name)
 
-# Compute max of field a_field in plotfile filename
-def get_field_max( filename, a_field ):
+# Compute the evolved quantity from plotfile filename
+def get_evolution_quantity(filename, quantity_name):
     # Load plotfile
     ds = yt.load( filename )
     # Get number of dimension
     dim = ds.dimensionality
     # Read field quantities from yt dataset
     all_data_level_0 = ds.covering_grid(level=0,left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
-    F = all_data_level_0['boxlib', a_field].v.squeeze()
+    F = all_data_level_0['boxlib', quantity_name].v.squeeze()
     zwin = (ds.domain_left_edge[dim-1]+ds.domain_right_edge[dim-1])/2
-    maxF = np.amax(F)
-    return zwin, maxF
+    quantity = np.amax(F)
+    return zwin, quantity
 
-def plot_field_max(zwin_arr, maxF_arr):
+def plot_evolved_quantity(zwin_arr, maxF_arr):
     plt.figure()
     plt.plot(zwin_arr, maxF_arr)
     plt.xlabel('z (m)')
-    plt.ylabel('%s (S.I.)'%plot_max_evolution)
+    plt.ylabel('%s (S.I.)'%plot_evolution)
     plt.title('Field max evolution')
-    plt.savefig('max_%s_evolution.pdf'%plot_max_evolution, bbox_inches='tight')
+    plt.savefig(os.path.join(image_dir, 'max_%s_evolution.pdf'%plot_evolution), bbox_inches='tight')
 
 ### Analysis ###
 
 # Get list of plotfiles
-file_list = glob.glob(os.path.join(args.path, 'plt?????'))
+file_list = glob.glob(os.path.join(path, 'plt?????'))
 file_list.sort()
 nfiles = len(file_list)
 
@@ -201,10 +212,10 @@ if rank == 0:
     print('Number of plotfiles: %s'%nfiles)
     print('list of species: ', pslist)
 
-if plot_max_evolution is not None:
+if plot_evolution is not None:
     # Fill with a value less than any possible value
     zwin = np.full(nfiles, np.finfo(float).min)
-    maxF = np.full(nfiles, np.finfo(float).min)
+    quantity = np.full(nfiles, np.finfo(float).min)
 
 # Loop over files, splitting plotfile list among MPI ranks
 # - plot field snapshot
@@ -214,17 +225,17 @@ for count, filename in enumerate(file_list):
         continue
 
     plot_snapshot( filename )
-    if plot_max_evolution is not None:
-        zwin[count], maxF[count] = get_field_max( filename, plot_max_evolution )
+    if plot_evolution is not None:
+        zwin[count], quantity[count] = get_evolution_quantity( filename, plot_evolution )
 
-if plot_max_evolution is not None:
+if plot_evolution is not None:
     if size > 1:
         global_zwin = np.empty_like(zwin)
-        global_maxF = np.empty_like(maxF)
+        global_quantity = np.empty_like(quantity)
         comm_world.Reduce(zwin, global_zwin, op=MPI.MAX)
-        comm_world.Reduce(maxF, global_maxF, op=MPI.MAX)
+        comm_world.Reduce(quantity, global_quantity, op=MPI.MAX)
         zwin = global_zwin
-        maxF = global_maxF
+        quantity = global_quantity
     if rank == 0:
-        plot_field_max(zwin, maxF)
+        evolved_quantity(zwin, quantity)
 
