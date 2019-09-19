@@ -9,7 +9,8 @@ namespace MathConst
     static constexpr amrex::Real pi = 3.14159265358979323846;
 }
 
-// Physical constants
+// Physical constants. The values are from the NIST reference
+// https://physics.nist.gov/cuu/Constants/
 namespace PhysConst
 {
     static constexpr amrex::Real c     = 299792458.;
