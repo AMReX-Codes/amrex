@@ -50,15 +50,20 @@ struct RedistributeUnpackPolicy
 
 struct ParticleCopyOp 
 {
-    std::map<int, Gpu::ManagedDeviceVector<int> > m_boxes;
-    std::map<int, Gpu::ManagedDeviceVector<int> > m_src_indices;
-    std::map<int, Gpu::ManagedDeviceVector<IntVect> > m_periodic_shift;
+    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_boxes;
+    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_levels;
+    Vector<std::map<int, Gpu::ManagedDeviceVector<int> > > m_src_indices;
+    Vector<std::map<int, Gpu::ManagedDeviceVector<IntVect> > > m_periodic_shift;
 
     void clear ();
 
-    void resize (const int gid, const int size);
+    void resize (const int gid, const int lev, const int size);
 
-    int numCopies (const int gid) const { return m_boxes.at(gid).size(); }
+    int numCopies (const int gid, const int lev) const 
+    { 
+        if (m_boxes.size() <= lev) return 0;
+        return m_boxes[lev].at(gid).size(); 
+    }
 };
 
 struct ParticleCopyPlan 
@@ -120,16 +125,16 @@ struct ParticleCopyPlan
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             int gid = mfi.index();
-            int num_copies = op.numCopies(gid);
+            int num_copies = op.numCopies(gid, lev);
             m_dst_indices[gid].resize(num_copies);
         }
         
         for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             int gid = mfi.index();
-            int num_copies = op.numCopies(gid);
+            int num_copies = op.numCopies(gid, lev);
             
-            auto p_boxes = op.m_boxes.at(gid).dataPtr();
+            auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
             auto p_dst_indices = m_dst_indices[gid].dataPtr();
             
             AMREX_FOR_1D ( num_copies, i,
@@ -208,12 +213,12 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         auto& aos   = src_tile.GetArrayOfStructs();
         const auto ptd = src_tile.getConstParticleTileData();
 
-	int num_copies = op.numCopies(gid);
+	int num_copies = op.numCopies(gid, lev);
 
-	auto p_boxes = op.m_boxes.at(gid).dataPtr();
-	auto p_src_indices = op.m_src_indices.at(gid).dataPtr();
+	auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
+	auto p_src_indices = op.m_src_indices[lev].at(gid).dataPtr();
         auto p_dst_indices = plan.m_dst_indices.at(gid).dataPtr();
-	auto p_periodic_shift = op.m_periodic_shift.at(gid).dataPtr();
+	auto p_periodic_shift = op.m_periodic_shift[lev].at(gid).dataPtr();
 	auto p_box_offsets = plan.m_box_offsets.dataPtr();
         auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
         auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
