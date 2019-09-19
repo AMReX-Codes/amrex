@@ -3,6 +3,7 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -197,7 +198,7 @@ MyTest::initData ()
                 constexpr Real pi = 3.1415926535897932;
                 constexpr Real tpi = 2.*pi;
                 constexpr Real fpi = 4.*pi;
-                constexpr Real fac = tpi*tpi*3.;
+                constexpr Real fac = tpi*tpi*AMREX_SPACEDIM;
 
                 Real x = i*dx[0];
                 Real y = j*dx[1];

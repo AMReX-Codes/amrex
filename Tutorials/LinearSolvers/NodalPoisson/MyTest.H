@@ -12,8 +12,8 @@ public:
     MyTest ();
 
     void solve ();
-
     void compute_norms () const;
+    void writePlotfile () const;
 
     void initData ();
 
