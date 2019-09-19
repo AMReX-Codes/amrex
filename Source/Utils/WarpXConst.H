@@ -19,7 +19,7 @@ namespace PhysConst
     static constexpr amrex::Real q_e   = 1.602176634e-19;
     static constexpr amrex::Real m_e   = 9.1093837015e-31;
     static constexpr amrex::Real m_p   = 1.67262192369e-27;
-    static constexpr amrex::Real hbar  = 1.054571817.e-34;
+    static constexpr amrex::Real hbar  = 1.054571817e-34;
     static constexpr amrex::Real alpha = mu0/(4*MathConst::pi)*q_e*q_e*c/hbar;
     static constexpr amrex::Real r_e   = 1./(4*MathConst::pi*ep0) * q_e*q_e/(m_e*c*c);
 }
