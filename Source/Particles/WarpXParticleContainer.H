@@ -1,10 +1,12 @@
 #ifndef WARPX_WarpXParticleContainer_H_
 #define WARPX_WarpXParticleContainer_H_
 
-#include <memory>
+#include "WarpXDtType.H"
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
+
+#include <memory>
 
 enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 
@@ -138,7 +140,7 @@ public:
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
                          const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
-                         amrex::Real t, amrex::Real dt) = 0;
+                         amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full) = 0;
 
     virtual void PostRestart () = 0;
 

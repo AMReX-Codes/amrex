@@ -942,7 +942,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                    MultiFab* rho, MultiFab* crho,
                                    const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                    const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                   Real t, Real dt)
+                                   Real t, Real dt, DtType a_dt_type)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -1301,7 +1301,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Particle Push
                 //
                 BL_PROFILE_VAR_START(blp_ppc_pp);
-                PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], dt);
+                PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], dt, a_dt_type);
                 BL_PROFILE_VAR_STOP(blp_ppc_pp);
 
                 //
@@ -1526,7 +1526,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                   Cuda::ManagedDeviceVector<Real>& xp,
                                   Cuda::ManagedDeviceVector<Real>& yp,
                                   Cuda::ManagedDeviceVector<Real>& zp,
-                                  Real dt)
+                                  Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
@@ -1545,8 +1545,10 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const Real* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
+    Print()<<"a_dt_type "<<int( a_dt_type )<<'\n';
+    if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags && (a_dt_type!=DtType::SecondHalf))
     {
+        Print()<<"copy attribs\n";
         copy_attribs(pti, x, y, z);
     }
 
