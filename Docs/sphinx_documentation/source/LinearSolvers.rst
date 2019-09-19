@@ -264,7 +264,7 @@ can be used to change the bottom solver.  Available choices are
 - :cpp:`MLMG::BottomSolver::cg`: The conjugate gradient method.  The
   matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in HYPRE.  Currently for
+- :cpp:`MLMG::BottomSolver::Hypre`: BoomerAMG in hypre.  Currently for
   cell-centered only.
 
 Curvilinear Coordinates
@@ -278,10 +278,10 @@ other ways, one can call :cpp:`setMetricTerm(bool)` with :cpp:`false`
 on the :cpp:`LPInfo` object passed to the constructor of linear
 operators.
 
-HYPRE
+hypre
 =====
 
-AMReX can use HYPRE BoomerAMG as a bottom solver (currently for
+AMReX can use hypre BoomerAMG as a bottom solver (currently for
 cell-centered problems only), as we have mentioned.  For challenging
 problems, our geometric multigrid solver may have difficulty solving,
 whereas an algebraic multigrid method might be more robust.  We note
@@ -290,16 +290,167 @@ problem as much as possible.  However, as we have mentioned, we can
 call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
-residual correction form of the original problem.  To use HYPRE, one
+residual correction form of the original problem.  To use hypre, one
 must include ``amrex/Src/Extern/HYPRE`` in the build system. For an
-example of using HYPRE, we refer the reader to
+example of using hypre, we refer the reader to
 ``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
-Embedded Boundaries
-===================
+MAC Projection
+=========================
 
-AMReX support solving linear systems with embedded boundaries.  See
-chapter :ref:`Chap:EB` for more details.
+Some codes define a velocity field :math:`U = (u,v,w)` on faces, i.e. 
+:math:`u` is defined on x-faces, :math:`v` is defined on y-faces,
+and :math:`w` is defined on z-faces.   We refer to the exact projection 
+of this velocity field as a MAC projection, in which we solve 
+
+.. math::
+
+   D( B \nabla \phi) = D(U^*) 
+
+then set 
+
+.. math::
+
+   U = U^* - B \nabla \phi
+
+
+where :math:`U^*` is a vector field (typically velocity) that we want to make divergence-free.
+
+The MACProjection class can be defined and used to perform the MAC projection with explcitly
+calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
+the MacProjector first computes the divergence of the vector field ( :math:`D(U^*) 
+to compute a right-hand-side, and after the solve, subtracts the weighted gradient term to
+make the vector field result divergence-free.  Note that in the simplest case, 
+both the right-hand-side array and solution array are internal to the MacProjector object;
+the user does not allocate those arrays and does not have access to them.
+
+There is an alternative call -- commented out below -- in which a user does allocate 
+the solution array and passes it in/out.
+
+The following code is taken from 
+``Tutorials/LinearOperator/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
+the MACProjector object and use it to perform a MAC projection.
+
+.. highlight:: c++
+
+::
+
+    // This object provides access to the EB database in the format of basic AMReX objects
+    // such as BaseFab, FArrayBox, FabArray, and MultiFab
+    EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        vel[idim].define (amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 1, MFInfo(), factory);
+        beta[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)), dmap, 1, 0, MFInfo(), factory);
+        beta[idim].setVal(1.0);
+    }
+
+    // If we want to use phi elsewhere, we must create an array in which to return the solution 
+    // phi_inout.define(grids, dmap, 1, 1, MFInfo(), factory);
+
+    // set initial velocity to U=(1,0,0)
+    AMREX_D_TERM(vel[0].setVal(1.0);,
+                 vel[1].setVal(0.0);,
+                 vel[2].setVal(0.0););
+
+    LPInfo lp_info;
+
+    // If we want to use hypre to solve the full problem we do not need to coarsen the GMG stencils
+    if (use_hypre) 
+        lp_info.setMaxCoarseningLevel(0);
+
+    MacProjector macproj({amrex::GetArrOfPtrs(vel)},       // face-based velocity
+                         {amrex::GetArrOfConstPtrs(beta)}, // beta
+                         {geom},                           // the geometry object
+                         lp_info);                         // structure for passing info to the operator
+
+    // Set bottom-solver to use hypre instead of native BiCGStab 
+    if (use_hypre) 
+       macproj.setBottomSolver(MLMG::BottomSolver::hypre);
+
+    // Hard-wire the boundary conditions to be Neumann on the low x-face, Dirichlet on the high x-face,
+    //  and periodic in the other two directions  
+    //  (the first argument is for the low end, the second is for the high end)
+    macproj.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+                                      LinOpBCType::Periodic,
+                                      LinOpBCType::Periodic)},
+                        {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                      LinOpBCType::Periodic,
+                                      LinOpBCType::Periodic)});
+
+    macproj.setVerbose(mg_verbose);
+    macproj.setCGVerbose(cg_verbose);
+
+    // Define the relative tolerance
+    Real reltol = 1.e-8;
+
+    // Define the absolute tolerance; note that this argument is optional
+    Real abstol = 1.e-15;
+
+    // Solve for phi and subtract from the velocity to make it divergence-free
+    macproj.project(reltol,abstol);
+
+    // If we want to use phi elsewhere, we can pass in an array in which to return the solution 
+    // macproj.project(phi_inout,reltol,abstol);
+
+
+See ``Tutorials/LinearOperator/MAC_Projection_EB`` for the complete working example.
+
+
+Multi-Component Operators
+=========================
+
+This section discusses solving linear systems in which the solution variable :math:`\mathbf{\phi}` has multiple components.
+An example (implemented in the ``MultiComponent`` tutorial) might be:
+
+.. math::
+
+   D(\mathbf{\phi})_i = \sum_{i=1}^N \alpha_{ij} \nabla^2 \phi_j
+
+(Note: only operators of the form :math:`D:\mathbb{R}^n\to\mathbb{R}^n` are currently allowed.)
+
+- To implement a multi-component *cell-based* operator, inherit from the ``MLCellLinOp`` class.
+  Override the ``getNComp`` function to return the number of components (``N``)that the operator will use.
+  The solution and rhs fabs must also have at least one ghost node.
+  ``Fapply``, ``Fsmooth``, ``Fflux`` must be implemented such that the solution and rhs fabs all have ``N`` components.
+
+- Implementing a multi-component *node-based* operator is slightly different.
+  A MC nodal operator must specify that the reflux-free coarse/fine strategy is being used by the solver.
+
+  .. code::
+
+     solver.setCFStrategy(MLMG::CFStrategy::ghostnodes);
+
+  The reflux-free method circumvents the need to implement a special ``reflux`` at the coarse-fine boundary.
+  This is accomplished by using ghost nodes.
+  Each AMR level must have 2 layers of ghost nodes.
+  The second (outermost) layer of nodes is treated as constant by the relaxation, essentially acting as a Dirichlet boundary.
+  The first layer of nodes is evolved using the relaxation, in the same manner as the rest of the solution.
+  When the residual is restricted onto the coarse level (in ``reflux``) this allows the residual at the coarse-fine boundary to be interpolated using the first layer of ghost nodes.
+  :numref:`fig::refluxfreecoarsefine` illustrates the how the coarse-fine update takes place.
+
+  .. _fig::refluxfreecoarsefine:
+
+  .. figure:: ./LinearSolvers/refluxfreecoarsefine.png
+	      :height: 2cm
+	      :align: center
+
+	      : Reflux-free coarse-fine boundary update.
+	      Level 2 ghost nodes (small dark blue) are interpolated from coarse boundary.
+	      Level 1 ghost nodes are updated during the relaxation along with all the other interior fine nodes.
+	      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
+	      and the first level of ghost nodes.
+	      Coarse nodes underneath level 2 ghost nodes are not updated.
+	      The remaining coarse nodes are updates by restriction.
+	      
+  The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
+  ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
+  `interpolation` and `restriction` can be implemented as usual.
+  `reflux` is a straightforward restriction from fine to coarse, using level 1 ghost nodes for restriction as described above.
+  
+  See ``Tutorials/LinearOperator/MultiComponent`` for a complete working example.
+
+   
 
 .. solver reuse
 
