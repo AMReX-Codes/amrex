@@ -68,7 +68,7 @@ bool WarpX::do_boosted_frame_fields = true;
 bool WarpX::do_boosted_frame_particles = true;
 
 int  WarpX::num_slice_snapshots_lab = 0;
-Real WarpX::dt_slice_snapshots_lab  = std::numeric_limits<Real>::lowest();
+Real WarpX::dt_slice_snapshots_lab;
 
 bool WarpX::do_dynamic_scheduling = true;
 
@@ -595,7 +595,9 @@ WarpX::ReadParameters ()
           AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0, 
                  "gamma_boost must be > 1 to use the boost frame diagnostic");
           pp.query("num_slice_snapshots_lab", num_slice_snapshots_lab);
-          pp.query("dt_slice_snapshots_lab", dt_slice_snapshots_lab );          
+          if (num_slice_snapshots_lab > 0) {
+             pp.get("dt_slice_snapshots_lab", dt_slice_snapshots_lab );
+          }
        }       
 
     }

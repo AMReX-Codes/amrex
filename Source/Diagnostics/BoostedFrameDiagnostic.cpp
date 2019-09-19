@@ -590,6 +590,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         }
     }
 
+    // allocating array with total number of lab frame diags (snapshots+slices)
     LabFrameDiags_.resize(N_snapshots+N_slice_snapshots);
 
     for (int i = 0; i < N_snapshots; ++i) {
@@ -859,8 +860,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                  t_boost, LabFrameDiags_[i]->t_lab, dt, tmp_particle_buffer);
             } 
             LabFrameDiags_[i]->AddPartDataToParticleBuffer(tmp_particle_buffer, 
-                               mypc.nSpeciesBoostedFrameDiags());
-            
+                               mypc.nSpeciesBoostedFrameDiags());            
         }
 
         ++LabFrameDiags_[i]->buff_counter_;
