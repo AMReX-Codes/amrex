@@ -1607,9 +1607,9 @@ defineBufferMap () const
     const BoxArray& ba = ParticleBoxArray(lev);
     const DistributionMapping& dm = ParticleDistributionMap(lev);
 
-    if (not m_buffer_map.isValid(ba, dm))
+    if (not m_buffer_map.isValid(GetParGDB()))
     {
-        m_buffer_map.define(ba, dm);
+        m_buffer_map.define(GetParGDB());
         m_need_handshake = true;
     }
 }
