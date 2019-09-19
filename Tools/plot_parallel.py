@@ -25,10 +25,11 @@ or parallel
 When running parallel, the plotfiles are distributed as evenly as possible
 between MPI ranks.
 
-This script also proposes an option to plot one quantity over all timesteps.
-The data of all plotfiles are gathered to rank 0, and the quantity evolution
-is plotted and saved to file. For the illustration, this quantity is the max
-of Ey. Use " --plot_evolution Ey" to activate this option.
+This script also proposes options to plot quantities over all timesteps.
+That quantity from of all plotfiles is gathered to rank 0, and the evolution
+is plotted. The default operation is the max of a specified field.
+For example, " --plot_evolution Ey" will plot the max of Ey.
+Also, "--plot_particle_evolution species" for the given species, will plot the RMS x versus the average z.
 
 To get help, run
 > python plot_parallel --help
@@ -57,13 +58,16 @@ parser.add_argument('--species', dest='pslist', nargs='+', type=str, default=Non
                     help='Species to be plotted, e.g., " --species beam plasma_e ". By default, all species in the simulation are shown')
 parser.add_argument('--plot_evolution', type=str, default=None,
                     help='Quantity to plot the evolution of across all data files')
+parser.add_argument('--plot_particle_evolution', type=str, default=None,
+                    help='Will plot the RMS x versus average z of the particles in the given species')
 args = parser.parse_args()
 
 path = args.path
 image_dir = args.image_dir
 plotlib = args.plotlib
-plot_evolution = args.plot_evolution
 vmax = args.vmax
+plot_evolution = args.plot_evolution
+plot_particle_evolution = args.plot_particle_evolution
 
 if path is None:
     path = 'diags/plotfiles'
@@ -186,6 +190,37 @@ def plot_evolved_quantity(zwin_arr, maxF_arr):
     plt.title('Field max evolution')
     plt.savefig(os.path.join(image_dir, 'max_%s_evolution.pdf'%plot_evolution), bbox_inches='tight')
 
+# Compute the evolved particle quantity from plotfile filename
+def get_particle_evolution_quantity(filename, species):
+    # Load plotfile
+    ds = yt.load( filename )
+    dim = ds.dimensionality
+    ad = ds.all_data()
+    x = ad[species, 'particle_position_x']
+    if dim == 2:
+        z = ad[species, 'particle_position_y']
+    else:
+        z = ad[species, 'particle_position_z']
+    return np.mean(z), np.std(x)
+
+def plot_particle_evolved_quantity(zbar, xstd):
+    plt.figure()
+    plt.plot(zbar, xstd)
+    plt.xlabel('ave z (m)')
+    plt.ylabel('rms x (m)')
+    plt.title('%s evolution'%plot_particle_evolution)
+    plt.savefig(os.path.join(image_dir, '%s_evolution.pdf'%plot_particle_evolution), bbox_inches='tight')
+
+def reduce_evolved_quantity(z, q):
+    if size > 1:
+        global_z = np.empty_like(z)
+        global_q = np.empty_like(q)
+        comm_world.Reduce(z, global_z, op=MPI.MAX)
+        comm_world.Reduce(q, global_q, op=MPI.MAX)
+        return z, q
+    else:
+        return z, q
+
 ### Analysis ###
 
 # Get list of plotfiles
@@ -216,6 +251,10 @@ if plot_evolution is not None:
     # Fill with a value less than any possible value
     zwin = np.full(nfiles, np.finfo(float).min)
     quantity = np.full(nfiles, np.finfo(float).min)
+if plot_particle_evolution is not None:
+    # Fill with a value less than any possible value
+    zbar = np.full(nfiles, np.finfo(float).min)
+    xstd = np.full(nfiles, np.finfo(float).min)
 
 # Loop over files, splitting plotfile list among MPI ranks
 # - plot field snapshot
@@ -227,15 +266,16 @@ for count, filename in enumerate(file_list):
     plot_snapshot( filename )
     if plot_evolution is not None:
         zwin[count], quantity[count] = get_evolution_quantity( filename, plot_evolution )
+    if plot_particle_evolution is not None:
+        zbar[count], xstd[count] = get_particle_evolution_quantity(filename, plot_particle_evolution)
 
 if plot_evolution is not None:
-    if size > 1:
-        global_zwin = np.empty_like(zwin)
-        global_quantity = np.empty_like(quantity)
-        comm_world.Reduce(zwin, global_zwin, op=MPI.MAX)
-        comm_world.Reduce(quantity, global_quantity, op=MPI.MAX)
-        zwin = global_zwin
-        quantity = global_quantity
+    zwin, quantity = reduce_evolved_quantity(zwin, quantity)
     if rank == 0:
-        evolved_quantity(zwin, quantity)
+        plot_evolved_quantity(zwin, quantity)
+
+if plot_particle_evolution is not None:
+    zbar, xstd = reduce_evolved_quantity(zbar, xstd)
+    if rank == 0:
+        plot_particle_evolved_quantity(zbar, xstd)
 
