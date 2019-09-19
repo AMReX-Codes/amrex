@@ -806,20 +806,6 @@ private:
                    int                                    SeqNum);
 #endif
 
-#ifdef BL_USE_MPI3
-    void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvTagss,
-                                char*&                            the_recv_data,
-                                Vector<char*>&                    recv_data,
-                                Vector<int>&                      recv_size,
-                                Vector<int>&                      recv_from,
-                                Vector<MPI_Request>&              recv_reqs,
-                                Vector<MPI_Aint>         &        recv_disp,
-                                int                               icomp,
-                                int                               ncomp,
-                                int                               SeqNum,
-                                MPI_Win &                         win);
-#endif
-
 public:
     //! Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
@@ -835,9 +821,6 @@ public:
     Vector<int>         fb_recv_size;
     Vector<MPI_Request> fb_recv_reqs;
     Vector<MPI_Status>  fb_recv_stat;
-#ifdef BL_USE_MPI3
-    Vector<MPI_Aint>    fb_recv_disp;
-#endif
     //
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
