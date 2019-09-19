@@ -1545,10 +1545,8 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
     const Real* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
-    Print()<<"a_dt_type "<<int( a_dt_type )<<'\n';
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags && (a_dt_type!=DtType::SecondHalf))
     {
-        Print()<<"copy attribs\n";
         copy_attribs(pti, x, y, z);
     }
 
