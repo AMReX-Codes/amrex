@@ -539,7 +539,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
-    const int is_eb_dirichlet =  isEBDirichlet();
+    bool is_eb_dirichlet =  isEBDirichlet();
 
     Array4<Real const> foo;
 
@@ -875,16 +875,16 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
 void
 MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const auto dxinvarray = m_geom[amrlev][mglev].InvCellSizeArray();
+    AMREX_D_TERM(Real dhx = m_b_scalar*dxinvarray[0]*dxinvarray[0];,
+                 Real dhy = m_b_scalar*dxinvarray[1]*dxinvarray[1];,
+                 Real dhz = m_b_scalar*dxinvarray[2]*dxinvarray[2];);
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -896,60 +896,64 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
 
-    const int is_eb_dirichlet =  isEBDirichlet();
+    bool is_eb_dirichlet =  isEBDirichlet();
 
-    FArrayBox foo(Box::TheUnitBox());
+    Array4<Real const> foo;
 
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
     const int ncomp = getNComp();
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox& fab = mf[mfi];
-        const FArrayBox& afab = acoef[mfi];
-        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                     const FArrayBox& byfab = bycoef[mfi];,
-                     const FArrayBox& bzfab = bzcoef[mfi];);
+        Array4<Real> const& fab = mf.array(mfi);
+        Array4<Real const> const& afab = acoef.const_array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& bxfab = bxcoef.const_array(mfi);,
+                     Array4<Real const> const& byfab = bycoef.const_array(mfi);,
+                     Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
         if (fabtyp == FabType::regular)
         {
-            mlabeclap_normalize(bx, fab.array(), afab.array(),
-                                AMREX_D_DECL(bxfab.array(),
-                                             byfab.array(),
-                                             bzfab.array()),
-                                dxinvarray, ascalar, bscalar, ncomp);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                mlabeclap_normalize(bx, fab, afab, AMREX_D_DECL(bxfab, byfab, bzfab),
+                                    dxinvarray, ascalar, bscalar, ncomp);
+            });
         }
         else if (fabtyp == FabType::singlevalued)
         {
-            FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
+            Array4<Real const> const& bebfab
+                = (is_eb_dirichlet) ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
+            Array4<int const> const& ccmfab = ccmask.const_array(mfi);
+            Array4<EBCellFlag const> const& flagfab = flags->const_array(mfi);
+            Array4<Real const> const& vfracfab = vfrac->const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
+                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
+                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+            AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
+                         Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
+                         Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
+            Array4<Real const> const& bafab = barea->const_array(mfi);
+            Array4<Real const> const& bcfab = bcent->const_array(mfi);
 
-            amrex_mlebabeclap_normalize(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(fab),
-                                        BL_TO_FORTRAN_ANYD(afab),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
-                                                     BL_TO_FORTRAN_ANYD(byfab),
-                                                     BL_TO_FORTRAN_ANYD(bzfab)),
-                                        BL_TO_FORTRAN_ANYD(ccmask[mfi]),
-                                        BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                        BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                        BL_TO_FORTRAN_ANYD((*barea)[mfi]),
-                                        BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
-                                        BL_TO_FORTRAN_ANYD(bebfab),
-                                        is_eb_dirichlet,
-                                        dxinv, m_a_scalar, m_b_scalar, ncomp);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlebabeclap_normalize(bx, fab, ascalar, afab,
+                                      AMREX_D_DECL(dhx, dhy, dhz),
+                                      AMREX_D_DECL(bxfab, byfab, bzfab),
+                                      ccmfab, flagfab, vfracfab,
+                                      AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                      AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                      bafab, bcfab, bebfab, is_eb_dirichlet, ncomp);
+            });
         }
     }
 }
