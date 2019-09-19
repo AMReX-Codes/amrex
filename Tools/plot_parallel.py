@@ -15,9 +15,13 @@ plotfile, saves an image showing the field and particles.
 Requires yt>3.5 and Python3
 
 It can be run serial:
-> python plot_parallel.py --path <path/to/plt/files>
+
+> python plot_parallel.py --path <path/to/plt/files> --serial
+
 or parallel
-> mpirun -np 32 python plot_parallel.py --path <path/to/plt/files> --parallel
+
+> mpirun -np 32 python plot_parallel.py --path <path/to/plt/files>
+
 When running parallel, the plotfiles are distributed as evenly as possible
 between MPI ranks.
 
@@ -45,8 +49,8 @@ parser.add_argument('--vmax', type=float, default=None,
                     help='If specified, the colormap will have bounds [-vmax, vmax]')
 parser.add_argument('--slicewidth', default=10.e-6,
                     help='Only particles with -slicewidth/2<y<slicewidth/2 are plotted')
-parser.add_argument('--parallel', action='store_true', default=False,
-                    help='whether or not to do the analysis in parallel (e.g., 1 plotfile per MPI rank)')
+parser.add_argument('--serial', action='store_true', default=False,
+                    help='Specifies running in serial, avoiding the import of MPI')
 parser.add_argument('--species', dest='pslist', nargs='+', type=str, default=None,
                     help='Species to be plotted, e.g., " --species beam plasma_e ". By default, all species in the simulation are shown')
 parser.add_argument('--plot_max_evolution', type=str, default=None,
@@ -183,7 +187,7 @@ pslist = get_species(file_list);
 
 rank = 0
 size = 1
-if args.parallel:
+if not args.serial:
     try:
         from mpi4py import MPI
         comm_world = MPI.COMM_WORLD
