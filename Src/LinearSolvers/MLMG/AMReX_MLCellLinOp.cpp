@@ -651,7 +651,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
