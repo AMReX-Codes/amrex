@@ -172,9 +172,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
 
     applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
 
-    // todo: gpu
-    Gpu::LaunchSafeGuard lg(false);
-
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
     const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
@@ -183,8 +180,6 @@ MLEBTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode 
     auto fcent = (factory) ? factory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-
-//    const int is_eb_dirichlet = true;
 
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinv = geom.InvCellSizeArray();

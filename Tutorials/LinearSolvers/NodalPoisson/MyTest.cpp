@@ -3,6 +3,7 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -192,12 +193,12 @@ MyTest::initData ()
             const Box& bx = mfi.tilebox();
             Array4<Real> const phi = exact_solution[ilev].array(mfi);
             Array4<Real> const rh  = rhs[ilev].array(mfi);
-            amrex::ParallelFor(bx, [=] (int i, int j, int k)
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 constexpr Real pi = 3.1415926535897932;
                 constexpr Real tpi = 2.*pi;
                 constexpr Real fpi = 4.*pi;
-                constexpr Real fac = tpi*tpi*3.;
+                constexpr Real fac = tpi*tpi*AMREX_SPACEDIM;
 
                 Real x = i*dx[0];
                 Real y = j*dx[1];
