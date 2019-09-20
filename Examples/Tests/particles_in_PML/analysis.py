@@ -3,9 +3,9 @@
 This script tests the absorption of particles in the PML.
 
 The input file inputs_2d/inputs is used: it features a positive and a
-negative particle, going in opposite direction and eventually 
+negative particle, going in opposite direction and eventually
 leaving the box. This script tests that the field in the box
-is close to 0 once the particles have left. With regular 
+is close to 0 once the particles have left. With regular
 PML, this test fails, since the particles leave a spurious
 charge, with associated fields, behind them.
 """
@@ -34,4 +34,4 @@ elif ds.dimensionality == 3:
     assert max_Efield < 10
 else:
     raise ValueError("Unknown dimensionality")
-        
+

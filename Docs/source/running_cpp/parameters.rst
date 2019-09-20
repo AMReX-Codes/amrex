@@ -81,14 +81,19 @@ Setting up the field mesh
 
 * ``warpx.n_current_deposition_buffer`` (`integer`)
     When using mesh refinement: the particles that are located inside
-    a refinement patch, but within ``n_field_gather_buffer`` cells of
+    a refinement patch, but within ``n_current_deposition_buffer`` cells of
     the edge of this patch, will deposit their charge and current to the
     lower refinement level, instead of depositing to the refinement patch
     itself. See the section :doc:`../../theory/amr` for more details.
 
-* ``particles.deposit_on_main_grid`` (list of strings)
+* ``particles.deposit_on_main_grid`` (`list of strings`)
     When using mesh refinement: the particle species whose name are included
     in the list will deposit their charge/current directly on the main grid
+    (i.e. the coarsest level), even if they are inside a refinement patch.
+
+* ``particles.gather_from_main_grid`` (`list of strings`)
+    When using mesh refinement: the particle species whose name are included
+    in the list will gather their fields from the main grid
     (i.e. the coarsest level), even if they are inside a refinement patch.
 
 * ``warpx.n_rz_azimuthal_modes`` (`integer`; 1 by default)
@@ -498,7 +503,7 @@ Laser initialization
 
 * ``<laser_name>.stc_direction`` (`3 floats`) optional (default `1. 0. 0.`)
     Direction of laser spatio-temporal couplings.
-  	See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
+    See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``<laser_name>.zeta`` (`float`; in meters.seconds) optional (default `0.`)
     Spatial chirp at focus in direction ``<laser_name>.stc_direction``. See definition in

@@ -27,7 +27,7 @@ struct InjectorDensityCustom
         }
     }
 
-    // Return density at given position, using user-defined parameters 
+    // Return density at given position, using user-defined parameters
     // stored in p.
     AMREX_GPU_HOST_DEVICE
     amrex::Real

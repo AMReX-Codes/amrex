@@ -5,9 +5,10 @@ class PGroup(object):
     """Implements a class that has the same API as a warp ParticleGroup instance.
     """
 
-    def __init__(self, igroup, ispecie):
+    def __init__(self, igroup, ispecie, level=0):
         self.igroup = igroup
         self.ispecie = ispecie
+        self.level = level
         self.ns = 1 # Number of species
 
         self.gallot()
@@ -76,35 +77,35 @@ class PGroup(object):
     npmax = property(getnpmax)
 
     def getxp(self):
-        return _libwarpx.get_particle_x(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_x(self.ispecie, self.level)[self.igroup]
     xp = property(getxp)
 
     def getyp(self):
-        return _libwarpx.get_particle_y(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_y(self.ispecie, self.level)[self.igroup]
     yp = property(getyp)
 
     def getrp(self):
-        return _libwarpx.get_particle_r(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_r(self.ispecie, self.level)[self.igroup]
     rp = property(getrp)
 
     def getzp(self):
-        return _libwarpx.get_particle_z(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_z(self.ispecie, self.level)[self.igroup]
     zp = property(getzp)
 
     def getuxp(self):
-        return _libwarpx.get_particle_ux(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_ux(self.ispecie, self.level)[self.igroup]
     uxp = property(getuxp)
 
     def getuyp(self):
-        return _libwarpx.get_particle_uy(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_uy(self.ispecie, self.level)[self.igroup]
     uyp = property(getuyp)
 
     def getuzp(self):
-        return _libwarpx.get_particle_uz(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_uz(self.ispecie, self.level)[self.igroup]
     uzp = property(getuzp)
 
     def getpid(self):
-        id = _libwarpx.get_particle_id(self.ispecie)[self.igroup]
+        id = _libwarpx.get_particle_id(self.ispecie, self.level)[self.igroup]
         pid = np.array([id]).T
         return pid
     pid = property(getpid)
@@ -117,44 +118,45 @@ class PGroup(object):
     gaminv = property(getgaminv)
 
     def getex(self):
-        return _libwarpx.get_particle_Ex(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_Ex(self.ispecie, self.level)[self.igroup]
     ex = property(getex)
 
     def getey(self):
-        return _libwarpx.get_particle_Ey(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_Ey(self.ispecie, self.level)[self.igroup]
     ey = property(getey)
 
     def getez(self):
-        return _libwarpx.get_particle_Ez(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_Ez(self.ispecie, self.level)[self.igroup]
     ez = property(getez)
 
     def getbx(self):
-        return _libwarpx.get_particle_Bx(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_Bx(self.ispecie, self.level)[self.igroup]
     bx = property(getbx)
 
     def getby(self):
-        return _libwarpx.get_particle_By(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_By(self.ispecie, self.level)[self.igroup]
     by = property(getby)
 
     def getbz(self):
-        return _libwarpx.get_particle_Bz(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_Bz(self.ispecie, self.level)[self.igroup]
     bz = property(getbz)
 
     def gettheta(self):
-        return _libwarpx.get_particle_theta(self.ispecie)[self.igroup]
+        return _libwarpx.get_particle_theta(self.ispecie, self.level)[self.igroup]
     theta = property(gettheta)
 
 class PGroups(object):
-    def __init__(self, ispecie=0):
+    def __init__(self, ispecie=0, level=0):
         self.ispecie = ispecie
+        self.level = level
 
     def setuppgroups(self):
-        xall = _libwarpx.get_particle_x(self.ispecie)
+        xall = _libwarpx.get_particle_x(self.ispecie, self.level)
         self.ngroups = len(xall)
 
         self._pgroups = []
         for igroup in range(self.ngroups):
-            self._pgroups.append(PGroup(igroup, self.ispecie))
+            self._pgroups.append(PGroup(igroup, self.ispecie, self.level))
 
     def __iter__(self):
         self.setuppgroups()

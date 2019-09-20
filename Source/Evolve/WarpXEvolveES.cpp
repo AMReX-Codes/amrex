@@ -61,7 +61,7 @@ WarpX::EvolveES (int numsteps) {
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
 
-	// Start loop on time steps
+        // Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 #ifdef WARPX_USE_PY
         if (warpx_py_beforestep) warpx_py_beforestep();
@@ -124,36 +124,36 @@ WarpX::EvolveES (int numsteps) {
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = "
                       << cur_time << " DT = " << dt[0] << "\n";
 
-	// sync up time
-	for (int i = 0; i <= finest_level; ++i) {
-	    t_new[i] = cur_time;
-	}
+        // sync up time
+        for (int i = 0; i <= finest_level; ++i) {
+            t_new[i] = cur_time;
+        }
 
-	if (to_make_plot) {
+        if (to_make_plot) {
             // replace with ES field Gather
             mypc->DepositCharge(rhoNodal);
             computePhi(rhoNodal, phiNodal);
             phiNodal[0]->FillBoundary(Geom(0).periodicity());
             computeE(eFieldNodal, phiNodal);
             mypc->FieldGatherES(eFieldNodal, gather_masks);
-	    last_plot_file_step = step+1;
-	    WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
-	}
+            last_plot_file_step = step+1;
+            WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
+        }
 
-	if (check_int > 0 && (step+1) % check_int == 0) {
-	    last_check_file_step = step+1;
-	    WriteCheckPointFile();
-	}
+        if (check_int > 0 && (step+1) % check_int == 0) {
+            last_check_file_step = step+1;
+            WriteCheckPointFile();
+        }
 
-	if (cur_time >= stop_time - 1.e-3*dt[0]) {
-	    max_time_reached = true;
-	    break;
-	}
+        if (cur_time >= stop_time - 1.e-3*dt[0]) {
+            max_time_reached = true;
+            break;
+        }
 
 #ifdef WARPX_USE_PY
         if (warpx_py_afterstep) warpx_py_afterstep();
 #endif
-	// End loop on time steps
+        // End loop on time steps
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
@@ -161,7 +161,7 @@ WarpX::EvolveES (int numsteps) {
     }
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
-	WriteCheckPointFile();
+        WriteCheckPointFile();
     }
 }
 

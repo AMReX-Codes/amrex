@@ -8,13 +8,13 @@ module warpx_ES_push_particles
 contains
 
 !
-! This routine updates the particle positions and velocities using the 
+! This routine updates the particle positions and velocities using the
 ! leapfrog time integration algorithm, given the electric fields at the
 ! particle positions. It also enforces specular reflection off the domain
 ! walls.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     vx_p      : the particle x-velocities
@@ -30,7 +30,7 @@ contains
 !     prob_hi   : the right-hand corner of the problem domain
 !
   subroutine warpx_push_leapfrog_3d(particles, ns, np,      &
-                                    vx_p, vy_p, vz_p,       &                                 
+                                    vx_p, vy_p, vz_p,       &
                                     Ex_p, Ey_p, Ez_p,       &
                                     charge, mass, dt,       &
                                     prob_lo, prob_hi)       &
@@ -43,7 +43,7 @@ contains
     real(amrex_real), intent(in)     :: mass
     real(amrex_real), intent(in)     :: dt
     real(amrex_real), intent(in)     :: prob_lo(3), prob_hi(3)
-   
+
     integer n
     real(amrex_real) fac
 
@@ -69,7 +69,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
@@ -107,7 +107,7 @@ contains
     real(amrex_real), intent(in)     :: mass
     real(amrex_real), intent(in)     :: dt
     real(amrex_real), intent(in)     :: prob_lo(2), prob_hi(2)
-   
+
     integer n
     real(amrex_real) fac
 
@@ -131,7 +131,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
@@ -152,7 +152,7 @@ contains
 ! from the velocities after particle initialization.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     xx_p      : the electric field in the x-direction at the particle positions
@@ -190,7 +190,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
@@ -209,7 +209,7 @@ contains
           end if
           vz_p(n) = -vz_p(n)
        end do
-              
+
     end do
 
   end subroutine warpx_push_leapfrog_positions_3d
@@ -241,7 +241,7 @@ contains
           vx_p(n) = -vx_p(n)
        end do
 
-!      ... y... 
+!      ... y...
        do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
           if (particles(2, n) .lt. prob_lo(2)) then
              particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)

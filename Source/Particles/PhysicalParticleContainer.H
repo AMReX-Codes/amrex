@@ -24,7 +24,7 @@ public:
 
     void InitIonizationModule ();
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
 
@@ -32,7 +32,7 @@ public:
                            amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) override;
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex,
                               const amrex::MultiFab& Ey,
@@ -62,13 +62,13 @@ public:
                       int depos_lev);
 
     virtual void Evolve (int lev,
-			 const amrex::MultiFab& Ex,
+                         const amrex::MultiFab& Ex,
                          const amrex::MultiFab& Ey,
                          const amrex::MultiFab& Ez,
-			 const amrex::MultiFab& Bx,
+                         const amrex::MultiFab& Bx,
                          const amrex::MultiFab& By,
                          const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx,
+                         amrex::MultiFab& jx,
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
                          amrex::MultiFab* cjx,
@@ -83,14 +83,14 @@ public:
                          const amrex::MultiFab* cBy,
                          const amrex::MultiFab* cBz,
                          amrex::Real t,
-                         amrex::Real dt) override;
+                         amrex::Real dt,
+                         DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-	                amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
                         amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& giv,
-                        amrex::Real dt);
+                        amrex::Real dt, DtType a_dt_type=DtType::Full);
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& Ex,
@@ -99,14 +99,14 @@ public:
                         const amrex::MultiFab& Bx,
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
-                        
+
     void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
                         const amrex::Real* yp, const amrex::Real* zp);
 
     virtual void PostRestart () final {}
 
     void SplitParticles(int lev);
-    
+
     virtual void buildIonizationMask (const amrex::MFIter& mfi, const int lev,
                                       amrex::Gpu::ManagedDeviceVector<int>& ionization_mask) override;
 
@@ -125,7 +125,7 @@ public:
                              std::array<amrex::Real, 3> u, amrex::Real weight);
 
     virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
-                                  const amrex::Real z_new, const amrex::Real t_boost, 
+                                  const amrex::Real z_new, const amrex::Real t_boost,
                                   const amrex::Real t_lab, const amrex::Real dt,
                                   DiagnosticParticles& diagnostic_particles) final;
 

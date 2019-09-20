@@ -4,7 +4,7 @@ import scipy.constants as scc
 import time, copy
 
 '''
-This Python script helps a user to parallelize a WarpX simulation. 
+This Python script helps a user to parallelize a WarpX simulation.
 
 The user specifies the minimal size of the physical domain and the resolution
 in each dimension, and the scripts computes:
@@ -17,7 +17,7 @@ When running in a boosted frame, the script also has the option to
 automatically compute the number of cells in z to satisfy dx>dz in the boosted
 frame.
 
-Note that the script has no notion of blocking_factor. It is assumed that 
+Note that the script has no notion of blocking_factor. It is assumed that
 blocking_factor = max_grid_size, and that all boxes have the same size.
 '''
 
@@ -32,8 +32,8 @@ box_hi0 = np.array([ 25.e-6,  25.e-6,  60.e-6])
 dx = 1.e-6
 dz = dx
 cell_size = np.array([dx, dx, dz])
-# Use this for simulations in a boosted frame if you 
-# want to enforce dz < dx / dx_over_dz_boosted_frame 
+# Use this for simulations in a boosted frame if you
+# want to enforce dz < dx / dx_over_dz_boosted_frame
 compute_dz_boosted_frame = True
 gamma_boost = 30.
 dx_over_dz_boosted_frame = 1.1 # >1. is usually more stable
@@ -54,7 +54,7 @@ def adjust_bounds(box_lo0, box_hi0, box_ncell0, mgs):
     box_hi = box_ncell * cell_size * box_hi0 / (box_hi0 - box_lo0)
     return box_lo, box_hi, box_ncell
 
-# Calculate parallelization for the simulation, given numerical parameters 
+# Calculate parallelization for the simulation, given numerical parameters
 # (number of cells, max_grid_size, number of threads per node etc.)
 def nb_nodes_mpi(box_ncell,mgs,threadspernode,ompnumthreads,ngridpernode, ndim):
     nmpipernode = threadspernode/ompnumthreads
@@ -63,7 +63,7 @@ def nb_nodes_mpi(box_ncell,mgs,threadspernode,ompnumthreads,ngridpernode, ndim):
     if ndim == 2:
         ngrids = box_ngrids[0] * box_ngrids[1]
     elif ndim == 3:
-        ngrids = np.prod(box_ngrids)        
+        ngrids = np.prod(box_ngrids)
     n_mpi = intceil( ngrids/ngridpermpi )
     n_node = intceil( n_mpi/nmpipernode )
     return n_node, n_mpi

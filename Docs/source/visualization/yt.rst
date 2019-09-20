@@ -20,6 +20,14 @@ or with the `Anaconda distribution <https://anaconda.org/>`__ of python (recomme
 
     conda install -c conda-forge yt
 
+The latest version of `yt` can be required for advanced options (e.g., rigid
+injection for particles). To built `yt` directly from source, you can use
+
+::
+
+    pip install git+https://github.com/yt-project/yt.git
+
+
 Visualizing the data
 --------------------
 
