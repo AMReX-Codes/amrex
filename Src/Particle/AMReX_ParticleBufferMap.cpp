@@ -26,7 +26,8 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
     
     m_lev_offsets.resize(0);
     m_lev_offsets.push_back(0);
-    for (int lev = 0; lev < num_levels; ++lev) m_lev_offsets.push_back(m_ba[lev].size());
+    for (int lev = 0; lev < num_levels; ++lev)
+        m_lev_offsets.push_back(m_lev_offsets.back() + m_ba[lev].size());
             
     int num_buckets = m_lev_offsets.back();
 
