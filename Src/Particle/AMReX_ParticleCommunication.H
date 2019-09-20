@@ -96,9 +96,10 @@ struct ParticleCopyPlan
         AMREX_ASSERT(pc.numLevels() == 1);
         
         const int lev = 0;
+        const int ngrow = 1;
         const auto& geom = pc.Geom(lev);
                 
-        m_neighbor_procs.assign(pc.NeighborProcs().begin(), pc.NeighborProcs().end());
+        m_neighbor_procs.assign(pc.NeighborProcs(lev, ngrow).begin(), pc.NeighborProcs(lev, ngrow).end());
 
         int num_boxes = pc.ParticleBoxArray(lev).size();
         if (num_boxes == 1 and (not geom.isAnyPeriodic()) ) return;
