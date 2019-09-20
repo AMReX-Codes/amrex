@@ -533,8 +533,6 @@ private:
     int do_subcycling = 0;
 	
     bool use_hybrid_QED = 0;
-	
-    double xi = 10^(-15);
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
