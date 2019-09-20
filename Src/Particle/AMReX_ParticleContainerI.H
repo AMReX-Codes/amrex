@@ -1052,6 +1052,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
     }
 
+    if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
+    
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
     Vector<std::map<int, int> > new_sizes(numLevels());
@@ -1060,8 +1062,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const Geometry& geom = Geom(lev);
         const BoxArray& ba   = ParticleBoxArray(lev);
         const DistributionMapping& dmap = ParticleDistributionMap(lev);
-
-        if (not m_particle_locator.isValid(ba)) m_particle_locator.build(ba);
 
         auto& plev = m_particles[lev];
         const auto plo = Geom(lev).ProbLoArray();

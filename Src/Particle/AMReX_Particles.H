@@ -906,7 +906,7 @@ protected:
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
 
-    mutable ParticleLocator m_particle_locator;
+    mutable AmrParticleLocator m_particle_locator;
     
 #endif
 

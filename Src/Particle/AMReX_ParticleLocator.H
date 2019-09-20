@@ -17,9 +17,9 @@ struct AssignGrid
     Dim3 m_hi;
     Dim3 m_bin_size;
 
-    AssignGrid ()
-        {}
-    
+    AMREX_GPU_HOST_DEVICE
+    AssignGrid () {}
+
     AssignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size)
         : m_boxes_ptr(a_boxes_ptr),
@@ -199,10 +199,10 @@ protected:
 
 struct AmrAssignGrid
 {
-    AssignGrid* m_funcs;
-    int m_size;
+    const AssignGrid* m_funcs;
+    std::size_t m_size;
     
-    AmrAssignGrid(AssignGrid* a_funcs, int a_size)
+    AmrAssignGrid(const AssignGrid* a_funcs, std::size_t a_size)
         : m_funcs(a_funcs), m_size(a_size)
         {}
 
@@ -221,19 +221,43 @@ struct AmrAssignGrid
 class AmrParticleLocator
 {
     Vector<ParticleLocator> m_locators;
-    Vector<AssignGrid> m_grid_assignors;
+    Gpu::ManagedDeviceVector<AssignGrid> m_grid_assignors;
+    bool m_defined = false;
 
-    AmrParticleLocator (Vector<BoxArray>& a_bas)
+public:
+
+    void build (const ParGDBBase* a_gdb)
     {
-        int num_levels = a_bas.size();
+        m_defined = true;
+        int num_levels = a_gdb->finestLevel()+1;
         m_locators.resize(num_levels);
         m_grid_assignors.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
         {
-            m_locators[lev].build(a_bas[lev]);
+            const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
+            m_locators[lev].build(ba);
             m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
     }    
+
+    bool isValid (const ParGDBBase* a_gdb) const
+    {
+        if ( (m_locators.size() == 0) or !m_defined) return false;
+        bool all_valid = true;
+        int num_levels = m_locators.size();
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
+            all_valid = all_valid && m_locators[lev].isValid(ba);
+        }
+        return all_valid;
+    }
+
+    AmrAssignGrid getGridAssignor () const noexcept 
+    {
+        AMREX_ASSERT(m_defined);
+        return AmrAssignGrid(m_grid_assignors.dataPtr(), m_locators.size());
+    }
 };
 
 }
