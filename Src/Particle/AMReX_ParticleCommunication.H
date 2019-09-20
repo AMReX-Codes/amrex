@@ -104,24 +104,24 @@ struct ParticleCopyPlan
         
         const int ngrow = 1;  // note - fix
 
-        const int nlev = pc.BufferMap().numLevels();
-        const int nbuckets = pc.BufferMap().numBuckets();
+        const int num_levels = pc.BufferMap().numLevels();
+        const int num_buckets = pc.BufferMap().numBuckets();
 
         m_neighbor_procs = pc.NeighborProcs(ngrow);
 
-        if (nbuckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
+        if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
 
         m_box_counts.resize(0);
-        m_box_counts.resize(nbuckets, 0);
-        m_box_offsets.resize(nbuckets+1);
+        m_box_counts.resize(num_buckets, 0);
+        m_box_offsets.resize(num_buckets+1);
         auto p_dst_box_counts = m_box_counts.dataPtr();
         auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
         auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
                 
-        m_dst_indices.resize(nlev);
-        for (int lev = 0; lev < nlev; ++lev)
+        m_dst_indices.resize(num_levels);
+        for (int lev = 0; lev < num_levels; ++lev)
         {
             for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
@@ -131,7 +131,7 @@ struct ParticleCopyPlan
             }
         }
 
-        for (int lev = 0; lev < nlev; ++lev)
+        for (int lev = 0; lev < num_levels; ++lev)
         {        
             for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
             {
@@ -193,62 +193,63 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 {
     BL_PROFILE("amrex::packBuffer");
 
-    AMREX_ASSERT(pc.numLevels() == 1);
-
-    const int lev = 0;
-    const auto& geom = pc.Geom(lev);
-    auto& plev = pc.GetParticles(lev);
-    auto& ba = pc.ParticleBoxArray(lev);
-    const auto plo = geom.ProbLoArray();
-    const auto phi = geom.ProbHiArray();
-    const auto is_per = geom.isPeriodicArray();
-
-    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
-    
-    int total_buffer_size = plan.m_box_offsets[ba.size()];
+    int num_levels = pc.BufferMap().numLevels();
+    int num_buckets = pc.BufferMap().numBuckets();
+    if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
+    int total_buffer_size = plan.m_box_offsets[num_buckets];
     snd_buffer.resize(total_buffer_size);
 
-    for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
+    for (int lev = 0; lev < num_levels; ++lev)
+    {       
+        const auto& geom = pc.Geom(lev);
+        auto& plev = pc.GetParticles(lev);
+        auto& ba = pc.ParticleBoxArray(lev);
+        const auto plo = geom.ProbLoArray();
+        const auto phi = geom.ProbHiArray();
+        const auto is_per = geom.isPeriodicArray();
 
-        auto& src_tile = plev.at(index);
-        auto& aos   = src_tile.GetArrayOfStructs();
-        const auto ptd = src_tile.getConstParticleTileData();
-
-	int num_copies = op.numCopies(gid, lev);
-
-	auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
-	auto p_src_indices = op.m_src_indices[lev].at(gid).dataPtr();
-        auto p_dst_indices = plan.m_dst_indices[lev].at(gid).dataPtr();
-	auto p_periodic_shift = op.m_periodic_shift[lev].at(gid).dataPtr();
-	auto p_box_offsets = plan.m_box_offsets.dataPtr();
-        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-        auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
-	auto p_snd_buffer = snd_buffer.dataPtr();
-
-	AMREX_FOR_1D ( num_copies, i,
+        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            int dst_box = p_boxes[i];
-            if (dst_box < 0) continue;
-            int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+dst_box]];
-            int dst_index = box_offset + p_dst_indices[i];
-            int src_index = p_src_indices[i];
-            p_snd_buffer[dst_index] = ptd.getSuperParticle(src_index);
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
             
-            auto& p = p_snd_buffer[dst_index];
-            const IntVect& pshift = p_periodic_shift[i];
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            auto& src_tile = plev.at(index);
+            auto& aos   = src_tile.GetArrayOfStructs();
+            const auto ptd = src_tile.getConstParticleTileData();
+            
+            int num_copies = op.numCopies(gid, lev);
+            
+            auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
+            auto p_src_indices = op.m_src_indices[lev].at(gid).dataPtr();
+            auto p_dst_indices = plan.m_dst_indices[lev].at(gid).dataPtr();
+            auto p_periodic_shift = op.m_periodic_shift[lev].at(gid).dataPtr();
+            auto p_box_offsets = plan.m_box_offsets.dataPtr();
+            auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
+            auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
+            auto p_snd_buffer = snd_buffer.dataPtr();
+            
+            AMREX_FOR_1D ( num_copies, i,
             {
-                if (not is_per[idim]) continue;
-                if (pshift[idim] > 0) 
-                    p.pos(idim) += phi[idim] - plo[idim]; 
-                else if (pshift[idim] < 0)
-                    p.pos(idim) -= phi[idim] - plo[idim];
-            }
-	});
+                int dst_box = p_boxes[i];
+                if (dst_box < 0) continue;
+                int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+dst_box]];
+                int dst_index = box_offset + p_dst_indices[i];
+                int src_index = p_src_indices[i];
+                p_snd_buffer[dst_index] = ptd.getSuperParticle(src_index);
+            
+                auto& p = p_snd_buffer[dst_index];
+                const IntVect& pshift = p_periodic_shift[i];
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                {
+                    if (not is_per[idim]) continue;
+                    if (pshift[idim] > 0) 
+                        p.pos(idim) += phi[idim] - plo[idim]; 
+                    else if (pshift[idim] < 0)
+                        p.pos(idim) -= phi[idim] - plo[idim];
+                }
+            });
+        }
     }
 }
 
@@ -257,27 +258,28 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 {
     BL_PROFILE("amrex::unpackBuffer");
 
-    AMREX_ASSERT(pc.numLevels() == 1);
-
     using PTile = typename PC::ParticleTileType;
 
-    const int lev = 0;
-    auto& plev  = pc.GetParticles(lev);
+    int num_levels = pc.BufferMap().numLevels();
+    int num_buckets = pc.BufferMap().numBuckets();
+    if (num_buckets == 1 and (not pc.Geom(0).isAnyPeriodic()) ) return;
 
-    if (pc.ParticleBoxArray(lev).size() == 1 and (not pc.Geom(lev).isAnyPeriodic()) ) return;
-    
     // count how many particles we have to add to each tile
     std::vector<int> sizes;
     std::vector<PTile*> tiles;
-    for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-        auto& tile = plev[index];
-	int num_copies = plan.m_box_counts[pc.BufferMap().gridAndLevToBucket(gid, lev)];
-        sizes.push_back(num_copies);
-        tiles.push_back(&tile);
+    for (int lev = 0; lev < num_levels; ++lev)
+    {       
+        auto& plev  = pc.GetParticles(lev);
+        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+            auto& tile = plev[index];
+            int num_copies = plan.m_box_counts[pc.BufferMap().gridAndLevToBucket(gid, lev)];
+            sizes.push_back(num_copies);
+            tiles.push_back(&tile);
+        }
     }
 
     // resize the tiles and compute offsets
@@ -287,33 +289,37 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     // local unpack
     int uindex = 0;
     auto p_dst_box_counts = plan.m_box_counts.dataPtr();
-    for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
-        auto& tile = plev[index];
-        auto& aos   = tile.GetArrayOfStructs();
-
-	auto p_box_offsets = plan.m_box_offsets.dataPtr();
-        auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
-	auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
-	auto p_snd_buffer = snd_buffer.dataPtr();
-
-        int offset = offsets[uindex];
-        int size = sizes[uindex];
-        ++uindex;
-        
-        auto ptd = tile.getParticleTileData();
-        AMREX_FOR_1D ( size, i,
+    for (int lev = 0; lev < num_levels; ++lev)
+    {       
+        auto& plev  = pc.GetParticles(lev);
+        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
-            int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+gid]];
-            int src_index = box_offset + i;
-            int dst_index = offset + i;
-            ptd.setSuperParticle(p_snd_buffer[src_index], dst_index);
-        });
-    }    
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto index = std::make_pair(gid, tid);
+            
+            auto& tile = plev[index];
+            auto& aos   = tile.GetArrayOfStructs();
+
+            auto p_box_offsets = plan.m_box_offsets.dataPtr();
+            auto p_lev_offsets = pc.BufferMap().levelOffsetsPtr();
+            auto p_box_perm = pc.BufferMap().levGridToBucketPtr();
+            auto p_snd_buffer = snd_buffer.dataPtr();
+            
+            int offset = offsets[uindex];
+            int size = sizes[uindex];
+            ++uindex;
+        
+            auto ptd = tile.getParticleTileData();
+            AMREX_FOR_1D ( size, i,
+            {
+                int box_offset = p_box_offsets[p_box_perm[p_lev_offsets[lev]+gid]];
+                int src_index = box_offset + i;
+                int dst_index = offset + i;
+                ptd.setSuperParticle(p_snd_buffer[src_index], dst_index);
+            });
+        }
+    }
 }
 
 template <class PC, class Buffer>
@@ -321,8 +327,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 {
     BL_PROFILE("amrex::communicateParticlesStart");
     
-    AMREX_ASSERT(pc.numLevels() == 1);
-
     using ParticleType = typename PC::SuperParticleType;
 
 #ifdef BL_USE_MPI
@@ -393,8 +397,6 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 {
     BL_PROFILE("amrex::unpackRemotes");
     
-    AMREX_ASSERT(pc.numLevels() == 1);
-
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     if (NProcs == 1) return;
@@ -404,9 +406,6 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 
     if (plan.m_nrcvs > 0)
     {
- 	const int lev = 0;
-	auto& plev  = pc.GetParticles(lev);
-
 	auto p_rcv_box_counts = plan.m_rcv_box_counts.dataPtr();
 	auto p_rcv_box_offsets = plan.m_rcv_box_offsets.dataPtr();
 	auto p_rcv_box_ids = plan.m_rcv_box_ids.dataPtr();
@@ -417,10 +416,11 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{
             int copy_size = plan.m_rcv_box_counts[i];
+            int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
             int tid = 0;
             auto index = std::make_pair(gid, tid);         
-            auto& tile = plev[index];
+            auto& tile = pc.GetParticles(lev)[index];
             sizes.push_back(copy_size);
             tiles.push_back(&tile);
         }
@@ -431,28 +431,29 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
         int uindex = 0;
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{
-	  int gid = plan.m_rcv_box_ids[i];
-	  int tid = 0;
-	  int offset = plan.m_rcv_box_offsets[i];
+            int lev = plan.m_rcv_box_levs[i];
+            int gid = plan.m_rcv_box_ids[i];
+            int tid = 0;
+            int offset = plan.m_rcv_box_offsets[i];
 
-	  auto index = std::make_pair(gid, tid);
+            auto index = std::make_pair(gid, tid);
 	  
-	  auto& tile = plev[index];
-          auto ptd = tile.getParticleTileData();
+            auto& tile = pc.GetParticles(lev)[index];
+            auto ptd = tile.getParticleTileData();
 
-	  AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
+            AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
 
-          int dst_offset = offsets[uindex];
-          int size = sizes[uindex];
-          ++uindex;
-
-	  AMREX_FOR_1D ( size, ip,
-	  {
-              int src_index = offset + ip;
-              int dst_index = dst_offset + ip;
-              ptd.setSuperParticle(p_rcv_buffer[src_index], dst_index);
-	  });	 
-	}	
+            int dst_offset = offsets[uindex];
+            int size = sizes[uindex];
+            ++uindex;
+            
+            AMREX_FOR_1D ( size, ip,
+	    {
+                int src_index = offset + ip;
+                int dst_index = dst_offset + ip;
+                ptd.setSuperParticle(p_rcv_buffer[src_index], dst_index);
+            });
+	}
     }    
 #endif // MPI
 }
