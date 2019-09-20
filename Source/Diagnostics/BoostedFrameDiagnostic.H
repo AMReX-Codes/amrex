@@ -22,17 +22,17 @@
 ///
 
 /** \brief
- * The capability for full 3D snapshot and slices in the lab-frame is implemented. 
- * LabFrameDiag class defines the parameters required to copy data from boost-frame at (z_boost t_boost) 
+ * The capability for full 3D snapshot and slices in the lab-frame is implemented.
+ * LabFrameDiag class defines the parameters required to copy data from boost-frame at (z_boost t_boost)
  * to lab-frame at (z_lab, t_lab)
- * Two derived classes, namely, LabFrameSnapShot and LabFrameSlice are defined to allow for 
+ * Two derived classes, namely, LabFrameSnapShot and LabFrameSlice are defined to allow for
  * different functions required to copy boosted frame data to lab-frame slice.
- * The approach here is to define an array of LabFrameDiag which could include both, snapshots and slices, 
- * sorted based on the t_lab of each of the diags. This is done to re-use the z_lab data for the diags 
- * that have the same t_lab, instead of re-generating the slice at z_lab for that t_lab. 
+ * The approach here is to define an array of LabFrameDiag which could include both, snapshots and slices,
+ * sorted based on the t_lab of each of the diags. This is done to re-use the z_lab data for the diags
+ * that have the same t_lab, instead of re-generating the slice at z_lab for that t_lab.
  */
- 
-class LabFrameDiag { 
+
+class LabFrameDiag {
     public:
     std::string file_name;
     amrex::Real t_lab;
@@ -40,7 +40,7 @@ class LabFrameDiag {
     amrex::IntVect prob_ncells_lab_;
     amrex::RealBox diag_domain_lab_;
     amrex::Box buff_box_;
- 
+
     amrex::Real current_z_lab;
     amrex::Real current_z_boost;
     amrex::Real inv_gamma_boost_;
@@ -48,20 +48,20 @@ class LabFrameDiag {
     amrex::Real dz_lab_;
     amrex::Real dx_;
     amrex::Real dy_;
- 
+
     int ncomp_to_dump_;
     std::vector<std::string> mesh_field_names_;
-            
+
     int file_num;
     int initial_i;
- 
+
     // For back-transformed diagnostics of grid fields, data_buffer_
     // stores a buffer of the fields in the lab frame (in a MultiFab, i.e.
     // with all box data etc.). When the buffer if full, dump to file.
     std::unique_ptr<amrex::MultiFab> data_buffer_;
     // particles_buffer_ is currently blind to refinement level.
     // particles_buffer_[j] is a WarpXParticleContainer::DiagnosticParticleData where
-    // - j is the species number for the current diag 
+    // - j is the species number for the current diag
     amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> particles_buffer_;
     // buff_counter_ is the number of z slices in data_buffer_
     int buff_counter_;
@@ -70,66 +70,66 @@ class LabFrameDiag {
     ///
     /// This snapshot is at time t_lab, and the simulation is at time t_boost.
     /// The Lorentz transformation picks out one slice corresponding to both
-    /// of those times, at position current_z_boost and current_z_lab in the 
-    /// boosted and lab frames, respectively. 
+    /// of those times, at position current_z_boost and current_z_lab in the
+    /// boosted and lab frames, respectively.
     ///
     void updateCurrentZPositions(amrex::Real t_boost, amrex::Real inv_gamma,
                                  amrex::Real inv_beta);
- 
+
     void createLabFrameDirectories();
     ///
     /// Write some useful metadata about this snapshot.
     ///
     void writeLabFrameHeader();
- 
+
     virtual int getId() {return 0;}
     virtual void AddDataToBuffer(amrex::MultiFab& tmp_slice_ptr, int i_lab,
-                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump){}; 
+                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump){};
     virtual void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame) {};
 
 };
 
 /// LabFrameSnapShot stores metadata corresponding to a single time
-/// snapshot in the lab frame. The snapshot is written to disk 
+/// snapshot in the lab frame. The snapshot is written to disk
 /// in lab_frame_data/snapshots. zmin_lab, zmax_lab, and t_lab
-/// are all constant for a given snapshot. current_z_lab and 
-/// current_z_boost for each snapshot are updated as the 
+/// are all constant for a given snapshot. current_z_lab and
+/// current_z_boost for each snapshot are updated as the
 /// simulation time in the boosted frame advances.
 ///
 class LabFrameSnapShot : public LabFrameDiag {
     public:
     int snapshot_id;
     int getId() {return snapshot_id;}
-    LabFrameSnapShot(amrex::Real t_lab_in, amrex::Real t_boost, 
-                     amrex::Real inv_gamma_boost_, amrex::Real inv_beta_boost_, 
-                     amrex::Real dz_lab_, amrex::RealBox prob_domain_lab, 
-                     amrex::IntVect prob_ncells_lab, int ncomp_to_dump, 
-                     std::vector<std::string> mesh_field_names, 
-                     amrex::RealBox diag_domain_lab, 
+    LabFrameSnapShot(amrex::Real t_lab_in, amrex::Real t_boost,
+                     amrex::Real inv_gamma_boost_, amrex::Real inv_beta_boost_,
+                     amrex::Real dz_lab_, amrex::RealBox prob_domain_lab,
+                     amrex::IntVect prob_ncells_lab, int ncomp_to_dump,
+                     std::vector<std::string> mesh_field_names,
+                     amrex::RealBox diag_domain_lab,
                      amrex::Box diag_box, int file_num_in);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice, int k_lab,
-                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump); 
+                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump);
     void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame);
 };
 
 
 /** \brief
- * LabFrameSlice stores the data corresponding to a single time at the user-defined slice location 
+ * LabFrameSlice stores the data corresponding to a single time at the user-defined slice location
  * The slice is written to disk in the lab_frame_data/slices
- * Similar to snapshots, zmin_lab, zmax_lab, and t_lab are constant for a given slice. 
+ * Similar to snapshots, zmin_lab, zmax_lab, and t_lab are constant for a given slice.
  * current_z_lab and current_z_boost for each snapshot are updated as the sim time in boosted frame advances.
  */
 class LabFrameSlice : public LabFrameDiag {
     public:
     int slice_id;
     int getId() {return slice_id;}
-    LabFrameSlice(amrex::Real t_lab_in, amrex::Real t_boost, 
-                     amrex::Real inv_gamma_boost_, amrex::Real inv_beta_boost_, 
-                     amrex::Real dz_lab_, amrex::RealBox prob_domain_lab, 
-                     amrex::IntVect prob_ncells_lab, int ncomp_to_dump, 
-                     std::vector<std::string> mesh_field_names, 
-                     amrex::RealBox diag_domain_lab, 
-                     amrex::Box diag_box, int file_num_in, 
+    LabFrameSlice(amrex::Real t_lab_in, amrex::Real t_boost,
+                     amrex::Real inv_gamma_boost_, amrex::Real inv_beta_boost_,
+                     amrex::Real dz_lab_, amrex::RealBox prob_domain_lab,
+                     amrex::IntVect prob_ncells_lab, int ncomp_to_dump,
+                     std::vector<std::string> mesh_field_names,
+                     amrex::RealBox diag_domain_lab,
+                     amrex::Box diag_box, int file_num_in,
                      amrex::Real cell_dx, amrex::Real cell_dy);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice_ptr, int i_lab,
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump);
@@ -155,7 +155,7 @@ class BoostedFrameDiagnostic {
     int max_box_size_ = 256;
 
     std::vector<std::unique_ptr<LabFrameDiag> > LabFrameDiags_;
- 
+
     void writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                            const std::string& name, const int i_lab);
 
@@ -167,11 +167,11 @@ public:
 
     BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab,
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
-                           int N_snapshots, amrex::Real dt_slice_snapshots_lab, 
+                           int N_snapshots, amrex::Real dt_slice_snapshots_lab,
                            int N_slice_snapshots, amrex::Real gamma_boost,
                            amrex::Real t_boost, amrex::Real dt_boost, int boost_direction,
                            const amrex::Geometry& geom, amrex::RealBox& slice_realbox);
-    
+
     void Flush(const amrex::Geometry& geom);
 
     void writeLabFrameData(const amrex::MultiFab* cell_centered_data,

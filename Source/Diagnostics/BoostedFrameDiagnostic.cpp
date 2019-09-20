@@ -447,7 +447,7 @@ namespace
 }
 #endif
 
-bool compare_tlab_uptr(const std::unique_ptr<LabFrameDiag>&a, 
+bool compare_tlab_uptr(const std::unique_ptr<LabFrameDiag>&a,
                        const std::unique_ptr<LabFrameDiag>&b)
 {
     return a->t_lab < b->t_lab;
@@ -531,10 +531,10 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
 
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
-                       Real dt_snapshots_lab, int N_snapshots, 
+                       Real dt_snapshots_lab, int N_snapshots,
                        Real dt_slice_snapshots_lab, int N_slice_snapshots,
-                       Real gamma_boost, Real t_boost, Real dt_boost, 
-                       int boost_direction, const Geometry& geom, 
+                       Real gamma_boost, Real t_boost, Real dt_boost,
+                       int boost_direction, const Geometry& geom,
                        amrex::RealBox& slice_realbox)
     : gamma_boost_(gamma_boost),
       dt_snapshots_lab_(dt_snapshots_lab),
@@ -601,35 +601,35 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         // x and y bounds are the same for lab frame and boosted frame
         prob_domain_lab.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_lab);
         prob_domain_lab.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_lab);
-        Box diag_box = geom.Domain(); 
-        LabFrameDiags_[i].reset(new LabFrameSnapShot(t_lab, t_boost, 
+        Box diag_box = geom.Domain();
+        LabFrameDiags_[i].reset(new LabFrameSnapShot(t_lab, t_boost,
                                 inv_gamma_boost_, inv_beta_boost_, dz_lab_,
-                                prob_domain_lab, prob_ncells_lab, 
+                                prob_domain_lab, prob_ncells_lab,
                                 ncomp_to_dump, mesh_field_names, prob_domain_lab,
                                 diag_box, i));
     }
-   
+
     amrex::Real zmin_slice_lab;
     amrex::Real zmax_slice_lab;
     amrex::Real cell_dx = 0;
     amrex::Real cell_dy = 0;
     IntVect slice_ncells_lab ;
     Box slicediag_box;
-    
+
     if ( N_slice_snapshots_ > 0) {
        const amrex::Real* current_slice_lo = slice_realbox.lo();
-       const amrex::Real* current_slice_hi = slice_realbox.hi(); 
+       const amrex::Real* current_slice_hi = slice_realbox.hi();
        zmin_slice_lab = current_slice_lo[AMREX_SPACEDIM-1] /
                         ( (1.+beta_boost_)*gamma_boost_);
        zmax_slice_lab = current_slice_hi[AMREX_SPACEDIM-1] /
-                        ( (1.+beta_boost_)*gamma_boost_); 
+                        ( (1.+beta_boost_)*gamma_boost_);
        int Nz_slice_lab = static_cast<unsigned>((zmax_slice_lab - zmin_slice_lab) * inv_dz_lab_);
        int Nx_slice_lab = ( current_slice_hi[0] - current_slice_lo[0] ) /
                           geom.CellSize(0);
        if (Nx_slice_lab == 0 ) {Nx_slice_lab = 1;}
-       cell_dx = geom.CellSize(0); 
+       cell_dx = geom.CellSize(0);
 #if (AMREX_SPACEDIM == 3)
-       int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) / 
+       int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) /
                             geom.CellSize(1);
        if (Ny_slice_lab == 0 ) {Ny_slice_lab = 1;}
        slice_ncells_lab = {Nx_slice_lab, Ny_slice_lab, Nz_slice_lab};
@@ -647,13 +647,13 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
           slice_lo[i_dim] = (slice_realbox.lo(i_dim) - geom.ProbLo(i_dim) - 0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
           slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) - 0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
        }
-       Box stmp(slice_lo,slice_hi); 
+       Box stmp(slice_lo,slice_hi);
        slicediag_box = stmp;
     }
     for (int i = 0; i < N_slice_snapshots; ++i) {
         Real t_slice_lab = i * dt_slice_snapshots_lab_ ;
         RealBox prob_domain_lab = geom.ProbDomain();
-        // replace z bounds by lab-frame coordinates 
+        // replace z bounds by lab-frame coordinates
         prob_domain_lab.setLo(AMREX_SPACEDIM-1, zmin_lab + v_window_lab * t_slice_lab);
         prob_domain_lab.setHi(AMREX_SPACEDIM-1, zmax_lab + v_window_lab * t_slice_lab);
         RealBox slice_dom_lab = slice_realbox;
@@ -661,17 +661,17 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         // note : x and y bounds are the same for lab and boosted frames
         // initial lab slice extent //
         slice_dom_lab.setLo(AMREX_SPACEDIM-1, zmin_slice_lab + v_window_lab * t_slice_lab );
-        slice_dom_lab.setHi(AMREX_SPACEDIM-1, zmax_slice_lab + 
+        slice_dom_lab.setHi(AMREX_SPACEDIM-1, zmax_slice_lab +
                                          v_window_lab * t_slice_lab );
-       
+
         // construct labframeslice
-        LabFrameDiags_[i+N_snapshots].reset(new LabFrameSlice(t_slice_lab, t_boost, 
+        LabFrameDiags_[i+N_snapshots].reset(new LabFrameSlice(t_slice_lab, t_boost,
                                 inv_gamma_boost_, inv_beta_boost_, dz_lab_,
-                                prob_domain_lab, slice_ncells_lab, 
+                                prob_domain_lab, slice_ncells_lab,
                                 ncomp_to_dump, mesh_field_names, slice_dom_lab,
                                 slicediag_box, i, cell_dx, cell_dy));
     }
-    // sort diags based on their respective t_lab 
+    // sort diags based on their respective t_lab
     std::stable_sort(LabFrameDiags_.begin(), LabFrameDiags_.end(), compare_tlab_uptr);
 
     AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
@@ -698,7 +698,7 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                 const BoxArray& ba = LabFrameDiags_[i]->data_buffer_->boxArray();
                 const int hi = ba[0].bigEnd(boost_direction_);
                 const int lo = hi - LabFrameDiags_[i]->buff_counter_ + 1;
-                
+
                 //Box buff_box = geom.Domain();
                 Box buff_box = LabFrameDiags_[i]->buff_box_;
                 buff_box.setSmall(boost_direction_, lo);
@@ -707,17 +707,17 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                 BoxArray buff_ba(buff_box);
                 buff_ba.maxSize(max_box_size_);
                 DistributionMapping buff_dm(buff_ba);
-                
+
                 const int ncomp = LabFrameDiags_[i]->data_buffer_->nComp();
-                
+
                 MultiFab tmp(buff_ba, buff_dm, ncomp, 0);
-                
+
                 tmp.copy(*LabFrameDiags_[i]->data_buffer_, 0, 0, ncomp);
 
 #ifdef WARPX_USE_HDF5
                 for (int comp = 0; comp < ncomp; ++comp)
                     output_write_field(LabFrameDiags_[i]->file_name, mesh_field_names[comp], tmp, comp);
-#else                
+#else
                 std::stringstream ss;
                 ss << LabFrameDiags_[i]->file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
                 VisMF::Write(tmp, ss.str());
@@ -780,7 +780,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
         Real diag_zmin_lab = LabFrameDiags_[i]->diag_domain_lab_.lo(AMREX_SPACEDIM-1);
         Real diag_zmax_lab = LabFrameDiags_[i]->diag_domain_lab_.hi(AMREX_SPACEDIM-1);
-       
+
         if ( ( LabFrameDiags_[i]->current_z_boost < zlo_boost) or
              ( LabFrameDiags_[i]->current_z_boost > zhi_boost) or
              ( LabFrameDiags_[i]->current_z_lab < diag_zmin_lab) or
@@ -806,7 +806,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                                 buff_dm, ncomp_to_dump, 0) );
             }
             // ... reset particle buffer particles_buffer_[i]
-            if (WarpX::do_boosted_frame_particles) 
+            if (WarpX::do_boosted_frame_particles)
                 LabFrameDiags_[i]->particles_buffer_.resize(mypc.nSpeciesBoostedFrameDiags());
         }
 
@@ -815,9 +815,9 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             const int start_comp = 0;
             const bool interpolate = true;
             // tmp_slice_ptr containing slice data is generated only if t_lab != prev_t_lab
-            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) { 
+            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) {
                // Get slice in the boosted frame
-               if (tmp_slice_ptr) 
+               if (tmp_slice_ptr)
                {
                  tmp_slice_ptr.reset(new MultiFab());
                  tmp_slice_ptr.reset(nullptr);
@@ -826,7 +826,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                                                          LabFrameDiags_[i]->current_z_boost,
                                                          *cell_centered_data, geom,
                                                          start_comp, ncomp, interpolate);
-               
+
                // transform it to the lab frame
                LorentzTransformZ(*slice, gamma_boost_, beta_boost_, ncomp);
                // Create a 2D box for the slice in the boosted frame
@@ -838,46 +838,46 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                // Make it a BoxArray slice_ba
                BoxArray slice_ba(slice_box);
                slice_ba.maxSize(max_box_size_);
-               // Create MultiFab tmp on slice_ba witih data from slice, that can be potentially re-used. 
-               tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba, 
-                               LabFrameDiags_[i]->data_buffer_->DistributionMap(), 
+               // Create MultiFab tmp on slice_ba witih data from slice, that can be potentially re-used.
+               tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba,
+                               LabFrameDiags_[i]->data_buffer_->DistributionMap(),
                                ncomp, 0));
-                
+
                tmp_slice_ptr->copy(*slice, 0, 0, ncomp);
             }
             // tmp_slice_ptr is re-used if the t_lab of a diag is equal to that of the previous diag
             LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
                                                map_actual_fields_to_dump);
-            //// if t_lab of the next diag is different from current t_lab, 
-            //// deallocate and nullify tmp_slice_ptr. 
-            //if ( (i==LabFrameDiags_.size()-1) || 
-            //     ((i+1)<LabFrameDiags_.size() && 
-            //                 LabFrameDiags_[i+1]->t_lab != prev_t_lab ) { 
+            //// if t_lab of the next diag is different from current t_lab,
+            //// deallocate and nullify tmp_slice_ptr.
+            //if ( (i==LabFrameDiags_.size()-1) ||
+            //     ((i+1)<LabFrameDiags_.size() &&
+            //                 LabFrameDiags_[i+1]->t_lab != prev_t_lab ) {
             //   tmp_slice_ptr.reset(new MultiFab());
             //   tmp_slice_ptr.reset(nullptr);
             //}
         }
 
-        if (WarpX::do_boosted_frame_particles) {            
-            
-            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) { 
-               if (tmp_particle_buffer.size()>0) 
+        if (WarpX::do_boosted_frame_particles) {
+
+            if (LabFrameDiags_[i]->t_lab != prev_t_lab ) {
+               if (tmp_particle_buffer.size()>0)
                {
                   tmp_particle_buffer.clear();
                   tmp_particle_buffer.shrink_to_fit();
                }
-               tmp_particle_buffer.resize(mypc.nSpeciesBoostedFrameDiags());         
+               tmp_particle_buffer.resize(mypc.nSpeciesBoostedFrameDiags());
                mypc.GetLabFrameData( LabFrameDiags_[i]->file_name, i_lab, boost_direction_,
                                  old_z_boost, LabFrameDiags_[i]->current_z_boost,
                                  t_boost, LabFrameDiags_[i]->t_lab, dt, tmp_particle_buffer);
-            } 
-            LabFrameDiags_[i]->AddPartDataToParticleBuffer(tmp_particle_buffer, 
-                               mypc.nSpeciesBoostedFrameDiags());            
+            }
+            LabFrameDiags_[i]->AddPartDataToParticleBuffer(tmp_particle_buffer,
+                               mypc.nSpeciesBoostedFrameDiags());
         }
 
         ++LabFrameDiags_[i]->buff_counter_;
         prev_t_lab = LabFrameDiags_[i]->t_lab;
-        
+
         // If buffer full, write to disk.
         if ( LabFrameDiags_[i]->buff_counter_ == num_buffer_) {
 
@@ -911,7 +911,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                     // Write data to disk (custom)
                     writeParticleData(LabFrameDiags_[i]->particles_buffer_[j], part_ss.str(), i_lab);
 #endif
-                }            
+                }
                 LabFrameDiags_[i]->particles_buffer_.clear();
             }
             LabFrameDiags_[i]->buff_counter_ = 0;
@@ -1057,16 +1057,16 @@ writeMetaData ()
            std::ofstream HeaderFile_slice;
            HeaderFile_slice.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
            std::string HeaderFileName_slice(WarpX::lab_data_directory+"/slices/Header");
-           HeaderFile_slice.open(HeaderFileName_slice.c_str(), 
+           HeaderFile_slice.open(HeaderFileName_slice.c_str(),
                                                 std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
 
            if (!HeaderFile_slice.good())
                FileOpenFailed(HeaderFileName_slice);
-          
+
            HeaderFile_slice.precision(17);
-        
+
            HeaderFile_slice << N_slice_snapshots_ << "\n";
            HeaderFile_slice << dt_slice_snapshots_lab_ << "\n";
            HeaderFile_slice << gamma_boost_ << "\n";
@@ -1076,14 +1076,14 @@ writeMetaData ()
 
     }
 
-    
+
 }
 
 LabFrameSnapShot::
-LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_, 
-                 Real inv_beta_boost_, Real dz_lab_, RealBox prob_domain_lab, 
-                 IntVect prob_ncells_lab, int ncomp_to_dump, 
-                 std::vector<std::string> mesh_field_names, 
+LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_,
+                 Real inv_beta_boost_, Real dz_lab_, RealBox prob_domain_lab,
+                 IntVect prob_ncells_lab, int ncomp_to_dump,
+                 std::vector<std::string> mesh_field_names,
                  amrex::RealBox diag_domain_lab, Box diag_box, int file_num_in)
 {
    t_lab = t_lab_in;
@@ -1110,13 +1110,13 @@ LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_,
 
 void
 LabFrameDiag::
-updateCurrentZPositions(Real t_boost, Real inv_gamma, Real inv_beta) 
+updateCurrentZPositions(Real t_boost, Real inv_gamma, Real inv_beta)
 {
     current_z_boost = (t_lab*inv_gamma - t_boost)*PhysConst::c*inv_beta;
     current_z_lab   = (t_lab - t_boost*inv_gamma)*PhysConst::c*inv_beta;
 }
 
-void 
+void
 LabFrameDiag::
 createLabFrameDirectories() {
 #ifdef WARPX_USE_HDF5
@@ -1197,7 +1197,7 @@ createLabFrameDirectories() {
 
 }
 
-void 
+void
 LabFrameDiag::
 writeLabFrameHeader() {
 #ifndef WARPX_USE_HDF5
@@ -1247,11 +1247,11 @@ writeLabFrameHeader() {
 
 
 LabFrameSlice::
-LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_, 
-                 Real inv_beta_boost_, Real dz_lab_, RealBox prob_domain_lab, 
-                 IntVect prob_ncells_lab, int ncomp_to_dump, 
-                 std::vector<std::string> mesh_field_names, 
-                 RealBox diag_domain_lab, Box diag_box, int file_num_in, 
+LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_,
+                 Real inv_beta_boost_, Real dz_lab_, RealBox prob_domain_lab,
+                 IntVect prob_ncells_lab, int ncomp_to_dump,
+                 std::vector<std::string> mesh_field_names,
+                 RealBox diag_domain_lab, Box diag_box, int file_num_in,
                  amrex::Real cell_dx, amrex::Real cell_dy)
 {
     t_lab = t_lab_in;
@@ -1272,13 +1272,13 @@ LabFrameSlice(Real t_lab_in, Real t_boost, Real inv_gamma_boost_,
     buff_counter_ = 0;
     dx_ = cell_dx;
     dy_ = cell_dy;
-   
+
     if (WarpX::do_boosted_frame_fields) data_buffer_.reset(nullptr);
 }
 
-void 
+void
 LabFrameSnapShot::
-AddDataToBuffer( MultiFab& tmp, int k_lab, 
+AddDataToBuffer( MultiFab& tmp, int k_lab,
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump)
 {
     const int ncomp_to_dump = map_actual_fields_to_dump.size();
@@ -1286,7 +1286,7 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
     for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
          Array4<Real> tmp_arr = tmp[mfi].array();
          Array4<Real> buf_arr = buf[mfi].array();
-         // For 3D runs, rmp is a 2D (x,y) multifab that contains only 
+         // For 3D runs, rmp is a 2D (x,y) multifab that contains only
          // slice to write to file
          const Box& bx = mfi.tilebox();
          const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
@@ -1305,22 +1305,22 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
 }
 
 
-void 
+void
 LabFrameSlice::
-AddDataToBuffer( MultiFab& tmp, int k_lab, 
+AddDataToBuffer( MultiFab& tmp, int k_lab,
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump)
 {
     const int ncomp_to_dump = map_actual_fields_to_dump.size();
     MultiFab& buf = *data_buffer_;
-    
-    for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+
+    for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        Array4<Real> tmp_arr = tmp[mfi].array();
        Array4<Real> buf_arr = buf[mfi].array();
        Box& bx = buff_box_;
        const Box& bx_bf = mfi.tilebox();
        bx.setSmall(AMREX_SPACEDIM-1,bx_bf.smallEnd(AMREX_SPACEDIM-1));
-       bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));                
+       bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));
        if (bx_bf.contains(bx)) {
           const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
           ParallelFor(bx, ncomp_to_dump,
@@ -1331,16 +1331,16 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
                  buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
 #else
                  buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
-#endif                
+#endif
               }
-          );   
+          );
        }
     }
-   
+
 }
 
 
-void 
+void
 LabFrameSnapShot::
 AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nspeciesBoostedFrame) {
     for (int isp = 0; isp < nspeciesBoostedFrame; ++isp) {
@@ -1348,42 +1348,42 @@ AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleDat
         if (np == 0) return;
         auto const &wp = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
         auto const &zip = tmp_particle_buffer[isp].GetRealData(DiagIdx::z);
- 
-        particles_buffer_[isp].GetRealData(DiagIdx::w).insert( 
-                               particles_buffer_[isp].GetRealData(DiagIdx::w).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).begin(), 
+
+        particles_buffer_[isp].GetRealData(DiagIdx::w).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::w).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::w).end());
- 
+
         particles_buffer_[isp].GetRealData(DiagIdx::x).insert(
-                               particles_buffer_[isp].GetRealData(DiagIdx::x).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::x).begin(), 
+                               particles_buffer_[isp].GetRealData(DiagIdx::x).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::x).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::x).end());
- 
+
         particles_buffer_[isp].GetRealData(DiagIdx::y).insert(
-                               particles_buffer_[isp].GetRealData(DiagIdx::y).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::y).begin(), 
+                               particles_buffer_[isp].GetRealData(DiagIdx::y).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::y).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::y).end());
- 
+
         particles_buffer_[isp].GetRealData(DiagIdx::z).insert(
-                               particles_buffer_[isp].GetRealData(DiagIdx::z).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::z).begin(), 
+                               particles_buffer_[isp].GetRealData(DiagIdx::z).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::z).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::z).end());
- 
+
         particles_buffer_[isp].GetRealData(DiagIdx::ux).insert(
-                               particles_buffer_[isp].GetRealData(DiagIdx::ux).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).begin(), 
+                               particles_buffer_[isp].GetRealData(DiagIdx::ux).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).end());
- 
+
         particles_buffer_[isp].GetRealData(DiagIdx::uy).insert(
-                               particles_buffer_[isp].GetRealData(DiagIdx::uy).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).begin(), 
+                               particles_buffer_[isp].GetRealData(DiagIdx::uy).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).end());
- 
+
         particles_buffer_[isp].GetRealData(DiagIdx::uz).insert(
-                               particles_buffer_[isp].GetRealData(DiagIdx::uz).end(), 
-                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).begin(), 
+                               particles_buffer_[isp].GetRealData(DiagIdx::uz).end(),
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).begin(),
                                tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).end());
- 
+
         auto const& wpc = particles_buffer_[isp].GetRealData(DiagIdx::w);
         auto const& wpx = particles_buffer_[isp].GetRealData(DiagIdx::x);
         auto const& wpy = particles_buffer_[isp].GetRealData(DiagIdx::y);
@@ -1394,14 +1394,14 @@ AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleDat
     }
 }
 
-void 
+void
 LabFrameSlice::
 AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame) {
     for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
         auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
- 
+
         if (np == 0) return;
- 
+
         auto const& wpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
         auto const& xpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::x);
         auto const& ypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::y);
@@ -1409,7 +1409,7 @@ AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleDat
         auto const& uxpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::ux);
         auto const& uypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uy);
         auto const& uzpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uz);
- 
+
         particles_buffer_[isp].resize(np);
         auto wpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::w);
         auto xpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::x);
@@ -1418,20 +1418,20 @@ AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleDat
         auto uxpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::ux);
         auto uypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uy);
         auto uzpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uz);
- 
- 
+
+
         int partcounter = 0;
-        for (int i = 0; i < np; ++i) 
+        for (int i = 0; i < np; ++i)
         {
            if( xpc[i] >= (diag_domain_lab_.lo(0)-dx_) && xpc[i] <= (diag_domain_lab_.hi(0)+dx_) ) {
  #if (AMREX_SPACEDIM == 3)
-              if( ypc[i] >= (diag_domain_lab_.lo(1)-dy_) && ypc[i] <= (diag_domain_lab_.hi(1) + dy_)) 
+              if( ypc[i] >= (diag_domain_lab_.lo(1)-dy_) && ypc[i] <= (diag_domain_lab_.hi(1) + dy_))
  #endif
               {
                  wpc_buff[partcounter] = wpc[i];
                  xpc_buff[partcounter] = xpc[i];
                  ypc_buff[partcounter] = ypc[i];
-                 zpc_buff[partcounter] = zpc[i]; 
+                 zpc_buff[partcounter] = zpc[i];
                  uxpc_buff[partcounter] = uxpc[i];
                  uypc_buff[partcounter] = uypc[i];
                  uzpc_buff[partcounter] = uzpc[i];
@@ -1439,8 +1439,8 @@ AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleDat
               }
            }
         }
-  
+
         particles_buffer_[isp].resize(partcounter);
-              
+
     }
 }
