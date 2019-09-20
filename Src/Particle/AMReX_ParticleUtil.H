@@ -6,6 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_ParGDB.H>
 
 #include <limits>
 
@@ -118,6 +119,10 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 
     return num_wrong;
 }
+
+IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
+
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
 }
 
