@@ -9,10 +9,10 @@ from scipy import signal
 # a filter, e.g., execute
 # > OMP_NUM_THREADS=2 mpirun -np 2 ~/warpx/Bin/main2d.gnu.TPROF.MPI.OMP.ex \
 #   inputs warpx.use_filter=0
-# instead of 
+# instead of
 # > OMP_NUM_THREADS=2 mpirun -np 2 ~/warpx/Bin/main2d.gnu.TPROF.MPI.OMP.ex \
 #   inputs warpx.use_filter=1 warpx.filter_npass_each_dir=1 5
-# and then print the values in the array F_filtered below. 
+# and then print the values in the array F_filtered below.
 my_F_nofilter = np.zeros([16,16])
 my_F_nofilter[8,8] = -1.601068237523421e-11
 my_F_nofilter[8,7] = -1.601068237523421e-11
