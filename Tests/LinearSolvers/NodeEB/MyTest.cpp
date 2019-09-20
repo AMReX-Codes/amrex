@@ -214,81 +214,50 @@ MyTest::initData ()
         phi[ilev].setVal(0.0);
         sig[ilev].setVal(1.0);
         vel[ilev].setVal(0.0);
-        const Real* dx = geom[ilev].CellSize();
+        const auto dx = geom[ilev].CellSizeArray();
         const Real h = dx[0];
         for (MFIter mfi(vel[ilev]); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.validbox();
-            FArrayBox& fab = vel[ilev][mfi];
-
-            int ncomp = 1;
+            Array4<Real> const& fab = vel[ilev].array(mfi);
 
 #if (AMREX_SPACEDIM > 2)
             if (cylinder_direction == 2)
 #endif
             {
-               int icomp = 0; // vx
-               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_x, const IntVect& iv) 
-                   {
-                       Real rx = (iv[0]+0.5)*h - 0.5;
-                       Real ry = (iv[1]+0.5)*h - 0.5;
-                       Real r = std::sqrt(rx*rx+ry*ry);
-                       Real fac = std::exp(-(r*r/(0.16*0.16)));
-                       v_x = v_x + 2.0*r*ry/r*fac;
-                   });
-               icomp = 1; // vy
-               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_y, const IntVect& iv) 
-                   {
-                       Real rx = (iv[0]+0.5)*h - 0.5;
-                       Real ry = (iv[1]+0.5)*h - 0.5;
-                       Real r = std::sqrt(rx*rx+ry*ry);
-                       Real fac = std::exp(-(r*r/(0.16*0.16)));
-                       v_y = v_y - 2.0*r*rx/r*fac;
-                   });
-
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+                    Real rx = (i+0.5)*h - 0.5;
+                    Real ry = (j+0.5)*h - 0.5;
+                    Real r = std::sqrt(rx*rx+ry*ry);
+                    Real fac = std::exp(-(r*r/(0.16*0.16)));
+                    fab(i,j,k,0) += 2.0*r*ry/r*fac;
+                    fab(i,j,k,1) -= 2.0*r*rx/r*fac;
+               });
             } 
 #if (AMREX_SPACEDIM > 2)
             else if (cylinder_direction == 1) 
             {
-               int icomp = 0; // vx
-               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_x, const IntVect& iv) 
-                   {
-                       Real rx = (iv[0]+0.5)*h - 0.5;
-                       Real rz = (iv[2]+0.5)*h - 0.5;
-                       Real r = std::sqrt(rx*rx+rz*rz);
-                       Real fac = std::exp(-(r*r/(0.16*0.16)));
-                       v_x = v_x - 2.0*r*rz/r*fac;
-                   });
-               icomp = 2; // vx
-               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_z, const IntVect& iv) 
-                   {
-                       Real rx = (iv[0]+0.5)*h - 0.5;
-                       Real rz = (iv[2]+0.5)*h - 0.5;
-                       Real r = std::sqrt(rx*rx+rz*rz);
-                       Real fac = std::exp(-(r*r/(0.16*0.16)));
-                       v_z = v_z + 2.0*r*rx/r*fac;
-                   });
-
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+                    Real rx = (i+0.5)*h - 0.5;
+                    Real rz = (k+0.5)*h - 0.5;
+                    Real r = std::sqrt(rx*rx+rz*rz);
+                    Real fac = std::exp(-(r*r/(0.16*0.16)));
+                    fab(i,j,k,0) -= 2.0*r*rz/r*fac;
+                    fab(i,j,k,2) += 2.0*r*rx/r*fac;
+                });
             } 
             else if (cylinder_direction == 0) 
             {
-               int icomp = 1; // v:
-               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_y, const IntVect& iv) 
-                   {
-                       Real ry = (iv[1]+0.5)*h - 0.5;
-                       Real rz = (iv[2]+0.5)*h - 0.5;
-                       Real r = std::sqrt(ry*ry+rz*rz);
-                       Real fac = std::exp(-(r*r/(0.16*0.16)));
-                       v_y = v_y + 2.0*r*rz/r*fac;
-                   });
-               icomp = 2; // vz
-               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_z, const IntVect& iv) 
-                   {
-                       Real rz = (iv[2]+0.5)*h - 0.5;
-                       Real ry = (iv[1]+0.5)*h - 0.5;
-                       Real r = std::sqrt(ry*ry+rz*rz);
-                       Real fac = std::exp(-(r*r/(0.16*0.16)));
-                       v_z = v_z - 2.0*r*ry/r*fac;
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+                    Real ry = (j+0.5)*h - 0.5;
+                    Real rz = (k+0.5)*h - 0.5;
+                    Real r = std::sqrt(ry*ry+rz*rz);
+                    Real fac = std::exp(-(r*r/(0.16*0.16)));
+                    fab(i,j,k,1) += 2.0*r*rz/r*fac;
+                    fab(i,j,k,2) -= 2.0*r*ry/r*fac;
                 });
             } 
 #endif

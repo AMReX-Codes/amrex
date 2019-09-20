@@ -411,11 +411,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
 #ifdef AMREX_USE_EB
             bool regular = !factory;
+            FabType typ = FabType::regular;
             if (factory)
             {
                 const auto& flag = (*flags)[mfi];
                 const auto& ccbx = amrex::grow(amrex::enclosedCells(bx),1);
-                const auto& typ = flag.getType(ccbx);
+                typ = flag.getType(ccbx);
                 if (typ == FabType::covered)
                 {
                     (*rhs[ilev])[mfi].setVal(0.0, bx);
@@ -454,10 +455,24 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
             if (rhcc[ilev])
             {
-                amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
-                                   BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
-                                   BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
-                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+#ifdef AMREX_USE_EB
+                if (typ == FabType::singlevalued)
+                {
+                    amrex_mlndlap_rhcc_eb(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*intg)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                }
+                else if (typ == FabType::regular)
+#endif
+                {
+                    amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
+                                       BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
+                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                }
 
                 if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
                     amrex_mlndlap_impose_neumann_bc(BL_TO_FORTRAN_BOX(bx),

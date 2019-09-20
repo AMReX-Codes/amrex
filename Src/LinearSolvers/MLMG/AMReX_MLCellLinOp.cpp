@@ -1,12 +1,8 @@
 
 #include <AMReX_MLCellLinOp.H>
-#include <AMReX_MG_K.H>
 #include <AMReX_MLLinOp_K.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MultiFabUtil.H>
-#ifdef AMREX_USE_EB
-#include <AMReX_MLEBABecLap_F.H>
-#endif
 
 namespace amrex {
 
@@ -303,14 +299,17 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx    = mfi.tilebox();
-        auto const cfab = crse.array(mfi);
-        auto       ffab = fine.array(mfi);
+        Array4<Real const> const& cfab = crse.const_array(mfi);
+        Array4<Real> const& ffab = fine.array(mfi);
         AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            mg_cc_interp(i,j,k,n,ffab,cfab);
+            int ic = amrex::coarsen(i,2);
+            int jc = amrex::coarsen(j,2);
+            int kc = amrex::coarsen(k,2);
+            ffab(i,j,k,n) += cfab(ic,jc,kc,n);
         });
     }    
 }
