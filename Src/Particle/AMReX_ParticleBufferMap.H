@@ -38,7 +38,21 @@ public:
     void define (const ParGDBBase* a_gdb);
 
     bool isValid (const ParGDBBase* a_gdb) const;
-    
+
+    AMREX_INLINE
+    int numLevels () const
+    {
+        AMREX_ASSERT(m_defined);
+        return m_lev_offsets.size()-1;
+    }
+
+    AMREX_INLINE
+    int numBuckets () const
+    {
+        AMREX_ASSERT(m_defined);
+        return m_bucket_to_gid.size();
+    }
+        
     AMREX_INLINE
     int bucketToGrid (int bid) const
     {
