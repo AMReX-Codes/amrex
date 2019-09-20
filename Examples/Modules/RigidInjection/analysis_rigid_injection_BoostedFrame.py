@@ -31,8 +31,8 @@ def get_particle_field(snapshot, species, field):
     return all_data
 
 # Read data from back-transformed diagnostics
-snapshot = './lab_frame_data/snapshot00001'
-header   = './lab_frame_data/Header'
+snapshot = './lab_frame_data/snapshots/snapshot00001'
+header   = './lab_frame_data/snapshots/Header'
 allrd, info = read_raw_data.read_lab_snapshot(snapshot, header)
 z = np.mean( get_particle_field(snapshot, 'beam', 'z') )
 w = np.std ( get_particle_field(snapshot, 'beam', 'x') )
