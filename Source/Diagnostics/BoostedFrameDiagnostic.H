@@ -98,7 +98,7 @@ class LabFrameDiag {
 ///
 class LabFrameSnapShot : public LabFrameDiag {
     public:
-    int snapshot_id; 
+    int snapshot_id;
     int getId() {return snapshot_id;}
     LabFrameSnapShot(amrex::Real t_lab_in, amrex::Real t_boost, 
                      amrex::Real inv_gamma_boost_, amrex::Real inv_beta_boost_, 
@@ -132,7 +132,7 @@ class LabFrameSlice : public LabFrameDiag {
                      amrex::Box diag_box, int file_num_in, 
                      amrex::Real cell_dx, amrex::Real cell_dy);
     void AddDataToBuffer( amrex::MultiFab& tmp_slice_ptr, int i_lab,
-                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump); 
+                 amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump);
     void AddPartDataToParticleBuffer( amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame);
 };
 

@@ -1281,28 +1281,27 @@ LabFrameSnapShot::
 AddDataToBuffer( MultiFab& tmp, int k_lab, 
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump)
 {
-   const int ncomp_to_dump = map_actual_fields_to_dump.size();
-   MultiFab& buf = *data_buffer_;
-   for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-        Array4<Real> tmp_arr = tmp[mfi].array();
-        Array4<Real> buf_arr = buf[mfi].array();
-        // For 3D runs, rmp is a 2D (x,y) multifab that contains only 
-        // slice to write to file
-        const Box& bx = mfi.tilebox();
-        const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
-        ParallelFor(bx, ncomp_to_dump,
-            [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
-            {
-                const int icomp = field_map_ptr[n];
+    const int ncomp_to_dump = map_actual_fields_to_dump.size();
+    MultiFab& buf = *data_buffer_;
+    for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+         Array4<Real> tmp_arr = tmp[mfi].array();
+         Array4<Real> buf_arr = buf[mfi].array();
+         // For 3D runs, rmp is a 2D (x,y) multifab that contains only 
+         // slice to write to file
+         const Box& bx = mfi.tilebox();
+         const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
+         ParallelFor(bx, ncomp_to_dump,
+             [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
+             {
+                 const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
-                buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
+                 buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
 #else
-                buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
+                 buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
 #endif
-            }
-        );
-   }
-
+             }
+         );
+    }
 }
 
 
@@ -1311,32 +1310,32 @@ LabFrameSlice::
 AddDataToBuffer( MultiFab& tmp, int k_lab, 
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump)
 {
-   const int ncomp_to_dump = map_actual_fields_to_dump.size();
-   MultiFab& buf = *data_buffer_;
-   
-   for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-   {
-      Array4<Real> tmp_arr = tmp[mfi].array(); 
-      Array4<Real> buf_arr = buf[mfi].array();
-      Box& bx = buff_box_;
-      const Box& bx_bf = mfi.tilebox();
-      bx.setSmall(AMREX_SPACEDIM-1,bx_bf.smallEnd(AMREX_SPACEDIM-1));                    
-      bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));                    
-      if (bx_bf.contains(bx)) {
-         const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
-         ParallelFor(bx, ncomp_to_dump,
-             [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
-             {
-                const int icomp = field_map_ptr[n];
+    const int ncomp_to_dump = map_actual_fields_to_dump.size();
+    MultiFab& buf = *data_buffer_;
+    
+    for (MFIter mfi(tmp, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+    {
+       Array4<Real> tmp_arr = tmp[mfi].array();
+       Array4<Real> buf_arr = buf[mfi].array();
+       Box& bx = buff_box_;
+       const Box& bx_bf = mfi.tilebox();
+       bx.setSmall(AMREX_SPACEDIM-1,bx_bf.smallEnd(AMREX_SPACEDIM-1));
+       bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));                
+       if (bx_bf.contains(bx)) {
+          const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
+          ParallelFor(bx, ncomp_to_dump,
+              [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
+              {
+                 const int icomp = field_map_ptr[n];
 #if (AMREX_SPACEDIM == 3)
-                buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
+                 buf_arr(i,j,k_lab,n) = tmp_arr(i,j,k,icomp);
 #else
-                buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
+                 buf_arr(i,k_lab,k,n) = tmp_arr(i,j,k,icomp);
 #endif                
-             }
-         );   
-      }
-   }
+              }
+          );   
+       }
+    }
    
 }
 
@@ -1344,104 +1343,104 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
 void 
 LabFrameSnapShot::
 AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nspeciesBoostedFrame) {
-   for (int isp = 0; isp < nspeciesBoostedFrame; ++isp) {
-       auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
-       if (np == 0) return;
-       auto const &wp = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
-       auto const &zip = tmp_particle_buffer[isp].GetRealData(DiagIdx::z);
-
-       particles_buffer_[isp].GetRealData(DiagIdx::w).insert( 
-                              particles_buffer_[isp].GetRealData(DiagIdx::w).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::w).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::w).end());
-
-       particles_buffer_[isp].GetRealData(DiagIdx::x).insert(
-                              particles_buffer_[isp].GetRealData(DiagIdx::x).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::x).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::x).end());
-
-       particles_buffer_[isp].GetRealData(DiagIdx::y).insert(
-                              particles_buffer_[isp].GetRealData(DiagIdx::y).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::y).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::y).end());
-
-       particles_buffer_[isp].GetRealData(DiagIdx::z).insert(
-                              particles_buffer_[isp].GetRealData(DiagIdx::z).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::z).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::z).end());
-
-       particles_buffer_[isp].GetRealData(DiagIdx::ux).insert(
-                              particles_buffer_[isp].GetRealData(DiagIdx::ux).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).end());
-
-       particles_buffer_[isp].GetRealData(DiagIdx::uy).insert(
-                              particles_buffer_[isp].GetRealData(DiagIdx::uy).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).end());
-
-       particles_buffer_[isp].GetRealData(DiagIdx::uz).insert(
-                              particles_buffer_[isp].GetRealData(DiagIdx::uz).end(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).begin(), 
-                              tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).end());
-
-       auto const& wpc = particles_buffer_[isp].GetRealData(DiagIdx::w);
-       auto const& wpx = particles_buffer_[isp].GetRealData(DiagIdx::x);
-       auto const& wpy = particles_buffer_[isp].GetRealData(DiagIdx::y);
-       auto const& wpz = particles_buffer_[isp].GetRealData(DiagIdx::z);
-       auto const& wpux = particles_buffer_[isp].GetRealData(DiagIdx::ux);
-       auto const& wpuy = particles_buffer_[isp].GetRealData(DiagIdx::uy);
-       auto const& wpuz = particles_buffer_[isp].GetRealData(DiagIdx::uz);
-   }
+    for (int isp = 0; isp < nspeciesBoostedFrame; ++isp) {
+        auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
+        if (np == 0) return;
+        auto const &wp = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
+        auto const &zip = tmp_particle_buffer[isp].GetRealData(DiagIdx::z);
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::w).insert( 
+                               particles_buffer_[isp].GetRealData(DiagIdx::w).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::w).end());
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::x).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::x).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::x).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::x).end());
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::y).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::y).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::y).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::y).end());
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::z).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::z).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::z).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::z).end());
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::ux).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::ux).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::ux).end());
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::uy).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::uy).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uy).end());
+ 
+        particles_buffer_[isp].GetRealData(DiagIdx::uz).insert(
+                               particles_buffer_[isp].GetRealData(DiagIdx::uz).end(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).begin(), 
+                               tmp_particle_buffer[isp].GetRealData(DiagIdx::uz).end());
+ 
+        auto const& wpc = particles_buffer_[isp].GetRealData(DiagIdx::w);
+        auto const& wpx = particles_buffer_[isp].GetRealData(DiagIdx::x);
+        auto const& wpy = particles_buffer_[isp].GetRealData(DiagIdx::y);
+        auto const& wpz = particles_buffer_[isp].GetRealData(DiagIdx::z);
+        auto const& wpux = particles_buffer_[isp].GetRealData(DiagIdx::ux);
+        auto const& wpuy = particles_buffer_[isp].GetRealData(DiagIdx::uy);
+        auto const& wpuz = particles_buffer_[isp].GetRealData(DiagIdx::uz);
+    }
 }
 
 void 
 LabFrameSlice::
 AddPartDataToParticleBuffer(Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer, int nSpeciesBoostedFrame) {
-   for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
-       auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
-
-       if (np == 0) return;
-
-       auto const& wpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
-       auto const& xpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::x);
-       auto const& ypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::y);
-       auto const& zpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::z);
-       auto const& uxpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::ux);
-       auto const& uypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uy);
-       auto const& uzpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uz);
-
-       particles_buffer_[isp].resize(np);
-       auto wpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::w);
-       auto xpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::x);
-       auto ypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::y);
-       auto zpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::z);
-       auto uxpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::ux);
-       auto uypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uy);
-       auto uzpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uz);
-
-
-       int partcounter = 0;             
-       for (int i = 0; i < np; ++i) 
-       {
-          if( xpc[i] >= (diag_domain_lab_.lo(0)-dx_) && xpc[i] <= (diag_domain_lab_.hi(0)+dx_) ) {
-#if (AMREX_SPACEDIM == 3)
-             if( ypc[i] >= (diag_domain_lab_.lo(1)-dy_) && ypc[i] <= (diag_domain_lab_.hi(1) + dy_)) 
-#endif
-             {
-                wpc_buff[partcounter] = wpc[i];
-                xpc_buff[partcounter] = xpc[i]; 
-                ypc_buff[partcounter] = ypc[i]; 
-                zpc_buff[partcounter] = zpc[i]; 
-                uxpc_buff[partcounter] = uxpc[i]; 
-                uypc_buff[partcounter] = uypc[i]; 
-                uzpc_buff[partcounter] = uzpc[i]; 
-                ++partcounter;
-             }
-          }
-       }
+    for (int isp = 0; isp < nSpeciesBoostedFrame; ++isp) {
+        auto np = tmp_particle_buffer[isp].GetRealData(DiagIdx::w).size();
  
-       particles_buffer_[isp].resize(partcounter);
-             
-   }
+        if (np == 0) return;
+ 
+        auto const& wpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::w);
+        auto const& xpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::x);
+        auto const& ypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::y);
+        auto const& zpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::z);
+        auto const& uxpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::ux);
+        auto const& uypc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uy);
+        auto const& uzpc = tmp_particle_buffer[isp].GetRealData(DiagIdx::uz);
+ 
+        particles_buffer_[isp].resize(np);
+        auto wpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::w);
+        auto xpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::x);
+        auto ypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::y);
+        auto zpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::z);
+        auto uxpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::ux);
+        auto uypc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uy);
+        auto uzpc_buff = particles_buffer_[isp].GetRealData(DiagIdx::uz);
+ 
+ 
+        int partcounter = 0;
+        for (int i = 0; i < np; ++i) 
+        {
+           if( xpc[i] >= (diag_domain_lab_.lo(0)-dx_) && xpc[i] <= (diag_domain_lab_.hi(0)+dx_) ) {
+ #if (AMREX_SPACEDIM == 3)
+              if( ypc[i] >= (diag_domain_lab_.lo(1)-dy_) && ypc[i] <= (diag_domain_lab_.hi(1) + dy_)) 
+ #endif
+              {
+                 wpc_buff[partcounter] = wpc[i];
+                 xpc_buff[partcounter] = xpc[i];
+                 ypc_buff[partcounter] = ypc[i];
+                 zpc_buff[partcounter] = zpc[i]; 
+                 uxpc_buff[partcounter] = uxpc[i];
+                 uypc_buff[partcounter] = uypc[i];
+                 uzpc_buff[partcounter] = uzpc[i];
+                 ++partcounter;
+              }
+           }
+        }
+  
+        particles_buffer_[isp].resize(partcounter);
+              
+    }
 }
