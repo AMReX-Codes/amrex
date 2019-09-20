@@ -2,7 +2,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_BC_TYPES.H>
-#include <AMReX_MLMG_F.H>
 #include <AMReX_MLMG_K.H>
 #include <AMReX_MLABecLaplacian.H>
 
@@ -665,38 +664,19 @@ MLMG::interpCorrection (int alev)
     {
         AMREX_ALWAYS_ASSERT(amrrr == 2);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+        for (MFIter mfi(fine_cor, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            FArrayBox tmpfab;
-            for (MFIter mfi(fine_cor, true); mfi.isValid(); ++mfi)
+            Box fbx = mfi.tilebox();
+            if (cf_strategy == CFStrategy::ghostnodes and nghost >1) fbx.grow(2);
+            Array4<Real> const& ffab = fine_cor.array(mfi);
+            Array4<Real const> const& cfab = cfine.const_array(mfi);
+
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
             {
-                const Box& fbx = mfi.tilebox();
-                const Box& cbx = amrex::coarsen(fbx,2);
-		if (cf_strategy == CFStrategy::none)
-		{
-                    const Box& tmpbx = amrex::refine(cbx,2);
-                    tmpfab.resize(tmpbx,ncomp);
-                    amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
-                                             BL_TO_FORTRAN_BOX(tmpbx),
-                                             BL_TO_FORTRAN_ANYD(tmpfab),
-                                             BL_TO_FORTRAN_ANYD(cfine[mfi]),
-					     &ncomp);
-                    fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, ncomp);
-                }
-                else if (cf_strategy == CFStrategy::ghostnodes)
-                {
-                    Box tmpbx = amrex::refine(cbx,2);
-		    if (nghost > 1) tmpbx.grow(2);
-                    tmpfab.resize(tmpbx,ncomp);
-                    amrex_mlmg_lin_nd_interp_ghostnodes(BL_TO_FORTRAN_BOX(cbx),
-                                                        BL_TO_FORTRAN_BOX(tmpbx),
-                                                        BL_TO_FORTRAN_ANYD(tmpfab),
-                                                        BL_TO_FORTRAN_ANYD(cfine[mfi]),
-			                                &ncomp);
-                    fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
-                }
-            }
+                mlmg_lin_nd_interp(i,j,k,n,ffab,cfab);
+            });
         }
     }
 }
@@ -707,7 +687,6 @@ MLMG::interpCorrection (int alev)
 void
 MLMG::interpCorrection (int alev, int mglev)
 {
-    // todo: gpu
     BL_PROFILE("MLMG::interpCorrection_2");
 
     MultiFab& crse_cor = *cor[alev][mglev+1];
@@ -750,7 +729,6 @@ MLMG::interpCorrection (int alev, int mglev)
 
     if (linop.isCellCentered())
     {
-        Gpu::LaunchSafeGuard lg(!isEB && Gpu::inLaunchRegion()); // turn off gpu for eb for now TODO
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -759,6 +737,8 @@ MLMG::interpCorrection (int alev, int mglev)
         for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+            const auto& ff = fine_cor.array(mfi);
+            const auto& cc = cmf->array(mfi);
 #ifdef AMREX_USE_EB
             bool call_lincc;
             if (isEB)
@@ -767,11 +747,12 @@ MLMG::interpCorrection (int alev, int mglev)
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
                     call_lincc = true;
                 } else {
-                    amrex_mlmg_eb_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                            BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
-                                            BL_TO_FORTRAN_ANYD(flag),
-                                            &refratio, &ncomp);
+                    Array4<EBCellFlag const> const& flg = flag.const_array();
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_eb_cc_interp_r<2>(tbx, ff, cc, flg, ncomp);
+                    });
+
                     call_lincc = false;
                 }
             }
@@ -784,8 +765,6 @@ MLMG::interpCorrection (int alev, int mglev)
 #endif
             if (call_lincc)
             {
-                const auto& ff = fine_cor.array(mfi);
-                const auto& cc = cmf->array(mfi);
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
                 {
                     mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
@@ -796,34 +775,18 @@ MLMG::interpCorrection (int alev, int mglev)
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+        for (MFIter mfi(fine_cor, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            FArrayBox tmpfab;
-            for (MFIter mfi(fine_cor, true); mfi.isValid(); ++mfi)
+            const Box& fbx = mfi.tilebox();
+            Array4<Real> const& ffab = fine_cor.array(mfi);
+            Array4<Real const> const& cfab = cmf->const_array(mfi);
+
+            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
             {
-                const Box& fbx = mfi.tilebox();
-                const Box& cbx = amrex::coarsen(fbx,2);
-                const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx,ncomp);
-		if (cf_strategy == CFStrategy::none)
-		{
-			amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
-						 BL_TO_FORTRAN_BOX(tmpbx),
-						 BL_TO_FORTRAN_ANYD(tmpfab),
-						 BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-						 &ncomp);
-		}
-		else if (cf_strategy == CFStrategy::ghostnodes)
-		{
-			amrex_mlmg_lin_nd_interp_ghostnodes(BL_TO_FORTRAN_BOX(cbx),
-							    BL_TO_FORTRAN_BOX(tmpbx),
-							    BL_TO_FORTRAN_ANYD(tmpfab),
-							    BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-							    &ncomp);
-		}
-                fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, ncomp);
-            }
+                mlmg_lin_nd_interp(i,j,k,n,ffab,cfab);
+            });
         }
     }
 }
@@ -1118,17 +1081,22 @@ MLMG::buildFineMask ()
         baf.coarsen(amrrr[alev]);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(*fine_mask[alev], MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
-            auto& fab = (*fine_mask[alev])[mfi];
+            Box const& fabbox = mfi.fabbox();
+            Array4<int> const& fab = fine_mask[alev]->array(mfi);
 
-            const std::vector< std::pair<int,Box> >& isects = baf.intersections(fab.box());
+            const std::vector< std::pair<int,Box> >& isects = baf.intersections(fabbox);
 
             for (int ii = 0; ii < isects.size(); ++ii)
             {
-                fab.setVal(0,isects[ii].second,0);
+                Box const& b = isects[ii].second;
+                AMREX_HOST_DEVICE_FOR_3D ( b, i, j, k,
+                {
+                    fab(i,j,k) = 0;
+                });
             }
         }
     }
