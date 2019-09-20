@@ -832,7 +832,7 @@ contains
     type(amrex_multifab), intent(in) :: srcmf1, srcmf2
     integer, intent(in) :: srccomp1, srccomp2, dstcomp, nc, ng
     real(amrex_real), intent(in) :: a, b
-    call amrex_fi_multifab_lincomb(this%p, a, srcmf1%p, srccomp1-1, b, srcmf2%p, srccomp2, &
+    call amrex_fi_multifab_lincomb(this%p, a, srcmf1%p, srccomp1-1, b, srcmf2%p, srccomp2-1, &
          dstcomp-1, nc, ng)
   end subroutine amrex_multifab_lincomb
 

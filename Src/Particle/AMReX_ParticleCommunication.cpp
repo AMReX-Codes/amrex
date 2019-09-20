@@ -109,11 +109,11 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
     
     m_nrcvs = m_RcvProc.size();
 
-    m_stats.resize(0);
-    m_stats.resize(m_nrcvs);
+    m_build_stats.resize(0);
+    m_build_stats.resize(m_nrcvs);
 
-    m_rreqs.resize(0);
-    m_rreqs.resize(m_nrcvs);
+    m_build_rreqs.resize(0);
+    m_build_rreqs.resize(m_nrcvs);
 
     m_rcv_data.resize(TotRcvBytes/sizeof(int));
  
@@ -127,7 +127,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        m_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     for (int i = 0; i < NProcs; ++i)
@@ -157,7 +157,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 
     if (m_nrcvs > 0)
     {
-        ParallelDescriptor::Waitall(m_rreqs, m_stats);
+        ParallelDescriptor::Waitall(m_build_rreqs, m_build_stats);
 
         Gpu::HostVector<int> rcv_box_offsets;
         Gpu::HostVector<int> rcv_box_counts;
@@ -286,7 +286,7 @@ void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
 #ifdef BL_USE_MPI
     if (plan.m_nrcvs > 0)
     {
-        ParallelDescriptor::Waitall(plan.m_rreqs, plan.m_stats);
+        ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_stats);
     }
 #endif
 }

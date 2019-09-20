@@ -74,8 +74,11 @@ struct ParticleCopyPlan
 
     long m_NumSnds;
     int m_nrcvs;
-    mutable Vector<MPI_Status> m_stats;
-    mutable Vector<MPI_Request> m_rreqs;
+    mutable Vector<MPI_Status> m_build_stats;
+    mutable Vector<MPI_Request> m_build_rreqs;
+
+    mutable Vector<MPI_Status> m_particle_stats;
+    mutable Vector<MPI_Request> m_particle_rreqs;
 
     Vector<long> m_snd_num_particles;
     Vector<long> m_rcv_num_particles;
@@ -313,8 +316,6 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
     
     if (NProcs == 1) return;
 
-    ParallelDescriptor::Barrier();
-
     Vector<int> RcvProc;
     Vector<long> rOffset;    
     long TotRcvParticles = 0;
@@ -329,11 +330,11 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
 
     plan.m_nrcvs = RcvProc.size();
 
-    plan.m_stats.resize(0);
-    plan.m_stats.resize(plan.m_nrcvs);
+    plan.m_particle_stats.resize(0);
+    plan.m_particle_stats.resize(plan.m_nrcvs);
 
-    plan.m_rreqs.resize(0);
-    plan.m_rreqs.resize(plan.m_nrcvs);
+    plan.m_particle_rreqs.resize(0);
+    plan.m_particle_rreqs.resize(plan.m_nrcvs);
     
     const int SeqNum = ParallelDescriptor::SeqNum();
 
@@ -347,7 +348,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const Buff
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        plan.m_rreqs[i] = ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        plan.m_particle_rreqs[i] = 
+            ParallelDescriptor::Arecv((char*) (rcv_buffer.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     // Send.
@@ -410,6 +412,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
 
         Vector<int> offsets;
         policy.resizeTiles(tiles, sizes, offsets);
+        Gpu::Device::synchronize();
         int uindex = 0;
 	for (int i = 0; i < plan.m_rcv_box_counts.size(); ++i)
 	{

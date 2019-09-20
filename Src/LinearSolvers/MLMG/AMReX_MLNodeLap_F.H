@@ -362,6 +362,14 @@ extern "C" {
                                   const amrex_real* vfrac, const int* vlo, const int* vhi,
                                   const amrex_real* intg, const int* glo, const int* ghi,
                                   const amrex_real* dxinv);
+
+    void amrex_mlndlap_rhcc_eb (const int* lo, const int* hi,
+                                amrex_real* rhs, const int* rlo, const int* rhi,
+                                const amrex_real* rhcc, const int* clo, const int* chi,
+                                const amrex_real* vfrac, const int* flo, const int* fhi,
+                                const amrex_real* intg, const int* glo, const int* ghi,
+                                const int* dmsk, const int* mlo, const int* mhi);
+
 #endif // AMREX_USE_EB
 
 

@@ -69,7 +69,7 @@ module amrex_mlnodelap_2d_module
 #ifdef AMREX_USE_EB
   public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
        amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
-       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
+       amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb, amrex_mlndlap_rhcc_eb
 #endif
 
 contains
@@ -2310,6 +2310,33 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_mknewu_eb
+
+  subroutine amrex_mlndlap_rhcc_eb (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, vfrac, flo,fhi,&
+       intg, glo, ghi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_rhcc_eb')
+    integer, dimension(2) :: lo, hi, rlo, rhi, clo, chi, flo, fhi, glo, ghi, mlo, mhi
+    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2))
+    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),n_Sintg)
+    integer,          intent(in   ) :: msk (mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j) .ne. dirichlet) then
+             rhs(i,j) = &
+                  rhcc(i  ,j  )*(0.25d0*vfrac(i  ,j  )-intg(i  ,j  ,i_S_x)-intg(i  ,j  ,i_S_y)+intg(i  ,j  ,i_S_xy)) + &
+                  rhcc(i-1,j  )*(0.25d0*vfrac(i-1,j  )+intg(i-1,j  ,i_S_x)-intg(i-1,j  ,i_S_y)-intg(i-1,j  ,i_S_xy)) + &
+                  rhcc(i-1,j-1)*(0.25d0*vfrac(i-1,j-1)+intg(i-1,j-1,i_S_x)+intg(i-1,j-1,i_S_y)+intg(i-1,j-1,i_S_xy)) + &
+                  rhcc(i  ,j-1)*(0.25d0*vfrac(i  ,j-1)-intg(i  ,j-1,i_S_x)+intg(i  ,j-1,i_S_y)-intg(i  ,j-1,i_S_xy))
+          else
+             rhs(i,j) = 0.d0
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_rhcc_eb
 
 #endif
 

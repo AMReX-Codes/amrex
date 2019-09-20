@@ -179,13 +179,12 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
     {
         MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false), FArrayBoxFactory());
 
+        MFItInfo info;
+        if (Gpu::notInLaunchRegion()) info.SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        {
-        Vector<Real> derives;
-
-        for (MFIter mfi(foo,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(foo,info); mfi.isValid(); ++mfi)
         {
             BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
@@ -373,7 +372,6 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     });
                 }
             }
-        }
         }
     }
     else
