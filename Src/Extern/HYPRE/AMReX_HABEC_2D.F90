@@ -14,7 +14,7 @@ module amrex_habec_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
-  use amrex_constants_module, only : zero, one, two, three, half, fourth,
+  use amrex_constants_module, only : zero, one, two, three, half, fourth
   implicit none
 
 contains
