@@ -179,9 +179,9 @@ WarpX::WarpX ()
     current_store.resize(nlevs_max);
 
     F_cp.resize(nlevs_max);
-    rho_cp.resize(nlevs_max)
-    current_cp.resize(nlevs_
-    Efield_cp.resize(nlevs_m
+    rho_cp.resize(nlevs_max);
+    current_cp.resize(nlevs_max);
+    Efield_cp.resize(nlevs_max);
     Bfield_cp.resize(nlevs_max);
 
     Efield_cax.resize(nlevs_max);
