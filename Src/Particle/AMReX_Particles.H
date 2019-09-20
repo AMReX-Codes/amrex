@@ -790,10 +790,9 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
 
-    const Vector<int>& NeighborProcs(int lev, int ngrow) const         
+    Vector<int> NeighborProcs(int ngrow) const         
     {
-        BuildRedistributeMask(lev, ngrow);
-        return neighbor_procs;
+        return computeNeighborProcs(this->GetParGDB(), ngrow);
     };
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
