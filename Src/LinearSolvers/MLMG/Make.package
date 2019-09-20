@@ -1,8 +1,6 @@
 
 CEXE_headers   += AMReX_MLMG.H
 CEXE_sources   += AMReX_MLMG.cpp
-CEXE_headers   += AMReX_MLMG_F.H
-F90EXE_sources += AMReX_MLMG_$(DIM)d.F90
 CEXE_headers   += AMReX_MLMG_K.H AMReX_MLMG_$(DIM)D_K.H
 
 

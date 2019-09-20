@@ -7,8 +7,6 @@ target_sources(amrex
    PRIVATE
    MLMG/AMReX_MLMG.H
    MLMG/AMReX_MLMG.cpp
-   MLMG/AMReX_MLMG_F.H
-   MLMG/AMReX_MLMG_${DIM}d.F90
    MLMG/AMReX_MLMG_K.H
    MLMG/AMReX_MLMG_${DIM}D_K.H
    MLMG/AMReX_MLMGBndry.H
