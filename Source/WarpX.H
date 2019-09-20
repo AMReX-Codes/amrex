@@ -180,6 +180,9 @@ public:
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
+    void Hybrid_QED_Push (         amrex::Real dt);
+    void Hybrid_QED_Push (int lev, amrex::Real dt);
+    void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
@@ -534,6 +537,10 @@ private:
     int verbose = 1;
 
     int do_subcycling = 0;
+	
+    bool use_hybrid_QED = 0;
+	
+    double xi = 10^(-15);
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
