@@ -549,7 +549,6 @@ MLMG::mgFcycle ()
 void
 MLMG::interpCorrection (int alev)
 {
-    // todo: gpu
     BL_PROFILE("MLMG::interpCorrection_1");
 
     const int ncomp = linop.getNComp();
@@ -587,7 +586,6 @@ MLMG::interpCorrection (int alev)
 
     if (linop.isCellCentered())
     {
-        Gpu::LaunchSafeGuard lg(!isEB && Gpu::inLaunchRegion()); // turn off gpu for eb for now TODO
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -596,6 +594,8 @@ MLMG::interpCorrection (int alev)
         for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
+            Array4<Real> const& ff = fine_cor.array(mfi);
+            Array4<Real const> const& cc = cfine.const_array(mfi);
 #ifdef AMREX_USE_EB
             bool call_lincc;
             if (isEB)
@@ -604,12 +604,28 @@ MLMG::interpCorrection (int alev)
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
                     call_lincc = true;
                 } else {
-                    amrex_mlmg_eb_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                            BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                            BL_TO_FORTRAN_ANYD(flag),
-                                            &refratio[0],
-                                            &ncomp);
+                    Array4<EBCellFlag const> const& flg = flag.const_array();
+                    switch(refratio[0]) {
+                    case 2:
+                    {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                        {
+                            mlmg_eb_cc_interp_r<2>(tbx, ff, cc, flg, ncomp);
+                        });
+                        break;
+                    }
+                    case 4:
+                    {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                        {
+                            mlmg_eb_cc_interp_r<4>(tbx, ff, cc, flg, ncomp);
+                        });
+                        break;
+                    }
+                    default:
+                        amrex::Abort("mlmg_eb_cc_interp: only refratio 2 and 4 are supported");
+                    }
+
                     call_lincc = false;
                 }
             }
@@ -622,8 +638,6 @@ MLMG::interpCorrection (int alev)
 #endif
             if (call_lincc)
             {
-                const auto& ff = fine_cor.array(mfi);
-                const auto& cc = cfine.array(mfi);
                 switch(refratio[0]) {
                 case 2:
                 {
