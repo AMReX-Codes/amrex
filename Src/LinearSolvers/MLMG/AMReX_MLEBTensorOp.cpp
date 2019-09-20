@@ -3,6 +3,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MLTensor_K.H>
 #include <AMReX_MLEBTensor_K.H>
+#include <AMReX_MLEBABecLap.H>
 
 namespace amrex {
 
@@ -151,8 +152,8 @@ MLEBTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
-                           m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
+            // MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+            //                m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
 	    m_b_coeffs[amrlev][0][idim].mult(2.,icomp,1,0);
         }
     }
@@ -524,19 +525,23 @@ MLEBTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 
 //
 // WARNING
-// compFlux() does NOT compute any EB wall flux
-// Currently only computes the fluxes across cell faces
+// not sure EB wall flux computed properly.
+// 9/20/2019 - current use only for coarse-fine sync, so only box-face fluxes used
+//             just ensure application doesn't have EB crossing coarse-fine boundary
 //
 void
 MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                        MultiFab& sol, Location loc) const
 {
     BL_PROFILE("MLEBTensorOp::compFlux()");
-    MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
+
+    const int mglev = 0;
+    const int ncomp = getNComp();
+    MLEBABecLap::compFlux(amrlev, fluxes, sol, loc);
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode, bndry);
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
 
     // todo: gpu
     Gpu::LaunchSafeGuard lg(false);
@@ -557,6 +562,8 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     Array<MultiFab,AMREX_SPACEDIM> const& etamf = m_b_coeffs[amrlev][mglev];
     Array<MultiFab,AMREX_SPACEDIM> const& kapmf = m_kappa[amrlev][mglev];
+    // FIXME - if there's problems
+    // consider not using saved fluxes yet because this fn is still under development
     Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];
     iMultiFab const& mask = m_cc_mask[amrlev][mglev];
     MultiFab const& etaebmf = *m_eb_b_coeffs[amrlev][mglev];
@@ -565,7 +572,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 
     if (Gpu::inLaunchRegion())
     {
-        for (MFIter mfi(out); mfi.isValid(); ++mfi)
+        for (MFIter mfi(sol); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             AMREX_D_TERM(Box const xbx = amrex::surroundingNodes(bx,0);,
@@ -598,7 +605,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
                 AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
                              Array4<Real> const fyfab = fluxmf[1].array(mfi);,
                              Array4<Real> const fzfab = fluxmf[2].array(mfi););
-                Array4<Real const> const vfab = in.array(mfi);
+                Array4<Real const> const vfab = sol.array(mfi);
                 AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
                              Array4<Real const> const etayfab = etamf[1].array(mfi);,
                              Array4<Real const> const etazfab = etamf[2].array(mfi););
@@ -659,7 +666,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 #endif
     {
         FArrayBox fluxfab_tmp[AMREX_SPACEDIM];
-        for (MFIter mfi(out,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(sol,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
@@ -676,7 +683,7 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
                              fyfab.setVal(0.0, ybx, 0, AMREX_SPACEDIM);,
                              fzfab.setVal(0.0, zbx, 0, AMREX_SPACEDIM););
             } else {
-                Array4<Real const> const vfab = in.array(mfi);
+                Array4<Real const> const vfab = sol.array(mfi);
                 AMREX_D_TERM(Array4<Real const> const etaxfab = etamf[0].array(mfi);,
                              Array4<Real const> const etayfab = etamf[1].array(mfi);,
                              Array4<Real const> const etazfab = etamf[2].array(mfi););
@@ -729,11 +736,10 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
+    for (MFIter mfi(sol, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
 
-	Array<MultiFab,AMREX_SPACEDIM>& fluxmf = m_tauflux[amrlev][mglev];	
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered) continue;
 
@@ -764,7 +770,33 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         }
         else
         {
-            Array4<Real const> const& vfab = in.array(mfi);
+	  AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
+		       Array4<Real> const fyfab = fluxmf[1].array(mfi);,
+		       Array4<Real> const fzfab = fluxmf[2].array(mfi););
+	  AMREX_D_TERM(Array4<Real> const axfab = fluxes[0]->array(mfi);,
+		       Array4<Real> const ayfab = fluxes[1]->array(mfi);,
+		       Array4<Real> const azfab = fluxes[2]->array(mfi););
+
+	    // // will eventually need a temporary when computing cut cell fluxes
+	    // // cut cell flux result depends on flux val in other cells
+	    // // axfab[0] = fx(i,j,k,0)
+	    // // axfab[1] = fy(i,j,k,1)
+            // AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
+            //              Box const ybx = mfi.nodaltilebox(1);,
+            //              Box const zbx = mfi.nodaltilebox(2););
+            // AMREX_D_TERM(FArrayBox axfab(xbx,AMREX_SPACEDIM);,
+            //              FArrayBox ayfab(ybx,AMREX_SPACEDIM);,
+            //              FArrayBox azfab(zbx,AMREX_SPACEDIM););
+	    // //fixme set to ridiculous val for debugging
+	    // AMREX_D_TERM(axfab.setVal(1.2345e20);
+	    // 		 ayfab.setVal(1.2345e20);
+	    // 		 azfab.setVal(1.2345e20););
+	    // // only using one comp of each I think...
+	    // AMREX_D_TERM(axfab.copy(xbx,0,0,1);
+	    // 		 ayfab.copy(ybx,1,1,1);
+	    // 		 azfab.copy(zbx,2,2,1););
+	    
+            Array4<Real const> const& vfab = sol.array(mfi);
             Array4<Real const> const& etab = etaebmf.array(mfi);
             Array4<Real const> const& kapb = kapebmf.array(mfi);
             Array4<int const> const& ccm = mask.array(mfi);
@@ -777,15 +809,30 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
                          Array4<Real const> const& fcy = fcent[1]->array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->array(mfi););
             Array4<Real const> const& bc = bcent->array(mfi);
+	    //fixme -
+	    // this fills regular cells appropriately and
+	    // sets fluxes in cut cells to riduculous val so we know if they're used
+	    // should not be using cut cell fluxes yet...
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
-	        mlebtensor_flux(tbx, axfab,
+	        mlebtensor_flux(tbx,
+				AMREX_D_DECL(axfab,ayfab,azfab),
 				AMREX_D_DECL(fxfab,fyfab,fzfab),
 				vfab, ccm, flag,
 				AMREX_D_DECL(apx,apy,apz),
 				AMREX_D_DECL(fcx,fcy,fcz),
 				bscalar);
             });
+	    // for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+	    //   const Box& nbx = mfi.nodaltilebox(idim);
+	    //   Array4<Real      > dst = fluxes[idim]->array(mfi);
+	    //   Array4<Real const> src = fluxmf[idim].array(mfi);
+	    //   AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
+	    //   {
+	    // 	   dst(i,j,k,n) += bscalar*src(i,j,k,n);
+	    //   });
+	    // }
+
         }
     }
 }

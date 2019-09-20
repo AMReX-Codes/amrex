@@ -259,7 +259,9 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebtensor_flux (Box const& box, Array4<Real> const& Ax,
+void mlebtensor_flux (Box const& box,
+		      Array4<Real> const& Ax,
+		      Array4<Real> const& Ay,
 		      Array4<Real const> const& fx,
 		      Array4<Real const> const& fy,
 		      Array4<Real const> const& vel,
@@ -280,7 +282,7 @@ void mlebtensor_flux (Box const& box, Array4<Real> const& Ax,
             if (flag(i,j,0).isRegular())
             {
 	        Ax(i,j,0,0) += bscalar*fx(i,j,0,0);
-                Ax(i,j,0,1) += bscalar*fy(i,j,0,1);
+                Ay(i,j,0,1) += bscalar*fy(i,j,0,1);
             }
             else if (flag(i,j,0).isSingleValued())
             {
@@ -320,9 +322,12 @@ void mlebtensor_flux (Box const& box, Array4<Real> const& Ax,
                     fyp_1 = (1.0-fracx)*fyp_1 + fracx*fy(ii,j+1,0,1);
                 }
 	    }
-	    
-	    Ax(i,j,0,0) += bscalar*fx(i,j,0,0);
-	    Ax(i,j,0,1) += bscalar*fy(i,j,0,1);
+
+	    // 
+	    // FIXME - set to ridiculous num so we ensure we don't use these
+	    // not sure how to appropriately compute these cut cell fluxes...
+	    Ax(i,j,0,0) = 1.2345e20;
+	    Ay(i,j,0,1) = 1.2345e20;
 	}
     }
 }
