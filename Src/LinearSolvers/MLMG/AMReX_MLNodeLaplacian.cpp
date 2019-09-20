@@ -2,6 +2,7 @@
 
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
+#include <AMReX_MLNodeLap_K.H>
 #include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -1517,22 +1518,23 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const iMultiFab& c_nd_mask = *m_nd_fine_mask[camrlev];
     const auto& has_fine_bndry = *m_has_fine_bndry[camrlev];
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(crhs, MFItInfo().EnableTiling().SetDynamic(true));
-         mfi.isValid(); ++mfi)
+    for (MFIter mfi(crhs, mfi_info); mfi.isValid(); ++mfi)
     {
         if (has_fine_bndry[mfi])
         {
             const Box& bx = mfi.tilebox();
-            const auto& mfab = c_nd_mask[mfi];
-            auto& dfab = crhs[mfi];
-            const auto& sfab = tmp_crhs[mfi];
-            amrex_mlndlap_copy_fine_node(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(dfab),
-                                         BL_TO_FORTRAN_ANYD(sfab),
-                                         BL_TO_FORTRAN_ANYD(mfab));
+            Array4<Real> const& dfab = crhs.array(mfi);
+            Array4<Real const> const& sfab = tmp_crhs.const_array(mfi);
+            Array4<int const> const& mfab = c_nd_mask.const_array(mfi);
+            AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+            {
+                if (mfab(i,j,k) == fine_node) dfab(i,j,k) = sfab(i,j,k);
+            });
         }
     }
 }
