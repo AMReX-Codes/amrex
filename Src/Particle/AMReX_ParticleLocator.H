@@ -7,7 +7,7 @@
 namespace amrex
 {
 
-struct assignGrid
+struct AssignGrid
 {
     const Box* m_boxes_ptr;
     const unsigned int* m_poffset;
@@ -16,8 +16,11 @@ struct assignGrid
     Dim3 m_lo;
     Dim3 m_hi;
     Dim3 m_bin_size;
+
+    AssignGrid ()
+        {}
     
-    assignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
+    AssignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size)
         : m_boxes_ptr(a_boxes_ptr),
           m_poffset(a_poffset), m_pperm(a_pperm),
@@ -162,10 +165,10 @@ public:
         });
     }
 
-    assignGrid getGridAssignor () const noexcept 
+    AssignGrid getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
-        return assignGrid(m_device_boxes.dataPtr(), m_offsets.dataPtr(), m_permutation.dataPtr(),
+        return AssignGrid(m_device_boxes.dataPtr(), m_offsets.dataPtr(), m_permutation.dataPtr(),
                           m_bins_lo, m_bins_hi, m_bin_size);
     }
 
@@ -174,8 +177,7 @@ public:
         if (m_defined) return BoxArray::SameRefs(m_ba, ba);
         return false;
     }
-        
-    
+            
 protected:
 
     bool m_defined;
@@ -193,6 +195,45 @@ protected:
     Gpu::ManagedDeviceVector<unsigned int> m_cells;
     Gpu::ManagedDeviceVector<unsigned int> m_offsets;
     Gpu::ManagedDeviceVector<unsigned int> m_permutation;
+};
+
+struct AmrAssignGrid
+{
+    AssignGrid* m_funcs;
+    int m_size;
+    
+    AmrAssignGrid(AssignGrid* a_funcs, int a_size)
+        : m_funcs(a_funcs), m_size(a_size)
+        {}
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int operator() (const IntVect& iv) const noexcept
+    {
+        for (int lev = m_size; lev >= 0; --lev)
+        {
+            int grid = m_funcs[lev](iv);
+            if (grid >= 0) return grid;
+        }
+        return -1;
+    }
+};
+
+class AmrParticleLocator
+{
+    Vector<ParticleLocator> m_locators;
+    Vector<AssignGrid> m_grid_assignors;
+
+    AmrParticleLocator (Vector<BoxArray>& a_bas)
+    {
+        int num_levels = a_bas.size();
+        m_locators.resize(num_levels);
+        m_grid_assignors.resize(num_levels);
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            m_locators[lev].build(a_bas[lev]);
+            m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
+        }
+    }    
 };
 
 }
