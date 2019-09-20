@@ -158,14 +158,15 @@ function
     void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,  // for lower ends
                       const Array<BCType,AMREX_SPACEDIM>& hibc); // for higher ends
 
-The supported BC types at
-the physical domain boundaries are
+The supported BC types at the physical domain boundaries are
 
 - :cpp:`LinOpBCType::Periodic` for periodic boundary.
 
 - :cpp:`LinOpBCType::Dirichlet` for Dirichlet boundary condition.
 
 - :cpp:`LinOpBCType::Neumann` for homogeneous Neumann boundary condition.
+
+- :cpp:`LinOpBCType::inhomogNeumann` for inhomogeneous Neumann boundary condition.
 
 - :cpp:`LinOpBCType::reflect_odd` for reflection with sign changed.
 
@@ -330,7 +331,7 @@ for :math:`\phi` and then set
 where :math:`U^*` is a vector field (typically velocity) that we want to satisfy 
 :math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
 
-The MACProjection class can be defined and used to perform the MAC projection without explcitly
+The MACProjection class can be defined and used to perform the MAC projection without explicitly
 calling the solver directly.  In addition to solving the variable coefficient Poisson equation,
 the MacProjector internally computes the divergence of the vector field, :math:`D(U^*)`,
 to compute the right-hand-side, and after the solve, subtracts the weighted gradient term to
@@ -339,6 +340,9 @@ make the vector field result satisfy the divergence constraint.
 In the simplest form of the call, :math:`S` is assumed to be zero and does not need to be specified.
 Typically, the user does not allocate the solution array, but it is also possible to create and pass
 in the solution array and have :math:`\phi` returned as well as :math:`U`.  
+
+Caveat:  Currently the MAC projection only works when the base level covers the full domain; it does
+not yet have the interface to pass boundary conditions for a fine level that come from coarser data.
 
 The code below is taken from 
 ``Tutorials/LinearSolvers/MAC_Projection_EB/main.cpp`` and demonstrates how to set up 
@@ -422,6 +426,198 @@ the MACProjector object and use it to perform a MAC projection.
 
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
+
+Nodal Projection
+=========================
+
+Some codes define a velocity field :math:`U = (u,v,w)` with all
+components co-located on cell centers.  The nodal solver in AMReX 
+can be used to compute an approximate projection of the cell-centered
+velocity field, with pressure and velocity divergence defined on nodes.
+When we use the nodal solver this way, and subtract only the cell average
+of the gradient from the velocity, it is effectively an approximate projection.
+
+As with the MAC projection, consider that we want to solve 
+
+.. math::
+
+   D( \beta \nabla \phi) = D(U^*) - S
+
+for :math:`\phi` and then set 
+
+.. math::
+
+   U = U^* - \beta \nabla \phi
+
+where :math:`U^*` is a vector field defined on cell centers and we want to satisfy
+:math:`D(U) = S`.  For incompressible flow,  :math:`S = 0`.
+
+Currently this nodal approximate projection does not exist in a separate
+operator like the MAC projection; instead we demonstrate below the steps needed
+to compute the approximate projection.  This means we must compute the divergence
+of the vector field,  :math:`D(U^*)`  to compute the right-hand-side, solve the
+variable coefficient Poisson equation, then subtract the weighted gradient term to
+make the vector field result satisfy the divergence constraint.
+
+.. highlight:: c++
+
+::
+                  
+   //
+   // Given a cell-centered velocity (vel) field and a cell-centered
+   // scalar field (sigma) field, solve:
+   //
+   //   div( sigma * grad(phi) ) = div(vel)
+   //
+   // and then perform the projection:
+   //
+   //     vel = vel - sigma * grad(phi)
+   // 
+   // NOTE: phi is node centered !!!
+
+
+   //
+   // Create the EB factory
+   // 
+   EBFArrayBoxFactory factory(eb_level, geom, grids, dmap, ng_ebs, ebs);
+
+
+   //
+   //  Create the CELL CENTERED velocity field we want to project  
+   //
+   std::unique_ptr<MultiFab> > vel;
+   vel.reset(new MultiFab(grids, dmap, 3, nghost, MFInfo(), factory));
+
+   // Set velocity field to (1,0,0) for this example
+   vel.setVal(1.0, 0, 1);
+   vel.setVal(0.0, 1, 1);
+   vel.setVal(0.0, 2, 1);
+
+
+   //
+   // Setup linear operator, AKA the nodal laplacian
+   // 
+   LPInfo            info;
+   info.setMaxCoarseningLevel(nodal_mg_max_coarsening_level); // Max level of coarsening
+
+   MLNodeLaplacian  matrix(geom, grids, dmap, info, amrex::GetVecOfConstPtrs({factory}));
+
+
+   // Set boundary conditions.
+   // Here we use Neumann on the low x-face, Dirichlet on the high x-face,
+   // and periodic in the other two directions
+   // (the first argument is for the low end, the second is for the high end)
+   // Note that Dirichlet boundary conditions are assumed to be homogeneous (i.e. phi = 0)
+   matrix.setDomainBC({AMREX_D_DECL(LinOpBCType::Neumann,
+   LinOpBCType::Periodic,
+   LinOpBCType::Periodic)},
+   {AMREX_D_DECL(LinOpBCType::Dirichlet,
+   LinOpBCType::Periodic,
+   LinOpBCType::Periodic)});
+
+
+   // Set matrix attributes to be used by MLMG solver
+   matrix.setGaussSeidel(true);
+   matrix.setHarmonicAverage(false);
+
+   //
+   // Compute divergence of vel and store it in divu
+   //
+   // NOTE: it's up to the user to compute the RHS divergence, as opposed
+   //       to the MAC projection case !!!
+   //
+   // NOTE: do this operation AFTER setting up the linear operator so
+   //       that compDivergence method can be used
+   // 
+   std::unique_ptr<MultiFab> > divu;
+   divu.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
+   matrix.compDivergence(GetVecOfPtrs({divu}), GetVecOfPtrs({vel}));
+
+
+   //
+   // Create the cell-centered sigma field and set it to 1 for this example
+   //
+   std::unique_ptr<MultiFab> > sigma;
+   sigma.reset(new MultiFab(grids, dmap, 1, nghost, MFInfo(), factory));
+   sigma.setVal(1.0);
+
+   // Set sigma 
+   matrix.setSigma(0, *sigma);
+
+
+   //
+   // Create node-centered phi
+   //
+   std::unique_ptr<MultiFab> > phi;
+
+   const BoxArray & nd_grids = amrex::convert(grids, IntVect{1,1,1}); // nodal grids
+   phi.reset(new MultiFab(nd_grids, dmap, 1, nghost, MFInfo(), factory));
+   phi.setVal(0.0);
+
+
+   //
+   // Setup MGML solver
+   //
+   MLMG nodal_solver(matrix);
+
+   nodal_solver.setMaxIter(nodal_mg_maxiter);
+   nodal_solver.setVerbose(nodal_mg_verbose);
+   nodal_solver.setCGVerbose(nodal_mg_cg_verbose);
+   nodal_solver.setCGMaxIter(nodal_mg_cg_maxiter);
+
+   //
+   // Set bottom seolver
+   //  
+   if (nodal_bottom_solver_type == "smoother")
+   {
+   nodal_solver.setBottomSolver(MLMG::BottomSolver::smoother);
+   }
+   else if (nodal_bottom_solver_type == "bicg")
+   {
+   nodal_solver.setBottomSolver(MLMG::BottomSolver::bicgstab);
+   }
+   else if (nodal_bottom_solver_type == "cg")
+   {
+   nodal_solver.setBottomSolver(MLMG::BottomSolver::cg);
+   }
+   else if (nodal_bottom_solver_type == "bicgcg")
+   {
+   nodal_solver.setBottomSolver(MLMG::BottomSolver::bicgcg);
+   }
+   else if (nodal_bottom_solver_type == "cgbicg")
+   {
+   nodal_solver.setBottomSolver(MLMG::BottomSolver::cgbicg);
+   }
+   else if (nodal_bottom_solver_type == "hypre")
+   {
+   nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
+   }
+
+
+   //
+   // Solve div( sigma * grad(phi) ) = div(vel)
+   //
+   nodal_solver.solve( GetVecOfPtrs({phi}), GetVecOfConstPtrs({divu}), rtol, atol);
+
+   //
+   // Create cell-centered multifab to hold value of -sigma*grad(phi) at cell-centers
+   // 
+   std::unique_ptr<MultiFab> fluxes;
+   fluxes.reset(new MultiFab(vel.boxArray(), vel.DistributionMap(),
+   vel.nComp(), 1, MFInfo(),
+   factory ));
+   fluxes.setVal(0.0);
+
+   // Get fluxes from solver
+   nodal_solver.getFluxes( GetVecOfPtrs({fluxes}) );
+
+
+   //
+   // Apply projection explicitly --  vel = vel - sigma * grad(phi)  
+   // 
+   MultiFab::Add( vel, fluxes, 0, 0, 3, 0);
+
+
 
 Multi-Component Operators
 =========================
