@@ -1,6 +1,7 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
+#include "WarpXDtType.H"
 #include <MultiParticleContainer.H>
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
@@ -37,13 +38,6 @@ namespace amrex {
 class AmrMeshInSituBridge;
 }
 #endif
-
-enum struct DtType : int
-{
-    Full = 0,
-    FirstHalf,
-    SecondHalf
-};
 
 enum struct PatchType : int
 {
@@ -201,7 +195,7 @@ public:
 
     void CopyJPML ();
 
-    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+    void PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).

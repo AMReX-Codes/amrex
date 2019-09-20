@@ -37,7 +37,7 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
                                 Cuda::ManagedDeviceVector<Real>& xp,
                                 Cuda::ManagedDeviceVector<Real>& yp,
                                 Cuda::ManagedDeviceVector<Real>& zp,
-                                Real dt)
+                                Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
@@ -76,14 +76,14 @@ PhotonParticleContainer::PushPX(WarpXParIter& pti,
 
 void
 PhotonParticleContainer::Evolve (int lev,
-                                        const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-                                        MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                        MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                        MultiFab* rho, MultiFab* crho,
-                                        const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
-                                        const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                        Real t, Real dt)
+                                 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                                 MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                 MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                 MultiFab* rho, MultiFab* crho,
+                                 const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                 const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+                                 Real t, Real dt, DtType a_dt_type)
 {
     // This does gather, push and depose.
     // Push and depose have been re-written for photon,
