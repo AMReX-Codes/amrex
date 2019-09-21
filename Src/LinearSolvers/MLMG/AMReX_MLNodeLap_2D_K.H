@@ -66,6 +66,20 @@ void mlndlap_rhcc (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                     Array4<Real const> const& sig, Real dxi, Real dyi, bool is_rz) noexcept
+{
+    Real facx = 0.5*dxi;
+    Real facy = 0.5*dyi;
+    u(i,j,k,0) -= sig(i,j,k)*facx*(-p(i,j,k)+p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    u(i,j,k,1) -= sig(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
+    if (is_rz) {
+        Real frz = sig(i,j,k)*facy / (6*i+3);
+        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    }
+}
+
 //
 // residual
 //

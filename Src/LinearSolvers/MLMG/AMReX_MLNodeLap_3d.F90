@@ -101,7 +101,6 @@ module amrex_mlnodelap_3d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
@@ -1880,40 +1879,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_interpolation_aa
-
-
-  subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
-       bind(c,name='amrex_mlndlap_mknewu')
-    integer, dimension(3), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi
-    real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),3)
-    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
-
-    integer :: i, j, k
-    real(amrex_real) :: facx, facy, facz
-
-    facx = 0.25d0*dxinv(1)
-    facy = 0.25d0*dxinv(2)
-    facz = 0.25d0*dxinv(3)
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             u(i,j,k,1) = u(i,j,k,1) - sig(i,j,k)*facx &
-                  * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  ) &
-                  &  -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1))
-             u(i,j,k,2) = u(i,j,k,2) - sig(i,j,k)*facy &
-                  * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  ) &
-                  &  -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
-             u(i,j,k,3) = u(i,j,k,3) - sig(i,j,k)*facz &
-                  * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  ) &
-                  &  +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
-          end do
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_mknewu
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &

@@ -49,7 +49,6 @@ module amrex_mlnodelap_2d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
@@ -943,33 +942,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_interpolation_aa
-
-
-  subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
-       bind(c,name='amrex_mlndlap_mknewu')
-    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),2)
-    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-
-    integer :: i, j
-    real(amrex_real) :: facx, facy, frz
-
-    facx = half*dxinv(1)
-    facy = half*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          u(i,j,1) = u(i,j,1) - sig(i,j)*facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
-          u(i,j,2) = u(i,j,2) - sig(i,j)*facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
-          if (is_rz) then
-             frz = sig(i,j)*facy / (6*i+3)
-             u(i,j,2) = u(i,j,2) + frz*(p(i,j)-p(i+1,j)-p(i,j+1)+p(i+1,j+1))
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_mknewu
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
