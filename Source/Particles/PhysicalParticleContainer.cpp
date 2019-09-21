@@ -1408,7 +1408,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                 np_split_to_add += np_split;
 #if (AMREX_SPACEDIM==2)
                 if (split_type==0){
-                    // Split particle in two along each axis
+                    // Split particle in two along each diagonals
                     // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         for (int kshift = -1; kshift < 2; kshift +=2 ){
@@ -1423,7 +1423,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         }
                     }
                 } else {
-                    // Split particle in two along each diagonal
+                    // Split particle in two along each axis
                     // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
