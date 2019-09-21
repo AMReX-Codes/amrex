@@ -179,12 +179,6 @@ extern "C" {
                                       const int* domlo, const int* domhi,
                                       const void* bclo, const void* bchi);
 
-    void amrex_mlndlap_mknewu (const int* lo, const int* hi,
-                               amrex_real* u, const int* ulo, const int* uhi,
-                               const amrex_real* p, const int* plo, const int* phi,
-                               const amrex_real* sigma, const int* slo, const int* shi,
-                               const amrex_real* dxinv);
-
     void amrex_mlndlap_divu_fine_contrib (const int* clo, const int* chi,
                                           const int* cgrid_lo, const int* cgrid_hi,
                                           amrex_real* rhs, const int* rlo, const int* rhi,
