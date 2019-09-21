@@ -49,7 +49,7 @@ module amrex_mlnodelap_2d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
@@ -943,41 +943,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_interpolation_aa
-
-
-  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, dxinv) &
-       bind(c,name='amrex_mlndlap_divu')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy, fm, fp
-
-    facx = half*dxinv(1)
-    facy = half*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
-                  &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
-
-             if (is_rz) then
-                fm = facy / (6*i-3)
-                fp = facy / (6*i+3)
-                rhs(i,j) = rhs(i,j) + fm*(vel(i-1,j,2)-vel(i-1,j-1,2)) &
-                     &              - fp*(vel(i  ,j,2)-vel(i  ,j-1,2))
-             end if
-          else
-             rhs(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_divu
 
 
   subroutine amrex_mlndlap_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &

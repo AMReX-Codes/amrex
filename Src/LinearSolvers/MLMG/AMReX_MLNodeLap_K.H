@@ -22,7 +22,7 @@ namespace {
 inline void
 mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
                            Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
-                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc)
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc) noexcept
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
