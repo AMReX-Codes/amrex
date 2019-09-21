@@ -1408,7 +1408,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                 np_split_to_add += np_split;
 #if (AMREX_SPACEDIM==2)
                 if (split_type==0){
-                    // Split particle in two along each axis
+                    // Split particle in two along each diagonals
                     // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         for (int kshift = -1; kshift < 2; kshift +=2 ){
@@ -1423,7 +1423,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         }
                     }
                 } else {
-                    // Split particle in two along each diagonal
+                    // Split particle in two along each axis
                     // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
@@ -1446,15 +1446,15 @@ PhysicalParticleContainer::SplitParticles(int lev)
                 }
 #elif (AMREX_SPACEDIM==3)
                 if (split_type==0){
-                    // Split particle in two along each axis
-                    // 6 particles in 2d
+                    // Split particle in two along each diagonals
+                    // 8 particles in 3d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         for (int jshift = -1; jshift < 2; jshift +=2 ){
                             for (int kshift = -1; kshift < 2; kshift +=2 ){
                                 // Add one particle with offset in x, y and z
                                 psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
                                 psplit_y.push_back( yp[i] + jshift*dx[1]/2 );
-                                psplit_z.push_back( zp[i] + jshift*dx[2]/2 );
+                                psplit_z.push_back( zp[i] + kshift*dx[2]/2 );
                                 psplit_ux.push_back( uxp[i] );
                                 psplit_uy.push_back( uyp[i] );
                                 psplit_uz.push_back( uzp[i] );
@@ -1463,8 +1463,8 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         }
                     }
                 } else {
-                    // Split particle in two along each diagonal
-                    // 8 particles in 3d
+                    // Split particle in two along each axis
+                    // 6 particles in 3d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
                         psplit_x.push_back( xp[i] + ishift*dx[0]/2 );

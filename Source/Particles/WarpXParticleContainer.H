@@ -258,7 +258,7 @@ public:
 
     bool do_splitting = false;
 
-    // split along axes (0) or diagonals (1)
+    // split along diagonals (0) or axes (1)
     int split_type = 0;
 
     using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddRealComp;
