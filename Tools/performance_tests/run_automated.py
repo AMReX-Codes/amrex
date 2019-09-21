@@ -134,7 +134,7 @@ test_list = [copy.deepcopy(item) for item in test_list_unq for _ in range(n_repe
 # Define directories
 # ------------------
 source_dir_base = os.environ['AUTOMATED_PERF_TESTS']
-warpx_dir = source_dir_base + '/WarpX/'
+warpx_dir = source_dir_base + '/warpx/'
 picsar_dir = source_dir_base + '/picsar/'
 amrex_dir = source_dir_base + '/amrex/'
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
