@@ -341,7 +341,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                        rho, crho,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
-                                       t, dt);
+                                       t, dt, a_dt_type);
 }
 
 void
