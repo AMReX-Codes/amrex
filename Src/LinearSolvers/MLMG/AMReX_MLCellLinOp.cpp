@@ -304,7 +304,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         const Box& bx    = mfi.tilebox();
         Array4<Real const> const& cfab = crse.const_array(mfi);
         Array4<Real> const& ffab = fine.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             int ic = amrex::coarsen(i,2);
             int jc = amrex::coarsen(j,2);
@@ -670,7 +670,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
                 const Box& nbx = mfi.nodaltilebox(idim);
                 Array4<Real      > dst = fluxes[idim]->array(mfi);
                 Array4<Real const> src =  pflux[idim]->array();
-                AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, ncomp, i, j, k, n,
                 {
                     dst(i,j,k,n) = src(i,j,k,n);
                 });
@@ -710,18 +710,18 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                      const auto& gy = grad[1]->array(mfi);,
                      const auto& gz = grad[2]->array(mfi););
 
-        AMREX_HOST_DEVICE_FOR_4D ( xbx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( xbx, ncomp, i, j, k, n,
         {
             gx(i,j,k,n) = dxi*(s(i,j,k,n) - s(i-1,j,k,n));
         });
 #if (AMREX_SPACEDIM >= 2)
-        AMREX_HOST_DEVICE_FOR_4D ( ybx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( ybx, ncomp, i, j, k, n,
         {
             gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
         });
 #endif
 #if (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_FOR_4D ( zbx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( zbx, ncomp, i, j, k, n,
         {
             gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
         });
@@ -895,7 +895,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         const Box& tbx = mfi.tilebox();
         Array4<Real> const& rhsarr = rhs.array(mfi);
         if (cc) {
-            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real rc = probxlo + (i+0.5)*dx;
 #if (AMREX_SPACEDIM == 2)
@@ -905,7 +905,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 #endif
             });
         } else {
-            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real re = probxlo + i*dx;
 #if (AMREX_SPACEDIM == 2)
@@ -942,7 +942,7 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
         const Box& tbx = mfi.tilebox();
         Array4<Real> const& rhsarr = rhs.array(mfi);
         if (cc) {
-            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real rcinv = 1.0/(probxlo + (i+0.5)*dx);
 #if (AMREX_SPACEDIM == 2)
@@ -952,7 +952,7 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 #endif
             });
         } else {
-            AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( tbx, ncomp, i, j, k, n,
             {
                 Real re = probxlo + i*dx;
                 Real reinv = (re==0.0) ? 0.0 : 1./re;

@@ -689,7 +689,7 @@ namespace amrex
                 const Box& bx = mfi.validbox();
                 Array4<int> const& fab = mask.array(mfi);
 
-                AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
                 {
                     fab(i,j,k) = crse_value;
                 });
@@ -698,7 +698,7 @@ namespace amrex
                 for (auto const& is : isects)
                 {
                     const Box ibx = is.second;
-                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
                     {
                         fab(i,j,k) = fine_value;
                     });
