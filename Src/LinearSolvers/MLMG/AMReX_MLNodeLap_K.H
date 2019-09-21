@@ -26,18 +26,22 @@ mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nd
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
-            Box const& blo = amrex::bdryLo(bx, idim) & nddom;
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (blo, i, j, k,
-            {
-                rhs(i,j,k) *= 2.0;
-            });
+            Box const& blo = amrex::bdryLo(bx, idim);
+            if (blo.smallEnd(idim) == nddom.smallEnd(idim)) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D (blo, i, j, k,
+                {
+                    rhs(i,j,k) *= 2.0;
+                });
+            }
         }
         if (hibc[idim] == LinOpBCType::Neumann or hibc[idim] == LinOpBCType::inflow) {
-            Box const& bhi = amrex::bdryHi(bx, idim) & nddom;
-            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bhi, i, j, k,
-            {
-                rhs(i,j,k) *= 2.0;
-            });
+            Box const& bhi = amrex::bdryHi(bx, idim);
+            if (bhi.bigEnd(idim) == nddom.bigEnd(idim)) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bhi, i, j, k,
+                {
+                    rhs(i,j,k) *= 2.0;
+                });
+            }
         }
     }
 }
