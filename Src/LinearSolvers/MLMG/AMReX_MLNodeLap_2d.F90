@@ -49,7 +49,7 @@ module amrex_mlnodelap_2d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        ! residual
@@ -943,27 +943,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_interpolation_aa
-
-
-  subroutine amrex_mlndlap_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_rhcc')
-    integer, dimension(2) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2))
-    integer,          intent(in   ) :: msk (mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             rhs(i,j) = 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
-          else
-             rhs(i,j) = 0.d0
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_rhcc
 
 
   subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &

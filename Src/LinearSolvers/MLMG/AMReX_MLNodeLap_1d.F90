@@ -37,7 +37,7 @@ module amrex_mlnodelap_1d_module
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
-       amrex_mlndlap_divu, amrex_mlndlap_rhcc, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_divu, amrex_mlndlap_mknewu, &
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
        amrex_mlndlap_vel_cc_to_ct, amrex_mlndlap_mknewu_eb, &
@@ -287,15 +287,6 @@ contains
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
     integer, intent(in) :: msk(mlo(1):mhi(1))
   end subroutine amrex_mlndlap_divu
-
-
-  subroutine amrex_mlndlap_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_rhcc')
-    integer, dimension(1) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1))
-    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1))
-    integer,          intent(in   ) :: msk (mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_rhcc
 
 
   subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &

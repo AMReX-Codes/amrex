@@ -480,6 +480,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
             if (rhcc[ilev])
             {
                 Array4<Real> const& rhs_cc_a = rhs_cc[ilev]->array(mfi);
+                Array4<Real const> const& rhccarr = rhcc[ilev]->const_array(mfi);
 #ifdef AMREX_USE_EB
                 if (typ == FabType::singlevalued)
                 {
@@ -493,10 +494,10 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 else if (typ == FabType::regular)
 #endif
                 {
-                    amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD((*rhs_cc[ilev])[mfi]),
-                                       BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
-                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_rhcc(i, j, k, rhs_cc_a, rhccarr, dmskarr);
+                    });
                 }
 
                 if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
@@ -2036,10 +2037,12 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     rhcc_fab->setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
 
                     rhs2.resize(bx);
-                    amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(rhs2),
-                                       BL_TO_FORTRAN_ANYD(*rhcc_fab),
-                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                    Array4<Real> const& rhs2arr = rhs2.array();
+                    Array4<Real const> const& rhcc_fab_a = rhcc_fab->const_array();
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                    {
+                        mlndlap_rhcc(i,j,k,rhs2arr,rhcc_fab_a, dmskarr);
+                    });
                     rhs.plus(rhs2);
                 }
 
@@ -2158,10 +2161,13 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 rhcc_fab->copy((*rhcc)[mfi], ovlp3, 0, ovlp3, 0, 1);
 
                 rhs2.resize(bx);
-                amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
-                                   BL_TO_FORTRAN_ANYD(rhs2),
-                                   BL_TO_FORTRAN_ANYD(*rhcc_fab),
-                                   BL_TO_FORTRAN_ANYD(tmpmask));
+                Array4<Real> const& rhs2arr = rhs2.array();
+                Array4<Real const> const& rhcc_fab_a = rhcc_fab->const_array();
+                Array4<int const> const& tmpmaskarr = tmpmask.const_array();
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                {
+                    mlndlap_rhcc(i,j,k,rhs2arr,rhcc_fab_a,tmpmaskarr);
+                });
                 rhs.plus(rhs2);
             }
 
