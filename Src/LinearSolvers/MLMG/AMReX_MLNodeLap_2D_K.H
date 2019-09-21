@@ -3,6 +3,34 @@
 
 namespace amrex {
 
+//
+// masks
+//
+
+//
+// coeffs
+//
+
+//
+// bc
+//
+
+//
+// operator
+//
+
+//
+// restriction
+//
+
+//
+// interpolation
+//
+
+//
+// rhs & u
+//
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
                    Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -27,6 +55,24 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_rhcc (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& rhcc,
+                   Array4<int const> const& msk) noexcept
+{
+    if (msk(i,j,k)) {
+        rhs(i,j,k) = 0.0;
+    } else {
+        rhs(i,j,k) = 0.25 * (rhcc(i-1,j-1,k)+rhcc(i,j-1,k)+rhcc(i-1,j,k)+rhcc(i,j,k));
+    }
+}
+
+//
+// residual
+//
+
+//
+// sync residual
+//
 
 }
 #endif
