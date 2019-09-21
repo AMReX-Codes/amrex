@@ -62,11 +62,6 @@ extern "C" {
                                 const int* dlo, const int* dhi,
                                 const void* bclo, const void* bchi);
 
-    void amrex_mlndlap_impose_neumann_bc (const int* lo, const int* hi,
-                                          amrex_real* rhs, const int* rlo, const int* rhi,
-                                          const int* dlo, const int* dhi,
-                                          const void* bclo, const void* bchi);
-
     void amrex_mlndlap_adotx_ha (const int* lo, const int* hi,
                               amrex_real* y, const int* ylo, const int* yhi,
                               const amrex_real* x, const int* xlo, const int* xhi,
