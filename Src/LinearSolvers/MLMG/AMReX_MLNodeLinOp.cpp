@@ -90,7 +90,7 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
         Array4<Real> const& res = resid.array(mfi);
         Array4<Real const> const& bb = b.const_array(mfi);
         Array4<int const> const& dd = dmsk.const_array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             if (dd(i,j,k)) {
                 res(i,j,k,n) = 0.0;

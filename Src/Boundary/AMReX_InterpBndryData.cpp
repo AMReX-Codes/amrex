@@ -113,7 +113,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                 auto bnd_array = bnd_fab.array();
                 auto const src_array = src_fab.array();
                 const Box& b = src_fab.box() & bnd_fab.box();
-                AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( b, num_comp, i, j, k, n,
                 {
                     bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
                 });

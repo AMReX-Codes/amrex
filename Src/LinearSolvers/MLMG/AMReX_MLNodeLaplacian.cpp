@@ -1531,7 +1531,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
             Array4<Real> const& dfab = crhs.array(mfi);
             Array4<Real const> const& sfab = tmp_crhs.const_array(mfi);
             Array4<int const> const& mfab = c_nd_mask.const_array(mfi);
-            AMREX_HOST_DEVICE_FOR_3D ( bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
                 if (mfab(i,j,k) == fine_node) dfab(i,j,k) = sfab(i,j,k);
             });

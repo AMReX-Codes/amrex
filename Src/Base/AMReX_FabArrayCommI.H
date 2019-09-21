@@ -331,12 +331,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 auto const sfab = src.array(fai);
                 auto       dfab = this->array(fai);
 		if (op == FabArrayBase::COPY) {
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,dcomp+n) = sfab(i,j,k,scomp+n);
                     });
 		} else {
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,dcomp+n) += sfab(i,j,k,scomp+n);
                     });
@@ -732,7 +732,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
             const Box& bx = fai.growntilebox(nghost);
             auto const sfab = src.array(fai);
             auto       dfab = this->array(fai);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dcomp) = sfab(i,j,k,n+scomp);
             });

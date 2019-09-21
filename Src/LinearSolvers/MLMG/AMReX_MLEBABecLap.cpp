@@ -110,7 +110,7 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
                         for (const auto& is : isects)
                         {
                             const Box& b = is.second-iv;
-                            AMREX_HOST_DEVICE_FOR_3D ( b, i, j, k,
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( b, i, j, k,
                             {
                                 fab(i,j,k) = 1;
                             });
@@ -191,7 +191,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
         Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (FabType::regular == t or FabType::covered == t) {
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 phiout(i,j,k,n) = 0.0;
                 betaout(i,j,k,n) = 0.0;
@@ -200,7 +200,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
             Array4<Real const> const& phiin = phi.const_array(mfi);
             Array4<Real const> const& betain = beta.const_array(mfi);
             const auto& flag = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flag(i,j,k).isSingleValued()) {
                     phiout(i,j,k,n) = phiin(i,j,k,n);
@@ -246,19 +246,19 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
         Array4<Real> const& phifab = m_eb_phi[amrlev]->array(mfi);
         Array4<Real> const& betaout = m_eb_b_coeffs[amrlev][0]->array(mfi);
         FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             phifab(i,j,k,n) = 0.0;
         });
         if (FabType::regular == t or FabType::covered == t) {
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 betaout(i,j,k,n) = 0.0;
             });
         } else {
             Array4<Real const> const& betain = beta.const_array(mfi);
             const auto& flag = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flag(i,j,k).isSingleValued()) {
                     betaout(i,j,k,n) = betain(i,j,k,0);
@@ -441,7 +441,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
         if (fabtyp == FabType::covered) {
-            AMREX_HOST_DEVICE_FOR_4D( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
             {
                 yfab(i,j,k,n) = 0.0;
             });
@@ -583,7 +583,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
         if (fabtyp == FabType::covered)
         {
-            AMREX_HOST_DEVICE_FOR_4D ( vbx, nc, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
             {
                 solnfab(i,j,k,n) = 0.0;
             });
@@ -665,16 +665,16 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
 
     const auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
     if (fabtyp == FabType::covered) {
-        AMREX_HOST_DEVICE_FOR_4D(xbx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(xbx, ncomp, i, j, k, n,
         {
             fx(i,j,k,n) = 0.0;
         });
-        AMREX_HOST_DEVICE_FOR_4D(ybx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(ybx, ncomp, i, j, k, n,
         {
             fy(i,j,k,n) = 0.0;
         });
 #if (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_FOR_4D(zbx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(zbx, ncomp, i, j, k, n,
         {
             fz(i,j,k,n) = 0.0;
         });
@@ -791,31 +791,31 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                      const auto& gz = grad[2]->array(mfi););
         const auto& s = sol.const_array(mfi);
         if (fabtyp == FabType::covered) {
-            AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(fbx, ncomp, i, j, k, n,
             {
                 gx(i,j,k,n) = 0.0;
             });
-            AMREX_HOST_DEVICE_FOR_4D(fby, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(fby, ncomp, i, j, k, n,
             {
                 gy(i,j,k,n) = 0.0;
             });
 #if (AMREX_SPACEDIM == 3)
-            AMREX_HOST_DEVICE_FOR_4D(fbz, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(fbz, ncomp, i, j, k, n,
             {
                 gz(i,j,k,n) = 0.0;
             });
 #endif
         } else if(fabtyp == FabType::regular) {
-            AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( fbx, ncomp, i, j, k, n,
             {
                 gx(i,j,k,n) = dxi*(s(i,j,k,n) - s(i-1,j,k,n));
             });
-            AMREX_HOST_DEVICE_FOR_4D ( fby, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( fby, ncomp, i, j, k, n,
             {
                 gy(i,j,k,n) = dyi*(s(i,j,k,n) - s(i,j-1,k,n));
             });
 #if (AMREX_SPACEDIM == 3)
-            AMREX_HOST_DEVICE_FOR_4D ( fbz, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( fbz, ncomp, i, j, k, n,
             {
                 gz(i,j,k,n) = dzi*(s(i,j,k,n) - s(i,j,k-1,n));
             });
@@ -986,7 +986,7 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 
         if (fabtyp == FabType::regular)
         {
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 int ic = amrex::coarsen(i,2);
                 int jc = amrex::coarsen(j,2);
@@ -997,7 +997,7 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         else if (fabtyp == FabType::singlevalued)
         {
             Array4<EBCellFlag const> const& flg = flags->const_array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (!flg(i,j,k).isCovered()) {
                     int ic = amrex::coarsen(i,2);

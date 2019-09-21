@@ -1093,7 +1093,7 @@ MLMG::buildFineMask ()
             for (int ii = 0; ii < isects.size(); ++ii)
             {
                 Box const& b = isects[ii].second;
-                AMREX_HOST_DEVICE_FOR_3D ( b, i, j, k,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( b, i, j, k,
                 {
                     fab(i,j,k) = 0;
                 });
