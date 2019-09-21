@@ -2047,7 +2047,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 rhs.resize(bx);
 
                 Array4<Real> const& rhsarr = rhs.array();
-                Array4<Real const> const& uarr = u.array();
+                Array4<Real const> const& uarr = u.const_array();
                 Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
                 AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
@@ -2173,15 +2173,15 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
             rhs.resize(bx);
 
             Array4<Real> const& rhsarr = rhs.array();
-            Array4<Real const> const& uarr = u.array();
-            Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+            Array4<Real const> const& uarr = u.const_array();
+            Array4<int const> const& tmpmaskarr = tmpmask.const_array();
 
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
             {
 #if (AMREX_SPACEDIM == 2)
-                mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinvarr,is_rz);
+                mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinvarr,is_rz);
 #else
-                mlndlap_divu(i,j,k,rhsarr,uarr,dmskarr,dxinvarr);
+                mlndlap_divu(i,j,k,rhsarr,uarr,tmpmaskarr,dxinvarr);
 #endif
             });
 

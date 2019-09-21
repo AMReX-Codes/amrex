@@ -42,7 +42,7 @@ void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
 
     if (msk(i,j,k)) {
         rhs(i,j,k) = 0.0;
-    } else { 
+    } else {
         rhs(i,j,k) = facx*(-vel(i-1,j-1,k-1,0)+vel(i,j-1,k-1,0)
                            -vel(i-1,j  ,k-1,0)+vel(i,j  ,k-1,0)
                            -vel(i-1,j-1,k  ,0)+vel(i,j-1,k  ,0)
