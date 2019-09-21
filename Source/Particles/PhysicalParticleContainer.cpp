@@ -1446,7 +1446,6 @@ PhysicalParticleContainer::SplitParticles(int lev)
                 }
 #elif (AMREX_SPACEDIM==3)
                 if (split_type==0){
-                    Print()<<"split_type==0\n";
                     // Split particle in two along each diagonals
                     // 8 particles in 3d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
