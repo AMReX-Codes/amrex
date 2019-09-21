@@ -26,7 +26,7 @@ module amrex_mlnodelap_1d_module
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
-       amrex_mlndlap_applybc, amrex_mlndlap_impose_neumann_bc, &
+       amrex_mlndlap_applybc, &
        ! operator
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_normalize_ha, amrex_mlndlap_normalize_aa, &
@@ -132,13 +132,6 @@ contains
     integer, dimension(1) :: hlo, hhi, dlo, dhi, bclo, bchi
     real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1))
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_impose_neumann_bc (lo, hi, rhs, rlo, rhi, ndlo, ndhi, bclo, bchi) &
-       bind(c, name='amrex_mlndlap_impose_neumann_bc')
-    integer, dimension(1), intent(in) :: lo, hi, rlo, rhi, ndlo, ndhi, bclo, bchi
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
-  end subroutine amrex_mlndlap_impose_neumann_bc
 
 
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &

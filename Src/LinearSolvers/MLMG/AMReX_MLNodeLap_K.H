@@ -17,7 +17,32 @@ namespace {
     constexpr int fine_node = 2;
     constexpr double eps = 1.e-100;
 
-}}
+}
+
+inline void
+mlndlap_impose_neumann_bc (Box const& bx, Array4<Real> const& rhs, Box const& nddom,
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& lobc,
+                           Array<LinOpBCType,AMREX_SPACEDIM> const& hibc)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (lobc[idim] == LinOpBCType::Neumann or lobc[idim] == LinOpBCType::inflow) {
+            Box const& blo = amrex::bdryLo(bx, idim) & nddom;
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (blo, i, j, k,
+            {
+                rhs(i,j,k) *= 2.0;
+            });
+        }
+        if (hibc[idim] == LinOpBCType::Neumann or hibc[idim] == LinOpBCType::inflow) {
+            Box const& bhi = amrex::bdryHi(bx, idim) & nddom;
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bhi, i, j, k,
+            {
+                rhs(i,j,k) *= 2.0;
+            });
+        }
+    }
+}
+
+}
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_MLNodeLap_1D_K.H>
