@@ -215,6 +215,108 @@ void mlndlap_avgdown_coeff_z (int i, int j, int k, Array4<Real> const& crse,
 // operator
 //
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_adotx_ha (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
+                       Array4<Real const> const& sx, Array4<Real const> const& sy,
+                       Array4<Real const> const& sz, Array4<int const> const& msk,
+                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1./36.)*dxinv[0]*dxinv[0];
+    Real facy = (1./36.)*dxinv[1]*dxinv[1];
+    Real facz = (1./36.)*dxinv[2]*dxinv[2];
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            y(i,j,k) = 0.0;
+        } else {
+            y(i,j,k) = x(i,j,k)*(-4.0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)
+                                             +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+                                       +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)
+                                             +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+                                       +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)
+                                             +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+            y(i,j,k) += x(i-1,j-1,k-1)*(facx*sx(i-1,j-1,k-1)
+                                       +facy*sy(i-1,j-1,k-1)
+                                       +facz*sz(i-1,j-1,k-1))
+                      + x(i+1,j-1,k-1)*(facx*sx(i  ,j-1,k-1)
+                                       +facy*sy(i  ,j-1,k-1)
+                                       +facz*sz(i  ,j-1,k-1))
+                      + x(i-1,j+1,k-1)*(facx*sx(i-1,j  ,k-1)
+                                       +facy*sy(i-1,j  ,k-1)
+                                       +facz*sz(i-1,j  ,k-1))
+                      + x(i+1,j+1,k-1)*(facx*sx(i  ,j  ,k-1)
+                                       +facy*sy(i  ,j  ,k-1)
+                                       +facz*sz(i  ,j  ,k-1))
+                      + x(i-1,j-1,k+1)*(facx*sx(i-1,j-1,k  )
+                                       +facy*sy(i-1,j-1,k  )
+                                       +facz*sz(i-1,j-1,k  ))
+                      + x(i+1,j-1,k+1)*(facx*sx(i  ,j-1,k  )
+                                       +facy*sy(i  ,j-1,k  )
+                                       +facz*sz(i  ,j-1,k  ))
+                      + x(i-1,j+1,k+1)*(facx*sx(i-1,j  ,k  )
+                                       +facy*sy(i-1,j  ,k  )
+                                       +facz*sz(i-1,j  ,k  ))
+                      + x(i+1,j+1,k+1)*(facx*sx(i  ,j  ,k  )
+                                       +facy*sy(i  ,j  ,k  )
+                                       +facz*sz(i  ,j  ,k  ));
+            y(i,j,k) += x(i  ,j-1,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1))
+                                        +2.0*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1))
+                                        +2.0*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)))
+                      + x(i  ,j+1,k-1)*(    -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1))
+                                        +2.0*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1))
+                                        +2.0*facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)))
+                      + x(i  ,j-1,k+1)*(    -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  ))
+                                        +2.0*facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  ))
+                                        +2.0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )))
+                      + x(i  ,j+1,k+1)*(    -facx*(sx(i-1,j  ,k  )+sx(i,j  ,k  ))
+                                        +2.0*facy*(sy(i-1,j  ,k  )+sy(i,j  ,k  ))
+                                        +2.0*facz*(sz(i-1,j  ,k  )+sz(i,j  ,k  )))
+                      + x(i-1,j  ,k-1)*( 2.0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1))
+                                            -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1))
+                                        +2.0*facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)))
+                      + x(i+1,j  ,k-1)*( 2.0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1))
+                                            -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1))
+                                        +2.0*facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)))
+                      + x(i-1,j  ,k+1)*( 2.0*facx*(sx(i-1,j-1,k  )+sx(i-1,j,k  ))
+                                            -facy*(sy(i-1,j-1,k  )+sy(i-1,j,k  ))
+                                        +2.0*facz*(sz(i-1,j-1,k  )+sz(i-1,j,k  )))
+                      + x(i+1,j  ,k+1)*( 2.0*facx*(sx(i  ,j-1,k  )+sx(i  ,j,k  ))
+                                            -facy*(sy(i  ,j-1,k  )+sy(i  ,j,k  ))
+                                        +2.0*facz*(sz(i  ,j-1,k  )+sz(i  ,j,k  )))
+                      + x(i-1,j-1,k  )*( 2.0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j-1,k))
+                                        +2.0*facy*(sy(i-1,j-1,k-1)+sy(i-1,j-1,k))
+                                            -facz*(sz(i-1,j-1,k-1)+sz(i-1,j-1,k)))
+                      + x(i+1,j-1,k  )*( 2.0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j-1,k))
+                                        +2.0*facy*(sy(i  ,j-1,k-1)+sy(i  ,j-1,k))
+                                            -facz*(sz(i  ,j-1,k-1)+sz(i  ,j-1,k)))
+                      + x(i-1,j+1,k  )*( 2.0*facx*(sx(i-1,j  ,k-1)+sx(i-1,j  ,k))
+                                        +2.0*facy*(sy(i-1,j  ,k-1)+sy(i-1,j  ,k))
+                                            -facz*(sz(i-1,j  ,k-1)+sz(i-1,j  ,k)))
+                      + x(i+1,j+1,k  )*( 2.0*facx*(sx(i  ,j  ,k-1)+sx(i  ,j  ,k))
+                                        +2.0*facy*(sy(i  ,j  ,k-1)+sy(i  ,j  ,k))
+                                            -facz*(sz(i  ,j  ,k-1)+sz(i  ,j  ,k)));
+                y(i,j,k) += 2.0*x(i-1,j,k)*( 2.0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)+sx(i-1,j-1,k)+sx(i-1,j,k))
+                                                -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1)+sy(i-1,j-1,k)+sy(i-1,j,k))
+                                                -facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)+sz(i-1,j-1,k)+sz(i-1,j,k)))
+                          + 2.0*x(i+1,j,k)*( 2.0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1)+sx(i  ,j-1,k)+sx(i  ,j,k))
+                                                -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1)+sy(i  ,j-1,k)+sy(i  ,j,k))
+                                                -facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)+sz(i  ,j-1,k)+sz(i  ,j,k)))
+                          + 2.0*x(i,j-1,k)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j-1,k)+sx(i,j-1,k))
+                                            +2.0*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j-1,k)+sy(i,j-1,k))
+                                                -facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j-1,k)+sz(i,j-1,k)))
+                          + 2.0*x(i,j+1,k)*(    -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1)+sx(i-1,j  ,k)+sx(i,j  ,k))
+                                            +2.0*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1)+sy(i-1,j  ,k)+sy(i,j  ,k))
+                                                -facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)+sz(i-1,j  ,k)+sz(i,j  ,k)))
+                          + 2.0*x(i,j,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1))
+                                                -facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1))
+                                            +2.0*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1)))
+                          + 2.0*x(i,j,k+1)*(    -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  ))
+                                                -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  ))
+                                            +2.0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )));
+        }
+    });
+}
+
 //
 // restriction
 //

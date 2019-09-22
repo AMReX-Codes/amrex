@@ -150,6 +150,43 @@ void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
 // operator
 //
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_adotx_ha (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
+                       Array4<Real const> const& sx, Array4<Real const> const& sy,
+                       Array4<int const> const& msk, bool is_rz,
+                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1./6.)*dxinv[0]*dxinv[0];
+    Real facy = (1./6.)*dxinv[1]*dxinv[1];
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            y(i,j,k) = 0.0;
+        } else {
+            y(i,j,k) = x(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
+                   +   x(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
+                   +   x(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
+                   +   x(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
+                   +   x(i-1,j,k)*(2.0*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
+                                 -     facy*(sy(i-1,j-1,k)+sx(i-1,j,k)))
+                   +   x(i+1,j,k)*(2.0*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
+                                 -     facy*(sy(i  ,j-1,k)+sx(i  ,j,k)))
+                   +   x(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
+                                  +2.0*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
+                   +   x(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
+                                  +2.0*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
+                   +   x(i,j,k)*(-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
+                                       +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
+            if (is_rz) {
+                Real fp = facy / static_cast<Real>(2*i+1);
+                Real fm = facy / static_cast<Real>(2*i-1);
+                y(i,j,k) += (fm*sy(i-1,j  ,k)-fp*sy(i,j  ,k))*(x(i,j+1,k)-x(i,j,k))
+                          + (fm*sy(i-1,j-1,k)-fp*sy(i,j-1,k))*(x(i,j-1,k)-x(i,j,k));
+            }
+        }
+    });
+}
+
 //
 // restriction
 //

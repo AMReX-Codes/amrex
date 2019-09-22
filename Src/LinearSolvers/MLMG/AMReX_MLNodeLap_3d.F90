@@ -90,7 +90,7 @@ module amrex_mlnodelap_3d_module
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
-       amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
+       amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_normalize_ha, amrex_mlndlap_normalize_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
@@ -819,129 +819,6 @@ contains
     end if
 
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, sz, szlo, szhi, msk, mlo, mhi, &
-       dxinv, domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_adotx_ha')
-    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, &
-         sylo, syhi, szlo, szhi, mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
-    real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
-    real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3))
-    real(amrex_real), intent(in   ) :: sy(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3))
-    real(amrex_real), intent(in   ) :: sz(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3))
-    integer         , intent(in   ) ::msk( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
-
-    integer :: i,j,k
-    real(amrex_real) :: facx, facy, facz
-    
-    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
-    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (msk(i,j,k) .ne. dirichlet) then
-                y(i,j,k) = x(i,j,k)*(-4.d0)*(facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1) &
-                     &                            +sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
-                     &                      +facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1) &
-                     &                            +sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
-                     &                      +facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1) &
-                     &                            +sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )))
-                y(i,j,k) = y(i,j,k) &
-                     &   + x(i-1,j-1,k-1)*(facx*sx(i-1,j-1,k-1) &
-                     &                    +facy*sy(i-1,j-1,k-1) &
-                     &                    +facz*sz(i-1,j-1,k-1)) &
-                     &   + x(i+1,j-1,k-1)*(facx*sx(i  ,j-1,k-1) &
-                     &                    +facy*sy(i  ,j-1,k-1) &
-                     &                    +facz*sz(i  ,j-1,k-1)) &
-                     &   + x(i-1,j+1,k-1)*(facx*sx(i-1,j  ,k-1) &
-                     &                    +facy*sy(i-1,j  ,k-1) &
-                     &                    +facz*sz(i-1,j  ,k-1)) &
-                     &   + x(i+1,j+1,k-1)*(facx*sx(i  ,j  ,k-1) &
-                     &                    +facy*sy(i  ,j  ,k-1) &
-                     &                    +facz*sz(i  ,j  ,k-1)) &
-                     &   + x(i-1,j-1,k+1)*(facx*sx(i-1,j-1,k  ) &
-                     &                    +facy*sy(i-1,j-1,k  ) &
-                     &                    +facz*sz(i-1,j-1,k  )) &
-                     &   + x(i+1,j-1,k+1)*(facx*sx(i  ,j-1,k  ) &
-                     &                    +facy*sy(i  ,j-1,k  ) &
-                     &                    +facz*sz(i  ,j-1,k  )) &
-                     &   + x(i-1,j+1,k+1)*(facx*sx(i-1,j  ,k  ) &
-                     &                    +facy*sy(i-1,j  ,k  ) &
-                     &                    +facz*sz(i-1,j  ,k  )) &
-                     &   + x(i+1,j+1,k+1)*(facx*sx(i  ,j  ,k  ) &
-                     &                    +facy*sy(i  ,j  ,k  ) &
-                     &                    +facz*sz(i  ,j  ,k  ))
-                y(i,j,k) = y(i,j,k) &
-                     + x(i  ,j-1,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)) &
-                     &                +2.d0*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)) &
-                     &                +2.d0*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1))) &
-                     + x(i  ,j+1,k-1)*(    -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1)) &
-                     &                +2.d0*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1)) &
-                     &                +2.d0*facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1))) &
-                     + x(i  ,j-1,k+1)*(    -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )) &
-                     &                +2.d0*facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )) &
-                     &                +2.d0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  ))) &
-                     + x(i  ,j+1,k+1)*(    -facx*(sx(i-1,j  ,k  )+sx(i,j  ,k  )) &
-                     &                +2.d0*facy*(sy(i-1,j  ,k  )+sy(i,j  ,k  )) &
-                     &                +2.d0*facz*(sz(i-1,j  ,k  )+sz(i,j  ,k  ))) &
-                     !
-                     + x(i-1,j  ,k-1)*(2.d0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)) &
-                     &                     -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1)) &
-                     &                +2.d0*facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1))) &
-                     + x(i+1,j  ,k-1)*(2.d0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1)) &
-                     &                     -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1)) &
-                     &                +2.d0*facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1))) &
-                     + x(i-1,j  ,k+1)*(2.d0*facx*(sx(i-1,j-1,k  )+sx(i-1,j,k  )) &
-                     &                     -facy*(sy(i-1,j-1,k  )+sy(i-1,j,k  )) &
-                     &                +2.d0*facz*(sz(i-1,j-1,k  )+sz(i-1,j,k  ))) &
-                     + x(i+1,j  ,k+1)*(2.d0*facx*(sx(i  ,j-1,k  )+sx(i  ,j,k  )) &
-                     &                     -facy*(sy(i  ,j-1,k  )+sy(i  ,j,k  )) &
-                     &                +2.d0*facz*(sz(i  ,j-1,k  )+sz(i  ,j,k  ))) &
-                     !
-                     + x(i-1,j-1,k  )*(2.d0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j-1,k)) &
-                     &                +2.d0*facy*(sy(i-1,j-1,k-1)+sy(i-1,j-1,k)) &
-                     &                     -facz*(sz(i-1,j-1,k-1)+sz(i-1,j-1,k))) &
-                     + x(i+1,j-1,k  )*(2.d0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j-1,k)) &
-                     &                +2.d0*facy*(sy(i  ,j-1,k-1)+sy(i  ,j-1,k)) &
-                     &                     -facz*(sz(i  ,j-1,k-1)+sz(i  ,j-1,k))) &
-                     + x(i-1,j+1,k  )*(2.d0*facx*(sx(i-1,j  ,k-1)+sx(i-1,j  ,k)) &
-                     &                +2.d0*facy*(sy(i-1,j  ,k-1)+sy(i-1,j  ,k)) &
-                     &                     -facz*(sz(i-1,j  ,k-1)+sz(i-1,j  ,k))) &
-                     + x(i+1,j+1,k  )*(2.d0*facx*(sx(i  ,j  ,k-1)+sx(i  ,j  ,k)) &
-                     &                +2.d0*facy*(sy(i  ,j  ,k-1)+sy(i  ,j  ,k)) &
-                     &                     -facz*(sz(i  ,j  ,k-1)+sz(i  ,j  ,k)))
-                y(i,j,k) = y(i,j,k) &
-                     + 2.d0*x(i-1,j,k)*(2.d0*facx*(sx(i-1,j-1,k-1)+sx(i-1,j,k-1)+sx(i-1,j-1,k)+sx(i-1,j,k)) &
-                     &                      -facy*(sy(i-1,j-1,k-1)+sy(i-1,j,k-1)+sy(i-1,j-1,k)+sy(i-1,j,k)) &
-                     &                      -facz*(sz(i-1,j-1,k-1)+sz(i-1,j,k-1)+sz(i-1,j-1,k)+sz(i-1,j,k))) &
-                     + 2.d0*x(i+1,j,k)*(2.d0*facx*(sx(i  ,j-1,k-1)+sx(i  ,j,k-1)+sx(i  ,j-1,k)+sx(i  ,j,k)) &
-                     &                      -facy*(sy(i  ,j-1,k-1)+sy(i  ,j,k-1)+sy(i  ,j-1,k)+sy(i  ,j,k)) &
-                     &                      -facz*(sz(i  ,j-1,k-1)+sz(i  ,j,k-1)+sz(i  ,j-1,k)+sz(i  ,j,k))) &
-                     + 2.d0*x(i,j-1,k)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j-1,k)+sx(i,j-1,k)) &
-                     &                 +2.d0*facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j-1,k)+sy(i,j-1,k)) &
-                     &                      -facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j-1,k)+sz(i,j-1,k))) &
-                     + 2.d0*x(i,j+1,k)*(    -facx*(sx(i-1,j  ,k-1)+sx(i,j  ,k-1)+sx(i-1,j  ,k)+sx(i,j  ,k)) &
-                     &                 +2.d0*facy*(sy(i-1,j  ,k-1)+sy(i,j  ,k-1)+sy(i-1,j  ,k)+sy(i,j  ,k)) &
-                     &                      -facz*(sz(i-1,j  ,k-1)+sz(i,j  ,k-1)+sz(i-1,j  ,k)+sz(i,j  ,k))) &
-                     + 2.d0*x(i,j,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)) &
-                     &                      -facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)) &
-                     &                 +2.d0*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1))) &
-                     + 2.d0*x(i,j,k+1)*(    -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
-                     &                      -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
-                     &                 +2.d0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )))
-             else
-                y(i,j,k) = 0.d0
-             end if
-          end do
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_adotx_ha
 
 
   subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
