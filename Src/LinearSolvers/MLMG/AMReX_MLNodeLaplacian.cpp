@@ -1676,6 +1676,10 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     const auto& sigma = m_sigma[amrlev][mglev];
     const auto& stencil = m_stencil[amrlev][mglev];
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+#if (AMREX_SPACEDIM == 2)
+    bool is_rz = m_is_rz;
+#endif
 
     const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
@@ -1688,6 +1692,9 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         const Box& bx = mfi.tilebox();
         const FArrayBox& xfab = in[mfi];
         FArrayBox& yfab = out[mfi];
+        Array4<Real const> const& xarr = in.const_array(mfi);
+        Array4<Real> const& yarr = out.array(mfi);
+        Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
@@ -1699,19 +1706,18 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         }
         else if (m_use_harmonic_average && mglev > 0)
         {
-            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                         const FArrayBox& syfab = (*sigma[1])[mfi];,
-                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+            AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                         Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                         Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
 
-            amrex_mlndlap_adotx_ha(BL_TO_FORTRAN_BOX(bx),
-                                   BL_TO_FORTRAN_ANYD(yfab),
-                                   BL_TO_FORTRAN_ANYD(xfab),
-                                   AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                BL_TO_FORTRAN_ANYD(syfab),
-                                                BL_TO_FORTRAN_ANYD(szfab)),
-                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                   dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                   m_lobc[0].data(), m_hibc[0].data());
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_adotx_ha(tbx,yarr,xarr,AMREX_D_DECL(sxarr,syarr,szarr), dmskarr,
+#if (AMREX_SPACEDIM == 2)
+                                 is_rz,
+#endif
+                                 dxinvarr);
+            });
         }
         else
         {

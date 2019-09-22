@@ -26,7 +26,7 @@ module amrex_mlnodelap_1d_module
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
-       amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
+       amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_normalize_ha, amrex_mlndlap_normalize_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
@@ -88,19 +88,6 @@ contains
     integer, dimension(1) :: hlo, hhi, dlo, dhi, bclo, bchi
     real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1))
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sx, sxlo, sxhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_adotx_ha')
-    integer, dimension(1), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(1)
-    real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1))
-    real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1))
-    real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1))
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_adotx_ha
 
 
   subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
