@@ -7,6 +7,22 @@ namespace amrex {
 // masks
 //
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
+                             Array4<int const> const& cmsk) noexcept
+{
+    int s = cmsk(i-1,j-1,k) + cmsk(i  ,j-1,k)
+        +   cmsk(i-1,j  ,k) + cmsk(i  ,j  ,k);
+    if (s == 4*crse_cell) {
+        nmsk(i,j,k) = crse_node;
+    }
+    else if (s == 4*fine_cell) {
+        nmsk(i,j,k) = fine_node;
+    } else {
+        nmsk(i,j,k) = crse_fine_node;
+    }
+}
+
 //
 // coeffs
 //

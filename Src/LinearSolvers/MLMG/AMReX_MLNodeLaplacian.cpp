@@ -1080,14 +1080,17 @@ MLNodeLaplacian::buildMasks ()
         }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(nd_mask,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(nd_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_mlndlap_set_nodal_mask(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(nd_mask[mfi]),
-                                         BL_TO_FORTRAN_ANYD(cc_mask[mfi]));
+            Array4<int> const& nmsk = nd_mask.array(mfi);
+            Array4<int const> const& cmsk = cc_mask.const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+            {
+                mlndlap_set_nodal_mask(i,j,k,nmsk,cmsk);
+            });
         }
     }
 
