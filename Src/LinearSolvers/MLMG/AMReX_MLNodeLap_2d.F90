@@ -32,7 +32,7 @@ module amrex_mlnodelap_2d_module
   public :: &
        amrex_mlndlap_set_rz, &
        ! masks
-       amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
+       amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
@@ -76,24 +76,6 @@ contains
     integer, intent(in) :: rz
     is_rz = rz.ne.0
   end subroutine amrex_mlndlap_set_rz
-
-
-  subroutine amrex_mlndlap_fixup_res_mask (lo, hi, rmsk, rlo, rhi, fmsk, flo, fhi) &
-       bind(c,name='amrex_mlndlap_fixup_res_mask')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, flo, fhi
-    integer, intent(inout) :: rmsk(rlo(1):rhi(1),rlo(2):rhi(2))
-    integer, intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
-
-    integer :: i,j
-    
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (fmsk(i,j) .eq. crse_fine_node) then
-             rmsk(i,j) = 1
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_fixup_res_mask
 
 
   subroutine amrex_mlndlap_set_dot_mask (lo, hi, dmsk, dlo, dhi, omsk, olo, ohi, &

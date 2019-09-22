@@ -1359,21 +1359,22 @@ MLNodeLaplacian::buildStencil ()
 void
 MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     if (!m_masks_built) buildMasks();
 
     const iMultiFab& cfmask = *m_nd_fine_mask[amrlev];
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(resmsk,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(resmsk,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_fixup_res_mask(BL_TO_FORTRAN_BOX(bx),
-                                     BL_TO_FORTRAN_ANYD(resmsk[mfi]),
-                                     BL_TO_FORTRAN_ANYD(cfmask[mfi]));
+        Array4<int> const& rmsk = resmsk.array(mfi);
+        Array4<int const> const& fmsk = cfmask.const_array(mfi);
+        AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+        {
+            if (fmsk(i,j,k) == crse_fine_node) rmsk(i,j,k) = 1;
+        });
     }
 }
 
