@@ -9,6 +9,13 @@ void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
+                                 Array4<int const> const& omsk, Box const& dom,
+                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
                    Array4<int const> const& msk,
                    GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

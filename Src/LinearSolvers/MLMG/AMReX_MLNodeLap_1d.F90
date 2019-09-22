@@ -20,7 +20,6 @@ module amrex_mlnodelap_1d_module
   private
   public :: &
        ! masks
-       amrex_mlndlap_set_dirichlet_mask, &
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
@@ -61,14 +60,6 @@ module amrex_mlnodelap_1d_module
 #endif
 
 contains
-
-  subroutine amrex_mlndlap_set_dirichlet_mask (dmsk, dlo, dhi, omsk, olo, ohi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dirichlet_mask')
-    integer, dimension(1) :: dlo, dhi, olo, ohi, domlo, domhi, bclo, bchi
-    integer, intent(inout) :: dmsk(dlo(1):dhi(1))
-    integer, intent(in   ) :: omsk(olo(1):ohi(1))
-  end subroutine amrex_mlndlap_set_dirichlet_mask
-
 
   subroutine amrex_mlndlap_fixup_res_mask (lo, hi, rmsk, rlo, rhi, fmsk, flo, fhi) &
        bind(c,name='amrex_mlndlap_fixup_res_mask')
