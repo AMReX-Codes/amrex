@@ -84,7 +84,7 @@ module amrex_mlnodelap_3d_module
   private
   public :: &
        ! masks
-       amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
+       amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
@@ -122,26 +122,6 @@ module amrex_mlnodelap_3d_module
 #endif
 
 contains
-
-  subroutine amrex_mlndlap_fixup_res_mask (lo, hi, rmsk, rlo, rhi, fmsk, flo, fhi) &
-       bind(c,name='amrex_mlndlap_fixup_res_mask')
-    integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, flo, fhi
-    integer, intent(inout) :: rmsk(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
-    integer, intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-
-    integer :: i,j,k
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (fmsk(i,j,k) .eq. crse_fine_node) then
-                rmsk(i,j,k) = 1
-             end if
-          end do
-       end do
-    end do
-  end subroutine amrex_mlndlap_fixup_res_mask
-
 
   subroutine amrex_mlndlap_set_dot_mask (lo, hi, dmsk, dlo, dhi, omsk, olo, ohi, &
        domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dot_mask')
