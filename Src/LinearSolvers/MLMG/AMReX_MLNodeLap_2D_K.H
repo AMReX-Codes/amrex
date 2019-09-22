@@ -124,6 +124,24 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
 // coeffs
 //
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_avgdown_coeff_x (int i, int j, int k, Array4<Real> const& crse,
+                              Array4<Real const> const& fine) noexcept
+{
+    Real a = fine(2*i  ,2*j,k) + fine(2*i  ,2*j+1,k);
+    Real b = fine(2*i+1,2*j,k) + fine(2*i+1,2*j+1,k);
+    crse(i,j,k) = a*b/(a+b);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
+                              Array4<Real const> const& fine) noexcept
+{
+    Real a = fine(2*i,2*j  ,k) + fine(2*i+1,2*j  ,k);
+    Real b = fine(2*i,2*j+1,k) + fine(2*i+1,2*j+1,k);
+    crse(i,j,k) = a*b/(a+b);
+}
+
 //
 // bc
 //

@@ -22,7 +22,7 @@ module amrex_mlnodelap_1d_module
        ! masks
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
-       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
+       amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
@@ -67,15 +67,6 @@ contains
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1))
     integer, intent(in) :: fine_flag
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_avgdown_coeff (lo, hi, crse, clo, chi, fine, flo, fhi, idim) &
-       bind(c,name='amrex_mlndlap_avgdown_coeff')
-    integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi
-    integer, intent(in) :: idim
-    real(amrex_real), intent(inout) :: crse(clo(1):chi(1))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1))
-  end subroutine amrex_mlndlap_avgdown_coeff
 
 
   subroutine amrex_mlndlap_fillbc_cc (sigma, slo, shi, dlo, dhi, bclo, bchi) &

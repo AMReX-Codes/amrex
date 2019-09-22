@@ -891,8 +891,6 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 void
 MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     if (m_coarsening_strategy != CoarseningStrategy::Sigma) return;
 
     const int nsigma = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
@@ -913,15 +911,33 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
-                amrex_mlndlap_avgdown_coeff(BL_TO_FORTRAN_BOX(bx),
-                                            BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                            BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                            &idim);
+                Array4<Real> const& cfab = pcrse->array(mfi);
+                Array4<Real const> const& ffab = fine.const_array(mfi);
+                if (idim == 0) {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                    {
+                        mlndlap_avgdown_coeff_x(i,j,k,cfab,ffab);
+                    });
+                } else if (idim == 1) {
+#if (AMREX_SPACEDIM >= 2)
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                    {
+                        mlndlap_avgdown_coeff_y(i,j,k,cfab,ffab);
+                    });
+#endif
+                } else {
+#if (AMREX_SPACEDIM == 3)
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
+                    {
+                        mlndlap_avgdown_coeff_z(i,j,k,cfab,ffab);
+                    });
+#endif
+                }
             }
 
             if (need_parallel_copy) {
