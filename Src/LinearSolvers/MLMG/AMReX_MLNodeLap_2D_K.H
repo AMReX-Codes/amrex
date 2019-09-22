@@ -23,6 +23,51 @@ void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
+                                 Array4<int const> const& omsk, Box const& dom,
+                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                 Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        dmsk(i,j,0) = (omsk(i-1,j-1,0) == 1 or omsk(i,j-1,0) == 1 or
+                       omsk(i-1,j  ,0) == 1 or omsk(i,j  ,0) == 1);
+    }}
+
+    const auto domlo = amrex::lbound(dom);
+    const auto domhi = amrex::ubound(dom);
+
+    if (bclo[0] == LinOpBCType::Dirichlet and lo.x == domlo.x) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            dmsk(lo.x,j,0) = 1;
+        }
+    }
+
+    if (bchi[0] == LinOpBCType::Dirichlet and hi.x == domhi.x) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            dmsk(hi.x,j,0) = 1;
+        }
+    }
+
+    if (bclo[1] == LinOpBCType::Dirichlet and lo.y == domlo.y) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,lo.y,0) = 1;
+        }
+    }
+
+    if (bchi[1] == LinOpBCType::Dirichlet and hi.y == domhi.y) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,hi.y,0) = 1;
+        }
+    }
+}
+
 //
 // coeffs
 //

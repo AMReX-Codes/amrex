@@ -32,7 +32,6 @@ module amrex_mlnodelap_2d_module
   public :: &
        amrex_mlndlap_set_rz, &
        ! masks
-       amrex_mlndlap_set_dirichlet_mask, &
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
@@ -77,51 +76,6 @@ contains
     integer, intent(in) :: rz
     is_rz = rz.ne.0
   end subroutine amrex_mlndlap_set_rz
-
-
-  subroutine amrex_mlndlap_set_dirichlet_mask (dmsk, dlo, dhi, omsk, olo, ohi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dirichlet_mask')
-    integer, dimension(2) :: dlo, dhi, olo, ohi, domlo, domhi, bclo, bchi
-    integer, intent(inout) :: dmsk(dlo(1):dhi(1),dlo(2):dhi(2))
-    integer, intent(in   ) :: omsk(olo(1):ohi(1),olo(2):ohi(2))
-
-    integer :: i,j
-    
-    do j = dlo(2), dhi(2)
-       do i = dlo(1), dhi(1)
-          if (any(omsk(i-1:i,j-1:j).eq.1)) then
-             dmsk(i,j) = dirichlet
-          else
-             dmsk(i,j) = 0
-          end if
-       end do
-    end do
-
-    if (dlo(1) .eq. domlo(1)) then
-       if (bclo(1) .eq. amrex_lo_dirichlet) then
-          dmsk(dlo(1),:) = dirichlet
-       end if
-    end if
-
-    if (dhi(1) .eq. domhi(1)) then
-       if (bchi(1) .eq. amrex_lo_dirichlet) then
-          dmsk(dhi(1),:) = dirichlet
-       end if
-    end if
-
-    if (dlo(2) .eq. domlo(2)) then
-       if (bclo(2) .eq. amrex_lo_dirichlet) then
-          dmsk(:,dlo(2)) = dirichlet
-       end if
-    end if
-
-    if (dhi(2) .eq. domhi(2)) then
-       if (bchi(2) .eq. amrex_lo_dirichlet) then
-          dmsk(:,dhi(2)) = dirichlet
-       end if
-    end if
-    
-  end subroutine amrex_mlndlap_set_dirichlet_mask
 
 
   subroutine amrex_mlndlap_fixup_res_mask (lo, hi, rmsk, rlo, rhi, fmsk, flo, fhi) &

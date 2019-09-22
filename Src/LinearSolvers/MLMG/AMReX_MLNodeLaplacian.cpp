@@ -978,8 +978,11 @@ MLNodeLaplacian::buildMasks ()
         m_is_bottom_singular = m_domain_covered[0];
     }
 
+    const auto lobc = m_lobc[0];
+    const auto hibc = m_hibc[0];
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
@@ -1006,14 +1009,17 @@ MLNodeLaplacian::buildMasks ()
                     auto& dmask = *m_dirichlet_mask[amrlev][mglev];
                     const BoxArray& ccba = m_grids[amrlev][mglev];
 
-                    for (MFIter mfi(dmask, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+                    MFItInfo mfi_info;
+                    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+                    for (MFIter mfi(dmask, mfi_info); mfi.isValid(); ++mfi)
                     {
                         const Box& ndbx = mfi.validbox();
                         const Box& ccbx = amrex::enclosedCells(ndbx);
                         const Box& ccbxg1 = amrex::grow(ccbx,1);
-                        IArrayBox& mskfab = dmask[mfi];
-                        
+                        Array4<int> const& mskarr = dmask.array(mfi);
+
                         ccfab.resize(ccbxg1);
+                        Elixir cceli = ccfab.elixir();
                         ccfab.setVal(1);
                         ccfab.setComplement(2,ccdomain_p,0,1);
 
@@ -1025,11 +1031,14 @@ MLNodeLaplacian::buildMasks ()
                                 ccfab.setVal(0, is.second-iv, 0, 1);
                             }
                         }
-                        
-                        amrex_mlndlap_set_dirichlet_mask(BL_TO_FORTRAN_ANYD(mskfab),
-                                                         BL_TO_FORTRAN_ANYD(ccfab),
-                                                         BL_TO_FORTRAN_BOX(nddomain),
-                                                         m_lobc[0].data(), m_hibc[0].data());
+
+                        // todo: gpu.  Need to rethinking this.
+                        Array4<int const> const& ccarr = ccfab.const_array();
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( ndbx, tbx,
+                        {
+                            mlndlap_set_dirichlet_mask(tbx, mskarr, ccarr, nddomain,
+                                                       lobc, hibc);
+                        });
                     }
                 }
             }
