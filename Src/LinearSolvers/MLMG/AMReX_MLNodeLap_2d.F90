@@ -32,7 +32,6 @@ module amrex_mlnodelap_2d_module
   public :: &
        amrex_mlndlap_set_rz, &
        ! masks
-       amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
@@ -76,47 +75,6 @@ contains
     integer, intent(in) :: rz
     is_rz = rz.ne.0
   end subroutine amrex_mlndlap_set_rz
-
-
-  subroutine amrex_mlndlap_set_dot_mask (lo, hi, dmsk, dlo, dhi, omsk, olo, ohi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dot_mask')
-    integer, dimension(2), intent(in) :: lo, hi, dlo, dhi, olo, ohi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(inout) :: dmsk(dlo(1):dhi(1),dlo(2):dhi(2))
-    integer         , intent(in   ) :: omsk(olo(1):ohi(1),olo(2):ohi(2))
-
-    integer :: i,j
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          dmsk(i,j) = omsk(i,j)
-       end do
-    end do
-
-    if (lo(1) .eq. domlo(1)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          dmsk(lo(1),lo(2):hi(2)) = half*dmsk(lo(1),lo(2):hi(2))
-       end if
-    end if
-
-    if (hi(1) .eq. domhi(1)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          dmsk(hi(1),lo(2):hi(2)) = half*dmsk(hi(1),lo(2):hi(2))
-       end if
-    end if
-
-    if (lo(2) .eq. domlo(2)) then
-       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          dmsk(lo(1):hi(1),lo(2)) = half*dmsk(lo(1):hi(1),lo(2))
-       end if
-    end if
-
-    if (hi(2) .eq. domhi(2)) then
-       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          dmsk(lo(1):hi(1),hi(2)) = half*dmsk(lo(1):hi(1),hi(2))
-       end if
-    end if
-
-  end subroutine amrex_mlndlap_set_dot_mask
 
 
   function amrex_mlndlap_any_fine_sync_cells (lo, hi, msk, mlo, mhi, fine_flag) result(r) &

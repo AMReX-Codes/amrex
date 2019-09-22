@@ -20,7 +20,6 @@ module amrex_mlnodelap_1d_module
   private
   public :: &
        ! masks
-       amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
@@ -60,14 +59,6 @@ module amrex_mlnodelap_1d_module
 #endif
 
 contains
-
-  subroutine amrex_mlndlap_set_dot_mask (lo, hi, dmsk, dlo, dhi, omsk, olo, ohi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dot_mask')
-    integer, dimension(1), intent(in) :: lo, hi, dlo, dhi, olo, ohi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(inout) :: dmsk(dlo(1):dhi(1))
-    integer         , intent(in   ) :: omsk(olo(1):ohi(1))
-  end subroutine amrex_mlndlap_set_dot_mask
-
 
   function amrex_mlndlap_any_fine_sync_cells (lo, hi, msk, mlo, mhi, fine_flag) result(r) &
        bind(c,name='amrex_mlndlap_any_fine_sync_cells')
