@@ -68,6 +68,58 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
+                           Array4<int const> const& omsk, Box const& dom,
+                           Array<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                           Array<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
+{
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        dmsk(i,j,0) = static_cast<Real>(omsk(i,j,0));
+    }}
+
+    const auto domlo = amrex::lbound(dom);
+    const auto domhi = amrex::ubound(dom);
+
+    if ((bclo[0] == LinOpBCType::Neumann or bclo[0] == LinOpBCType::inflow)
+        and lo.x == domlo.x)
+    {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            dmsk(lo.x,j,0) *= 0.5;
+        }
+    }
+
+    if ((bchi[0] == LinOpBCType::Neumann or bchi[0] == LinOpBCType::inflow)
+        and hi.x == domhi.x)
+    {
+        for (int j = lo.y; j <= hi.y; ++j) {
+            dmsk(hi.x,j,0) *= 0.5;
+        }
+    }
+
+    if ((bclo[1] == LinOpBCType::Neumann or bclo[1] == LinOpBCType::inflow)
+        and lo.y == domlo.y)
+    {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,lo.y,0) *= 0.5;
+        }
+    }
+
+    if ((bchi[1] == LinOpBCType::Neumann or bchi[1] == LinOpBCType::inflow)
+        and hi.y == domhi.y)
+    {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            dmsk(i,hi.y,0) *= 0.5;
+        }
+    }
+}
+
 //
 // coeffs
 //

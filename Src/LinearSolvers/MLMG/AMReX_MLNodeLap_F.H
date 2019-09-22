@@ -22,12 +22,6 @@ extern "C" {
     void amrex_mlndlap_set_rz (const int* rz);
 #endif
 
-    void amrex_mlndlap_set_dot_mask (const int* lo, const int* hi,
-                                     amrex_real* dmsk, const int* dlo, const int* dhi,
-                                     const int* omsk, const int* olo, const int* ohi,
-                                     const int* domlo, const int* domhi,
-                                     const void* bclo, const void* bchi);
-
     int amrex_mlndlap_any_fine_sync_cells (const int* lo, const int* hi,
                                            const int* msk, const int* mlo, const int* mhi,
                                            const int* fine_flag);

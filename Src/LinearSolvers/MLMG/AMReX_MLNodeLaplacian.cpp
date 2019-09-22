@@ -1125,19 +1125,21 @@ MLNodeLaplacian::buildMasks ()
             nddomain.grow(1000); // hack to avoid masks being modified at Neuman boundary
         }
 
+        const auto lobc = m_lobc[0];
+        const auto hibc = m_hibc[0];
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(m_bottom_dot_mask,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(m_bottom_dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            auto& dfab = m_bottom_dot_mask[mfi];
-            const auto& sfab = omask[mfi];
-            amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(dfab),
-                                       BL_TO_FORTRAN_ANYD(sfab),
-                                       BL_TO_FORTRAN_BOX(nddomain),
-                                       m_lobc[0].data(), m_hibc[0].data());
+            Array4<Real> const& dfab = m_bottom_dot_mask.array(mfi);
+            Array4<int const> const& sfab = omask.const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
+            });
         }
     }
 
@@ -1156,18 +1158,17 @@ MLNodeLaplacian::buildMasks ()
         }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(m_coarse_dot_mask,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(m_coarse_dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            auto& dfab = m_coarse_dot_mask[mfi];
-            const auto& sfab = omask[mfi];
-            amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(dfab),
-                                       BL_TO_FORTRAN_ANYD(sfab),
-                                       BL_TO_FORTRAN_BOX(nddomain),
-                                       m_lobc[0].data(), m_hibc[0].data());
+            Array4<Real> const& dfab = m_coarse_dot_mask.array(mfi);
+            Array4<int const> const& sfab = omask.const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_set_dot_mask(tbx, dfab, sfab, nddomain, lobc, hibc);
+            });
         }
     }
 }
