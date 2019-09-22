@@ -38,7 +38,6 @@ module amrex_mlnodelap_2d_module
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
-       amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_normalize_ha, amrex_mlndlap_normalize_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
@@ -293,53 +292,6 @@ contains
     end if
 
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sig, slo, shi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_adotx_aa')
-    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
-    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
-
-    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-    fxy = facx + facy
-    f2xmy = 2.d0*facx - facy
-    fmx2y = 2.d0*facy - facx
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             y(i,j) = x(i-1,j-1)*fxy*sig(i-1,j-1) &
-                  +   x(i+1,j-1)*fxy*sig(i  ,j-1) &
-                  +   x(i-1,j+1)*fxy*sig(i-1,j  ) &
-                  +   x(i+1,j+1)*fxy*sig(i  ,j  ) &
-                  +   x(i-1,j)*f2xmy*(sig(i-1,j-1)+sig(i-1,j)) &
-                  +   x(i+1,j)*f2xmy*(sig(i  ,j-1)+sig(i  ,j)) &
-                  +   x(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
-                  +   x(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
-                  +   x(i,j)*(-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
-             if (is_rz) then
-                fp = facy / (2*i+1)
-                fm = facy / (2*i-1)
-                y(i,j) = y(i,j) + (fm*sig(i-1,j  )-fp*sig(i,j  ))*(x(i,j+1)-x(i,j)) &
-                     &          + (fm*sig(i-1,j-1)-fp*sig(i,j-1))*(x(i,j-1)-x(i,j))
-             end if
-          else
-             y(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_adotx_aa
 
 
   subroutine amrex_mlndlap_normalize_ha (lo, hi, x, xlo, xhi, &

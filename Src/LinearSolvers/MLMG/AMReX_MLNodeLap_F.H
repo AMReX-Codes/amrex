@@ -38,14 +38,6 @@ extern "C" {
                                 const int* dlo, const int* dhi,
                                 const void* bclo, const void* bchi);
 
-    void amrex_mlndlap_adotx_aa (const int* lo, const int* hi,
-                              amrex_real* y, const int* ylo, const int* yhi,
-                              const amrex_real* x, const int* xlo, const int* xhi,
-                              const amrex_real* sig, const int* slo, const int* shi,
-                              const int* dmsk, const int* dmlo, const int* dmhi,
-                              const amrex_real* dxinv, const int* domlo, const int* domhi,
-                              const void* bclo, const void* bchi);
-
     void amrex_mlndlap_normalize_ha (const int* lo, const int* hi,
                                      amrex_real* x, const int* xlo, const int* xhi,
                                      const amrex_real* sx, const int* sxlo, const int* sxhi,
