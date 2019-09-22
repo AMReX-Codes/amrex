@@ -32,7 +32,7 @@ module amrex_mlnodelap_2d_module
   public :: &
        amrex_mlndlap_set_rz, &
        ! masks
-       amrex_mlndlap_set_nodal_mask, amrex_mlndlap_set_dirichlet_mask, &
+       amrex_mlndlap_set_dirichlet_mask, &
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
@@ -77,26 +77,6 @@ contains
     integer, intent(in) :: rz
     is_rz = rz.ne.0
   end subroutine amrex_mlndlap_set_rz
-
-
-  subroutine amrex_mlndlap_set_nodal_mask (lo, hi, nmsk, nlo, nhi, cmsk, clo, chi) &
-       bind(c,name='amrex_mlndlap_set_nodal_mask')
-    integer, dimension(2), intent(in) :: lo, hi, nlo, nhi, clo, chi
-    integer, intent(inout) :: nmsk(nlo(1):nhi(1),nlo(2):nhi(2))
-    integer, intent(in   ) :: cmsk(clo(1):chi(1),clo(2):chi(2))
-    integer :: i,j
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (all(cmsk(i-1:i,j-1:j) .eq. crse_cell)) then
-             nmsk(i,j) = crse_node
-          else if (all(cmsk(i-1:i,j-1:j) .eq. fine_cell)) then
-             nmsk(i,j) = fine_node
-          else
-             nmsk(i,j) = crse_fine_node
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_nodal_mask
 
 
   subroutine amrex_mlndlap_set_dirichlet_mask (dmsk, dlo, dhi, omsk, olo, ohi, &

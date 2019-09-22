@@ -20,7 +20,7 @@ module amrex_mlnodelap_1d_module
   private
   public :: &
        ! masks
-       amrex_mlndlap_set_nodal_mask, amrex_mlndlap_set_dirichlet_mask, &
+       amrex_mlndlap_set_dirichlet_mask, &
        amrex_mlndlap_fixup_res_mask, amrex_mlndlap_set_dot_mask, &
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
@@ -61,14 +61,6 @@ module amrex_mlnodelap_1d_module
 #endif
 
 contains
-
-  subroutine amrex_mlndlap_set_nodal_mask (lo, hi, nmsk, nlo, nhi, cmsk, clo, chi) &
-       bind(c,name='amrex_mlndlap_set_nodal_mask')
-    integer, dimension(1), intent(in) :: lo, hi, nlo, nhi, clo, chi
-    integer, intent(inout) :: nmsk(nlo(1):nhi(1))
-    integer, intent(in   ) :: cmsk(clo(1):chi(1))
-  end subroutine amrex_mlndlap_set_nodal_mask
-
 
   subroutine amrex_mlndlap_set_dirichlet_mask (dmsk, dlo, dhi, omsk, olo, ohi, &
        domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dirichlet_mask')

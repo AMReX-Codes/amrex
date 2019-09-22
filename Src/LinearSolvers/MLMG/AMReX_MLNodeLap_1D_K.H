@@ -4,6 +4,11 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_nodal_mask (int i, int j, int k, Array4<int> const& nmsk,
+                             Array4<int const> const& cmsk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
                    Array4<int const> const& msk,
                    GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

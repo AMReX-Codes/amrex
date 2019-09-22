@@ -22,10 +22,6 @@ extern "C" {
     void amrex_mlndlap_set_rz (const int* rz);
 #endif
 
-    void amrex_mlndlap_set_nodal_mask (const int* lo, const int* hi,
-                                       int* nmsk, const int* nlo, const int* nhi,
-                                       const int* cmsk, const int* clo, const int* chi);
-
     void amrex_mlndlap_set_dirichlet_mask (int* dmsk, const int* dlo, const int* dhi,
                                            const int* omsk, const int* olo, const int* ohi,
                                            const int* domlo, const int* domhi,
