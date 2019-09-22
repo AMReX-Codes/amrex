@@ -1721,15 +1721,16 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
         }
         else
         {
-            const FArrayBox& sfab = (*sigma[0])[mfi];
+            Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
 
-            amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
-                                   BL_TO_FORTRAN_ANYD(yfab),
-                                   BL_TO_FORTRAN_ANYD(xfab),
-                                   BL_TO_FORTRAN_ANYD(sfab),
-                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                   dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                   m_lobc[0].data(), m_hibc[0].data());
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_adotx_aa(tbx,yarr,xarr,sarr,dmskarr,
+#if (AMREX_SPACEDIM == 2)
+                                 is_rz,
+#endif
+                                 dxinvarr);
+            });
         }
     }
 }
@@ -2121,13 +2122,17 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 sigma.copy(sigma_orig[mfi], ibx, 0, ibx, 0, 1);
                 sigma.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
 
-                amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
-                                       BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                       BL_TO_FORTRAN_ANYD(sigma),
-                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                       dxinv, BL_TO_FORTRAN_BOX(nddom),
-                                       m_lobc[0].data(), m_hibc[0].data());
+                Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
+                Array4<Real const> const& phiarr = phi.const_array(mfi);
+                Array4<Real const> const& sigmaarr = sigma.const_array();
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mlndlap_adotx_aa(tbx, sync_resid_a, phiarr, sigmaarr, dmskarr,
+#if (AMREX_SPACEDIM == 2)
+                                     is_rz,
+#endif
+                                     dxinvarr);
+                });
 
                 amrex_mlndlap_crse_resid(BL_TO_FORTRAN_BOX(bx),
                                          BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
@@ -2248,13 +2253,17 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
             sync_resid[mfi].setVal(0.0, gbx, 0, 1);
 
-            amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
-                                   BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
-                                   BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                   BL_TO_FORTRAN_ANYD(*sigma),
-                                   BL_TO_FORTRAN_ANYD(tmpmask),
-                                   dxinv, BL_TO_FORTRAN_BOX(nddom),
-                                   m_lobc[0].data(), m_hibc[0].data());
+            Array4<Real> const& sync_resid_a = sync_resid.array(mfi);
+            Array4<Real const> const& phiarr = phi.const_array(mfi);
+            Array4<Real const> const& sigmaarr = sigma->const_array();
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_adotx_aa(tbx, sync_resid_a, phiarr, sigmaarr, tmpmaskarr,
+#if (AMREX_SPACEDIM == 2)
+                                 is_rz,
+#endif
+                                 dxinvarr);
+            });
 
             sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
 
