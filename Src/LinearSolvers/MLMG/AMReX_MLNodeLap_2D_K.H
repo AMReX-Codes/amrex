@@ -299,6 +299,97 @@ void mlndlap_jacobi_aa (Box const& bx, Array4<Real> const& sol, Array4<Real cons
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_ha (Box const& bx, Array4<Real> const& sol,
+                              Array4<Real const> const& rhs, Array4<Real const> const& sx,
+                              Array4<Real const> const& sy, Array4<int const> const& msk,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              bool is_rz) noexcept
+{
+    Real facx = (1.0/6.0)*dxinv[0]*dxinv[0];
+    Real facy = (1.0/6.0)*dxinv[1]*dxinv[1];
+
+    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else {
+            Real s0 = (-2.0)*(facx*(sx(i-1,j-1,k)+sx(i,j-1,k)+sx(i-1,j,k)+sx(i,j,k))
+                             +facy*(sy(i-1,j-1,k)+sy(i,j-1,k)+sy(i-1,j,k)+sy(i,j,k)));
+
+            Real Ax = sol(i-1,j-1,k)*(facx*sx(i-1,j-1,k)+facy*sy(i-1,j-1,k))
+                    + sol(i+1,j-1,k)*(facx*sx(i  ,j-1,k)+facy*sy(i  ,j-1,k))
+                    + sol(i-1,j+1,k)*(facx*sx(i-1,j  ,k)+facy*sy(i-1,j  ,k))
+                    + sol(i+1,j+1,k)*(facx*sx(i  ,j  ,k)+facy*sy(i  ,j  ,k))
+                    + sol(i-1,j,k)*(2.0*facx*(sx(i-1,j-1,k)+sx(i-1,j,k))
+                                  -     facy*(sy(i-1,j-1,k)+sx(i-1,j,k)))
+                    + sol(i+1,j,k)*(2.0*facx*(sx(i  ,j-1,k)+sx(i  ,j,k))
+                                  -     facy*(sy(i  ,j-1,k)+sx(i  ,j,k)))
+                    + sol(i,j-1,k)*(   -facx*(sx(i-1,j-1,k)+sx(i,j-1,k))
+                                   +2.0*facy*(sy(i-1,j-1,k)+sy(i,j-1,k)))
+                    + sol(i,j+1,k)*(   -facx*(sx(i-1,j  ,k)+sx(i,j  ,k))
+                                   +2.0*facy*(sy(i-1,j  ,k)+sy(i,j  ,k)))
+                    + sol(i,j,k)*s0;
+
+            if (is_rz) {
+                Real fp = facy / static_cast<Real>(2*i+1);
+                Real fm = facy / static_cast<Real>(2*i-1);
+                Real frzlo = fm*sy(i-1,j-1,k)-fp*sy(i,j-1,k);
+                Real frzhi = fm*sy(i-1,j  ,k)-fp*sy(i,j  ,k);
+                s0 += - frzhi - frzlo;
+                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
+            }
+
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        }
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
+                              Array4<Real const> const& rhs, Array4<Real const> const& sig,
+                              Array4<int const> const& msk,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                              bool is_rz) noexcept
+{
+    Real facx = (1.0/6.0)*dxinv[0]*dxinv[0];
+    Real facy = (1.0/6.0)*dxinv[1]*dxinv[1];
+    Real fxy = facx + facy;
+    Real f2xmy = 2.0*facx - facy;
+    Real fmx2y = 2.0*facy - facx;
+
+    amrex::Loop(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else {
+            Real s0 = (-2.0)*fxy*(sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
+            Real Ax =   sol(i-1,j-1,k)*fxy*sig(i-1,j-1,k)
+                      + sol(i+1,j-1,k)*fxy*sig(i  ,j-1,k)
+                      + sol(i-1,j+1,k)*fxy*sig(i-1,j  ,k)
+                      + sol(i+1,j+1,k)*fxy*sig(i  ,j  ,k)
+                      + sol(i-1,j,k)*f2xmy*(sig(i-1,j-1,k)+sig(i-1,j,k))
+                      + sol(i+1,j,k)*f2xmy*(sig(i  ,j-1,k)+sig(i  ,j,k))
+                      + sol(i,j-1,k)*fmx2y*(sig(i-1,j-1,k)+sig(i,j-1,k))
+                      + sol(i,j+1,k)*fmx2y*(sig(i-1,j  ,k)+sig(i,j  ,k))
+                      + sol(i,j,k)*s0;
+
+            if (is_rz) {
+                Real fp = facy / static_cast<Real>(2*i+1);
+                Real fm = facy / static_cast<Real>(2*i-1);
+                Real frzlo = fm*sig(i-1,j-1,k)-fp*sig(i,j-1,k);
+                Real frzhi = fm*sig(i-1,j  ,k)-fp*sig(i,j  ,k);
+                s0 += - frzhi - frzlo;
+                Ax += frzhi*(sol(i,j+1,k)-sol(i,j,k))
+                    + frzlo*(sol(i,j-1,k)-sol(i,j,k));
+            }
+
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / s0;
+        }
+    });
+}
+
 //
 // restriction
 //

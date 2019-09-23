@@ -1747,6 +1747,9 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
     const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
+#if (AMREX_SPACEDIM == 2)
+    bool is_rz = m_is_rz;
+#endif
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
@@ -1770,43 +1773,52 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         else if (m_use_harmonic_average && mglev > 0)
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(sol); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                             const FArrayBox& syfab = (*sigma[1])[mfi];,
-                             const FArrayBox& szfab = (*sigma[2])[mfi];);
+                AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                             Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                             Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
+                Array4<Real> const& solarr = sol.array(mfi);
+                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                amrex_mlndlap_gauss_seidel_ha(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                           BL_TO_FORTRAN_ANYD(syfab),
-                                                           BL_TO_FORTRAN_ANYD(szfab)),
-                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                              m_lobc[0].data(), m_hibc[0].data());
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mlndlap_gauss_seidel_ha(tbx, solarr, rhsarr,
+                                            AMREX_D_DECL(sxarr,syarr,szarr),
+                                            dmskarr, dxinvarr
+#if (AMREX_SPACEDIM == 2)
+                                            ,is_rz
+#endif
+                        );
+                });
             }
         }
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(sol); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                const FArrayBox& sfab = (*sigma[0])[mfi];
+                Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+                Array4<Real> const& solarr = sol.array(mfi);
+                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                amrex_mlndlap_gauss_seidel_aa(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                              BL_TO_FORTRAN_ANYD(sfab),
-                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                              m_lobc[0].data(), m_hibc[0].data());
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mlndlap_gauss_seidel_aa(tbx, solarr, rhsarr,
+                                            sarr, dmskarr, dxinvarr
+#if (AMREX_SPACEDIM == 2)
+                                            ,is_rz
+#endif
+                        );
+                });
             }
         }
 

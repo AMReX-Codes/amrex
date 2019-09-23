@@ -38,7 +38,6 @@ module amrex_mlnodelap_2d_module
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
-       amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
        ! restriction
        amrex_mlndlap_restriction, &
        ! interpolation
@@ -290,118 +289,6 @@ contains
     end if
 
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_gauss_seidel_ha (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_gauss_seidel_ha')
-    integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
-    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1),sxlo(2):sxhi(2))
-    real(amrex_real), intent(in   ) :: sy (sylo(1):syhi(1),sylo(2):syhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, s0, fp, fm, frzlo, frzhi
-
-    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             s0 = (-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
-                  &       +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
-
-             Ax =   sol(i-1,j-1)*(facx*sx(i-1,j-1)+facy*sy(i-1,j-1)) &
-                  + sol(i+1,j-1)*(facx*sx(i  ,j-1)+facy*sy(i  ,j-1)) &
-                  + sol(i-1,j+1)*(facx*sx(i-1,j  )+facy*sy(i-1,j  )) &
-                  + sol(i+1,j+1)*(facx*sx(i  ,j  )+facy*sy(i  ,j  )) &
-                  + sol(i-1,j)*(2.d0*facx*(sx(i-1,j-1)+sx(i-1,j)) &
-                  &            -     facy*(sy(i-1,j-1)+sx(i-1,j))) &
-                  + sol(i+1,j)*(2.d0*facx*(sx(i  ,j-1)+sx(i  ,j)) &
-                  &            -     facy*(sy(i  ,j-1)+sx(i  ,j))) &
-                  + sol(i,j-1)*(    -facx*(sx(i-1,j-1)+sx(i,j-1)) &
-                  &            +2.d0*facy*(sy(i-1,j-1)+sy(i,j-1))) &
-                  + sol(i,j+1)*(    -facx*(sx(i-1,j  )+sx(i,j  )) &
-                  &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
-                  + sol(i,j)*s0
-
-             if (is_rz) then
-                fp = facy / (2*i+1)
-                fm = facy / (2*i-1)
-                frzlo = fm*sy(i-1,j-1)-fp*sy(i,j-1)
-                frzhi = fm*sy(i-1,j  )-fp*sy(i,j  )
-                s0 = s0 - frzhi - frzlo
-                Ax = Ax + frzhi*(sol(i,j+1)-sol(i,j)) &
-                     &  + frzlo*(sol(i,j-1)-sol(i,j))
-             end if
-
-             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
-          else
-             sol(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_gauss_seidel_ha
-
-
-  subroutine amrex_mlndlap_gauss_seidel_aa (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
-       sig, sglo, sghi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_gauss_seidel_aa')
-    integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,sglo,sghi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
-    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: sig(sglo(1):sghi(1),sglo(2):sghi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, fxy, f2xmy, fmx2y, s0, fp, fm, frzlo, frzhi
-
-    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-    fxy = facx + facy
-    f2xmy = 2.d0*facx - facy
-    fmx2y = 2.d0*facy - facx
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             s0 = (-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
-             Ax =   sol(i-1,j-1)*fxy*sig(i-1,j-1) &
-                  + sol(i+1,j-1)*fxy*sig(i  ,j-1) &
-                  + sol(i-1,j+1)*fxy*sig(i-1,j  ) &
-                  + sol(i+1,j+1)*fxy*sig(i  ,j  ) &
-                  + sol(i-1,j)*f2xmy*(sig(i-1,j-1)+sig(i-1,j)) &
-                  + sol(i+1,j)*f2xmy*(sig(i  ,j-1)+sig(i  ,j)) &
-                  + sol(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
-                  + sol(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
-                  + sol(i,j)*s0
-
-             if (is_rz) then
-                fp = facy / (2*i+1)
-                fm = facy / (2*i-1)
-                frzlo = fm*sig(i-1,j-1)-fp*sig(i,j-1)
-                frzhi = fm*sig(i-1,j  )-fp*sig(i,j  )
-                s0 = s0 - frzhi - frzlo
-                Ax = Ax + frzhi*(sol(i,j+1)-sol(i,j)) &
-                     &  + frzlo*(sol(i,j-1)-sol(i,j))
-             end if
-
-             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
-          else
-             sol(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_gauss_seidel_aa
 
 
   subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi) &
