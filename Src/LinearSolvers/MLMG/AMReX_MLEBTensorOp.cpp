@@ -152,9 +152,8 @@ MLEBTensorOp::prepareForSolve ()
     for (int amrlev = 0; amrlev < NAMRLevels(); ++amrlev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             int icomp = idim;
-            // MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
-            //                m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
-	    m_b_coeffs[amrlev][0][idim].mult(2.,icomp,1,0);
+            MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
+                           m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
         }
     }
 
@@ -738,19 +737,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
         if (fabtyp == FabType::covered) continue;
 
-
-	// //FIXME: This only computes uniform cell face fluxes. It does NOT include
-	// //       the EB wall flux!
-	// for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	//   const Box& nbx = mfi.nodaltilebox(idim);
-	//   Array4<Real      > dst = fluxes[idim]->array(mfi);
-	//   Array4<Real const> src = fluxmf[idim].array(mfi);
-	//   AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
-	//   {
-	//     dst(i,j,k,n) += bscalar*src(i,j,k,n);
-	//   });
-	// }
-	
         if (fabtyp == FabType::regular)
         {
 	    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -765,32 +751,12 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
         }
         else
         {
-	  AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
-		       Array4<Real> const fyfab = fluxmf[1].array(mfi);,
-		       Array4<Real> const fzfab = fluxmf[2].array(mfi););
-	  AMREX_D_TERM(Array4<Real> const axfab = fluxes[0]->array(mfi);,
-		       Array4<Real> const ayfab = fluxes[1]->array(mfi);,
-		       Array4<Real> const azfab = fluxes[2]->array(mfi););
-
-	    // // will eventually need a temporary when computing cut cell fluxes
-	    // // cut cell flux result depends on flux val in other cells
-	    // // axfab[0] = fx(i,j,k,0)
-	    // // axfab[1] = fy(i,j,k,1)
-            // AMREX_D_TERM(Box const xbx = mfi.nodaltilebox(0);,
-            //              Box const ybx = mfi.nodaltilebox(1);,
-            //              Box const zbx = mfi.nodaltilebox(2););
-            // AMREX_D_TERM(FArrayBox axfab(xbx,AMREX_SPACEDIM);,
-            //              FArrayBox ayfab(ybx,AMREX_SPACEDIM);,
-            //              FArrayBox azfab(zbx,AMREX_SPACEDIM););
-	    // //fixme set to ridiculous val for debugging
-	    // AMREX_D_TERM(axfab.setVal(1.2345e20);
-	    // 		 ayfab.setVal(1.2345e20);
-	    // 		 azfab.setVal(1.2345e20););
-	    // // only using one comp of each I think...
-	    // AMREX_D_TERM(axfab.copy(xbx,0,0,1);
-	    // 		 ayfab.copy(ybx,1,1,1);
-	    // 		 azfab.copy(zbx,2,2,1););
-	    
+	    AMREX_D_TERM(Array4<Real> const fxfab = fluxmf[0].array(mfi);,
+			 Array4<Real> const fyfab = fluxmf[1].array(mfi);,
+			 Array4<Real> const fzfab = fluxmf[2].array(mfi););
+	    AMREX_D_TERM(Array4<Real> const axfab = fluxes[0]->array(mfi);,
+			 Array4<Real> const ayfab = fluxes[1]->array(mfi);,
+			 Array4<Real> const azfab = fluxes[2]->array(mfi););
             Array4<Real const> const& vfab = sol.array(mfi);
             Array4<Real const> const& etab = etaebmf.array(mfi);
             Array4<Real const> const& kapb = kapebmf.array(mfi);
@@ -818,16 +784,6 @@ MLEBTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxe
 				AMREX_D_DECL(fcx,fcy,fcz),
 				bscalar);
             });
-	    // for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	    //   const Box& nbx = mfi.nodaltilebox(idim);
-	    //   Array4<Real      > dst = fluxes[idim]->array(mfi);
-	    //   Array4<Real const> src = fluxmf[idim].array(mfi);
-	    //   AMREX_HOST_DEVICE_FOR_4D (nbx, ncomp, i, j, k, n,
-	    //   {
-	    // 	   dst(i,j,k,n) += bscalar*src(i,j,k,n);
-	    //   });
-	    // }
-
         }
     }
 }
