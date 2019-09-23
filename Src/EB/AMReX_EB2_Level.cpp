@@ -454,7 +454,7 @@ Level::fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) 
                     m_covered_grids.intersections(bx+iv, isects);
                     for (const auto& is : isects) {
                         Box const& ibox = is.second-iv;
-                        AMREX_HOST_DEVICE_FOR_3D(ibox, i, j, k,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
                         {
                             a(i,j,k) = cov_val;
                         });
@@ -499,7 +499,7 @@ Level::fillVolFrac (MultiFab& vfrac, const Geometry& geom) const
                 m_covered_grids.intersections(bx+iv, isects);
                 for (const auto& is : isects) {
                     Box const& ibox = is.second-iv;
-                    AMREX_HOST_DEVICE_FOR_3D(ibox, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
                     {
                         fab(i,j,k) = 0.0;  // covered cells
                     });
@@ -522,7 +522,7 @@ namespace {
                 const auto dstfab = dstmf.array(mfi);
                 const auto srcfab = srcmf.const_array(mfi);
                 const Box& box = mfi.fabbox();
-                AMREX_HOST_DEVICE_FOR_4D (box,ncomp,i,j,k,n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (box,ncomp,i,j,k,n,
                 {
                     dstfab(i,j,k,n) = srcfab(i,j,k,n);
                 });
@@ -835,7 +835,7 @@ Level::fillLevelSet (MultiFab& levelset, const Geometry& geom) const
                 m_covered_grids.intersections(ccbx+iv, isects);
                 for (const auto& is : isects) {
                     const Box& fbx = amrex::surroundingNodes(is.second-iv);
-                    AMREX_HOST_DEVICE_FOR_3D(fbx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(fbx, i, j, k,
                     {
                         lsfab(i,j,k) = cov_val;
                     });
