@@ -85,7 +85,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
                     if (target.ok()) {
                         auto val = BndryData::not_covered;
                         auto const& a = m.array();
-                        AMREX_HOST_DEVICE_FOR_4D (target, ncomp, i, j, k, n,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D (target, ncomp, i, j, k, n,
                         {
                             a(i,j,k,n) = val;
                         });
@@ -102,7 +102,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
                 const Box& b = isects[ii].second;
                 auto val = BndryData::covered;
                 auto const& a = m.array();
-                AMREX_HOST_DEVICE_FOR_4D(b,ncomp,i,j,k,n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b,ncomp,i,j,k,n,
                 {
                     a(i,j,k,n) = val;
                 });
@@ -125,7 +125,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
                         const Box& b = isects[ii].second;
                         auto val = BndryData::covered;
                         auto const& a = m.array();
-                        AMREX_HOST_DEVICE_FOR_4D(b,ncomp,i,j,k,n,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_4D(b,ncomp,i,j,k,n,
                         {
                             a(i,j,k,n) = val;
                         });
@@ -151,7 +151,7 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
         auto const srcfab = src.m_fa.array(mfi);
         auto       dstfab = dst.m_fa.array(mfi);
         const Box& bx = dst.m_fa[mfi].box();
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             dstfab(i,j,k,n) = srcfab(i,j,k,n);
         });
