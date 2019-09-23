@@ -1364,7 +1364,7 @@ PhysicalParticleContainer::Evolve (int lev,
         }
     }
     // Split particles
-    if (do_splitting && a_dt_type == DtType::SecondHalf){
+    if (do_splitting && a_dt_type == DtType::SecondHalf && WarpX::do_subcycling == 1){
         SplitParticles(lev);
     }
 }
