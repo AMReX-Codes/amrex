@@ -38,7 +38,6 @@ module amrex_mlnodelap_2d_module
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
-       amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
        ! restriction
        amrex_mlndlap_restriction, &
@@ -291,75 +290,6 @@ contains
     end if
 
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_jacobi_ha (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_jacobi_ha')
-    integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
-    real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1), alo(2): ahi(2))
-    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1),sxlo(2):sxhi(2))
-    real(amrex_real), intent(in   ) :: sy (sylo(1):syhi(1),sylo(2):syhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy
-    real(amrex_real), parameter :: omega = 2.d0/3.d0
-
-    facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
-                  / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
-                  +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
-          else
-             sol(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_jacobi_ha
-
-
-  subroutine amrex_mlndlap_jacobi_aa (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
-       sig, sglo, sghi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_jacobi_aa')
-    integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sglo,sghi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
-    real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1), alo(2): ahi(2))
-    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: sig(sglo(1):sghi(1),sglo(2):sghi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-    real(amrex_real) :: facx, facy, fac
-    real(amrex_real), parameter :: omega = 2.d0/3.d0
-
-    facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
-    fac = facx + facy
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
-                  / (fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j)))
-          else
-             sol(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_jacobi_aa
 
 
   subroutine amrex_mlndlap_gauss_seidel_ha (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
