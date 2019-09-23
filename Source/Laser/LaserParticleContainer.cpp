@@ -52,6 +52,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         pp.get("wavelength", wavelength);
         pp.get("e_max", e_max);
         pp.query("do_continuous_injection", do_continuous_injection);
+        pp.query("min_particles_per_mode", min_particles_per_mode);
 
         if ( profile == laser_t::Gaussian ) {
             // Parse the properties of the Gaussian profile
@@ -143,7 +144,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         theta_stc = 0.;
 #endif
 
-#if AMREX_SPACEDIM == 3
+#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
         u_X = p_X;
         u_Y = p_Y;
 #else
@@ -271,9 +272,15 @@ LaserParticleContainer::InitData (int lev)
                  position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
                  position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
 #else
+#   if (defined WARPX_DIM_RZ)
+        return { position[0] + (S_X*(i+0.5)),
+                0.0,
+                position[2]};
+#   else
         return { position[0] + (S_X*(i+0.5))*u_X[0],
                 0.0,
                 position[2] + (S_X*(i+0.5))*u_X[2] };
+#   endif
 #endif
     };
 
@@ -283,7 +290,11 @@ LaserParticleContainer::InitData (int lev)
         return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
                 u_Y[0]*(pos[0]-position[0])+u_Y[1]*(pos[1]-position[1])+u_Y[2]*(pos[2]-position[2])};
 #else
+#   if (defined WARPX_DIM_RZ)
+        return {pos[0]-position[0], 0.0};
+#   else
         return {u_X[0]*(pos[0]-position[0])+u_X[2]*(pos[2]-position[2]), 0.0};
+#   endif
 #endif
     };
 
@@ -364,6 +375,7 @@ LaserParticleContainer::InitData (int lev)
 #endif
                 if (laser_injection_box.contains(x))
                 {
+#ifndef WARPX_DIM_RZ
                     for (int k = 0; k<2; ++k) {
                         particle_x.push_back(pos[0]);
                         particle_y.push_back(pos[1]);
@@ -371,6 +383,21 @@ LaserParticleContainer::InitData (int lev)
                     }
                     particle_w.push_back( weight);
                     particle_w.push_back(-weight);
+#else
+                    // Particles are laid out in radial spokes
+                    const int n_spokes = (WarpX::n_rz_azimuthal_modes - 1)*min_particles_per_mode;
+                    for (int spoke = 0 ; spoke < n_spokes ; spoke++) {
+                        const Real phase = 2.*MathConst::pi*spoke/n_spokes;
+                        for (int k = 0; k<2; ++k) {
+                            particle_x.push_back(pos[0]*std::cos(phase));
+                            particle_y.push_back(pos[0]*std::sin(phase));
+                            particle_z.push_back(pos[2]);
+                        }
+                        const Real r_weight = weight*2.*MathConst::pi*pos[0]/n_spokes;
+                        particle_w.push_back( r_weight);
+                        particle_w.push_back(-r_weight);
+                    }
+#endif
                 }
             }
         }
@@ -569,8 +596,12 @@ LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
                            dx[1]/(std::abs(u_Y[1])+eps)),
                   dx[2]/(std::abs(u_Y[2])+eps));
 #else
+#   if (defined WARPX_DIM_RZ)
+    Sx = dx[0];
+#   else
     Sx = std::min(dx[0]/(std::abs(u_X[0])+eps),
                   dx[2]/(std::abs(u_X[2])+eps));
+#   endif
     Sy = 1.0;
 #endif
 }
@@ -619,7 +650,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
     Real tmp_u_X_2 = u_X[2];
     Real tmp_position_0 = position[0];
     Real tmp_position_2 = position[2];
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
     Real tmp_u_X_1 = u_X[1];
     Real tmp_u_Y_0 = u_Y[0];
     Real tmp_u_Y_1 = u_Y[1];
@@ -630,7 +661,7 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
             pplane_Xp[i] =
                 tmp_u_X_0 * (xp[i] - tmp_position_0) +
                 tmp_u_X_1 * (yp[i] - tmp_position_1) +
@@ -702,7 +733,7 @@ LaserParticleContainer::update_laser_particle(
             puzp[i] = gamma * vz;
             // Push the the particle positions
             xp[i] += vx * dt;
-#if (AMREX_SPACEDIM == 3)
+#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
             yp[i] += vy * dt;
 #endif
             zp[i] += vz * dt;
