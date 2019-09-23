@@ -16,15 +16,18 @@ struct AssignGrid
     Dim3 m_lo;
     Dim3 m_hi;
     Dim3 m_bin_size;
+    Dim3 m_num_bins;
 
     AMREX_GPU_HOST_DEVICE
     AssignGrid () {}
 
     AssignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
-                const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size)
+                const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size,
+                const IntVect& a_num_bins)
         : m_boxes_ptr(a_boxes_ptr),
           m_poffset(a_poffset), m_pperm(a_pperm),
-          m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3())
+          m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3()),
+          m_num_bins(a_num_bins.dim3())
         {
             // clamp bin size to 1 for AMREX_SPACEDIM < 3
             m_bin_size.x = amrex::max(m_bin_size.x, 1);
@@ -40,9 +43,9 @@ struct AssignGrid
         int iy = (lo.y - m_lo.y) / m_bin_size.y;
         int iz = (lo.z - m_lo.z) / m_bin_size.z;
 
-        int nx = m_hi.x-m_lo.x+1;
-        int ny = m_hi.y-m_lo.y+1;
-        int nz = m_hi.z-m_lo.z+1;
+        int nx = m_num_bins.x;
+        int ny = m_num_bins.y;
+        int nz = m_num_bins.z;
 
         for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix, nx-1); ++ii) {
             for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy, ny-1); ++jj) {
@@ -111,25 +114,24 @@ public:
                                           amrex::get<2*AMREX_SPACEDIM+1>(hv), 
                                           amrex::get<2*AMREX_SPACEDIM+2>(hv)));
 
-        m_bins_hi = (m_bins_hi + m_bin_size - IntVect::TheUnitVector()) / m_bin_size; 
+        m_num_bins = (m_bins_hi - m_bins_lo + m_bin_size) / m_bin_size; 
 
-        int num_bins = AMREX_D_TERM((m_bins_hi[0] - m_bins_lo[0] + 1),
-                                   *(m_bins_hi[1] - m_bins_lo[1] + 1),
-                                   *(m_bins_hi[2] - m_bins_lo[2] + 1));
+        int num_bins_total = AMREX_D_TERM(m_num_bins[0],*m_num_bins[1],*m_num_bins[2]);
 
         m_cells.resize(num_boxes);
 
         m_counts.resize(0);
-        m_counts.resize(num_bins, 0);
+        m_counts.resize(num_bins_total, 0);
 
         m_offsets.resize(0);
-        m_offsets.resize(num_bins+1, num_boxes);
+        m_offsets.resize(num_bins_total+1, num_boxes);
 
         m_permutation.resize(num_boxes);
 
         const auto lo       = m_bins_lo.dim3();
         const auto hi       = m_bins_hi.dim3();
         const auto bin_size = m_bin_size.dim3();
+        const auto nbins    = m_num_bins.dim3();
 
         unsigned int* pcell = m_cells.dataPtr();
         unsigned int* pcount = m_counts.dataPtr();
@@ -142,9 +144,9 @@ public:
             int ix = (blo.x - lo.x) / bin_size.x;
             int iy = (blo.y - lo.y) / bin_size.y;
             int iz = (blo.z - lo.z) / bin_size.z;
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;            
+            int nx = nbins.x;
+            int ny = nbins.y;
+            int nz = nbins.z;            
             unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
             unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
             unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
@@ -169,7 +171,7 @@ public:
     {
         AMREX_ASSERT(m_defined);
         return AssignGrid(m_device_boxes.dataPtr(), m_offsets.dataPtr(), m_permutation.dataPtr(),
-                          m_bins_lo, m_bins_hi, m_bin_size);
+                          m_bins_lo, m_bins_hi, m_bin_size, m_num_bins);
     }
 
     bool isValid (const BoxArray& ba) const noexcept
@@ -187,6 +189,7 @@ protected:
     IntVect m_bins_lo;
     IntVect m_bins_hi;
     IntVect m_bin_size;
+    IntVect m_num_bins;
 
     Gpu::HostVector<Box> m_host_boxes;
     Gpu::DeviceVector<Box> m_device_boxes;
@@ -209,7 +212,7 @@ struct AmrAssignGrid
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int operator() (const IntVect& iv) const noexcept
     {
-        for (int lev = m_size; lev >= 0; --lev)
+        for (int lev = m_size-1; lev >= 0; --lev)
         {
             int grid = m_funcs[lev](iv);
             if (grid >= 0) return grid;
