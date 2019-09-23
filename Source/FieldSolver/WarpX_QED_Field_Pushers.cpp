@@ -23,16 +23,16 @@ using namespace amrex;
 void
 WarpX::Hybrid_QED_Push (Real a_dt)
 {
-	if (not do_nodal) {
-		try {
-			throw do_nodal;
-		}
-		catch (bool do_nodal) {
-			std::cout << "Error: As fo right now the hyrbrid QED algorithm is only compatiable with the nodel lattice scheme.";
-			return 0;
-		}
-	}
-	
+    if (not do_nodal) {
+        try {
+            throw do_nodal;
+        }
+        catch (bool do_nodal) {
+            std::cout << "Error: As of right now the hyrbrid QED algorithm is only compatiable with the nodel lattice scheme.";
+            return 0;
+        }
+    }
+    
     for (int lev = 0; lev <= finest_level; ++lev) {
         Hybrid_QED_Push(lev, a_dt);
     }
@@ -95,8 +95,8 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-		
-		const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+        
+        const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
@@ -106,23 +106,23 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
         auto const& Exfab = Ex->array(mfi);
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
-		
-		amrex::ParallelFor(tbx, tby, tbz,
-		[=] AMREX_GPU_DEVICE (int j, int k, int l)
+        
+        amrex::ParallelFor(tbx, tby, tbz,
+        [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
-			std::string direction = "x";
-        	warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
-		},
-		[=] AMREX_GPU_DEVICE (int j, int k, int l)
-		{
-			direction = "y";
-			warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
-		},
-		[=] AMREX_GPU_DEVICE (int j, int k, int l)
-		{
-			direction = "z";
-			warpx_hybrid_QED_push_ez(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
-		});
+            std::string direction = "x";
+            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
+        },
+        [=] AMREX_GPU_DEVICE (int j, int k, int l)
+        {
+            direction = "y";
+            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
+        },
+        [=] AMREX_GPU_DEVICE (int j, int k, int l)
+        {
+            direction = "z";
+            warpx_hybrid_QED_push_ez(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
+        });
         }
 
         if (cost) {
@@ -136,7 +136,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
                 costfab(i,j,k) += wt;
             });
         }
-	
+    
 
     if (do_pml && pml[lev]->ok())
     {
@@ -153,17 +153,17 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
             WRPX_PUSH_PML_BVEC(
-			     tbx.loVect(), tbx.hiVect(),
-			     tby.loVect(), tby.hiVect(),
-			     tbz.loVect(), tbz.hiVect(),
-			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                 tbx.loVect(), tbx.hiVect(),
+                 tby.loVect(), tby.hiVect(),
+                 tbz.loVect(), tbz.hiVect(),
+                 BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                 BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                 BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                 BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                 BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                 BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
                              &dtsdx, &dtsdy, &dtsdz,
-			     &WarpX::maxwell_fdtd_solver_id);
+                 &WarpX::maxwell_fdtd_solver_id);
         }
     }
 }
