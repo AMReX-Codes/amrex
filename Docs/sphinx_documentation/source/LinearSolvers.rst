@@ -648,8 +648,10 @@ three-dimensional Cartesian coordinates,  can be written as
 
     (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
 
+Here :math:`eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
 
 For constant :math:`\eta` and :math:`$\nabla \cdot U = 0,` this simplifies to
+
 .. math::
 
    \eta (u_{xx} + u_{yy} + u_{zz})
@@ -657,6 +659,8 @@ For constant :math:`\eta` and :math:`$\nabla \cdot U = 0,` this simplifies to
    \eta (v_{xx} + v_{yy} + v_{zz})
 
    \eta (w_{xx} + w_{yy} + w_{zz})
+
+which can be easily evaluted with the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators.
 
 Multi-Component Operators
 =========================
