@@ -1364,7 +1364,9 @@ PhysicalParticleContainer::Evolve (int lev,
         }
     }
     // Split particles
-    if (do_splitting){ SplitParticles(lev); }
+    if (do_splitting && a_dt_type == DtType::SecondHalf){
+        SplitParticles(lev);
+    }
 }
 
 // Loop over all particles in the particle container and
