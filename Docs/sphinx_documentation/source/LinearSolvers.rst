@@ -628,6 +628,36 @@ gradient term to make the vector field result satisfy the divergence constraint.
 
 See ``Tutorials/LinearSolvers/Nodal_Projection_EB`` for the complete working example.
 
+Tensor Solve
+============
+
+Application codes that solve the Navier-Stokes equations need to evaluate
+the viscous term;  solving for this term implicitly requires a multi-component
+solve with cross terms.  Because this is a commonly used motif, we provide
+a tensor solve for cell-centered velocity components.
+
+Consider a velocity field :math:`U = (u,v,w)` with all
+components co-located on cell centers.  The viscous term, expressed in
+three-dimensional Cartesian coordinates,  can be written as
+.. math::
+
+   ( (\frac{4}{3} \eta + \kappa) u_x)_x + (              \eta           u_y)_y + (\eta u_z)_z 
+
+                 (\eta           v_x)_x + ( (\frac{4}{3} \eta + \kappa) v_y)_y + (\eta v_z)_z 
+
+    (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
+
+
+For constant $\eta$ and $\nabla \cdot U = 0,$ this simplifies to
+
+.. math::
+
+   \eta (u_xx + u_yy + u_zz)
+
+   \eta (v_xx + v_yy + v_zz)
+
+   \eta (w_xx + w_yy + w_zz)
+
 Multi-Component Operators
 =========================
 
