@@ -1742,16 +1742,16 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
     BL_PROFILE("MLNodeLaplacian::Fsmooth()");
 
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const auto& stencil = m_stencil[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+    const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
+
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
     if (m_use_gauss_seidel)
     {
-        const auto& sigma = m_sigma[amrlev][mglev];
-        const auto& stencil = m_stencil[amrlev][mglev];
-        const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-
-        const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
-
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
 #ifdef _OPENMP
@@ -1817,12 +1817,6 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
         Fapply(amrlev, mglev, Ax, sol);
 
-        const auto& sigma = m_sigma[amrlev][mglev];
-        const auto& stencil = m_stencil[amrlev][mglev];
-        const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-
-        const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
-
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
 #ifdef _OPENMP
@@ -1842,45 +1836,45 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         else if (m_use_harmonic_average && mglev > 0)
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(sol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
-                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                             const FArrayBox& syfab = (*sigma[1])[mfi];,
-                             const FArrayBox& szfab = (*sigma[2])[mfi];);
+                AMREX_D_TERM(Array4<Real const> const& sxarr = sigma[0]->const_array(mfi);,
+                             Array4<Real const> const& syarr = sigma[1]->const_array(mfi);,
+                             Array4<Real const> const& szarr = sigma[2]->const_array(mfi););
+                Array4<Real> const& solarr = sol.array(mfi);
+                Array4<Real const> const& Axarr = Ax.const_array(mfi);
+                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                amrex_mlndlap_jacobi_ha(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                        BL_TO_FORTRAN_ANYD(Ax[mfi]),
-                                        BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                     BL_TO_FORTRAN_ANYD(syfab),
-                                                     BL_TO_FORTRAN_ANYD(szfab)),
-                                        BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                        dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                        m_lobc[0].data(), m_hibc[0].data());
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mlndlap_jacobi_ha (tbx, solarr, Axarr, rhsarr, AMREX_D_DECL(sxarr,syarr,szarr),
+                                       dmskarr, dxinvarr);
+                });
             }
         }
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(sol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
-                const FArrayBox& sfab = (*sigma[0])[mfi];
+                Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
+                Array4<Real> const& solarr = sol.array(mfi);
+                Array4<Real const> const& Axarr = Ax.const_array(mfi);
+                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
-                amrex_mlndlap_jacobi_aa(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                        BL_TO_FORTRAN_ANYD(Ax[mfi]),
-                                        BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                        BL_TO_FORTRAN_ANYD(sfab),
-                                        BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                        dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                        m_lobc[0].data(), m_hibc[0].data());
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mlndlap_jacobi_aa (tbx, solarr, Axarr, rhsarr, sarr,
+                                       dmskarr, dxinvarr);
+                });
             }
         }
     }
