@@ -33,9 +33,9 @@ struct ChargeDepositionAlgo {
 };
 
 struct GatheringAlgo {
-    // Only the Standard algorithm is implemented
     enum {
-         Standard = 0
+         EnergyConserving = 0,
+         MomentumConserving
     };
 };
 

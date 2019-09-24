@@ -578,7 +578,7 @@ Numerics and algorithms
      - ``direct``: simpler current deposition algorithm, described in
        the section :doc:`../theory/picsar_theory`. Note that this algorithm is not strictly charge-conserving.
 
-    If ``algo.current_deposition`` is not specified, the default is ``esirkepov``.
+    v
 
 * ``algo.charge_deposition`` (`string`, optional)
     The algorithm for the charge density deposition. Available options are:
@@ -589,8 +589,15 @@ Numerics and algorithms
 * ``algo.field_gathering`` (`string`, optional)
     The algorithm for field gathering. Available options are:
 
-     - ``standard``: gathers directly from the grid points (either staggered
+     - ``energy-conserving``: gathers directly from the grid points (either staggered
        or nodal gridpoints depending on ``warpx.do_nodal``).
+     - ``momentum-conserving``: first average the fields from the grid points to
+       the nodes, and then gather from the nodes.
+
+     If ``algo.field_gathering`` is not specified, the default is ``energy-conserving``.
+     If ``warpx.do_nodal`` is ``true``, then ``energy-conserving`` and ``momentum-conserving``
+     are equivalent.
+
 
 * ``algo.particle_pusher`` (`string`, optional)
     The algorithm for the particle pusher. Available options are:

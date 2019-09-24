@@ -535,9 +535,13 @@ WarpX::ReadParameters ()
         ParmParse pp("algo");
         current_deposition_algo = GetAlgorithmInteger(pp, "current_deposition");
         charge_deposition_algo = GetAlgorithmInteger(pp, "charge_deposition");
-        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
         particle_pusher_algo = GetAlgorithmInteger(pp, "particle_pusher");
         maxwell_fdtd_solver_id = GetAlgorithmInteger(pp, "maxwell_fdtd_solver");
+        field_gathering_algo = GetAlgorithmInteger(pp, "field_gathering");
+        if (field_gathering_algo == GatheringAlgo::MomentumConserving) {
+            // Use same shape factors in all directions, for gathering
+            l_lower_order_in_v = false;
+        }
     }
 
 #ifdef WARPX_USE_PSATD
