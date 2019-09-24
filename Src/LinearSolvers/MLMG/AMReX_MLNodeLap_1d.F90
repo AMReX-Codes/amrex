@@ -27,7 +27,6 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_applybc, &
        ! operator
        ! restriction
-       amrex_mlndlap_restriction, &
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
@@ -84,15 +83,6 @@ contains
     integer, dimension(1) :: hlo, hhi, dlo, dhi, bclo, bchi
     real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1))
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_restriction')
-    integer, dimension(1), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(inout) :: crse(clo(1):chi(1))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1))
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_restriction
 
 
   subroutine amrex_mlndlap_interpolation_ha (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
