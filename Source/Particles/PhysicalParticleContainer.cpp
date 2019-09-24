@@ -989,8 +989,6 @@ PhysicalParticleContainer::Evolve (int lev,
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
-        RealVector tmp;
-        ParticleVector particle_tmp;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -1096,8 +1094,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 //    and (thus) the `np-nfine_current`/`np-nfine_gather` last particles
                 //    deposit/gather in the buffer
                 PartitionParticlesInBuffers( nfine_current, nfine_gather, np,
-                    pti, lev, current_masks, gather_masks, uxp, uyp, uzp, wp,
-                    tmp, particle_tmp);
+                    pti, lev, current_masks, gather_masks, uxp, uyp, uzp, wp );
             }
 
             const long np_current = (cjx) ? nfine_current : np;

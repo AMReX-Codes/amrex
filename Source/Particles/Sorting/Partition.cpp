@@ -30,8 +30,6 @@ using namespace amrex;
  *       in the gather buffers or in the interior of the fine patch
  * \param uxp, uyp, uzp, wp references to the particle momenta and weight
  *         (modified by this function)
- * \param tmp temporary vector, used in reference swapping
- * \param particle_tmp temporary vector, used in reference swapping
  */
 void
 PhysicalParticleContainer::PartitionParticlesInBuffers(
@@ -39,8 +37,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     WarpXParIter& pti, int const lev,
     iMultiFab const* current_masks,
     iMultiFab const* gather_masks,
-    RealVector& uxp, RealVector& uyp, RealVector& uzp, RealVector& wp,
-    RealVector& tmp, ParticleVector& particle_tmp)
+    RealVector& uxp, RealVector& uyp, RealVector& uzp, RealVector& wp)
 {
     BL_PROFILE("PPC::Evolve::partition");
 
@@ -108,12 +105,16 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
 
     if (nfine_current != np || nfine_gather != np)
     {
+
+        ParticleVector particle_tmp;
         particle_tmp.resize(np);
+
         for (long ip = 0; ip < np; ++ip) {
             particle_tmp[ip] = aos[pid[ip]];
         }
         std::swap(aos(), particle_tmp);
 
+        RealVector tmp;
         tmp.resize(np);
 
         for (long ip = 0; ip < np; ++ip) {
