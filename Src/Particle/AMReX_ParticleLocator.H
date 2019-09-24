@@ -45,6 +45,12 @@ struct AssignGrid
     int operator() (const P& p) const noexcept
     {
         const auto iv = getParticleCell(p, m_plo, m_dxi, m_domain);
+        return this->operator()(iv);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int operator() (const IntVect& iv) const noexcept
+    {
         const auto lo = iv.dim3();
         int ix = (lo.x - m_lo.x) / m_bin_size.x;
         int iy = (lo.y - m_lo.y) / m_bin_size.y;
