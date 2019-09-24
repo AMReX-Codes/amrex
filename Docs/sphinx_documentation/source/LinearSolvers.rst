@@ -650,17 +650,25 @@ three-dimensional Cartesian coordinates,  can be written as
 
 Here :math:`eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
 
-For constant :math:`\eta` and :math:`$\nabla \cdot U = 0,` this simplifies to
+We evaluate the following terms using the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators;
 
 .. math::
 
-   \eta (u_{xx} + u_{yy} + u_{zz})
+   ( (\frac{4}{3} \eta + \kappa) u_x)_x + (              \eta           u_y)_y + (\eta u_z)_z 
 
-   \eta (v_{xx} + v_{yy} + v_{zz})
+                 (\eta           v_x)_x + ( (\frac{4}{3} \eta + \kappa) v_y)_y + (\eta v_z)_z 
 
-   \eta (w_{xx} + w_{yy} + w_{zz})
+    (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
 
-which can be easily evaluted with the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators.
+the following cross-terms are evaluted separately using the ``MLTensorOp`` and ``MLEBTensorOp`` operators.
+
+.. math::
+
+    (\frac{2}{3} \eta (\nabla \cdot U))_x - (\eta v_x)_y  - (\eta w_x)_z
+
+    (\eta u_y)_x - (\frac{2}{3} \eta (\nabla \cdot U))_y  - (\eta w_y)_z
+
+    (\eta u_z)_x - (\eta v_z)_y - (\frac{2}{3} \eta (\nabla \cdot U))_z
 
 Multi-Component Operators
 =========================
