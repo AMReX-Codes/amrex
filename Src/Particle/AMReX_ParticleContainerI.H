@@ -1088,8 +1088,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             
             m_grids_tmp.resize(np);
             m_grids_r.resize(np);
+            m_levs_r.resize(np);
+            m_levs_tmp.resize(np);
             
             auto grids_ptr = m_grids_tmp.dataPtr();
+            auto levs_ptr = m_levs_tmp.dataPtr();
             ParticleType* p_ptr = &(aos[0]);
             amrex::ParallelFor(np, [=] AMREX_GPU_DEVICE (int i) noexcept
             {
@@ -1097,11 +1100,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 if (p.id() < 0) 
                 {    
                     grids_ptr[i] = -1;
+                    levs_ptr[i] = -1;
                 }
                 else
                 {
                     enforcePeriodic(p, plo, phi, is_per);
-                    grids_ptr[i] = assign_grid(p);
+                    auto tup = assign_grid(p);
+                    grids_ptr[i] = amrex::get<0>(tup);
+                    levs_ptr[i] = amrex::get<1>(tup);
                 }
             });
 
@@ -1109,7 +1115,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             {
                 auto particle_stays = [=] AMREX_GPU_DEVICE (int i) -> int
                 {
-                    return grids_ptr[i] == gid;
+                    return ((grids_ptr[i] == gid) && (levs_ptr[i] == lev));
                 };
             
                 const auto src_data = src_tile.getConstParticleTileData();
@@ -1120,6 +1126,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 for (int i = 0; i < NArrayInt; ++i)
                     dst_data.m_idata[i] = m_idata_r[i].dataPtr();
                 auto dst_grids_ptr = m_grids_r.dataPtr();
+                auto dst_levs_ptr = m_levs_r.dataPtr();
                 
                 num_stay = Scan::PrefixSum<int> (np, 
                     [=] AMREX_GPU_DEVICE (int i) -> int 
@@ -1135,6 +1142,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int j = 0; j < NArrayInt; ++j)
                                 dst_data.m_idata[j][s] = src_data.m_idata[j][i];                        
                             dst_grids_ptr[s] = grids_ptr[i];
+                            dst_levs_ptr[s] = levs_ptr[i];
                         } else {
                             dst_data.m_aos[np-1-(i-s)] = src_data.m_aos[i];
                             for (int j = 0; j < NArrayReal; ++j)
@@ -1142,6 +1150,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             for (int j = 0; j < NArrayInt; ++j)
                                 dst_data.m_idata[j][np-1-(i-s)] = src_data.m_idata[j][i];
                             dst_grids_ptr[np-1-(i-s)] = grids_ptr[i];
+                            dst_levs_ptr[np-1-(i-s)] = levs_ptr[i];
                         }
                     }, 
                     Scan::Type::exclusive);
@@ -1168,11 +1177,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
             auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
             auto dst_grids_ptr = m_grids_r.dataPtr();
-
+            auto dst_levs_ptr  = m_levs_r.dataPtr();
+            
 	    AMREX_FOR_1D ( num_move, i,
             {
                 p_boxes[i] = dst_grids_ptr[i + num_stay];
-                p_levs[i] = 0;  // note, fix.
+                p_levs[i] = dst_levs_ptr[i + num_stay];
                 p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
                 p_src_indices[i] = i+num_stay;
             });
