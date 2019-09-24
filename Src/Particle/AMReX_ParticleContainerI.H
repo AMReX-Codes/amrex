@@ -1040,7 +1040,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (local > 0) BuildRedistributeMask(0, local);
     this->defineBufferMap();
 
-    if (numLevels() == 1)
+    int num_levels = numLevels();
+    if (num_levels == 1)
     {
         const auto& ba = ParticleBoxArray(0);
         const auto& geom = Geom(0);
@@ -1056,7 +1057,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
-    Vector<std::map<int, int> > new_sizes(numLevels());
+    Vector<std::map<int, int> > new_sizes(num_levels);
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const Geometry& geom = Geom(lev);
@@ -1101,8 +1102,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 else
                 {
                     enforcePeriodic(p, plo, phi, is_per);
-                    IntVect iv = getParticleCell(p, plo, dxi, domain);
-                    grids_ptr[i] = assign_grid(iv);
+                    grids_ptr[i] = assign_grid(p);
                 }
             });
 
