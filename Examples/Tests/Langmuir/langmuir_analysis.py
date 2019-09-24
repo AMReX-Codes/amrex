@@ -55,7 +55,7 @@ if direction == 'x':
     print('absolute field error (where field should be 0): %s' %max_rel_error_zero)
     # assert small errors
     assert np.allclose( E[2:30,:,:], E_predicted, rtol=0.1 )
-    assert np.allclose( E[34:-2,:,:], 0, atol=2.e-5 )
+    assert np.allclose( E[34:-2,:,:], 0, atol=5.e-5 )
 elif direction == 'y':
     E = data[ 'Ey' ].to_ndarray()
     # compute and print errors
