@@ -111,7 +111,9 @@ public:
                         RealVector& uxp,
                         RealVector& uyp,
                         RealVector& uzp,
-                        RealVector& wp );
+                        RealVector& wp,
+                        RealVector& tmp,
+                        ParticleVector& particle_tmp );
 
     void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
                         const amrex::Real* yp, const amrex::Real* zp);

@@ -4,15 +4,43 @@
 
 using namespace amrex;
 
-/* \brief
-*/
+/* \brief Determine which particles deposit/gather in the buffer, and
+ *        and reorder the particle arrays accordingly
+ *
+ *  More specifically:
+ *  - Modify `nfine_current` and `nfine_gather` (in place)
+ *     so that they correspond to the number of particles
+ *     that deposit/gather in the fine patch respectively.
+ *  - Reorder the particle arrays,
+ *     so that the `nfine_current`/`nfine_gather` first particles
+ *     deposit/gather in the fine patch
+ *     and (thus) the `np-nfine_current`/`np-nfine_gather` last particles
+ *     deposit/gather in the buffer
+ *
+ * \param nfine_current number of particles that deposit to the fine patch
+ *         (modified by this function)
+ * \param nfine_gather number of particles that gather into the fine patch
+ *         (modified by this function)
+ * \param np total number of particles in this tile
+ * \param pti object that holds the particle information for this tile
+ * \param lev current refinement level
+ * \param current_masks indicates, for each cell, whether that cell is
+ *       in the deposition buffers or in the interior of the fine patch
+ * \param gather_masks indicates, for each cell, whether that cell is
+ *       in the gather buffers or in the interior of the fine patch
+ * \param uxp, uyp, uzp, wp references to the particle momenta and weight
+ *         (modified by this function)
+ * \param tmp temporary vector, used in reference swapping
+ * \param particle_tmp temporary vector, used in reference swapping
+ */
 void
 PhysicalParticleContainer::PartitionParticlesInBuffers(
     long& nfine_current, long& nfine_gather, long const np,
     WarpXParIter& pti, int const lev,
     iMultiFab const* current_masks,
     iMultiFab const* gather_masks,
-    RealVector& uxp, RealVector& uyp, RealVector& uzp, RealVector& wp)
+    RealVector& uxp, RealVector& uyp, RealVector& uzp, RealVector& wp,
+    RealVector& tmp, ParticleVector& particle_tmp)
 {
     BL_PROFILE("PPC::Evolve::partition");
 
@@ -80,9 +108,6 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
 
     if (nfine_current != np || nfine_gather != np)
     {
-        RealVector tmp;
-        ParticleVector particle_tmp;
-
         particle_tmp.resize(np);
         for (long ip = 0; ip < np; ++ip) {
             particle_tmp[ip] = aos[pid[ip]];

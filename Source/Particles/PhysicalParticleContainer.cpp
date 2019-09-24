@@ -989,6 +989,8 @@ PhysicalParticleContainer::Evolve (int lev,
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
+        RealVector tmp;
+        ParticleVector particle_tmp;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -1020,6 +1022,7 @@ PhysicalParticleContainer::Evolve (int lev,
             FArrayBox const* bzfab = &(Bz[pti]);
 
             Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
+
             if (WarpX::use_fdtd_nci_corr)
             {
 #if (AMREX_SPACEDIM == 2)
@@ -1079,11 +1082,22 @@ PhysicalParticleContainer::Evolve (int lev,
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
 
-            long nfine_current = np; //! number of particles depositing to fine grid
-            long nfine_gather = np;  //! number of particles gathering from fine grid
+            // Determine which particles deposit/gather in the buffer, and
+            // which particles deposit/gather in the fine patch
+            long nfine_current = np;
+            long nfine_gather = np;
             if (has_buffer && !do_not_push) {
+                // - Modify `nfine_current` and `nfine_gather` (in place)
+                //    so that they correspond to the number of particles
+                //    that deposit/gather in the fine patch respectively.
+                // - Reorder the particle arrays,
+                //    so that the `nfine_current`/`nfine_gather` first particles
+                //    deposit/gather in the fine patch
+                //    and (thus) the `np-nfine_current`/`np-nfine_gather` last particles
+                //    deposit/gather in the buffer
                 PartitionParticlesInBuffers( nfine_current, nfine_gather, np,
-                    pti, lev, current_masks, gather_masks, uxp, uyp, uzp, wp);
+                    pti, lev, current_masks, gather_masks, uxp, uyp, uzp, wp,
+                    tmp, particle_tmp);
             }
 
             const long np_current = (cjx) ? nfine_current : np;
