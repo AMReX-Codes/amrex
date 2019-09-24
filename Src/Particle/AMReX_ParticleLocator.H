@@ -232,8 +232,7 @@ struct AmrAssignGrid
         for (int lev = m_size-1; lev >= 0; --lev)
         {
             int grid = m_funcs[lev](p);
-            if (grid >= 0)
-                return makeTuple(std::forward<int>(grid), std::forward<int>(lev));
+            if (grid >= 0) return makeTuple(grid, lev);
         }
         return makeTuple(-1, -1);
     }
