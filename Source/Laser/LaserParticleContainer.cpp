@@ -610,7 +610,7 @@ void
 LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
 {
     constexpr Real eps = 0.01;
-    constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
+    constexpr Real fac = 1.0/(2.0*MathConst::pi*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
     weight = fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 
     // The mobility is the constant of proportionality between the field to
