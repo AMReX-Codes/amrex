@@ -627,6 +627,33 @@ void mlndlap_gauss_seidel_aa (Box const& bx, Array4<Real> const& sol,
 // restriction
 //
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
+                          Array4<Real const> const& fine, Array4<int const> const& msk) noexcept
+{
+    int ii = i*2;
+    int jj = j*2;
+    int kk = k*2;
+    if (msk(ii,jj,kk)) {
+        crse(i,j,k) = 0.0;
+    } else {
+        crse(i,j,k) = (1./64.)*(fine(ii-1,jj-1,kk-1)+fine(ii+1,jj-1,kk-1)
+                               +fine(ii-1,jj+1,kk-1)+fine(ii+1,jj+1,kk-1)
+                               +fine(ii-1,jj-1,kk+1)+fine(ii+1,jj-1,kk+1)
+                               +fine(ii-1,jj+1,kk+1)+fine(ii+1,jj+1,kk+1))
+                    + (1./32.)*(fine(ii  ,jj-1,kk-1)+fine(ii  ,jj+1,kk-1)
+                               +fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1)
+                               +fine(ii-1,jj  ,kk-1)+fine(ii+1,jj  ,kk-1)
+                               +fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1)
+                               +fine(ii-1,jj-1,kk  )+fine(ii+1,jj-1,kk  )
+                               +fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  ))
+                    + (1./16.)*(fine(ii-1,jj,kk)+fine(ii+1,jj,kk)
+                               +fine(ii,jj-1,kk)+fine(ii,jj+1,kk)
+                               +fine(ii,jj,kk-1)+fine(ii,jj,kk+1))
+                      + (1./8.)*fine(ii,jj,kk);
+    }
+}
+
 //
 // interpolation
 //

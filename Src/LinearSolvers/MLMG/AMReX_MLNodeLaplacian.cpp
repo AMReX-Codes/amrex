@@ -1439,17 +1439,20 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     const auto& stencil = m_stencil[amrlev][cmglev-1];
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        Array4<Real> cfab = pcrse->array(mfi);
+        Array4<Real const> const& ffab = fine.const_array(mfi);
+        Array4<int const> const& mfab = dmsk.const_array(mfi);
         if (m_coarsening_strategy == CoarseningStrategy::Sigma)
         {
-            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                      BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            });
         }
         else
         {
@@ -1587,16 +1590,19 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(cfine, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cfine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        Array4<Real> const& cfab = cfine.array(mfi);
+        Array4<Real const> const& ffab = frhs->const_array(mfi);
+        Array4<int const> const& mfab = fdmsk.const_array(mfi);
         if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
-            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                      BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
-                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            });
         } else {
             amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
                                           BL_TO_FORTRAN_ANYD(cfine[mfi]),
@@ -2303,16 +2309,19 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     applyBC(crse_amrlev+1, 0, fine_res, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(fine_res_for_coarse, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fine_res_for_coarse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        Array4<Real> const& cfab = fine_res_for_coarse.array(mfi);
+        Array4<Real const> const& ffab = fine_res.const_array(mfi);
+        Array4<int const> const& mfab = fdmsk.const_array(mfi);
         if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
-            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
-                                      BL_TO_FORTRAN_ANYD(fine_res[mfi]),
-                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction(i,j,k,cfab,ffab,mfab);
+            });
         } else {
             amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
                                           BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),

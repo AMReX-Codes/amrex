@@ -39,7 +39,6 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_applybc, &
        ! operator
        ! restriction
-       amrex_mlndlap_restriction, &
        ! interpolation
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
@@ -289,32 +288,6 @@ contains
     end if
 
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi) &
-        bind(c,name='amrex_mlndlap_restriction')
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi
-    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j, ii, jj
-    real(amrex_real), parameter :: fac = 1.d0/16.d0
-
-    do    j = lo(2), hi(2)
-       jj = 2*j
-       do i = lo(1), hi(1)
-          ii = 2*i
-          if (msk(ii,jj) .ne. dirichlet) then
-             crse(i,j) = fac*(fine(ii-1,jj-1) + 2.d0*fine(ii  ,jj-1) +      fine(ii+1,jj-1) &
-                  +      2.d0*fine(ii-1,jj  ) + 4.d0*fine(ii  ,jj  ) + 2.d0*fine(ii+1,jj  ) &
-                  +           fine(ii-1,jj+1) + 2.d0*fine(ii  ,jj+1) +      fine(ii+1,jj+1))
-          else
-             crse(i,j) = 0.d0
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_restriction
 
 
   subroutine amrex_mlndlap_interpolation_ha (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
