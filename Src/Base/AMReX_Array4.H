@@ -16,6 +16,9 @@ namespace amrex {
         Dim3 end;  // end is hi + 1
         int  ncomp;
 
+        AMREX_GPU_HOST_DEVICE
+        constexpr Array4 () noexcept : p(nullptr) {}
+
         template <class U=T, class = typename std::enable_if<std::is_const<U>::value>::type >
         AMREX_GPU_HOST_DEVICE
         constexpr Array4 (Array4<typename std::remove_const<T>::type> const& rhs) noexcept
