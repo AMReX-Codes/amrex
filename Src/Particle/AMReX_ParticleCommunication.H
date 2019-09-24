@@ -445,7 +445,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, co
             auto& tile = pc.GetParticles(lev)[index];
             auto ptd = tile.getParticleTileData();
 
-            AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(0)[gid]);
+            AMREX_ASSERT(MyProc == pc.ParticleDistributionMap(lev)[gid]);
 
             int dst_offset = offsets[uindex];
             int size = sizes[uindex];
