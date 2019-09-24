@@ -211,7 +211,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                                        Cuda::ManagedDeviceVector<Real>& xp,
                                        Cuda::ManagedDeviceVector<Real>& yp,
                                        Cuda::ManagedDeviceVector<Real>& zp,
-                                       Real dt)
+                                       Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
@@ -268,7 +268,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         );
     }
 
-    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, dt);
+    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, dt, a_dt_type);
 
     if (!done_injecting_lev) {
 
@@ -315,7 +315,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                         MultiFab* rho, MultiFab* crho,
                                         const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                         const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                        Real t, Real dt)
+                                        Real t, Real dt, DtType a_dt_type)
 {
 
     // Update location of injection plane in the boosted frame
@@ -342,7 +342,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                        rho, crho,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
-                                       t, dt);
+                                       t, dt, a_dt_type);
 }
 
 void

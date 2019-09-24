@@ -69,6 +69,8 @@ bool WarpX::do_boosted_frame_particles = true;
 
 bool WarpX::do_dynamic_scheduling = true;
 
+int WarpX::do_subcycling = 0;
+
 #if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);

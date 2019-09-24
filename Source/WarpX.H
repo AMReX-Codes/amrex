@@ -1,6 +1,7 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
+#include "WarpXDtType.H"
 #include <MultiParticleContainer.H>
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
@@ -37,13 +38,6 @@ namespace amrex {
 class AmrMeshInSituBridge;
 }
 #endif
-
-enum struct DtType : int
-{
-    Full = 0,
-    FirstHalf,
-    SecondHalf
-};
 
 enum struct PatchType : int
 {
@@ -124,6 +118,8 @@ public:
 
     static int sort_int;
 
+    static int do_subcycling;
+
     // buffers
     static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
     static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
@@ -201,7 +197,7 @@ public:
 
     void CopyJPML ();
 
-    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+    void PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
@@ -532,8 +528,6 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
-
-    int do_subcycling = 0;
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
