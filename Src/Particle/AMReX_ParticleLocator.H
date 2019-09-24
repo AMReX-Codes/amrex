@@ -3,6 +3,7 @@
 
 #include <AMReX_Particles.H>
 #include <AMReX_CudaContainers.H>
+#include <AMReX_Tuple.H>
 
 namespace amrex
 {
@@ -226,14 +227,15 @@ struct AmrAssignGrid
 
     template <typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE   
-    int operator() (const P& p) const noexcept
+    GpuTuple<int, int> operator() (const P& p) const noexcept
     {
         for (int lev = m_size-1; lev >= 0; --lev)
         {
             int grid = m_funcs[lev](p);
-            if (grid >= 0) return grid;
+            if (grid >= 0)
+                return makeTuple(std::forward<int>(grid), std::forward<int>(lev));
         }
-        return -1;
+        return makeTuple(-1, -1);
     }
 };
 
