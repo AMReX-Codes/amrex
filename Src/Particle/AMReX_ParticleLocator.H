@@ -245,32 +245,63 @@ class AmrParticleLocator
 
 public:
 
-    void build (const ParGDBBase* a_gdb)
+    AmrParticleLocator() {}
+    
+    AmrParticleLocator(const Vector<BoxArray>& a_ba,
+                       const Vector<Geometry>& a_geom)
+    {
+        build(a_ba, a_geom);
+    }
+
+    AmrParticleLocator(const ParGDBBase* a_gdb)
+    {
+        build(a_gdb);
+    }
+        
+    void build (const Vector<BoxArray>& a_ba,
+                const Vector<Geometry>& a_geom)
     {
         m_defined = true;
-        int num_levels = a_gdb->finestLevel()+1;
+        int num_levels = a_ba.size();
         m_locators.resize(num_levels);
         m_grid_assignors.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
         {
-            const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
-            const Geometry& geom = a_gdb->Geom(lev);
-            m_locators[lev].build(ba, geom);
+            m_locators[lev].build(a_ba[lev], a_geom[lev]);
             m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
+        }        
+    }
+    
+    void build (const ParGDBBase* a_gdb)
+    {
+        Vector<BoxArray> ba;
+        Vector<Geometry> geom;
+        int num_levels = a_gdb->finestLevel()+1;
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            ba.push_back(a_gdb->ParticleBoxArray(lev));
+            geom.push_back(a_gdb->Geom(lev));
         }
-    }    
+        build(ba, geom);
+    }
 
-    bool isValid (const ParGDBBase* a_gdb) const
+    bool isValid (const Vector<BoxArray>& a_ba) const
     {
         if ( (m_locators.size() == 0) or !m_defined) return false;
         bool all_valid = true;
         int num_levels = m_locators.size();
         for (int lev = 0; lev < num_levels; ++lev)
-        {
-            const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
-            all_valid = all_valid && m_locators[lev].isValid(ba);
-        }
+            all_valid = all_valid && m_locators[lev].isValid(a_ba[lev]);
         return all_valid;
+    }
+    
+    bool isValid (const ParGDBBase* a_gdb) const
+    {
+        Vector<BoxArray> ba;
+        int num_levels = a_gdb->finestLevel()+1;
+        for (int lev = 0; lev < num_levels; ++lev)
+            ba.push_back(a_gdb->ParticleBoxArray(lev));
+        return this->isValid(ba);
     }
 
     AmrAssignGrid getGridAssignor () const noexcept 
