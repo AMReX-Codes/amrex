@@ -13,6 +13,10 @@ struct AssignGrid
     const unsigned int* m_poffset;
     const unsigned int* m_pperm;
 
+    Box m_domain;
+    GpuArray<Real, AMREX_SPACEDIM> m_plo;
+    GpuArray<Real, AMREX_SPACEDIM> m_dxi;
+
     Dim3 m_lo;
     Dim3 m_hi;
     Dim3 m_bin_size;
@@ -23,11 +27,12 @@ struct AssignGrid
 
     AssignGrid (const Box* a_boxes_ptr, const unsigned int* a_poffset, const unsigned int* a_pperm,
                 const IntVect& a_bins_lo, const IntVect& a_bins_hi, const IntVect& a_bin_size,
-                const IntVect& a_num_bins)
+                const IntVect& a_num_bins, const Geometry& a_geom)
         : m_boxes_ptr(a_boxes_ptr),
           m_poffset(a_poffset), m_pperm(a_pperm),
           m_lo(a_bins_lo.dim3()), m_hi(a_bins_hi.dim3()), m_bin_size(a_bin_size.dim3()),
-          m_num_bins(a_num_bins.dim3())
+          m_num_bins(a_num_bins.dim3()), m_domain(a_geom.Domain()),
+          m_plo(a_geom.ProbLoArray()), m_dxi(a_geom.InvCellSizeArray())
         {
             // clamp bin size to 1 for AMREX_SPACEDIM < 3
             m_bin_size.x = amrex::max(m_bin_size.x, 1);
@@ -35,9 +40,11 @@ struct AssignGrid
             m_bin_size.z = amrex::max(m_bin_size.z, 1);
         }
 
+    template <typename P>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const IntVect& iv) const noexcept
+    int operator() (const P& p) const noexcept
     {
+        const auto iv = getParticleCell(p, m_plo, m_dxi, m_domain);
         const auto lo = iv.dim3();
         int ix = (lo.x - m_lo.x) / m_bin_size.x;
         int iy = (lo.y - m_lo.y) / m_bin_size.y;
@@ -69,10 +76,11 @@ public:
 
     ParticleLocator () : m_defined(false) {}
 
-    void build (const BoxArray& ba)
+    void build (const BoxArray& ba, const Geometry& geom)
     {
         m_defined = true;
         m_ba = ba;
+        m_geom = geom;
         int num_boxes = ba.size();
         m_host_boxes.resize(0);
         for (int i = 0; i < num_boxes; ++i) m_host_boxes.push_back(ba[i]);
@@ -171,7 +179,7 @@ public:
     {
         AMREX_ASSERT(m_defined);
         return AssignGrid(m_device_boxes.dataPtr(), m_offsets.dataPtr(), m_permutation.dataPtr(),
-                          m_bins_lo, m_bins_hi, m_bin_size, m_num_bins);
+                          m_bins_lo, m_bins_hi, m_bin_size, m_num_bins, m_geom);
     }
 
     bool isValid (const BoxArray& ba) const noexcept
@@ -185,7 +193,8 @@ protected:
     bool m_defined;
     
     BoxArray m_ba;
-    
+    Geometry m_geom;
+
     IntVect m_bins_lo;
     IntVect m_bins_hi;
     IntVect m_bin_size;
@@ -209,12 +218,13 @@ struct AmrAssignGrid
         : m_funcs(a_funcs), m_size(a_size)
         {}
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int operator() (const IntVect& iv) const noexcept
+    template <typename P>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE   
+    int operator() (const P& p) const noexcept
     {
         for (int lev = m_size-1; lev >= 0; --lev)
         {
-            int grid = m_funcs[lev](iv);
+            int grid = m_funcs[lev](p);
             if (grid >= 0) return grid;
         }
         return -1;
@@ -238,7 +248,8 @@ public:
         for (int lev = 0; lev < num_levels; ++lev)
         {
             const BoxArray& ba = a_gdb->ParticleBoxArray(lev);
-            m_locators[lev].build(ba);
+            const Geometry& geom = a_gdb->Geom(lev);
+            m_locators[lev].build(ba, geom);
             m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
         }
     }    
