@@ -14,8 +14,8 @@ ex = np.reshape(ad['boxlib', 'Ex'].v,(128,128))
 ez = np.reshape(ad['boxlib', 'Ez'].v,(128,128))
 by = np.reshape(ad['boxlib', 'By'].v,(128,128))
 energy = np.sum(ex**2 + ez**2 + scc.c**2*by**2)*1.e-12
-assert( energy < 7. )
 
-# Energy should be:
-# FILTER OFF: ~15000.
-# FILTER ON :     ~6.
+print("energy: %s" %energy)
+print("Should be ~1.e0 if filter ON, ~1.e5 if filter OFF.")
+
+assert( energy < 7. )

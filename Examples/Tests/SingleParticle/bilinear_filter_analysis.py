@@ -42,5 +42,5 @@ F_filtered = all_data_level_0['boxlib', 'jx'].v.squeeze()
 
 # Compare theory and PIC for filtered value
 error = np.sum( np.abs(F_filtered - my_F_filtered) ) / np.sum( np.abs(my_F_filtered) )
-print( "error: %s" %error )
+print( "error: np.sum( np.abs(F_filtered - my_F_filtered) ) / np.sum( np.abs(my_F_filtered) ) = %s" %error )
 assert( error < 1.e-14 )
