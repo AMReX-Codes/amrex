@@ -2,6 +2,7 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
+#include <Parallelization/CurrentSynchronize.H>
 
 #include <algorithm>
 #include <cstdlib>
@@ -348,36 +349,34 @@ WarpX::SyncCurrent ()
     }
 }
 
-/** \brief Fills the values of the current on the coarse patch by
- *  averaging the values of the current of the fine patch (on the same level).
- */
 void
 WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                    const std::array<      amrex::MultiFab*,3>& crse,
-                    int refinement_ratio)
+                    const std::array<      amrex::MultiFab*,3>& coarse,
+                    int const refinement_ratio)
 {
     BL_ASSERT(refinement_ratio == 2);
-    const IntVect& ng = (fine[0]->nGrowVect() + 1) /refinement_ratio;
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) / refinement_ratio; // add equivalent no. of guards to coarse patch
 
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab;
-        for (int idim = 0; idim < 3; ++idim)
+        FArrayBox ffab; // contiguous, temporary, copy of the tiled fine patch to read from
+        for (int idim = 0; idim < fine.size(); ++idim)  // j-field components
         {
-            for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*coarse[idim],true); mfi.isValid(); ++mfi) // OMP in-box decomposition of coarse into tilebox
             {
-                const Box& bx = mfi.growntilebox(ng);
-                Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
-                ffab.resize(fbx);
-                fbx &= (*fine[idim])[mfi].box();
-                ffab.setVal(0.0);
-                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, fine[idim]->nComp());
-                WRPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
-                                   BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
-                                   BL_TO_FORTRAN_ANYD(ffab),
-                                   &idim);
+                const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
+
+                auto const & arrFine = fine[idim]->const_array(mfi);
+                auto const & arrCoarse = coarse[idim]->array(mfi);
+
+                if( idim == 0 )
+                    amrex::ParallelFor( bx, WarpxSyncCurrent<0>(arrFine, arrCoarse, refinement_ratio) );
+                else if( idim == 1 )
+                    amrex::ParallelFor( bx, WarpxSyncCurrent<1>(arrFine, arrCoarse, refinement_ratio) );
+                else if( idim == 2 )
+                    amrex::ParallelFor( bx, WarpxSyncCurrent<2>(arrFine, arrCoarse, refinement_ratio) );
             }
         }
     }
@@ -407,9 +406,6 @@ WarpX::SyncRho ()
     }
 }
 
-/** \brief Fills the values of the charge density on the coarse patch by
- *  averaging the values of the charge density of the fine patch (on the same level).
- */
 void
 WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
 {
@@ -418,7 +414,7 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox ffab;
