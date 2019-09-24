@@ -883,13 +883,14 @@ protected:
     std::array<RealVector, NArrayReal> m_rdata_r;
     std::array<IntVector, NArrayInt>  m_idata_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
+    Gpu::ManagedDeviceVector<int> m_levs_r;
 
     Gpu::ManagedDeviceVector<int> m_lo;
     Gpu::ManagedDeviceVector<int> m_hi;
     Gpu::ManagedDeviceVector<int> m_output;
 
     Gpu::ManagedDeviceVector<int> m_grids_tmp;
-    Gpu::ManagedDeviceVector<int> m_index_sequence_tmp;
+    Gpu::ManagedDeviceVector<int> m_levs_tmp;
 
     ParticleVector m_aos_to_redistribute;
     std::vector<RealVector> m_real_arrays_to_redistribute;
