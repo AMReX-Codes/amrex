@@ -42,7 +42,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
         Array4<Real> const& arr = mf.array(mfi);
 
         if (is_cell_centered) {
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flagarr(i,j,k).isCovered()) {
                     arr(i,j,k,n+icomp) = val;

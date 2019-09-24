@@ -211,7 +211,7 @@ CoordSys::SetVolume (FArrayBox& a_volfab,
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
     const Real dv = a_dx[0]*a_dx[1]*a_dx[2];
-    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( region, i, j, k,
     {
         vol(i,j,k) = dv;
     });
@@ -246,7 +246,7 @@ CoordSys::SetDLogA (FArrayBox& a_dlogafab,
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
-    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( region, i, j, k,
     {
         dloga(i,j,k) = 0.;
     });
@@ -284,7 +284,7 @@ CoordSys::SetFaceArea (FArrayBox& a_areafab,
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
     const Real da = (dir == 0) ? dx[1]*dx[2] : ((dir == 1) ? dx[0]*dx[2] : dx[0]*dx[1]);
-    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
+    AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( region, i, j, k,
     {
         area(i,j,k) = da;
     });
