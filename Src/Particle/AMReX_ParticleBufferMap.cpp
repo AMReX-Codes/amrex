@@ -80,13 +80,12 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb)
 
     m_proc_box_counts.resize(0);
     m_proc_box_counts.resize(ParallelDescriptor::NProcs(), 0);
-    Vector<int> level_indices(m_lev_offsets);
 
     for (int i = 0; i < num_buckets; ++i)
     {
         int lev = m_bucket_to_lev[i];
         int pid = m_bucket_to_pid[i];
-        m_lev_gid_to_bucket[m_lev_offsets[lev] + m_bucket_to_gid[i]] = level_indices[lev]++;
+        m_lev_gid_to_bucket[m_lev_offsets[lev] + m_bucket_to_gid[i]] = i;
         m_proc_box_counts[pid]++;
     }
 
