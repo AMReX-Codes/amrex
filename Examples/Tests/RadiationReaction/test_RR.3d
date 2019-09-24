@@ -25,6 +25,7 @@ warpx.B_external = 0.0  0.0  1.0e5
 warpx.verbose = 1
 
 # Algorithms
+algo.particle_pusher = "boris_rr"
 
 # CFL
 warpx.cfl = 1.0

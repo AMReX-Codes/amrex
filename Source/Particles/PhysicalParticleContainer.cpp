@@ -1567,6 +1567,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     // Loop over the particles and update their momentum
     const Real q = this->charge;
     const Real m = this-> mass;
+
     if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(
             pti.numParticles(),
@@ -1698,6 +1699,13 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
                         UpdateMomentumVay( ux[i], uy[i], uz[i],
+                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                    }
+                );
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::BorisRR) {
+                amrex::ParallelFor( pti.numParticles(),
+                    [=] AMREX_GPU_DEVICE (long i) {
+                        UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );
