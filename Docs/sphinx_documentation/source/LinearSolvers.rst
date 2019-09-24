@@ -637,20 +637,26 @@ solve with cross terms.  Because this is a commonly used motif, we provide
 a tensor solve for cell-centered velocity components.
 
 Consider a velocity field :math:`U = (u,v,w)` with all
-components co-located on cell centers.  The viscous term, expressed in
-three-dimensional Cartesian coordinates,  can be written as
+components co-located on cell centers.  The viscous term can be written in vector form as
 
 .. math::
 
-   ( (\frac{4}{3} \eta + \kappa) u_x)_x + (              \eta           u_y)_y + (\eta u_z)_z 
+ \nabla \cdot (\eta \nabla U) + \nabla \cdot (\eta (\nabla U)^T ) + \nabla \cdot ( (\kappa - \frac{2}{3} \eta) (\nabla \cdot U) )
 
-                 (\eta           v_x)_x + ( (\frac{4}{3} \eta + \kappa) v_y)_y + (\eta v_z)_z 
+and in 3-d Cartesian component form as
 
-    (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
+.. math::
 
-Here :math:`eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
+ ( (\eta u_x)_x + (\eta u_y)_y + (\eta u_z)_z ) + ( (\eta u_x)_x + (\eta v_x)_y + (\eta w_x)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_x
 
-We evaluate the following terms using the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators;
+ ( (\eta v_x)_x + (\eta v_y)_y + (\eta v_z)_z ) + ( (\eta u_y)_x + (\eta v_y)_y + (\eta w_y)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_y
+
+ ( (\eta w_x)_x + (\eta w_y)_y + (\eta w_z)_z ) + ( (\eta u_z)_x + (\eta v_z)_y + (\eta w_z)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_z
+
+
+Here :math:`\eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
+
+We evaluate the following terms from the above using the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators;
 
 .. math::
 
@@ -664,11 +670,11 @@ the following cross-terms are evaluted separately using the ``MLTensorOp`` and `
 
 .. math::
 
-    (\frac{2}{3} \eta (\nabla \cdot U))_x - (\eta v_x)_y  - (\eta w_x)_z
+    ( (\kappa - \frac{2}{3} \eta) (v_y + w_z) )_x + (\eta v_x)_y  + (\eta w_x)_z
 
-    (\eta u_y)_x - (\frac{2}{3} \eta (\nabla \cdot U))_y  - (\eta w_y)_z
+    (\eta u_y)_x + ( (\kappa - \frac{2}{3} \eta) (u_x + w_z) )_y  + (\eta w_y)_z
 
-    (\eta u_z)_x - (\eta v_z)_y - (\frac{2}{3} \eta (\nabla \cdot U))_z
+    (\eta u_z)_x + (\eta v_z)_y - ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
 
 Multi-Component Operators
 =========================
