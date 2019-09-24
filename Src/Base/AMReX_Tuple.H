@@ -244,7 +244,7 @@ namespace detail {
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr
-GpuTuple<Ts...>
+GpuTuple<detail::tuple_decay_t<Ts>...>
 makeTuple (Ts &&... args)
 {
     return GpuTuple<detail::tuple_decay_t<Ts>...>(std::forward<Ts>(args)...);
