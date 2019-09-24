@@ -1054,7 +1054,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
-    
+    auto assign_grid = m_particle_locator.getGridAssignor();
+   
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
     Vector<std::map<int, int> > new_sizes(num_levels);
@@ -1070,8 +1071,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto phi = Geom(lev).ProbHiArray();
         const auto is_per = Geom(lev).isPeriodicArray();
         const Box domain = Geom(lev).Domain();
-
-        auto assign_grid = m_particle_locator.getGridAssignor();
 
         for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
