@@ -19,7 +19,8 @@ using namespace amrex;
 namespace
 {
 
-    const std::vector<std::string> particle_field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
+    const std::vector<std::string> particle_field_names = {"w", "x", "y",
+                                                           "z", "ux", "uy", "uz"};
 
     /*
       Creates the HDF5 file in truncate mode and closes it.
@@ -601,7 +602,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                         ( (1.+beta_boost_)*gamma_boost_);
        zmax_slice_lab = current_slice_hi[AMREX_SPACEDIM-1] /
                         ( (1.+beta_boost_)*gamma_boost_);
-       int Nz_slice_lab = static_cast<unsigned>((zmax_slice_lab - zmin_slice_lab) * inv_dz_lab_);
+       int Nz_slice_lab = static_cast<unsigned>(( 
+                          zmax_slice_lab - zmin_slice_lab) * inv_dz_lab_);
        int Nx_slice_lab = ( current_slice_hi[0] - current_slice_lo[0] ) /
                           geom.CellSize(0);
        if (Nx_slice_lab == 0 ) {Nx_slice_lab = 1;}
@@ -622,8 +624,10 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
        for ( int i_dim=0; i_dim<AMREX_SPACEDIM; ++i_dim)
        {
-          slice_lo[i_dim] = (slice_realbox.lo(i_dim) - geom.ProbLo(i_dim) - 0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
-          slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) - 0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
+          slice_lo[i_dim] = (slice_realbox.lo(i_dim) - geom.ProbLo(i_dim) - 
+                             0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
+          slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) - 
+                             0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
        }
        Box stmp(slice_lo,slice_hi);
        slicediag_box = stmp;
@@ -1012,7 +1016,7 @@ writeMetaData ()
 
     if (ParallelDescriptor::IOProcessor()) {
         //const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
-        const std::string fullpath = WarpX::lab_data_directory ;
+        const std::string fullpath = WarpX::lab_data_directory;
         if (!UtilCreateDirectory(fullpath, 0755))
             CreateDirectoryFailed(fullpath);
 
@@ -1041,7 +1045,7 @@ writeMetaData ()
 
            VisMF::IO_Buffer io_buffer_slice(VisMF::IO_Buffer_Size);
            std::ofstream HeaderFile_slice;
-           HeaderFile_slice.rdbuf()->pubsetbuf(io_buffer_slice.dataPtr(), 
+           HeaderFile_slice.rdbuf()->pubsetbuf(io_buffer_slice.dataPtr(),
                                                io_buffer_slice.size());
            std::string HeaderFileName_slice(WarpX::lab_data_directory+ 
                                             "/slices/Header");

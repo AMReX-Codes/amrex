@@ -15,11 +15,11 @@
 
 
 /** \brief
- * The capability for back-transformed lab-frame data is implemented to generate 
- * the full diagnostic snapshot for the entire domain and reduced diagnostic (1D, 2D or 3D 'slices') 
- * for a sub-domain. 
+ * The capability for back-transformed lab-frame data is implemented to generate
+ * the full diagnostic snapshot for the entire domain and reduced diagnostic (1D, 2D or 3D 'slices')
+ * for a sub-domain.
  * LabFrameDiag class defines the parameters required to backtrasform data from 
- * boosted frame at (z_boost,t_boost) to lab-frame at (z_lab, t_lab)
+ * boosted frame at (z_boost,t_boost) to lab-frame at (z_lab, t_lab). 
  * Two derived classes, namely, LabFrameSnapShot and LabFrameSlice are defined to 
  * store the full back-transformed diagnostic snapshot of the entire domain and reduced back-transformed 
  * diagnostic for a sub-domain, respectively. 
