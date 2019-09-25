@@ -361,10 +361,10 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab; // contiguous, temporary, copy of the tiled fine patch to read from
         for (int idim = 0; idim < fine.size(); ++idim)  // j-field components
         {
-            for (MFIter mfi(*coarse[idim],true); mfi.isValid(); ++mfi) // OMP in-box decomposition of coarse into tilebox
+            // OMP in-box decomposition of coarse into tilebox
+            for (MFIter mfi(*coarse[idim], TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
 
