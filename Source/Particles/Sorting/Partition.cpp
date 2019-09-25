@@ -40,22 +40,25 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     RealVector& uxp, RealVector& uyp, RealVector& uzp, RealVector& wp)
 {
     BL_PROFILE("PPC::Evolve::partition");
-
-    std::vector<bool> inexflag;
+    Gpu::ManagedDeviceVector<int> inexflag;
     inexflag.resize(np);
-
-    auto& aos = pti.GetArrayOfStructs();
 
     // We need to partition the large buffer first
     iMultiFab const* bmasks =
         (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
         gather_masks : current_masks;
-    int i = 0;
-    const auto& msk = (*bmasks)[pti];
-    for (const auto& p : aos) {
-        const IntVect& iv = Index(p, lev);
-        inexflag[i++] = msk(iv);
-    }
+
+    // For each particle, find whether it is in the large buffer, by looking up the mask
+    const Array4<const int>& msk = (*bmasks)[pti].array();
+    auto& aos = pti.GetArrayOfStructs();
+    ParticleType * AMREX_RESTRICT pstructs = &(aos[0]);
+    int * inexflag_ptr = inexflag.dataPtr();
+    amrex::ParallelFor( pti.numParticles(),
+         [=] AMREX_GPU_DEVICE (long i) {
+             const IntVect& iv = Index(pstructs[i], lev);
+             inexflag_ptr[i] = msk(iv);
+         }
+     );
 
     Vector<long> pid;
     pid.resize(np);
