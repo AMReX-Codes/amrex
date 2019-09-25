@@ -528,6 +528,11 @@ Laser initialization
     moving window and laser propagation directions to be the same (`x`, `y`
     or `z`)
 
+* ``<laser_name>.min_particles_per_mode`` (`int`) optional (default `4`)
+    When using the RZ version, this specifies the minimum number of particles
+    per angular mode. The laser particles are loaded into radial spokes, with
+    the number of spokes given by min_particles_per_mode*(warpx.n_rz_azimuthal_modes-1).
+
 * ``warpx.num_mirrors`` (`int`) optional (default `0`)
     Users can input perfect mirror condition inside the simulation domain.
     The number of mirrors is given by ``warpx.num_mirrors``. The mirrors are

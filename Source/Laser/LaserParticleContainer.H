@@ -81,6 +81,8 @@ private:
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               Z0_lab = 0; // Position of the antenna in the lab frame
 
+    long min_particles_per_mode = 4;
+
     // computed using runtime parameters
     amrex::Vector<amrex::Real> p_Y;
     amrex::Vector<amrex::Real> u_X;
