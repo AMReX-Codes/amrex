@@ -54,9 +54,20 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     auto& aos = pti.GetArrayOfStructs();
     ParticleType * AMREX_RESTRICT pstructs = &(aos[0]);
     int * inexflag_ptr = inexflag.dataPtr();
-    amrex::ParallelFor( pti.numParticles(),
+    const Geometry& geom = Geom(lev);
+    const Real prob_lo_x = geom.ProbLo(0);
+    const Real prob_lo_y = geom.ProbLo(1);
+    const Real prob_lo_z = geom.ProbLo(2);
+    const Real inv_dx = geom.InvCellSize(0);
+    const Real inv_dy = geom.InvCellSize(1);
+    const Real inv_dz = geom.InvCellSize(2);
+    const IntVect domain_small_end = geom.Domain().smallEnd();
+    amrex::ParallelFor( np,
          [=] AMREX_GPU_DEVICE (long i) {
-             const IntVect& iv = Index(pstructs[i], lev);
+
+             const IntVect& iv = findParticleIndex(pstructs[i],
+                 prob_lo_x, prob_lo_y, prob_lo_z,
+                 inv_dx, inv_dy, inv_dz, domain_small_end );
              inexflag_ptr[i] = msk(iv);
          }
      );
