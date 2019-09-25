@@ -116,25 +116,35 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     
     const amrex::Real Alpha[3] = {
     
-        2*PhysConst::xi*PhysConst::c^2 * ((-1)*7*(Ex*VxE[0]+Ey*VxE[1]+Ez*VxE[2])*Bx -
-            7*(Ex*Bx+Ey*By+Ez*Bz)*VxE[0] + 4*(Bx*VxE[0]+By*VxE[1]+Bz*VxE[2])*Ex) + VxM[0],
+        2*PhysConst::xi*PhysConst::c^2 *
+            ((-1)*7*(Ex(j,k,l)*VxE[0]+Ey(j,k,l)*VxE[1]+Ez(j,k,l)*VxE[2])*Bx(j,k,l)
+            -7*(Ex(j,k,l)*Bx(j,k,l)+Ey(j,k,l)*By(j,k,l)+Ez(j,k,l)*Bz(j,k,l))*VxE[0]
+            +4*(Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2])*Ex(j,k,l)) + VxM[0],
         
-        2*PhysConst::xi*PhysConst::c^2 * ((-1)*7*(Ex*VxE[0]+Ey*VxE[1]+Ez*VxE[2])*By -
-            7*(Ex*Bx+Ey*By+Ez*Bz)*VxE[1] + 4*(Bx*VxE[0]+By*VxE[1]+Bz*VxE[2])*Ey) + VxM[1]
+        2*PhysConst::xi*PhysConst::c^2 *
+            ((-1)*7*(Ex(j,k,l)*VxE[0]+Ey(j,k,l)*VxE[1]+Ez(j,k,l)*VxE[2])*By(j,k,l)
+            -7*(Ex(j,k,l)*Bx(j,k,l)+Ey(j,k,l)*By(j,k,l)+Ez(j,k,l)*Bz(j,k,l))*VxE[1]
+            +4*(Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2])*Ey(j,k,l)) + VxM[1]
         
-        2*PhysConst::xi*PhysConst::c^2 * ((-1)*7*(Ex*VxE[0]+Ey*VxE[1]+Ez*VxE[2])*Bz -
-            7*(Ex*Bx+Ey*By+Ez*Bz)*VxE[2] + 4*(Bx*VxE[0]+By*VxE[1]+Bz*VxE[2])*Ez) + VxM[2]};
+        2*PhysConst::xi*PhysConst::c^2 *
+            ((-1)*7*(Ex(j,k,l)*VxE[0]+Ey(j,k,l)*VxE[1]+Ez(j,k,l)*VxE[2])*Bz(j,k,l)
+            -7*(Ex(j,k,l)*Bx(j,k,l)+Ey(j,k,l)*By(j,k,l)+Ez(j,k,l)*Bz(j,k,l))*VxE[2]
+            +4*(Bx(j,k,l)*VxE[0]+By(j,k,l)*VxE[1]+Bz(j,k,l)*VxE[2])*Ez) + VxM[2]};
         
     const amrex::Real Omega[3] = {
     
-        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex*VxB[0]+Ey*VxB[1]+Ez*VxB[2])*Ex +
-            2*(Ex^2+Ey^2+Ez^2-c^2*(Bx^2+By^2+Bz^2))*VxB[0] + 7*c^2*(VxB[0]*Bx+VxB[1]*By+VxB[2]*Bz)*B[0]),
+        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 *
+            (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1]+Ez(j,k,l)*VxB[2])*Ex(j,k,l)
+            +2*(Ex(j,k,l)^2+Ey(j,k,l)^2+Ez(j,k,l)^2-c^2*(Bx(j,k,l)^2+By(j,k,l)^2+Bz(j,k,l)^2))*VxB[0]
+            +7*c^2*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bx(j,k,l)),
         
-        alpha[1] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex*VxB[0]+Ey*VxB[1]+Ez*VxB[2])*Ey +
-            2*(Ex^2+Ey^2+Ez^2-c^2*(Bx^2+By^2+Bz^2))*VxB[1] + 7*c^2*(VxB[0]*Bx+VxB[1]*By+VxB[2]*Bz)*B[1]),
+        alpha[1] + 2*PhysConst::xi*PhysConst::c^2 *
+            (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1]+Ez(j,k,l)*VxB[2])*Ey(j,k,l)
+            +2*(Ex(j,k,l)^2+Ey(j,k,l)^2+Ez(j,k,l)^2-c^2*(Bx(j,k,l)^2+By(j,k,l)^2+Bz(j,k,l)^2))*VxB[1]
+            +7*c^2*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*By(j,k,l)),
         
-        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex*VxB[0]+Ey*VxB[1]+Ez*VxB[2])*Ez +
-            2*(Ex^2+Ey^2+Ez^2-c^2*(Bx^2+By^2+Bz^2))*VxB[2] + 7*c^2*(VxB[0]*Bx+VxB[1]*By+VxB[2]*Bz)*B[2])};
+        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1] +
+            Ez(j,k,l)*VxB[2])*Ez(j,k,l)+2*(Ex(j,k,l)^2+Ey(j,k,l)^2+Ez(j,k,l)^2 - c^2*(Bx(j,k,l)^2+By(j,k,l)^2+Bz(j,k,l)^2))*VxB[2] + 7*c^2*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bz(j,k,l))};
     
     // Defining matrix for the algorithm
     const amrex::Real a00 = beta + (PhysConst::xi/PhysConst::ep0) *
@@ -180,43 +190,55 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 #else
         const amrex::Real Mpx[3] = {
         
-        -2*PhysConst::xi*Physconst::c^2 * (2*(Ex(j+1,k,0)^2+Ey(j+1,k,0)^2 - PhysConst::c^2*(Bx(j+1,k,0)^2+By(j+1,k,0)^2+Bz(j+1,k,0)^2))*Bx(j+1,k,0)
+        -2*PhysConst::xi*Physconst::c^2 * (2*(Ex(j+1,k,0)^2+Ey(j+1,k,0)^2
+        -PhysConst::c^2*(Bx(j+1,k,0)^2+By(j+1,k,0)^2+Bz(j+1,k,0)^2))*Bx(j+1,k,0)
         -7*(Ex(j+1,k,0)*Bx(j+1,k,0)+Ey(j+1,k,0)*By(j+1,k,0)+Ez(j+1,k,0)*Bz(j+1,k,0))*Ex(j+1,k,0)),
     
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j+1,k,0)^2+Ey(j+1,k,0)^2+Ez(j+1,k,0)^2 - PhysConst::c^2*(Bx(j+1,k,0)^2+By(j+1,k,0)^2+Bz(j+1,k,0)^2))*By(j+1,k,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j+1,k,0)^2+Ey(j+1,k,0)^2+Ez(j+1,k,0)^2
+        -PhysConst::c^2*(Bx(j+1,k,0)^2+By(j+1,k,0)^2+Bz(j+1,k,0)^2))*By(j+1,k,0)
         -7*(Ex(j+1,k,0)*Bx(j+1,k,0)+Ey(j+1,k,0)*By(j+1,k,0)+Ez(j+1,k,0)*Bz(j+1,k,0))*Ey(j+1,k,0)),
         
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j+1,k,0)^2+Ey(j+1,k,0)^2+Ez(j+1,k,0)^2 - PhysConst::c^2*(Bx(j+1,k,0)^2+By(j+1,k,0)^2+Bz(j+1,k,0)^2))*Bz(j+1,k,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j+1,k,0)^2+Ey(j+1,k,0)^2+Ez(j+1,k,0)^2
+        -PhysConst::c^2*(Bx(j+1,k,0)^2+By(j+1,k,0)^2+Bz(j+1,k,0)^2))*Bz(j+1,k,0)
         -7*(Ex(j+1,k,0)*Bx(j+1,k,0)+Ey(j+1,k,0)*By(j+1,k,0)+Ez(j+1,k,0)*Bz(j+1,k,0))*Ez(j+1,k,0))};
     
     const amrex::Real Mnx[3] = {
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j-1,k,0)^2+Ey(j-1,k,0)^2+Ez(j-1,k,0)^2 - PhysConst::c^2*(Bx(j-1,k,0)^2+By(j-1,k,0)^2+Bz(j-1,k,0)^2))*Bx(j-1,k,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j-1,k,0)^2+Ey(j-1,k,0)^2+Ez(j-1,k,0)^2
+        -PhysConst::c^2*(Bx(j-1,k,0)^2+By(j-1,k,0)^2+Bz(j-1,k,0)^2))*Bx(j-1,k,0)
         -7*(Ex(j-1,k,0)*Bx(j-1,k,0)+Ey(j-1,k,0)*By(j-1,k,0)+Ez(j-1,k,0)*Bz(j-1,k,0))*Exs(j-1,k,0)),
     
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j-1,k,0)^2+Ey(j-1,k,0)^2+Ez(j-1,k,0)^2 - PhysConst::c^2*(Bx(j-1,k,0)^2+By(j-1,k,0)^2+Bz(j-1,k,0)^2))*By(j-1,k,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j-1,k,0)^2+Ey(j-1,k,0)^2+Ez(j-1,k,0)^2
+        -PhysConst::c^2*(Bx(j-1,k,0)^2+By(j-1,k,0)^2+Bz(j-1,k,0)^2))*By(j-1,k,0)
         -7*(Ex(j-1,k,0)*Bx(j-1,k,0)+Ey(j-1,k,0)*By(j-1,k,0)+Ez(j-1,k,0)*Bz(j-1,k,0))*Ey(j-1,k,0)),
         
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j-1,k,0)^2+Ey(j-1,k,0)^2+Ez(j-1,k,0)^2 - PhysConst::c^2*(Bx(j-1,k,0)^2+By(j-1,k,0)^2+Bz(j-1,k,0)^2))*Bz(j-1,k,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j-1,k,0)^2+Ey(j-1,k,0)^2+Ez(j-1,k,0)^2
+        -PhysConst::c^2*(Bx(j-1,k,0)^2+By(j-1,k,0)^2+Bz(j-1,k,0)^2))*Bz(j-1,k,0)
         -7*(Ex(j-1,k,0)*Bx(j-1,k,0)+Ey(j-1,k,0)*By(j-1,k,0)+Ez(j-1,k,0)*Bz(j-1,k,0))*Ez(j-1,k,0))};
     
      const amrex::Real Mpz[3] = {
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k+1,0)^2+Ey(j,k+1,0)^2+Ez(j,k+1,0)^2 - PhysConst::c^2*(Bx(j,k+1,0)^2+By(j,k+1,0)^2+Bz(j,k+1,0)^2))*Bx(j,k+1,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k+1,0)^2+Ey(j,k+1,0)^2+Ez(j,k+1,0)^2
+        -PhysConst::c^2*(Bx(j,k+1,0)^2+By(j,k+1,0)^2+Bz(j,k+1,0)^2))*Bx(j,k+1,0)
         -7*(Ex(j,k+1,0)*Bx(j,k+1,0)+Ey(j,k+1,0)*By(j,k+1,0)+Ez(j,k+1,0)*Bz(j,k+1,0))*Ex(j,k+1,0)),
         
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k+1,0)^2+Ey(j,k+1,0)^2+Ez(j,k+1,0)^2 - PhysConst::c^2*(Bx(j,k+1,0)^2+By(j,k+1,0)^2+Bz(j,k+1,0)^2))*By(j,k+1,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k+1,0)^2+Ey(j,k+1,0)^2+Ez(j,k+1,0)^2
+        -PhysConst::c^2*(Bx(j,k+1,0)^2+By(j,k+1,0)^2+Bz(j,k+1,0)^2))*By(j,k+1,0)
         -7*(Ex(j,k+1,0)*Bx(j,k+1,0)+Ey(j,k+1,0)*By(j,k+1,0)+Ez(j,k+1,0)*Bz(j,k+1,0))*Ey(j,k+1,0)),
     
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k+1,0)^2+Ey(j,k+1,0)^2+Ez(j,k+1,0)^2 - PhysConst::c^2*(Bx(j,k+1,0)^2+By(j,k+1,0)^2+Bz(j,k+1,0)^2))*Bz(j,k+1,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k+1,0)^2+Ey(j,k+1,0)^2+Ez(j,k+1,0)^2
+        -PhysConst::c^2*(Bx(j,k+1,0)^2+By(j,k+1,0)^2+Bz(j,k+1,0)^2))*Bz(j,k+1,0)
         -7*(Ex(j,k+1,0)*Bx(j,k+1,0)+Ey(j,k+1,0)*By(j,k+1,0)+Ez(j,k+1,0)*Bz(j,k+1,0))*Ez(j,k+1,0))};
     
     const amrex::Real Mnz[3] = {
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k-1,0)^2+Ey(j,k-1,0)^2+Ez(j,k-1,0)^2 - PhysConst::c^2*(Bx(j,k-1,0)^2+By(j,k-1,0)^2+Bz(j,k-1,0)^2))*Bx(j,k-1,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k-1,0)^2+Ey(j,k-1,0)^2+Ez(j,k-1,0)^2
+        -PhysConst::c^2*(Bx(j,k-1,0)^2+By(j,k-1,0)^2+Bz(j,k-1,0)^2))*Bx(j,k-1,0)
         -7*(Ex(j,k-1,0)*Bx(j,k-1,0)+Ey(j,k-1,0)*By(j,k-1,0)+Ez(j,k-1,0)*Bz(j,k-1,0))*Ex(j,k-1,0)),
         
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k-1,0)^2+Ey(j,k-1,0)^2+Ez(j,k-1,0)^2 - PhysConst::c^2*(Bx(j,k-1,0)^2+By(j,k-1,0)^2+Bz(j,k-1,0)^2))*By(j,k-1,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k-1,0)^2+Ey(j,k-1,0)^2+Ez(j,k-1,0)^2
+        -PhysConst::c^2*(Bx(j,k-1,0)^2+By(j,k-1,0)^2+Bz(j,k-1,0)^2))*By(j,k-1,0)
         -7*(Ex(j,k-1,0)*Bx(j,k-1,0)+Ey(j,k-1,0)*By(j,k-1,0)+Ez(j,k-1,0)*Bz(j,k-1,0))*Ey(j,k-1,0)),
     
-        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k-1,0)^2+Ey(j,k-1,0)^2+Ez(j,k-1,0)^2 - PhysConst::c^2*(Bx(j,k-1,0)^2+By(j,k-1,0)^2+Bz(j,k-1,0)^2))*Bz(j,k-1,0)
+        -2*PhysConst::xi*PhysConst::c^2 * (2*(Ex(j,k-1,0)^2+Ey(j,k-1,0)^2+Ez(j,k-1,0)^2
+        -PhysConst::c^2*(Bx(j,k-1,0)^2+By(j,k-1,0)^2+Bz(j,k-1,0)^2))*Bz(j,k-1,0)
         -7*(Ex(j,k-1,0)*Bx(j,k-1,0)+Ey(j,k-1,0)*By(j,k-1,0)+Ez(j,k-1,0)*Bz(j,k-1,0))*Ez(j,k-1,0))};
     
     const amrex::Real VxM[3] = {
@@ -235,23 +257,43 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
         0.5*(dtsdx*(By(j+1,k,0)-By(j-1,k,0)))};
 
     
-    const amrex::Real beta = 4*(PhysConst::xi/PhysConst::ep0)*(Ex(j,k,0)^2+Ey(j,k,0)^2+Ez(j,k,0)^2-PhysConst::c^2*(Bx(j,k,0)^2+By(j,k,0)^2+Bz(j,k,0)^2))+PhysConst::ep0;
+    const amrex::Real beta =
+        4*(PhysConst::xi/PhysConst::ep0)*(Ex(j,k,0)^2+Ey(j,k,0)^2+Ez(j,k,0)^2-
+        PhysConst::c^2*(Bx(j,k,0)^2+By(j,k,0)^2+Bz(j,k,0)^2))+PhysConst::ep0;
         
     const amrex::Real Alpha[3] = {
     
-        2*PhysConst::xi*PhysConst::c^2 * ((-1)*7*(Ex*VxE[0]+Ey*VxE[1]+Ez*VxE[2])*Bx - 7*(Ex*Bx+Ey*By+Ez*Bz)*VxE[0] + 4*(Bx*VxE[0]+By*VxE[1]+Bz*VxE[2])*Ex) + VxM[0],
+        2*PhysConst::xi*PhysConst::c^2 *
+            ((-1)*7*(Ex(j,k,0)*VxE[0]+Ey(j,k,0)*VxE[1]+Ez(j,k,0)*VxE[2])*Bx(j,k,0)
+            - 7*(Ex(j,k,0)*Bx(j,k,0)+Ey(j,k,0)*By(j,k,0)+Ez(j,k,0)*Bz(j,k,0))*VxE[0]
+            + 4*(Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2])*Ex(j,k,0)) + VxM[0],
         
-        2*PhysConst::xi*PhysConst::c^2 * ((-1)*7*(Ex*VxE[0]+Ey*VxE[1]+Ez*VxE[2])*By - 7*(Ex*Bx+Ey*By+Ez*Bz)*VxE[1] + 4*(Bx*VxE[0]+By*VxE[1]+Bz*VxE[2])*Ey) + VxM[1]
+        2*PhysConst::xi*PhysConst::c^2 *
+            ((-1)*7*(Ex(j,k,0)*VxE[0]+Ey(j,k,0)*VxE[1]+Ez(j,k,0)*VxE[2])*By(j,k,0)
+            - 7*(Ex(j,k,0)*Bx(j,k,0)+Ey(j,k,0)*By(j,k,0)+Ez(j,k,0)*Bz(j,k,0))*VxE[1]
+            + 4*(Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2])*Ey(j,k,0)) + VxM[1]
         
-        2*PhysConst::xi*PhysConst::c^2 * ((-1)*7*(Ex*VxE[0]+Ey*VxE[1]+Ez*VxE[2])*Bz - 7*(Ex*Bx+Ey*By+Ez*Bz)*VxE[2] + 4*(Bx*VxE[0]+By*VxE[1]+Bz*VxE[2])*Ez) + VxM[2]};
+        2*PhysConst::xi*PhysConst::c^2 *
+            ((-1)*7*(Ex(j,k,0)*VxE[0]+Ey(j,k,0)*VxE[1]+Ez(j,k,0)*VxE[2])*Bz(j,k,0)
+            - 7*(Ex(j,k,0)*Bx(j,k,0)+Ey(j,k,0)*By(j,k,0)+Ez(j,k,0)*Bz(j,k,0))*VxE[2]
+            + 4*(Bx(j,k,0)*VxE[0]+By(j,k,0)*VxE[1]+Bz(j,k,0)*VxE[2])*Ez(j,k,0)) + VxM[2]};
         
     const amrex::Real Omega[3] = {
     
-        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex*VxB[0]+Ey*VxB[1]+Ez*VxB[2])*Ex + 2*(Ex^2+Ey^2+Ez^2-c^2*(Bx^2+By^2+Bz^2))*VxB[0] + 7*c^2*(VxB[0]*Bx+VxB[1]*By+VxB[2]*Bz)*B[0]),
+        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 *
+            (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ex(j,k,0)
+            + 2*(Ex(j,k,0)^2+Ey(j,k,0)^2+Ez(j,k,0)^2-c^2*(Bx(j,k,0)^2+By(j,k,0)^2+Bz(j,k,0)^2))*VxB[0]
+            + 7*c^2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bx(j,k,0)),
         
-        alpha[1] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex*VxB[0]+Ey*VxB[1]+Ez*VxB[2])*Ey + 2*(Ex^2+Ey^2+Ez^2-c^2*(Bx^2+By^2+Bz^2))*VxB[1] + 7*c^2*(VxB[0]*Bx+VxB[1]*By+VxB[2]*Bz)*B[1]),
+        alpha[1] + 2*PhysConst::xi*PhysConst::c^2 *
+            (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ey(j,k,0)
+            +2*(Ex(j,k,0)^2+Ey(j,k,0)^2+Ez(j,k,0)^2-c^2*(Bx(j,k,0)^2+By(j,k,0)^2+Bz(j,k,0)^2))*VxB[1]
+            +7*c^2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*By(j,k,0)),
         
-        alpha[0] + 2*PhysConst::xi*PhysConst::c^2 * (4*(Ex*VxB[0]+Ey*VxB[1]+Ez*VxB[2])*Ez + 2*(Ex^2+Ey^2+Ez^2-c^2*(Bx^2+By^2+Bz^2))*VxB[2] + 7*c^2*(VxB[0]*Bx+VxB[1]*By+VxB[2]*Bz)*B[2])};
+        alpha[0] + 2*PhysConst::xi*PhysConst::c^2*
+            (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ez(j,k,0)
+            +2*(Ex(j,k,0)^2+Ey(j,k,0)^2+Ez(j,k,0)^2-c^2*(Bx(j,k,0)^2+By(j,k,0)^2+Bz(j,k,0)^2))*VxB[2]
+            +7*c^2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bz(j,k,0))};
     
     const amrex::Real a00 = beta + (PhysConst::xi/PhysConst::ep0) * ( 8*Ex(j,k,0)^2 + 14*PhysConst::c^2*Bx(j,k,0)^2 );
     const amrex::Real a11 = beta + (PhysConst::xi/PhysConst::ep0) * ( 8*Ey(j,k,0)^2 + 14*PhysConst::c^2*By(j,k,0)^2 );

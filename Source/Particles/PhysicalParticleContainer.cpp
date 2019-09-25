@@ -1363,8 +1363,16 @@ PhysicalParticleContainer::Evolve (int lev,
             }
         }
     }
-    // Split particles
-    if (do_splitting){ SplitParticles(lev); }
+    // Split particles at the end of the timestep.
+    // When subcycling is ON, the splitting is done on the last call to
+    // PhysicalParticleContainer::Evolve on the finest level, i.e., at the
+    // end of the large timestep. Otherwise, the pushes on different levels
+    // are not consistent, and the call to Redistribute (inside
+    // SplitParticles) may result in split particles to deposit twice on the
+    // coarse level.
+    if (do_splitting && (a_dt_type == DtType::SecondHalf || a_dt_type == DtType::Full) ){
+        SplitParticles(lev);
+    }
 }
 
 // Loop over all particles in the particle container and

@@ -118,6 +118,8 @@ public:
 
     static int sort_int;
 
+    static int do_subcycling;
+
     // buffers
     static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
     static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
@@ -530,10 +532,13 @@ private:
     // Other runtime parameters
     int verbose = 1;
 
+<<<<<<< HEAD
     int do_subcycling = 0;
 	
     bool use_hybrid_QED = 0;
 
+=======
+>>>>>>> bbf1ce08d525a30204e7770713ce6f0e8c41c0c7
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
 
