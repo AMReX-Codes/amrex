@@ -948,7 +948,6 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PPC::FieldGather", blp_fg);
     BL_PROFILE_VAR_NS("PPC::ParticlePush", blp_ppc_pp);
-    BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
     const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
@@ -960,7 +959,6 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_ASSERT(OnSameGrids(lev,jx));
 
     MultiFab* cost = WarpX::getCosts(lev);
-
     const iMultiFab* current_masks = WarpX::CurrentBufferMasks(lev);
     const iMultiFab* gather_masks = WarpX::GatherBufferMasks(lev);
 
@@ -991,10 +989,6 @@ PhysicalParticleContainer::Evolve (int lev,
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
-        std::vector<bool> inexflag;
-        Vector<long> pid;
-        RealVector tmp;
-        ParticleVector particle_tmp;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -1026,6 +1020,7 @@ PhysicalParticleContainer::Evolve (int lev,
             FArrayBox const* bzfab = &(Bz[pti]);
 
             Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
+
             if (WarpX::use_fdtd_nci_corr)
             {
 #if (AMREX_SPACEDIM == 2)
@@ -1085,99 +1080,21 @@ PhysicalParticleContainer::Evolve (int lev,
             Byp.assign(np,WarpX::B_external[1]);
             Bzp.assign(np,WarpX::B_external[2]);
 
-            long nfine_current = np; //! number of particles depositing to fine grid
-            long nfine_gather = np;  //! number of particles gathering from fine grid
-            if (has_buffer && !do_not_push)
-            {
-                BL_PROFILE_VAR_START(blp_partition);
-                inexflag.resize(np);
-                auto& aos = pti.GetArrayOfStructs();
-                // We need to partition the large buffer first
-                iMultiFab const* bmasks = (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
-                    gather_masks : current_masks;
-                int i = 0;
-                const auto& msk = (*bmasks)[pti];
-                for (const auto& p : aos) {
-                    const IntVect& iv = Index(p, lev);
-                    inexflag[i++] = msk(iv);
-                }
-
-                pid.resize(np);
-                std::iota(pid.begin(), pid.end(), 0L);
-
-                auto sep = std::stable_partition(pid.begin(), pid.end(),
-                                                 [&inexflag](long id) { return inexflag[id]; });
-
-                if (WarpX::n_current_deposition_buffer == WarpX::n_field_gather_buffer) {
-                    nfine_current = nfine_gather = std::distance(pid.begin(), sep);
-                } else if (sep != pid.end()) {
-                    int n_buf;
-                    if (bmasks == gather_masks) {
-                        nfine_gather = std::distance(pid.begin(), sep);
-                        bmasks = current_masks;
-                        n_buf = WarpX::n_current_deposition_buffer;
-                    } else {
-                        nfine_current = std::distance(pid.begin(), sep);
-                        bmasks = gather_masks;
-                        n_buf = WarpX::n_field_gather_buffer;
-                    }
-                    if (n_buf > 0)
-                    {
-                        const auto& msk2 = (*bmasks)[pti];
-                        for (auto it = sep; it != pid.end(); ++it) {
-                            const long id = *it;
-                            const IntVect& iv = Index(aos[id], lev);
-                            inexflag[id] = msk2(iv);
-                        }
-
-                        auto sep2 = std::stable_partition(sep, pid.end(),
-                                                          [&inexflag](long id) {return inexflag[id];});
-                        if (bmasks == gather_masks) {
-                            nfine_gather = std::distance(pid.begin(), sep2);
-                        } else {
-                            nfine_current = std::distance(pid.begin(), sep2);
-                        }
-                    }
-                }
-
-                // only deposit / gather to coarsest grid
-                if (m_deposit_on_main_grid && lev > 0) {
-                    nfine_current = 0;
-                }
-                if (m_gather_from_main_grid && lev > 0) {
-                    nfine_gather = 0;
-                }
-
-                if (nfine_current != np || nfine_gather != np)
-                {
-                    particle_tmp.resize(np);
-                    for (long ip = 0; ip < np; ++ip) {
-                        particle_tmp[ip] = aos[pid[ip]];
-                    }
-                    std::swap(aos(), particle_tmp);
-
-                    tmp.resize(np);
-                    for (long ip = 0; ip < np; ++ip) {
-                        tmp[ip] = wp[pid[ip]];
-                    }
-                    std::swap(wp, tmp);
-
-                    for (long ip = 0; ip < np; ++ip) {
-                        tmp[ip] = uxp[pid[ip]];
-                    }
-                    std::swap(uxp, tmp);
-
-                    for (long ip = 0; ip < np; ++ip) {
-                        tmp[ip] = uyp[pid[ip]];
-                    }
-                    std::swap(uyp, tmp);
-
-                    for (long ip = 0; ip < np; ++ip) {
-                        tmp[ip] = uzp[pid[ip]];
-                    }
-                    std::swap(uzp, tmp);
-                }
-                BL_PROFILE_VAR_STOP(blp_partition);
+            // Determine which particles deposit/gather in the buffer, and
+            // which particles deposit/gather in the fine patch
+            long nfine_current = np;
+            long nfine_gather = np;
+            if (has_buffer && !do_not_push) {
+                // - Modify `nfine_current` and `nfine_gather` (in place)
+                //    so that they correspond to the number of particles
+                //    that deposit/gather in the fine patch respectively.
+                // - Reorder the particle arrays,
+                //    so that the `nfine_current`/`nfine_gather` first particles
+                //    deposit/gather in the fine patch
+                //    and (thus) the `np-nfine_current`/`np-nfine_gather` last particles
+                //    deposit/gather in the buffer
+                PartitionParticlesInBuffers( nfine_current, nfine_gather, np,
+                    pti, lev, current_masks, gather_masks, uxp, uyp, uzp, wp );
             }
 
             const long np_current = (cjx) ? nfine_current : np;

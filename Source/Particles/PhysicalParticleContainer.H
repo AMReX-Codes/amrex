@@ -100,6 +100,19 @@ public:
                         const amrex::MultiFab& By,
                         const amrex::MultiFab& Bz) override;
 
+    void PartitionParticlesInBuffers(
+                        long& nfine_current,
+                        long& nfine_gather,
+                        long const np,
+                        WarpXParIter& pti,
+                        int const lev,
+                        amrex::iMultiFab const* current_masks,
+                        amrex::iMultiFab const* gather_masks,
+                        RealVector& uxp,
+                        RealVector& uyp,
+                        RealVector& uzp,
+                        RealVector& wp );
+
     void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
                         const amrex::Real* yp, const amrex::Real* zp);
 
