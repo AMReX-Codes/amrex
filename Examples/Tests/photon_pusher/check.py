@@ -12,8 +12,8 @@ import sys
 
 
 #Physical constants
-c = 299792458.0
-m_e = 9.10938291e-31
+c = 299792458.
+m_e = 9.1093837015e-31
 #________________________________________
 
 #Test cases
@@ -86,6 +86,11 @@ def check():
         for a,b in zip(res_pos, answ_pos)]
     disc_mom = [np.linalg.norm(a-b)/np.linalg.norm(b)
         for a,b in zip(res_mom, answ_mom)]
+
+    print("max(disc_pos) = %s" %max(disc_pos))
+    print("tol_pos = %s" %tol_pos)
+    print("max(disc_mom) = %s" %max(disc_mom))
+    print("tol_mom = %s" %tol_mom)
 
     assert ((max(disc_pos) <= tol_pos) and (max(disc_mom) <= tol_mom))
 

@@ -535,13 +535,13 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real a_dt)
                 const Real* sigmaj_y = sigba[mfi].sigma[1].data();
                 const Real* sigmaj_z = sigba[mfi].sigma[2].data();
 
-                auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma[0].lo();
+                int const x_lo = sigba[mfi].sigma[0].lo();
 #if (AMREX_SPACEDIM == 3)
-                auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma[1].lo();
-                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[2].lo();
+                int const y_lo = sigba[mfi].sigma[1].lo();
+                int const z_lo = sigba[mfi].sigma[2].lo();
 #else
-                int y_lo = 0;
-                auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma[1].lo();
+                int const y_lo = 0;
+                int const z_lo = sigba[mfi].sigma[1].lo();
 #endif
                 amrex::ParallelFor( tex, tey, tez,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k) {

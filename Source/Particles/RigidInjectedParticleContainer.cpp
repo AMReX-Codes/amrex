@@ -267,7 +267,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         );
     }
 
-    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, dt);
+    PhysicalParticleContainer::PushPX(pti, xp, yp, zp, dt, a_dt_type);
 
     if (!done_injecting_lev) {
 
@@ -341,7 +341,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                        rho, crho,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
-                                       t, dt);
+                                       t, dt, a_dt_type);
 }
 
 void

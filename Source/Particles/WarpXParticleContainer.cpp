@@ -253,7 +253,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         {
 #ifdef WARPX_DIM_RZ
             if (comp == PIdx::theta) {
-                particle_tile.push_back_real(comp, theta.front(), theta.back());
+                particle_tile.push_back_real(comp, theta.data(), theta.data() + np);
             }
             else {
                 particle_tile.push_back_real(comp, np, 0.0);

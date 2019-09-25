@@ -68,18 +68,20 @@ struct InjectorDensityPredefined
             amrex::Real kp = PhysConst::q_e/PhysConst::c
                 *std::sqrt( n0/(PhysConst::m_e*PhysConst::ep0) );
 
+            // Longitudinal profile, normalized to 1
             if        ((z-z_start)>=0               and
                        (z-z_start)<ramp_up ) {
-                n = (z-z_start)/ramp_up;
+                n = 0.5*(1.-std::cos(MathConst::pi*(z-z_start)/ramp_up));
             } else if ((z-z_start)>=ramp_up         and
                        (z-z_start)< ramp_up+plateau ) {
                 n = 1.;
             } else if ((z-z_start)>=ramp_up+plateau and
                        (z-z_start)< ramp_up+plateau+ramp_down) {
-                n = 1.-((z-z_start)-ramp_up-plateau)/ramp_down;
+                n = 0.5*(1.+std::cos(MathConst::pi*((z-z_start)-ramp_up-plateau)/ramp_down));
             } else {
                 n = 0.;
             }
+            // Multiply by transverse profile, and physical density
             n *= n0*(1.+4.*(x*x+y*y)/(kp*kp*rc*rc*rc*rc));
             return n;
         }
