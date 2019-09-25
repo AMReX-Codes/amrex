@@ -1037,6 +1037,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
+    if (lev_max < 0)
+        lev_max = GetParGDB()->finestLevel();
+    
     if (local > 0) BuildRedistributeMask(0, local);
     this->defineBufferMap();
 
@@ -1054,8 +1057,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     if (not m_particle_locator.isValid(GetParGDB())) m_particle_locator.build(GetParGDB());
+    m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
-   
+
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
     Vector<std::map<int, int> > new_sizes(num_levels);
