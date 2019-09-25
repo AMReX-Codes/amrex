@@ -1327,7 +1327,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
         amrex::Vector<amrex::Real> split_offset = {dx[0]/2/ppc_nd[0],
                                                    dx[1]/2/ppc_nd[1],
                                                    dx[2]/2/ppc_nd[2]};
-    
+
         // particle Array Of Structs data
         auto& particles = pti.GetArrayOfStructs();
         // particle Struct Of Arrays data
