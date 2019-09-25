@@ -35,10 +35,14 @@ struct AssignGrid
           m_num_bins(a_num_bins.dim3()), m_domain(a_geom.Domain()),
           m_plo(a_geom.ProbLoArray()), m_dxi(a_geom.InvCellSizeArray())
         {
-            // clamp bin size to 1 for AMREX_SPACEDIM < 3
+            // clamp bin size and num_bins to 1 for AMREX_SPACEDIM < 3
             m_bin_size.x = amrex::max(m_bin_size.x, 1);
             m_bin_size.y = amrex::max(m_bin_size.y, 1);
             m_bin_size.z = amrex::max(m_bin_size.z, 1);
+
+            m_num_bins.x = amrex::max(m_num_bins.x, 1);
+            m_num_bins.y = amrex::max(m_num_bins.y, 1);
+            m_num_bins.z = amrex::max(m_num_bins.z, 1);
         }
 
     template <typename P>
@@ -130,7 +134,7 @@ public:
                                           amrex::get<2*AMREX_SPACEDIM+2>(hv)));
 
         m_num_bins = (m_bins_hi - m_bins_lo + m_bin_size) / m_bin_size; 
-
+               
         int num_bins_total = AMREX_D_TERM(m_num_bins[0],*m_num_bins[1],*m_num_bins[2]);
 
         m_cells.resize(num_boxes);
@@ -146,8 +150,12 @@ public:
         const auto lo       = m_bins_lo.dim3();
         const auto hi       = m_bins_hi.dim3();
         const auto bin_size = m_bin_size.dim3();
-        const auto nbins    = m_num_bins.dim3();
 
+        auto nbins    = m_num_bins.dim3();
+        nbins.x = amrex::max(nbins.x, 1);
+        nbins.y = amrex::max(nbins.y, 1);
+        nbins.z = amrex::max(nbins.z, 1);
+        
         unsigned int* pcell = m_cells.dataPtr();
         unsigned int* pcount = m_counts.dataPtr();
         unsigned int* pperm = m_permutation.dataPtr();
@@ -161,7 +169,7 @@ public:
             int iz = (blo.z - lo.z) / bin_size.z;
             int nx = nbins.x;
             int ny = nbins.y;
-            int nz = nbins.z;            
+            int nz = nbins.z;
             unsigned int uix = amrex::min(nx-1,amrex::max(0,ix));
             unsigned int uiy = amrex::min(ny-1,amrex::max(0,iy));
             unsigned int uiz = amrex::min(nz-1,amrex::max(0,iz));
@@ -170,7 +178,7 @@ public:
         });
 
         Gpu::exclusive_scan(m_counts.begin(), m_counts.end(), m_offsets.begin());
-        
+
         Gpu::thrust_copy(m_offsets.begin(), m_offsets.end()-1, m_counts.begin());
 
         constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
