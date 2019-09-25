@@ -31,8 +31,11 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
     pp.query("do_backward_propagation", do_backward_propagation);
+
+    // Initialize splitting
     pp.query("do_splitting", do_splitting);
     pp.query("split_type", split_type);
+
     pp.query("do_continuous_injection", do_continuous_injection);
     // Whether to plot back-transformed (lab-frame) diagnostics
     // for this species.
@@ -1315,7 +1318,16 @@ PhysicalParticleContainer::SplitParticles(int lev)
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         pti.GetPosition(xp, yp, zp);
+
+        // offset for split particles is computed as a function of cell size
+        // and number of particles per cell, so that a uniform distribution
+        // before splitting results in a uniform distribution after splitting
+        const amrex::Vector<int> ppc_nd = plasma_injector->num_particles_per_cell_each_dim;
         const std::array<Real,3>& dx = WarpX::CellSize(lev);
+        amrex::Vector<amrex::Real> split_offset = {dx[0]/2/ppc_nd[0],
+                                                   dx[1]/2/ppc_nd[1],
+                                                   dx[2]/2/ppc_nd[2]};
+
         // particle Array Of Structs data
         auto& particles = pti.GetArrayOfStructs();
         // particle Struct Of Arrays data
@@ -1338,9 +1350,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         for (int kshift = -1; kshift < 2; kshift +=2 ){
                             // Add one particle with offset in x and z
-                            psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
+                            psplit_x.push_back( xp[i] + ishift*split_offset[0] );
                             psplit_y.push_back( yp[i] );
-                            psplit_z.push_back( zp[i] + kshift*dx[2]/2 );
+                            psplit_z.push_back( zp[i] + kshift*split_offset[2] );
                             psplit_ux.push_back( uxp[i] );
                             psplit_uy.push_back( uyp[i] );
                             psplit_uz.push_back( uzp[i] );
@@ -1352,7 +1364,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                     // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
-                        psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
+                        psplit_x.push_back( xp[i] + ishift*split_offset[0] );
                         psplit_y.push_back( yp[i] );
                         psplit_z.push_back( zp[i] );
                         psplit_ux.push_back( uxp[i] );
@@ -1362,7 +1374,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         // Add one particle with offset in z
                         psplit_x.push_back( xp[i] );
                         psplit_y.push_back( yp[i] );
-                        psplit_z.push_back( zp[i] + ishift*dx[2]/2 );
+                        psplit_z.push_back( zp[i] + ishift*split_offset[2] );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
@@ -1377,9 +1389,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         for (int jshift = -1; jshift < 2; jshift +=2 ){
                             for (int kshift = -1; kshift < 2; kshift +=2 ){
                                 // Add one particle with offset in x, y and z
-                                psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
-                                psplit_y.push_back( yp[i] + jshift*dx[1]/2 );
-                                psplit_z.push_back( zp[i] + kshift*dx[2]/2 );
+                                psplit_x.push_back( xp[i] + ishift*split_offset[0] );
+                                psplit_y.push_back( yp[i] + jshift*split_offset[1] );
+                                psplit_z.push_back( zp[i] + kshift*split_offset[2] );
                                 psplit_ux.push_back( uxp[i] );
                                 psplit_uy.push_back( uyp[i] );
                                 psplit_uz.push_back( uzp[i] );
@@ -1392,7 +1404,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                     // 6 particles in 3d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
-                        psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
+                        psplit_x.push_back( xp[i] + ishift*split_offset[0] );
                         psplit_y.push_back( yp[i] );
                         psplit_z.push_back( zp[i] );
                         psplit_ux.push_back( uxp[i] );
@@ -1401,7 +1413,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         psplit_w.push_back( wp[i]/np_split );
                         // Add one particle with offset in y
                         psplit_x.push_back( xp[i] );
-                        psplit_y.push_back( yp[i] + ishift*dx[1]/2 );
+                        psplit_y.push_back( yp[i] + ishift*split_offset[1] );
                         psplit_z.push_back( zp[i] );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
@@ -1410,7 +1422,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         // Add one particle with offset in z
                         psplit_x.push_back( xp[i] );
                         psplit_y.push_back( yp[i] );
-                        psplit_z.push_back( zp[i] + ishift*dx[2]/2 );
+                        psplit_z.push_back( zp[i] + ishift*split_offset[2] );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
