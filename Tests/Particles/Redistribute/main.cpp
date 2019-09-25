@@ -13,8 +13,16 @@ static constexpr int NAI = 1;
 void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
 {
     int nx = nppc[0];
+#if AMREX_SPACEDIM > 1
     int ny = nppc[1];
+#else
+    int ny = 1;
+#endif
+#if AMREX_SPACEDIM > 2
     int nz = nppc[2];
+#else
+    int nz = 1;
+#endif
     
     int ix_part = i_part/(ny * nz);
     int iy_part = (i_part % (ny * nz)) % ny;
@@ -81,16 +89,16 @@ public:
                     Real r[3];
                     get_position_unit_cell(r, a_num_particles_per_cell, i_part);
                 
-                    Real x = plo[0] + (iv[0] + r[0])*dx[0];
-                    Real y = plo[1] + (iv[1] + r[1])*dx[1];
-                    Real z = plo[2] + (iv[2] + r[2])*dx[2];
-                
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();                
-                    p.pos(0) = x;
-                    p.pos(1) = y;
-                    p.pos(2) = z;
+                    p.pos(0) = plo[0] + (iv[0] + r[0])*dx[0];
+#if AMREX_SPACEDIM > 1
+                    p.pos(1) = plo[1] + (iv[1] + r[1])*dx[1];
+#endif
+#if AMREX_SPACEDIM > 2
+                    p.pos(2) = plo[2] + (iv[2] + r[2])*dx[2];
+#endif
                     
                     for (int i = 0; i < NSR; ++i) p.rdata(i) = p.id();
                     for (int i = 0; i < NSI; ++i) p.idata(i) = p.id();
@@ -157,8 +165,12 @@ public:
                     {
                         ParticleType& p = pstruct[i];
                         p.pos(0) += move_dir[0]*dx[0];
+#if AMREX_SPACEDIM > 1
                         p.pos(1) += move_dir[1]*dx[1];
+#endif
+#if AMREX_SPACEDIM > 2
                         p.pos(2) += move_dir[2]*dx[2];
+#endif
                     });
                 }            
                 else
@@ -168,8 +180,12 @@ public:
                         ParticleType& p = pstruct[i];
 
                         p.pos(0) += (2*amrex::Random()-1)*move_dir[0]*dx[0];
+#if AMREX_SPACEDIM > 1
                         p.pos(1) += (2*amrex::Random()-1)*move_dir[1]*dx[1];
+#endif
+#if AMREX_SPACEDIM > 2
                         p.pos(2) += (2*amrex::Random()-1)*move_dir[2]*dx[2];
+#endif
                     });
                 }
             }
