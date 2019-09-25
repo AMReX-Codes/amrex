@@ -38,9 +38,11 @@ then
   echo "Run the following command(s) on the above files to replace your TABs"
   echo "with four white spaces:"
   echo ""
+  echo "GNU_SED=\$(sed --help >/dev/null 2>&1 && { echo 1; } || { echo 0; })"
+  echo "[[ \${GNU_SED} -eq 1 ]] && REPLACE=\"sed -i 's/\t/\ \ \ \ /g'\" || REPLACE=\"sed -i '' -E 's/\$(printf '\t')/\ \ \ \ /g'\""
   for i in ${files[@]}
   do
-    echo "sed -i 's/\t/    /g' $i"
+    echo "eval \"\${REPLACE}\" $i"
   done
 fi
 

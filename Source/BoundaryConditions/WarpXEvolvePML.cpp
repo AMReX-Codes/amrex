@@ -81,13 +81,13 @@ WarpX::DampPML (int lev, PatchType patch_type)
             amrex::Real const * AMREX_RESTRICT sigma_star_fac_y = nullptr;
             amrex::Real const * AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[1].data();
 #endif
-            auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_fac[0].lo();
+            int const x_lo = sigba[mfi].sigma_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma_fac[1].lo();
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_fac[2].lo();
+            int const y_lo = sigba[mfi].sigma_fac[1].lo();
+            int const z_lo = sigba[mfi].sigma_fac[2].lo();
 #else
-            int y_lo = 0;
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_fac[1].lo();
+            int const y_lo = 0;
+            int const z_lo = sigba[mfi].sigma_fac[1].lo();
 #endif
 
             amrex::ParallelFor(tex, tey, tez,
@@ -193,22 +193,22 @@ WarpX::DampJPML (int lev, PatchType patch_type)
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
 
-            auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_cumsum_fac[0].lo();
+            int const x_lo = sigba[mfi].sigma_cumsum_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cumsum_fac[2].lo();
+            int const y_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
+            int const z_lo = sigba[mfi].sigma_cumsum_fac[2].lo();
 #else
-            int y_lo = 0;
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
+            int const y_lo = 0;
+            int const z_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
 #endif
 
-            auto const& AMREX_RESTRICT xs_lo = sigba[mfi].sigma_star_cumsum_fac[0].lo();
+            int const xs_lo = sigba[mfi].sigma_star_cumsum_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT ys_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
-            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cumsum_fac[2].lo();
+            int const ys_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
+            int const zs_lo = sigba[mfi].sigma_star_cumsum_fac[2].lo();
 #else
-            int ys_lo = 0;
-            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
+            int const ys_lo = 0;
+            int const zs_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
 #endif
 
             amrex::ParallelFor( tjx, tjy, tjz,
