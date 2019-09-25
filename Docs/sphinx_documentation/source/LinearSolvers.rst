@@ -676,8 +676,6 @@ the following cross-terms are evaluted separately using the ``MLTensorOp`` and `
 
     (\eta u_z)_x + (\eta v_z)_y - ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
 
-To compute the full viscous term explicitly, 
-
 The code below is an example of how to set up the solver to compute the
 viscous term `divtau` explicitly:
 
