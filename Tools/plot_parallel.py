@@ -220,7 +220,7 @@ def reduce_evolved_quantity(z, q):
         global_q = np.empty_like(q)
         comm_world.Reduce(z, global_z, op=MPI.MAX)
         comm_world.Reduce(q, global_q, op=MPI.MAX)
-        return z, q
+        return global_z, global_q
     else:
         return z, q
 
