@@ -1,5 +1,6 @@
-#include <WarpX.H>
+#include <SortingUtils.H>
 #include <PhysicalParticleContainer.H>
+#include <WarpX.H>
 #include <AMReX_Particles.H>
 
 using namespace amrex;
@@ -43,7 +44,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     Gpu::ManagedDeviceVector<int> inexflag;
     inexflag.resize(np);
 
-    // We need to partition the large buffer first
+    // Select the largest buffer first
     iMultiFab const* bmasks =
         (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
         gather_masks : current_masks;
@@ -60,9 +61,10 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
          }
      );
 
-    Vector<long> pid;
+    // Partition the particles according whether they are in the large buffer or not
+    Gpu::ManagedDeviceVector<long> pid;
     pid.resize(np);
-    std::iota(pid.begin(), pid.end(), 0L);
+    fillWithConsecutiveIntegers( pid );
     auto sep = std::stable_partition(pid.begin(), pid.end(),
                                      [&inexflag](long id) { return inexflag[id]; });
 
