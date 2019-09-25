@@ -41,40 +41,23 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     RealVector& uxp, RealVector& uyp, RealVector& uzp, RealVector& wp)
 {
     BL_PROFILE("PPC::Evolve::partition");
+
+    auto& aos = pti.GetArrayOfStructs();
     Gpu::ManagedDeviceVector<int> inexflag;
     inexflag.resize(np);
+    Gpu::ManagedDeviceVector<long> pid;
+    pid.resize(np);
 
     // Select the largest buffer first
     iMultiFab const* bmasks =
         (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
         gather_masks : current_masks;
 
-    // For each particle, find whether it is in the large buffer, by looking up the mask
-    const Array4<const int>& msk = (*bmasks)[pti].array();
-    auto& aos = pti.GetArrayOfStructs();
-    ParticleType * AMREX_RESTRICT pstructs = &(aos[0]);
-    int * inexflag_ptr = inexflag.dataPtr();
-    const Geometry& geom = Geom(lev);
-    const Real prob_lo_x = geom.ProbLo(0);
-    const Real prob_lo_y = geom.ProbLo(1);
-    const Real prob_lo_z = geom.ProbLo(2);
-    const Real inv_dx = geom.InvCellSize(0);
-    const Real inv_dy = geom.InvCellSize(1);
-    const Real inv_dz = geom.InvCellSize(2);
-    const IntVect domain_small_end = geom.Domain().smallEnd();
-    amrex::ParallelFor( np,
-         [=] AMREX_GPU_DEVICE (long i) {
+    // For each particle, find whether it is in the large buffer,
+    // by looking up the mask. Store the answer in `inexflag`
+    amrex::ParallelFor( np, fillBufferFlag( pti, bmasks, inexflag, Geom(lev) ) );
 
-             const IntVect& iv = findParticleIndex(pstructs[i],
-                 prob_lo_x, prob_lo_y, prob_lo_z,
-                 inv_dx, inv_dy, inv_dz, domain_small_end );
-             inexflag_ptr[i] = msk(iv);
-         }
-     );
-
-    // Partition the particles according whether they are in the large buffer or not
-    Gpu::ManagedDeviceVector<long> pid;
-    pid.resize(np);
+    // Partition the particles according to whether they are in the large buffer or not
     fillWithConsecutiveIntegers( pid );
     auto sep = std::stable_partition(pid.begin(), pid.end(),
                                      [&inexflag](long id) { return inexflag[id]; });

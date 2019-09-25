@@ -1,8 +1,9 @@
 #ifndef WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
 #define WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
 
-#include <AMReX_Gpu.H>
+#include <WarpXParticleContainer.H>
 #include <AMReX_CudaContainers.H>
+#include <AMReX_Gpu.H>
 
 // TODO: Add documentation
 void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v ) {
@@ -16,25 +17,48 @@ void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v ) {
 }
 
 // TODO: Add documentation
-template< typename PType >
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-amrex::IntVect findParticleIndex ( PType p,
-                    const amrex::Real prob_lo_x,
-                    const amrex::Real prob_lo_y,
-                    const amrex::Real prob_lo_z,
-                    const amrex::Real inv_dx,
-                    const amrex::Real inv_dy,
-                    const amrex::Real inv_dz,
-                    const amrex::IntVect domain_small_end )
+class fillBufferFlag
 {
-    amrex::IntVect iv;
-    AMREX_D_TERM(iv[0]=static_cast<int>(floor((p.m_rdata.pos[0]-prob_lo_x)*inv_dx));,
-                 iv[1]=static_cast<int>(floor((p.m_rdata.pos[1]-prob_lo_y)*inv_dy));,
-                 iv[2]=static_cast<int>(floor((p.m_rdata.pos[2]-prob_lo_z)*inv_dz)););
+    public:
+        fillBufferFlag( WarpXParIter& pti, const amrex::iMultiFab* bmasks,
+                        amrex::Gpu::ManagedDeviceVector<int>& inexflag,
+                        const amrex::Geometry& geom ) {
 
-    iv += domain_small_end;
+            // Extract simple structure that can be used directly on the GPU
+            m_particles = &(pti.GetArrayOfStructs()[0]);
+            m_buffer_mask = (*bmasks)[pti].array();
+            m_inexflag_ptr = inexflag.dataPtr();
+            m_domain_small_end = geom.Domain().smallEnd();
+            for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
+                m_prob_lo[idim] = geom.ProbLo(idim);
+                m_inv_cell_size[idim] = geom.InvCellSize(idim);
+            }
+        };
 
-    return iv;
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void operator()( const long i ) const {
+            // Select a particle
+            auto& p = m_particles[i];
+            // Find the index of the cell where this particle is located
+            amrex::IntVect iv;
+            for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
+                iv[idim] = static_cast<int>(floor(
+                    (p.m_rdata.pos[idim]-m_prob_lo[idim])*m_inv_cell_size[idim]
+                ));
+            }
+            // Find the value of the buffer flag in this cell and
+            // store it at the corresponding particle position in the array `inexflag`
+            m_inexflag_ptr[i] = m_buffer_mask(iv);
+        };
+
+    private:
+        amrex::Real m_prob_lo[AMREX_SPACEDIM];
+        amrex::Real m_inv_cell_size[AMREX_SPACEDIM];
+        amrex::IntVect m_domain_small_end;
+        int* m_inexflag_ptr;
+        WarpXParticleContainer::ParticleType* m_particles;
+        amrex::Array4<const int> m_buffer_mask;
 };
 
 #endif // WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
