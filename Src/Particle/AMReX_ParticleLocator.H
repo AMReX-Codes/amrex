@@ -190,6 +190,12 @@ public:
         });
     }
 
+    void setGeometry (const Geometry& a_geom) noexcept
+    {
+        AMREX_ASSERT(m_defined);
+        m_geom = a_geom;
+    }
+    
     AssignGrid getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
@@ -313,6 +319,16 @@ public:
         return this->isValid(ba);
     }
 
+    void setGeometry (const ParGDBBase* a_gdb)
+    {
+        int num_levels = a_gdb->finestLevel()+1;
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            m_locators[lev].setGeometry(a_gdb->Geom(lev));
+            m_grid_assignors[lev] = m_locators[lev].getGridAssignor();
+        }        
+    }
+    
     AmrAssignGrid getGridAssignor () const noexcept 
     {
         AMREX_ASSERT(m_defined);
