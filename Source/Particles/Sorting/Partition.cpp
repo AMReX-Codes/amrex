@@ -42,8 +42,6 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
 {
     BL_PROFILE("PPC::Evolve::partition");
 
-    auto& aos = pti.GetArrayOfStructs();
-
     // Initialize temporary arrays
     Gpu::ManagedDeviceVector<int> inexflag;
     inexflag.resize(np);
@@ -67,10 +65,12 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     // reorder the particles, and `sep` is the position in the array that
     // separates the particles that deposit/gather on the fine patch (first part)
     // and the particles that deposit/gather in the buffers (last part)
-    long n_fine = iteratorDistance(pid.begin(), sep); // Number of particles on fine patch
+    long n_fine = iteratorDistance(pid.begin(), sep);
+    // Number of particles on fine patch, i.e. outside of the larger buffer
 
     // Second, among particles that are in the larger buffer, partition
     // particles into the smaller buffer
+
     if (WarpX::n_current_deposition_buffer == WarpX::n_field_gather_buffer) {
         // No need to do anything if the buffers have the same size
         nfine_current = nfine_gather = iteratorDistance(pid.begin(), sep);
@@ -95,6 +95,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
             amrex::ParallelFor( np - n_fine,
                fillBufferFlag(pti, bmasks, inexflag, Geom(lev), n_fine) );
             auto sep2 = stablePartition( sep, pid.end(), inexflag );
+
             if (bmasks == gather_masks) {
                 nfine_gather = iteratorDistance(pid.begin(), sep2);
             } else {
@@ -111,39 +112,39 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
         nfine_gather = 0;
     }
 
+    // Reorder the actual particle array, using the `pid` indices
     if (nfine_current != np || nfine_gather != np)
     {
+        // Extract simple pointer
+        long* AMREX_RESTRICT pid_ptr = pid.dataPtr();
 
+        // Temporary array for particle AoS
         ParticleVector particle_tmp;
         particle_tmp.resize(np);
+        ParticleType* AMREX_RESTRICT particle_tmp_ptr = particle_tmp.dataPtr();
 
-        for (long ip = 0; ip < np; ++ip) {
-            particle_tmp[ip] = aos[pid[ip]];
-        }
+        // Copy the particle AoS
+        auto& aos = pti.GetArrayOfStructs();
+        ParticleType* AMREX_RESTRICT aos_ptr = &(aos()[0]);
+        amrex::ParallelFor( np,
+            [=] AMREX_GPU_DEVICE (long ip) {
+                particle_tmp_ptr[ip] = aos_ptr[pid_ptr[ip]];
+            }
+        );
         std::swap(aos(), particle_tmp);
 
+        // Temporary array for particle individual attributes
         RealVector tmp;
         tmp.resize(np);
 
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = wp[pid[ip]];
-        }
+        // Copy individual attributes
+        amrex::ParallelFor( np, copyAndReorder<Real>( wp, tmp, pid ) );
         std::swap(wp, tmp);
-
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = uxp[pid[ip]];
-        }
+        amrex::ParallelFor( np, copyAndReorder<Real>( uxp, tmp, pid ) );
         std::swap(uxp, tmp);
-
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = uyp[pid[ip]];
-        }
+        amrex::ParallelFor( np, copyAndReorder<Real>( uyp, tmp, pid ) );
         std::swap(uyp, tmp);
-
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = uzp[pid[ip]];
-        }
+        amrex::ParallelFor( np, copyAndReorder<Real>( uzp, tmp, pid ) );
         std::swap(uzp, tmp);
     }
-
 }

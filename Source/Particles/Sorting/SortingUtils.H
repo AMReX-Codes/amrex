@@ -27,17 +27,16 @@ ForwardIterator stablePartition(ForwardIterator index_begin,
     // On GPU: Use thrust
     int* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
     ForwardIterator sep = thrust::stable_partition(
-                    thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                    index_begin, index_end,
-                    AMREX_GPU_HOST_DEVICE
-                    [predicate_ptr](long i) { return predicate_ptr[i]; }
-                );
+        thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+        index_begin, index_end,
+        [predicate_ptr] AMREX_GPU_DEVICE (long i) { return predicate_ptr[i]; }
+    );
 #else
     // On CPU: Use std library
     ForwardIterator sep = std::stable_partition(
-                    index_begin, index_end,
-                    [&predicate](long i) { return predicate[i]; }
-                );
+        index_begin, index_end,
+        [&predicate](long i) { return predicate[i]; }
+    );
 #endif
     return sep;
 }
@@ -100,6 +99,32 @@ class fillBufferFlag
         WarpXParticleContainer::ParticleType* m_particles;
         amrex::Array4<const int> m_buffer_mask;
         long m_start_index;
+};
+
+// TODO: Add documentation
+template <typename T>
+class copyAndReorder
+{
+    public:
+        copyAndReorder(
+            amrex::Gpu::ManagedDeviceVector<T>& src,
+            amrex::Gpu::ManagedDeviceVector<T>& dst,
+            amrex::Gpu::ManagedDeviceVector<long>& indices ) {
+            // Extract simple structure that can be used directly on the GPU
+            m_src_ptr = src.dataPtr();
+            m_dst_ptr = dst.dataPtr();
+            m_indices_ptr = indices.dataPtr();
+        };
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void operator()( const long ip ) const {
+            m_dst_ptr[ip] = m_src_ptr[ m_indices_ptr[ip] ];
+        };
+
+    private:
+        T* m_src_ptr;
+        T* m_dst_ptr;
+        long* m_indices_ptr;
 };
 
 #endif // WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
