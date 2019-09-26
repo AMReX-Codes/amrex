@@ -580,59 +580,54 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                                 diag_box, i));
     }
 
-    amrex::Real zmin_slice_lab;
-    amrex::Real zmax_slice_lab;
-    amrex::Real cell_dx = 0;
-    amrex::Real cell_dy = 0;
-    IntVect slice_ncells_lab ;
-    Box slicediag_box;
 
-    // To construct LabFrameSlice() the location of lo() and hi() of the reduced
-    // diag is required. These user-inputs can only be obtained if N_slice_snapshots
-    // was set higher than 0 in the input file.
-    // The user-defined quantities are used to define the Box of the reduced diag (1D,2d, or 3D)
-    // For the full-diagnostic, geom.Domain() gives the Box, but here we compute using slice inputs
-    // zmin_slice_lab and zmax_slice_lab are the min and max of the slice in lab-frame.
-    // The corresponding indices are obtained and the Box is generated to construct the object.
-    if ( N_slice_snapshots_ > 0) {
-       const amrex::Real* current_slice_lo = slice_realbox.lo();
-       const amrex::Real* current_slice_hi = slice_realbox.hi();
+    for (int i = 0; i < N_slice_snapshots; ++i) {
+      
+        amrex::Real cell_dx = 0;
+        amrex::Real cell_dy = 0;
+        IntVect slice_ncells_lab ;
 
-       zmin_slice_lab = current_slice_lo[AMREX_SPACEDIM-1] /
-                        ( (1.+beta_boost_)*gamma_boost_);
-       zmax_slice_lab = current_slice_hi[AMREX_SPACEDIM-1] /
-                        ( (1.+beta_boost_)*gamma_boost_);
-       int Nz_slice_lab = static_cast<unsigned>((
-                          zmax_slice_lab - zmin_slice_lab) * inv_dz_lab_);
-       int Nx_slice_lab = ( current_slice_hi[0] - current_slice_lo[0] ) /
-                          geom.CellSize(0);
-       if (Nx_slice_lab == 0 ) {Nx_slice_lab = 1;}
-       cell_dx = geom.CellSize(0);
+        // To construct LabFrameSlice(), the location of lo() and hi() of the reduced
+        // diag is computed using the user-defined values of the reduced diag (1D, 2D, or 3D). 
+        // For visualization of the diagnostics, the number of cells in each dimension is required and 
+        // is computed below for the reduced back-transformed lab-frame diag, similar to the full-diag. 
+        const amrex::Real* current_slice_lo = slice_realbox.lo();
+        const amrex::Real* current_slice_hi = slice_realbox.hi();
+
+        const amrex::Real zmin_slice_lab = current_slice_lo[AMREX_SPACEDIM-1] /
+                                          ( (1.+beta_boost_)*gamma_boost_);
+        const amrex::Real zmax_slice_lab = current_slice_hi[AMREX_SPACEDIM-1] /
+                                          ( (1.+beta_boost_)*gamma_boost_);
+        int Nz_slice_lab = static_cast<unsigned>((
+                           zmax_slice_lab - zmin_slice_lab) * inv_dz_lab_);
+        int Nx_slice_lab = ( current_slice_hi[0] - current_slice_lo[0] ) /
+                           geom.CellSize(0);
+        if (Nx_slice_lab == 0 ) {Nx_slice_lab = 1;}
+        cell_dx = geom.CellSize(0);
 #if (AMREX_SPACEDIM == 3)
-       int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) /
-                            geom.CellSize(1);
-       if (Ny_slice_lab == 0 ) {Ny_slice_lab = 1;}
-       slice_ncells_lab = {Nx_slice_lab, Ny_slice_lab, Nz_slice_lab};
-       cell_dy = geom.CellSize(1);
+        int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) /
+                             geom.CellSize(1);
+        if (Ny_slice_lab == 0 ) {Ny_slice_lab = 1;}
+        slice_ncells_lab = {Nx_slice_lab, Ny_slice_lab, Nz_slice_lab};
+        cell_dy = geom.CellSize(1);
 #else
-       // Ny_lab = 1;
-       slice_ncells_lab = {Nx_slice_lab, Nz_slice_lab};
+        slice_ncells_lab = {Nx_slice_lab, Nz_slice_lab};
 #endif
 
-       IntVect slice_lo(AMREX_D_DECL(0,0,0));
-       IntVect slice_hi(AMREX_D_DECL(1,1,1));
+        IntVect slice_lo(AMREX_D_DECL(0,0,0));
+        IntVect slice_hi(AMREX_D_DECL(1,1,1));
 
-       for ( int i_dim=0; i_dim<AMREX_SPACEDIM; ++i_dim)
-       {
-          slice_lo[i_dim] = (slice_realbox.lo(i_dim) - geom.ProbLo(i_dim) -
-                             0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
-          slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) -
-                             0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
-       }
-       Box stmp(slice_lo,slice_hi);
-       slicediag_box = stmp;
-    }
-    for (int i = 0; i < N_slice_snapshots; ++i) {
+        for ( int i_dim=0; i_dim<AMREX_SPACEDIM; ++i_dim)
+        {
+           slice_lo[i_dim] = (slice_realbox.lo(i_dim) - geom.ProbLo(i_dim) -
+                              0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
+           slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) -
+                              0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
+        }
+        Box stmp(slice_lo,slice_hi);
+        Box slicediag_box = stmp;
+
+
         Real t_slice_lab = i * dt_slice_snapshots_lab_ ;
         RealBox prob_domain_lab = geom.ProbDomain();
         // replace z bounds by lab-frame coordinates
@@ -1015,16 +1010,16 @@ writeMetaData ()
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
     if (ParallelDescriptor::IOProcessor()) {
-        //const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
-        const std::string fullpath = WarpX::lab_data_directory;
+        const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
+        //const std::string fullpath = WarpX::lab_data_directory;
         if (!UtilCreateDirectory(fullpath, 0755))
             CreateDirectoryFailed(fullpath);
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream HeaderFile;
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        //std::string HeaderFileName(WarpX::lab_data_directory + "/snapshots/Header");
-        std::string HeaderFileName(WarpX::lab_data_directory + "/Header");
+        std::string HeaderFileName(WarpX::lab_data_directory + "/snapshots/Header");
+        //std::string HeaderFileName(WarpX::lab_data_directory + "/Header");
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
@@ -1094,10 +1089,10 @@ LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
    updateCurrentZPositions(t_boost, inv_gamma_boost_, inv_beta_boost_);
    Real zmin_lab = prob_domain_lab_.lo(AMREX_SPACEDIM-1);
    initial_i = (current_z_lab - zmin_lab) / dz_lab_ ;
-   //file_name = Concatenate(WarpX::lab_data_directory + "/snapshots/snapshot",
-   //                        file_num, 5);
-   file_name = Concatenate(WarpX::lab_data_directory + "/snapshot",
+   file_name = Concatenate(WarpX::lab_data_directory + "/snapshots/snapshot",
                            file_num, 5);
+   //file_name = Concatenate(WarpX::lab_data_directory + "/snapshot",
+   //                        file_num, 5);
    createLabFrameDirectories();
    buff_counter_ = 0;
    if (WarpX::do_boosted_frame_fields) data_buffer_.reset(nullptr);
@@ -1316,7 +1311,7 @@ AddDataToBuffer( MultiFab& tmp, int k_lab,
        const Box& bx_bf = mfi.tilebox();
        bx.setSmall(AMREX_SPACEDIM-1,bx_bf.smallEnd(AMREX_SPACEDIM-1));
        bx.setBig(AMREX_SPACEDIM-1,bx_bf.bigEnd(AMREX_SPACEDIM-1));
-       if (bx_bf.contains(bx)) {
+       if (bx_bf.intersects(bx)) {
           const auto field_map_ptr = map_actual_fields_to_dump.dataPtr();
           ParallelFor(bx, ncomp_to_dump,
               [=] AMREX_GPU_DEVICE(int i, int j, int k, int n)
