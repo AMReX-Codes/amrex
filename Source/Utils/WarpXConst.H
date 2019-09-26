@@ -2,6 +2,7 @@
 #define WARPX_CONST_H_
 
 #include <AMReX_REAL.H>
+#include <cmath> // I wasn't sure if this needed to be included or not.
 
 // Math constants
 namespace MathConst
@@ -22,7 +23,7 @@ namespace PhysConst
     static constexpr amrex::Real hbar  = 1.054571817e-34;
     static constexpr amrex::Real alpha = mu0/(4*MathConst::pi)*q_e*q_e*c/hbar;
     static constexpr amrex::Real r_e   = 1./(4*MathConst::pi*ep0) * q_e*q_e/(m_e*c*c);
-    static constexpr amrex::Real xi    = (2*alpha^2*ep0^2*hbar^3)/(45*m_e^4*c^5)
+    static constexpr amrex::Real xi    = (2*pow(alpha,2)*pow(ep0,2)*pow(hbar,3))/(45*pow(m_e,4)*pow(c,5))
 }
 
 #endif

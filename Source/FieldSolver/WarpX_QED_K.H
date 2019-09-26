@@ -15,7 +15,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     // Picking out points for stencil to be used in curl function
     const amrex::Real Mpx[3] = {
         
-        -2*PhysConst::xi*Physconst::c^2 * (2*(Ex(j+1,k,l)^2+Ey(j+1,k,l)^2+Ez(j+1,k,l)^2 -
+        -2*PhysConst::xi*power(Physconst::c^2) * (2*(Ex(j+1,k,l)^2+Ey(j+1,k,l)^2+Ez(j+1,k,l)^2 -
         PhysConst::c^2*(Bx(j+1,k,l)^2+By(j+1,k,l)^2+Bz(j+1,k,l)^2))*Bx(j+1,k,l)
        -7*(Ex(j+1,k,l)*Bx(j+1,k,l)+Ey(j+1,k,l)*By(j+1,k,l)+Ez(j+1,k,l)*Bz(j+1,k,l))*Ex(j+1,k,l)),
     

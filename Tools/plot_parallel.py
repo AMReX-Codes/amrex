@@ -81,8 +81,9 @@ if int(sys.version[0]) != 3:
 matplotlib.rcParams.update({'font.size': 14})
 pscolor = ['r','g','b','k','m','c','y','w']
 pssize = 1.
+# For 2D data, plot 2D array.
+# For 3D data, plot central x-z slice.
 yt_slicedir = {2:2, 3:1}
-yt_aspect = {2:.05, 3:20}
 
 # Get list of particle species.
 def get_species(a_file_list):
@@ -127,7 +128,9 @@ def plot_snapshot(filename):
             plt.clim(-vmax, vmax)
     if plotlib == 'yt':
         # Directly plot with yt
-        sl = yt.SlicePlot(ds, yt_slicedir[dim], args.field, aspect=yt_aspect[dim])
+        if dim==2: aspect = ds.domain_width[0]/ds.domain_width[1]
+        if dim==3: aspect = ds.domain_width[2]/ds.domain_width[0]
+        sl = yt.SlicePlot(ds, yt_slicedir[dim], args.field, aspect=aspect)
         if vmax is not None:
             sl.set_zlim(-vmax, vmax)
 
@@ -217,7 +220,7 @@ def reduce_evolved_quantity(z, q):
         global_q = np.empty_like(q)
         comm_world.Reduce(z, global_z, op=MPI.MAX)
         comm_world.Reduce(q, global_q, op=MPI.MAX)
-        return z, q
+        return global_z, global_q
     else:
         return z, q
 
