@@ -637,8 +637,26 @@ solve with cross terms.  Because this is a commonly used motif, we provide
 a tensor solve for cell-centered velocity components.
 
 Consider a velocity field :math:`U = (u,v,w)` with all
-components co-located on cell centers.  The viscous term, expressed in
-three-dimensional Cartesian coordinates,  can be written as
+components co-located on cell centers.  The viscous term can be written in vector form as
+
+.. math::
+
+ \nabla \cdot (\eta \nabla U) + \nabla \cdot (\eta (\nabla U)^T ) + \nabla \cdot ( (\kappa - \frac{2}{3} \eta) (\nabla \cdot U) )
+
+and in 3-d Cartesian component form as
+
+.. math::
+
+ ( (\eta u_x)_x + (\eta u_y)_y + (\eta u_z)_z ) + ( (\eta u_x)_x + (\eta v_x)_y + (\eta w_x)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_x
+
+ ( (\eta v_x)_x + (\eta v_y)_y + (\eta v_z)_z ) + ( (\eta u_y)_x + (\eta v_y)_y + (\eta w_y)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_y
+
+ ( (\eta w_x)_x + (\eta w_y)_y + (\eta w_z)_z ) + ( (\eta u_z)_x + (\eta v_z)_y + (\eta w_z)_z ) +  ( (\kappa - \frac{2}{3} \eta) (u_x+v_y+w_z) )_z
+
+
+Here :math:`\eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
+
+We evaluate the following terms from the above using the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators;
 
 .. math::
 
@@ -648,19 +666,83 @@ three-dimensional Cartesian coordinates,  can be written as
 
     (\eta w_x)_x                        + (              \eta           w_y)_y + ( (\frac{4}{3} \eta + \kappa) w_z)_z 
 
-Here :math:`eta` is the dynamic viscosity and :math:`\kappa` is the bulk viscosity.  
-
-For constant :math:`\eta` and :math:`$\nabla \cdot U = 0,` this simplifies to
+the following cross-terms are evaluted separately using the ``MLTensorOp`` and ``MLEBTensorOp`` operators.
 
 .. math::
 
-   \eta (u_{xx} + u_{yy} + u_{zz})
+    ( (\kappa - \frac{2}{3} \eta) (v_y + w_z) )_x + (\eta v_x)_y  + (\eta w_x)_z
 
-   \eta (v_{xx} + v_{yy} + v_{zz})
+    (\eta u_y)_x + ( (\kappa - \frac{2}{3} \eta) (u_x + w_z) )_y  + (\eta w_y)_z
 
-   \eta (w_{xx} + w_{yy} + w_{zz})
+    (\eta u_z)_x + (\eta v_z)_y - ( (\kappa - \frac{2}{3} \eta) (u_x + v_y) )_z
 
-which can be easily evaluted with the ``MLABecLaplacian`` and ``MLEBABecLaplacian`` operators.
+The code below is an example of how to set up the solver to compute the
+viscous term `divtau` explicitly:
+
+.. highlight:: c++
+
+::
+
+   Box domain(geom[0].Domain());
+
+   // Set BCs for Poisson solver in bc_lo, bc_hi
+   ...
+
+   //
+   // First define the operator "ebtensorop"
+   // Note we call LPInfo().setMaxCoarseningLevel(0) because we are only applying the operator,
+   //      not doing an implicit solve
+   //
+   //       (alpha * a - beta * (del dot b grad)) sol
+   //
+   // LPInfo                       info;
+   MLEBTensorOp ebtensorop(geom, grids, dmap, LPInfo().setMaxCoarseningLevel(0),
+                           amrex::GetVecOfConstPtrs(ebfactory));
+
+   // It is essential that we set MaxOrder of the solver to 2
+   // if we want to use the standard sol(i)-sol(i-1) approximation
+   // for the gradient at Dirichlet boundaries.
+   // The solver's default order is 3 and this uses three points for the
+   // gradient at a Dirichlet boundary.
+   ebtensorop.setMaxOrder(2);
+
+   // LinOpBCType Definitions are in amrex/Src/Boundary/AMReX_LO_BCTYPES.H
+   ebtensorop.setDomainBC ( {(LinOpBCType)bc_lo[0], (LinOpBCType)bc_lo[1], (LinOpBCType)bc_lo[2]},
+                            {(LinOpBCType)bc_hi[0], (LinOpBCType)bc_hi[1], (LinOpBCType)bc_hi[2]} );
+
+   // Return div (eta grad)) phi
+   ebtensorop.setScalars(0.0, -1.0);
+
+   amrex::Vector<amrex::Array<std::unique_ptr<amrex::MultiFab>, AMREX_SPACEDIM>> b;
+   b.resize(max_level + 1);
+
+   // Compute the coefficients
+   for (int lev = 0; lev < nlev; lev++)
+   {
+       // We average eta onto faces
+       for(int dir = 0; dir < AMREX_SPACEDIM; dir++)
+       {
+           BoxArray edge_ba = grids[lev];
+           edge_ba.surroundingNodes(dir);
+           b[lev][dir].reset(new MultiFab(edge_ba, dmap[lev], 1, nghost, MFInfo(), *ebfactory[lev]));
+       }
+
+       average_cellcenter_to_face( GetArrOfPtrs(b[lev]), *etan[lev], geom[lev] );
+
+       b[lev][0] -> FillBoundary(geom[lev].periodicity());
+       b[lev][1] -> FillBoundary(geom[lev].periodicity());
+       b[lev][2] -> FillBoundary(geom[lev].periodicity());
+
+       ebtensorop.setShearViscosity  (lev, GetArrOfConstPtrs(b[lev]));
+       ebtensorop.setEBShearViscosity(lev, (*eta[lev]));
+
+       ebtensorop.setLevelBC ( lev, GetVecOfConstPtrs(vel)[lev] );
+   }
+
+   MLMG solver(ebtensorop);
+
+   solver.apply(GetVecOfPtrs(divtau), GetVecOfPtrs(vel));
+
 
 Multi-Component Operators
 =========================
