@@ -800,7 +800,6 @@ public:
 protected:
 
     mutable amrex::Vector<int> neighbor_procs;
-    mutable bool m_need_handshake;
 
     /**
     * \brief Checks a particle's location on levels lev_min and higher.

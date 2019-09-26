@@ -1195,8 +1195,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     auto& plan = redistribute_copy_plan;
     
-    plan.build(*this, op, m_need_handshake);
-    m_need_handshake = false;
+    plan.build(*this, op);
 
     auto& snd_buffer = redistribute_snd_buffer;
     auto& rcv_buffer = redistribute_rcv_buffer;
@@ -1633,7 +1632,6 @@ defineBufferMap () const
     if (not m_buffer_map.isValid(GetParGDB()))
     {
         m_buffer_map.define(GetParGDB());
-        m_need_handshake = true;
     }
 }
 
