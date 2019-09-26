@@ -1,4 +1,4 @@
-/* Copyright 2019 Axel Huebl
+/* Copyright 2019 Axel Huebl, Weiqun Zhang
  *
  * This file is part of WarpX.
  *
@@ -113,8 +113,8 @@ public:
                     fine(ii+1, jj  , kk-1) + fine(ii+1, jj  , kk+1)
                 ) +
                 0.25 * (
-                    fine(ii+1, jj-1, kk-1)+fine(ii+1, jj+1, kk-1) +
-                    fine(ii+1, jj-1, kk+1)+fine(ii+1, jj+1, kk+1)
+                    fine(ii+1, jj-1, kk-1) + fine(ii+1, jj+1, kk-1) +
+                    fine(ii+1, jj-1, kk+1) + fine(ii+1, jj+1, kk+1)
                 )
             );
         } else if (IDim == 1) {
