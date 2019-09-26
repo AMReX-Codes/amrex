@@ -6,7 +6,8 @@
 #include <AMReX_Gpu.H>
 
 // TODO: Add documentation
-void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v ) {
+void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v )
+{
 #ifdef AMREX_USE_GPU
     // On GPU: Use thrust
     thrust::sequence( v.begin(), v.end() );
@@ -14,6 +15,31 @@ void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v ) {
     // On CPU: Use std library
     std::iota( v.begin(), v.end(), 0L );
 #endif
+}
+
+// TODO: Add documentation
+template< typename ForwardIterator >
+ForwardIterator stablePartition(ForwardIterator index_begin,
+                               ForwardIterator index_end,
+                               amrex::Gpu::ManagedDeviceVector<int>& predicate)
+{
+#ifdef AMREX_USE_GPU
+    // On GPU: Use thrust
+    int* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
+    ForwardIterator sep = thrust::stable_partition(
+                    thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                    index_begin, index_end,
+                    AMREX_GPU_HOST_DEVICE
+                    [predicate_ptr](long i) { return predicate_ptr[i]; }
+                );
+#else
+    // On CPU: Use std library
+    ForwardIterator sep = std::stable_partition(
+                    index_begin, index_end,
+                    [&predicate](long i) { return predicate[i]; }
+                );
+#endif
+    return sep;
 }
 
 // TODO: Add documentation

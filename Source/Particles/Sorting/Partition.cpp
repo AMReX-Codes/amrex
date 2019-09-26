@@ -43,24 +43,30 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     BL_PROFILE("PPC::Evolve::partition");
 
     auto& aos = pti.GetArrayOfStructs();
+
+    // Initialize temporary arrays
     Gpu::ManagedDeviceVector<int> inexflag;
     inexflag.resize(np);
     Gpu::ManagedDeviceVector<long> pid;
     pid.resize(np);
 
-    // Select the largest buffer first
+    // First, partition particles in the larger buffer
+
+    // - Select the larger buffer
     iMultiFab const* bmasks =
         (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
         gather_masks : current_masks;
-
-    // For each particle, find whether it is in the large buffer,
-    // by looking up the mask. Store the answer in `inexflag`
-    amrex::ParallelFor( np, fillBufferFlag( pti, bmasks, inexflag, Geom(lev) ) );
-
-    // Partition the particles according to whether they are in the large buffer or not
+    // - For each particle, find whether it is in the larger buffer,
+    //   by looking up the mask. Store the answer in `inexflag`.
+    amrex::ParallelFor( np, fillBufferFlag(pti, bmasks, inexflag, Geom(lev)) );
+    // - Find the indices that reorder particles so that the last particles
+    //   are in the larger buffer
     fillWithConsecutiveIntegers( pid );
-    auto sep = std::stable_partition(pid.begin(), pid.end(),
-                                     [&inexflag](long id) { return inexflag[id]; });
+    auto sep = stablePartition( pid.begin(), pid.end(), inexflag );
+    // At the end of this step, `pid` contains the indices that should be used to
+    // reorder the particles, and `sep` is the position in the array that
+    // separates the particles that deposit/gather on the fine patch (first part)
+    // and the particles that deposit/gather in the buffers (last part)
 
     if (WarpX::n_current_deposition_buffer == WarpX::n_field_gather_buffer) {
         nfine_current = nfine_gather = std::distance(pid.begin(), sep);
