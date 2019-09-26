@@ -1040,7 +1040,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (lev_max < 0)
         lev_max = GetParGDB()->finestLevel();
     
-    if (local > 0) BuildRedistributeMask(0, local);
     this->defineBufferMap();
 
     int num_levels = numLevels();
