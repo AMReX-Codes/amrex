@@ -540,6 +540,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
   
   BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
   
+  AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
+
   const auto& pmap = m_particles[lev];
   
   long num_particles_in_domain = 0;
@@ -547,19 +549,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
   MultiFab* mf_pointer;
   
   if (OnSameGrids(lev, mf))
-    {
+  {
       // If we are already working with the internal mf defined on the
       // particle_box_array, then we just work with this.
       mf_pointer = &mf;
-    }
+  }
   else
-    {
+  {
       // If mf is not defined on the particle_box_array, then we need
       // to make a temporary mf_pointer here and copy it into mf at the end.
       mf_pointer = new MultiFab(ParticleBoxArray(lev),
 				ParticleDistributionMap(lev),
 				mf.nComp(),mf.nGrow());
-    }
+  }
   
   ParticleLocData pld;
   for (auto& kv : pmap) {
@@ -1061,7 +1063,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     BL_PROFILE_VAR_START(blp_partition);
     auto& op = redistribute_copy_op;
-    Vector<std::map<int, int> > new_sizes(num_levels);
+    redistribute_copy_op.setNumLevels(num_levels);
+    Vector<std::map<int, int> > new_sizes(num_levels);    
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         const Geometry& geom = Geom(lev);
@@ -1075,10 +1078,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto is_per = Geom(lev).isPeriodicArray();
         const Box domain = Geom(lev).Domain();
 
-        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        for (auto& kv : plev)
         {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();
+            int gid = kv.first.first;
+            int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
             
             auto& src_tile = plev[index];
@@ -1206,13 +1209,30 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
         auto& plev = m_particles[lev];
-        for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
+        for (auto& kv : plev)
         {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();
+            int gid = kv.first.first;
+            int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
             auto& tile = plev[index];
             tile.resize(new_sizes[lev][gid]);
+        }
+    }
+
+    // Remove any map entries for which the particle container is now empty.
+    for (int lev = lev_min; lev <= lev_max; lev++)
+    {
+        auto& pmap = m_particles[lev];
+        for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */)
+        {          
+            if (pmap_it->second.empty())
+            {
+                pmap.erase(pmap_it++);
+            }
+            else
+            {
+                ++pmap_it;
+            }
         }
     }
 
