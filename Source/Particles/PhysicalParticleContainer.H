@@ -145,6 +145,18 @@ public:
 
     virtual void ConvertUnits (ConvertDirection convert_dir) override;
 
+/* \brief Apply NCI Godfrey filter to all components of E and B before gather
+ * \param lev MR level
+ * \param box box onto which the filter is applied
+ * \param exeli safeguard to avoid destructing arrays between ParIter iterations on GPU
+ * \param filtered_Ex Array containing filtered value
+ * \param Ex Field array before filtering (not modified)
+ * \param ex_ptr pointer to the array used for field gather. 
+ * 
+ * The NCI Godfrey filter is applied on Ex, the result is stored in filtered_Ex
+ * and the pointer is modified (before this function is called, it points to Ex
+ * and after this function is called, it points to Ex_filtered)
+ */
     void applyNCIFilter (
         int lev, const amrex::Box& box, 
         amrex::Elixir& exeli, amrex::Elixir& eyeli, amrex::Elixir& ezeli,

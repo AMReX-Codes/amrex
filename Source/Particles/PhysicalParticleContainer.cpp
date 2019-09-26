@@ -1026,12 +1026,15 @@ PhysicalParticleContainer::Evolve (int lev,
 
             if (WarpX::use_fdtd_nci_corr)
             {
+                // Filter arrays Ex[pti], store the result in
+                // filtered_Ex and update pointer exfab so that it
+                // points to filtered_Ex (and do the same for all
+                // components of E and B).
                 applyNCIFilter(lev, pti.tilebox(), exeli, eyeli, ezeli, bxeli, byeli, bzeli,
                                filtered_Ex, filtered_Ey, filtered_Ez,
                                filtered_Bx, filtered_By, filtered_Bz,
                                Ex[pti], Ey[pti], Ez[pti], Bx[pti], By[pti], Bz[pti],
                                exfab, eyfab, ezfab, bxfab, byfab, bzfab);
-
             }
 
             Exp.assign(np,0.0);
@@ -1113,6 +1116,10 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     if (WarpX::use_fdtd_nci_corr)
                     {
+                        // Filter arrays (*cEx)[pti], store the result in
+                        // filtered_Ex and update pointer cexfab so that it
+                        // points to filtered_Ex (and do the same for all
+                        // components of E and B)
                         applyNCIFilter(lev-1, cbox, exeli, eyeli, ezeli, bxeli, byeli, bzeli,
                                        filtered_Ex, filtered_Ey, filtered_Ez,
                                        filtered_Bx, filtered_By, filtered_Bz,
