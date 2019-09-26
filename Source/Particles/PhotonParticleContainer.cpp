@@ -34,27 +34,27 @@ void PhotonParticleContainer::InitData()
 
 void
 PhotonParticleContainer::PushPX(WarpXParIter& pti,
-                                Cuda::ManagedDeviceVector<Real>& xp,
-                                Cuda::ManagedDeviceVector<Real>& yp,
-                                Cuda::ManagedDeviceVector<Real>& zp,
+                                Cuda::ManagedDeviceVector<ParticleReal>& xp,
+                                Cuda::ManagedDeviceVector<ParticleReal>& yp,
+                                Cuda::ManagedDeviceVector<ParticleReal>& zp,
                                 Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     // Extract pointers to the different particle quantities
-    Real* const AMREX_RESTRICT x = xp.dataPtr();
-    Real* const AMREX_RESTRICT y = yp.dataPtr();
-    Real* const AMREX_RESTRICT z = zp.dataPtr();
-    Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
-    Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
-    Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-    const Real* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
-    const Real* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
-    const Real* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
-    const Real* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
-    const Real* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
-    const Real* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
+    ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT z = zp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+    ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+    ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags)
     {

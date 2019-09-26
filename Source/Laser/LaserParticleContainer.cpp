@@ -643,9 +643,9 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
     Real * AMREX_RESTRICT const pplane_Xp,
     Real * AMREX_RESTRICT const pplane_Yp)
 {
-    Real const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
-    Real const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    ParticleReal const * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    ParticleReal const * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    ParticleReal const * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
     Real tmp_u_X_0 = u_X[0];
     Real tmp_u_X_2 = u_X[2];
     Real tmp_position_0 = position[0];
@@ -691,14 +691,14 @@ LaserParticleContainer::calculate_laser_plane_coordinates (
  */
 void
 LaserParticleContainer::update_laser_particle(
-    const int np, Real * AMREX_RESTRICT const puxp, Real * AMREX_RESTRICT const puyp,
-    Real * AMREX_RESTRICT const puzp, Real const * AMREX_RESTRICT const pwp,
+    const int np, ParticleReal * AMREX_RESTRICT const puxp, ParticleReal * AMREX_RESTRICT const puyp,
+    ParticleReal * AMREX_RESTRICT const puzp, ParticleReal const * AMREX_RESTRICT const pwp,
     Real const * AMREX_RESTRICT const amplitude, const Real dt,
     const int thread_num)
 {
-    Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
-    Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
-    Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
+    ParticleReal * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr();
+    ParticleReal * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr();
+    ParticleReal * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr();
     Real tmp_p_X_0 = p_X[0];
     Real tmp_p_X_1 = p_X[1];
     Real tmp_p_X_2 = p_X[2];

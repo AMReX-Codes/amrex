@@ -87,9 +87,9 @@ public:
                          DtType a_dt_type=DtType::Full) override;
 
     virtual void PushPX(WarpXParIter& pti,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& xp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& yp,
-                        amrex::Cuda::ManagedDeviceVector<amrex::Real>& zp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& xp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& yp,
+                        amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& zp,
                         amrex::Real dt, DtType a_dt_type=DtType::Full);
 
     virtual void PushP (int lev, amrex::Real dt,
@@ -113,8 +113,8 @@ public:
                         RealVector& uzp,
                         RealVector& wp );
 
-    void copy_attribs(WarpXParIter& pti,const amrex::Real* xp,
-                        const amrex::Real* yp, const amrex::Real* zp);
+    void copy_attribs(WarpXParIter& pti,const amrex::ParticleReal* xp,
+                        const amrex::ParticleReal* yp, const amrex::ParticleReal* zp);
 
     virtual void PostRestart () final {}
 
