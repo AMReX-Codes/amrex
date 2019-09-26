@@ -410,6 +410,111 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
 // interpolation
 //
 
+namespace {
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_line_x (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           int i, int j, int ic, int jc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,0) + sig(i-1,j,0);
+        Real w2 = sig(i  ,j-1,0) + sig(i  ,j,0);
+        return (w1*crse(ic,jc,0)+w2*crse(ic+1,jc,0))/(w1+w2);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_line_y (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           int i, int j, int ic, int jc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,0) + sig(i,j-1,0);
+        Real w2 = sig(i-1,j  ,0) + sig(i,j  ,0);
+        return (w1*crse(ic,jc,0)+w2*crse(ic,jc+1,0))/(w1+w2);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_face_xy (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                            int i, int j, int ic, int jc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,0) + sig(i-1,j,0);
+        Real w2 = sig(i  ,j-1,0) + sig(i  ,j,0);
+        Real w3 = sig(i-1,j-1,0) + sig(i,j-1,0);
+        Real w4 = sig(i-1,j  ,0) + sig(i,j  ,0);
+        return (w1 * aa_interp_line_y(crse,sig,i-1,j  ,ic  ,jc  ) +
+                w2 * aa_interp_line_y(crse,sig,i+1,j  ,ic+1,jc  ) +
+                w3 * aa_interp_line_x(crse,sig,i  ,j-1,ic  ,jc  ) +
+                w4 * aa_interp_line_x(crse,sig,i  ,j+1,ic  ,jc+1)) / (w1+w2+w3+w4);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_aa (int i, int j, int, Array4<Real> const& fine,
+                           Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,0)) {
+        int ic = amrex::coarsen(i,2);
+        int jc = amrex::coarsen(j,2);
+        bool i_is_odd = (ic*2 != i);
+        bool j_is_odd = (jc*2 != j);
+        if (i_is_odd and j_is_odd) {
+            // Node on a X-Y face
+            fine(i,j,0) += aa_interp_face_xy(crse,sig,i,j,ic,jc);
+        } else if (i_is_odd) {
+            // Node on X line
+            fine(i,j,0) += aa_interp_line_x(crse,sig,i,j,ic,jc);
+        } else if (j_is_odd) {
+            // Node on Y line
+            fine(i,j,0) += aa_interp_line_y(crse,sig,i,j,ic,jc);
+        } else {
+            // Node coincident with coarse node
+            fine(i,j,0) += crse(ic,jc,0);
+        }
+    }
+}
+
+namespace {
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real ha_interp_face_xy (Array4<Real const> const& crse,
+                            Array4<Real const> const& sigx, Array4<Real const> const& sigy,
+                            int i, int j, int ic, int jc) noexcept
+    {
+        Real w1 = sigx(i-1,j-1,0) + sigx(i-1,j,0);
+        Real w2 = sigx(i  ,j-1,0) + sigx(i  ,j,0);
+        Real w3 = sigy(i-1,j-1,0) + sigy(i,j-1,0);
+        Real w4 = sigy(i-1,j  ,0) + sigy(i,j  ,0);
+        return (w1 * aa_interp_line_y(crse,sigy,i-1,j  ,ic  ,jc  ) +
+                w2 * aa_interp_line_y(crse,sigy,i+1,j  ,ic+1,jc  ) +
+                w3 * aa_interp_line_x(crse,sigx,i  ,j-1,ic  ,jc  ) +
+                w4 * aa_interp_line_x(crse,sigx,i  ,j+1,ic  ,jc+1)) / (w1+w2+w3+w4);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_ha (int i, int j, int,
+                           Array4<Real> const& fine, Array4<Real const> const& crse,
+                           Array4<Real const> const& sigx, Array4<Real const> const& sigy,
+                           Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,0)) {
+        int ic = amrex::coarsen(i,2);
+        int jc = amrex::coarsen(j,2);
+        bool i_is_odd = (ic*2 != i);
+        bool j_is_odd = (jc*2 != j);
+        if (i_is_odd and j_is_odd) {
+            // Node on a X-Y face
+            fine(i,j,0) += ha_interp_face_xy(crse,sigx,sigy,i,j,ic,jc);
+        } else if (i_is_odd) {
+            // Node on X line
+            fine(i,j,0) += aa_interp_line_x(crse,sigx,i,j,ic,jc);
+        } else if (j_is_odd) {
+            // Node on Y line
+            fine(i,j,0) += aa_interp_line_y(crse,sigy,i,j,ic,jc);
+        } else {
+            // Node coincident with coarse node
+            fine(i,j,0) += crse(ic,jc,0);
+        }
+    }
+}
+
 //
 // rhs & u
 //

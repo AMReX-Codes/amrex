@@ -28,7 +28,6 @@ module amrex_mlnodelap_1d_module
        ! operator
        ! restriction
        ! interpolation
-       amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        ! rhs & u
        amrex_mlndlap_divu_fine_contrib, amrex_mlndlap_divu_cf_contrib, &
        amrex_mlndlap_rhcc_fine_contrib, amrex_mlndlap_rhcc_crse_contrib, &
@@ -83,30 +82,6 @@ contains
     integer, dimension(1) :: hlo, hhi, dlo, dhi, bclo, bchi
     real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1))
   end subroutine amrex_mlndlap_applybc
-
-
-  subroutine amrex_mlndlap_interpolation_ha (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sigx, sxlo, sxhi, msk, mlo, mhi, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_interpolation_ha')
-    integer, dimension(1), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sxlo,sxhi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1))
-    real(amrex_real), intent(in   ) :: sigx(sxlo(1):sxhi(1))
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_interpolation_ha
-
-
-  subroutine amrex_mlndlap_interpolation_aa (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sig, sglo, sghi, msk, mlo, mhi, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_interpolation_aa')
-    integer, dimension(1), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sglo,sghi, &
-         mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1))
-    real(amrex_real), intent(in   ) :: sig (sglo(1):sghi(1))
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_interpolation_aa
 
 
   subroutine amrex_mlndlap_vel_cc_to_ct (lo, hi, vel, vlo, vhi, ovel, olo, ohi, vfrac, flo, fhi, &
