@@ -14,6 +14,8 @@
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
 
+#include <utility> // std::move
+
 
 /** Fill a current coarse patch with averaged values from a fine patch
  *
@@ -38,7 +40,9 @@ public:
         amrex::Array4<amrex::Real const> const fine,
         amrex::Array4<amrex::Real      > const coarse,
         int const refinement_ratio
-    ) : m_fine(fine), m_coarse(coarse), m_refinement_ratio(refinement_ratio)
+    ) : m_fine(std::move(fine)),
+        m_coarse(std::move(coarse)),
+        m_refinement_ratio(std::move(refinement_ratio))
     {
         //! @note constants and stencils in operator() implementation assume 2x refinement
         BL_ASSERT(refinement_ratio == 2);
