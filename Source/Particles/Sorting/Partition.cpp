@@ -115,22 +115,14 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     // Reorder the actual particle array, using the `pid` indices
     if (nfine_current != np || nfine_gather != np)
     {
-        // Extract simple pointer
-        long* AMREX_RESTRICT pid_ptr = pid.dataPtr();
-
         // Temporary array for particle AoS
         ParticleVector particle_tmp;
         particle_tmp.resize(np);
-        ParticleType* AMREX_RESTRICT particle_tmp_ptr = particle_tmp.dataPtr();
 
-        // Copy the particle AoS
+        // Copy particle AoS
         auto& aos = pti.GetArrayOfStructs();
-        ParticleType* AMREX_RESTRICT aos_ptr = &(aos()[0]);
         amrex::ParallelFor( np,
-            [=] AMREX_GPU_DEVICE (long ip) {
-                particle_tmp_ptr[ip] = aos_ptr[pid_ptr[ip]];
-            }
-        );
+            copyAndReorder<ParticleType>( aos(), particle_tmp, pid ) );
         std::swap(aos(), particle_tmp);
 
         // Temporary array for particle individual attributes
