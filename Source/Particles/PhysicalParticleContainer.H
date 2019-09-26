@@ -1,12 +1,13 @@
 #ifndef WARPX_PhysicalParticleContainer_H_
 #define WARPX_PhysicalParticleContainer_H_
 
-#include <map>
+#include <PlasmaInjector.H>
+#include <WarpXParticleContainer.H>
+#include <NCIGodfreyFilter.H>
 
 #include <AMReX_IArrayBox.H>
 
-#include <PlasmaInjector.H>
-#include <WarpXParticleContainer.H>
+#include <map>
 
 class PhysicalParticleContainer
     : public WarpXParticleContainer
@@ -143,6 +144,17 @@ public:
                                   DiagnosticParticles& diagnostic_particles) final;
 
     virtual void ConvertUnits (ConvertDirection convert_dir) override;
+
+void applyNCIFilter (
+    int lev, const amrex::Box& box, 
+    amrex::Elixir& exeli, amrex::Elixir& eyeli, amrex::Elixir& ezeli,
+    amrex::Elixir& bxeli, amrex::Elixir& byeli, amrex::Elixir& bzeli,
+    amrex::FArrayBox& filtered_Ex, amrex::FArrayBox& filtered_Ey, amrex::FArrayBox& filtered_Ez, 
+    amrex::FArrayBox& filtered_Bx, amrex::FArrayBox& filtered_By, amrex::FArrayBox& filtered_Bz, 
+    const amrex::FArrayBox& Ex_pti, const amrex::FArrayBox& Ey_pti, const amrex::FArrayBox& Ez_pti, 
+    const amrex::FArrayBox& Bx_pti, const amrex::FArrayBox& By_pti, const amrex::FArrayBox& Bz_pti, 
+    amrex::FArrayBox const * & exfab, amrex::FArrayBox const * & eyfab, amrex::FArrayBox const * & ezfab, 
+    amrex::FArrayBox const * & bxfab, amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
 protected:
 
