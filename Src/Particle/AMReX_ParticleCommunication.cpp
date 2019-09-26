@@ -37,7 +37,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_ids.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_handshake)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -48,14 +48,11 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
 
     if (NProcs == 1) return;
 
-    if (do_handshake)
-    {
-        m_Snds.resize(0);
-        m_Snds.resize(NProcs, 0);
-
-        m_Rcvs.resize(0);
-        m_Rcvs.resize(NProcs, 0);
-    }
+    m_Snds.resize(0);
+    m_Snds.resize(NProcs, 0);
+    
+    m_Rcvs.resize(0);
+    m_Rcvs.resize(NProcs, 0);
     
     m_snd_num_particles.resize(0);
     m_snd_num_particles.resize(NProcs, 0);
