@@ -57,6 +57,8 @@ struct ParticleCopyOp
 
     void clear ();
 
+    void setNumLevels(const int num_levels);
+
     void resize (const int gid, const int lev, const int size);
 
     int numCopies (const int gid, const int lev) const 
@@ -123,20 +125,11 @@ struct ParticleCopyPlan
         m_dst_indices.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
         {
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+            for (const auto& kv : pc.GetParticles(lev))
             {
-                int gid = mfi.index();
+                int gid = kv.first.first;
                 int num_copies = op.numCopies(gid, lev);
                 m_dst_indices[lev][gid].resize(num_copies);
-            }
-        }
-
-        for (int lev = 0; lev < num_levels; ++lev)
-        {        
-            for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
-            {
-                int gid = mfi.index();
-                int num_copies = op.numCopies(gid, lev);
             
                 auto p_boxes = op.m_boxes[lev].at(gid).dataPtr();
                 auto p_levs = op.m_levels[lev].at(gid).dataPtr();
@@ -210,10 +203,10 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         const auto phi = geom.ProbHiArray();
         const auto is_per = geom.isPeriodicArray();
 
-        for(MFIter mfi = pc.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        for (auto& kv : plev)
         {
-            int gid = mfi.index();
-            int tid = mfi.LocalTileIndex();
+            int gid = kv.first.first;
+            int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
             
             auto& src_tile = plev.at(index);
