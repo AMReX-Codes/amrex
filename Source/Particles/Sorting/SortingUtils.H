@@ -27,7 +27,7 @@ ForwardIterator stablePartition(ForwardIterator index_begin,
     // On GPU: Use thrust
     int* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
     ForwardIterator sep = thrust::stable_partition(
-        thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+        thrust::cuda::par(amrex::Cuda::The_ThrustCachedAllocator()),
         index_begin, index_end,
         [predicate_ptr] AMREX_GPU_DEVICE (long i) { return predicate_ptr[i]; }
     );
