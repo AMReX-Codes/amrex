@@ -285,8 +285,9 @@ Particle initialization
 * ``species_name.predefined_profile_name`` (`string`)
     Only read of ``<species_name>.electrons.profile`` is `predefined`.
 
-    * If ``parabolic_channel``, the plasma profile is a parabolic profile with linear ramps
-      at the beginning and the end of the profile. The density is given by
+    * If ``parabolic_channel``, the plasma profile is a parabolic profile with
+      cosine-like ramps at the beginning and the end of the profile.
+      The density is given by
 
       .. math::
 
@@ -299,9 +300,9 @@ Particle initialization
           n(x,y) = 1 + 4\frac{x^2+y^2}{k_p^2 R_c^4}
 
       where :math:`k_p` is the plasma wavenumber associated with density :math:`n_0`.
-      Here, :math:`n(z)` is a linear up-ramp from :math:`0` to :math:`L_{ramp,up}`,
+      Here, :math:`n(z)` is a cosine-like up-ramp from :math:`0` to :math:`L_{ramp,up}`,
       constant to :math:`1` from :math:`L_{ramp,up}` to :math:`L_{ramp,up} + L_{plateau}`
-      and a linear down-ramp from :math:`L_{ramp,up} + L_{plateau}` to
+      and a cosine-like down-ramp from :math:`L_{ramp,up} + L_{plateau}` to
       :math:`L_{ramp,up} + L_{plateau}+L_{ramp,down}`. All parameters are given
       in ``predefined_profile_params``.
 
