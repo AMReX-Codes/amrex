@@ -50,7 +50,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     Gpu::ManagedDeviceVector<long> pid;
     pid.resize(np);
 
-    // First, partition particles in the larger buffer
+    // First, partition particles into the larger buffer
 
     // - Select the larger buffer
     iMultiFab const* bmasks =
@@ -68,16 +68,22 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     // separates the particles that deposit/gather on the fine patch (first part)
     // and the particles that deposit/gather in the buffers (last part)
 
+    // Second, among particles that are in the larger buffer, partition
+    // particles into the smaller buffer
     if (WarpX::n_current_deposition_buffer == WarpX::n_field_gather_buffer) {
-        nfine_current = nfine_gather = std::distance(pid.begin(), sep);
-    } else if (sep != pid.end()) {
+        // No need to do anything if the buffers have the same size
+        nfine_current = nfine_gather = iteratorDistance(pid.begin(), sep);
+    } else if (sep == pid.end()) {
+        // No need to do anything if there are no particles in the larger buffer
+        nfine_current = nfine_gather = np;
+    } else {
         int n_buf;
         if (bmasks == gather_masks) {
-            nfine_gather = std::distance(pid.begin(), sep);
+            nfine_gather = iteratorDistance(pid.begin(), sep);
             bmasks = current_masks;
             n_buf = WarpX::n_current_deposition_buffer;
         } else {
-            nfine_current = std::distance(pid.begin(), sep);
+            nfine_current = iteratorDistance(pid.begin(), sep);
             bmasks = gather_masks;
             n_buf = WarpX::n_field_gather_buffer;
         }

@@ -43,6 +43,19 @@ ForwardIterator stablePartition(ForwardIterator index_begin,
 }
 
 // TODO: Add documentation
+template< typename ForwardIterator >
+int iteratorDistance(ForwardIterator first,
+                     ForwardIterator last)
+{
+#ifdef AMREX_USE_GPU
+    // On GPU: Use thrust
+    return thrust::distance( first, last );
+#else
+    return std::distance( first, last );
+#endif
+}
+
+// TODO: Add documentation
 class fillBufferFlag
 {
     public:
