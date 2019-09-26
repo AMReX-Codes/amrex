@@ -151,24 +151,24 @@ public:
  * \param exeli safeguard to avoid destructing arrays between ParIter iterations on GPU
  * \param filtered_Ex Array containing filtered value
  * \param Ex Field array before filtering (not modified)
- * \param ex_ptr pointer to the array used for field gather. 
- * 
+ * \param ex_ptr pointer to the array used for field gather.
+ *
  * The NCI Godfrey filter is applied on Ex, the result is stored in filtered_Ex
  * and the pointer is modified (before this function is called, it points to Ex
  * and after this function is called, it points to Ex_filtered)
  */
     void applyNCIFilter (
-        int lev, const amrex::Box& box, 
+        int lev, const amrex::Box& box,
         amrex::Elixir& exeli, amrex::Elixir& eyeli, amrex::Elixir& ezeli,
         amrex::Elixir& bxeli, amrex::Elixir& byeli, amrex::Elixir& bzeli,
-        amrex::FArrayBox& filtered_Ex, amrex::FArrayBox& filtered_Ey, 
-        amrex::FArrayBox& filtered_Ez, amrex::FArrayBox& filtered_Bx, 
-        amrex::FArrayBox& filtered_By, amrex::FArrayBox& filtered_Bz, 
-        const amrex::FArrayBox& Ex, const amrex::FArrayBox& Ey, 
-        const amrex::FArrayBox& Ez, const amrex::FArrayBox& Bx, 
-        const amrex::FArrayBox& By, const amrex::FArrayBox& Bz, 
-        amrex::FArrayBox const * & exfab, amrex::FArrayBox const * & eyfab, 
-        amrex::FArrayBox const * & ezfab, amrex::FArrayBox const * & bxfab, 
+        amrex::FArrayBox& filtered_Ex, amrex::FArrayBox& filtered_Ey,
+        amrex::FArrayBox& filtered_Ez, amrex::FArrayBox& filtered_Bx,
+        amrex::FArrayBox& filtered_By, amrex::FArrayBox& filtered_Bz,
+        const amrex::FArrayBox& Ex, const amrex::FArrayBox& Ey,
+        const amrex::FArrayBox& Ez, const amrex::FArrayBox& Bx,
+        const amrex::FArrayBox& By, const amrex::FArrayBox& Bz,
+        amrex::FArrayBox const * & exfab, amrex::FArrayBox const * & eyfab,
+        amrex::FArrayBox const * & ezfab, amrex::FArrayBox const * & bxfab,
         amrex::FArrayBox const * & byfab, amrex::FArrayBox const * & bzfab);
 
 protected:

@@ -958,7 +958,7 @@ PhysicalParticleContainer::Evolve (int lev,
     // Get instances of NCI Godfrey filters
     const auto& nci_godfrey_filter_exeybz = WarpX::GetInstance().nci_godfrey_filter_exeybz;
     const auto& nci_godfrey_filter_bxbyez = WarpX::GetInstance().nci_godfrey_filter_bxbyez;
-    
+
     BL_ASSERT(OnSameGrids(lev,jx));
 
     MultiFab* cost = WarpX::getCosts(lev);
@@ -1220,15 +1220,15 @@ PhysicalParticleContainer::Evolve (int lev,
 
 void
 PhysicalParticleContainer::applyNCIFilter (
-    int lev, const Box& box, 
+    int lev, const Box& box,
     Elixir& exeli, Elixir& eyeli, Elixir& ezeli,
     Elixir& bxeli, Elixir& byeli, Elixir& bzeli,
-    FArrayBox& filtered_Ex, FArrayBox& filtered_Ey, FArrayBox& filtered_Ez, 
-    FArrayBox& filtered_Bx, FArrayBox& filtered_By, FArrayBox& filtered_Bz, 
-    const FArrayBox& Ex, const FArrayBox& Ey, const FArrayBox& Ez, 
-    const FArrayBox& Bx, const FArrayBox& By, const FArrayBox& Bz, 
-    FArrayBox const * & ex_ptr, FArrayBox const * & ey_ptr, 
-    FArrayBox const * & ez_ptr, FArrayBox const * & bx_ptr, 
+    FArrayBox& filtered_Ex, FArrayBox& filtered_Ey, FArrayBox& filtered_Ez,
+    FArrayBox& filtered_Bx, FArrayBox& filtered_By, FArrayBox& filtered_Bz,
+    const FArrayBox& Ex, const FArrayBox& Ey, const FArrayBox& Ez,
+    const FArrayBox& Bx, const FArrayBox& By, const FArrayBox& Bz,
+    FArrayBox const * & ex_ptr, FArrayBox const * & ey_ptr,
+    FArrayBox const * & ez_ptr, FArrayBox const * & bx_ptr,
     FArrayBox const * & by_ptr, FArrayBox const * & bz_ptr)
 {
 
