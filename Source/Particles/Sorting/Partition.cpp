@@ -58,7 +58,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
         gather_masks : current_masks;
     // - For each particle, find whether it is in the larger buffer,
     //   by looking up the mask. Store the answer in `inexflag`.
-    amrex::ParallelFor( np, fillBufferFlag(pti, bmasks, inexflag, Geom(lev)) );
+    amrex::ParallelFor( np, fillBufferFlag(pti, bmasks, inexflag, Geom(lev), 0) );
     // - Find the indices that reorder particles so that the last particles
     //   are in the larger buffer
     fillWithConsecutiveIntegers( pid );
@@ -67,6 +67,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     // reorder the particles, and `sep` is the position in the array that
     // separates the particles that deposit/gather on the fine patch (first part)
     // and the particles that deposit/gather in the buffers (last part)
+    long n_fine = iteratorDistance(pid.begin(), sep); // Number of particles on fine patch
 
     // Second, among particles that are in the larger buffer, partition
     // particles into the smaller buffer
@@ -79,29 +80,25 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     } else {
         int n_buf;
         if (bmasks == gather_masks) {
-            nfine_gather = iteratorDistance(pid.begin(), sep);
+            nfine_gather = n_fine;
             bmasks = current_masks;
             n_buf = WarpX::n_current_deposition_buffer;
         } else {
-            nfine_current = iteratorDistance(pid.begin(), sep);
+            nfine_current = n_fine;
             bmasks = gather_masks;
             n_buf = WarpX::n_field_gather_buffer;
         }
         if (n_buf > 0)
         {
-            const auto& msk2 = (*bmasks)[pti];
-            for (auto it = sep; it != pid.end(); ++it) {
-                const long id = *it;
-                const IntVect& iv = Index(aos[id], lev);
-                inexflag[id] = msk2(iv);
-            }
-
-            auto sep2 = std::stable_partition(sep, pid.end(),
-                                              [&inexflag](long id) {return inexflag[id];});
+            // - For each particle in the large buffer, find whether it is in
+            // the smaller buffer, by looking up the mask. Store the answer in `inexflag`.
+            amrex::ParallelFor( np - n_fine,
+               fillBufferFlag(pti, bmasks, inexflag, Geom(lev), n_fine) );
+            auto sep2 = stablePartition( sep, pid.end(), inexflag );
             if (bmasks == gather_masks) {
-                nfine_gather = std::distance(pid.begin(), sep2);
+                nfine_gather = iteratorDistance(pid.begin(), sep2);
             } else {
-                nfine_current = std::distance(pid.begin(), sep2);
+                nfine_current = iteratorDistance(pid.begin(), sep2);
             }
         }
     }

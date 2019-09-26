@@ -61,7 +61,7 @@ class fillBufferFlag
     public:
         fillBufferFlag( WarpXParIter& pti, const amrex::iMultiFab* bmasks,
                         amrex::Gpu::ManagedDeviceVector<int>& inexflag,
-                        const amrex::Geometry& geom ) {
+                        const amrex::Geometry& geom, long start_index=0 ) {
 
             // Extract simple structure that can be used directly on the GPU
             m_particles = &(pti.GetArrayOfStructs()[0]);
@@ -72,13 +72,14 @@ class fillBufferFlag
                 m_prob_lo[idim] = geom.ProbLo(idim);
                 m_inv_cell_size[idim] = geom.InvCellSize(idim);
             }
+            m_start_index = start_index;
         };
 
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void operator()( const long i ) const {
             // Select a particle
-            auto& p = m_particles[i];
+            auto& p = m_particles[i+m_start_index];
             // Find the index of the cell where this particle is located
             amrex::IntVect iv;
             for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
@@ -88,7 +89,7 @@ class fillBufferFlag
             }
             // Find the value of the buffer flag in this cell and
             // store it at the corresponding particle position in the array `inexflag`
-            m_inexflag_ptr[i] = m_buffer_mask(iv);
+            m_inexflag_ptr[i+m_start_index] = m_buffer_mask(iv);
         };
 
     private:
@@ -98,6 +99,7 @@ class fillBufferFlag
         int* m_inexflag_ptr;
         WarpXParticleContainer::ParticleType* m_particles;
         amrex::Array4<const int> m_buffer_mask;
+        long m_start_index;
 };
 
 #endif // WARPX_PARTICLES_SORTING_SORTINGUTILS_H_
