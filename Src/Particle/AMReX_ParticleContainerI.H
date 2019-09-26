@@ -2236,8 +2236,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
     const Real strttime  = amrex::second();
-    const Real half_dt   = Real(0.5) * dt;
-    const Real a_new_inv = 1 / a_new;
+    const Real half_dt   = 0.5_rt * dt;
+    const Real a_new_inv = 1_rt / a_new;
     auto&      pmap      = m_particles[lev];
 
     MultiFab* ac_pointer;
