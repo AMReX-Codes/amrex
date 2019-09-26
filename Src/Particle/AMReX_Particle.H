@@ -30,11 +30,7 @@ struct Particle
 {
     //
     //! The floating point type used for the particles.
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-    typedef float RealType;
-#else
-    typedef double RealType;
-#endif
+    typedef ParticleReal RealType;
 
     /**
     * The real data. We always have SPACEDIM position coordinates,

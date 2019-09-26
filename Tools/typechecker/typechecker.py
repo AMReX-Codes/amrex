@@ -130,6 +130,8 @@ def c_to_f_type(ctyp):
     # supported C types: char, short, int, long, float, double, void, _Bool
     if ctyp == 'char':
         return 'CHARACTER 1 1'
+    elif ctyp == 'int8_t':
+        return 'INTEGER 1'
     elif ctyp == 'short':
         return 'INTEGER 2'
     elif ctyp == 'int':
