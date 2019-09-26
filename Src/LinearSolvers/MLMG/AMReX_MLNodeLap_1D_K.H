@@ -79,6 +79,18 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
 {}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
+                           Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_ha (int i, int j, int k, Array4<Real> const& fine,
+                           Array4<Real const> const& crse, Array4<Real const> const& sigx,
+                           Array4<int const> const& msk) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_divu (int i, int j, int k, Array4<Real> const& rhs, Array4<Real const> const& vel,
                    Array4<int const> const& msk,
                    GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

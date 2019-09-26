@@ -1493,11 +1493,12 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
 
+    if (m_coarsening_strategy == CoarseningStrategy::RAP)
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    {
-        FArrayBox tmpfab;
+        { FArrayBox tmpfab;
         for (MFIter mfi(fine, true); mfi.isValid(); ++mfi)
         {
             const Box& fbx = mfi.tilebox();
@@ -1505,41 +1506,45 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             const Box& tmpbx = amrex::refine(cbx,2);
             tmpfab.resize(tmpbx);
 
-            if (m_coarsening_strategy == CoarseningStrategy::RAP)
+            amrex_mlndlap_interpolation_rap(BL_TO_FORTRAN_BOX(cbx),
+                                            BL_TO_FORTRAN_ANYD(tmpfab),
+                                            BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                            BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                            BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+
+            fine[mfi].plus(tmpfab,fbx,fbx,0,0,1);
+        }}
+    }
+    else
+    {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            Box const& bx = mfi.tilebox();
+            Array4<Real> const& ffab = fine.array(mfi);
+            Array4<Real const> const& cfab = cmf->const_array(mfi);
+            Array4<int const> const& mfab = dmsk.const_array(mfi);
+            if (m_use_harmonic_average && fmglev > 0)
             {
-                amrex_mlndlap_interpolation_rap(BL_TO_FORTRAN_BOX(cbx),
-                                                BL_TO_FORTRAN_ANYD(tmpfab),
-                                                BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-                                                BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]));
-            }
-            else if (m_use_harmonic_average && fmglev > 0)
-            {
-                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                             const FArrayBox& syfab = (*sigma[1])[mfi];,
-                             const FArrayBox& szfab = (*sigma[2])[mfi];);
-                amrex_mlndlap_interpolation_ha(BL_TO_FORTRAN_BOX(cbx),
-                                               BL_TO_FORTRAN_ANYD(tmpfab),
-                                               BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-                                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                            BL_TO_FORTRAN_ANYD(syfab),
-                                                            BL_TO_FORTRAN_ANYD(szfab)),
-                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                               BL_TO_FORTRAN_BOX(nd_domain),
-                                               m_lobc[0].data(), m_hibc[0].data());
+                AMREX_D_TERM(Array4<Real const> const& sxfab = sigma[0]->const_array(mfi);,
+                             Array4<Real const> const& syfab = sigma[1]->const_array(mfi);,
+                             Array4<Real const> const& szfab = sigma[2]->const_array(mfi););
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_interpadd_ha(i,j,k,ffab,cfab,AMREX_D_DECL(sxfab,syfab,szfab),
+                                         mfab);
+                });
             }
             else
             {
-                const FArrayBox& sfab = (*sigma[0])[mfi];
-                amrex_mlndlap_interpolation_aa(BL_TO_FORTRAN_BOX(cbx),
-                                               BL_TO_FORTRAN_ANYD(tmpfab),
-                                               BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-                                               BL_TO_FORTRAN_ANYD(sfab),
-                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                               BL_TO_FORTRAN_BOX(nd_domain),
-                                               m_lobc[0].data(), m_hibc[0].data());
+                Array4<Real const> const& sfab = sigma[0]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_interpadd_aa(i,j,k,ffab,cfab,sfab,mfab);
+                });
             }
-            fine[mfi].plus(tmpfab,fbx,fbx,0,0,1);
         }
     }
 }

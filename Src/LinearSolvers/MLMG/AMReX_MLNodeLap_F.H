@@ -38,29 +38,6 @@ extern "C" {
                                 const int* dlo, const int* dhi,
                                 const void* bclo, const void* bchi);
 
-    void amrex_mlndlap_interpolation_ha (const int* clo, const int* chi,
-                                      amrex_real* fine, const int* fflo, const int* ffhi,
-                                      const amrex_real* crse, const int* cflo, const int* cfhi,
-                                      const amrex_real* sx, const int* sxlo, const int* sxhi,
-#if (AMREX_SPACEDIM >= 2)
-                                      const amrex_real* sy, const int* sylo, const int* syhi,
-#if (AMREX_SPACEDIM == 3)
-                                      const amrex_real* sz, const int* szlo, const int* szhi,
-#endif
-#endif
-                                      const int* dmsk, const int* dmlo, const int* dmhi,
-                                      const int* domlo, const int* domhi,
-                                      const void* bclo, const void* bchi);
-
-
-    void amrex_mlndlap_interpolation_aa (const int* clo, const int* chi,
-                                      amrex_real* fine, const int* fflo, const int* ffhi,
-                                      const amrex_real* crse, const int* cflo, const int* cfhi,
-                                      const amrex_real* sig, const int* siglo, const int* sighi,
-                                      const int* dmsk, const int* dmlo, const int* dmhi,
-                                      const int* domlo, const int* domhi,
-                                      const void* bclo, const void* bchi);
-
     void amrex_mlndlap_divu_fine_contrib (const int* clo, const int* chi,
                                           const int* cgrid_lo, const int* cgrid_hi,
                                           amrex_real* rhs, const int* rlo, const int* rhi,

@@ -658,6 +658,231 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
 // interpolation
 //
 
+namespace {
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_line_x (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
+        Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
+        return (w1*crse(ic,jc,kc)+w2*crse(ic+1,jc,kc))/(w1+w2);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_line_y (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j-1,k) + sig(i,j-1,k);
+        Real w2 = sig(i-1,j  ,k-1) + sig(i,j  ,k-1) + sig(i-1,j  ,k) + sig(i,j  ,k);
+        return (w1*crse(ic,jc,kc)+w2*crse(ic,jc+1,kc))/(w1+w2);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_line_z (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j,k-1) + sig(i,j,k-1);
+        Real w2 = sig(i-1,j-1,k  ) + sig(i,j-1,k  ) + sig(i-1,j,k  ) + sig(i,j,k  );
+        return (w1*crse(ic,jc,kc)+w2*crse(ic,jc,kc+1))/(w1+w2);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_face_xy (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                            int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
+        Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
+        Real w3 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j-1,k) + sig(i,j-1,k);
+        Real w4 = sig(i-1,j  ,k-1) + sig(i,j  ,k-1) + sig(i-1,j  ,k) + sig(i,j  ,k);
+        return (w1 * aa_interp_line_y(crse,sig,i-1,j  ,k,ic  ,jc  ,kc) +
+                w2 * aa_interp_line_y(crse,sig,i+1,j  ,k,ic+1,jc  ,kc) +
+                w3 * aa_interp_line_x(crse,sig,i  ,j-1,k,ic  ,jc  ,kc) +
+                w4 * aa_interp_line_x(crse,sig,i  ,j+1,k,ic  ,jc+1,kc)) / (w1+w2+w3+w4);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_face_xz (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                            int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
+        Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
+        Real w3 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j,k-1) + sig(i,j,k-1);
+        Real w4 = sig(i-1,j-1,k  ) + sig(i,j-1,k  ) + sig(i-1,j,k  ) + sig(i,j,k  );
+        return (w1 * aa_interp_line_z(crse,sig,i-1,j,k  ,ic  ,jc,kc  ) +
+                w2 * aa_interp_line_z(crse,sig,i+1,j,k  ,ic+1,jc,kc  ) +
+                w3 * aa_interp_line_x(crse,sig,i  ,j,k-1,ic  ,jc,kc  ) +
+                w4 * aa_interp_line_x(crse,sig,i  ,j,k+1,ic  ,jc,kc+1)) / (w1+w2+w3+w4);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real aa_interp_face_yz (Array4<Real const> const& crse, Array4<Real const> const& sig,
+                            int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j-1,k) + sig(i,j-1,k);
+        Real w2 = sig(i-1,j  ,k-1) + sig(i,j  ,k-1) + sig(i-1,j  ,k) + sig(i,j  ,k);
+        Real w3 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j,k-1) + sig(i,j,k-1);
+        Real w4 = sig(i-1,j-1,k  ) + sig(i,j-1,k  ) + sig(i-1,j,k  ) + sig(i,j,k  );
+        return (w1 * aa_interp_line_z(crse,sig,i,j-1,k  ,ic,jc  ,kc  ) +
+                w2 * aa_interp_line_z(crse,sig,i,j+1,k  ,ic,jc+1,kc  ) +
+                w3 * aa_interp_line_y(crse,sig,i,j  ,k-1,ic,jc  ,kc  ) +
+                w4 * aa_interp_line_y(crse,sig,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
+    };
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
+                           Array4<Real const> const& crse, Array4<Real const> const& sig,
+                           Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,k)) {
+        int ic = amrex::coarsen(i,2);
+        int jc = amrex::coarsen(j,2);
+        int kc = amrex::coarsen(k,2);
+        bool i_is_odd = (ic*2 != i);
+        bool j_is_odd = (jc*2 != j);
+        bool k_is_odd = (kc*2 != k);
+        if (i_is_odd and j_is_odd and k_is_odd) {
+            // Fine node at center of cell
+            Real w1 = sig(i-1,j-1,k-1) + sig(i-1,j,k-1) + sig(i-1,j-1,k) + sig(i-1,j,k);
+            Real w2 = sig(i  ,j-1,k-1) + sig(i  ,j,k-1) + sig(i  ,j-1,k) + sig(i  ,j,k);
+            Real w3 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j-1,k) + sig(i,j-1,k);
+            Real w4 = sig(i-1,j  ,k-1) + sig(i,j  ,k-1) + sig(i-1,j  ,k) + sig(i,j  ,k);
+            Real w5 = sig(i-1,j-1,k-1) + sig(i,j-1,k-1) + sig(i-1,j,k-1) + sig(i,j,k-1);
+            Real w6 = sig(i-1,j-1,k  ) + sig(i,j-1,k  ) + sig(i-1,j,k  ) + sig(i,j,k  );
+            fine(i,j,k) += (w1 * aa_interp_face_yz(crse,sig,i-1,j  ,k  ,ic  ,jc  ,kc  ) +
+                            w2 * aa_interp_face_yz(crse,sig,i+1,j  ,k  ,ic+1,jc  ,kc  ) +
+                            w3 * aa_interp_face_xz(crse,sig,i  ,j-1,k  ,ic  ,jc  ,kc  ) +
+                            w4 * aa_interp_face_xz(crse,sig,i  ,j+1,k  ,ic  ,jc+1,kc  ) +
+                            w5 * aa_interp_face_xy(crse,sig,i  ,j  ,k-1,ic  ,jc  ,kc  ) +
+                            w6 * aa_interp_face_xy(crse,sig,i  ,j  ,k+1,ic  ,jc  ,kc+1))
+                / (w1+w2+w3+w4+w5+w6);
+        } else if (j_is_odd and k_is_odd) {
+            // Node on a Y-Z face
+            fine(i,j,k) += aa_interp_face_yz(crse,sig,i,j,k,ic,jc,kc);
+        } else if (i_is_odd and k_is_odd) {
+            // Node on a Z-X face
+            fine(i,j,k) += aa_interp_face_xz(crse,sig,i,j,k,ic,jc,kc);
+        } else if (i_is_odd and j_is_odd) {
+            // Node on a X-Y face
+            fine(i,j,k) += aa_interp_face_xy(crse,sig,i,j,k,ic,jc,kc);
+        } else if (i_is_odd) {
+            // Node on X line
+            fine(i,j,k) += aa_interp_line_x(crse,sig,i,j,k,ic,jc,kc);
+        } else if (j_is_odd) {
+            // Node on Y line
+            fine(i,j,k) += aa_interp_line_y(crse,sig,i,j,k,ic,jc,kc);
+        } else if (k_is_odd) {
+            // Node on Z line
+            fine(i,j,k) += aa_interp_line_z(crse,sig,i,j,k,ic,jc,kc);
+        } else {
+            // Node coincident with coarse node
+            fine(i,j,k) += crse(ic,jc,kc);
+        }
+    }
+}
+
+namespace {
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real ha_interp_face_xy (Array4<Real const> const& crse,
+                            Array4<Real const> const& sigx, Array4<Real const> const& sigy,
+                            int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sigx(i-1,j-1,k-1) + sigx(i-1,j,k-1) + sigx(i-1,j-1,k) + sigx(i-1,j,k);
+        Real w2 = sigx(i  ,j-1,k-1) + sigx(i  ,j,k-1) + sigx(i  ,j-1,k) + sigx(i  ,j,k);
+        Real w3 = sigy(i-1,j-1,k-1) + sigy(i,j-1,k-1) + sigy(i-1,j-1,k) + sigy(i,j-1,k);
+        Real w4 = sigy(i-1,j  ,k-1) + sigy(i,j  ,k-1) + sigy(i-1,j  ,k) + sigy(i,j  ,k);
+        return (w1 * aa_interp_line_y(crse,sigy,i-1,j  ,k,ic  ,jc  ,kc) +
+                w2 * aa_interp_line_y(crse,sigy,i+1,j  ,k,ic+1,jc  ,kc) +
+                w3 * aa_interp_line_x(crse,sigx,i  ,j-1,k,ic  ,jc  ,kc) +
+                w4 * aa_interp_line_x(crse,sigx,i  ,j+1,k,ic  ,jc+1,kc)) / (w1+w2+w3+w4);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real ha_interp_face_xz (Array4<Real const> const& crse,
+                            Array4<Real const> const& sigx, Array4<Real const> const& sigz,
+                            int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sigx(i-1,j-1,k-1) + sigx(i-1,j,k-1) + sigx(i-1,j-1,k) + sigx(i-1,j,k);
+        Real w2 = sigx(i  ,j-1,k-1) + sigx(i  ,j,k-1) + sigx(i  ,j-1,k) + sigx(i  ,j,k);
+        Real w3 = sigz(i-1,j-1,k-1) + sigz(i,j-1,k-1) + sigz(i-1,j,k-1) + sigz(i,j,k-1);
+        Real w4 = sigz(i-1,j-1,k  ) + sigz(i,j-1,k  ) + sigz(i-1,j,k  ) + sigz(i,j,k  );
+        return (w1 * aa_interp_line_z(crse,sigz,i-1,j,k  ,ic  ,jc,kc  ) +
+                w2 * aa_interp_line_z(crse,sigz,i+1,j,k  ,ic+1,jc,kc  ) +
+                w3 * aa_interp_line_x(crse,sigx,i  ,j,k-1,ic  ,jc,kc  ) +
+                w4 * aa_interp_line_x(crse,sigx,i  ,j,k+1,ic  ,jc,kc+1)) / (w1+w2+w3+w4);
+    };
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real ha_interp_face_yz (Array4<Real const> const& crse,
+                            Array4<Real const> const& sigy, Array4<Real const> const& sigz,
+                            int i, int j, int k, int ic, int jc, int kc) noexcept
+    {
+        Real w1 = sigy(i-1,j-1,k-1) + sigy(i,j-1,k-1) + sigy(i-1,j-1,k) + sigy(i,j-1,k);
+        Real w2 = sigy(i-1,j  ,k-1) + sigy(i,j  ,k-1) + sigy(i-1,j  ,k) + sigy(i,j  ,k);
+        Real w3 = sigz(i-1,j-1,k-1) + sigz(i,j-1,k-1) + sigz(i-1,j,k-1) + sigz(i,j,k-1);
+        Real w4 = sigz(i-1,j-1,k  ) + sigz(i,j-1,k  ) + sigz(i-1,j,k  ) + sigz(i,j,k  );
+        return (w1 * aa_interp_line_z(crse,sigz,i,j-1,k  ,ic,jc  ,kc  ) +
+                w2 * aa_interp_line_z(crse,sigz,i,j+1,k  ,ic,jc+1,kc  ) +
+                w3 * aa_interp_line_y(crse,sigy,i,j  ,k-1,ic,jc  ,kc  ) +
+                w4 * aa_interp_line_y(crse,sigy,i,j  ,k+1,ic,jc  ,kc+1)) / (w1+w2+w3+w4);
+    };
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_ha (int i, int j, int k, Array4<Real> const& fine,
+                           Array4<Real const> const& crse, Array4<Real const> const& sigx,
+                           Array4<Real const> const& sigy, Array4<Real const> const& sigz,
+                           Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,k)) {
+        int ic = amrex::coarsen(i,2);
+        int jc = amrex::coarsen(j,2);
+        int kc = amrex::coarsen(k,2);
+        bool i_is_odd = (ic*2 != i);
+        bool j_is_odd = (jc*2 != j);
+        bool k_is_odd = (kc*2 != k);
+        if (i_is_odd and j_is_odd and k_is_odd) {
+            // Fine node at center of cell
+            Real w1 = sigx(i-1,j-1,k-1) + sigx(i-1,j,k-1) + sigx(i-1,j-1,k) + sigx(i-1,j,k);
+            Real w2 = sigx(i  ,j-1,k-1) + sigx(i  ,j,k-1) + sigx(i  ,j-1,k) + sigx(i  ,j,k);
+            Real w3 = sigy(i-1,j-1,k-1) + sigy(i,j-1,k-1) + sigy(i-1,j-1,k) + sigy(i,j-1,k);
+            Real w4 = sigy(i-1,j  ,k-1) + sigy(i,j  ,k-1) + sigy(i-1,j  ,k) + sigy(i,j  ,k);
+            Real w5 = sigz(i-1,j-1,k-1) + sigz(i,j-1,k-1) + sigz(i-1,j,k-1) + sigz(i,j,k-1);
+            Real w6 = sigz(i-1,j-1,k  ) + sigz(i,j-1,k  ) + sigz(i-1,j,k  ) + sigz(i,j,k  );
+            fine(i,j,k) += (w1 * ha_interp_face_yz(crse,sigy,sigz,i-1,j  ,k  ,ic  ,jc  ,kc  ) +
+                            w2 * ha_interp_face_yz(crse,sigy,sigz,i+1,j  ,k  ,ic+1,jc  ,kc  ) +
+                            w3 * ha_interp_face_xz(crse,sigx,sigz,i  ,j-1,k  ,ic  ,jc  ,kc  ) +
+                            w4 * ha_interp_face_xz(crse,sigx,sigz,i  ,j+1,k  ,ic  ,jc+1,kc  ) +
+                            w5 * ha_interp_face_xy(crse,sigx,sigy,i  ,j  ,k-1,ic  ,jc  ,kc  ) +
+                            w6 * ha_interp_face_xy(crse,sigx,sigy,i  ,j  ,k+1,ic  ,jc  ,kc+1))
+                / (w1+w2+w3+w4+w5+w6);
+        } else if (j_is_odd and k_is_odd) {
+            // Node on a Y-Z face
+            fine(i,j,k) += ha_interp_face_yz(crse,sigy,sigz,i,j,k,ic,jc,kc);
+        } else if (i_is_odd and k_is_odd) {
+            // Node on a Z-X face
+            fine(i,j,k) += ha_interp_face_xz(crse,sigx,sigz,i,j,k,ic,jc,kc);
+        } else if (i_is_odd and j_is_odd) {
+            // Node on a X-Y face
+            fine(i,j,k) += ha_interp_face_xy(crse,sigx,sigy,i,j,k,ic,jc,kc);
+        } else if (i_is_odd) {
+            // Node on X line
+            fine(i,j,k) += aa_interp_line_x(crse,sigx,i,j,k,ic,jc,kc);
+        } else if (j_is_odd) {
+            // Node on Y line
+            fine(i,j,k) += aa_interp_line_y(crse,sigy,i,j,k,ic,jc,kc);
+        } else if (k_is_odd) {
+            // Node on Z line
+            fine(i,j,k) += aa_interp_line_z(crse,sigz,i,j,k,ic,jc,kc);
+        } else {
+            // Node coincident with coarse node
+            fine(i,j,k) += crse(ic,jc,kc);
+        }
+    }
+}
+
 //
 // rhs & u
 //
