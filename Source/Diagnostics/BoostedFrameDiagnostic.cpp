@@ -582,15 +582,15 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
 
     for (int i = 0; i < N_slice_snapshots; ++i) {
-      
+
         amrex::Real cell_dx = 0;
         amrex::Real cell_dy = 0;
         IntVect slice_ncells_lab ;
 
         // To construct LabFrameSlice(), the location of lo() and hi() of the reduced
-        // diag is computed using the user-defined values of the reduced diag (1D, 2D, or 3D). 
-        // For visualization of the diagnostics, the number of cells in each dimension is required and 
-        // is computed below for the reduced back-transformed lab-frame diag, similar to the full-diag. 
+        // diag is computed using the user-defined values of the reduced diag (1D, 2D, or 3D).
+        // For visualization of the diagnostics, the number of cells in each dimension is required and
+        // is computed below for the reduced back-transformed lab-frame diag, similar to the full-diag.
         const amrex::Real* current_slice_lo = slice_realbox.lo();
         const amrex::Real* current_slice_hi = slice_realbox.hi();
 
