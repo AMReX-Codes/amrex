@@ -1256,9 +1256,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const auto phi = Geom(lev).ProbHiArray();
     const auto is_per = Geom(lev).isPeriodicArray();
 
-    BuildRedistributeMask(0, 1);
-
-    for (MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
+    for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
