@@ -45,9 +45,16 @@ typedef float amrex_real;
 typedef double amrex_real;
 #endif
 
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+typedef float amrex_particle_real;
+#else
+typedef double amrex_particle_real;
+#endif
+
 #ifdef __cplusplus
 namespace amrex {
     using Real = amrex_real;
+    using ParticleReal = amrex_particle_real;
 }
 #endif
 

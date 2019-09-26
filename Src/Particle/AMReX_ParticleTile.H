@@ -27,7 +27,7 @@ struct ParticleTileData
 
     long m_size;
     ParticleType* AMREX_RESTRICT m_aos;
-    GpuArray<Real* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<int* AMREX_RESTRICT, NArrayInt> m_idata;    
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -68,7 +68,7 @@ struct ConstParticleTileData
 
     long m_size;
     const ParticleType* AMREX_RESTRICT m_aos;
-    GpuArray<const Real* AMREX_RESTRICT, NArrayReal> m_rdata;
+    GpuArray<const ParticleReal* AMREX_RESTRICT, NArrayReal> m_rdata;
     GpuArray<const int* AMREX_RESTRICT, NArrayInt > m_idata;    
     
     AMREX_GPU_HOST_DEVICE
@@ -179,7 +179,7 @@ struct ParticleTile
     /// Add a Real value to the struct-of-arrays at index comp.
     /// This sets the data for one particle.
     ///
-    void push_back_real (int comp, Real v) { 
+    void push_back_real (int comp, ParticleReal v) { 
         m_soa_tile.GetRealData(comp).push_back(v);
     }
 
@@ -187,7 +187,7 @@ struct ParticleTile
     /// Add Real values to the struct-of-arrays, for all comps at once.
     /// This sets the data for one particle.
     ///
-    void push_back_real (const std::array<Real, NArrayReal>& v) { 
+    void push_back_real (const std::array<ParticleReal, NArrayReal>& v) { 
         for (int i = 0; i < NArrayReal; ++i) {
             m_soa_tile.GetRealData(i).push_back(v[i]);
         }
@@ -197,7 +197,7 @@ struct ParticleTile
     /// Add a range of Real values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
-    void push_back_real (int comp, const Real* beg, const Real* end) {
+    void push_back_real (int comp, const ParticleReal* beg, const ParticleReal* end) {
         auto it = m_soa_tile.GetRealData(comp).end();
         m_soa_tile.GetRealData(comp).insert(it, beg, end);
     }
@@ -206,7 +206,7 @@ struct ParticleTile
     /// Add npar copies of the Real value v to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
-    void push_back_real (int comp, std::size_t npar, Real v) {
+    void push_back_real (int comp, std::size_t npar, ParticleReal v) {
         auto new_size = m_soa_tile.GetRealData(comp).size() + npar;
         m_soa_tile.GetRealData(comp).resize(new_size, v);
     }
