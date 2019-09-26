@@ -44,13 +44,13 @@ public:
         BL_ASSERT(refinement_ratio == 2);
     }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void
     operator()(
         int const i,
         int const j,
         int const k
-    ) noexcept   // TODO rename to jkl
+    ) const noexcept   // TODO rename to jkl
     {
         auto const & fine_unsafe = m_fine;   // out-of-bounds access not secured with zero-values yet
         auto const & coarse      = m_coarse; // out-of-bounds access not secured but will also not occur
