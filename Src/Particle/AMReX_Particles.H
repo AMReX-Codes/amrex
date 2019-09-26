@@ -73,11 +73,7 @@ namespace amrex {
 */
 struct ParticleCommData
 {
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-    typedef float RealType;
-#else
-    typedef double RealType;
-#endif
+  typedef ParticleReal RealType;
   int     m_lev;
   int     m_grid;
   IntVect m_cell;

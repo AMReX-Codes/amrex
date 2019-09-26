@@ -81,7 +81,7 @@ namespace amrex {
     //! RealDescriptor is provided, the data will be written using the native
     //! format for your machine.
     void writeDoubleData(const double* data, std::size_t size, std::ostream& os,
-                         const RealDescriptor& rd = FPC::NativeRealDescriptor());
+                         const RealDescriptor& rd = FPC::Native64RealDescriptor());
 
     //! Read double data from the istream. The arguments are a pointer to data buffer
     //! to read into, the size of that buffer, the istream, and a RealDescriptor
@@ -91,6 +91,45 @@ namespace amrex {
     void readDoubleData(double* data, std::size_t size, std::istream& is,
                         const RealDescriptor& rd);
 
+    inline void writeData (int const* data, std::size_t size, std::ostream& os)
+    {
+        writeIntData(data, size, os);
+    }
+
+    inline void writeData (long const* data, std::size_t size, std::ostream& os)
+    {
+        writeLongData(data, size, os);
+    }
+
+    inline void writeData (float const* data, std::size_t size, std::ostream& os)
+    {
+        writeFloatData(data, size, os);
+    }
+
+    inline void writeData (double const* data, std::size_t size, std::ostream& os)
+    {
+        writeDoubleData(data, size, os);
+    }
+
+    inline void readData (int * data, std::size_t size, std::istream& is)
+    {
+        readIntData(data, size, is, FPC::NativeIntDescriptor());
+    }
+
+    inline void readData (long * data, std::size_t size, std::istream& is)
+    {
+        readLongData(data, size, is, FPC::NativeLongDescriptor());
+    }
+
+    inline void readData (float * data, std::size_t size, std::istream& is)
+    {
+        readFloatData(data, size, is, FPC::Native32RealDescriptor());
+    }
+
+    inline void readData (double * data, std::size_t size, std::istream& is)
+    {
+        readDoubleData(data, size, is, FPC::Native64RealDescriptor());
+    }
 }
 
 #endif 
