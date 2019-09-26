@@ -55,7 +55,28 @@ typedef double amrex_particle_real;
 namespace amrex {
     using Real = amrex_real;
     using ParticleReal = amrex_particle_real;
-}
+
+    /*
+      C++ user literal ``_rt`` for short-hand notations
+
+      Use this to properly add types to constant such as
+      ```C++
+      auto const mypi = 3.14_rt;
+      auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
+      ```
+    */
+    constexpr Real
+    operator""_rt( long double x )
+    {
+        return Real( x );
+    }
+
+    constexpr Real
+    operator""_rt( unsigned long long int x )
+    {
+        return Real( x );
+    }
+} // amrex
 #endif
 
 #else
