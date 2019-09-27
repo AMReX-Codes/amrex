@@ -199,7 +199,7 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
                                                std::array<Real, 3> u,
                                                Real weight)
 {
-    std::array<Real,PIdx::nattribs> attribs;
+    std::array<ParticleReal,PIdx::nattribs> attribs;
     attribs.fill(0.0);
 
     // update attribs with input arguments
@@ -364,13 +364,13 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
         for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
             if ( tile_realbox.lo(dir) <= part_realbox.hi(dir) ) {
                 Real ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
-                overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, 0.) * dx[dir]);
+                overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, Real(0.)) * dx[dir]);
             } else {
                 no_overlap = true; break;
             }
             if ( tile_realbox.hi(dir) >= part_realbox.lo(dir) ) {
                 Real ncells_adjust = std::floor( (part_realbox.hi(dir) - tile_realbox.hi(dir))/dx[dir] );
-                overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, 0.) * dx[dir]);
+                overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, Real(0.)) * dx[dir]);
             } else {
                 no_overlap = true; break;
             }
@@ -440,7 +440,7 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 
         ParticleType* pp = particle_tile.GetArrayOfStructs()().data() + old_size;
         auto& soa = particle_tile.GetStructOfArrays();
-        GpuArray<Real*,PIdx::nattribs> pa;
+        GpuArray<ParticleReal*,PIdx::nattribs> pa;
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             pa[ia] = soa.GetRealData(ia).data() + old_size;
         }
@@ -1302,7 +1302,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
 {
     auto& mypc = WarpX::GetInstance().GetPartContainer();
     auto& pctmp_split = mypc.GetPCtmp();
-    Cuda::ManagedDeviceVector<Real> xp, yp, zp;
+    Cuda::ManagedDeviceVector<ParticleReal> xp, yp, zp;
     RealVector psplit_x, psplit_y, psplit_z, psplit_w;
     RealVector psplit_ux, psplit_uy, psplit_uz;
     long np_split_to_add = 0;
@@ -1460,27 +1460,27 @@ PhysicalParticleContainer::SplitParticles(int lev)
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-                                  Cuda::ManagedDeviceVector<Real>& xp,
-                                  Cuda::ManagedDeviceVector<Real>& yp,
-                                  Cuda::ManagedDeviceVector<Real>& zp,
+                                  Cuda::ManagedDeviceVector<ParticleReal>& xp,
+                                  Cuda::ManagedDeviceVector<ParticleReal>& yp,
+                                  Cuda::ManagedDeviceVector<ParticleReal>& zp,
                                   Real dt, DtType a_dt_type)
 {
 
     // This wraps the momentum and position advance so that inheritors can modify the call.
     auto& attribs = pti.GetAttribs();
     // Extract pointers to the different particle quantities
-    Real* const AMREX_RESTRICT x = xp.dataPtr();
-    Real* const AMREX_RESTRICT y = yp.dataPtr();
-    Real* const AMREX_RESTRICT z = zp.dataPtr();
-    Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
-    Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
-    Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-    const Real* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
-    const Real* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
-    const Real* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
-    const Real* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
-    const Real* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
-    const Real* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
+    ParticleReal* const AMREX_RESTRICT x = xp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT y = yp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT z = zp.dataPtr();
+    ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+    ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+    ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ex = attribs[PIdx::Ex].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ey = attribs[PIdx::Ey].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Ez = attribs[PIdx::Ez].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Bx = attribs[PIdx::Bx].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT By = attribs[PIdx::By].dataPtr();
+    const ParticleReal* const AMREX_RESTRICT Bz = attribs[PIdx::Bz].dataPtr();
 
     if (WarpX::do_boosted_frame_diagnostic && do_boosted_frame_diags && (a_dt_type!=DtType::SecondHalf))
     {
@@ -1589,15 +1589,15 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 
             // This wraps the momentum advance so that inheritors can modify the call.
             // Extract pointers to the different particle quantities
-            Real* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
-            Real* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
-            Real* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
-            const Real* const AMREX_RESTRICT Expp = Exp.dataPtr();
-            const Real* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
-            const Real* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
-            const Real* const AMREX_RESTRICT Bxpp = Bxp.dataPtr();
-            const Real* const AMREX_RESTRICT Bypp = Byp.dataPtr();
-            const Real* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
+            ParticleReal* const AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+            ParticleReal* const AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+            ParticleReal* const AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+            const ParticleReal* const AMREX_RESTRICT Expp = Exp.dataPtr();
+            const ParticleReal* const AMREX_RESTRICT Eypp = Eyp.dataPtr();
+            const ParticleReal* const AMREX_RESTRICT Ezpp = Ezp.dataPtr();
+            const ParticleReal* const AMREX_RESTRICT Bxpp = Bxp.dataPtr();
+            const ParticleReal* const AMREX_RESTRICT Bypp = Byp.dataPtr();
+            const ParticleReal* const AMREX_RESTRICT Bzpp = Bzp.dataPtr();
 
             // Loop over the particles and update their momentum
             const Real q = this->charge;
@@ -1623,23 +1623,23 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
     }
 }
 
-void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const Real* xp,
-                                             const Real* yp, const Real* zp)
+void PhysicalParticleContainer::copy_attribs(WarpXParIter& pti,const ParticleReal* xp,
+                                             const ParticleReal* yp, const ParticleReal* zp)
 {
     auto& attribs = pti.GetAttribs();
-    Real* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
-    Real* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
-    Real* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
+    ParticleReal* AMREX_RESTRICT uxp = attribs[PIdx::ux].dataPtr();
+    ParticleReal* AMREX_RESTRICT uyp = attribs[PIdx::uy].dataPtr();
+    ParticleReal* AMREX_RESTRICT uzp = attribs[PIdx::uz].dataPtr();
 
     const auto np = pti.numParticles();
     const auto lev = pti.GetLevel();
     const auto index = pti.GetPairIndex();
-    Real* AMREX_RESTRICT xpold  = tmp_particle_data[lev][index][TmpIdx::xold ].dataPtr();
-    Real* AMREX_RESTRICT ypold  = tmp_particle_data[lev][index][TmpIdx::yold ].dataPtr();
-    Real* AMREX_RESTRICT zpold  = tmp_particle_data[lev][index][TmpIdx::zold ].dataPtr();
-    Real* AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
-    Real* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
-    Real* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
+    ParticleReal* AMREX_RESTRICT xpold  = tmp_particle_data[lev][index][TmpIdx::xold ].dataPtr();
+    ParticleReal* AMREX_RESTRICT ypold  = tmp_particle_data[lev][index][TmpIdx::yold ].dataPtr();
+    ParticleReal* AMREX_RESTRICT zpold  = tmp_particle_data[lev][index][TmpIdx::zold ].dataPtr();
+    ParticleReal* AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
+    ParticleReal* AMREX_RESTRICT uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
+    ParticleReal* AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
 
     ParallelFor( np,
                  [=] AMREX_GPU_DEVICE (long i) {
@@ -1858,9 +1858,9 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     const Array4<const Real>& by_arr = byfab->array();
     const Array4<const Real>& bz_arr = bzfab->array();
 
-    const Real * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
-    const Real * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
-    const Real * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
+    const ParticleReal * const AMREX_RESTRICT xp = m_xp[thread_num].dataPtr() + offset;
+    const ParticleReal * const AMREX_RESTRICT zp = m_zp[thread_num].dataPtr() + offset;
+    const ParticleReal * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
 
     // Lower corner of tile box physical domain
     const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev);
@@ -2007,15 +2007,15 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
     // Otherwise, resize ionization_mask, and get poiters to attribs arrays.
     ionization_mask.resize(np);
     int * const AMREX_RESTRICT p_ionization_mask = ionization_mask.data();
-    const Real * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
-    const Real * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
-    const Real * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
-    const Real * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
-    const Real * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
-    const Real * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
-    const Real * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
-    const Real * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
-    const Real * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
+    const ParticleReal * const AMREX_RESTRICT ux = soa.GetRealData(PIdx::ux).data();
+    const ParticleReal * const AMREX_RESTRICT uy = soa.GetRealData(PIdx::uy).data();
+    const ParticleReal * const AMREX_RESTRICT uz = soa.GetRealData(PIdx::uz).data();
+    const ParticleReal * const AMREX_RESTRICT ex = soa.GetRealData(PIdx::Ex).data();
+    const ParticleReal * const AMREX_RESTRICT ey = soa.GetRealData(PIdx::Ey).data();
+    const ParticleReal * const AMREX_RESTRICT ez = soa.GetRealData(PIdx::Ez).data();
+    const ParticleReal * const AMREX_RESTRICT bx = soa.GetRealData(PIdx::Bx).data();
+    const ParticleReal * const AMREX_RESTRICT by = soa.GetRealData(PIdx::By).data();
+    const ParticleReal * const AMREX_RESTRICT bz = soa.GetRealData(PIdx::Bz).data();
     int* ion_lev = soa.GetIntData(particle_icomps["ionization_level"]).data();
 
     Real c = PhysConst::c;

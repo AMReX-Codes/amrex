@@ -1,7 +1,7 @@
 module warpx_ES_interpolate_cic
 
   use iso_c_binding
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only : amrex_real, amrex_particle_real
 
   implicit none
 
@@ -31,7 +31,7 @@ contains
                                       lo, hi, plo, dx, ng)    &
        bind(c,name='warpx_interpolate_cic_3d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
     real(amrex_real), intent(inout)  :: Ex_p(np), Ey_p(np), Ez_p(np)
     integer,          intent(in)     :: ng
     integer,          intent(in)     :: lo(3)
@@ -103,7 +103,7 @@ contains
                              lo, hi, plo, dx, ng)    &
        bind(c,name='warpx_interpolate_cic_2d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
     real(amrex_real), intent(inout)  :: Ex_p(np), Ey_p(np)
     integer,          intent(in)     :: ng
     integer,          intent(in)     :: lo(2)
@@ -157,7 +157,7 @@ contains
                                                  plo,  ng,   lev)        &
        bind(c,name='warpx_interpolate_cic_two_levels_3d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
     real(amrex_real), intent(inout)  :: Ex_p(np), Ey_p(np), Ez_p(np)
     integer,          intent(in)     :: ng, lev
     integer,          intent(in)     :: lo(3), hi(3)
@@ -290,7 +290,7 @@ contains
                                                  plo,  ng,   lev)        &
        bind(c,name='warpx_interpolate_cic_two_levels_2d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
     real(amrex_real), intent(inout)  :: Ex_p(np), Ey_p(np)
     integer,          intent(in)     :: ng, lev
     integer,          intent(in)     :: lo(2), hi(2)

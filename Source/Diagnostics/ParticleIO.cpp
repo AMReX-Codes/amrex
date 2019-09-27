@@ -174,9 +174,9 @@ PhysicalParticleContainer::ConvertUnits(ConvertDirection convert_direction)
         {
             // - momenta are stored as a struct of array, in `attribs`
             auto& attribs = pti.GetAttribs();
-            Real* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
-            Real* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
-            Real* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
+            ParticleReal* AMREX_RESTRICT ux = attribs[PIdx::ux].dataPtr();
+            ParticleReal* AMREX_RESTRICT uy = attribs[PIdx::uy].dataPtr();
+            ParticleReal* AMREX_RESTRICT uz = attribs[PIdx::uz].dataPtr();
             // Loop over the particles and convert momentum
             const long np = pti.numParticles();
             ParallelFor( np,

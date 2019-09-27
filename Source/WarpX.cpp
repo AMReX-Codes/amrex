@@ -149,8 +149,8 @@ WarpX::WarpX ()
 #endif
 
     t_new.resize(nlevs_max, 0.0);
-    t_old.resize(nlevs_max, -1.e100);
-    dt.resize(nlevs_max, 1.e100);
+    t_old.resize(nlevs_max, std::numeric_limits<Real>::lowest());
+    dt.resize(nlevs_max, std::numeric_limits<Real>::max());
 
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
@@ -988,7 +988,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmin[0], -1.e100, xyzmin[1] };
+    return { xyzmin[0], std::numeric_limits<Real>::lowest(), xyzmin[1] };
 #endif
 }
 
@@ -1000,7 +1000,7 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmax[0], 1.e100, xyzmax[1] };
+    return { xyzmax[0], std::numeric_limits<Real>::max(), xyzmax[1] };
 #endif
 }
 

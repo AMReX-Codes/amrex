@@ -28,16 +28,16 @@ LaserParticleContainer::gaussian_laser_profile (
     const Real oscillation_phase = k0 * PhysConst::c * ( t - profile_t_peak );
     // The coefficients below contain info about Gouy phase,
     // laser diffraction, and phase front curvature
-    const Complex diffract_factor = 1. + I * profile_focal_distance
-        * 2./( k0 * profile_waist * profile_waist );
-    const Complex inv_complex_waist_2 = 1./( profile_waist*profile_waist * diffract_factor );
+    const Complex diffract_factor = Real(1.) + I * profile_focal_distance
+        * Real(2.)/( k0 * profile_waist * profile_waist );
+    const Complex inv_complex_waist_2 = Real(1.)/( profile_waist*profile_waist * diffract_factor );
 
     // Time stretching due to STCs and phi2 complex envelope
     // (1 if zeta=0, beta=0, phi2=0)
-    const Complex stretch_factor = 1. + 4. *
+    const Complex stretch_factor = Real(1.) + Real(4.) *
         (zeta+beta*profile_focal_distance) * (zeta+beta*profile_focal_distance)
         * (inv_tau2*inv_complex_waist_2) +
-        2.*I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
+        Real(2.)*I*(phi2 - beta*beta*k0*profile_focal_distance) * inv_tau2;
 
     // Amplitude and monochromatic oscillations
     Complex prefactor = e_max * MathFunc::exp( I * oscillation_phase );
@@ -61,10 +61,10 @@ LaserParticleContainer::gaussian_laser_profile (
     amrex::ParallelFor(
         np,
         [=] AMREX_GPU_DEVICE (int i) {
-            const Complex stc_exponent = 1./stretch_factor * inv_tau2 *
+            const Complex stc_exponent = Real(1.)/stretch_factor * inv_tau2 *
                 MathFunc::pow((t - tmp_profile_t_peak -
                                tmp_beta*k0*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc)) -
-                               2.*I*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc))
+                               Real(2.)*I*(Xp[i]*std::cos(tmp_theta_stc) + Yp[i]*std::sin(tmp_theta_stc))
                                *( tmp_zeta - tmp_beta*tmp_profile_focal_distance ) * inv_complex_waist_2),2);
             // stcfactor = everything but complex transverse envelope
             const Complex stcfactor = prefactor * MathFunc::exp( - stc_exponent );
