@@ -531,7 +531,7 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
-	
+
     bool use_hybrid_QED = 0;
 
     int max_step   = std::numeric_limits<int>::max();
