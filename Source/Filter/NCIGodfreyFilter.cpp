@@ -76,11 +76,11 @@ void NCIGodfreyFilter::ComputeStencils(){
             if        (m_coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
                 // Set of coefficients for Ex, Ey and Bz
                 prestencil[i] = (1-weight_right)*table_nci_godfrey_momentum_Ex_Ey_Bz[index  ][i] +
-                                    weight_right*table_nci_godfrey_galerkin_Ex_Ey_Bz[index+1][i];
+                                    weight_right*table_nci_godfrey_momentum_Ex_Ey_Bz[index+1][i];
             } else if (m_coeff_set == godfrey_coeff_set::Bx_By_Ez) {
                 // Set of coefficients for Bx, By and Ez
                 prestencil[i] = (1-weight_right)*table_nci_godfrey_momentum_Bx_By_Ez[index  ][i] +
-                                    weight_right*table_nci_godfrey_galerkin_Bx_By_Ez[index+1][i];
+                                    weight_right*table_nci_godfrey_momentum_Bx_By_Ez[index+1][i];
             } else {
                 amrex::Abort("m_coeff_set must be godfrey_coeff_set::Ex_Ey_Bz or godfrey_coeff_set::Bx_By_Ez");
             }
