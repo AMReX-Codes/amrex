@@ -8,11 +8,10 @@
 
 using namespace amrex;
 
-NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set, amrex::Real cdtodz, amrex::Real l_lower_order_in_v, bool nodal_gather){
+NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set, amrex::Real cdtodz, bool nodal_gather){
     // Store parameters into class data members
     m_coeff_set = coeff_set;
     m_cdtodz = cdtodz;
-    m_l_lower_order_in_v = l_lower_order_in_v;
     m_nodal_gather = nodal_gather;
     // NCI Godfrey filter has fixed size, and is applied along z only.
 #if (AMREX_SPACEDIM == 3)
@@ -26,8 +25,7 @@ NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set, amrex::Real cdto
 
 void NCIGodfreyFilter::ComputeStencils(){
 
-    // Sanity checks: filter length shoulz be 5 in z, and check consistency
-    // between m_l_lower_order_in_v and m_nodal_gather
+    // Sanity checks: filter length shoulz be 5 in z
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
 #if ( AMREX_SPACEDIM == 3 )
         slen.z==5,
@@ -35,15 +33,6 @@ void NCIGodfreyFilter::ComputeStencils(){
         slen.y==5,
 #endif
         "ERROR: NCI filter requires 5 points in z");
-    if (!m_nodal_gather){
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            m_l_lower_order_in_v==1,
-            "ERROR: NCI corrector with gather from staggered requires m_l_lower_order_in_v=1, i.e., Galerkin scheme");
-    } else {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            m_l_lower_order_in_v==0,
-            "ERROR: NCI corrector with gather from nodal requires m_l_lower_order_in_v=0, i.e., momentum-conserving scheme");
-    }
 
     // Interpolate coefficients from the table, and store into prestencil.
     int index = tab_length*m_cdtodz;

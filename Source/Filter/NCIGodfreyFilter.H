@@ -21,7 +21,7 @@ public:
     NCIGodfreyFilter () = default;
 
     NCIGodfreyFilter(godfrey_coeff_set coeff_set, amrex::Real cdtodz,
-                     amrex::Real l_lower_order_in_v, bool nodal_gather);
+                     bool nodal_gather);
 
     void ComputeStencils();
 
@@ -34,8 +34,6 @@ private:
     godfrey_coeff_set m_coeff_set;
     // The stencil depends on parameter c*dt/dz
     amrex::Real m_cdtodz;
-    // If 1, use Galerkin method for gather. If 0, uniform gather
-    int m_l_lower_order_in_v;
     // Whether the gather is from nodal fields or staggered fields
     bool m_nodal_gather;
 };
