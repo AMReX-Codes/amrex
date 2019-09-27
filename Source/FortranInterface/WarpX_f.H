@@ -229,12 +229,6 @@ extern "C"
 #endif
                           const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
 
-
-    void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
-                             BL_FORT_FAB_ARG_ANYD(crse),
-                             const BL_FORT_FAB_ARG_ANYD(fine),
-                             const int* dir);
-
     void WRPX_SYNC_RHO (const int* lo, const int* hi,
                         BL_FORT_FAB_ARG_ANYD(crse),
                         const BL_FORT_FAB_ARG_ANYD(fine),
