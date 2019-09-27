@@ -531,8 +531,6 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
-
-    int do_subcycling = 0;
 	
     bool use_hybrid_QED = 0;
 
