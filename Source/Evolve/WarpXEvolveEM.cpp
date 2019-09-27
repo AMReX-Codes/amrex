@@ -2,6 +2,8 @@
 #include <limits>
 
 #include <WarpX.H>
+#include <WarpX_QED_K.H>
+#include <WarpX_QED_Field_Pushers.cpp>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpXUtil.H>
@@ -306,12 +308,12 @@ WarpX::OneStep_nosub (Real cur_time)
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
-    if (use_hybrid_QED) Hybrid_QED_Push(dt[0]);
+    if (use_hybrid_QED) Hybrid_QED_Push(0.5*dt[0]);
     FillBoundaryE();
     PushPSATD(dt[0]);
     FillBoundaryE();
     FillBoundaryB();
-    if (use_hybrid_QED) Hybrid_QED_Push(dt[0]);
+    if (use_hybrid_QED) Hybrid_QED_Push(0.5*dt[0]);
     FillBoundaryE();
     if (do_pml) DampPML();
 
