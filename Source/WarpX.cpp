@@ -103,7 +103,7 @@ IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 
 IntVect WarpX::filter_npass_each_dir(1);
 
-int WarpX::n_field_gather_buffer = 0;
+int WarpX::n_field_gather_buffer = -1;
 int WarpX::n_current_deposition_buffer = -1;
 
 int WarpX::do_nodal = false;
@@ -730,10 +730,18 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
+        // This forces the allocation of buffers and allows the code associated
+        // with buffers to run. But the buffer size of `1` is in fact not used,
+        // `deposit_on_main_grid` forces all particles (whether or not they
+        // are in buffers) to deposition on the main grid.
     }
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
+    }
+    if (n_field_gather_buffer < 0) {
+        // Field gather buffer should be larger than current deposition buffers
+        n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
     int ngF = (do_moving_window) ? 2 : 0;
