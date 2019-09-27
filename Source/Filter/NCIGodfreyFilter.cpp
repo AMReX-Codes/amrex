@@ -8,7 +8,7 @@
 
 using namespace amrex;
 
-NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_){
+NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_, bool nodal_gather){
     // Store parameters into class data members
     coeff_set = coeff_set_;
     cdtodz = cdtodz_;
@@ -31,8 +31,15 @@ void NCIGodfreyFilter::ComputeStencils(){
         slen.y==5,
 #endif
         "ERROR: NCI filter requires 5 points in z");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(l_lower_order_in_v==1,
-        "ERROR: NCI corrector requires l_lower_order_in_v=1, i.e., Galerkin scheme");
+    if (!nodal_gather){
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            l_lower_order_in_v==1,
+            "ERROR: NCI corrector with gather from staggered requires l_lower_order_in_v=1, i.e., Galerkin scheme");
+    } else {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            l_lower_order_in_v==0,
+            "ERROR: NCI corrector with gather from nodal requires l_lower_order_in_v=0, i.e., momentum-conserving scheme");
+    }
 
     // Interpolate coefficients from the table, and store into prestencil.
     int index = tab_length*cdtodz;
@@ -41,15 +48,37 @@ void NCIGodfreyFilter::ComputeStencils(){
     Real weight_right = cdtodz - index/tab_length;
     Real prestencil[4];
     for(int i=0; i<tab_width; i++){
-        if        (coeff_set == godfrey_coeff_set::Ex_Ey_Bz) {
-            prestencil[i] = (1-weight_right)*table_nci_godfrey_Ex_Ey_Bz[index  ][i] +
-                                weight_right*table_nci_godfrey_Ex_Ey_Bz[index+1][i];
-        } else if (coeff_set == godfrey_coeff_set::Bx_By_Ez) {
-            prestencil[i] = (1-weight_right)*table_nci_godfrey_Bx_By_Ez[index  ][i] +
-                                weight_right*table_nci_godfrey_Bx_By_Ez[index+1][i];
+        if !nodal_gather
+        {
+            // If gather from staggered grid, use coefficients for Galerkin gather
+            if       (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
+                // Set of coefficients for Ex, Ey and Bz
+                prestencil[i] = (1-weight_right)*table_nci_godfrey_galerkin_Ex_Ey_Bz[index  ][i] +
+                                    weight_right*table_nci_godfrey_galerkin_Ex_Ey_Bz[index+1][i];
+            } else if (coeff_set == godfrey_coeff_set::Bx_By_Ez){
+                // Set of coefficients for Bx, By and Ez
+                prestencil[i] = (1-weight_right)*table_nci_godfrey_galerkin_Bx_By_Ez[index  ][i] +
+                                    weight_right*table_nci_godfrey_galerkin_Bx_By_Ez[index+1][i];
+            } else {
+                amrex::Abort("coeff_set must be godfrey_coeff_set::Ex_Ey_Bz or godfrey_coeff_set::Bx_By_Ez");
+            }
+        }
+        else
+        {
+            // If gather from node-centered grid, use coefficients for momentum-conserving gather
+            if       (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
+                // Set of coefficients for Ex, Ey and Bz
+                prestencil[i] = (1-weight_right)*table_nci_godfrey_momentum_Ex_Ey_Bz[index  ][i] +
+                                    weight_right*table_nci_godfrey_galerkin_Ex_Ey_Bz[index+1][i];
+            } else if (coeff_set == godfrey_coeff_set::Bx_By_Ez) {
+                // Set of coefficients for Bx, By and Ez
+                prestencil[i] = (1-weight_right)*table_nci_godfrey_momentum_Bx_By_Ez[index  ][i] +
+                                    weight_right*table_nci_godfrey_galerkin_Bx_By_Ez[index+1][i];
+            } else {
+                amrex::Abort("coeff_set must be godfrey_coeff_set::Ex_Ey_Bz or godfrey_coeff_set::Bx_By_Ez");
+            }
         }
     }
-
     // Compute stencil_z
     stencil_z.resize( 5 );
     stencil_z[0] =  (256 + 128*prestencil[0] + 96*prestencil[1] + 80*prestencil[2] + 70*prestencil[3]) / 256;
