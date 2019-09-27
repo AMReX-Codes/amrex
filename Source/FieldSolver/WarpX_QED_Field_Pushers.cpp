@@ -32,7 +32,7 @@ WarpX::Hybrid_QED_Push (Real a_dt)
             return 0;
         }
     }
-    
+
     for (int lev = 0; lev <= finest_level; ++lev) {
         Hybrid_QED_Push(lev, a_dt);
     }
@@ -95,7 +95,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-        
+
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
@@ -106,7 +106,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
         auto const& Exfab = Ex->array(mfi);
         auto const& Eyfab = Ey->array(mfi);
         auto const& Ezfab = Ez->array(mfi);
-        
+
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
@@ -136,7 +136,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
                 costfab(i,j,k) += wt;
             });
         }
-    
+
 
     if (do_pml && pml[lev]->ok())
     {
