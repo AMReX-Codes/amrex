@@ -203,6 +203,8 @@ public:
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
     // Caller must make sure fp and cp have ghost cells filled.
     void UpdateAuxilaryData ();
+    void UpdateNodalAuxilaryData ();
+    void UpdateStagAuxilaryData ();
 
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();

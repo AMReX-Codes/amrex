@@ -1,5 +1,6 @@
 
 #include <WarpX.H>
+#include <WarpXAlgorithmSelection.H>
 #include <AMReX_BLProfiler.H>
 
 using namespace amrex;
@@ -91,7 +92,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
 
         // Aux patch
 
-        if (lev == 0)
+        if (lev == 0 && field_gathering_algo != GatheringAlgo::MomentumConserving)
         {
             for (int idim = 0; idim < 3; ++idim) {
                 Bfield_aux[lev][idim].reset(new MultiFab(*Bfield_fp[lev][idim], amrex::make_alias, 0, Bfield_aux[lev][idim]->nComp()));

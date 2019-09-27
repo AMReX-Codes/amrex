@@ -51,6 +51,157 @@ WarpX::UpdateAuxilaryData ()
 {
     BL_PROFILE("UpdateAuxilaryData()");
 
+    if (Bfield_aux[0][0]->is_nodal()) {
+        UpdateNodalAuxilaryData();
+    } else {
+        UpdateStagAuxilaryData();
+    }
+}
+
+void
+WarpX::UpdateNodalAuxilaryData ()
+{
+    // For level 0, we only need to do the average.
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*Bfield_aux[0][0]); mfi.isValid(); ++mfi)
+    {
+        Array4<Real> const& bx_aux = Bfield_aux[0][0]->array(mfi);
+        Array4<Real> const& by_aux = Bfield_aux[0][1]->array(mfi);
+        Array4<Real> const& bz_aux = Bfield_aux[0][2]->array(mfi);
+        Array4<Real const> const& bx_fp = Bfield_fp[0][0]->const_array(mfi);
+        Array4<Real const> const& by_fp = Bfield_fp[0][1]->const_array(mfi);
+        Array4<Real const> const& bz_fp = Bfield_fp[0][2]->const_array(mfi);
+
+        Array4<Real> const& ex_aux = Efield_aux[0][0]->array(mfi);
+        Array4<Real> const& ey_aux = Efield_aux[0][1]->array(mfi);
+        Array4<Real> const& ez_aux = Efield_aux[0][2]->array(mfi);
+        Array4<Real const> const& ex_fp = Efield_fp[0][0]->const_array(mfi);
+        Array4<Real const> const& ey_fp = Efield_fp[0][1]->const_array(mfi);
+        Array4<Real const> const& ez_fp = Efield_fp[0][2]->const_array(mfi);
+
+        const Box& bx = mfi.fabbox();
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+        {
+            warpx_interp_nd_bfield_x(j,k,l, bx_aux, bx_fp);
+            warpx_interp_nd_bfield_y(j,k,l, by_aux, by_fp);
+            warpx_interp_nd_bfield_z(j,k,l, bz_aux, bz_fp);
+            warpx_interp_nd_efield_x(j,k,l, ex_aux, ex_fp);
+            warpx_interp_nd_efield_y(j,k,l, ey_aux, ey_fp);
+            warpx_interp_nd_efield_z(j,k,l, ez_aux, ez_fp);
+        });
+    }
+
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        BoxArray const& nba = Bfield_aux[lev][0]->boxArray();
+        BoxArray const& cnba = amrex::coarsen(nba,2);
+        DistributionMapping const& dm = Bfield_aux[lev][0]->DistributionMap();
+        auto const& cperiod = Geom(lev-1).periodicity();
+
+        // Bfield
+        {
+            Array<std::unique_ptr<MultiFab>,3> Btmp;
+            if (Bfield_cax[lev][0]) {
+                for (int i = 0; i < 3; ++i) {
+                    Btmp[i].reset(new MultiFab(*Bfield_cax[lev][i], amrex::make_alias, 0, 1));
+                }
+            } else {
+                IntVect ngtmp = Bfield_aux[lev-1][0]->nGrowVect();
+                for (int i = 0; i < 3; ++i) {
+                    Btmp[i].reset(new MultiFab(cnba, dm, 1, ngtmp));
+                }
+            }
+            // ParallelCopy from coarse level
+            for (int i = 0; i < 3; ++i) {
+                IntVect ng = Btmp[i]->nGrowVect();
+                Btmp[i]->ParallelCopy(*Bfield_aux[lev-1][i], 0, 0, 1, ng, ng, cperiod);
+            }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*Bfield_aux[lev][0]); mfi.isValid(); ++mfi)
+            {
+                Array4<Real> const& bx_aux = Bfield_aux[lev][0]->array(mfi);
+                Array4<Real> const& by_aux = Bfield_aux[lev][1]->array(mfi);
+                Array4<Real> const& bz_aux = Bfield_aux[lev][2]->array(mfi);
+                Array4<Real const> const& bx_fp = Bfield_fp[lev][0]->const_array(mfi);
+                Array4<Real const> const& by_fp = Bfield_fp[lev][1]->const_array(mfi);
+                Array4<Real const> const& bz_fp = Bfield_fp[lev][2]->const_array(mfi);
+                Array4<Real const> const& bx_cp = Bfield_cp[lev][0]->const_array(mfi);
+                Array4<Real const> const& by_cp = Bfield_cp[lev][1]->const_array(mfi);
+                Array4<Real const> const& bz_cp = Bfield_cp[lev][2]->const_array(mfi);
+                Array4<Real const> const& bx_c = Btmp[0]->const_array(mfi);
+                Array4<Real const> const& by_c = Btmp[1]->const_array(mfi);
+                Array4<Real const> const& bz_c = Btmp[2]->const_array(mfi);
+
+                const Box& bx = mfi.fabbox();
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_nd_bfield_x(j,k,l, bx_aux, bx_fp, bx_cp, bx_c);
+                    warpx_interp_nd_bfield_y(j,k,l, by_aux, by_fp, by_cp, by_c);
+                    warpx_interp_nd_bfield_z(j,k,l, bz_aux, bz_fp, bz_cp, bz_c);
+                });
+            }
+        }
+
+        // Efield
+        {
+            Array<std::unique_ptr<MultiFab>,3> Etmp;
+            if (Efield_cax[lev][0]) {
+                for (int i = 0; i < 3; ++i) {
+                    Etmp[i].reset(new MultiFab(*Efield_cax[lev][i], amrex::make_alias, 0, 1));
+                }
+            } else {
+                IntVect ngtmp = Efield_aux[lev-1][0]->nGrowVect();
+                for (int i = 0; i < 3; ++i) {
+                    Etmp[i].reset(new MultiFab(cnba, dm, 1, ngtmp));
+                }
+            }
+            // ParallelCopy from coarse level
+            for (int i = 0; i < 3; ++i) {
+                IntVect ng = Etmp[i]->nGrowVect();
+                Etmp[i]->ParallelCopy(*Efield_aux[lev-1][i], 0, 0, 1, ng, ng, cperiod);
+            }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*Efield_aux[lev][0]); mfi.isValid(); ++mfi)
+            {
+                Array4<Real> const& ex_aux = Efield_aux[lev][0]->array(mfi);
+                Array4<Real> const& ey_aux = Efield_aux[lev][1]->array(mfi);
+                Array4<Real> const& ez_aux = Efield_aux[lev][2]->array(mfi);
+                Array4<Real const> const& ex_fp = Efield_fp[lev][0]->const_array(mfi);
+                Array4<Real const> const& ey_fp = Efield_fp[lev][1]->const_array(mfi);
+                Array4<Real const> const& ez_fp = Efield_fp[lev][2]->const_array(mfi);
+                Array4<Real const> const& ex_cp = Efield_cp[lev][0]->const_array(mfi);
+                Array4<Real const> const& ey_cp = Efield_cp[lev][1]->const_array(mfi);
+                Array4<Real const> const& ez_cp = Efield_cp[lev][2]->const_array(mfi);
+                Array4<Real const> const& ex_c = Etmp[0]->const_array(mfi);
+                Array4<Real const> const& ey_c = Etmp[1]->const_array(mfi);
+                Array4<Real const> const& ez_c = Etmp[2]->const_array(mfi);
+
+                const Box& bx = mfi.fabbox();
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int j, int k, int l) noexcept
+                {
+                    warpx_interp_nd_efield_x(j,k,l, ex_aux, ex_fp, ex_cp, ex_c);
+                    warpx_interp_nd_efield_y(j,k,l, ey_aux, ey_fp, ey_cp, ey_c);
+                    warpx_interp_nd_efield_z(j,k,l, ez_aux, ez_fp, ez_cp, ez_c);
+                });
+            }
+        }
+    }
+}
+
+void
+WarpX::UpdateStagAuxilaryData ()
+{
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();
