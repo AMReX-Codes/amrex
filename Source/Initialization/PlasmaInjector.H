@@ -43,9 +43,9 @@ public:
     bool doInjection () const noexcept { return inj_pos != NULL;}
 
     bool add_single_particle = false;
-    amrex::Vector<amrex::Real> single_particle_pos;
-    amrex::Vector<amrex::Real> single_particle_vel;
-    amrex::Real single_particle_weight;
+    amrex::Vector<amrex::ParticleReal> single_particle_pos;
+    amrex::Vector<amrex::ParticleReal> single_particle_vel;
+    amrex::ParticleReal single_particle_weight;
 
     bool gaussian_beam = false;
     amrex::Real x_m;

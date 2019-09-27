@@ -23,7 +23,6 @@ namespace
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
-        int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
 
         for (int i = olo; i <= ohi+1; ++i)
@@ -51,7 +50,6 @@ namespace
         int olo = overlap.smallEnd(idim);
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
-        int shi = sigma.m_hi;
         int sslo = sigma_star.m_lo;
         for (int i = olo; i <= ohi+1; ++i)
         {
