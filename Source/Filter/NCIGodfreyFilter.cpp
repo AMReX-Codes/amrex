@@ -8,11 +8,12 @@
 
 using namespace amrex;
 
-NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_, bool nodal_gather){
+NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_, bool nodal_gather_){
     // Store parameters into class data members
     coeff_set = coeff_set_;
     cdtodz = cdtodz_;
     l_lower_order_in_v = l_lower_order_in_v_;
+    nodal_gather = nodal_gather_;
     // NCI Godfrey filter has fixed size, and is applied along z only.
 #if (AMREX_SPACEDIM == 3)
     stencil_length_each_dir = {1,1,5};

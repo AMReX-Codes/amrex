@@ -11,7 +11,7 @@ public:
 
     NCIGodfreyFilter () = default;
 
-    NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_);
+    NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_, amrex::Real l_lower_order_in_v_, bool nodal_gather_);
 
     void ComputeStencils();
 
@@ -24,7 +24,7 @@ private:
     godfrey_coeff_set coeff_set;
     amrex::Real cdtodz;
     int l_lower_order_in_v;
-
+    bool nodal_gather;
 };
 
 #endif // #ifndef WARPX_GODFREY_FILTER_H_
