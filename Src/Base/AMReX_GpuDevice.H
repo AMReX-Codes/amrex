@@ -45,6 +45,7 @@ public:
 #endif
 
     static int deviceId () noexcept;
+    static int numDevicesUsed () noexcept;
 
     static void synchronize () noexcept;
     static void streamSynchronize () noexcept;
@@ -138,6 +139,7 @@ private:
     static void initialize_gpu ();
 
     static int device_id;
+    static int num_devices_used;
     static int verbose;
 
 #ifdef AMREX_USE_GPU
