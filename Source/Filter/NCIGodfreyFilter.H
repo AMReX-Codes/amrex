@@ -20,26 +20,26 @@ public:
 
     NCIGodfreyFilter () = default;
 
-    NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdtodz_,
-                     amrex::Real l_lower_order_in_v_, bool nodal_gather_);
+    NCIGodfreyFilter(godfrey_coeff_set coeff_set, amrex::Real cdtodz,
+                     amrex::Real l_lower_order_in_v, bool nodal_gather);
 
     void ComputeStencils();
 
     void getGodfreyCoeffs(godfrey_coeff_set coeff_set_in);
-
-    static constexpr int stencil_width = 4;
+    
+    static constexpr int m_stencil_width = 4;
 
 private:
 
     // Set of coefficients (different fields require to read
     // different coefficients from the table)
-    godfrey_coeff_set coeff_set;
+    godfrey_coeff_set m_coeff_set;
     // The stencil depends on parameter c*dt/dz
-    amrex::Real cdtodz;
+    amrex::Real m_cdtodz;
     // If 1, use Galerkin method for gather. If 0, uniform gather
-    int l_lower_order_in_v;
+    int m_l_lower_order_in_v;
     // Whether the gather is from nodal fields or staggered fields
-    bool nodal_gather;
+    bool m_nodal_gather;
 };
 
 #endif // #ifndef WARPX_GODFREY_FILTER_H_
