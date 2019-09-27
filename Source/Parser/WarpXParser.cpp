@@ -69,7 +69,7 @@ WarpXParser::clear ()
 }
 
 void
-WarpXParser::registerVariable (std::string const& name, double& var)
+WarpXParser::registerVariable (std::string const& name, amrex::Real& var)
 {
     // We assume this is called inside OMP parallel region
 #ifdef _OPENMP
@@ -105,7 +105,7 @@ WarpXParser::registerVariables (std::vector<std::string> const& names)
 }
 
 void
-WarpXParser::setConstant (std::string const& name, double c)
+WarpXParser::setConstant (std::string const& name, amrex::Real c)
 {
 #ifdef _OPENMP
 

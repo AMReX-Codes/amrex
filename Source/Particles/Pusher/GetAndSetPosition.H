@@ -11,7 +11,7 @@
  *        and stores them in the variables `x`, `y`, `z`. */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void GetPosition(
-    amrex::Real& x, amrex::Real& y, amrex::Real& z,
+    amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
     const WarpXParticleContainer::ParticleType& p)
 {
 #if (AMREX_SPACEDIM==3)
@@ -20,7 +20,7 @@ void GetPosition(
     z = p.pos(2);
 #else
     x = p.pos(0);
-    y = std::numeric_limits<amrex::Real>::quiet_NaN();
+    y = std::numeric_limits<amrex::ParticleReal>::quiet_NaN();
     z = p.pos(1);
 #endif
 }
@@ -30,7 +30,7 @@ void GetPosition(
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void SetPosition(
     WarpXParticleContainer::ParticleType& p,
-    const amrex::Real x, const amrex::Real y, const amrex::Real z)
+    const amrex::ParticleReal x, const amrex::ParticleReal y, const amrex::ParticleReal z)
 {
 #if (AMREX_SPACEDIM==3)
     p.pos(0) = x;
@@ -49,10 +49,10 @@ void SetPosition(
  *         and store them in the variables `x`, `y`, `z` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void GetCartesianPositionFromCylindrical(
-    amrex::Real& x, amrex::Real& y, amrex::Real& z,
-    const WarpXParticleContainer::ParticleType& p, const amrex::Real theta)
+    amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
+    const WarpXParticleContainer::ParticleType& p, const amrex::ParticleReal theta)
 {
-    const amrex::Real r = p.pos(0);
+    const amrex::ParticleReal r = p.pos(0);
     x = r*std::cos(theta);
     y = r*std::sin(theta);
     z = p.pos(1);
@@ -63,8 +63,8 @@ void GetCartesianPositionFromCylindrical(
  *        from the values of `x`, `y`, `z` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void SetCylindricalPositionFromCartesian(
-    WarpXParticleContainer::ParticleType& p, amrex::Real& theta,
-    const amrex::Real x, const amrex::Real y, const amrex::Real z )
+    WarpXParticleContainer::ParticleType& p, amrex::ParticleReal& theta,
+    const amrex::ParticleReal x, const amrex::ParticleReal y, const amrex::ParticleReal z )
 {
     theta = std::atan2(y, x);
     p.pos(0) = std::sqrt(x*x + y*y);
