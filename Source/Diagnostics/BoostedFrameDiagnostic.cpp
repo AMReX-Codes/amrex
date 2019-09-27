@@ -476,21 +476,27 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
                 // Transform the transverse E and B fields. Note that ez and bz are not
                 // changed by the tranform.
                 Real e_lab, b_lab, j_lab, r_lab;
-                e_lab = gamma_boost * (arr(i, j, k, 0) + beta_boost*clight*arr(i, j, k, 4));
-                b_lab = gamma_boost * (arr(i, j, k, 4) + beta_boost*arr(i, j, k, 0)/clight);
+                e_lab = gamma_boost * (arr(i, j, k, 0) + 
+                                       beta_boost*clight*arr(i, j, k, 4));
+                b_lab = gamma_boost * (arr(i, j, k, 4) + 
+                                       beta_boost*arr(i, j, k, 0)/clight);
 
                 arr(i, j, k, 0) = e_lab;
                 arr(i, j, k, 4) = b_lab;
 
-                e_lab = gamma_boost * (arr(i, j, k, 1) - beta_boost*clight*arr(i, j, k, 3));
-                b_lab = gamma_boost * (arr(i, j, k, 3) - beta_boost*arr(i, j, k, 1)/clight);
+                e_lab = gamma_boost * (arr(i, j, k, 1) - 
+                                       beta_boost*clight*arr(i, j, k, 3));
+                b_lab = gamma_boost * (arr(i, j, k, 3) - 
+                                       beta_boost*arr(i, j, k, 1)/clight);
 
                 arr(i, j, k, 1) = e_lab;
                 arr(i, j, k, 3) = b_lab;
 
                 // Transform the charge and current density. Only the z component of j is affected.
-                j_lab = gamma_boost*(arr(i, j, k, 8) + beta_boost*clight*arr(i, j, k, 9));
-                r_lab = gamma_boost*(arr(i, j, k, 9) + beta_boost*arr(i, j, k, 8)/clight);
+                j_lab = gamma_boost*(arr(i, j, k, 8) + 
+                                     beta_boost*clight*arr(i, j, k, 9));
+                r_lab = gamma_boost*(arr(i, j, k, 9) + 
+                                     beta_boost*arr(i, j, k, 8)/clight);
 
                 arr(i, j, k, 8) = j_lab;
                 arr(i, j, k, 9) = r_lab;
@@ -587,10 +593,12 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         amrex::Real cell_dy = 0;
         IntVect slice_ncells_lab ;
 
-        // To construct LabFrameSlice(), the location of lo() and hi() of the reduced
-        // diag is computed using the user-defined values of the reduced diag (1D, 2D, or 3D).
-        // For visualization of the diagnostics, the number of cells in each dimension is required and
-        // is computed below for the reduced back-transformed lab-frame diag, similar to the full-diag.
+        // To construct LabFrameSlice(), the location of lo() and hi() of the
+        // reduced diag is computed using the user-defined values of the
+        // reduced diag (1D, 2D, or 3D). For visualization of the diagnostics,
+        // the number of cells in each dimension is required and
+        // is computed below for the reduced back-transformed lab-frame diag,
+        // similar to the full-diag.
         const amrex::Real* current_slice_lo = slice_realbox.lo();
         const amrex::Real* current_slice_hi = slice_realbox.hi();
 
@@ -693,10 +701,12 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 
 #ifdef WARPX_USE_HDF5
                 for (int comp = 0; comp < ncomp; ++comp)
-                    output_write_field(LabFrameDiags_[i]->file_name, mesh_field_names[comp], tmp, comp);
+                    output_write_field(LabFrameDiags_[i]->file_name,
+                                       mesh_field_names[comp], tmp, comp);
 #else
                 std::stringstream ss;
-                ss << LabFrameDiags_[i]->file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+                ss << LabFrameDiags_[i]->file_name << "/Level_0/"
+                   << Concatenate("buffer", i_lab, 5);
                 VisMF::Write(tmp, ss.str());
 #endif
             }
@@ -714,9 +724,11 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                                           species_name);
 #else
                     std::stringstream part_ss;
-                    part_ss << LabFrameDiags_[i]->file_name + "/" + species_name + "/";
+                    part_ss << LabFrameDiags_[i]->file_name + "/" +
+                               species_name + "/";
                     // Dump species data
-                    writeParticleData(LabFrameDiags_[i]->particles_buffer_[j], part_ss.str(), i_lab);
+                    writeParticleData(LabFrameDiags_[i]->particles_buffer_[j],
+                                      part_ss.str(), i_lab);
 #endif
                 }
                 LabFrameDiags_[i]->particles_buffer_.clear();
@@ -823,14 +835,16 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                // Make it a BoxArray slice_ba
                BoxArray slice_ba(slice_box);
                slice_ba.maxSize(max_box_size_);
-               // Create MultiFab tmp on slice_ba witih data from slice, that can be potentially re-used.
+               // Create MultiFab tmp on slice_ba witih data from slice
+               // that can be potentially re-used.
                tmp_slice_ptr = std::unique_ptr<MultiFab>(new MultiFab(slice_ba,
                                LabFrameDiags_[i]->data_buffer_->DistributionMap(),
                                ncomp, 0));
 
                tmp_slice_ptr->copy(*slice, 0, 0, ncomp);
             }
-            // tmp_slice_ptr is re-used if the t_lab of a diag is equal to that of the previous diag
+            // tmp_slice_ptr is re-used if the t_lab of a diag is equal to
+            // that of the previous diag
             LabFrameDiags_[i]->AddDataToBuffer(*tmp_slice_ptr, i_lab,
                                                map_actual_fields_to_dump);
         }
@@ -865,7 +879,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
                 for (int comp = 0; comp < LabFrameDiags_[i]->data_buffer_->nComp(); ++comp)
                     output_write_field( LabFrameDiags_[i]->file_name,
                                         mesh_field_names[comp],
-                                        LabFrameDiags_[i]->data_buffer_, comp);
+                                        *LabFrameDiags_[i]->data_buffer_, comp);
 #else
                 std::stringstream mesh_ss;
                 mesh_ss << LabFrameDiags_[i]->file_name << "/Level_0/" <<
@@ -948,7 +962,8 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
         output_write_particle_field(name, field_path,
                                     pdata.GetRealData(k).data(),
                                     particle_counts[ParallelDescriptor::MyProc()],
-                                    particle_offsets[ParallelDescriptor::MyProc()] + old_np);
+                                    particle_offsets[ParallelDescriptor::MyProc()]
+                                    + old_np);
     }
 }
 #endif
@@ -1011,7 +1026,6 @@ writeMetaData ()
 
     if (ParallelDescriptor::IOProcessor()) {
         const std::string fullpath = WarpX::lab_data_directory + "/snapshots";
-        //const std::string fullpath = WarpX::lab_data_directory;
         if (!UtilCreateDirectory(fullpath, 0755))
             CreateDirectoryFailed(fullpath);
 
@@ -1019,7 +1033,6 @@ writeMetaData ()
         std::ofstream HeaderFile;
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         std::string HeaderFileName(WarpX::lab_data_directory + "/snapshots/Header");
-        //std::string HeaderFileName(WarpX::lab_data_directory + "/Header");
         HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
                                                 std::ofstream::trunc |
                                                 std::ofstream::binary);
@@ -1091,8 +1104,6 @@ LabFrameSnapShot(Real t_lab_in, Real t_boost, Real inv_gamma_boost_in,
    initial_i = (current_z_lab - zmin_lab) / dz_lab_ ;
    file_name = Concatenate(WarpX::lab_data_directory + "/snapshots/snapshot",
                            file_num, 5);
-   //file_name = Concatenate(WarpX::lab_data_directory + "/snapshot",
-   //                        file_num, 5);
    createLabFrameDirectories();
    buff_counter_ = 0;
    if (WarpX::do_boosted_frame_fields) data_buffer_.reset(nullptr);
@@ -1121,7 +1132,7 @@ createLabFrameDirectories() {
     {
         if (WarpX::do_boosted_frame_fields)
         {
-            for (int comp = 0; comp < ncomp_to_dump; ++comp) {
+            for (int comp = 0; comp < ncomp_to_dump_; ++comp) {
                 output_create_field(file_name, mesh_field_names_[comp],
                                     prob_ncells_lab_[0],
 #if ( AMREX_SPACEDIM == 3 )
