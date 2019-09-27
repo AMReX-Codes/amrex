@@ -10,8 +10,8 @@ enum class godfrey_coeff_set { Ex_Ey_Bz=0, Bx_By_Ez=1 };
  *
  * It derives from the base class Filter.
  * The filter stencil is initialized in method ComputeStencils. Computing the
- * stencil requires to read parameters from a table, which is done in
- * getGodfreyCoeffs.
+ * stencil requires to read parameters from a table, where each lines stands
+ * for a value of c*dt/dz.
  * The filter is applied using the base class' method ApplyStencil.
  */
 class NCIGodfreyFilter : public Filter
@@ -24,8 +24,6 @@ public:
                      amrex::Real l_lower_order_in_v, bool nodal_gather);
 
     void ComputeStencils();
-
-    void getGodfreyCoeffs(godfrey_coeff_set coeff_set_in);
     
     static constexpr int m_stencil_width = 4;
 
