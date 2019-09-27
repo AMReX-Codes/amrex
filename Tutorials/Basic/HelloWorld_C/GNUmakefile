@@ -5,10 +5,11 @@ DEBUG	= TRUE
 
 DIM	= 3
 
-COMP    = gnu
+COMP    = hip
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
+USE_HIP   = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
