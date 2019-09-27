@@ -2,13 +2,15 @@
 #define WarpX_QED_K_h
 
 #include <AMReX_FArrayBox.H>
+#include <WarpXConst.H>
+#include <cmath>
 
 using namespace amrex;
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<Real>
     const& Ey, Array4<Real> const& Ez, Array4<Real> const& Bx, Array4<Real> const& By,
-    Array4<Real const> const& Bz, Real dtsdx, Real dtsdy, Real dtsdy, std:string direction)
+    Array4<Real const> const& Bz, Real dtsdx, Real dtsdy, Real dtsdy, std::string direction)
 {
 #if (AMREX_SPACEDIM == 3)
 
@@ -30,7 +32,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real Mnx[3] = {
         -2*PhysConst::xi*pow(PhysConst::c,2) * (2*(pow(Ex(j-1,k,l),2)+pow(Ey(j-1,k,l),2)+pow(Ez(j-1,k,l),2) -
         pow(PhysConst::c,2)*(pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2)))*Bx(j-1,k,l)
-        -7*(Ex(j-1,k,l)*Bx(j-1,k,l)+Ey(j-1,k,l)*By(j-1,k,l)+Ez(j-1,k,l)*Bz(j-1,k,l))*Exs(j-1,k,l)),
+        -7*(Ex(j-1,k,l)*Bx(j-1,k,l)+Ey(j-1,k,l)*By(j-1,k,l)+Ez(j-1,k,l)*Bz(j-1,k,l))*Ez(j-1,k,l)),
 
         -2*PhysConst::xi*pow(PhysConst::c,2) * (2*(pow(Ex(j-1,k,l),2)+pow(Ey(j-1,k,l),2)+pow(Ez(j-1,k,l),2) -
         pow(PhysConst::c,2)*(pow(Bx(j-1,k,l),2)+pow(By(j-1,k,l),2)+pow(Bz(j-1,k,l),2)))*By(j-1,k,l)
@@ -98,17 +100,17 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real VxM[3] = {
         0.5*( dtsdy*(Mpy[2]-Mny[2]) - dtsdz*( Mpz[1]-Mnz[1] ) ),
         0.5*( dtsdz*(Mpz[0]-Mnz[0]) - dtsdx*( Mpx[2]-Mnx[2] ) ),
-        0.5*( dtsdx*(Mpx[1]-Mnx[1]) - dtsdy*( Mpy[0]-Mny[0] ) );
+        0.5*( dtsdx*(Mpx[1]-Mnx[1]) - dtsdy*( Mpy[0]-Mny[0] ) )};
 
     const amrex::Real VxE[3] = {
-        0.5*(dtsdy*(Ez(j,k+1,l)-Ez(j,k-1.l)) - dtsdz*(Ey(j,k,l+1)-Ey(j,k,l-1))),
+        0.5*(dtsdy*(Ez(j,k+1,l)-Ez(j,k-1,l)) - dtsdz*(Ey(j,k,l+1)-Ey(j,k,l-1))),
         0.5*(dtsdz*(Ex(j,k,l+1)-Ex(j,k,l-1)) - dtsdx*(Ez(j+1,k,l)-Ez(j-1,k,l))),
-        0.5*(dtsdx*(Ey(j+1,k,l)-Ey(j-1,k,l)) - dtsdy*(Ex(j,k+1,l)-Ex(j,k-1,l))),};
+        0.5*(dtsdx*(Ey(j+1,k,l)-Ey(j-1,k,l)) - dtsdy*(Ex(j,k+1,l)-Ex(j,k-1,l)))};
 
     const amrex::Real VxB[3] = {
-        0.5*(dtsdy*(Bz(j,k+1,l)-Bz(j,k-1.l)) - dtsdz*(By(j,k,l+1)-By(j,k,l-1))),
+        0.5*(dtsdy*(Bz(j,k+1,l)-Bz(j,k-1,l)) - dtsdz*(By(j,k,l+1)-By(j,k,l-1))),
         0.5*(dtsdz*(Bx(j,k,l+1)-Bx(j,k,l-1)) - dtsdx*(Bz(j+1,k,l)-Bz(j-1,k,l))),
-        0.5*(dtsdx*(By(j+1,k,l)-By(j-1,k,l)) - dtsdy*(Bx(j,k+1,l)-Bx(j,k-1,l))),};
+        0.5*(dtsdx*(By(j+1,k,l)-By(j-1,k,l)) - dtsdy*(Bx(j,k+1,l)-Bx(j,k-1,l)))};
 
     // Defining comapct values for QED corrections
     const amrex::Real beta = 4*(PhysConst::xi/PhysConst::ep0)*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2) -
@@ -133,19 +135,19 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 
     const amrex::Real Omega[3] = {
 
-        alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
+        Alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1]+Ez(j,k,l)*VxB[2])*Ex(j,k,l)
             +2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)
             -pow(PhysConst::c,2)*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[0]
             +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bx(j,k,l)),
 
-        alpha[1] + 2*PhysConst::xi*pow(PhysConst::c,2) *
+        Alpha[1] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1]+Ez(j,k,l)*VxB[2])*Ey(j,k,l)
             +2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)
             -pow(PhysConst::c,2)*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[1]
             +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*By(j,k,l)),
 
-        alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
+        Alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1] +
             Ez(j,k,l)*VxB[2])*Ez(j,k,l)+2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)
             -pow(PhysConst::c,2)*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[2]
@@ -180,13 +182,15 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 
 // Performing push
 #if (direction == "x")
-    Ex(j,k,l) = Ex(j,k,l) - 0.5*(invAx[0]*Omega[0]+invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
+    Ex(j,k,l) = Ex(j,k,l)
+    -(invAx[0]*Omega[0]+invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
 
 #elif (direction == "y")
-    Ey(j,k,l) = Ey(j,k,l) - 0.5*(invAy[0]*Omega[0]+invAy[1]*Omega[1]+invAy[2]*Omega[2])/detA;
+    Ey(j,k,l) = Ey(j,k,l)
+    -(invAy[0]*Omega[0]+invAy[1]*Omega[1]+invAy[2]*Omega[2])/detA;
 
 #else
-    Ez(j,k,l) = Ez(j,k,l) - 0.5*(invAz[0]*Omega[0]+invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
+    Ez(j,k,l) = Ez(j,k,l) -(invAz[0]*Omega[0]+invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
 
 #endif
 
@@ -285,19 +289,19 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 
     const amrex::Real Omega[3] = {
 
-        alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
+        Alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ex(j,k,0)
             +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)
             -pow(PhysConst::c,2)*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[0]
             +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bx(j,k,0)),
 
-        alpha[1] + 2*PhysConst::xi*pow(PhysConst::c,2) *
+        Alpha[1] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ey(j,k,0)
             +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)
             -pow(PhysConst::c,2)*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[1]
             +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*By(j,k,0)),
 
-        alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2)*
+        Alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2)*
             (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ez(j,k,0)
             +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)
             -pow(PhysConst::c,2)*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[2]
@@ -318,13 +322,18 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
 
 #if (direction == "x")
-    Ex(j,k,0) = Ex(j,k,0) - 0.5*(invAx[0]*Omega[0]+invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
+    Ex(j,k,0) = Ex(j,k,0)
+    -(invAx[0]*Omega[0]+invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
 
 #elif (direction == "y")
-    Ey(j,k,0) = Ey(j,k,0) - 0.5*(invAy[0]*Omega[0]+invAy[1]*Omega[1]+invAy[2]*Omega[2])/detA;
+    Ey(j,k,0) = Ey(j,k,0)
+    -(invAy[0]*Omega[0]+invAy[1]*Omega[1]+invAy[2]*Omega[2])/detA;
 
 #else
-    Ez(j,k,0) = Ez(j,k,0) - 0.5*(invAz[0]*Omega[0]+invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
+    Ez(j,k,0) = Ez(j,k,0)
+    -(invAz[0]*Omega[0]+invAz[1]*Omega[1]+invAz[2]*Omega[2])/detA;
+
+#endif
 
 #endif
 
