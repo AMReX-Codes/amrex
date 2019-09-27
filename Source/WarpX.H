@@ -428,9 +428,9 @@ private:
      * \param[out] coarse           coarse patches to interpolate to
      * \param[in]  refinement_ratio integer ratio between the two
      */
-    void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                      const std::array<      amrex::MultiFab*,3>& coarse,
-                      int const refinement_ratio);
+    void interpolateCurrentFineToCoarse (std::array< amrex::MultiFab const *, 3 > const & fine,
+                                         std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                         int const refinement_ratio);
 
     /** \brief Fills the values of the charge density on the coarse patch by
      *  averaging the values of the charge density of the fine patch (on the same level).

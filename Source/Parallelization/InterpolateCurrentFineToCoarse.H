@@ -5,8 +5,8 @@
  * License: BSD-3-Clause-LBNL
  */
 
-#ifndef WARPX_CURRENTSYNCHRONIZE_H
-#define WARPX_CURRENTSYNCHRONIZE_H
+#ifndef INTERPOLATECURRENTFINETOCOARSE_H
+#define INTERPOLATECURRENTFINETOCOARSE_H
 
 #include <AMReX_Array4.H>
 #include <AMReX_REAL.H>
@@ -14,7 +14,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
 
-#include <utility> // std::move
+#include <utility>  // std::move
 
 
 /** Fill a current coarse patch with averaged values from a fine patch
@@ -25,7 +25,7 @@
  * @tparam IDim j-field component on which the averaging is performed
  */
 template< int IDim >
-class WarpxSyncCurrent
+class InterpolateCurrentFineToCoarse
 {
 public:
     /** Construct with fine and coarse patch and their refinement ratio
@@ -36,9 +36,9 @@ public:
      *                (currently, only a value of is implemented)
      */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    WarpxSyncCurrent(
-        amrex::Array4<amrex::Real const> const fine,
-        amrex::Array4<amrex::Real      > const coarse,
+    InterpolateCurrentFineToCoarse(
+        amrex::Array4< amrex::Real const > const fine,
+        amrex::Array4< amrex::Real       > const coarse,
         int const refinement_ratio
     ) : m_fine(std::move(fine)),
         m_coarse(std::move(coarse)),
@@ -54,7 +54,7 @@ public:
         int const i,
         int const j,
         int const k
-    ) const noexcept   // TODO rename to jkl
+    ) const noexcept
     {
         auto const & fine_unsafe = m_fine;   // out-of-bounds access not secured with zero-values yet
         auto const & coarse      = m_coarse; // out-of-bounds access not secured but will also not occur
@@ -172,4 +172,4 @@ private:
     int m_refinement_ratio;
 };
 
-#endif //WARPX_CURRENTSYNCHRONIZE_H
+#endif // INTERPOLATECURRENTFINETOCOARSE_H

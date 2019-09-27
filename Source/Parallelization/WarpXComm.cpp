@@ -2,7 +2,7 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
-#include <Parallelization/CurrentSynchronize.H>
+#include <Parallelization/InterpolateCurrentFineToCoarse.H>
 
 #include <algorithm>
 #include <cstdlib>
@@ -337,7 +337,7 @@ WarpX::SyncCurrent ()
         std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                              current_cp[lev][1].get(),
                                              current_cp[lev][2].get() };
-        SyncCurrent(fine, crse, refinement_ratio[0]);
+        interpolateCurrentFineToCoarse(fine, crse, refinement_ratio[0]);
     }
 
     // For each level
@@ -350,10 +350,11 @@ WarpX::SyncCurrent ()
 }
 
 void
-WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
-                    const std::array<      amrex::MultiFab*,3>& coarse,
-                    int const refinement_ratio)
+WarpX::interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 > const & fine,
+                                        std::array< amrex::MultiFab       *, 3 > const & coarse,
+                                        int const refinement_ratio)
 {
+    BL_PROFILE("InterpolateCurrentFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
     const IntVect& ng = (fine[0]->nGrowVect() + 1) / refinement_ratio; // add equivalent no. of guards to coarse patch
 
@@ -372,11 +373,11 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                 auto const & arrCoarse = coarse[idim]->array(mfi);
 
                 if( idim == 0 )
-                    amrex::ParallelFor( bx, WarpxSyncCurrent<0>(arrFine, arrCoarse, refinement_ratio) );
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<0>(arrFine, arrCoarse, refinement_ratio) );
                 else if( idim == 1 )
-                    amrex::ParallelFor( bx, WarpxSyncCurrent<1>(arrFine, arrCoarse, refinement_ratio) );
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<1>(arrFine, arrCoarse, refinement_ratio) );
                 else if( idim == 2 )
-                    amrex::ParallelFor( bx, WarpxSyncCurrent<2>(arrFine, arrCoarse, refinement_ratio) );
+                    amrex::ParallelFor( bx, InterpolateCurrentFineToCoarse<2>(arrFine, arrCoarse, refinement_ratio) );
             }
         }
     }
@@ -452,7 +453,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                          current_cp[lev][1].get(),
                                          current_cp[lev][2].get() };
-    SyncCurrent(fine, crse, refinement_ratio[0]);
+    interpolateCurrentFineToCoarse(fine, crse, refinement_ratio[0]);
 }
 
 void
