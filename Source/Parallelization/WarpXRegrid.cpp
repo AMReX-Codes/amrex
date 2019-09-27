@@ -18,7 +18,7 @@ WarpX::LoadBalance ()
         const Real nprocs = ParallelDescriptor::NProcs();
         const int nmax = static_cast<int>(std::ceil(nboxes/nprocs*load_balance_knapsack_factor));
         const DistributionMapping newdm = (load_balance_with_sfc)
-	  ? DistributionMapping::makeSFC(*costs[lev], false)
+            ? DistributionMapping::makeSFC(*costs[lev], false)
             : DistributionMapping::makeKnapSack(*costs[lev], nmax);
         RemakeLevel(lev, t_new[lev], boxArray(lev), newdm);
     }
@@ -33,11 +33,11 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
     {
         if (ParallelDescriptor::NProcs() == 1) return;
 
-#ifdef WARPX_DO_ELECTROSTATIC        
+#ifdef WARPX_DO_ELECTROSTATIC
         AMREX_ALWAYS_ASSERT(masks[lev] == nullptr);
         AMREX_ALWAYS_ASSERT(gather_masks[lev] == nullptr);
 #endif // WARPX_DO_ELECTROSTATIC
-        
+
         // Fine patch
 
         const auto& period = Geom(lev).periodicity();
@@ -203,7 +203,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(current_buffer_masks[lev]->boxArray(),
                                                                     dm, current_buffer_masks[lev]->nComp(), ng));
                 // pmf->ParallelCopy(*current_buffer_masks[lev], 0, 0, current_buffer_masks[lev]->nComp(), ng, ng);
-                current_buffer_masks[lev] = std::move(pmf);                
+                current_buffer_masks[lev] = std::move(pmf);
             }
             if (gather_buffer_masks[lev])
             {
@@ -211,7 +211,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(gather_buffer_masks[lev]->boxArray(),
                                                                     dm, gather_buffer_masks[lev]->nComp(), ng));
                 // pmf->ParallelCopy(*gather_buffer_masks[lev], 0, 0, gather_buffer_masks[lev]->nComp(), ng, ng);
-                gather_buffer_masks[lev] = std::move(pmf);                
+                gather_buffer_masks[lev] = std::move(pmf);
             }
         }
 

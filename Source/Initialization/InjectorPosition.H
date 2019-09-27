@@ -25,7 +25,7 @@ struct InjectorPositionRegular
 
     // i_part: particle number within the cell, required to evenly space
     // particles within the cell.
-    // ref_fac: the number of particles evenly-spaced within a cell 
+    // ref_fac: the number of particles evenly-spaced within a cell
     // is a_ppc*(ref_fac**AMREX_SPACEDIM).
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3
@@ -41,15 +41,17 @@ struct InjectorPositionRegular
         int ix_part = i_part/(ny*nz);  // written this way backward compatibility
         int iz_part = (i_part-ix_part*(ny*nz)) / ny;
         int iy_part = (i_part-ix_part*(ny*nz)) - ny*iz_part;
-        return amrex::XDim3{(0.5+ix_part)/nx, (0.5+iy_part)/ny, (0.5+iz_part) / nz};
+        return amrex::XDim3{(amrex::Real(0.5)+ix_part)/nx,
+                            (amrex::Real(0.5)+iy_part)/ny,
+                            (amrex::Real(0.5)+iz_part) / nz};
     }
 private:
     amrex::Dim3 ppc;
 };
 
-// Base struct for position injector. 
-// InjectorPosition contains a union (called Object) that holds any one 
-// instance of: 
+// Base struct for position injector.
+// InjectorPosition contains a union (called Object) that holds any one
+// instance of:
 // - InjectorPositionRandom : to generate random distribution;
 // - InjectorPositionRegular: to generate regular distribution.
 // The choice is made at runtime, depending in the constructor called.

@@ -1,3 +1,16 @@
+'''
+This script loops over 3D plotfiles plt*****, generates a 3D rendering
+of the data with fields and particles, and saves one image per plotfile to
+img_*****.png. It was written for a beam-driven wakefield acceleration
+simulation, and contains a lot of custom values (for transparency,
+color intensity etc.), so feel free to modify it to meet your needs.
+
+Execute the file with e.g.
+> mpirun -np 12 python yt3d_mpi.py
+to generate the images. It can be quite slow for even moderately large
+plotfiles.
+'''
+
 import yt, glob
 from mpi4py import MPI
 import numpy as np
@@ -29,7 +42,7 @@ def jitter_shift(ds, ad, cfl, iteration):
     elif maxwell_solver == 'ckc':
         dt = cfl * min( [ ad['dx'][-1], ad['dy'][-1], ad['dz'][-1] ] )  / scc.c
     z_front = dt * float(iteration) * scc.c + 7.5e-6*yt.units.meter
-    z_shift = z_front-ds.domain_right_edge[2]    
+    z_shift = z_front-ds.domain_right_edge[2]
     return z_shift
 
 def get_species_ytpoints(ad, species, color_vec):
@@ -80,7 +93,7 @@ def img_onestep(filename):
         tf.add_gaussian(.04 *my_max, width=8*w,  height=[1.0, 1.0, 0.2, 0.2])
         tf.add_gaussian(.2 *my_max, width=5*w,  height=[1.0, 1.0, 0.2, 0.5])
         tf.add_gaussian(.6 *my_max, width=w,  height=[1.0, 1.0, 0.0, 1.])
-        
+
     ######################
     ### plot particles ###
     ######################
@@ -107,10 +120,10 @@ def img_onestep(filename):
     cam.switch_orientation()
     # save image
     if rendering_type == 'smooth':
-        sc.save('img_' + str(my_number_list[count]).zfill(4), sigma_clip=5.)
+        sc.save('img_' + str(my_number_list[count]).zfill(5), sigma_clip=5.)
     if rendering_type == 'layers':
-        sc.save('img_' + str(my_number_list[count]).zfill(4), sigma_clip=2.)
-    
+        sc.save('img_' + str(my_number_list[count]).zfill(5), sigma_clip=2.)
+
 file_list.sort()
 # Total number of files
 nfiles = len(file_list)

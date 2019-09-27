@@ -7,19 +7,19 @@ from functions_perftest import *
 # results in file performance_log.txt in warpx/performance_tests/
 
 # ---- User's manual ----
-# Before running performance tests, make sure you have the latest version 
+# Before running performance tests, make sure you have the latest version
 # of performance_log.txt
 
 # ---- Running a custom set of performance tests ----
-# > python run_alltests_1node.py --no-recompile --compiler=intel 
-# > --architecture=knl --mode=run --input_file=uniform_plasma 
+# > python run_alltests_1node.py --no-recompile --compiler=intel
+# > --architecture=knl --mode=run --input_file=uniform_plasma
 # > --n_node=1 --log_file='my_performance_log.txt'
 
 # ---- Running the pre-drefined automated tests ----
 # Compile and run:
 # > python run_alltests_1node.py --automated --recompile
 # Just run:
-# > python run_alltests_1node.py --automated 
+# > python run_alltests_1node.py --automated
 
 # To add a new test item, extent the test_list with a line like
 # test_list.extend([['my_input_file', n_node, n_mpi, n_omp]]*n_repeat)
@@ -35,7 +35,7 @@ from functions_perftest import *
 #     This last job runs once all others are completed
 # - 'read' mode: Get performance data from all test items
 #     create performance log file if does not exist
-#     loop over test_file 
+#     loop over test_file
 #         read initialization time and step time
 #         write data into the performance log file
 #         push file performance_log.txt on the repo
@@ -57,9 +57,9 @@ parser.add_argument( '--mode', choices=['run', 'read'], default='run',
 parser.add_argument( '--log_file', dest = 'log_file', default='my_performance_log.txt',
     help='name of log file where data will be written. ignored if option --commit is used')
 parser.add_argument('--n_node', dest='n_node', default=1, help='nomber of nodes for the runs')
-parser.add_argument('--input_file', dest='input_file', default='input_file.pixr', 
+parser.add_argument('--input_file', dest='input_file', default='input_file.pixr',
     type=str, help='input file to run')
-parser.add_argument('--automated', dest='automated', action='store_true', default=False, 
+parser.add_argument('--automated', dest='automated', action='store_true', default=False,
                     help='Use to run the automated test list')
 
 args = parser.parse_args()
@@ -67,7 +67,7 @@ log_file = args.log_file
 do_commit = args.commit
 run_name = args.input_file
 
-# list of tests to run and analyse. 
+# list of tests to run and analyse.
 # Note: This is overwritten if option --automated is used
 # each element of test_list contains
 # [str input_file, int n_node, int n_mpi PER NODE, int n_omp]
@@ -78,7 +78,7 @@ test_list.extend([[filename1, 1, 128, 1]]*n_repeat)
 test_list.extend([[filename1, 1, 64, 2]]*n_repeat)
 
 # Nothing should be changed after this line
-# if flag --automated is used, test_list and do_commit are 
+# if flag --automated is used, test_list and do_commit are
 # overwritten
 
 if args.automated == True:
@@ -89,7 +89,7 @@ if args.automated == True:
     test_list.extend([['automated_test_3_uniform_drift_4ppc', 1, 16, 8]]*n_repeat)
     test_list.extend([['automated_test_4_labdiags_2ppc',      1, 16, 8]]*n_repeat)
     test_list.extend([['automated_test_5_loadimbalance',      1, 16, 8]]*n_repeat)
-    test_list.extend([['automated_test_6_output_2ppc',        1, 16, 8]]*n_repeat)     
+    test_list.extend([['automated_test_6_output_2ppc',        1, 16, 8]]*n_repeat)
     do_commit = False
     run_name = 'automated_tests'
 
@@ -123,7 +123,7 @@ perf_database_file = cwd + 'perf_database_warpx.h5'
 if args.mode == 'run':
 # Set default options for compilation and execution
     config_command = ''
-    config_command += 'module unload darshan;' 
+    config_command += 'module unload darshan;'
     config_command += 'module load craype-hugepages4M;'
     if args.architecture == 'knl':
         if args.compiler == 'intel':
@@ -145,7 +145,7 @@ if args.mode == 'run':
         config_command += 'module load craype-haswell;'
     # Create main result directory if does not exist
     if not os.path.exists(res_dir_base):
-        os.mkdir(res_dir_base)    
+        os.mkdir(res_dir_base)
 
 # Recompile if requested
 if args.recompile == True:
@@ -156,7 +156,7 @@ if args.recompile == True:
         makefile_handler.write( makefile_text )
     os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
 
-# This function runs a batch script with dependencies to perform the analysis 
+# This function runs a batch script with dependencies to perform the analysis
 # when performance runs are done.
 def process_analysis():
     dependencies = ''
@@ -192,7 +192,7 @@ def process_analysis():
     os.system('chmod 700 ' + batch_file)
     os.system('sbatch  --dependency afterok:' + dependencies[0:-1] + ' ' + batch_file)
     return 0
- 
+
 # Loop over the tests and return run time + details
 # -------------------------------------------------
 if args.mode == 'run':
@@ -248,7 +248,7 @@ if args.mode == 'read':
         # ------------------------------------------------
         # This is an hdf5 file containing ALL the simulation parameters and results. Might be too large for a repo
         df_newline = extract_dataframe(res_dir + output_filename, n_steps)
-        # Add all simulation parameters to the dataframe                                                                                                                                                                                                                                                                     
+        # Add all simulation parameters to the dataframe
         df_newline['run_name'] = run_name
         df_newline['n_node'] = n_node
         df_newline['n_mpi'] = n_mpi
@@ -293,7 +293,7 @@ if args.mode == 'read':
         os.system('git add ' + log_dir + log_file + ';'\
                   'git commit -m "performance tests";'\
                   'git push -u origin master')
-        
+
     # Plot file
     import numpy as np
     import matplotlib
@@ -348,4 +348,4 @@ if args.mode == 'read':
             plt.legend(loc='best')
             plt.legend(bbox_to_anchor=(1.1, 1.05))
             plt.savefig( selector_string + '.pdf', bbox_inches='tight')
-            plt.savefig( selector_string + '.png', bbox_inches='tight')   
+            plt.savefig( selector_string + '.png', bbox_inches='tight')

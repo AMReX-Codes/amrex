@@ -4,6 +4,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
+#include <WarpX_PML_kernels.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
@@ -57,25 +58,81 @@ WarpX::DampPML (int lev, PatchType patch_type)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-            WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
-			    tey.loVect(), tey.hiVect(),
-			    tez.loVect(), tez.hiVect(),
-			    tbx.loVect(), tbx.hiVect(),
-    			tby.loVect(), tby.hiVect(),
-	    		tbz.loVect(), tbz.hiVect(),
-		    	BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-			    BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-			    WRPX_PML_TO_FORTRAN(sigba[mfi]));
+
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
+            auto const& pml_Bxfab = pml_B[0]->array(mfi);
+            auto const& pml_Byfab = pml_B[1]->array(mfi);
+            auto const& pml_Bzfab = pml_B[2]->array(mfi);
+            amrex::Real const * AMREX_RESTRICT sigma_fac_x = sigba[mfi].sigma_fac[0].data();
+#if (AMREX_SPACEDIM == 3)
+            amrex::Real const * AMREX_RESTRICT sigma_fac_y = sigba[mfi].sigma_fac[1].data();
+            amrex::Real const * AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[2].data();
+#else
+            amrex::Real const * AMREX_RESTRICT sigma_fac_y = nullptr;
+            amrex::Real const * AMREX_RESTRICT sigma_fac_z = sigba[mfi].sigma_fac[1].data();
+#endif
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_x = sigba[mfi].sigma_star_fac[0].data();
+#if (AMREX_SPACEDIM == 3)
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_y = sigba[mfi].sigma_star_fac[1].data();
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[2].data();
+#else
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_y = nullptr;
+            amrex::Real const * AMREX_RESTRICT sigma_star_fac_z = sigba[mfi].sigma_star_fac[1].data();
+#endif
+            int const x_lo = sigba[mfi].sigma_fac[0].lo();
+#if (AMREX_SPACEDIM == 3)
+            int const y_lo = sigba[mfi].sigma_fac[1].lo();
+            int const z_lo = sigba[mfi].sigma_fac[2].lo();
+#else
+            int const y_lo = 0;
+            int const z_lo = sigba[mfi].sigma_fac[1].lo();
+#endif
+
+            amrex::ParallelFor(tex, tey, tez,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                warpx_damp_pml_ex(i,j,k,pml_Exfab,sigma_fac_y,sigma_fac_z,
+                                  sigma_star_fac_x,x_lo,y_lo,z_lo);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                warpx_damp_pml_ey(i,j,k,pml_Eyfab,sigma_fac_z,sigma_fac_x,
+                                  sigma_star_fac_y,x_lo,y_lo,z_lo);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                warpx_damp_pml_ez(i,j,k,pml_Ezfab,sigma_fac_x,sigma_fac_y,
+                                  sigma_star_fac_z,x_lo,y_lo,z_lo);
+            });
+
+            amrex::ParallelFor(tbx, tby, tbz,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                warpx_damp_pml_bx(i,j,k,pml_Bxfab,sigma_star_fac_y,
+                                  sigma_star_fac_z,y_lo,z_lo);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                warpx_damp_pml_by(i,j,k,pml_Byfab,sigma_star_fac_z,
+                                  sigma_star_fac_x,z_lo,x_lo);
+            },
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                warpx_damp_pml_bz(i,j,k,pml_Bzfab,sigma_star_fac_x,
+                                  sigma_star_fac_y,x_lo,y_lo);
+            });
 
             if (pml_F) {
+               // Note that for warpx_damp_pml_F(), mfi.nodaltilebox is used in
+               // the ParallelFor loop and here we use mfi.tilebox.
+               /// But, it does not matter because in damp_pml, where
+               // nodaltilebox is used, only a simple multiplication is performed.
                 const Box& tnd  = mfi.nodaltilebox();
-                WRPX_DAMP_PML_F(tnd.loVect(), tnd.hiVect(),
-			        BL_TO_FORTRAN_3D((*pml_F)[mfi]),
-			        WRPX_PML_TO_FORTRAN(sigba[mfi]));
+                auto const& pml_F_fab = pml_F->array(mfi);
+                amrex::ParallelFor(tnd,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    warpx_damp_pml_F(i,j,k,pml_F_fab,sigma_fac_x,
+                                     sigma_fac_y,sigma_fac_z,
+                                     x_lo,y_lo,z_lo);
+                });
+
             }
         }
     }
@@ -136,22 +193,22 @@ WarpX::DampJPML (int lev, PatchType patch_type)
             const Box& tjy  = mfi.tilebox(jy_nodal_flag);
             const Box& tjz  = mfi.tilebox(jz_nodal_flag);
 
-            auto const& AMREX_RESTRICT x_lo = sigba[mfi].sigma_cumsum_fac[0].lo();
+            int const x_lo = sigba[mfi].sigma_cumsum_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT y_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cumsum_fac[2].lo();
+            int const y_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
+            int const z_lo = sigba[mfi].sigma_cumsum_fac[2].lo();
 #else
-            int y_lo = 0;
-            auto const& AMREX_RESTRICT z_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
+            int const y_lo = 0;
+            int const z_lo = sigba[mfi].sigma_cumsum_fac[1].lo();
 #endif
 
-            auto const& AMREX_RESTRICT xs_lo = sigba[mfi].sigma_star_cumsum_fac[0].lo();
+            int const xs_lo = sigba[mfi].sigma_star_cumsum_fac[0].lo();
 #if (AMREX_SPACEDIM == 3)
-            auto const& AMREX_RESTRICT ys_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
-            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cumsum_fac[2].lo();
+            int const ys_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
+            int const zs_lo = sigba[mfi].sigma_star_cumsum_fac[2].lo();
 #else
-            int ys_lo = 0;
-            auto const& AMREX_RESTRICT zs_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
+            int const ys_lo = 0;
+            int const zs_lo = sigba[mfi].sigma_star_cumsum_fac[1].lo();
 #endif
 
             amrex::ParallelFor( tjx, tjy, tjz,

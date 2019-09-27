@@ -10,27 +10,7 @@
 #include <SpectralSolver.H>
 #endif
 
-#if (AMREX_SPACEDIM == 3)
-
-#define WRPX_PML_TO_FORTRAN(x)                              \
-    (x).sigma_fac[0].data(), (x).sigma_fac[0].m_lo, (x).sigma_fac[0].m_hi, \
-    (x).sigma_fac[1].data(), (x).sigma_fac[1].m_lo, (x).sigma_fac[1].m_hi, \
-    (x).sigma_fac[2].data(), (x).sigma_fac[2].m_lo, (x).sigma_fac[2].m_hi, \
-    (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
-    (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi, \
-    (x).sigma_star_fac[2].data(), (x).sigma_star_fac[2].m_lo, (x).sigma_star_fac[2].m_hi
-
-#else
-
-#define WRPX_PML_TO_FORTRAN(x)                              \
-    (x).sigma_fac[0].data(), (x).sigma_fac[0].m_lo, (x).sigma_fac[0].m_hi, \
-    (x).sigma_fac[1].data(), (x).sigma_fac[1].m_lo, (x).sigma_fac[1].m_hi, \
-    (x).sigma_star_fac[0].data(), (x).sigma_star_fac[0].m_lo, (x).sigma_star_fac[0].m_hi, \
-    (x).sigma_star_fac[1].data(), (x).sigma_star_fac[1].m_lo, (x).sigma_star_fac[1].m_hi
-
-#endif
-
-struct Sigma : amrex::Vector<amrex::Real>
+struct Sigma : amrex::Gpu::ManagedVector<amrex::Real>
 {
     int lo() const { return m_lo; }
     int hi() const { return m_hi; }
@@ -141,9 +121,10 @@ public:
                     const std::array<amrex::MultiFab*,3>& j_cp);
 
     void ExchangeB (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
+                    const std::array<amrex::MultiFab*,3>& Bp, int do_pml_in_domain);
     void ExchangeE (PatchType patch_type,
-		    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
+                    const std::array<amrex::MultiFab*,3>& Ep, int do_pml_in_domain);
+
     void CopyJtoPMLs (PatchType patch_type,
                     const std::array<amrex::MultiFab*,3>& jp);
 
@@ -162,6 +143,8 @@ public:
 
     void CheckPoint (const std::string& dir) const;
     void Restart (const std::string& dir);
+
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
 
 private:
     bool m_ok;
@@ -194,7 +177,6 @@ private:
                                          const amrex::IntVect do_pml_Lo = amrex::IntVect::TheUnitVector(),
                                          const amrex::IntVect do_pml_Hi = amrex::IntVect::TheUnitVector());
 
-    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom, int do_pml_in_domain);
     static void CopyToPML (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 

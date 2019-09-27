@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# Copyright 2016-2019 Axel Huebl
+
+# search recursive inside a folder if a file contains tabs
+#
+# @result 0 if no files are found, else 1
+#
+
+ok=0
+files=()
+
+pattern="\.c$|\.cpp$|\.F90$|\.h$|\.H$|\.ini$|\.md$|\.py$|"\
+"\.rst$|\.sh$|\.tex$|\.txt$|\.xml$|\.yml$|"\
+"CMakeLists\.txt|inputs"
+
+for i in $(find . \
+                -not -path "./.git/*"   \
+                -not -path "./.idea/*"  \
+                -not -path "*wp_parse*" \
+                -type f | \
+           grep -P "${pattern}")
+do
+  grep -q -P "\t" $i
+  if [ $? -eq 0 ]
+  then
+    files+=($i)
+    echo "$i contains TABs instead of spaces!"
+    ok=1
+  fi
+done
+
+if [ $ok -ne 0 ]
+then
+  echo ""
+  echo "SUMMARY"
+  echo "-------"
+  echo "Run the following command(s) on the above files to replace your TABs"
+  echo "with four white spaces:"
+  echo ""
+  echo "GNU_SED=\$(sed --help >/dev/null 2>&1 && { echo 1; } || { echo 0; })"
+  echo "[[ \${GNU_SED} -eq 1 ]] && REPLACE=\"sed -i 's/\t/\ \ \ \ /g'\" || REPLACE=\"sed -i '' -E 's/\$(printf '\t')/\ \ \ \ /g'\""
+  for i in ${files[@]}
+  do
+    echo "eval \"\${REPLACE}\" $i"
+  done
+fi
+
+exit $ok

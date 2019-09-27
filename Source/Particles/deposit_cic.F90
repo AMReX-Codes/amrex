@@ -1,17 +1,17 @@
 module warpx_ES_deposit_cic
 
   use iso_c_binding
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only : amrex_real, amrex_particle_real
 
   implicit none
 
 contains
 
-! This routine computes the charge density due to the particles using cloud-in-cell 
+! This routine computes the charge density due to the particles using cloud-in-cell
 ! deposition. The Fab rho is assumed to be node-centered.
 !
 ! Arguments:
-!     particles : a pointer to the particle array-of-structs 
+!     particles : a pointer to the particle array-of-structs
 !     ns        : the stride length of particle struct (the size of the struct in number of reals)
 !     np        : the number of particles
 !     weights   : the particle weights
@@ -28,8 +28,8 @@ contains
                                   ng)                                    &
        bind(c,name='warpx_deposit_cic_3d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
-    real(amrex_real), intent(in)     :: weights(np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: weights(np)
     real(amrex_real), intent(in)     :: charge
     integer,          intent(in)     :: lo(3)
     integer,          intent(in)     :: hi(3)
@@ -86,8 +86,8 @@ contains
                                   ng)                                    &
        bind(c,name='warpx_deposit_cic_2d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
-    real(amrex_real), intent(in)     :: weights(np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: weights(np)
     real(amrex_real), intent(in)     :: charge
     integer,          intent(in)     :: lo(2)
     integer,          intent(in)     :: hi(2)

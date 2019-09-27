@@ -9,9 +9,9 @@
  *    given the value of its momenta `ux`, `uy`, `uz` */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void UpdateMomentumVay(
-    amrex::Real& ux, amrex::Real& uy, amrex::Real& uz, amrex::Real& gaminv,
-    const amrex::Real Ex, const amrex::Real Ey, const amrex::Real Ez,
-    const amrex::Real Bx, const amrex::Real By, const amrex::Real Bz,
+    amrex::ParticleReal& ux, amrex::ParticleReal& uy, amrex::ParticleReal& uz,
+    const amrex::ParticleReal Ex, const amrex::ParticleReal Ey, const amrex::ParticleReal Ez,
+    const amrex::ParticleReal Bx, const amrex::ParticleReal By, const amrex::ParticleReal Bz,
     const amrex::Real q, const amrex::Real m, const amrex::Real dt )
 {
     // Constants
@@ -48,7 +48,6 @@ void UpdateMomentumVay(
     ux = s*(uxpr+tx*tu+uypr*tz-uzpr*ty);
     uy = s*(uypr+ty*tu+uzpr*tx-uxpr*tz);
     uz = s*(uzpr+tz*tu+uxpr*ty-uypr*tx);
-    gaminv = 1./std::sqrt(1. + (ux*ux + uy*uy + uz*uz)*invclightsq);
 }
 
 #endif // WARPX_PARTICLES_PUSHER_UPDATEMOMENTUM_VAY_H_
