@@ -197,7 +197,7 @@ WarpX::InitNCICorrector ()
 
             // Initialize Godfrey filters
             // Same filter for fields Ex, Ey and Bz
-            const bool nodal_gather = l_lower_order_in_v;
+            const bool nodal_gather = (l_lower_order_in_v == 0);
             nci_godfrey_filter_exeybz[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Ex_Ey_Bz, cdtodz, nodal_gather) );
             // Same filter for fields Bx, By and Ez
             nci_godfrey_filter_bxbyez[lev].reset( new NCIGodfreyFilter(godfrey_coeff_set::Bx_By_Ez, cdtodz, nodal_gather) );
