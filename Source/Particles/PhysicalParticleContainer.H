@@ -145,7 +145,7 @@ public:
 
     virtual void ConvertUnits (ConvertDirection convert_dir) override;
 
-/** 
+/**
  * \brief Apply NCI Godfrey filter to all components of E and B before gather
  * \param lev MR level
  * \param box box onto which the filter is applied
