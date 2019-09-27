@@ -15,7 +15,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     // Picking out points for stencil to be used in curl function
     const amrex::Real Mpx[3] = {
         
-        -2*PhysConst::xi*pow(Physconst::c^2) * (2*(pow(Ex(j+1,k,l),2)+pow(Ey(j+1,k,l),2)+pow(Ez(j+1,k,l),2) -
+        -2*PhysConst::xi*pow(Physconst::c,2) * (2*(pow(Ex(j+1,k,l),2)+pow(Ey(j+1,k,l),2)+pow(Ez(j+1,k,l),2) -
         pow(PhysConst::c,2)*(pow(Bx(j+1,k,l),2)+pow(By(j+1,k,l),2)+pow(Bz(j+1,k,l),2)))*Bx(j+1,k,l)
        -7*(Ex(j+1,k,l)*Bx(j+1,k,l)+Ey(j+1,k,l)*By(j+1,k,l)+Ez(j+1,k,l)*Bz(j+1,k,l))*Ex(j+1,k,l)),
     
@@ -135,16 +135,21 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     
         alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1]+Ez(j,k,l)*VxB[2])*Ex(j,k,l)
-            +2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)-c^2*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[0]
-            +7*c^2*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bx(j,k,l)),
+            +2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)
+            -pow(PhysConst::c,2)*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[0]
+            +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bx(j,k,l)),
         
         alpha[1] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1]+Ez(j,k,l)*VxB[2])*Ey(j,k,l)
-            +2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)-c^2*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[1]
-            +7*c^2*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*By(j,k,l)),
+            +2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)
+            -pow(PhysConst::c,2)*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[1]
+            +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*By(j,k,l)),
         
-        alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) * (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1] +
-            Ez(j,k,l)*VxB[2])*Ez(j,k,l)+2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2) - c^2*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[2] + 7*c^2*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bz(j,k,l))};
+        alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
+            (4*(Ex(j,k,l)*VxB[0]+Ey(j,k,l)*VxB[1] +
+            Ez(j,k,l)*VxB[2])*Ez(j,k,l)+2*(pow(Ex(j,k,l),2)+pow(Ey(j,k,l),2)+pow(Ez(j,k,l),2)
+            -pow(PhysConst::c,2)*(pow(Bx(j,k,l),2)+pow(By(j,k,l),2)+pow(Bz(j,k,l),2)))*VxB[2]
+            +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,l)+VxB[1]*By(j,k,l)+VxB[2]*Bz(j,k,l))*Bz(j,k,l))};
     
     // Defining matrix for the algorithm
     const amrex::Real a00 = beta + (PhysConst::xi/PhysConst::ep0) *
@@ -165,12 +170,12 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real a12 = (PhysConst::xi/PhysConst::ep0) *
         ( 8*Ez(j,k,l)*Ey(j,k,l) + 14*pow(PhysConst::c,2)*Bz(j,k,l)*By(j,k,l) );
     
-    const amrex::Real detA = a00*(a11*a22-a12^2)-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
+    const amrex::Real detA = a00*(a11*a22-pow(a12,2))-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
     
     // Inverting the matrix
-    const amrex::Real invAx[3] = {a22*a11-a12^2, a12*a02-a22*a01, a12*a01-a11*a02};
-    const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-a02^2, a01*a02-a12*a00};
-    const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-a01^2};
+    const amrex::Real invAx[3] = {a22*a11-pow(a12,2), a12*a02-a22*a01, a12*a01-a11*a02};
+    const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-pow(a02,2), a01*a02-a12*a00};
+    const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
     
     
 // Performing push
@@ -190,7 +195,7 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
 #else
         const amrex::Real Mpx[3] = {
         
-        -2*PhysConst::xi*Physconst::c^2 * (2*(pow(Ex(j+1,k,0),2)+pow(Ey(j+1,k,0),2)
+        -2*PhysConst::xi*pow(PhysConst::c,2) * (2*(pow(Ex(j+1,k,0),2)+pow(Ey(j+1,k,0),2)
         -pow(PhysConst::c,2)*(pow(Bx(j+1,k,0),2)+pow(By(j+1,k,0),2)+pow(Bz(j+1,k,0),2)))*Bx(j+1,k,0)
         -7*(Ex(j+1,k,0)*Bx(j+1,k,0)+Ey(j+1,k,0)*By(j+1,k,0)+Ez(j+1,k,0)*Bz(j+1,k,0))*Ex(j+1,k,0)),
     
@@ -282,18 +287,21 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     
         alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ex(j,k,0)
-            + 2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)-c^2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[0]
-            + 7*c^2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bx(j,k,0)),
+            +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)
+            -pow(PhysConst::c,2)*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[0]
+            +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bx(j,k,0)),
         
         alpha[1] + 2*PhysConst::xi*pow(PhysConst::c,2) *
             (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ey(j,k,0)
-            +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)-c^2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[1]
-            +7*c^2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*By(j,k,0)),
+            +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)
+            -pow(PhysConst::c,2)*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[1]
+            +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*By(j,k,0)),
         
         alpha[0] + 2*PhysConst::xi*pow(PhysConst::c,2)*
             (4*(Ex(j,k,0)*VxB[0]+Ey(j,k,0)*VxB[1]+Ez(j,k,0)*VxB[2])*Ez(j,k,0)
-            +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)-c^2*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[2]
-            +7*c^2*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bz(j,k,0))};
+            +2*(pow(Ex(j,k,0),2)+pow(Ey(j,k,0),2)+pow(Ez(j,k,0),2)
+            -pow(PhysConst::c,2)*(pow(Bx(j,k,0),2)+pow(By(j,k,0),2)+pow(Bz(j,k,0),2)))*VxB[2]
+            +7*pow(PhysConst::c,2)*(VxB[0]*Bx(j,k,0)+VxB[1]*By(j,k,0)+VxB[2]*Bz(j,k,0))*Bz(j,k,0))};
     
     const amrex::Real a00 = beta + (PhysConst::xi/PhysConst::ep0) * ( 8*pow(Ex(j,k,0),2) + 14*pow(PhysConst::c,2)*pow(Bx(j,k,0),2) );
     const amrex::Real a11 = beta + (PhysConst::xi/PhysConst::ep0) * ( 8*pow(Ey(j,k,0),2) + 14*pow(PhysConst::c,2)*pow(By(j,k,0),2) );
@@ -303,11 +311,11 @@ void warpx_hybrid_QED_push (int j, int k, int l, Array4<Real> const& Ex, Array4<
     const amrex::Real a02 = (PhysConst::xi/PhysConst::ep0) * ( 8*Ex(j,k,0)*Ez(j,k,0) + 14*pow(PhysConst::c,2)*Bx(j,k,0)*Bz(j,k,0) );
     const amrex::Real a12 = (PhysConst::xi/PhysConst::ep0) * ( 8*Ez(j,k,0)*Ey(j,k,0) + 14*pow(PhysConst::c,2)*Bz(j,k,0)*By(j,k,0) );
     
-    const amrex::Real detA = a00*(a11*a22-a12^2)-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
+    const amrex::Real detA = a00*(a11*a22-pow(a12,2))-a01*(a01*a22-a02*a12)+a02*(a01*a12-a02*a11);
     
-    const amrex::Real invAx[3] = {a22*a11-a12^2, a12*a02-a22*a01, a12*a01-a11*a02};
-    const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-a02^2, a01*a02-a12*a00};
-    const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-a01^2};
+    const amrex::Real invAx[3] = {a22*a11-pow(a12,2), a12*a02-a22*a01, a12*a01-a11*a02};
+    const amrex::Real invAy[3] = {a02*a12-a22*a01, a00*a22-pow(a02,2), a01*a02-a12*a00};
+    const amrex::Real invAz[3] = {a12*a01-a02*a11, a02*a01-a12*a00, a11*a00-pow(a01,2)};
     
 #if (direction == "x")
     Ex(j,k,0) = Ex(j,k,0) - 0.5*(invAx[0]*Omega[0]+invAx[1]*Omega[1]+invAx[2]*Omega[2])/detA;
