@@ -34,25 +34,47 @@ endif
 #  CFLAGS_FROM_HOST := $(CXXFLAGS_FROM_HOST)
 #endif
 
-CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
-CFLAGS_FROM_HOST := -ccbin=$(CXX)
+ifeq ($(HIP_PLATFORM),hcc)
+  CXXFLAGS_FROM_HOST := --std=c++14
+  CFLAGS_FROM_HOST := 
+  HIPCC_FLAGS = -m64
+  HIP_PATH=/opt/rocm/hip
 
-HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
+  ifeq ($(DEBUG),TRUE)
+    HIPCC_FLAGS += -g
+  else
+    HIPCC_FLAGS += -lineinfo
+  endif
 
-ifeq ($(DEBUG),TRUE)
-  HIPCC_FLAGS += -g -G
-else
-  HIPCC_FLAGS += -lineinfo --ptxas-options=-O3,-v
+  HIP_POSSIBLE_FLAGS := -fgpd-rdc
+
+  CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(HIPCC_FLAGS)
+  CFLAGS   =   $(CFLAGS_FROM_HOST) $(HIPCC_FLAGS)
+
+  CXXFLAGS += 
+
+else ifeq ($(HIP_PLATFORM),nvcc)
+
+  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) --std=c++14
+  CFLAGS_FROM_HOST := -ccbin=$(CXX)
+  HIPCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
+
+  ifeq ($(DEBUG),TRUE)
+    HIPCC_FLAGS += -g -G
+  else
+    HIPCC_FLAGS += -lineinfo --ptxas-options=-O3,-v
+  endif
+
+  ifneq ($(USE_CUDA_FAST_MATH),FALSE)
+    HIPCC_FLAGS += --use_fast_math
+  endif
+
+  CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(HIPCC_FLAGS) -c -dc
+  CFLAGS   =   $(CFLAGS_FROM_HOST) $(HIPCC_FLAGS) -dc
+
+  CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+
 endif
 
-ifneq ($(USE_CUDA_FAST_MATH),FALSE)
-  HIPCC_FLAGS += --use_fast_math
-endif
-
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(HIPCC_FLAGS) -dc
-CFLAGS   =   $(CFLAGS_FROM_HOST) $(HIPCC_FLAGS) -dc
-
-CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
-
-CXX = hipcc
-CC  = hipcc
+CXX = /opt/rocm/hip/bin/hipcc
+CC  = /opt/rocm/hip/bin/hipcc
