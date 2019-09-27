@@ -25,6 +25,9 @@ NCIGodfreyFilter::NCIGodfreyFilter(godfrey_coeff_set coeff_set_, amrex::Real cdt
 }
 
 void NCIGodfreyFilter::ComputeStencils(){
+
+    // Sanity checks: filter length shoulz be 5 in z, and check consistency
+    // between l_lower_order_in_v and nodal_gather
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
 #if ( AMREX_SPACEDIM == 3 )
         slen.z==5,
@@ -48,11 +51,14 @@ void NCIGodfreyFilter::ComputeStencils(){
     index = max(index, 0);
     Real weight_right = cdtodz - index/tab_length;
     Real prestencil[4];
+
+    // read prestencil coefficients from table (the stencil is computed from
+    // these coefficients)
     for(int i=0; i<tab_width; i++){
-        if !nodal_gather
+        if (!nodal_gather)
         {
             // If gather from staggered grid, use coefficients for Galerkin gather
-            if       (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
+            if        (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
                 // Set of coefficients for Ex, Ey and Bz
                 prestencil[i] = (1-weight_right)*table_nci_godfrey_galerkin_Ex_Ey_Bz[index  ][i] +
                                     weight_right*table_nci_godfrey_galerkin_Ex_Ey_Bz[index+1][i];
@@ -67,7 +73,7 @@ void NCIGodfreyFilter::ComputeStencils(){
         else
         {
             // If gather from node-centered grid, use coefficients for momentum-conserving gather
-            if       (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
+            if        (coeff_set == godfrey_coeff_set::Ex_Ey_Bz){
                 // Set of coefficients for Ex, Ey and Bz
                 prestencil[i] = (1-weight_right)*table_nci_godfrey_momentum_Ex_Ey_Bz[index  ][i] +
                                     weight_right*table_nci_godfrey_galerkin_Ex_Ey_Bz[index+1][i];
