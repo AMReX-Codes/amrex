@@ -527,6 +527,7 @@ private:
     int vect[AMREX_SPACEDIM];
 };
 
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 IntVect&
 IntVect::coarsen (int s) noexcept
@@ -535,6 +536,7 @@ IntVect::coarsen (int s) noexcept
     return this->coarsen(IntVect(AMREX_D_DECL(s,s,s)));
 }
 
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 IntVect&
 IntVect::coarsen (const IntVect& p) noexcept
@@ -550,6 +552,7 @@ IntVect::coarsen (const IntVect& p) noexcept
     return *this;
 }
 
+AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 int
 IntVect::maxDir(bool a_doAbsValue) const noexcept
