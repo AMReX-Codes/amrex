@@ -607,7 +607,7 @@ private:
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
     void PushPSATD_localFFT (int lev, amrex::Real dt);
-    
+
     void Hybrid_QED_Push (         amrex::Real dt);
     void Hybrid_QED_Push (int lev, amrex::Real dt);
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
