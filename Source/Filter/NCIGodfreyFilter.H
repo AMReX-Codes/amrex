@@ -24,7 +24,7 @@ public:
                      amrex::Real l_lower_order_in_v, bool nodal_gather);
 
     void ComputeStencils();
-    
+
     static constexpr int m_stencil_width = 4;
 
 private:
