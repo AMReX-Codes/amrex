@@ -9,8 +9,9 @@ const int tab_width = 4;
 // (here 101 values).
 const int tab_length = 101;
 
-// Table of coefficient for Ex, Ey and Bz for Galerkin gather
-// We typically interpolate between two lines
+// Table of coefficient for Ex, Ey and Bz for Galerkin gather.
+// Each line stands for one value of c*dt/dz, between 0 and 1.
+// We typically interpolate between two lines.
 const amrex::Real table_nci_godfrey_galerkin_Ex_Ey_Bz[tab_length][tab_width]{
     -2.47536,2.04288,-0.598163,0.0314711,
     -2.47536,2.04288,-0.598163,0.0314711,
@@ -115,8 +116,9 @@ const amrex::Real table_nci_godfrey_galerkin_Ex_Ey_Bz[tab_length][tab_width]{
     -2.98769,3.19374,-1.41463,0.208607
 };
 
-// Table of coefficient for Bx, By and Ez
-// We typically interpolate between two lines
+// Table of coefficient for Bx, By and Ez for Galerkin gather.
+// Each line stands for one value of c*dt/dz, between 0 and 1.
+// We typically interpolate between two lines.
 const amrex::Real table_nci_godfrey_galerkin_Bx_By_Ez[tab_length][tab_width]{
     -2.80862,2.80104,-1.14615,0.154077,
     -2.80862,2.80104,-1.14615,0.154077,
@@ -221,6 +223,10 @@ const amrex::Real table_nci_godfrey_galerkin_Bx_By_Ez[tab_length][tab_width]{
     -2.65437,2.44244,-0.878945,0.0914107
 };
 
+// Table of coefficient for Ex, Ey and Bz for momentum-conserving gather
+// (from node-centered fields).
+// Each line stands for one value of c*dt/dz, between 0 and 1.
+// We typically interpolate between two lines.
 const amrex::Real table_nci_godfrey_momentum_Ex_Ey_Bz[tab_length][tab_width]{
     -2.98767,3.19368,-1.41458,0.208594,
     -2.98767,3.19368,-1.41458,0.208594,
@@ -325,6 +331,10 @@ const amrex::Real table_nci_godfrey_momentum_Ex_Ey_Bz[tab_length][tab_width]{
     -3.2888,3.96065,-2.05328,0.381432
 };
 
+// Table of coefficient for Bx, By and Ez for momentum-conserving gather
+// (from node-centered fields).
+// Each line stands for one value of c*dt/dz, between 0 and 1.
+// We typically interpolate between two lines.
 const amrex::Real table_nci_godfrey_momentum_Bx_By_Ez[tab_length][tab_width]{
     -2.65428,2.44224,-0.878796,0.0913764,
     -2.65428,2.44224,-0.878796,0.0913764,
