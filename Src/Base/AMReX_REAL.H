@@ -56,8 +56,8 @@ namespace amrex {
     using Real = amrex_real;
     using ParticleReal = amrex_particle_real;
 
-    /*
-      C++ user literals ``_rt`` &  ``p_rt`` for short-hand notations
+    /** @{
+      C++ user literals ``_rt`` &  ``_prt`` for short-hand notations
 
       Use this to properly add types to constant such as
       ```C++
@@ -88,7 +88,8 @@ namespace amrex {
     {
         return ParticleReal( x );
     }
-} // amrex
+    /// @}
+} // namespace amrex
 #endif
 
 #else
