@@ -16,7 +16,6 @@
 
 #if (AMREX_SPACEDIM == 3)
 
-#define WRPX_SYNC_CURRENT                warpx_sync_current_3d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_3d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_3d
@@ -31,7 +30,6 @@
 
 #elif (AMREX_SPACEDIM == 2)
 
-#define WRPX_SYNC_CURRENT                warpx_sync_current_2d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_2d
@@ -230,12 +228,6 @@ extern "C"
                           const amrex::Real* sigby, int sigby_lo, int sigby_hi,
 #endif
                           const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
-
-
-    void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
-                             BL_FORT_FAB_ARG_ANYD(crse),
-                             const BL_FORT_FAB_ARG_ANYD(fine),
-                             const int* dir);
 
     void WRPX_SYNC_RHO (const int* lo, const int* hi,
                         BL_FORT_FAB_ARG_ANYD(crse),
