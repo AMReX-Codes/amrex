@@ -3,14 +3,16 @@
 #include <limits>
 
 #include <WarpX.H>
-#include <WarpX_QED_K.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX_K.H>
+#include <WarpX_PML_kernels.H>
 #include <WarpX_FDTD.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
+
+#include <WarpX_QED_K.H>
 
 #include <PML_current.H>
 
@@ -30,7 +32,6 @@ WarpX::Hybrid_QED_Push (Real a_dt)
         }
         catch (bool do_nodal) {
             std::cout << "Error: As of right now the hyrbrid QED algorithm is only compatiable with the nodel lattice scheme.";
-            return 0;
         }
     }
 
@@ -51,7 +52,7 @@ WarpX::Hybrid_QED_Push (int lev, Real a_dt)
 }
 
 void
-WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
+WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, Real a_dt)
 {
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
@@ -116,15 +117,14 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
         },
         [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
-            direction = "y";
+            std::string direction = "y";
             warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
         },
         [=] AMREX_GPU_DEVICE (int j, int k, int l)
         {
-            direction = "z";
-            warpx_hybrid_QED_push_ez(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
+            std::string direction = "z";
+            warpx_hybrid_QED_push(j,k,l, Exfab, Eyfab, Ezfab, Bxfab, Byfab, Bzfab, dtsdx, dtsdy, dtsdz, direction);
         });
-        }
 
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
@@ -137,6 +137,7 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
                 costfab(i,j,k) += wt;
             });
         }
+    }
 
 
     if (do_pml && pml[lev]->ok())
@@ -152,19 +153,56 @@ WarpX::Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real a_dt)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+            auto const& pml_Bxfab = pml_B[0]->array(mfi);
+            auto const& pml_Byfab = pml_B[1]->array(mfi);
+            auto const& pml_Bzfab = pml_B[2]->array(mfi);
+            auto const& pml_Exfab = pml_E[0]->array(mfi);
+            auto const& pml_Eyfab = pml_E[1]->array(mfi);
+            auto const& pml_Ezfab = pml_E[2]->array(mfi);
+            if (WarpX::maxwell_fdtd_solver_id == 0) {
+               amrex::ParallelFor(tbx, tby, tbz,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                   warpx_push_pml_bx_yee(i,j,k,pml_Bxfab,pml_Eyfab,pml_Ezfab,
+                                        dtsdy,dtsdz);
+               },
+               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                   warpx_push_pml_by_yee(i,j,k,pml_Byfab,pml_Exfab,pml_Ezfab,
+                                         dtsdx,dtsdz);
+               },
+               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                   warpx_push_pml_bz_yee(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
+                                        dtsdx,dtsdy);
+               });
+            }  else if (WarpX::maxwell_fdtd_solver_id == 1) {
+               Real betaxy, betaxz, betayx, betayz, betazx, betazy;
+               Real gammax, gammay, gammaz;
+               Real alphax, alphay, alphaz;
+               warpx_calculate_ckc_coefficients(dtsdx, dtsdy, dtsdz,
+                                                betaxy, betaxz, betayx, betayz,
+                                                betazx, betazy, gammax, gammay,
+                                                gammaz, alphax, alphay, alphaz);
 
-            WRPX_PUSH_PML_BVEC(
-                 tbx.loVect(), tbx.hiVect(),
-                 tby.loVect(), tby.hiVect(),
-                 tbz.loVect(), tbz.hiVect(),
-                 BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                 BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                 BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                 BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                 BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                 BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                             &dtsdx, &dtsdy, &dtsdz,
-                 &WarpX::maxwell_fdtd_solver_id);
+               amrex::ParallelFor(tbx, tby, tbz,
+               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                   warpx_push_pml_bx_ckc(i,j,k,pml_Bxfab,pml_Eyfab,pml_Ezfab,
+                                         betaxy, betaxz, betayx, betayz,
+                                         betazx, betazy, gammax, gammay,
+                                         gammaz, alphax, alphay, alphaz);
+               },
+               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                   warpx_push_pml_by_ckc(i,j,k,pml_Byfab,pml_Exfab,pml_Ezfab,
+                                         betaxy, betaxz, betayx, betayz,
+                                         betazx, betazy, gammax, gammay,
+                                         gammaz, alphax, alphay, alphaz);
+               },
+               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                   warpx_push_pml_bz_ckc(i,j,k,pml_Bzfab,pml_Exfab,pml_Eyfab,
+                                         betaxy, betaxz, betayx, betayz,
+                                         betazx, betazy, gammax, gammay,
+                                         gammaz, alphax, alphay, alphaz);
+               });
+
+            }
         }
     }
 }

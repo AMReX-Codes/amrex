@@ -176,6 +176,10 @@ public:
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
+    
+    void Hybrid_QED_Push (         amrex::Real dt);
+    void Hybrid_QED_Push (int lev, amrex::Real dt);
+    void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
 
 #ifdef WARPX_DIM_RZ
     void ApplyInverseVolumeScalingToCurrentDensity(amrex::MultiFab* Jx,
@@ -607,10 +611,6 @@ private:
     void EvolvePSATD (int numsteps);
     void PushPSATD (amrex::Real dt);
     void PushPSATD_localFFT (int lev, amrex::Real dt);
-
-    void Hybrid_QED_Push (         amrex::Real dt);
-    void Hybrid_QED_Push (int lev, amrex::Real dt);
-    void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
 
     bool fft_hybrid_mpi_decomposition = false;
     int ngroups_fft = 4;
