@@ -176,7 +176,7 @@ public:
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
-    
+
     void Hybrid_QED_Push (         amrex::Real dt);
     void Hybrid_QED_Push (int lev, amrex::Real dt);
     void Hybrid_QED_Push (int lev, PatchType patch_type, amrex::Real dt);
