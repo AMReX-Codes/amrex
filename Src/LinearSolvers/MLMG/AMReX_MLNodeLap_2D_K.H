@@ -147,22 +147,22 @@ void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
 //
 
 template <typename T>
-inline void mlndlap_fillbc_cc (Array4<T> const& sigma, Box const& domain,
+inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
                                Array<LinOpBCType, AMREX_SPACEDIM> bclo,
                                Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
-    Box sbox(sigma);
-    if (domain.contains(sbox)) return;
+    if (domain.strictly_contains(vbx)) return;
 
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
+    Box const& sbox = amrex::grow(vbx,1);
 
     Box const& xlo_face = amrex::adjCellLo(domain,0) & sbox;
     Box const& xhi_face = amrex::adjCellHi(domain,0) & sbox;
     Box const& ylo_face = amrex::adjCellLo(domain,1) & sbox;
     Box const& yhi_face = amrex::adjCellHi(domain,1) & sbox;
-    int xoffset = sbox.length(0)+1;
-    int yoffset = sbox.length(1)+1;
+    int xoffset = vbx.length(0)+1;
+    int yoffset = vbx.length(1)+1;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
     xlo_face, txbxlo,
     {

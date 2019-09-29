@@ -966,7 +966,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
         for (MFIter mfi(sigma, mfi_info); mfi.isValid(); ++mfi)
         {
             Array4<Real> const& sfab = sigma.array(mfi);
-            mlndlap_fillbc_cc<Real>(sfab,domain,m_lobc[0],m_hibc[0]);
+            mlndlap_fillbc_cc<Real>(mfi.validbox(),sfab,domain,m_lobc[0],m_hibc[0]);
         }
     }
 }
@@ -1098,7 +1098,7 @@ MLNodeLaplacian::buildMasks ()
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
 
-                mlndlap_fillbc_cc<int>(fab,ccdom,m_lobc[0],m_hibc[0]);
+                mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,m_lobc[0],m_hibc[0]);
             }
         }
 
@@ -2008,7 +2008,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 }
             }
 
-            mlndlap_fillbc_cc<int>(fab,ccdom,m_lobc[0],m_hibc[0]);
+            mlndlap_fillbc_cc<int>(mfi.validbox(),fab,ccdom,m_lobc[0],m_hibc[0]);
         }
     }
 
