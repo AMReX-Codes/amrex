@@ -28,7 +28,7 @@ void mlndlap_avgdown_coeff_x (int i, int j, int k, Array4<Real> const& crse,
 {}
 
 template <typename T>
-inline void mlndlap_fillbc_cc (Array4<T> const& sigma, Box const& domain,
+inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
                                Array<LinOpBCType, AMREX_SPACEDIM> bclo,
                                Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
 {
