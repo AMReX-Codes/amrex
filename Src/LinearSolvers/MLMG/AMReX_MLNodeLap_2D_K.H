@@ -184,13 +184,11 @@ inline void mlndlap_fillbc_cc (Array4<T> const& sigma, Box const& domain,
         auto lo = amrex::lbound(tybxlo);
         auto hi = amrex::ubound(tybxlo);
         if (lo.y == dlo.y-1 and bclo[1] != LinOpBCType::Periodic) {
-            AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 sigma(i,dlo.y-1,0) = sigma(i,dlo.y,0);
             }
         }
         if (lo.y+yoffset == dhi.y+1 and bchi[1] != LinOpBCType::Periodic) {
-            AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
                 sigma(i,dhi.y+1,0) = sigma(i,dhi.y,0);
             }
