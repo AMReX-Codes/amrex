@@ -97,7 +97,7 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
 }
 
 void
-MacProjector::project (Real reltol, Real atol )
+MacProjector::project (Real reltol, Real atol, MLMG::Location loc)
 {
     if (m_mlmg == nullptr)
     {
@@ -126,7 +126,9 @@ MacProjector::project (Real reltol, Real atol )
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
         }
-        EB_computeDivergence(divu, u, m_geom[ilev]);
+        bool already_on_centroid = false;
+        if (loc == MLMG::Location::FaceCentroid) already_on_centroid = true;
+        EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
@@ -148,7 +150,7 @@ MacProjector::project (Real reltol, Real atol )
 }
 
 void
-MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol )
+MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol, MLMG::Location loc)
 {
     if (m_mlmg == nullptr)
     {
@@ -175,7 +177,9 @@ MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real ato
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
         }
-        EB_computeDivergence(divu, u, m_geom[ilev]);
+        bool already_on_centroid = false;
+        if (loc == MLMG::Location::FaceCentroid) already_on_centroid = true;
+        EB_computeDivergence(divu, u, m_geom[ilev], already_on_centroid);
 #else
         computeDivergence(divu, u, m_geom[ilev]);
 #endif
