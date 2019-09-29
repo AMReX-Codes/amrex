@@ -950,8 +950,6 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 void
 MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 {
-    Gpu::LaunchSafeGuard lsg(false); // todo: gpu
-
     BL_PROFILE("MLNodeLaplacian::FillBoundaryCoeff()");
 
     sigma.FillBoundary(geom.periodicity());
@@ -960,17 +958,15 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
     {
         const Box& domain = geom.Domain();
 
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(sigma, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(sigma, mfi_info); mfi.isValid(); ++mfi)
         {
-            if (!domain.contains(mfi.fabbox()))
-            {
-                amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                        BL_TO_FORTRAN_BOX(domain),
-                                        m_lobc[0].data(), m_hibc[0].data());
-            }
+            Array4<Real> const& sfab = sigma.array(mfi);
+            mlndlap_fillbc_cc<Real>(sfab,domain,m_lobc[0],m_hibc[0]);
         }
     }
 }
@@ -1078,7 +1074,7 @@ MLNodeLaplacian::buildMasks ()
         const std::vector<IntVect>& pshifts = m_geom[amrlev][0].periodicity().shiftIntVect();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
             std::vector< std::pair<int,Box> > isects;
@@ -1086,21 +1082,23 @@ MLNodeLaplacian::buildMasks ()
             for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
             {
                 has_cf[mfi] = 0;
-                IArrayBox& fab = cc_mask[mfi];
-                const Box& bx = fab.box();
+                const Box& bx = mfi.fabbox();
+                Array4<int> const& fab = cc_mask.array(mfi);
                 for (const auto& iv : pshifts)
                 {
                     cfba.intersections(bx+iv, isects);
                     for (const auto& is : isects)
                     {
-                        fab.setVal(1, is.second-iv, 0, 1);
+                        Box const& b = is.second-iv;
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b,i,j,k,
+                        {
+                            fab(i,j,k) = 1;
+                        });
                     }
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
 
-                amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
-                                          BL_TO_FORTRAN_BOX(ccdom),
-                                          m_lobc[0].data(), m_hibc[0].data());
+                mlndlap_fillbc_cc<int>(fab,ccdom,m_lobc[0],m_hibc[0]);
             }
         }
 
@@ -1988,27 +1986,29 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
         
         for (MFIter mfi(crse_cc_mask); mfi.isValid(); ++mfi)
         {
-            IArrayBox& fab = crse_cc_mask[mfi];
-            const Box& bx = fab.box();
+            const Box& bx = mfi.fabbox();
+            Array4<int> const& fab = crse_cc_mask.array(mfi);
             for (const auto& iv: pshifts)
             {
                 cc_fba.intersections(bx+iv, isects);
                 for (const auto& is : isects)
                 {
-                    fab.setVal(nonowner, is.second-iv, 0, 1);
+                    Box const& b = is.second-iv;
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(b,i,j,k,
+                    {
+                        fab(i,j,k) = nonowner;
+                    });
                 }
             }
 
-            amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
-                                      BL_TO_FORTRAN_BOX(ccdom),
-                                      m_lobc[0].data(), m_hibc[0].data());
+            mlndlap_fillbc_cc<int>(fab,ccdom,m_lobc[0],m_hibc[0]);
         }
     }
 

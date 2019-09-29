@@ -146,6 +146,112 @@ void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
 // bc
 //
 
+template <typename T>
+inline void mlndlap_fillbc_cc (Array4<T> const& sigma, Box const& domain,
+                               Array<LinOpBCType, AMREX_SPACEDIM> bclo,
+                               Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+{
+    Box sbox(sigma);
+    if (domain.contains(sbox)) return;
+
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
+
+    Box const& xlo_face = amrex::adjCellLo(domain,0) & sbox;
+    Box const& xhi_face = amrex::adjCellHi(domain,0) & sbox;
+    Box const& ylo_face = amrex::adjCellLo(domain,1) & sbox;
+    Box const& yhi_face = amrex::adjCellHi(domain,1) & sbox;
+    int xoffset = sbox.length(0)+1;
+    int yoffset = sbox.length(1)+1;
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+    xlo_face, txbxlo,
+    {
+        auto lo = amrex::lbound(txbxlo);
+        auto hi = amrex::ubound(txbxlo);
+        if (lo.x == dlo.x-1 and bclo[0] != LinOpBCType::Periodic) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                sigma(dlo.x-1,j,0) = sigma(dlo.x,j,0);
+            }
+        }
+        if (lo.x+xoffset == dhi.x+1 and bchi[0] != LinOpBCType::Periodic) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                sigma(dhi.x+1,j,0) = sigma(dhi.x,j,0);
+            }
+        }
+    },
+    ylo_face, tybxlo,
+    {
+        auto lo = amrex::lbound(tybxlo);
+        auto hi = amrex::ubound(tybxlo);
+        if (lo.y == dlo.y-1 and bclo[1] != LinOpBCType::Periodic) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sigma(i,dlo.y-1,0) = sigma(i,dlo.y,0);
+            }
+        }
+        if (lo.y+yoffset == dhi.y+1 and bchi[1] != LinOpBCType::Periodic) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sigma(i,dhi.y+1,0) = sigma(i,dhi.y,0);
+            }
+        }
+    });
+
+    const auto lo = amrex::lbound(sbox);
+    const auto hi = amrex::ubound(sbox);
+
+    AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
+    {
+        switch (icorner) {
+        case 0: {
+            // xlo & ylo
+            if (lo.x == dlo.x-1 and lo.y == dlo.y-1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,0) = sigma(dlo.x,dlo.y-1,0);
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,0) = sigma(dlo.x-1,dlo.y,0);
+                }
+            }
+            break;
+        }
+        case 1: {
+            // xhi & ylo
+            if (hi.x == dhi.x+1 and lo.y == dlo.y-1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,0) = sigma(dhi.x,dlo.y-1,0);
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,0) = sigma(dhi.x+1,dlo.y,0);
+                }
+            }
+            break;
+        }
+        case 2: {
+            // xlo & yhi
+            if (lo.x == dlo.x-1 and hi.y == dhi.y+1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,0) = sigma(dlo.x,dhi.y+1,0);
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,0) = sigma(dlo.x-1,dhi.y,0);
+                }
+            }
+            break;
+        }
+        case 3: {
+            // xhi & yhi
+            if (hi.x == dhi.x+1 and hi.y == dhi.y+1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,0) = sigma(dhi.x,dhi.y+1,0);
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,0) = sigma(dhi.x+1,dhi.y,0);
+                }
+            }
+            break;
+        }
+        default: {}
+        }
+    });
+}
+
 //
 // operator
 //

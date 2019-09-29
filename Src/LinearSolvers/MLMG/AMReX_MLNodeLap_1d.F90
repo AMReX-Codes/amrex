@@ -22,7 +22,6 @@ module amrex_mlnodelap_1d_module
        ! masks
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
-       amrex_mlndlap_fillbc_cc, amrex_mlndlap_fillbc_cc_i, &
        ! bc
        amrex_mlndlap_applybc, &
        ! operator
@@ -61,20 +60,6 @@ contains
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1))
     integer, intent(in) :: fine_flag
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_fillbc_cc (sigma, slo, shi, dlo, dhi, bclo, bchi) &
-       bind(c, name='amrex_mlndlap_fillbc_cc')
-    integer, dimension(1), intent(in) :: slo, shi, dlo, dhi, bclo, bchi
-    real(amrex_real), intent(inout) :: sigma(slo(1):shi(1))
-  end subroutine amrex_mlndlap_fillbc_cc
-
-
-  subroutine amrex_mlndlap_fillbc_cc_i (sigma, slo, shi, dlo, dhi, bclo, bchi) &
-       bind(c, name='amrex_mlndlap_fillbc_cc_i')
-    integer, dimension(1), intent(in) :: slo, shi, dlo, dhi, bclo, bchi
-    integer, intent(inout) :: sigma(slo(1):shi(1))
-  end subroutine amrex_mlndlap_fillbc_cc_i
 
 
   subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &

@@ -211,6 +211,381 @@ void mlndlap_avgdown_coeff_z (int i, int j, int k, Array4<Real> const& crse,
 // bc
 //
 
+template <typename T>
+inline void mlndlap_fillbc_cc (Array4<T> const& sigma, Box const& domain,
+                               Array<LinOpBCType, AMREX_SPACEDIM> bclo,
+                               Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+{
+    Box sbox(sigma);
+    if (domain.contains(sbox)) return;
+
+    const auto dlo = amrex::lbound(domain);
+    const auto dhi = amrex::ubound(domain);
+
+    Box const& xlo_face = amrex::adjCellLo(domain,0) & sbox;
+    Box const& xhi_face = amrex::adjCellHi(domain,0) & sbox;
+    Box const& ylo_face = amrex::adjCellLo(domain,1) & sbox;
+    Box const& yhi_face = amrex::adjCellHi(domain,1) & sbox;
+    Box const& zlo_face = amrex::adjCellLo(domain,2) & sbox;
+    Box const& zhi_face = amrex::adjCellHi(domain,2) & sbox;
+    int xoffset = sbox.length(0)+1;
+    int yoffset = sbox.length(1)+1;
+    int zoffset = sbox.length(2)+1;
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+    xlo_face, txbxlo,
+    {
+        auto lo = amrex::lbound(txbxlo);
+        auto hi = amrex::ubound(txbxlo);
+        if (lo.x == dlo.x-1 and bclo[0] != LinOpBCType::Periodic) {
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                sigma(dlo.x-1,j,k) = sigma(dlo.x,j,k);
+            }}
+        }
+        if (lo.x+xoffset == dhi.x+1 and bchi[0] != LinOpBCType::Periodic) {
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+                sigma(dhi.x+1,j,k) = sigma(dhi.x,j,k);
+            }}
+        }
+    },
+    ylo_face, tybxlo,
+    {
+        auto lo = amrex::lbound(tybxlo);
+        auto hi = amrex::ubound(tybxlo);
+        if (lo.y == dlo.y-1 and bclo[1] != LinOpBCType::Periodic) {
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sigma(i,dlo.y-1,k) = sigma(i,dlo.y,k);
+            }}
+        }
+        if (lo.y+yoffset == dhi.y+1 and bchi[1] != LinOpBCType::Periodic) {
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sigma(i,dhi.y+1,k) = sigma(i,dhi.y,k);
+            }}
+        }
+    },
+    zlo_face, tzbxlo,
+    {
+        auto lo = amrex::lbound(tzbxlo);
+        auto hi = amrex::ubound(tzbxlo);
+        if (lo.z == dlo.z-1 and bclo[2] != LinOpBCType::Periodic) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sigma(i,j,dlo.z-1) = sigma(i,j,dlo.z);
+            }}
+        }
+        if (lo.z+zoffset == dhi.z+1 and bchi[2] != LinOpBCType::Periodic) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                sigma(i,j,dhi.z+1) = sigma(i,j,dhi.z);
+            }}
+        }
+    });
+
+    const auto lo = amrex::lbound(sbox);
+    const auto hi = amrex::ubound(sbox);
+
+    AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
+    {
+        switch (iedge) {
+        case 0: {
+            // xlo & ylo
+            if (lo.x == dlo.x-1 and lo.y == dlo.y-1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dlo.x-1,dlo.y-1,k) = sigma(dlo.x,dlo.y-1,k);
+                    }
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dlo.x-1,dlo.y-1,k) = sigma(dlo.x-1,dlo.y,k);
+                    }
+                }
+            }
+            break;
+        }
+        case 1: {
+            // xhi & ylo
+            if (hi.x == dhi.x+1 and lo.y == dlo.y-1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dhi.x+1,dlo.y-1,k) = sigma(dhi.x,dlo.y-1,k);
+                    }
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dhi.x+1,dlo.y-1,k) = sigma(dhi.x+1,dlo.y,k);
+                    }
+                }
+            }
+            break;
+        }
+        case 2: {
+            // xlo & yhi
+            if (lo.x == dlo.x-1 and hi.y == dhi.y+1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dlo.x-1,dhi.y+1,k) = sigma(dlo.x,dhi.y+1,k);
+                    }
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dlo.x-1,dhi.y+1,k) = sigma(dlo.x-1,dhi.y,k);
+                    }
+                }
+            }
+            break;
+        }
+        case 3: {
+            // xhi & yhi
+            if (hi.x == dhi.x+1 and hi.y == dhi.y+1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dhi.x+1,dhi.y+1,k) = sigma(dhi.x,dhi.y+1,k);
+                    }
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                        sigma(dhi.x+1,dhi.y+1,k) = sigma(dhi.x+1,dhi.y,k);
+                    }
+                }
+            }
+            break;
+        }
+        case 4: {
+            // xlo & zlo
+            if (lo.x == dlo.x-1 and lo.z == dlo.z-1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dlo.x-1,j,dlo.z-1) = sigma(dlo.x,j,dlo.z-1);
+                    }
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dlo.x-1,j,dlo.z-1) = sigma(dlo.x-1,j,dlo.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 5: {
+            // xhi & zlo
+            if (hi.x == dhi.x+1 and lo.z == dlo.z-1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dhi.x+1,j,dlo.z-1) = sigma(dhi.x,j,dlo.z-1);
+                    }
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dhi.x+1,j,dlo.z-1) = sigma(dhi.x+1,j,dlo.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 6: {
+            // xlo & zhi
+            if (lo.x == dlo.x-1 and hi.z == dhi.z+1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dlo.x-1,j,dhi.z+1) = sigma(dlo.x,j,dhi.z+1);
+                    }
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dlo.x-1,j,dhi.z+1) = sigma(dlo.x-1,j,dhi.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 7: {
+            // xhi & zhi
+            if (hi.x == dhi.x+1 and hi.z == dhi.z+1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dhi.x+1,j,dhi.z+1) = sigma(dhi.x,j,dhi.z+1);
+                    }
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                        sigma(dhi.x+1,j,dhi.z+1) = sigma(dhi.x+1,j,dhi.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 8: {
+            // ylo & zlo
+            if (lo.y == dlo.y-1 and lo.z == dlo.z-1) {
+                if (bclo[1] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dlo.y-1,dlo.z-1) = sigma(i,dlo.y,dlo.z-1);
+                    }
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dlo.y-1,dlo.z-1) = sigma(i,dlo.y-1,dlo.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 9: {
+            // yhi & zlo
+            if (hi.y == dhi.y+1 and lo.z == dlo.z-1) {
+                if (bchi[1] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dhi.y+1,dlo.z-1) = sigma(i,dhi.y,dlo.z-1);
+                    }
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dhi.y+1,dlo.z-1) = sigma(i,dhi.y+1,dlo.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 10: {
+            // ylo & zhi
+            if (lo.y == dlo.y-1 and hi.z == dhi.z+1) {
+                if (bclo[1] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dlo.y-1,dhi.z+1) = sigma(i,dlo.y,dhi.z+1);
+                    }
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dlo.y-1,dhi.z+1) = sigma(i,dlo.y-1,dhi.z);
+                    }
+                }
+            }
+            break;
+        }
+        case 11: {
+            // yhi & zhi
+            if (hi.y == dhi.y+1 and hi.z == dhi.z+1) {
+                if (bchi[1] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dhi.y+1,dhi.z+1) = sigma(i,dhi.y,dhi.z+1);
+                    }
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        sigma(i,dhi.y+1,dhi.z+1) = sigma(i,dhi.y+1,dhi.z);
+                    }
+                }
+            }
+            break;
+        }
+        default: {}
+        }
+    });
+
+    AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
+    {
+        switch (icorner) {
+        case 0: {
+            // xlo & ylo & zlo
+            if (lo.x == dlo.x-1 and lo.y == dlo.y-1 and lo.z == dlo.z-1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,dlo.z-1) = sigma(dlo.x,dlo.y-1,dlo.z-1);
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,dlo.z-1) = sigma(dlo.x-1,dlo.y,dlo.z-1);
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,dlo.z-1) = sigma(dlo.x-1,dlo.y-1,dlo.z);
+                }
+            }
+            break;
+        }
+        case 1: {
+            // xhi & ylo & zlo
+            if (hi.x == dhi.x+1 and lo.y == dlo.y-1 and lo.z == dlo.z-1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,dlo.z-1) = sigma(dhi.x,dlo.y-1,dlo.z-1);
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,dlo.z-1) = sigma(dhi.x+1,dlo.y,dlo.z-1);
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,dlo.z-1) = sigma(dhi.x+1,dlo.y-1,dlo.z);
+                }
+            }
+            break;
+        }
+        case 2: {
+            // xlo & yhi & zlo
+            if (lo.x == dlo.x-1 and hi.y == dhi.y+1 and lo.z == dlo.z-1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,dlo.z-1) = sigma(dlo.x,dhi.y+1,dlo.z-1);
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,dlo.z-1) = sigma(dlo.x-1,dhi.y,dlo.z-1);
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,dlo.z-1) = sigma(dlo.x-1,dhi.y+1,dlo.z);
+                }
+            }
+            break;
+        }
+        case 3: {
+            // xhi & yhi & zlo
+            if (hi.x == dhi.x+1 and hi.y == dhi.y+1 and lo.z == dlo.z-1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,dlo.z-1) = sigma(dhi.x,dhi.y+1,dlo.z-1);
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,dlo.z-1) = sigma(dhi.x+1,dhi.y,dlo.z-1);
+                } else if (bclo[2] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,dlo.z-1) = sigma(dhi.x+1,dhi.y+1,dlo.z);
+                }
+            }
+            break;
+        }
+        case 4: {
+            // xlo & ylo & zhi
+            if (lo.x == dlo.x-1 and lo.y == dlo.y-1 and hi.z == dhi.z+1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,dhi.z+1) = sigma(dlo.x,dlo.y-1,dhi.z+1);
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,dhi.z+1) = sigma(dlo.x-1,dlo.y,dhi.z+1);
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dlo.y-1,dhi.z+1) = sigma(dlo.x-1,dlo.y-1,dhi.z);
+                }
+            }
+            break;
+        }
+        case 5: {
+            // xhi & ylo & zhi
+            if (hi.x == dhi.x+1 and lo.y == dlo.y-1 and hi.z == dhi.z+1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,dhi.z+1) = sigma(dhi.x,dlo.y-1,dhi.z+1);
+                } else if (bclo[1] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,dhi.z+1) = sigma(dhi.x+1,dlo.y,dhi.z+1);
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dlo.y-1,dhi.z+1) = sigma(dhi.x+1,dlo.y-1,dhi.z);
+                }
+            }
+            break;
+        }
+        case 6: {
+            // xlo & yhi & zhi
+            if (lo.x == dlo.x-1 and hi.y == dhi.y+1 and hi.z == dhi.z+1) {
+                if (bclo[0] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,dhi.z+1) = sigma(dlo.x,dhi.y+1,dhi.z+1);
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,dhi.z+1) = sigma(dlo.x-1,dhi.y,dhi.z+1);
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    sigma(dlo.x-1,dhi.y+1,dhi.z+1) = sigma(dlo.x-1,dhi.y+1,dhi.z);
+                }
+            }
+            break;
+        }
+        case 7: {
+            // xhi & yhi & zhi
+            if (hi.x == dhi.x+1 and hi.y == dhi.y+1 and hi.z == dhi.z+1) {
+                if (bchi[0] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,dhi.z+1) = sigma(dhi.x,dhi.y+1,dhi.z+1);
+                } else if (bchi[1] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,dhi.z+1) = sigma(dhi.x+1,dhi.y,dhi.z+1);
+                } else if (bchi[2] != LinOpBCType::Periodic) {
+                    sigma(dhi.x+1,dhi.y+1,dhi.z+1) = sigma(dhi.x+1,dhi.y+1,dhi.z);
+                }
+            }
+            break;
+        }
+        default: {}
+        }
+    });
+}
+
 //
 // operator
 //
