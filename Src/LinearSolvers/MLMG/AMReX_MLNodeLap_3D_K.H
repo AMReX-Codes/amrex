@@ -1545,5 +1545,4 @@ void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
 }
 
 }
-
 #endif
