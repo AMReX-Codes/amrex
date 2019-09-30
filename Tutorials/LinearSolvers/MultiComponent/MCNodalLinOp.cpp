@@ -286,7 +286,8 @@ void MCNodalLinOp::buildMasks ()
 					if (!isects.empty()) has_cf[mfi] = 1;
 				}
 
-                                mlndlap_fillbc_cc(fab.array(), ccdom, m_lobc[0], m_hibc[0]);
+                                mlndlap_fillbc_cc<int>(mfi.validbox(), fab.array(), ccdom,
+                                                       m_lobc[0], m_hibc[0]);
 			}
 		}
 

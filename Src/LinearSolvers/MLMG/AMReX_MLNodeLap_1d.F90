@@ -23,7 +23,6 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        ! bc
-       amrex_mlndlap_applybc, &
        ! operator
        ! restriction
        ! interpolation
@@ -60,13 +59,6 @@ contains
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1))
     integer, intent(in) :: fine_flag
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_applybc')
-    integer, dimension(1) :: hlo, hhi, dlo, dhi, bclo, bchi
-    real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1))
-  end subroutine amrex_mlndlap_applybc
 
 
   subroutine amrex_mlndlap_vel_cc_to_ct (lo, hi, vel, vlo, vhi, ovel, olo, ohi, vfrac, flo, fhi, &

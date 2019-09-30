@@ -35,7 +35,6 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        ! bc
-       amrex_mlndlap_applybc, &
        ! operator
        ! restriction
        ! interpolation
@@ -89,77 +88,6 @@ contains
        end do
     end do
   end function amrex_mlndlap_any_fine_sync_cells
-
-
-  subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_applybc')
-    integer, dimension(2) :: hlo, hhi, dlo, dhi, bclo, bchi
-    real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1),hlo(2):hhi(2))
-
-    integer :: ilo, ihi, jlo, jhi
-
-    ilo = max(dlo(1), hlo(1))
-    ihi = min(dhi(1), hhi(1))
-    jlo = max(dlo(2), hlo(2))
-    jhi = min(dhi(2), hhi(2))
-
-    ! neumann
-
-    if ((bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) &
-         .and. hlo(1) .lt. dlo(1)) then
-       phi(dlo(1)-1,jlo:jhi) = phi(dlo(1)+1,jlo:jhi)
-    end if
-
-    if ((bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) &
-         .and. hhi(1) .gt. dhi(1)) then
-       phi(dhi(1)+1,jlo:jhi) = phi(dhi(1)-1,jlo:jhi)
-    end if
-
-    if ((bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) &
-         .and. hlo(2) .lt. dlo(2)) then
-       phi(ilo:ihi,dlo(2)-1) = phi(ilo:ihi,dlo(2)+1)
-    end if
-
-    if ((bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) &
-         .and. hhi(2) .gt. dhi(2)) then
-       phi(ilo:ihi,dhi(2)+1) = phi(ilo:ihi,dhi(2)-1)
-    end if
-
-    ! corners
-
-    if (hlo(1) .lt. dlo(1) .and. hlo(2) .lt. dlo(2)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          phi(dlo(1)-1,dlo(2)-1) = phi(dlo(1)+1,dlo(2)-1)
-       else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          phi(dlo(1)-1,dlo(2)-1) = phi(dlo(1)-1,dlo(2)+1)
-       end if
-    end if
-
-    if (hhi(1) .gt. dhi(1) .and. hlo(2) .lt. dlo(2)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          phi(dhi(1)+1,dlo(2)-1) = phi(dhi(1)-1,dlo(2)-1)
-       else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
-          phi(dhi(1)+1,dlo(2)-1) = phi(dhi(1)+1,dlo(2)+1)
-       end if
-    end if
-
-    if (hlo(1) .lt. dlo(1) .and. hhi(2) .gt. dhi(2)) then
-       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
-          phi(dlo(1)-1,dhi(2)+1) = phi(dlo(1)+1,dhi(2)+1)
-       else if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          phi(dlo(1)-1,dhi(2)+1) = phi(dlo(1)-1,dhi(2)-1)
-       end if
-    end if
-
-    if (hhi(1) .gt. dhi(1) .and. hhi(2) .gt. dhi(2)) then
-       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
-          phi(dhi(1)+1,dhi(2)+1) = phi(dhi(1)-1,dhi(2)+1)
-       else  if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
-          phi(dhi(1)+1,dhi(2)+1) = phi(dhi(1)+1,dhi(2)-1)
-       end if
-    end if
-
-  end subroutine amrex_mlndlap_applybc
 
 
   subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
