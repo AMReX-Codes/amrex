@@ -122,6 +122,7 @@ void doDepositionShapeN(const amrex::ParticleReal * const xp,
             // Get particle position after 1/2 push back in position
 #if (defined WARPX_DIM_RZ)
             const amrex::Real xmid_jx = (rpmid - xmin_jx)*dxi;
+            const amrex::Real xmid_jy = (rpmid - xmin_jy)*dxi;
             const amrex::Real xmid_jz = (rpmid - xmin_jz)*dxi;
 #else
             const amrex::Real xmid_jx = (xp[ip] - xmin_jx)*dxi - dts2dx*vx;
