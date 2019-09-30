@@ -37,8 +37,7 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
-       amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
+  public:: amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
@@ -181,22 +180,6 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1))
     integer, intent(in) :: fine_flag
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_set_stencil (lo, hi, sten, tlo, thi, sigma, glo, ghi, dxinv) &
-       bind(c,name='amrex_mlndlap_set_stencil')
-    integer, dimension(1), intent(in) :: lo, hi, tlo, thi, glo, ghi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),3)
-    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1))
-    real(amrex_real), intent(in) :: dxinv(1)
-  end subroutine amrex_mlndlap_set_stencil
-
-
-  subroutine amrex_mlndlap_set_stencil_s0 (lo, hi, sten, tlo, thi) &
-       bind(c,name='amrex_mlndlap_set_stencil_s0')
-    integer, dimension(1), intent(in) :: lo, hi, tlo, thi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),3)
-  end subroutine amrex_mlndlap_set_stencil_s0
 
 
   subroutine amrex_mlndlap_adotx_sten (lo, hi, y, ylo, yhi, x, xlo, xhi, &

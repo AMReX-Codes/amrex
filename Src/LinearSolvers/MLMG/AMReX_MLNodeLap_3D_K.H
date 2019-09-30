@@ -1336,6 +1336,116 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
 // sync residual
 //
 
+//
+// RAP
+//
+
+namespace {
+
+    constexpr int ist_000 = 0;
+    constexpr int ist_p00 = 1;
+    constexpr int ist_0p0 = 2;
+    constexpr int ist_00p = 3;
+    constexpr int ist_pp0 = 4;
+    constexpr int ist_p0p = 5;
+    constexpr int ist_0pp = 6;
+    constexpr int ist_ppp = 7;
+    constexpr int ist_inv = 8;
+    constexpr int n_sten  = 9;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
+                          Array4<Real const> const& sig,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1.0/36.0)*dxinv[0]*dxinv[0];
+    Real facy = (1.0/36.0)*dxinv[1]*dxinv[1];
+    Real facz = (1.0/36.0)*dxinv[2]*dxinv[2];
+    Real fxyz = facx + facy + facz;
+    Real fmx2y2z = -facx + 2.0*facy + 2.0*facz;
+    Real f2xmy2z = 2.0*facx - facy + 2.0*facz;
+    Real f2x2ymz = 2.0*facx + 2.0*facy - facz;
+    Real f4xm2ym2z = 4.0*facx - 2.0*facy - 2.0*facz;
+    Real fm2x4ym2z = -2.0*facx + 4.0*facy - 2.0*facz;
+    Real fm2xm2y4z = -2.0*facx - 2.0*facy + 4.0*facz;
+
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        // i+1,j,k
+        sten(i,j,k,ist_p00) = f4xm2ym2z * (sig(i,j-1,k-1)+sig(i,j,k-1)+sig(i,j-1,k)+sig(i,j,k));
+        // i-1,j,k: sten(i-1,j,k,ist_p00)
+
+        // i,j+1,k
+        sten(i,j,k,ist_0p0) = fm2x4ym2z * (sig(i-1,j,k-1)+sig(i,j,k-1)+sig(i-1,j,k)+sig(i,j,k));
+        // i,j-1,k: sten(i,j-1,k,ist_0p0)
+
+        // i,j,k+1
+        sten(i,j,k,ist_00p) = fm2xm2y4z * (sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k));
+        // i,j,k-1: sten(i,j,k-1,ist_00p)
+
+        // i+1,j+1,k
+        sten(i,j,k,ist_pp0) = f2x2ymz * (sig(i,j,k-1)+sig(i,j,k));
+        // i-1,j-1,k: sten(i-1,j-1,k,ist_pp0)
+        // i+1,j-1,k: sten(i  ,j-1,k,ist_pp0)
+        // i-1,j+1,k: sten(i-1,j  ,k,ist_pp0)
+
+        // i+1,j,k+1
+        sten(i,j,k,ist_p0p) = f2xmy2z * (sig(i,j-1,k)+sig(i,j,k));
+        // i-1,j,k-1: sten(i-1,j,k-1,ist_p0p)
+        // i+1,j,k-1: sten(i  ,j,k-1,ist_p0p)
+        // i-1,j,k+1: sten(i-1,j,k  ,ist_p0p)
+
+        // i,j+1,k+1
+        sten(i,j,k,ist_0pp) = fmx2y2z * (sig(i-1,j,k)+sig(i,j,k));
+        // i,j-1,k-1: sten(i,j-1,k-1,ist_0pp)
+        // i,j+1,k-1: sten(i,j  ,k-1,ist_0pp)
+        // i,j-1,k+1: sten(i,j-1,k  ,ist_0pp)
+
+        // i+1,j+1,k+1
+        sten(i,j,k,ist_ppp) = fxyz * sig(i,j,k);
+        // i-1,j-1,k-1: sten(i-1,j-1,k-1,ist_ppp)
+        // i+1,j-1,k-1: sten(i  ,j-1,k-1,ist_ppp)
+        // i-1,j+1,k-1: sten(i-1,j  ,k-1,ist_ppp)
+        // i+1,j+1,k-1: sten(i  ,j  ,k-1,ist_ppp)
+        // i-1,j-1,k+1: sten(i-1,j-1,k  ,ist_ppp)
+        // i+1,j-1,k+1: sten(i  ,j-1,k  ,ist_ppp)
+        // i-1,j+1,k+1: sten(i-1,j  ,k  ,ist_ppp)
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noexcept
+{
+    sten(i,j,k,ist_000) = -(sten(i-1,j,k,ist_p00) + sten(i,j,k,ist_p00)
+                          + sten(i,j-1,k,ist_0p0) + sten(i,j,k,ist_0p0)
+                          + sten(i,j,k-1,ist_00p) + sten(i,j,k,ist_00p)
+                          + sten(i-1,j-1,k,ist_pp0) + sten(i,j-1,k,ist_pp0)
+                          + sten(i-1,j,k,ist_pp0) + sten(i,j,k,ist_pp0)
+                          + sten(i-1,j,k-1,ist_p0p) + sten(i,j,k-1,ist_p0p)
+                          + sten(i-1,j,k,ist_p0p) + sten(i,j,k,ist_p0p)
+                          + sten(i,j-1,k-1,ist_0pp) + sten(i,j,k-1,ist_0pp)
+                          + sten(i,j-1,k,ist_0pp) + sten(i,j,k,ist_0pp)
+                          + sten(i-1,j-1,k-1,ist_ppp) + sten(i,j-1,k-1,ist_ppp)
+                          + sten(i-1,j,k-1,ist_ppp) + sten(i,j,k-1,ist_ppp)
+                          + sten(i-1,j-1,k,ist_ppp) + sten(i,j-1,k,ist_ppp)
+                          + sten(i-1,j,k,ist_ppp) + sten(i,j,k,ist_ppp));
+    sten(i,j,k,ist_inv) = 1.0 /
+        (  std::abs(sten(i-1,j,k,ist_p00)) + std::abs(sten(i,j,k,ist_p00))
+         + std::abs(sten(i,j-1,k,ist_0p0)) + std::abs(sten(i,j,k,ist_0p0))
+         + std::abs(sten(i,j,k-1,ist_00p)) + std::abs(sten(i,j,k,ist_00p))
+         + std::abs(sten(i-1,j-1,k,ist_pp0)) + std::abs(sten(i,j-1,k,ist_pp0))
+         + std::abs(sten(i-1,j,k,ist_pp0)) + std::abs(sten(i,j,k,ist_pp0))
+         + std::abs(sten(i-1,j,k-1,ist_p0p)) + std::abs(sten(i,j,k-1,ist_p0p))
+         + std::abs(sten(i-1,j,k,ist_p0p)) + std::abs(sten(i,j,k,ist_p0p))
+         + std::abs(sten(i,j-1,k-1,ist_0pp)) + std::abs(sten(i,j,k-1,ist_0pp))
+         + std::abs(sten(i,j-1,k,ist_0pp)) + std::abs(sten(i,j,k,ist_0pp))
+         + std::abs(sten(i-1,j-1,k-1,ist_ppp)) + std::abs(sten(i,j-1,k-1,ist_ppp))
+         + std::abs(sten(i-1,j,k-1,ist_ppp)) + std::abs(sten(i,j,k-1,ist_ppp))
+         + std::abs(sten(i-1,j-1,k,ist_ppp)) + std::abs(sten(i,j-1,k,ist_ppp))
+         + std::abs(sten(i-1,j,k,ist_ppp)) + std::abs(sten(i,j,k,ist_ppp)) + eps);
+}
+
 }
 
 #endif

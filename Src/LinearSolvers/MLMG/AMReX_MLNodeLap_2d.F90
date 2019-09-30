@@ -48,8 +48,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
-       amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
+  public:: amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
@@ -540,52 +539,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_set_stencil (lo, hi, sten, tlo, thi, sigma, glo, ghi, dxinv) &
-       bind(c,name='amrex_mlndlap_set_stencil')
-    integer, dimension(2), intent(in) :: lo, hi, tlo, thi, glo, ghi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),5)
-    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2))
-    real(amrex_real), intent(in) :: dxinv(2)
-
-    integer :: i, j
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
-
-    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
-    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-    fxy = facx + facy
-    f2xmy = 2.d0*facx - facy
-    fmx2y = 2.d0*facy - facx
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          sten(i,j,2) = f2xmy*(sigma(i,j-1)+sigma(i,j))
-          sten(i,j,3) = fmx2y*(sigma(i-1,j)+sigma(i,j))
-          sten(i,j,4) = fxy*sigma(i,j)
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_stencil
-
-
-  subroutine amrex_mlndlap_set_stencil_s0 (lo, hi, sten, tlo, thi) &
-       bind(c,name='amrex_mlndlap_set_stencil_s0')
-    integer, dimension(2), intent(in) :: lo, hi, tlo, thi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),5)
-
-    integer :: i, j
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          sten(i,j,1) = -(sten(i-1,j  ,2) + sten(i,j  ,2) + sten(i,j-1,3) + sten(i,j,3) &
-                        + sten(i-1,j-1,4) + sten(i,j-1,4) + sten(i-1,j,4) + sten(i,j,4))
-          sten(i,j,5) = 1.d0 / (abs(sten(i-1,j,2)) + abs(sten(i  ,j  ,2)) + abs(sten(i,j-1,3)) &
-                              + abs(sten(i  ,j,3)) + abs(sten(i-1,j-1,4)) + abs(sten(i,j-1,4)) &
-                              + abs(sten(i-1,j,4)) + abs(sten(i  ,j  ,4)) + eps)
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_set_stencil_s0
 
 
   subroutine amrex_mlndlap_adotx_sten (lo, hi, y, ylo, yhi, x, xlo, xhi, &

@@ -1223,6 +1223,7 @@ MLNodeLaplacian::buildStencil ()
         {
             const Geometry& geom = m_geom[amrlev][0];
             const Real* dxinv = geom.InvCellSize();
+            const auto dxinvarr = geom.InvCellSizeArray();
 
 #ifdef AMREX_USE_EB
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
@@ -1296,24 +1297,28 @@ MLNodeLaplacian::buildStencil ()
                         sgfab.setVal(0.0);
                         bx2 &= sgfab_orig.box();
                         sgfab.copy(sgfab_orig, bx2, 0, bx2, 0, 1);
-                        amrex_mlndlap_set_stencil(BL_TO_FORTRAN_BOX(bx),
-                                                  BL_TO_FORTRAN_ANYD(stfab),
-                                                  BL_TO_FORTRAN_ANYD(sgfab),
-                                                  dxinv);
+
+                        Array4<Real> const& starr = stfab.array();
+                        Array4<Real const> const& sgarr = sgfab.const_array();
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                        {
+                            mlndlap_set_stencil(tbx,starr,sgarr,dxinvarr);
+                        });
                     }
                 }
             }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*m_stencil[amrlev][0],true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*m_stencil[amrlev][0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
-                FArrayBox& stfab = (*m_stencil[amrlev][0])[mfi];
-                    
-                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                             BL_TO_FORTRAN_ANYD(stfab));
+                Array4<Real> const& starr = m_stencil[amrlev][0]->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_set_stencil_s0(i,j,k,starr);
+                });
             }
 
             m_stencil[amrlev][0]->FillBoundary(geom.periodicity());
@@ -1348,14 +1353,16 @@ MLNodeLaplacian::buildStencil ()
             }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*pcrse,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*pcrse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
-                FArrayBox& stfab = (*pcrse)[mfi];
-                amrex_mlndlap_set_stencil_s0(BL_TO_FORTRAN_BOX(bx),
-                                             BL_TO_FORTRAN_ANYD(stfab));
+                Array4<Real> const& starr = pcrse->array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                {
+                    mlndlap_set_stencil_s0(i,j,k,starr);
+                });
             }
 
             if (need_parallel_copy) {
