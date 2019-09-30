@@ -128,7 +128,7 @@ namespace
 
         // Create the dataset.
         hid_t dataset = H5Dcreate(file, field_path.c_str(), H5T_IEEE_F64LE,
-                                  grid_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                                  grid_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);        
 
         if (dataset < 0)
         {
@@ -340,7 +340,8 @@ namespace
     */
     void output_write_field(const std::string& file_path,
                             const std::string& field_path,
-                            const MultiFab& mf, const int comp)
+                            const MultiFab& mf, const int comp, 
+                            const int lo_x, const int lo_y, const int lo_z)
     {
 
         BL_PROFILE("output_write_field");
@@ -378,8 +379,15 @@ namespace
         // slab lo index and shape.
 #if (AMREX_SPACEDIM == 3)
         hsize_t slab_offsets[3], slab_dims[3];
+        int shift[3];
+        shift[0] = lo_x; 
+        shift[1] = lo_y;
+        shift[2] = lo_z;
 #else
         hsize_t slab_offsets[2], slab_dims[2];
+        int shift[2];
+        shift[0] = lo_x; 
+        shift[1] = lo_z;
 #endif
         hid_t slab_dataspace;
 
@@ -400,7 +408,7 @@ namespace
             {
                 AMREX_ASSERT(lo_vec[idim] >= 0);
                 AMREX_ASSERT(hi_vec[idim] > lo_vec[idim]);
-                slab_offsets[idim] = lo_vec[idim];
+                slab_offsets[idim] = lo_vec[idim] - shift[idim];
                 slab_dims[idim] = hi_vec[idim] - lo_vec[idim] + 1;
             }
 
@@ -610,12 +618,18 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                            zmax_slice_lab - zmin_slice_lab) * inv_dz_lab_);
         int Nx_slice_lab = ( current_slice_hi[0] - current_slice_lo[0] ) /
                            geom.CellSize(0);
-        if (Nx_slice_lab == 0 ) {Nx_slice_lab = 1;}
+        if (Nx_slice_lab == 0 ) Nx_slice_lab = 1;
+        // if the x-dimension is reduced, increase total_cells by 1 
+        // to be consistent with the number of cells created for the output.
+        if (Nx_lab != Nx_slice_lab) Nx_slice_lab++;
         cell_dx = geom.CellSize(0);
 #if (AMREX_SPACEDIM == 3)
         int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) /
                              geom.CellSize(1);
-        if (Ny_slice_lab == 0 ) {Ny_slice_lab = 1;}
+        if (Ny_slice_lab == 0 ) Ny_slice_lab = 1;
+        // if the y-dimension is reduced, increase total_cells by 1 
+        // to be consistent with the number of cells created for the output.
+        if (Ny_lab != Ny_slice_lab) Ny_slice_lab++;
         slice_ncells_lab = {Nx_slice_lab, Ny_slice_lab, Nz_slice_lab};
         cell_dy = geom.CellSize(1);
 #else
@@ -631,6 +645,11 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                               0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
            slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) -
                               0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
+           if (slice_lo[i_dim] == slice_hi[i_dim]) 
+           {
+              slice_hi[i_dim] = slice_lo[i_dim] + 1;
+           }
+
         }
         Box stmp(slice_lo,slice_hi);
         Box slicediag_box = stmp;
@@ -700,9 +719,12 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                 tmp.copy(*LabFrameDiags_[i]->data_buffer_, 0, 0, ncomp);
 
 #ifdef WARPX_USE_HDF5
-                for (int comp = 0; comp < ncomp; ++comp)
+                for (int comp = 0; comp < ncomp; ++comp) {
                     output_write_field(LabFrameDiags_[i]->file_name,
-                                       mesh_field_names[comp], tmp, comp);
+                                       mesh_field_names[comp], tmp, comp, 
+                                       lbound(buff_box).x, lbound(buff_box).y, 
+                                       lbound(buff_box).z);
+                }
 #else
                 std::stringstream ss;
                 ss << LabFrameDiags_[i]->file_name << "/Level_0/"
@@ -876,10 +898,14 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
             if (WarpX::do_boosted_frame_fields) {
 #ifdef WARPX_USE_HDF5
+               
+                Box buff_box = LabFrameDiags_[i]->buff_box_;
                 for (int comp = 0; comp < LabFrameDiags_[i]->data_buffer_->nComp(); ++comp)
                     output_write_field( LabFrameDiags_[i]->file_name,
                                         mesh_field_names[comp],
-                                        *LabFrameDiags_[i]->data_buffer_, comp);
+                                        *LabFrameDiags_[i]->data_buffer_, comp, 
+                                        lbound(buff_box).x, lbound(buff_box).y, 
+                                        lbound(buff_box).z);
 #else
                 std::stringstream mesh_ss;
                 mesh_ss << LabFrameDiags_[i]->file_name << "/Level_0/" <<
@@ -1132,6 +1158,7 @@ createLabFrameDirectories() {
     {
         if (WarpX::do_boosted_frame_fields)
         {
+            const auto lo = lbound(buff_box_);
             for (int comp = 0; comp < ncomp_to_dump_; ++comp) {
                 output_create_field(file_name, mesh_field_names_[comp],
                                     prob_ncells_lab_[0],
@@ -1195,7 +1222,6 @@ createLabFrameDirectories() {
     ParallelDescriptor::Barrier();
 
     writeLabFrameHeader();
-
 }
 
 void
