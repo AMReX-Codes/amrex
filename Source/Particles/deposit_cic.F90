@@ -1,7 +1,7 @@
 module warpx_ES_deposit_cic
 
   use iso_c_binding
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only : amrex_real, amrex_particle_real
 
   implicit none
 
@@ -28,8 +28,8 @@ contains
                                   ng)                                    &
        bind(c,name='warpx_deposit_cic_3d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
-    real(amrex_real), intent(in)     :: weights(np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: weights(np)
     real(amrex_real), intent(in)     :: charge
     integer,          intent(in)     :: lo(3)
     integer,          intent(in)     :: hi(3)
@@ -86,8 +86,8 @@ contains
                                   ng)                                    &
        bind(c,name='warpx_deposit_cic_2d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(in)     :: particles(ns,np)
-    real(amrex_real), intent(in)     :: weights(np)
+    real(amrex_particle_real), intent(in)     :: particles(ns,np)
+    real(amrex_particle_real), intent(in)     :: weights(np)
     real(amrex_real), intent(in)     :: charge
     integer,          intent(in)     :: lo(2)
     integer,          intent(in)     :: hi(2)

@@ -545,12 +545,12 @@ namespace
         WarpXParticleContainer::ParticleType* particles_source = ptile_source.GetArrayOfStructs()().data();
         // --- source SoA particle data
         auto& soa_source = ptile_source.GetStructOfArrays();
-        GpuArray<Real*,PIdx::nattribs> attribs_source;
+        GpuArray<ParticleReal*,PIdx::nattribs> attribs_source;
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             attribs_source[ia] = soa_source.GetRealData(ia).data();
         }
         // --- source runtime attribs
-        GpuArray<Real*,3> runtime_uold_source;
+        GpuArray<ParticleReal*,3> runtime_uold_source;
         // Prepare arrays for boosted frame diagnostics.
         runtime_uold_source[0] = soa_source.GetRealData(PIdx::ux).data();
         runtime_uold_source[1] = soa_source.GetRealData(PIdx::uy).data();
@@ -590,13 +590,13 @@ namespace
         WarpXParticleContainer::ParticleType* particles_product = ptile_product.GetArrayOfStructs()().data() + np_product_old;
         // --- product SoA particle data
         auto& soa_product = ptile_product.GetStructOfArrays();
-        GpuArray<Real*,PIdx::nattribs> attribs_product;
+        GpuArray<ParticleReal*,PIdx::nattribs> attribs_product;
         for (int ia = 0; ia < PIdx::nattribs; ++ia) {
             // First element is the first newly-created product particle
             attribs_product[ia] = soa_product.GetRealData(ia).data() + np_product_old;
         }
         // --- product runtime attribs
-        GpuArray<Real*,6> runtime_attribs_product;
+        GpuArray<ParticleReal*,6> runtime_attribs_product;
         bool do_boosted_product = WarpX::do_boosted_frame_diagnostic
             && pc_product->DoBoostedFrameDiags();
         if (do_boosted_product) {

@@ -18,10 +18,10 @@
  * /param q            : species charge.
  */
 template <int depos_order>
-void doChargeDepositionShapeN(const amrex::Real * const xp,
-                              const amrex::Real * const yp,
-                              const amrex::Real * const zp,
-                              const amrex::Real * const wp,
+void doChargeDepositionShapeN(const amrex::ParticleReal * const xp,
+                              const amrex::ParticleReal * const yp,
+                              const amrex::ParticleReal * const zp,
+                              const amrex::ParticleReal * const wp,
                               const int * const ion_lev,
                               const amrex::Array4<amrex::Real>& rho_arr,
                               const long np_to_depose,

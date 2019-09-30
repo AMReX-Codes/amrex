@@ -2,6 +2,7 @@
 #define WP_PARSER_Y_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_REAL.H>
 
 #ifdef __cplusplus
 #include <cstdlib>
@@ -77,11 +78,11 @@ enum wp_node_t {
 
 union wp_ip {
     int i;
-    double* p;
+    amrex_real* p;
 };
 
 union wp_vp {
-    double v;
+    amrex_real v;
     union wp_ip ip;
 };
 
@@ -95,7 +96,7 @@ struct wp_node {
 
 struct wp_number {
     enum wp_node_t type;
-    double value;
+    amrex_real value;
 };
 
 struct wp_symbol {
@@ -122,7 +123,7 @@ struct wp_f2 {  /* Builtin functions with two arguments */
 /* These functions are used in bison rules to generate the original
  * AST. */
 void wp_defexpr (struct wp_node* body);
-struct wp_node* wp_newnumber (double d);
+struct wp_node* wp_newnumber (amrex_real d);
 struct wp_symbol* wp_makesymbol (char* name);
 struct wp_node* wp_newsymbol (struct wp_symbol* sym);
 struct wp_node* wp_newnode (enum wp_node_t type, struct wp_node* l,
@@ -153,20 +154,20 @@ void wp_parser_delete (struct wp_parser* parser);
 struct wp_parser* wp_parser_dup (struct wp_parser* source);
 struct wp_node* wp_parser_ast_dup (struct wp_parser* parser, struct wp_node* src, int move);
 
-void wp_parser_regvar (struct wp_parser* parser, char const* name, double* p);
+void wp_parser_regvar (struct wp_parser* parser, char const* name, amrex_real* p);
 void wp_parser_regvar_gpu (struct wp_parser* parser, char const* name, int i);
-void wp_parser_setconst (struct wp_parser* parser, char const* name, double c);
+void wp_parser_setconst (struct wp_parser* parser, char const* name, amrex_real c);
 
 /* We need to walk the tree in these functions */
 void wp_ast_optimize (struct wp_node* node);
 size_t wp_ast_size (struct wp_node* node);
 void wp_ast_print (struct wp_node* node);
-void wp_ast_regvar (struct wp_node* node, char const* name, double* p);
+void wp_ast_regvar (struct wp_node* node, char const* name, amrex_real* p);
 void wp_ast_regvar_gpu (struct wp_node* node, char const* name, int i);
-void wp_ast_setconst (struct wp_node* node, char const* name, double c);
+void wp_ast_setconst (struct wp_node* node, char const* name, amrex_real c);
 
-AMREX_GPU_HOST_DEVICE double wp_call_f1 (enum wp_f1_t type, double a);
-AMREX_GPU_HOST_DEVICE double wp_call_f2 (enum wp_f2_t type, double a, double b);
+AMREX_GPU_HOST_DEVICE amrex_real wp_call_f1 (enum wp_f1_t type, amrex_real a);
+AMREX_GPU_HOST_DEVICE amrex_real wp_call_f2 (enum wp_f2_t type, amrex_real a, amrex_real b);
 
 #ifdef __cplusplus
 }

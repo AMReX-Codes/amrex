@@ -175,11 +175,7 @@ ifeq ($(USE_HDF5),TRUE)
         LIBRARY_LOCATIONS += $(HDF5_HOME)/lib
     endif
     DEFINES += -DWARPX_USE_HDF5
-<<<<<<< HEAD
-    LIBRARIES += -lhdf5 -lz
-=======
     libraries += -lhdf5 -lz
->>>>>>> dev
 endif
 
 # job_info support

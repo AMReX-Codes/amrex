@@ -1,3 +1,16 @@
+'''
+This script loops over 3D plotfiles plt*****, generates a 3D rendering
+of the data with fields and particles, and saves one image per plotfile to
+img_*****.png. It was written for a beam-driven wakefield acceleration
+simulation, and contains a lot of custom values (for transparency,
+color intensity etc.), so feel free to modify it to meet your needs.
+
+Execute the file with e.g.
+> mpirun -np 12 python yt3d_mpi.py
+to generate the images. It can be quite slow for even moderately large
+plotfiles.
+'''
+
 import yt, glob
 from mpi4py import MPI
 import numpy as np
@@ -107,9 +120,9 @@ def img_onestep(filename):
     cam.switch_orientation()
     # save image
     if rendering_type == 'smooth':
-        sc.save('img_' + str(my_number_list[count]).zfill(4), sigma_clip=5.)
+        sc.save('img_' + str(my_number_list[count]).zfill(5), sigma_clip=5.)
     if rendering_type == 'layers':
-        sc.save('img_' + str(my_number_list[count]).zfill(4), sigma_clip=2.)
+        sc.save('img_' + str(my_number_list[count]).zfill(5), sigma_clip=2.)
 
 file_list.sort()
 # Total number of files

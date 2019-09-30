@@ -830,7 +830,7 @@ FILE_PATTERNS          = *.c \
 # be searched for input files as well.
 # The default value is: NO.
 
-RECURSIVE              = NO
+RECURSIVE              = YES
 
 # The EXCLUDE tag can be used to specify files and/or directories that should be
 # excluded from the INPUT source files. This way you can easily exclude a
@@ -2046,7 +2046,24 @@ INCLUDE_FILE_PATTERNS  =
 # recursively expanded use the := operator instead of the = operator.
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-PREDEFINED             =
+PREDEFINED             = AMREX_Linux=1            \
+                         AMREX_PARTICLES=1        \
+                         AMREX_USE_MPI=1          \
+                         AMREX_USE_OMP=1          \
+                         AMREX_SPACEDIM=3         \
+                         AMREX_TINY_PROFILING=1   \
+                         BL_Linux=1               \
+                         BL_USE_MPI=1             \
+                         BL_USE_OMP=1             \
+                         BL_USE_SENSEI_INSITU=1   \
+                         WARPX=1                  \
+                         WARPX_DIM_RZ=1           \
+                         WARPX_DIM_XZ=1           \
+                         WARPX_DO_ELECTROSTATIC=1 \
+                         WARPX_USE_GPU=1          \
+                         WARPX_USE_OPENPMD=1      \
+                         WARPX_USE_PSATD=1        \
+                         WARPX_USE_PSATD_HYBRID=1
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The

@@ -16,16 +16,16 @@ public:
     void clear ();
 
     AMREX_GPU_HOST_DEVICE
-    double
-    operator() (double x, double y, double z) const noexcept
+    amrex::Real
+    operator() (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
 #ifdef AMREX_USE_GPU
 
 #ifdef AMREX_DEVICE_COMPILE
 // WarpX compiled for GPU, function compiled for __device__
         // the 3D position of each particle is stored in shared memory.
-        amrex::Gpu::SharedMemory<double> gsm;
-        double* p = gsm.dataPtr();
+        amrex::Gpu::SharedMemory<amrex::Real> gsm;
+        amrex::Real* p = gsm.dataPtr();
         int tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*(blockDim.x*blockDim.y);
         p[tid*3] = x;
         p[tid*3+1] = y;
