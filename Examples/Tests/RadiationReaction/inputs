@@ -1,0 +1,46 @@
+#Automatically generated inputfile
+#Run check.py without arguments to regenerate
+#
+
+max_step = 100
+amr.n_cell = 128 128 128
+amr.max_level = 0
+amr.blocking_factor = 8
+amr.max_grid_size = 8
+amr.plot_int = 1
+geometry.coord_sys   = 0
+geometry.is_periodic = 1 1 1
+geometry.prob_lo = -1e-6 -1e-6 -1e-6
+geometry.prob_hi = 1e-6 1e-6 1e-6
+warpx.do_pml = 0
+algo.charge_deposition = standard
+algo.field_gathering = standard
+warpx.cfl = 1.0
+
+particles.nspecies = 2
+particles.species_names = ele pos
+amr.plot_int = 200
+
+ele.plot_species = 1
+ele.plot_vars  = ux uy uz
+pos.plot_species = 1
+pos.plot_vars  = ux uy uz
+
+ele.charge = -q_e
+ele.mass = m_e
+ele.injection_style = "SingleParticle"
+ele.single_particle_pos = 0.0 0.0 0.0
+ele.single_particle_vel = 34 -12 81
+ele.single_particle_weight = 1.0e-64
+ele.do_classical_radiation_reaction = 1 
+
+pos.charge = q_e
+pos.mass = m_e
+pos.injection_style = "SingleParticle"
+pos.single_particle_pos = 0.0 0.0 0.0
+pos.single_particle_vel = 34 -12 81
+pos.single_particle_weight = 1.0e-64
+pos.do_classical_radiation_reaction = 1 
+
+warpx.E_external = 4387166759039.3657 -1566627704049.4656 3199250742358.954
+warpx.B_external = -10061.942356399475 13435.114549928212 -14671.267010408119
