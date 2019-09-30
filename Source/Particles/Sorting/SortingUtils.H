@@ -5,7 +5,11 @@
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Gpu.H>
 
-// TODO: Add documentation
+/* \brief Fill the elements of the input vector with consecutive integer,
+ *        starting from 0
+ *
+ * \param[inout] v Vector of integers, to be filled by this routine
+ */
 void fillWithConsecutiveIntegers( amrex::Gpu::DeviceVector<long>& v )
 {
 #ifdef AMREX_USE_GPU
@@ -17,7 +21,15 @@ void fillWithConsecutiveIntegers( amrex::Gpu::DeviceVector<long>& v )
 #endif
 }
 
-// TODO: Add documentation
+/* \brief Find the indices that would reorder the elements of `predicate`
+ * so that the elements with non-zero value precede the other elements
+ *
+ * \param[in] index_begin Point to the beginning of the vector which is
+ *            to be filled with these indices
+ * \param[in] index_begin Point to the end of the vector which is
+ *            to be filled with these indices
+ * \param[in] Vector that indicates the elements that need to be reordered first
+ */
 template< typename ForwardIterator >
 ForwardIterator stablePartition(ForwardIterator index_begin,
                                ForwardIterator index_end,
@@ -41,7 +53,12 @@ ForwardIterator stablePartition(ForwardIterator index_begin,
     return sep;
 }
 
-// TODO: Add documentation
+/* \brief Return the number of elements between `first` and `last`
+ *
+ * \param[in] fist Points to a position in a vector
+ * \param[in] last Points to another position in a vector
+ * \return The number of elements between `first` and `last`
+ */
 template< typename ForwardIterator >
 int iteratorDistance(ForwardIterator first,
                      ForwardIterator last)
@@ -54,7 +71,18 @@ int iteratorDistance(ForwardIterator first,
 #endif
 }
 
-// TODO: Add documentation
+/* \brief Functor that fills the elements of the particle array `inexflag`
+ *  with the value of the spatial array `bmasks`, at the corresponding particle position.
+ *
+ * This is done only for the elements from `start_index` to the end of `inexflag`
+ *
+ * \param[in] pti Contains information on the particle positions
+ * \param[in] bmasks Spatial array, that contains a flag indicating
+ *         whether each cell is part of the gathering/deposition buffers
+ * \param[out] inexflag Vector to be filled with the value of `bmasks`
+ * \param[in] geom Geometry object, necessary to locate particles within the array `bmasks`
+ * \param[in] start_index Index that which elements start to be modified
+ */
 class fillBufferFlag
 {
     public:
@@ -101,7 +129,13 @@ class fillBufferFlag
         long m_start_index;
 };
 
-// TODO: Add documentation
+/* \brief Functor that copies the elements of `src` into `dst`,
+ *       while reordering them according to `indices`
+ *
+ * \param src Source vector
+ * \param dst Destination vector
+ * \param indices Array of indices that indicate how to reorder elements
+ */
 template <typename T>
 class copyAndReorder
 {
