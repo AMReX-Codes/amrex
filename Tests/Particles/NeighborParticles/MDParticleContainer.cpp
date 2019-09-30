@@ -238,13 +238,13 @@ void MDParticleContainer::checkNeighborParticles()
             Gpu::Atomic::Add(&(p_num_per_grid[p1.idata(0)]),1);
         }
 
-        amrex::AllPrint() << "FOR GRID " << gid << "\n";;
+        amrex::AllPrintToFile("neighbor_test") << "FOR GRID " << gid << "\n";;
 
         for (int i = 0; i < ngrids; i++)
-          amrex::AllPrint() << "   there are " << d_num_per_grid[i] << " with grid id " << i << "\n";;
+          amrex::AllPrintToFile("neighbor_test") << "   there are " << d_num_per_grid[i] << " with grid id " << i << "\n";;
 
-        amrex::AllPrint() << " \n";
-        amrex::AllPrint() << " \n";
+        amrex::AllPrintToFile("neighbor_test") << " \n";
+        amrex::AllPrintToFile("neighbor_test") << " \n";
     }
 
 #if 0
@@ -282,13 +282,13 @@ void MDParticleContainer::checkNeighborParticles()
 
         // mine = d_mine.dataValue();
 
-        amrex::AllPrint() << "FOR GRID " << gid << "\n";;
+        amrex::AllPrintToFile("neighbor_test") << "FOR GRID " << gid << "\n";;
 
         for (int i = 0; i < ngrids; i++)
-          amrex::AllPrint() << "   there are " << d_num_per_grid[i] << " with grid id " << i << "\n";;
+          amrex::AllPrintToFile("neighbor_test") << "   there are " << d_num_per_grid[i] << " with grid id " << i << "\n";;
 
-        amrex::AllPrint() << " \n";
-        amrex::AllPrint() << " \n";
+        amrex::AllPrintToFile("neighbor_test") << " \n";
+        amrex::AllPrintToFile("neighbor_test") << " \n";
     }
 #endif
 }
