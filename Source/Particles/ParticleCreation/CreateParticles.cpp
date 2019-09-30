@@ -103,8 +103,6 @@ void MultiParticleContainer::createParticles (
     }
     const int cpuid = ParallelDescriptor::MyProc();
 
-    copy_and_transform_functor(112);
-
     // Loop over all source particles. If is_flagged, copy particle data
     // to corresponding product particle.
     amrex::For(
@@ -119,34 +117,14 @@ void MultiParticleContainer::createParticles (
                 WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
 
                 copy_and_transform_functor(
+                    is, ip, pid_product, cpuid, do_boosted_product,
+                    runtime_uold_source,
                     p_source,
-                    
                     p_product,
-                    );
+                    attribs_source,
+                    attribs_product,
+                    runtime_attribs_product);
 
-                // Copy particle from source to product: AoS
-                p_product.id() = pid_product + ip;
-                p_product.cpu() = cpuid;
-                p_product.pos(0) = p_source.pos(0);
-                p_product.pos(1) = p_source.pos(1);
-#if (AMREX_SPACEDIM == 3)
-                p_product.pos(2) = p_source.pos(2);
-#endif
-                // Copy particle from source to product: SoA
-                for (int ia = 0; ia < PIdx::nattribs; ++ia) {
-                    attribs_product[ia][ip] = attribs_source[ia][is];
-                }
-                // Update xold etc. if boosted frame diagnostics required
-                // for product species. Fill runtime attribs with a copy of
-                // current properties (xold = x etc.).
-                if (do_boosted_product) {
-                    runtime_attribs_product[0][ip] = p_source.pos(0);
-                    runtime_attribs_product[1][ip] = p_source.pos(1);
-                    runtime_attribs_product[2][ip] = p_source.pos(2);
-                    runtime_attribs_product[3][ip] = runtime_uold_source[0][ip];
-                    runtime_attribs_product[4][ip] = runtime_uold_source[1][ip];
-                    runtime_attribs_product[5][ip] = runtime_uold_source[2][ip];
-                }
             }
         }
         );
