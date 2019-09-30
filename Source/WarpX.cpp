@@ -792,8 +792,8 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     ncomps = n_rz_azimuthal_modes*2 - 1;
 #endif
 
-    bool is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
-    IntVect ngextra(static_cast<int>(is_nodal));
+    bool aux_is_nodal = (field_gathering_algo == GatheringAlgo::MomentumConserving);
+    IntVect ngextra(static_cast<int>(aux_is_nodal and !do_nodal));
 
     //
     // The fine patch
@@ -851,7 +851,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     // The Aux patch (i.e., the full solution)
     //
-    if (is_nodal)
+    if (aux_is_nodal and !do_nodal)
     {
         BoxArray const nba = amrex::convert(ba,IntVect::TheUnitVector());
         Bfield_aux[lev][0].reset( new MultiFab(nba,dm,ncomps,ngE));
@@ -943,7 +943,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         cba.coarsen(refRatio(lev-1));
 
         if (n_field_gather_buffer > 0 || mypc->nSpeciesGatherFromMainGrid() > 0) {
-            if (field_gathering_algo == GatheringAlgo::MomentumConserving) {
+            if (aux_is_nodal) {
                 BoxArray const& cnba = amrex::convert(cba,IntVect::TheUnitVector());
                 Bfield_cax[lev][0].reset( new MultiFab(cnba,dm,ncomps,ngE));
                 Bfield_cax[lev][1].reset( new MultiFab(cnba,dm,ncomps,ngE));
