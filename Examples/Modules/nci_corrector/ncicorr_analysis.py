@@ -2,6 +2,7 @@
 
 import sys
 import yt
+import re
 import numpy as np
 import scipy.constants as scc
 yt.funcs.mylog.setLevel(0)
