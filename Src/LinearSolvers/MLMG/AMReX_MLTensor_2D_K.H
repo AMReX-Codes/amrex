@@ -40,21 +40,17 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
     const auto dlo  = amrex::lbound(domain);
     const auto dhi  = amrex::ubound(domain);
 
-    //fixme
-    //static int count=0; count++;
-    //
     for (int icomp = 0; icomp < AMREX_SPACEDIM; ++icomp) {
         switch (icorner) {
         case 0: {
 	  //
-	  //fixme?
+	  //FIXME?
 	  // does it matter whether we check x or y first?
 	  //
             // xlo & ylo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1);
             if (vlo.x == dlo.x) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
 
                 int offset = AMREX_SPACEDIM * oxlo;
@@ -63,21 +59,13 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
             }
             else if (vlo.y == dlo.y) {
-	        int offset = AMREX_SPACEDIM * oylo;
 		if ( use_crsedata )
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
 		
+		int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
- 	    // if (vbox.contains({0,0})){
-	    //   int i = 0, j=0;
-	    //   Print()<<"count "<<count<<": vbx "<<vbox<<"\n";
-	    //   Print()<<"count "<<count<<": bcval("<<i-1<<","<<j-1<<","<<icomp<<") "<<bcvalylo(i-1,j-1,0,icomp)<<" "<<bcvalxlo(i-1,j-1,0,icomp)<<" "<<vel(i-1,j-1,0,icomp)<<"\n";
-	    //   Print()<<"count "<<count<<": bcval("<<icomp<<") "<<bcvalylo(i,j-1,0,icomp)<<" "<<bcvalxlo(i-1,j,0,icomp)<<"\n";
-	    //   //amrex::Abort();
-	    // }
             }
             break;
         }
@@ -86,7 +74,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             Box bx = amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1);
             if (vhi.x == dhi.x) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
 
                 int offset = AMREX_SPACEDIM * oxhi;
@@ -96,7 +83,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             }
             else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
 
                 int offset = AMREX_SPACEDIM * oylo;
@@ -111,7 +97,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             Box bx = amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1);
             if (vlo.x == dlo.x) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
 
                 int offset = AMREX_SPACEDIM * oxlo;
@@ -121,7 +106,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             }
             else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
 
                 int offset = AMREX_SPACEDIM * oyhi;
@@ -129,28 +113,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
             }
-
-	    //Print()<<ParallelDescriptor::MyProc()<<": call "<<count<<"\n";
-
-	    // if (vbox.contains({128,392})){
-	    // 	  Print()<<"bx "<<bx<<"\n";
-	    // 	  Print()<<"dlo "<<dlo<<"\n";
-	    // 	  Print()<<"bcvalxlo "<<bcvalxlo(127,391,0,icomp);
-	    // // }
-	    // if (vbox.contains({16,47})){
-	    //   Print()<<"bx "<<bx<<"\n";
-	    //   Print()<<"dlo "<<dlo<<"\n";
-	    //   Print()<<"bcvalyhi "<<bcvalyhi(15,48,0,icomp)<<" "<<bcvalyhi(16,48,0,icomp)<<"\n";
-	    // }
-	    // if (vbox.contains({15,47})){
-	    //   Print()<<"vbx "<<vbox<<"\n";
-	    //   Print()<<"bcvalxlo "<<bcvalxlo(-1,31,0,icomp)<<" "<<bcvalxlo(-1,32,0,icomp)<<" "<<bcvalxlo(-1,47,0,icomp)<<" "<<bcvalxlo(-1,48,0,icomp)<<"\n";
-	    //   Print()<<"bcvalylo "<<bcvalylo(-1,31,0,icomp)<<" "<<bcvalylo(0,31,0,icomp)<<" "<<bcvalylo(15,31,0,icomp)<<" "<<bcvalylo(16,31,0,icomp)<<"\n";
-	    //   Print()<<"bcvalxhi "<<bcvalxhi(16,31,0,icomp)<<" "<<bcvalxhi(16,32,0,icomp)<<" "<<bcvalxhi(16,47,0,icomp)<<" "<<bcvalxhi(16,48,0,icomp)<<"\n";
-	    //   Print()<<"bcvalyhi "<<bcvalyhi(-1,48,0,icomp)<<" "<<bcvalyhi(0,48,0,icomp)<<" "<<bcvalyhi(15,48,0,icomp)<<" "<<bcvalyhi(16,48,0,icomp)<<"\n";
-	    // }
-
-
             break;
         }
         case 3: {
@@ -158,7 +120,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             Box bx = amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1);
             if (vhi.x == dhi.x) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
 	      
                 int offset = AMREX_SPACEDIM * oxhi;
@@ -168,7 +129,6 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
             }
             else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
-		  // fill corners of bndry from coarse data using first order interpolation 
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
 
                 int offset = AMREX_SPACEDIM * oyhi;
@@ -273,7 +233,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
 	    	  Print()<<"vel(-1,0) "<<vel(i-1,j,0,0)<<" "<<vel(i-1,j,0,1)<<"\n";
 	    	  Print()<<"vel(-1,+1) "<<vel(i-1,j+1,0,0)<<" "<<vel(i-1,j+1,0,1)<<"\n";
 	    	  Print()<<"vel(0,+1) "<<vel(i,j+1,0,0)<<" "<<vel(i,j+1,0,1)<<"\n";
-	    	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";
+	    	  Print()<<"vel(0,0) "<<vel(i,j,0,0)<<" "<<vel(i,j,0,1)<<"\n";1111111
 	    	}
 	    	// if (i==15 && j==47){
 	    	//   Print()<<" i,j: "<<i<< ","<<j<<"\n";

@@ -99,7 +99,6 @@ MLTensorOp::prepareForSolve ()
             int icomp = idim;
             MultiFab::Xpay(m_b_coeffs[amrlev][0][idim], 4./3.,
                            m_kappa[amrlev][0][idim], 0, icomp, 1, 0);
-	    //m_b_coeffs[amrlev][0][idim].mult(2.,icomp,1,0);
         }
     }
 
@@ -117,7 +116,10 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    applyBCTensor(amrlev, mglev, in, bc_mode); //, bndry);
+    // FIXME? - Now altering the MLMGBndry object in corner/edge filling 
+    //  process. Unsure wheter to change declaration of bndry in fn def 
+    //  or to just use m_bndry_sol[amrlev].get() inside applyBCTensor()
+    applyBCTensor(amrlev, mglev, in, bc_mode /*, bndry */);
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -181,7 +183,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
 void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                           BCMode bc_mode//, const MLMGBndry* bndry
+                           BCMode bc_mode /*, const MLMGBndry* bndry */
 			   ) const
 {
 #if (AMREX_SPACEDIM > 1)
@@ -195,20 +197,18 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& constfoo = foofab.array();
     auto foo = foofab.array();
 
-    // must get pointer to MLMGBndry object this way, so that we can
+    // FIXME? get pointer to MLMGBndry object this way, so that we can
     // alter the data
     MLMGBndry* bndry = m_bndry_sol[amrlev].get();
     const BndryRegister* crsebndry = m_crse_sol_br[amrlev].get();
-    // is this how to make sure this works for multilevel/composite solve too???
     int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
     const IntVect ratio{cr};
     
     const auto& rr = ratio.dim3();
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-    //const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
     const int use_crsedata = (crsebndry!=nullptr && inhomog);
-    
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
@@ -218,9 +218,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     {
         const Box& vbx = mfi.validbox();
 	Box testbox = vbx;
-	// fixme?
-	// not sure why bndry has resaonable data when AllPeriodic
-	// but then has nans in the side with periodic BC if !AllPeriodic
 	if ( !m_geom[amrlev][mglev].isAllPeriodic() ) {
 	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
 	    if (m_geom[amrlev][mglev].isPeriodic(idim)) {
@@ -228,7 +225,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 	    }
 	  }
 	}
-	
+
         const auto& velfab = vel.array(mfi);
 
         const auto & bdlv = bcondloc.bndryLocs(mfi);
@@ -245,13 +242,12 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
             }
         }
 
-#if (AMREX_SPACEDIM == 2)
         const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
         const auto& mylo = maskvals[Orientation(1,Orientation::low )].array(mfi);
         const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
-	// not sure about this const qualifier here
+	// FIXME? not sure about this const qualifier here
         const auto& bvxlo = (bndry != nullptr) ?
 	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
         const auto& bvylo = (bndry != nullptr) ?
@@ -270,19 +266,8 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& cbvyhi = (crsebndry != nullptr) ?
 	  (*crsebndry)[Orientation(1,Orientation::high)].array(mfi) : constfoo;
 
-	    // //fixme
-	    // IntVect mypt={1,35};
-	    // if (vbx.contains(mypt)) {
-	    //   int i=-1, j=31;
-	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxlo(i,j,0)<<" "<<mylo(i,j,0)<<"\n";
-	    //   i=-1; j=48;
-	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxlo(i,j,0)<<" "<<myhi(i,j,0)<<"\n";
-	    //   i=16; j=31;
-	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxhi(i,j,0)<<" "<<mylo(i,j,0)<<"\n";
-	    //   i=16; j=48;
-	    //   Print()<<"mask("<<i<<","<<j<<"): "<<mxhi(i,j,0)<<" "<<myhi(i,j,0)<<"\n";
-	    // }
-	
+#if (AMREX_SPACEDIM == 2)
+
         AMREX_HOST_DEVICE_FOR_1D ( 4, icorner,
         {
             mltensor_fill_corners(icorner, vbx, velfab,
@@ -293,25 +278,19 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                   dxinv, rr, testbox);
         });
 #else
-        const auto& mxlo = maskvals[Orientation(0,Orientation::low )].array(mfi);
-        const auto& mylo = maskvals[Orientation(1,Orientation::low )].array(mfi);
         const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
-        const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
-        const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
         const auto& mzhi = maskvals[Orientation(2,Orientation::high)].array(mfi);
 
-        const auto& bvxlo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::low )).array(mfi) : foo;
-        const auto& bvylo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::low )).array(mfi) : foo;
+	// FIXME? not sure about this const qualifier here
         const auto& bvzlo = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(2,Orientation::low )).array(mfi) : foo;
-        const auto& bvxhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(0,Orientation::high)).array(mfi) : foo;
-        const auto& bvyhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(1,Orientation::high)).array(mfi) : foo;
+	  (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
         const auto& bvzhi = (bndry != nullptr) ?
-            bndry->bndryValues(Orientation(2,Orientation::high)).array(mfi) : foo;
+	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
+
+	const auto& cbvzlo = (crsebndry != nullptr) ?
+	  (*crsebndry)[Orientation(2,Orientation::low )].array(mfi) : constfoo;
+        const auto& cbvzhi = (crsebndry != nullptr) ?
+	  (*crsebndry)[Orientation(2,Orientation::high)].array(mfi) : constfoo;
 
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
@@ -323,13 +302,16 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 				dxinv, rr, testbox);
         });
 
-        AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
-        {
-            mltensor_fill_corners(icorner, vbx, velfab,
-                                  mxlo, mylo, mzlo, mxhi, myhi, mzhi,
-                                  bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-                                  bct, bcl, inhomog, imaxorder, dxinv, domain);
-        });
+	// Corners are never used in 3D stencil, only edge vals
+        // AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
+        // {
+        //     mltensor_fill_corners(icorner, vbx, velfab,
+        //                           mxlo, mylo, mzlo, mxhi, myhi, mzhi,
+        //                           bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
+	// 			  cbvxlo, cbvylo, cbvzlo, cbvxhi, cbvyhi, cbvzhi,
+        //                           bct, bcl, inhomog, imaxorder, use_crsedata,
+        //                           dxinv, rr, testbox);
+        // });
 #endif
     }
 
