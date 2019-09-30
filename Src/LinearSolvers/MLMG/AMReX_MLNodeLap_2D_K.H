@@ -147,35 +147,42 @@ void mlndlap_avgdown_coeff_y (int i, int j, int k, Array4<Real> const& crse,
 //
 
 template <typename T>
-inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
-                               Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                               Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
+void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
+                      GpuArray<bool,AMREX_SPACEDIM> const& bflo,
+                      GpuArray<bool,AMREX_SPACEDIM> const& bfhi) noexcept
 {
     if (domain.strictly_contains(vbx)) return;
+
+    int offset = domain.cellCentered() ? 0 : 1;
 
     const auto dlo = amrex::lbound(domain);
     const auto dhi = amrex::ubound(domain);
     Box const& sbox = amrex::grow(vbx,1);
 
-    Box const& xlo_face = amrex::adjCellLo(domain,0) & sbox;
-    Box const& xhi_face = amrex::adjCellHi(domain,0) & sbox;
-    Box const& ylo_face = amrex::adjCellLo(domain,1) & sbox;
-    Box const& yhi_face = amrex::adjCellHi(domain,1) & sbox;
+    Box xlo_face = domain;
+    xlo_face.setSmall(0,dlo.x-1);
+    xlo_face.setBig  (0,dlo.x-1);
+    xlo_face &= sbox;
+    Box ylo_face = domain;
+    ylo_face.setSmall(1,dlo.y-1);
+    ylo_face.setBig  (1,dlo.y-1);
+    ylo_face &= sbox;
     int xoffset = vbx.length(0)+1;
     int yoffset = vbx.length(1)+1;
+
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
     xlo_face, txbxlo,
     {
         auto lo = amrex::lbound(txbxlo);
         auto hi = amrex::ubound(txbxlo);
-        if (lo.x == dlo.x-1 and bclo[0] != LinOpBCType::Periodic) {
+        if (lo.x == dlo.x-1 and bflo[0]) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                sigma(dlo.x-1,j,0) = sigma(dlo.x,j,0);
+                a(dlo.x-1,j,0) = a(dlo.x+offset,j,0);
             }
         }
-        if (lo.x+xoffset == dhi.x+1 and bchi[0] != LinOpBCType::Periodic) {
+        if (lo.x+xoffset == dhi.x+1 and bfhi[0]) {
             for (int j = lo.y; j <= hi.y; ++j) {
-                sigma(dhi.x+1,j,0) = sigma(dhi.x,j,0);
+                a(dhi.x+1,j,0) = a(dhi.x-offset,j,0);
             }
         }
     },
@@ -183,14 +190,14 @@ inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const
     {
         auto lo = amrex::lbound(tybxlo);
         auto hi = amrex::ubound(tybxlo);
-        if (lo.y == dlo.y-1 and bclo[1] != LinOpBCType::Periodic) {
+        if (lo.y == dlo.y-1 and bflo[1]) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                sigma(i,dlo.y-1,0) = sigma(i,dlo.y,0);
+                a(i,dlo.y-1,0) = a(i,dlo.y+offset,0);
             }
         }
-        if (lo.y+yoffset == dhi.y+1 and bchi[1] != LinOpBCType::Periodic) {
+        if (lo.y+yoffset == dhi.y+1 and bfhi[1]) {
             for (int i = lo.x; i <= hi.x; ++i) {
-                sigma(i,dhi.y+1,0) = sigma(i,dhi.y,0);
+                a(i,dhi.y+1,0) = a(i,dhi.y-offset,0);
             }
         }
     });
@@ -204,10 +211,10 @@ inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const
         case 0: {
             // xlo & ylo
             if (lo.x == dlo.x-1 and lo.y == dlo.y-1) {
-                if (bclo[0] != LinOpBCType::Periodic) {
-                    sigma(dlo.x-1,dlo.y-1,0) = sigma(dlo.x,dlo.y-1,0);
-                } else if (bclo[1] != LinOpBCType::Periodic) {
-                    sigma(dlo.x-1,dlo.y-1,0) = sigma(dlo.x-1,dlo.y,0);
+                if (bflo[0]) {
+                    a(dlo.x-1,dlo.y-1,0) = a(dlo.x+offset,dlo.y-1,0);
+                } else if (bflo[1]) {
+                    a(dlo.x-1,dlo.y-1,0) = a(dlo.x-1,dlo.y+offset,0);
                 }
             }
             break;
@@ -215,10 +222,10 @@ inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const
         case 1: {
             // xhi & ylo
             if (hi.x == dhi.x+1 and lo.y == dlo.y-1) {
-                if (bchi[0] != LinOpBCType::Periodic) {
-                    sigma(dhi.x+1,dlo.y-1,0) = sigma(dhi.x,dlo.y-1,0);
-                } else if (bclo[1] != LinOpBCType::Periodic) {
-                    sigma(dhi.x+1,dlo.y-1,0) = sigma(dhi.x+1,dlo.y,0);
+                if (bfhi[0]) {
+                    a(dhi.x+1,dlo.y-1,0) = a(dhi.x-offset,dlo.y-1,0);
+                } else if (bflo[1]) {
+                    a(dhi.x+1,dlo.y-1,0) = a(dhi.x+1,dlo.y+offset,0);
                 }
             }
             break;
@@ -226,10 +233,10 @@ inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const
         case 2: {
             // xlo & yhi
             if (lo.x == dlo.x-1 and hi.y == dhi.y+1) {
-                if (bclo[0] != LinOpBCType::Periodic) {
-                    sigma(dlo.x-1,dhi.y+1,0) = sigma(dlo.x,dhi.y+1,0);
-                } else if (bchi[1] != LinOpBCType::Periodic) {
-                    sigma(dlo.x-1,dhi.y+1,0) = sigma(dlo.x-1,dhi.y,0);
+                if (bflo[0]) {
+                    a(dlo.x-1,dhi.y+1,0) = a(dlo.x+offset,dhi.y+1,0);
+                } else if (bfhi[1]) {
+                    a(dlo.x-1,dhi.y+1,0) = a(dlo.x-1,dhi.y-offset,0);
                 }
             }
             break;
@@ -237,10 +244,10 @@ inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const
         case 3: {
             // xhi & yhi
             if (hi.x == dhi.x+1 and hi.y == dhi.y+1) {
-                if (bchi[0] != LinOpBCType::Periodic) {
-                    sigma(dhi.x+1,dhi.y+1,0) = sigma(dhi.x,dhi.y+1,0);
-                } else if (bchi[1] != LinOpBCType::Periodic) {
-                    sigma(dhi.x+1,dhi.y+1,0) = sigma(dhi.x+1,dhi.y,0);
+                if (bfhi[0]) {
+                    a(dhi.x+1,dhi.y+1,0) = a(dhi.x-offset,dhi.y+1,0);
+                } else if (bfhi[1]) {
+                    a(dhi.x+1,dhi.y+1,0) = a(dhi.x+1,dhi.y-offset,0);
                 }
             }
             break;

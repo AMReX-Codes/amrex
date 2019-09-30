@@ -1665,12 +1665,8 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
 #endif
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            if (!nd_domain.strictly_contains(mfi.fabbox()))
-            {
-                amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                      BL_TO_FORTRAN_BOX(nd_domain),
-                                      m_lobc[0].data(), m_hibc[0].data());
-            }
+            Array4<Real> const& fab = phi.array(mfi);
+            mlndlap_applybc(mfi.validbox(),fab,nd_domain,m_lobc[0],m_hibc[0]);
         }
     }
 }
@@ -2038,12 +2034,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #endif
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            if (!nddom.strictly_contains(mfi.fabbox()))
-            {
-                amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                      BL_TO_FORTRAN_BOX(nddom),
-                                      m_lobc[0].data(), m_hibc[0].data());
-            }
+            Array4<Real> const& fab = phi.array(mfi);
+            mlndlap_applybc(mfi.validbox(),fab,nddom,m_lobc[0],m_hibc[0]);
         }
     }
 
