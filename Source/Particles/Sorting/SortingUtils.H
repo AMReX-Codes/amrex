@@ -6,7 +6,7 @@
 #include <AMReX_Gpu.H>
 
 // TODO: Add documentation
-void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v )
+void fillWithConsecutiveIntegers( amrex::Gpu::DeviceVector<long>& v )
 {
 #ifdef AMREX_USE_GPU
     // On GPU: Use thrust
@@ -21,7 +21,7 @@ void fillWithConsecutiveIntegers( amrex::Gpu::ManagedDeviceVector<long>& v )
 template< typename ForwardIterator >
 ForwardIterator stablePartition(ForwardIterator index_begin,
                                ForwardIterator index_end,
-                               amrex::Gpu::ManagedDeviceVector<int>& predicate)
+                               amrex::Gpu::DeviceVector<int>& predicate)
 {
 #ifdef AMREX_USE_GPU
     // On GPU: Use thrust
@@ -59,7 +59,7 @@ class fillBufferFlag
 {
     public:
         fillBufferFlag( WarpXParIter& pti, const amrex::iMultiFab* bmasks,
-                        amrex::Gpu::ManagedDeviceVector<int>& inexflag,
+                        amrex::Gpu::DeviceVector<int>& inexflag,
                         const amrex::Geometry& geom, long start_index=0 ) {
 
             // Extract simple structure that can be used directly on the GPU
@@ -109,14 +109,14 @@ class copyAndReorder
         copyAndReorder(
             amrex::Gpu::ManagedDeviceVector<T>& src,
             amrex::Gpu::ManagedDeviceVector<T>& dst,
-            amrex::Gpu::ManagedDeviceVector<long>& indices ) {
+            amrex::Gpu::DeviceVector<long>& indices ) {
             // Extract simple structure that can be used directly on the GPU
             m_src_ptr = src.dataPtr();
             m_dst_ptr = dst.dataPtr();
             m_indices_ptr = indices.dataPtr();
         };
 
-        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         void operator()( const long ip ) const {
             m_dst_ptr[ip] = m_src_ptr[ m_indices_ptr[ip] ];
         };

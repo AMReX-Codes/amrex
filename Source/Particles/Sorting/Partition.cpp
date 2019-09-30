@@ -43,9 +43,9 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     BL_PROFILE("PPC::Evolve::partition");
 
     // Initialize temporary arrays
-    Gpu::ManagedDeviceVector<int> inexflag;
+    Gpu::DeviceVector<int> inexflag;
     inexflag.resize(np);
-    Gpu::ManagedDeviceVector<long> pid;
+    Gpu::DeviceVector<long> pid;
     pid.resize(np);
 
     // First, partition particles into the larger buffer
@@ -138,5 +138,12 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
         std::swap(uyp, tmp);
         amrex::ParallelFor( np, copyAndReorder<Real>( uzp, tmp, pid ) );
         std::swap(uzp, tmp);
+
+        // Make sure that the temporary arrays are not destroyed before
+        // the GPU kernels finish running
+        Gpu::streamSynchronize();
     }
+    // Make sure that the temporary arrays are not destroyed before
+    // the GPU kernels finish running
+    Gpu::streamSynchronize();
 }
