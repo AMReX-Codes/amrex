@@ -584,8 +584,9 @@ MultiParticleContainer::doFieldIonization ()
                 // 0 if not ionized, 1 if ionized.
                 amrex::Gpu::ManagedDeviceVector<int> is_ionized;
                 pc_source->buildIonizationMask(mfi, lev, is_ionized);
+                copyAndTransformParticle copy_and_transform_functor;
                 // Create particles in pc_product
-                createParticles(lev, mfi, pc_source, pc_product, is_ionized);
+                createParticles(lev, mfi, pc_source, pc_product, is_ionized, copy_and_transform_functor);
             }
         } // lev
     } // pc_source

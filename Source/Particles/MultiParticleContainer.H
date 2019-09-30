@@ -1,6 +1,7 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
+#include "IonizationEvent.H"
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -195,7 +196,8 @@ public:
         int lev, const amrex::MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
-        amrex::Gpu::ManagedDeviceVector<int>& is_flagged);
+        amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
+        copyAndTransformParticle copy_and_transform_functor);
     
 protected:
 
