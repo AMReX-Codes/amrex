@@ -1568,7 +1568,13 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real q = this->charge;
     const Real m = this-> mass;
 
-    if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+
+    // Boris + RR is enabled only for leptons
+    auto algo = WarpX::particle_pusher_algo;
+    if (!AmIALepton() && algo == ParticlePusherAlgo::BorisRR)
+        algo = ParticlePusherAlgo::Boris;
+
+    if (algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(
             pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
@@ -1581,7 +1587,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                       ux[i], uy[i], uz[i], dt );
             }
         );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
+    } else if (algo == ParticlePusherAlgo::Vay) {
         amrex::ParallelFor(
             pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
@@ -1594,7 +1600,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                                 ux[i], uy[i], uz[i], dt );
             }
         );
-    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::BorisRR) {
+    } else if (algo == ParticlePusherAlgo::BorisRR) {
         amrex::ParallelFor(
             pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
@@ -1688,21 +1694,27 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             // Loop over the particles and update their momentum
             const Real q = this->charge;
             const Real m = this-> mass;
-            if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
+
+            // Boris + RR is enabled only for leptons
+            auto algo = WarpX::particle_pusher_algo;
+            if (!AmIALepton() && algo == ParticlePusherAlgo::BorisRR)
+                algo = ParticlePusherAlgo::Boris;
+
+            if (algo == ParticlePusherAlgo::Boris){
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
                         UpdateMomentumBoris( ux[i], uy[i], uz[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );
-            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
+            } else if (algo == ParticlePusherAlgo::Vay) {
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
                         UpdateMomentumVay( ux[i], uy[i], uz[i],
                               Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
                     }
                 );
-            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::BorisRR) {
+            } else if (algo == ParticlePusherAlgo::BorisRR) {
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
                         UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
@@ -2148,4 +2160,11 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
             }
         }
     );
+}
+
+//This function return true if the PhysicalParticleContainer contains electrons
+//or positrons, false otherwise
+bool
+PhysicalParticleContainer::AmIALepton(){
+    return (this-> mass == PhysConst::m_e);
 }
