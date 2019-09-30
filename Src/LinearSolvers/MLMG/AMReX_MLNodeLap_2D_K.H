@@ -745,5 +745,30 @@ void mlndlap_adotx_sten (Box const& bx, Array4<Real> const& y, Array4<Real const
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
+                                Array4<Real const> const& rhs,
+                                Array4<Real const> const& sten,
+                                Array4<int const> const& msk) noexcept
+{
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else if (sten(i,j,k,0) != 0.0) {
+            Real Ax = sol(i-1,j-1,k)*sten(i-1,j-1,k,3)
+                +     sol(i  ,j-1,k)*sten(i  ,j-1,k,2)
+                +     sol(i+1,j-1,k)*sten(i  ,j-1,k,3)
+                +     sol(i-1,j  ,k)*sten(i-1,j  ,k,1)
+                +     sol(i  ,j  ,k)*sten(i  ,j  ,k,0)
+                +     sol(i+1,j  ,k)*sten(i  ,j  ,k,1)
+                +     sol(i-1,j+1,k)*sten(i-1,j  ,k,3)
+                +     sol(i  ,j+1,k)*sten(i  ,j  ,k,2)
+                +     sol(i+1,j+1,k)*sten(i  ,j  ,k,3);
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / sten(i,j,k,0);
+        }
+    });
+}
+
 }
 #endif

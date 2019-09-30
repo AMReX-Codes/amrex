@@ -100,7 +100,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
+  public:: amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
        amrex_mlndlap_stencil_rap
@@ -794,69 +794,6 @@ contains
     end do
   end subroutine amrex_mlndlap_zero_fine
 
-
-  subroutine amrex_mlndlap_gauss_seidel_sten (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
-       sten, stlo, sthi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_gauss_seidel_sten')
-    integer, dimension(3),intent(in) :: lo,hi,slo,shi,rlo,rhi,stlo,sthi,mlo,mhi
-    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
-    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
-    real(amrex_real), intent(in   ) ::sten(stlo(1):sthi(1),stlo(2):sthi(2),stlo(3):sthi(3),n_sten)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-
-    integer :: i,j,k
-    real(amrex_real) :: Ax
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (msk(i,j,k) .ne. dirichlet) then
-                if (sten(i,j,k,ist_000) .ne. 0.d0) then
-                   Ax   = sol(i  ,j  ,k  ) * sten(i  ,j  ,k  ,ist_000) &
-                        !
-                        + sol(i-1,j  ,k  ) * sten(i-1,j  ,k  ,ist_p00) &
-                        + sol(i+1,j  ,k  ) * sten(i  ,j  ,k  ,ist_p00) &
-                        !
-                        + sol(i  ,j-1,k  ) * sten(i  ,j-1,k  ,ist_0p0) &
-                        + sol(i  ,j+1,k  ) * sten(i  ,j  ,k  ,ist_0p0) &
-                        !
-                        + sol(i  ,j  ,k-1) * sten(i  ,j  ,k-1,ist_00p) &
-                        + sol(i  ,j  ,k+1) * sten(i  ,j  ,k  ,ist_00p) &
-                        !
-                        + sol(i-1,j-1,k  ) * sten(i-1,j-1,k  ,ist_pp0) &
-                        + sol(i+1,j-1,k  ) * sten(i  ,j-1,k  ,ist_pp0) &
-                        + sol(i-1,j+1,k  ) * sten(i-1,j  ,k  ,ist_pp0) &
-                        + sol(i+1,j+1,k  ) * sten(i  ,j  ,k  ,ist_pp0) &
-                        !
-                        + sol(i-1,j  ,k-1) * sten(i-1,j  ,k-1,ist_p0p) &
-                        + sol(i+1,j  ,k-1) * sten(i  ,j  ,k-1,ist_p0p) &
-                        + sol(i-1,j  ,k+1) * sten(i-1,j  ,k  ,ist_p0p) &
-                        + sol(i+1,j  ,k+1) * sten(i  ,j  ,k  ,ist_p0p) &
-                        !
-                        + sol(i  ,j-1,k-1) * sten(i  ,j-1,k-1,ist_0pp) &
-                        + sol(i  ,j+1,k-1) * sten(i  ,j  ,k-1,ist_0pp) &
-                        + sol(i  ,j-1,k+1) * sten(i  ,j-1,k  ,ist_0pp) &
-                        + sol(i  ,j+1,k+1) * sten(i  ,j  ,k  ,ist_0pp) &
-                        !
-                        + sol(i-1,j-1,k-1) * sten(i-1,j-1,k-1,ist_ppp) &
-                        + sol(i+1,j-1,k-1) * sten(i  ,j-1,k-1,ist_ppp) &
-                        + sol(i-1,j+1,k-1) * sten(i-1,j  ,k-1,ist_ppp) &
-                        + sol(i+1,j+1,k-1) * sten(i  ,j  ,k-1,ist_ppp) &
-                        + sol(i-1,j-1,k+1) * sten(i-1,j-1,k  ,ist_ppp) &
-                        + sol(i+1,j-1,k+1) * sten(i  ,j-1,k  ,ist_ppp) &
-                        + sol(i-1,j+1,k+1) * sten(i-1,j  ,k  ,ist_ppp) &
-                        + sol(i+1,j+1,k+1) * sten(i  ,j  ,k  ,ist_ppp)
-
-                   sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / sten(i,j,k,ist_000)
-                end if
-             else
-                sol(i,j,k) = 0.d0
-             end if
-          end do
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_gauss_seidel_sten
 
   subroutine amrex_mlndlap_jacobi_sten (lo, hi, sol, slo, shi, Ax, alo, ahi, &
        rhs, rlo, rhi, sten, stlo, sthi, msk, mlo, mhi) &
