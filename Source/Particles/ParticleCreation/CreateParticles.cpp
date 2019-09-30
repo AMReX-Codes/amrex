@@ -11,8 +11,7 @@ void MultiParticleContainer::createParticles (
     std::unique_ptr< WarpXParticleContainer>& pc_source,
     std::unique_ptr< WarpXParticleContainer>& pc_product,
     amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
-    copyAndTransformParticle copy_and_transform_functor
-    )
+    particleCreationProcess creation_process)
 {
     BL_PROFILE("createIonizedParticles");
 
@@ -103,6 +102,13 @@ void MultiParticleContainer::createParticles (
     }
     const int cpuid = ParallelDescriptor::MyProc();
 
+    copyAndTransformParticle copy_and_transform_functor = creation_process.initialize_functor(
+        cpuid, do_boosted_product,
+        &runtime_uold_source,
+        &attribs_source,
+        &attribs_product,
+        &runtime_attribs_product);
+    
     // Loop over all source particles. If is_flagged, copy particle data
     // to corresponding product particle.
     amrex::For(
@@ -117,14 +123,9 @@ void MultiParticleContainer::createParticles (
                 WarpXParticleContainer::ParticleType& p_source  = particles_source[is];
 
                 copy_and_transform_functor(
-                    is, ip, pid_product, cpuid, do_boosted_product,
-                    runtime_uold_source,
+                    is, ip, pid_product,
                     p_source,
-                    p_product,
-                    attribs_source,
-                    attribs_product,
-                    runtime_attribs_product);
-
+                    p_product);
             }
         }
         );

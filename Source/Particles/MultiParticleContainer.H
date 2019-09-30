@@ -197,7 +197,7 @@ public:
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
         amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
-        copyAndTransformParticle copy_and_transform_functor);
+        particleCreationProcess creation_process);
     
 protected:
 
