@@ -74,7 +74,7 @@ BndryRegister::init (const BndryRegister& src)
             const Box& bx = mfi.validbox();
             auto const sfab = src.bndry[idim].array(mfi);
             auto       dfab =     bndry[idim].array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dfab(i,j,k,n) = sfab(i,j,k,n);
             });
@@ -240,7 +240,7 @@ BndryRegister::operator+= (const BndryRegister& rhs)
             const Box& bx = bfsi.validbox();
             auto const sfab =   rhs[f].array(bfsi);
             auto       dfab = bndry[f].array(bfsi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 dfab(i,j,k,n) += sfab(i,j,k,n);
             });

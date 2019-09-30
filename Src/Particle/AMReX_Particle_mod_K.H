@@ -119,7 +119,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     
     for (int i = lo_x; i <= hi_x; ++i) {
         if (i < rho.begin.x || i >= rho.end.x) continue;
-        amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);                
+        amrex::Real wx = amrex::min(hx - i, amrex::Real(1.0)) - amrex::max(lx - i, amrex::Real(0.0));
         amrex::Real weight = wx*factor;                
         rho(i, 0, 0, 0) += weight*p.rdata(0);                
     }
@@ -128,7 +128,7 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     {
         for (int i = lo_x; i <= hi_x; ++i) {
             if (i < rho.begin.x || i >= rho.end.x) continue;
-            amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);            
+            amrex::Real wx = amrex::min(hx - i, amrex::Real(1.0)) - amrex::max(lx - i, amrex::Real(0.0));            
             amrex::Real weight = wx*factor;
             rho(i, 0, 0, comp) += weight*p.rdata(0)*p.rdata(comp);
         }
@@ -151,10 +151,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
 
     for (int j = lo_y; j <= hi_y; ++j) {
         if (j < rho.begin.y || j >= rho.end.y) continue;
-        amrex::Real wy = amrex::min(hy - j, 1.0) - amrex::max(ly - j, 0.0);
+        amrex::Real wy = amrex::min(hy - j, amrex::Real(1.0)) - amrex::max(ly - j, amrex::Real(0.0));
         for (int i = lo_x; i <= hi_x; ++i) {
             if (i < rho.begin.x || i >= rho.end.x) continue;
-            amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
+            amrex::Real wx = amrex::min(hx - i, amrex::Real(1.0)) - amrex::max(lx - i, amrex::Real(0.0));
             
             amrex::Real weight = wx*wy*factor;
                 
@@ -165,10 +165,10 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     for (int comp = 1; comp < nc; ++comp) {
         for (int j = lo_y; j <= hi_y; ++j) {
             if (j < rho.begin.y || j >= rho.end.y) continue;
-            amrex::Real wy = amrex::min(hy - j, 1.0) - amrex::max(ly - j, 0.0);
+            amrex::Real wy = amrex::min(hy - j, amrex::Real(1.0)) - amrex::max(ly - j, amrex::Real(0.0));
             for (int i = lo_x; i <= hi_x; ++i) {
                 if (i < rho.begin.x || i >= rho.end.x) continue;
-                amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
+                amrex::Real wx = amrex::min(hx - i, amrex::Real(1.0)) - amrex::max(lx - i, amrex::Real(0.0));
                 amrex::Real weight = wx*wy*factor;
                 rho(i, j, 0, comp) += weight*p.rdata(0)*p.rdata(comp);
             }
@@ -196,13 +196,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     
     for (int k = lo_z; k <= hi_z; ++k) {
         if (k < rho.begin.z || k >= rho.end.z) continue;
-        amrex::Real wz = amrex::min(hz - k, 1.0) - amrex::max(lz - k, 0.0);
+        amrex::Real wz = amrex::min(hz - k, amrex::Real(1.0)) - amrex::max(lz - k, amrex::Real(0.0));
         for (int j = lo_y; j <= hi_y; ++j) {
             if (j < rho.begin.y || j >= rho.end.y) continue;
-            amrex::Real wy = amrex::min(hy - j, 1.0) - amrex::max(ly - j, 0.0);
+            amrex::Real wy = amrex::min(hy - j, amrex::Real(1.0)) - amrex::max(ly - j, amrex::Real(0.0));
             for (int i = lo_x; i <= hi_x; ++i) {
                 if (i < rho.begin.x || i >= rho.end.x) continue;
-                amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
+                amrex::Real wx = amrex::min(hx - i, amrex::Real(1.0)) - amrex::max(lx - i, amrex::Real(0.0));
                 
                 amrex::Real weight = wx*wy*wz*factor;
                 
@@ -214,13 +214,13 @@ void amrex_deposit_particle_dx_cic (P const& p, int nc, amrex::Array4<amrex::Rea
     for (int comp = 1; comp < nc; ++comp) {
         for (int k = lo_z; k <= hi_z; ++k) {
             if (k < rho.begin.z || k >= rho.end.z) continue;
-            amrex::Real wz = amrex::min(hz - k, 1.0) - amrex::max(lz - k, 0.0);
+            amrex::Real wz = amrex::min(hz - k, amrex::Real(1.0)) - amrex::max(lz - k, amrex::Real(0.0));
             for (int j = lo_y; j <= hi_y; ++j) {
                 if (j < rho.begin.y || j >= rho.end.y) continue;
-                amrex::Real wy = amrex::min(hy - j, 1.0) - amrex::max(ly - j, 0.0);
+                amrex::Real wy = amrex::min(hy - j, amrex::Real(1.0)) - amrex::max(ly - j, amrex::Real(0.0));
                 for (int i = lo_x; i <= hi_x; ++i) {
                     if (i < rho.begin.x || i >= rho.end.x) continue;
-                    amrex::Real wx = amrex::min(hx - i, 1.0) - amrex::max(lx - i, 0.0);
+                    amrex::Real wx = amrex::min(hx - i, amrex::Real(1.0)) - amrex::max(lx - i, amrex::Real(0.0));
                     amrex::Real weight = wx*wy*wz*factor;
                     rho(i, j, k, comp) += weight*p.rdata(0)*p.rdata(comp);
                 }

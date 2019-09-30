@@ -286,7 +286,7 @@ MultiFab::Saxpy (MultiFab&       dst,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
             });
@@ -318,7 +318,7 @@ MultiFab::Xpay (MultiFab&       dst,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) = sfab(i,j,k,n+srccomp) + a * dfab(i,j,k,n+dstcomp);
             });
@@ -357,7 +357,7 @@ MultiFab::LinComb (MultiFab&       dst,
             auto const xfab =   x.array(mfi);
             auto const yfab =   y.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
             });
@@ -393,7 +393,7 @@ MultiFab::AddProduct (MultiFab&       dst,
             auto const s1fab = src1.array(mfi);
             auto const s2fab = src2.array(mfi);
             auto        dfab =  dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,n+dstcomp) += s1fab(i,j,k,n+comp1) * s2fab(i,j,k,n+comp2);
             });
@@ -1229,7 +1229,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
             const Box& bx = (*p)[mfi].box();
             auto arr = p->array(mfi); 
 
-            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 arr(i,j,k) = 0.0;
             });
@@ -1240,7 +1240,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
                 for (const auto& is : isects)
                 {
                     Box ibx = is.second-iv;
-                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
                     {
                         arr(i,j,k) += 1.0;
                     });
