@@ -1493,6 +1493,57 @@ void mlndlap_adotx_sten (Box const& bx, Array4<Real> const& y, Array4<Real const
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
+                                Array4<Real const> const& rhs,
+                                Array4<Real const> const& sten,
+                                Array4<int const> const& msk) noexcept
+{
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            sol(i,j,k) = 0.0;
+        } else if (sten(i,j,k,ist_000) != 0.0) {
+            Real Ax  = sol(i  ,j  ,k  ) * sten(i  ,j  ,k  ,ist_000)
+                //
+                +      sol(i-1,j  ,k  ) * sten(i-1,j  ,k  ,ist_p00)
+                +      sol(i+1,j  ,k  ) * sten(i  ,j  ,k  ,ist_p00)
+                //
+                +      sol(i  ,j-1,k  ) * sten(i  ,j-1,k  ,ist_0p0)
+                +      sol(i  ,j+1,k  ) * sten(i  ,j  ,k  ,ist_0p0)
+                //
+                +      sol(i  ,j  ,k-1) * sten(i  ,j  ,k-1,ist_00p)
+                +      sol(i  ,j  ,k+1) * sten(i  ,j  ,k  ,ist_00p)
+                //
+                +      sol(i-1,j-1,k  ) * sten(i-1,j-1,k  ,ist_pp0)
+                +      sol(i+1,j-1,k  ) * sten(i  ,j-1,k  ,ist_pp0)
+                +      sol(i-1,j+1,k  ) * sten(i-1,j  ,k  ,ist_pp0)
+                +      sol(i+1,j+1,k  ) * sten(i  ,j  ,k  ,ist_pp0)
+                //
+                +      sol(i-1,j  ,k-1) * sten(i-1,j  ,k-1,ist_p0p)
+                +      sol(i+1,j  ,k-1) * sten(i  ,j  ,k-1,ist_p0p)
+                +      sol(i-1,j  ,k+1) * sten(i-1,j  ,k  ,ist_p0p)
+                +      sol(i+1,j  ,k+1) * sten(i  ,j  ,k  ,ist_p0p)
+                //
+                +      sol(i  ,j-1,k-1) * sten(i  ,j-1,k-1,ist_0pp)
+                +      sol(i  ,j+1,k-1) * sten(i  ,j  ,k-1,ist_0pp)
+                +      sol(i  ,j-1,k+1) * sten(i  ,j-1,k  ,ist_0pp)
+                +      sol(i  ,j+1,k+1) * sten(i  ,j  ,k  ,ist_0pp)
+                //
+                +      sol(i-1,j-1,k-1) * sten(i-1,j-1,k-1,ist_ppp)
+                +      sol(i+1,j-1,k-1) * sten(i  ,j-1,k-1,ist_ppp)
+                +      sol(i-1,j+1,k-1) * sten(i-1,j  ,k-1,ist_ppp)
+                +      sol(i+1,j+1,k-1) * sten(i  ,j  ,k-1,ist_ppp)
+                +      sol(i-1,j-1,k+1) * sten(i-1,j-1,k  ,ist_ppp)
+                +      sol(i+1,j-1,k+1) * sten(i  ,j-1,k  ,ist_ppp)
+                +      sol(i-1,j+1,k+1) * sten(i-1,j  ,k  ,ist_ppp)
+                +      sol(i+1,j+1,k+1) * sten(i  ,j  ,k  ,ist_ppp);
+
+            sol(i,j,k) += (rhs(i,j,k) - Ax) / sten(i,j,k,ist_000);
+        }
+    });
+}
+
 }
 
 #endif

@@ -37,7 +37,7 @@ module amrex_mlnodelap_1d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
+  public:: amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
        amrex_mlndlap_stencil_rap
@@ -179,17 +179,6 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1))
     integer, intent(in) :: fine_flag
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_gauss_seidel_sten (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
-       sten, stlo, sthi, msk, mlo, mhi) &
-       bind(c,name='amrex_mlndlap_gauss_seidel_sten')
-    integer, dimension(1),intent(in) :: lo,hi,slo,shi,rlo,rhi,stlo,sthi,mlo,mhi
-    real(amrex_real), intent(inout) :: sol( slo(1): shi(1))
-    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1))
-    real(amrex_real), intent(in   ) ::sten(stlo(1):sthi(1),3)
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_gauss_seidel_sten
 
 
   subroutine amrex_mlndlap_jacobi_sten (lo, hi, sol, slo, shi, Ax, alo, ahi, &

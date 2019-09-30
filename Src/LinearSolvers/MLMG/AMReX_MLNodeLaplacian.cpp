@@ -1770,16 +1770,20 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(sol); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                amrex_mlndlap_gauss_seidel_sten(BL_TO_FORTRAN_BOX(bx),
-                                                BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                                BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                                BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                                BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+                Array4<Real> const& solarr = sol.array(mfi);
+                Array4<Real const> const& rhsarr = rhs.const_array(mfi);
+                Array4<Real const> const& starr = stencil->const_array(mfi);
+                Array4<int const> const& dmskarr = dmsk.const_array(mfi);
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    mlndlap_gauss_seidel_sten(tbx,solarr,rhsarr,starr,dmskarr);
+                });
             }
         }
         else if (m_use_harmonic_average && mglev > 0)
