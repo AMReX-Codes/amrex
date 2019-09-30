@@ -191,6 +191,12 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
+    void createParticles (
+        int lev, const amrex::MFIter& mfi,
+        std::unique_ptr< WarpXParticleContainer>& pc_source,
+        std::unique_ptr< WarpXParticleContainer>& pc_product,
+        amrex::Gpu::ManagedDeviceVector<int>& is_flagged);
+    
 protected:
 
     // Particle container types
