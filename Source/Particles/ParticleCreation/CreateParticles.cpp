@@ -1,4 +1,7 @@
+#include "MultiParticleContainer.H"
+#include "WarpX.H"
 
+using namespace amrex;
 
 // For particle i in mfi, if is_flagged[i]=1, copy particle
 // particle i from container pc_source into pc_product

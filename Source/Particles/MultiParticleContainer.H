@@ -1,13 +1,13 @@
-
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <AMReX_Particles.H>
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
 #include <PhotonParticleContainer.H>
 #include <LaserParticleContainer.H>
+
+#include <AMReX_Particles.H>
 
 #include <memory>
 #include <map>
