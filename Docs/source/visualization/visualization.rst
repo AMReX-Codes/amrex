@@ -21,6 +21,7 @@ This section describes some of the tools available to visualize the data:
    picviewer
    openpmdviewer
    advanced
+   plot_parallel
 
 
 In addition, WarpX also has In-Situ Visualization capabilities (i.e.
@@ -32,3 +33,11 @@ files to disk).
 
     sensei
     ascent
+
+If you like the 3D rendering of laser wakefield acceleration
+on the WarpX documentation frontpage (which is
+also the avatar of the ECP-WarpX organization), you can find the serial
+analysis script :download:`video_yt.py<../../../Tools/video_yt.py>` as well
+as a parallel analysis script
+:download:`video_yt.py<../../../Tools/yt3d_mpi.py>` used to make a similar
+rendering for a beam-driven wakefield simulation, running parallel.

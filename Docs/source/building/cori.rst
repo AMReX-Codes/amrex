@@ -68,9 +68,9 @@ Then, you need to load the following modules:
 
 ::
 
-    module load modules esslurm pgi cuda mvapich2
+    module load modules esslurm gcc/7.3.0 cuda mvapich2
 
-You can also use OpenMPI-UCX instead of mvapich: openmpi/4.0.1-ucx-1.6
+You can also use OpenMPI-UCX instead of mvapich: openmpi/4.0.1-ucx-1.6.
 
 Then, you need to use slurm to request access to a GPU node:
 
@@ -87,7 +87,7 @@ Finally, navigate to the base of the WarpX repository and compile in GPU mode:
 
 ::
 
-    make -j 16 COMP=pgi USE_GPU=TRUE
+    make -j 16 USE_GPU=TRUE
 
 
 Building WarpX with openPMD support

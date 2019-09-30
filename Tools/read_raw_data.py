@@ -104,27 +104,6 @@ def read_lab_snapshot(snapshot, global_header):
     z = np.linspace(local_info['zmin'], local_info['zmax'], local_info['nz'])
     info.update({ 'x' : x, 'y' : y, 'z' : z })
     return data, info
-## -----------------------------------------------------------
-## USE THIS INSTEAD OF THE 5 PREVIOUS LINES IF Header contains
-## (x,y,z) min and max vectors instead of zmin and zmax
-## -----------------------------------------------------------
-#     local_info = _read_local_Header(snapshot + "/Header")
-#     info = {'t_snapshot' : local_info['t_snapshot']}
-#     print('info', info)
-#     xmin = local_info['axes_lo'][0]
-#     xmax = local_info['axes_hi'][0]
-#     x = np.linspace(xmin, xmax, data['Bx'].shape[0])
-#     info.update({ 'xmin' : xmin, 'xmax' : xmax, 'x' : x })
-#     zmin = local_info['axes_lo'][-1]
-#     zmax = local_info['axes_hi'][-1]
-#     z = np.linspace(zmin, zmax, data['Bx'].shape[-1])
-#     info.update({ 'zmin' : zmin, 'zmax' : zmax, 'z' : z })
-#     if len(local_info['axes_lo']) == 3:
-#         ymin = local_info['axes_lo'][1]
-#         ymax = local_info['axes_hi'][1]
-#         y = np.linspace(ymin, ymax, data['Bx'].shape[1])
-#         info.update({ 'ymin' : ymin, 'ymax' : ymax, 'y' : y })
-#     return data, info
 
 # For the moment, the back-transformed diagnostics must be read with
 # custom functions like this one.

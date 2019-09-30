@@ -32,7 +32,7 @@ public:
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
-                         amrex::Real t, amrex::Real dt) final;
+                         amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full) final;
 
     virtual void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& ,
@@ -56,10 +56,10 @@ public:
                                             amrex::Real * AMREX_RESTRICT const pplane_Xp,
                                             amrex::Real * AMREX_RESTRICT const pplane_Yp);
 
-    void update_laser_particle (const int np, amrex::Real * AMREX_RESTRICT const puxp,
-                                amrex::Real * AMREX_RESTRICT const puyp,
-                                amrex::Real * AMREX_RESTRICT const puzp,
-                                amrex::Real const * AMREX_RESTRICT const pwp,
+    void update_laser_particle (const int np, amrex::ParticleReal * AMREX_RESTRICT const puxp,
+                                amrex::ParticleReal * AMREX_RESTRICT const puyp,
+                                amrex::ParticleReal * AMREX_RESTRICT const puzp,
+                                amrex::ParticleReal const * AMREX_RESTRICT const pwp,
                                 amrex::Real const * AMREX_RESTRICT const amplitude,
                                 const amrex::Real dt, const int thread_num);
 
@@ -80,6 +80,8 @@ private:
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               Z0_lab = 0; // Position of the antenna in the lab frame
+
+    long min_particles_per_mode = 4;
 
     // computed using runtime parameters
     amrex::Vector<amrex::Real> p_Y;

@@ -99,7 +99,7 @@ getReversedVec( const amrex::Real* v );
 void
 WriteOpenPMDFields( const std::string& filename,
                     const std::vector<std::string>& varnames,
-                    const amrex::MultiFab& mf, const Geometry& geom,
+                    const amrex::MultiFab& mf, const amrex::Geometry& geom,
                     const int iteration, const double time );
 #endif // WARPX_USE_OPENPMD
 

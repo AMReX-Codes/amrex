@@ -1,7 +1,7 @@
 module warpx_ES_push_particles
 
   use iso_c_binding
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only : amrex_real, amrex_particle_real
 
   implicit none
 
@@ -36,8 +36,8 @@ contains
                                     prob_lo, prob_hi)       &
        bind(c,name='warpx_push_leapfrog_3d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(inout)  :: particles(ns,np)
-    real(amrex_real), intent(inout)  :: vx_p(np), vy_p(np), vz_p(np)
+    real(amrex_particle_real), intent(inout)  :: particles(ns,np)
+    real(amrex_particle_real), intent(inout)  :: vx_p(np), vy_p(np), vz_p(np)
     real(amrex_real), intent(in)     :: Ex_p(np), Ey_p(np), Ez_p(np)
     real(amrex_real), intent(in)     :: charge
     real(amrex_real), intent(in)     :: mass
@@ -100,8 +100,8 @@ contains
                                     prob_lo, prob_hi)       &
        bind(c,name='warpx_push_leapfrog_2d')
     integer, value,   intent(in)     :: ns, np
-    real(amrex_real), intent(inout)  :: particles(ns,np)
-    real(amrex_real), intent(inout)  :: vx_p(np), vy_p(np)
+    real(amrex_particle_real), intent(inout)  :: particles(ns,np)
+    real(amrex_particle_real), intent(inout)  :: vx_p(np), vy_p(np)
     real(amrex_real), intent(in)     :: Ex_p(np), Ey_p(np)
     real(amrex_real), intent(in)     :: charge
     real(amrex_real), intent(in)     :: mass
@@ -167,8 +167,8 @@ contains
                                              prob_lo, prob_hi)       &
        bind(c,name='warpx_push_leapfrog_positions_3d')
     integer, value,   intent(in)    :: ns, np
-    real(amrex_real), intent(inout) :: particles(ns,np)
-    real(amrex_real), intent(inout) :: vx_p(np), vy_p(np), vz_p(np)
+    real(amrex_particle_real), intent(inout) :: particles(ns,np)
+    real(amrex_particle_real), intent(inout) :: vx_p(np), vy_p(np), vz_p(np)
     real(amrex_real), intent(in)    :: dt
     real(amrex_real), intent(in)    :: prob_lo(3), prob_hi(3)
 
@@ -219,8 +219,8 @@ contains
                                               prob_lo, prob_hi)       &
        bind(c,name='warpx_push_leapfrog_positions_2d')
     integer, value,   intent(in)    :: ns, np
-    real(amrex_real), intent(inout) :: particles(ns,np)
-    real(amrex_real), intent(inout) :: vx_p(np), vy_p(np)
+    real(amrex_particle_real), intent(inout) :: particles(ns,np)
+    real(amrex_particle_real), intent(inout) :: vx_p(np), vy_p(np)
     real(amrex_real), intent(in)    :: dt
     real(amrex_real), intent(in)    :: prob_lo(2), prob_hi(2)
 

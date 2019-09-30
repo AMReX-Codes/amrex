@@ -69,6 +69,8 @@ bool WarpX::do_boosted_frame_particles = true;
 
 bool WarpX::do_dynamic_scheduling = true;
 
+int WarpX::do_subcycling = 0;
+
 #if (AMREX_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
@@ -101,7 +103,7 @@ IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 
 IntVect WarpX::filter_npass_each_dir(1);
 
-int WarpX::n_field_gather_buffer = 0;
+int WarpX::n_field_gather_buffer = -1;
 int WarpX::n_current_deposition_buffer = -1;
 
 int WarpX::do_nodal = false;
@@ -147,8 +149,8 @@ WarpX::WarpX ()
 #endif
 
     t_new.resize(nlevs_max, 0.0);
-    t_old.resize(nlevs_max, -1.e100);
-    dt.resize(nlevs_max, 1.e100);
+    t_old.resize(nlevs_max, std::numeric_limits<Real>::lowest());
+    dt.resize(nlevs_max, std::numeric_limits<Real>::max());
 
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
@@ -691,7 +693,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (WarpX::use_fdtd_nci_corr) {
-        int ng = ngz_tmp + NCIGodfreyFilter::stencil_width;
+        int ng = ngz_tmp + NCIGodfreyFilter::m_stencil_width;
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
@@ -728,10 +730,18 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
+        // This forces the allocation of buffers and allows the code associated
+        // with buffers to run. But the buffer size of `1` is in fact not used,
+        // `deposit_on_main_grid` forces all particles (whether or not they
+        // are in buffers) to deposition on the main grid.
     }
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
+    }
+    if (n_field_gather_buffer < 0) {
+        // Field gather buffer should be larger than current deposition buffers
+        n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
     int ngF = (do_moving_window) ? 2 : 0;
@@ -916,12 +926,13 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     // Copy of the coarse aux
     //
-    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
+    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0 ||
+                    mypc->nSpeciesGatherFromMainGrid() > 0))
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
 
-        if (n_field_gather_buffer > 0) {
+        if (n_field_gather_buffer > 0 || mypc->nSpeciesGatherFromMainGrid() > 0) {
             // Create the MultiFabs for B
             Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
             Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
@@ -985,7 +996,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmin[0], -1.e100, xyzmin[1] };
+    return { xyzmin[0], std::numeric_limits<Real>::lowest(), xyzmin[1] };
 #endif
 }
 
@@ -997,7 +1008,7 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmax[0], 1.e100, xyzmax[1] };
+    return { xyzmax[0], std::numeric_limits<Real>::max(), xyzmax[1] };
 #endif
 }
 

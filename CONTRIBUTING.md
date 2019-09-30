@@ -197,4 +197,5 @@ created it). Reviewers will interact with you if they have comments/questions.
 - Also, using 'git grep "myfunction ()"' searches for files only in the git repo, which is more efficient compared to the 'grep "myfunction ()"' command that searches through all the files in a directory, including plotfiles for example.
 - It is recommended that style changes are not included in the PR where new code is added. This is to avoid any errors that may be introduced in a PR just to do style change.
 - Some text editors automatically modify the files you open (e.g., to remove trailing spaces). Please turn this feature off as it causes many changes and makes pull requests harder to review.
-
+- `#include` directives should be ordered from more specific to more general, i.e., `"module header"`, `"WarpX header"`, `<close library headers>` (AMReX, PICSAR), `<other third party headers>` (e.g., `omp`), `<stdlib headers>`. See [PR #331](https://github.com/ECP-WarpX/WarpX/pull/331), or [LLVM](https://llvm.org/docs/CodingStandards.html#include-style) or [include-what-you-use](https://github.com/include-what-you-use/include-what-you-use/blob/master/docs/WhyIWYU.md) pages.
+- WarpX uses `CamelCase` convention for file names and class names, rather than `snake_case`.

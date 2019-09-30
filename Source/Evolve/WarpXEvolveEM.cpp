@@ -358,7 +358,7 @@ WarpX::OneStep_sub1 (Real curtime)
     const int coarse_lev = 0;
 
     // i) Push particles and fields on the fine patch (first fine step)
-    PushParticlesandDepose(fine_lev, curtime);
+    PushParticlesandDepose(fine_lev, curtime, DtType::FirstHalf);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
@@ -387,7 +387,7 @@ WarpX::OneStep_sub1 (Real curtime)
     // ii) Push particles on the coarse patch and mother grid.
     // Push the fields on the coarse patch and mother grid
     // by only half a coarse step (first half)
-    PushParticlesandDepose(coarse_lev, curtime);
+    PushParticlesandDepose(coarse_lev, curtime, DtType::Full);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
     AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, ncomps);
@@ -412,7 +412,7 @@ WarpX::OneStep_sub1 (Real curtime)
     UpdateAuxilaryData();
 
     // iv) Push particles and fields on the fine patch (second fine step)
-    PushParticlesandDepose(fine_lev, curtime+dt[fine_lev]);
+    PushParticlesandDepose(fine_lev, curtime+dt[fine_lev], DtType::SecondHalf);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     RestrictRhoFromFineToCoarsePatch(fine_lev);
     ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
@@ -485,7 +485,7 @@ WarpX::PushParticlesandDepose (Real cur_time)
 }
 
 void
-WarpX::PushParticlesandDepose (int lev, Real cur_time)
+WarpX::PushParticlesandDepose (int lev, Real cur_time, DtType a_dt_type)
 {
     mypc->Evolve(lev,
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
@@ -495,7 +495,7 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  rho_fp[lev].get(), charge_buf[lev].get(),
                  Efield_cax[lev][0].get(), Efield_cax[lev][1].get(), Efield_cax[lev][2].get(),
                  Bfield_cax[lev][0].get(), Bfield_cax[lev][1].get(), Bfield_cax[lev][2].get(),
-                 cur_time, dt[lev]);
+                 cur_time, dt[lev], a_dt_type);
 #ifdef WARPX_DIM_RZ
     // This is called after all particles have deposited their current and charge.
     ApplyInverseVolumeScalingToCurrentDensity(current_fp[lev][0].get(), current_fp[lev][1].get(), current_fp[lev][2].get(), lev);

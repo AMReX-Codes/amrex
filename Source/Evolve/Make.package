@@ -1,3 +1,4 @@
+CEXE_headers += WarpXDtType.H
 CEXE_sources += WarpXEvolveEM.cpp
 ifeq ($(DO_ELECTROSTATIC),TRUE)
   CEXE_sources += WarpXEvolveES.cpp

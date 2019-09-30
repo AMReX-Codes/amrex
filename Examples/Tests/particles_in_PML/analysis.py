@@ -24,7 +24,7 @@ Ex_array = ad0['Ex'].to_ndarray()
 Ey_array = ad0['Ey'].to_ndarray()
 Ez_array = ad0['Ez'].to_ndarray()
 max_Efield = max(Ex_array.max(), Ey_array.max(), Ez_array.max())
-print( max_Efield )
+print( "max_Efield = %s" %max_Efield )
 
 # The field associated with the particle does not have
 # the same amplitude in 2d and 3d
