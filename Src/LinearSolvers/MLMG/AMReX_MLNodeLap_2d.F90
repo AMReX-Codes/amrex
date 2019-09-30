@@ -49,7 +49,6 @@ module amrex_mlnodelap_2d_module
 
   ! RAP
   public:: &
-       amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
        amrex_mlndlap_stencil_rap
 
@@ -538,60 +537,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_interpolation_rap (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap')
-    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
-    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),stlo(2):sthi(2),5)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: flo(2), fhi(2), i,j, ic, jc
-    logical :: jeven, ieven
-    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
-
-    flo = 2*clo
-    fhi = 2*chi
-
-    do j = flo(2), fhi(2)
-       jc = (j-flo(2))/2 + clo(2)
-       jeven = jc*2 .eq. j
-       do i = flo(1), fhi(1)
-          if (msk(i,j) .ne. dirichlet .and. sten(i,j,1) .ne. 0.d0) then
-             ic = (i-flo(1))/2 + clo(1)
-             ieven = ic*2 .eq. i
-             if (ieven .and. jeven) then
-                fine(i,j) = crse(ic,jc)
-             else if (ieven) then
-                wym = abs(sten(i,j-1,3))
-                wyp = abs(sten(i,j  ,3))
-                fine(i,j) = (wym*crse(ic,jc) + wyp*crse(ic,jc+1)) / (wym+wyp+eps)
-             else if (jeven) then
-                wxm = abs(sten(i-1,j,2))
-                wxp = abs(sten(i  ,j,2))
-                fine(i,j) = (wxm*crse(ic,jc) + wxp*crse(ic+1,jc)) / (wxm+wxp+eps)
-             else
-                wxm = abs(sten(i-1,j  ,2))/(abs(sten(i-1,j-1,4))+abs(sten(i-1,j  ,4))+eps)
-                wxp = abs(sten(i  ,j  ,2))/(abs(sten(i  ,j-1,4))+abs(sten(i  ,j  ,4))+eps)
-                wym = abs(sten(i  ,j-1,3))/(abs(sten(i-1,j-1,4))+abs(sten(i  ,j-1,4))+eps)
-                wyp = abs(sten(i  ,j  ,3))/(abs(sten(i-1,j  ,4))+abs(sten(i  ,j  ,4))+eps)
-                wmm = abs(sten(i-1,j-1,4)) * (1.d0 + wxm + wym)
-                wpm = abs(sten(i,j-1,4)) * (1.d0 + wxp + wym)
-                wmp = abs(sten(i-1,j,4)) *(1.d0 + wxm + wyp)
-                wpp = abs(sten(i,j,4)) * (1.d0 + wxp + wyp)
-                fine(i,j) = (wmm*crse(ic,jc) + wpm*crse(ic+1,jc) &
-                     + wmp*crse(ic,jc+1) + wpp*crse(ic+1,jc+1)) &
-                     / (wmm+wpm+wmp+wpp+eps)
-             end if
-          else
-             fine(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_interpolation_rap
 
 
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
