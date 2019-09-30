@@ -395,29 +395,24 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                 WarpX::n_rz_azimuthal_modes);
         }
     } else {
-        // Lower corner of tile box physical domain
-        // Note that this includes guard cells since it is after tilebox.ngrow
-        std::array<Real, 3> xyzminx = WarpX::LowerCornerWithCentering(tbx, depos_lev);
-        std::array<Real, 3> xyzminy = WarpX::LowerCornerWithCentering(tby, depos_lev);
-        std::array<Real, 3> xyzminz = WarpX::LowerCornerWithCentering(tbz, depos_lev);
         if        (WarpX::nox == 1){
             doDepositionShapeN<1>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
-                xyzminx, xyzminy, xyzminz, lo, q);
+                tbx, tby, tbz, depos_lev, lo, q);
         } else if (WarpX::nox == 2){
             doDepositionShapeN<2>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
-                xyzminx, xyzminy, xyzminz, lo, q);
+                tbx, tby, tbz, depos_lev, lo, q);
         } else if (WarpX::nox == 3){
             doDepositionShapeN<3>(
                 xp, yp, zp, wp.dataPtr() + offset, uxp.dataPtr() + offset,
                 uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                 jx_arr, jy_arr, jz_arr, np_to_depose, dt, dx,
-                xyzminx, xyzminy, xyzminz, lo, q);
+                tbx, tby, tbz, depos_lev, lo, q);
         }
     }
     BL_PROFILE_VAR_STOP(blp_deposit);
