@@ -38,7 +38,6 @@ module amrex_mlnodelap_1d_module
 
   ! RAP
   public:: &
-       amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
        amrex_mlndlap_stencil_rap
 
@@ -179,16 +178,6 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1))
     integer, intent(in) :: fine_flag
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_interpolation_rap (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap')
-    integer, dimension(1), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1))
-    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),3)
-    integer, intent(in) :: msk(mlo(1):mhi(1))
-  end subroutine amrex_mlndlap_interpolation_rap
 
 
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &

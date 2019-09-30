@@ -770,5 +770,48 @@ void mlndlap_gauss_seidel_sten (Box const& bx, Array4<Real> const& sol,
     });
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_interpadd_rap (int i, int j, int, Array4<Real> const& fine,
+                            Array4<Real const> const& crse, Array4<Real const> const& sten,
+                            Array4<int const> const& msk) noexcept
+{
+    if (!msk(i,j,0) and sten(i,j,0,0) != 0.0) {
+        int ic = amrex::coarsen(i,2);
+        int jc = amrex::coarsen(j,2);
+        bool ieven = ic*2 == i;
+        bool jeven = jc*2 == j;
+        Real fv;
+        if (ieven and jeven) {
+            fv = crse(ic,jc,0);
+        } else if (ieven) {
+            Real wym = std::abs(sten(i,j-1,0,2));
+            Real wyp = std::abs(sten(i,j  ,0,2));
+            fv = (wym*crse(ic,jc,0) + wyp*crse(ic,jc+1,0)) / (wym+wyp+eps);
+        } else if (jeven) {
+            Real wxm = std::abs(sten(i-1,j,0,1));
+            Real wxp = std::abs(sten(i  ,j,0,1));
+            fv = (wxm*crse(ic,jc,0) + wxp*crse(ic+1,jc,0)) / (wxm+wxp+eps);
+        } else {
+            Real wxm = std::abs(sten(i-1,j  ,0,1)) /
+                (std::abs(sten(i-1,j-1,0,3))+std::abs(sten(i-1,j  ,0,3))+eps);
+            Real wxp = std::abs(sten(i  ,j  ,0,1)) /
+                (std::abs(sten(i  ,j-1,0,3))+std::abs(sten(i  ,j  ,0,3))+eps);
+            Real wym = std::abs(sten(i  ,j-1,0,2)) /
+                (std::abs(sten(i-1,j-1,0,3))+std::abs(sten(i  ,j-1,0,3))+eps);
+            Real wyp = std::abs(sten(i  ,j  ,0,2)) /
+                (std::abs(sten(i-1,j  ,0,3))+std::abs(sten(i  ,j  ,0,3))+eps);
+            Real wmm = std::abs(sten(i-1,j-1,0,3)) * (1.0 + wxm + wym);
+            Real wpm = std::abs(sten(i,j-1,0,3)) * (1.0 + wxp + wym);
+            Real wmp = std::abs(sten(i-1,j,0,3)) *(1.0 + wxm + wyp);
+            Real wpp = std::abs(sten(i,j,0,3)) * (1.0 + wxp + wyp);
+            fv = (wmm*crse(ic,jc,0) + wpm*crse(ic+1,jc,0)
+                  + wmp*crse(ic,jc+1,0) + wpp*crse(ic+1,jc+1,0))
+                / (wmm+wpm+wmp+wpp+eps);
+        }
+
+        fine(i,j,0) += fv;
+    }
+}
+
 }
 #endif
