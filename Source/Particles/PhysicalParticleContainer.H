@@ -186,11 +186,13 @@ protected:
     // Inject particles during the whole simulation
     void ContinuousInjection (const amrex::RealBox& injection_box) override;
 
-private:
-
     //This function return true if the PhysicalParticleContainer contains electrons
     //or positrons, false otherwise
     bool AmIALepton();
+
+    //When true PhysicalParticleContainer tries to use a pusher including
+    //radiation reaction
+    bool do_classical_radiation_reaction = false;
 
 };
 

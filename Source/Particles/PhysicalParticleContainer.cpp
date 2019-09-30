@@ -43,6 +43,22 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
     pp.query("do_field_ionization", do_field_ionization);
+
+    //check if Radiation Reaction is enabled and do consistency checks
+    pp.query("do_classical_radiation_reaction", do_classical_radiation_reaction);
+    //if the species is not a lepton, do_classical_radiation_reaction
+    //should be false
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        AmIALepton() || !do_classical_radiation_reaction,
+        "Can't enable classical radiation reaction for non lepton species. " );
+
+    //Only Boris pusher is compatible with radiation reaction
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+    WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris,
+    "Radiation reaction can be enabled only if Boris pusher is used");
+    //_____________________________
+
+
 #ifdef AMREX_USE_GPU
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         do_field_ionization == 0,
@@ -1489,12 +1505,21 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     const Real m = this-> mass;
 
 
-    // Boris + RR is enabled only for leptons
-    auto algo = WarpX::particle_pusher_algo;
-    if (!AmIALepton() && algo == ParticlePusherAlgo::BorisRR)
-        algo = ParticlePusherAlgo::Boris;
-
-    if (algo == ParticlePusherAlgo::Boris){
+    //Assumes that all consistency checks have been done at initialization
+    if(do_classical_radiation_reaction){
+        amrex::ParallelFor(
+            pti.numParticles(),
+            [=] AMREX_GPU_DEVICE (long i) {
+                Real qp = q;
+                if (ion_lev){ qp *= ion_lev[i]; }
+                UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
+                                   Ex[i], Ey[i], Ez[i], Bx[i],
+                                   By[i], Bz[i], qp, m, dt);
+                UpdatePosition( x[i], y[i], z[i],
+                                ux[i], uy[i], uz[i], dt );
+            }
+        );
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
         amrex::ParallelFor(
             pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
@@ -1507,26 +1532,13 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                       ux[i], uy[i], uz[i], dt );
             }
         );
-    } else if (algo == ParticlePusherAlgo::Vay) {
+    } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
         amrex::ParallelFor(
             pti.numParticles(),
             [=] AMREX_GPU_DEVICE (long i) {
                 Real qp = q;
                 if (ion_lev){ qp *= ion_lev[i]; }
                 UpdateMomentumVay( ux[i], uy[i], uz[i],
-                                   Ex[i], Ey[i], Ez[i], Bx[i],
-                                   By[i], Bz[i], qp, m, dt);
-                UpdatePosition( x[i], y[i], z[i],
-                                ux[i], uy[i], uz[i], dt );
-            }
-        );
-    } else if (algo == ParticlePusherAlgo::BorisRR) {
-        amrex::ParallelFor(
-            pti.numParticles(),
-            [=] AMREX_GPU_DEVICE (long i) {
-                Real qp = q;
-                if (ion_lev){ qp *= ion_lev[i]; }
-                UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
                 UpdatePosition( x[i], y[i], z[i],
@@ -1615,30 +1627,48 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const Real q = this->charge;
             const Real m = this-> mass;
 
-            // Boris + RR is enabled only for leptons
-            auto algo = WarpX::particle_pusher_algo;
-            if (!AmIALepton() && algo == ParticlePusherAlgo::BorisRR)
-                algo = ParticlePusherAlgo::Boris;
+            int* AMREX_RESTRICT ion_lev = nullptr;
+            if (do_field_ionization){
+                ion_lev = pti.GetiAttribs(particle_icomps["ionization_level"]).dataPtr();
+            }
 
-            if (algo == ParticlePusherAlgo::Boris){
-                amrex::ParallelFor( pti.numParticles(),
+
+            //Assumes that all consistency checks have been done at initialization
+            if(do_classical_radiation_reaction){
+                amrex::ParallelFor(
+                    pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumBoris( ux[i], uy[i], uz[i],
-                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                        Real qp = q;
+                        if (ion_lev){ qp *= ion_lev[i]; }
+                        UpdateMomentumBorisWithRadiationReaction(
+                            ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            qp, m, dt);
                     }
                 );
-            } else if (algo == ParticlePusherAlgo::Vay) {
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Boris){
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumVay( ux[i], uy[i], uz[i],
-                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                        Real qp = q;
+                        if (ion_lev){ qp *= ion_lev[i]; }
+                        UpdateMomentumBoris(
+                            ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            qp, m, dt);
                     }
                 );
-            } else if (algo == ParticlePusherAlgo::BorisRR) {
+            } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
                 amrex::ParallelFor( pti.numParticles(),
                     [=] AMREX_GPU_DEVICE (long i) {
-                        UpdateMomentumBorisWithRadiationReaction( ux[i], uy[i], uz[i],
-                              Expp[i], Eypp[i], Ezpp[i], Bxpp[i], Bypp[i], Bzpp[i], q, m, dt);
+                        Real qp = q;
+                        if (ion_lev){ qp *= ion_lev[i]; }
+                        UpdateMomentumVay(
+                            ux[i], uy[i], uz[i],
+                            Expp[i], Eypp[i], Ezpp[i],
+                            Bxpp[i], Bypp[i], Bzpp[i],
+                            qp, m, dt);
                     }
                 );
             } else {
