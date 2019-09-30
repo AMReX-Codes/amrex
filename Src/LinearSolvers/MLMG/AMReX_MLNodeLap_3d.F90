@@ -100,8 +100,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_normalize_sten, &
-       amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
+  public:: amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
        amrex_mlndlap_stencil_rap
@@ -794,28 +793,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, &
-       sten, slo, shi, msk, mlo, mhi, s0_norm0) bind(c,name='amrex_mlndlap_normalize_sten')
-    integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, slo, shi, mlo, mhi
-    real(amrex_real), intent(inout) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
-    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),n_sten)
-    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-    real(amrex_real), intent(in), value :: s0_norm0
-
-    integer :: i,j,k
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (msk(i,j,k) .ne. dirichlet .and. abs(sten(i,j,k,ist_000)) .gt. s0_norm0) then
-                x(i,j,k) = x(i,j,k) / sten(i,j,k,ist_000)
-             end if
-          end do
-       end do
-    end do
-  end subroutine amrex_mlndlap_normalize_sten
 
 
   subroutine amrex_mlndlap_gauss_seidel_sten (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
