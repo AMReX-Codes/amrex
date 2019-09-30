@@ -723,5 +723,27 @@ void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noex
                          + std::abs(sten(i-1,j  ,k,3)) + std::abs(sten(i,j  ,k,3)) + eps);
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_adotx_sten (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
+                         Array4<Real const> const& sten, Array4<int const> const& msk) noexcept
+{
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        if (msk(i,j,k)) {
+            y(i,j,k) = 0.0;
+        } else {
+            y(i,j,k) = x(i-1,j-1,k)*sten(i-1,j-1,k,3)
+                +      x(i  ,j-1,k)*sten(i  ,j-1,k,2)
+                +      x(i+1,j-1,k)*sten(i  ,j-1,k,3)
+                +      x(i-1,j  ,k)*sten(i-1,j  ,k,1)
+                +      x(i  ,j  ,k)*sten(i  ,j  ,k,0)
+                +      x(i+1,j  ,k)*sten(i  ,j  ,k,1)
+                +      x(i-1,j+1,k)*sten(i-1,j  ,k,3)
+                +      x(i  ,j+1,k)*sten(i  ,j  ,k,2)
+                +      x(i+1,j+1,k)*sten(i  ,j  ,k,3);
+        }
+    });
+}
+
 }
 #endif

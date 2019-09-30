@@ -1697,7 +1697,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(out,true); mfi.isValid(); ++mfi)
     {
@@ -1710,11 +1710,11 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
-            amrex_mlndlap_adotx_sten(BL_TO_FORTRAN_BOX(bx),
-                                     BL_TO_FORTRAN_ANYD(yfab),
-                                     BL_TO_FORTRAN_ANYD(xfab),
-                                     BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                     BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+            Array4<Real const> const& stenarr = stencil->const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_adotx_sten(tbx,yarr,xarr,stenarr,dmskarr);
+            });
         }
         else if (m_use_harmonic_average && mglev > 0)
         {

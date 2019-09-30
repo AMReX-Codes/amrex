@@ -48,7 +48,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
+  public:: amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
@@ -539,36 +539,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_adotx_sten (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_adotx_sten')
-    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, mlo, mhi
-    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
-    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
-    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),5)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          if (msk(i,j) .ne. dirichlet) then
-             y(i,j) = x(i-1,j-1)*sten(i-1,j-1,4) &
-                  +   x(i  ,j-1)*sten(i  ,j-1,3) &
-                  +   x(i+1,j-1)*sten(i  ,j-1,4) &
-                  +   x(i-1,j  )*sten(i-1,j  ,2) &
-                  +   x(i  ,j  )*sten(i  ,j  ,1) &
-                  +   x(i+1,j  )*sten(i  ,j  ,2) &
-                  +   x(i-1,j+1)*sten(i-1,j  ,4) &
-                  +   x(i  ,j+1)*sten(i  ,j  ,3) &
-                  +   x(i+1,j+1)*sten(i  ,j  ,4)
-          else
-             y(i,j) = 0.d0
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_adotx_sten
 
 
   subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, sten, slo, shi, msk, mlo, mhi, s0_norm0) &

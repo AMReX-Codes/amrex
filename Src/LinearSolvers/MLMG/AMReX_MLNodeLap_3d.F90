@@ -100,7 +100,7 @@ module amrex_mlnodelap_3d_module
        amrex_mlndlap_zero_fine
 
   ! RAP
-  public:: amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
+  public:: amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
        amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
@@ -795,62 +795,6 @@ contains
     end do
   end subroutine amrex_mlndlap_zero_fine
 
-
-  subroutine amrex_mlndlap_adotx_sten (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_adotx_sten')
-    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, mlo, mhi
-    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
-    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
-    real(amrex_real), intent(in   ) ::sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),n_sten)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-
-    integer :: i,j,k
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             if (msk(i,j,k) .ne. dirichlet) then
-                y(i,j,k) = x(i  ,j  ,k  ) * sten(i  ,j  ,k  ,ist_000) &
-                     !
-                     +     x(i-1,j  ,k  ) * sten(i-1,j  ,k  ,ist_p00) &
-                     +     x(i+1,j  ,k  ) * sten(i  ,j  ,k  ,ist_p00) &
-                     !
-                     +     x(i  ,j-1,k  ) * sten(i  ,j-1,k  ,ist_0p0) &
-                     +     x(i  ,j+1,k  ) * sten(i  ,j  ,k  ,ist_0p0) &
-                     !
-                     +     x(i  ,j  ,k-1) * sten(i  ,j  ,k-1,ist_00p) &
-                     +     x(i  ,j  ,k+1) * sten(i  ,j  ,k  ,ist_00p) &
-                     !
-                     +     x(i-1,j-1,k  ) * sten(i-1,j-1,k  ,ist_pp0) &
-                     +     x(i+1,j-1,k  ) * sten(i  ,j-1,k  ,ist_pp0) &
-                     +     x(i-1,j+1,k  ) * sten(i-1,j  ,k  ,ist_pp0) &
-                     +     x(i+1,j+1,k  ) * sten(i  ,j  ,k  ,ist_pp0) &
-                     !
-                     +     x(i-1,j  ,k-1) * sten(i-1,j  ,k-1,ist_p0p) &
-                     +     x(i+1,j  ,k-1) * sten(i  ,j  ,k-1,ist_p0p) &
-                     +     x(i-1,j  ,k+1) * sten(i-1,j  ,k  ,ist_p0p) &
-                     +     x(i+1,j  ,k+1) * sten(i  ,j  ,k  ,ist_p0p) &
-                     !
-                     +     x(i  ,j-1,k-1) * sten(i  ,j-1,k-1,ist_0pp) &
-                     +     x(i  ,j+1,k-1) * sten(i  ,j  ,k-1,ist_0pp) &
-                     +     x(i  ,j-1,k+1) * sten(i  ,j-1,k  ,ist_0pp) &
-                     +     x(i  ,j+1,k+1) * sten(i  ,j  ,k  ,ist_0pp) &
-                     !
-                     +     x(i-1,j-1,k-1) * sten(i-1,j-1,k-1,ist_ppp) &
-                     +     x(i+1,j-1,k-1) * sten(i  ,j-1,k-1,ist_ppp) &
-                     +     x(i-1,j+1,k-1) * sten(i-1,j  ,k-1,ist_ppp) &
-                     +     x(i+1,j+1,k-1) * sten(i  ,j  ,k-1,ist_ppp) &
-                     +     x(i-1,j-1,k+1) * sten(i-1,j-1,k  ,ist_ppp) &
-                     +     x(i+1,j-1,k+1) * sten(i  ,j-1,k  ,ist_ppp) &
-                     +     x(i-1,j+1,k+1) * sten(i-1,j  ,k  ,ist_ppp) &
-                     +     x(i+1,j+1,k+1) * sten(i  ,j  ,k  ,ist_ppp)
-             else
-                y(i,j,k) = 0.d0
-             end if
-          end do
-       end do
-    end do
-  end subroutine amrex_mlndlap_adotx_sten
 
   subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, &
        sten, slo, shi, msk, mlo, mhi, s0_norm0) bind(c,name='amrex_mlndlap_normalize_sten')
