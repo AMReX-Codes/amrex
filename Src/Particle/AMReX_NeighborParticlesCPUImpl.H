@@ -110,8 +110,6 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     
-    AMREX_ASSERT(not_ours.size() == neighbor_procs.size());
-    
     Vector<long> isnds(NProcs, 0);
     Vector<long> ircvs(NProcs, 0);
     for (int i = 0; i < NProcs; ++i)
@@ -386,8 +384,6 @@ getRcvCountsMPI () {
 
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
-
-    AMREX_ASSERT(send_data.size() == neighbor_procs.size());
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive

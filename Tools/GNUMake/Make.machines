@@ -1,4 +1,4 @@
-# This file defines which_site and which_computer. 
+# This file defines which_site and which_computer.
 # Thus this decides which Make.$(which_site) file is included by Make.defs.
 
 which_site := unknown
@@ -14,7 +14,7 @@ endif
 
 # MACHINES supported
 
-CCSE_MACHINES := angilas atragon baragon battra ebirah gamera gigan
+CCSE_MACHINES := angilas atragon baragon battra ebirah gamera garuda gigan
 CCSE_MACHINES += gimantis godzilla gojira hedorah kiryu kumonga manda
 CCSE_MACHINES += megalon mothra rodan varan naphta orga ghidorah
 ifeq ($(host_name), $(findstring $(host_name), $(CCSE_MACHINES)))
@@ -113,4 +113,14 @@ endif
 ifeq ($(findstring daint, $(host_name)), daint)
   which_site := cscs
   which_computer := daint
+endif
+
+ifeq ($(findstring magnus, $(host_name)), magnus)
+  which_site := pawsey
+  which_computer := magnus
+endif
+
+ifeq ($(findstring raijin, $(host_name)), raijin)
+  which_site := nci
+  which_computer := raijin
 endif

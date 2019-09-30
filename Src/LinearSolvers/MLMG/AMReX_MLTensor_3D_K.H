@@ -53,29 +53,45 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 0: {
             // xlo & ylo & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vlo.y == dlo.y and vlo.z == dlo.z) {
+                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp)
+                    + vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp)
+                    + vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp)
+                    - vel(vlo.x  ,vlo.y  ,vlo.z  ,icomp) * 2.0;
+            } else if (vlo.x == dlo.x and vlo.y == dlo.y) {
+                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
+                    + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
+                    - vel(vlo.x  ,vlo.y  ,vlo.z-1,icomp);
+            } else if (vlo.x == dlo.x and vlo.z == dlo.z) {
+                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
+                    + vel(vlo.x  ,vlo.y-1,vlo.z-1,icomp)
+                    - vel(vlo.x  ,vlo.y-1,vlo.z  ,icomp);
+            } else if (vlo.y == dlo.y and vlo.z == dlo.z) {
+                vel      (vlo.x-1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vlo.y-1,vlo.z  ,icomp)
+                    + vel(vlo.x-1,vlo.y  ,vlo.z-1,icomp)
+                    - vel(vlo.x-1,vlo.y  ,vlo.z  ,icomp);
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.y == dlo.y) {
+            } else if (vlo.y == dlo.y) {
 		if ( use_crsedata )
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
-
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if ( use_crsedata )
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
-
-		int offset = AMREX_SPACEDIM * ozlo;
+                int offset = AMREX_SPACEDIM * ozlo;
                 mllinop_apply_bc_z(Orientation::low, bx, blen.z,
                                    vel, mzlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
@@ -85,29 +101,47 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 1: {
             // xhi & ylo & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vlo.y == dlo.y and vlo.z == dlo.z) {
+                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vlo.y  ,vlo.z  ,icomp)
+                    + vel(vhi.x  ,vlo.y-1,vlo.z  ,icomp)
+                    + vel(vhi.x  ,vlo.y  ,vlo.z-1,icomp)
+                    - vel(vhi.x  ,vlo.y  ,vlo.z  ,icomp) * 2.0;
+            } else if (vhi.x == dhi.x and vlo.y == dlo.y) {
+                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vlo.y  ,vlo.z-1,icomp)
+                    + vel(vhi.x  ,vlo.y-1,vlo.z-1,icomp)
+                    - vel(vhi.x  ,vlo.y  ,vlo.z-1,icomp);
+            } else if (vhi.x == dhi.x and vlo.z == dlo.z) {
+                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vlo.y-1,vlo.z  ,icomp)
+                    + vel(vhi.x  ,vlo.y-1,vlo.z-1,icomp)
+                    - vel(vhi.x  ,vlo.y-1,vlo.z  ,icomp);
+            } else if (vlo.y == dlo.y and vlo.z == dlo.z) {
+                vel      (vhi.x+1,vlo.y-1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vlo.y-1,vlo.z  ,icomp)
+                    + vel(vhi.x+1,vlo.y  ,vlo.z-1,icomp)
+                    - vel(vhi.x+1,vlo.y  ,vlo.z  ,icomp);
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
-		int offset = AMREX_SPACEDIM * oxhi;
+                int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.y == dlo.y) {
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
 
-		int offset = AMREX_SPACEDIM * oylo;
+                int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
 
-		int offset = AMREX_SPACEDIM * ozlo;
+                int offset = AMREX_SPACEDIM * ozlo;
                 mllinop_apply_bc_z(Orientation::low, bx, blen.z,
                                    vel, mzlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalzlo, maxorder, dxinv[zdir], inhomog, icomp);
@@ -117,28 +151,44 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 2: {
             // xlo & yhi & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vhi.y == dhi.y and vlo.z == dlo.z) {
+                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vhi.y  ,vlo.z  ,icomp)
+                    + vel(vlo.x  ,vhi.y+1,vlo.z  ,icomp)
+                    + vel(vlo.x  ,vhi.y  ,vlo.z-1,icomp)
+                    - vel(vlo.x  ,vhi.y  ,vlo.z  ,icomp) * 2.0;
+            } else if (vlo.x == dlo.x and vhi.y == dhi.y) {
+                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vhi.y  ,vlo.z-1,icomp)
+                    + vel(vlo.x  ,vhi.y+1,vlo.z-1,icomp)
+                    - vel(vlo.x  ,vhi.y  ,vlo.z-1,icomp);
+            } else if (vlo.x == dlo.x and vlo.z == dlo.z) {
+                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vhi.y+1,vlo.z  ,icomp)
+                    + vel(vlo.x  ,vhi.y+1,vlo.z-1,icomp)
+                    - vel(vlo.x  ,vhi.y+1,vlo.z  ,icomp);
+            } else if (vhi.y == dhi.y and vlo.z == dlo.z) {
+                vel      (vlo.x-1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vlo.x-1,vhi.y+1,vlo.z  ,icomp)
+                    + vel(vlo.x-1,vhi.y  ,vlo.z-1,icomp)
+                    - vel(vlo.x-1,vhi.y  ,vlo.z  ,icomp);
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.y == dhi.y) {
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
-
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
-
                 int offset = AMREX_SPACEDIM * ozlo;
                 mllinop_apply_bc_z(Orientation::low, bx, blen.z,
                                    vel, mzlo, bct[offset+icomp], bcl[offset+icomp],
@@ -149,28 +199,44 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 3: {
             // xhi & yhi & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vhi.y == dhi.y and vlo.z == dlo.z) {
+                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vhi.y  ,vlo.z  ,icomp)
+                    + vel(vhi.x  ,vhi.y+1,vlo.z  ,icomp)
+                    + vel(vhi.x  ,vhi.y  ,vlo.z-1,icomp)
+                    - vel(vhi.x  ,vhi.y  ,vlo.z  ,icomp) * 2.0;
+            } else if (vhi.x == dhi.x and vhi.y == dhi.y) {
+                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vhi.y  ,vlo.z-1,icomp)
+                    + vel(vhi.x  ,vhi.y+1,vlo.z-1,icomp)
+                    - vel(vhi.x  ,vhi.y  ,vlo.z-1,icomp);
+            } else if (vhi.x == dhi.x and vlo.z == dlo.z) {
+                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vhi.y+1,vlo.z  ,icomp)
+                    + vel(vhi.x  ,vhi.y+1,vlo.z-1,icomp)
+                    - vel(vhi.x  ,vhi.y+1,vlo.z  ,icomp);
+            } else if (vhi.y == dhi.y and vlo.z == dlo.z) {
+                vel      (vhi.x+1,vhi.y+1,vlo.z-1,icomp)
+                    = vel(vhi.x+1,vhi.y+1,vlo.z  ,icomp)
+                    + vel(vhi.x+1,vhi.y  ,vlo.z-1,icomp)
+                    - vel(vhi.x+1,vhi.y  ,vlo.z  ,icomp);
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.y == dhi.y) {
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
-		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
-	      
+		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);	      
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
-
                 int offset = AMREX_SPACEDIM * ozlo;
                 mllinop_apply_bc_z(Orientation::low, bx, blen.z,
                                    vel, mzlo, bct[offset+icomp], bcl[offset+icomp],
@@ -181,28 +247,44 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 4: {
             // xlo & ylo & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vlo.y == dlo.y and vhi.z == dhi.z) {
+                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
+                    = vel(vlo.x-1, vlo.y  , vhi.z  ,icomp)
+                    + vel(vlo.x  , vlo.y-1, vhi.z  ,icomp)
+                    + vel(vlo.x  , vlo.y  , vhi.z+1,icomp)
+                    - vel(vlo.x  , vlo.y  , vhi.z  ,icomp) * 2.0;
+            } else if (vlo.x == dlo.x and vlo.y == dlo.y) {
+                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
+                    = vel(vlo.x-1, vlo.y  , vhi.z+1,icomp)
+                    + vel(vlo.x  , vlo.y-1, vhi.z+1,icomp)
+                    - vel(vlo.x  , vlo.y  , vhi.z+1,icomp);
+            } else if (vlo.x == dlo.x and vhi.z == dhi.z) {
+                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
+                    = vel(vlo.x-1, vlo.y-1, vhi.z  ,icomp)
+                    + vel(vlo.x  , vlo.y-1, vhi.z+1,icomp)
+                    - vel(vlo.x  , vlo.y-1, vhi.z  ,icomp);
+            } else if (vlo.y == dlo.y and vhi.z == dhi.z) {
+                vel      (vlo.x-1, vlo.y-1, vhi.z+1,icomp)
+                    = vel(vlo.x-1, vlo.y-1, vhi.z  ,icomp)
+                    + vel(vlo.x-1, vlo.y  , vhi.z+1,icomp)
+                    - vel(vlo.x-1, vlo.y  , vhi.z  ,icomp);
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.y == dlo.y) {
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
-
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
-
                 int offset = AMREX_SPACEDIM * ozhi;
                 mllinop_apply_bc_z(Orientation::high, bx, blen.z,
                                    vel, mzhi, bct[offset+icomp], bcl[offset+icomp],
@@ -213,28 +295,44 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 5: {
             // xhi & ylo & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vlo.y == dlo.y and vhi.z == dhi.z) {
+                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vlo.y  ,vhi.z  ,icomp)
+                    + vel(vhi.x  ,vlo.y-1,vhi.z  ,icomp)
+                    + vel(vhi.x  ,vlo.y  ,vhi.z+1,icomp)
+                    - vel(vhi.x  ,vlo.y  ,vhi.z  ,icomp) * 2.0;
+            } else if (vhi.x == dhi.x and vlo.y == dlo.y) {
+                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vlo.y  ,vhi.z+1,icomp)
+                    + vel(vhi.x  ,vlo.y-1,vhi.z+1,icomp)
+                    - vel(vhi.x  ,vlo.y  ,vhi.z+1,icomp);
+            } else if (vhi.x == dhi.x and vhi.z == dhi.z) {
+                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vlo.y-1,vhi.z  ,icomp)
+                    + vel(vhi.x  ,vlo.y-1,vhi.z+1,icomp)
+                    - vel(vhi.x  ,vlo.y-1,vhi.z  ,icomp);
+            } else if (vlo.y == dlo.y and vhi.z == dhi.z) {
+                vel      (vhi.x+1,vlo.y-1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vlo.y-1,vhi.z  ,icomp)
+                    + vel(vhi.x+1,vlo.y  ,vhi.z+1,icomp)
+                    - vel(vhi.x+1,vlo.y  ,vhi.z  ,icomp);
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.y == dlo.y) {
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
-
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
-
                 int offset = AMREX_SPACEDIM * ozhi;
                 mllinop_apply_bc_z(Orientation::high, bx, blen.z,
                                    vel, mzhi, bct[offset+icomp], bcl[offset+icomp],
@@ -245,16 +343,35 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 6: {
             // xlo & yhi & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1),zdir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vhi.y == dhi.y and vhi.z == dhi.z) {
+                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vlo.x-1,vhi.y  ,vhi.z  ,icomp)
+                    + vel(vlo.x  ,vhi.y+1,vhi.z  ,icomp)
+                    + vel(vlo.x  ,vhi.y  ,vhi.z+1,icomp)
+                    - vel(vlo.x  ,vhi.y  ,vhi.z  ,icomp) * 2.0;
+            } else if (vlo.x == dlo.x and vhi.y == dhi.y) {
+                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vlo.x-1,vhi.y  ,vhi.z+1,icomp)
+                    + vel(vlo.x  ,vhi.y+1,vhi.z+1,icomp)
+                    - vel(vlo.x  ,vhi.y  ,vhi.z+1,icomp);
+            } else if (vlo.x == dlo.x and vhi.z == dhi.z) {
+                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vlo.x-1,vhi.y+1,vhi.z  ,icomp)
+                    + vel(vlo.x  ,vhi.y+1,vhi.z+1,icomp)
+                    - vel(vlo.x  ,vhi.y+1,vhi.z  ,icomp);
+            } else if (vhi.y == dhi.y and vhi.z == dhi.z) {
+                vel      (vlo.x-1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vlo.x-1,vhi.y+1,vhi.z  ,icomp)
+                    + vel(vlo.x-1,vhi.y  ,vhi.z+1,icomp)
+                    - vel(vlo.x-1,vhi.y  ,vhi.z  ,icomp);
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-	      
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.y == dhi.y) {
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
 
@@ -262,8 +379,7 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
 
@@ -277,28 +393,44 @@ void mltensor_fill_corners (int icorner, Box const& vbox, // vbox: the valid box
         case 7: {
             // xhi & yhi & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1),zdir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vhi.y == dhi.y and vhi.z == dhi.z) {
+                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vhi.y  ,vhi.z  ,icomp)
+                    + vel(vhi.x  ,vhi.y+1,vhi.z  ,icomp)
+                    + vel(vhi.x  ,vhi.y  ,vhi.z+1,icomp)
+                    - vel(vhi.x  ,vhi.y  ,vhi.z  ,icomp) * 2.0;
+            } else if (vhi.x == dhi.x and vhi.y == dhi.y) {
+                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vhi.y  ,vhi.z+1,icomp)
+                    + vel(vhi.x  ,vhi.y+1,vhi.z+1,icomp)
+                    - vel(vhi.x  ,vhi.y  ,vhi.z+1,icomp);
+            } else if (vhi.x == dhi.x and vhi.z == dhi.z) {
+                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vhi.y+1,vhi.z  ,icomp)
+                    + vel(vhi.x  ,vhi.y+1,vhi.z+1,icomp)
+                    - vel(vhi.x  ,vhi.y+1,vhi.z  ,icomp);
+            } else if (vhi.y == dhi.y and vhi.z == dhi.z) {
+                vel      (vhi.x+1,vhi.y+1,vhi.z+1,icomp)
+                    = vel(vhi.x+1,vhi.y+1,vhi.z  ,icomp)
+                    + vel(vhi.x+1,vhi.y  ,vhi.z+1,icomp)
+                    - vel(vhi.x+1,vhi.y  ,vhi.z  ,icomp);
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.y == dhi.y) {
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
-		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
-	      
+		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);	      
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
-	      
                 int offset = AMREX_SPACEDIM * ozhi;
                 mllinop_apply_bc_z(Orientation::high, bx, blen.z,
                                    vel, mzhi, bct[offset+icomp], bcl[offset+icomp],
@@ -335,9 +467,9 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
                           GpuArray<BoundCond,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bct,
                           GpuArray<Real,2*AMREX_SPACEDIM*AMREX_SPACEDIM> const& bcl,
 			  int inhomog, int maxorder, int use_crsedata,
-			  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
 			  Dim3 const& rr,
-			  Box const& domain) noexcept
+                          Box const& domain) noexcept
 {
     constexpr int oxlo = 0;
     constexpr int oylo = 1;
@@ -358,19 +490,23 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 0: {
             // xlo & ylo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),ydir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vlo.y == dlo.y) {
+                for (int k = vlo.z; k <= vhi.z; ++k) {
+                    vel      (vlo.x-1,vlo.y-1,k,icomp)
+                        = vel(vlo.x  ,vlo.y-1,k,icomp)
+                        + vel(vlo.x-1,vlo.y  ,k,icomp)
+                        - vel(vlo.x  ,vlo.y  ,k,icomp);
+                }
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-
-	        int offset = AMREX_SPACEDIM * oxlo;
+                int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.y == dlo.y) {
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
-
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
@@ -381,16 +517,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 1: {
             // xhi & ylo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),ydir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vlo.y == dlo.y) {
+                for (int k = vlo.z; k <= vhi.z; ++k) {
+                    vel      (vhi.x+1,vlo.y-1,k,icomp)
+                        = vel(vhi.x  ,vlo.y-1,k,icomp)
+                        + vel(vhi.x+1,vlo.y  ,k,icomp)
+                        - vel(vhi.x  ,vlo.y  ,k,icomp);
+                }
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.y == dlo.y) {
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
 		
@@ -404,16 +545,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 2: {
             // xlo & yhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),ydir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vhi.y == dhi.y) {
+                for (int k = vlo.z; k <= vhi.z; ++k) {
+                    vel      (vlo.x-1,vhi.y+1,k,icomp)
+                        = vel(vlo.x  ,vhi.y+1,k,icomp)
+                        + vel(vlo.x-1,vhi.y  ,k,icomp)
+                        - vel(vlo.x  ,vhi.y  ,k,icomp);
+                }
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.y == dhi.y) {
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
 
@@ -427,19 +573,23 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 3: {
             // xhi & yhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),ydir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vhi.y == dhi.y) {
+                for (int k = vlo.z; k <= vhi.z; ++k) {
+                    vel      (vhi.x+1,vhi.y+1,k,icomp)
+                        = vel(vhi.x  ,vhi.y+1,k,icomp)
+                        + vel(vhi.x+1,vhi.y  ,k,icomp)
+                        - vel(vhi.x  ,vhi.y  ,k,icomp);
+                }
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.y == dhi.y) {
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
-
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
@@ -450,16 +600,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 4: {
             // xlo & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,xdir,1),zdir,1);
-            if (vlo.x == dlo.x) {
-	        if (use_crsedata)
+            if (vlo.x == dlo.x and vlo.z == dlo.z) {
+                for (int j = vlo.y; j <= vhi.y; ++j) {
+                    vel      (vlo.x-1,j,vlo.z-1,icomp)
+                        = vel(vlo.x  ,j,vlo.z-1,icomp)
+                        + vel(vlo.x-1,j,vlo.z  ,icomp)
+                        - vel(vlo.x  ,j,vlo.z  ,icomp);
+                }
+            } else if (vlo.x == dlo.x) {
+       	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-	      
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
 		
@@ -473,16 +628,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 5: {
             // xhi & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(vbox,xdir,1),zdir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vlo.z == dlo.z) {
+                for (int j = vlo.y; j <= vhi.y; ++j) {
+                    vel      (vhi.x+1,j,vlo.z-1,icomp)
+                        = vel(vhi.x  ,j,vlo.z-1,icomp)
+                        + vel(vhi.x+1,j,vlo.z  ,icomp)
+                        - vel(vhi.x  ,j,vlo.z  ,icomp);
+                }
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
 
@@ -496,16 +656,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 6: {
             // xlo & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(vbox,xdir,1),zdir,1);
-            if (vlo.x == dlo.x) {
+            if (vlo.x == dlo.x and vhi.z == dhi.z) {
+                for (int j = vlo.y; j <= vhi.y; ++j) {
+                    vel      (vlo.x-1,j,vhi.z+1,icomp)
+                        = vel(vlo.x  ,j,vhi.z+1,icomp)
+                        + vel(vlo.x-1,j,vhi.z  ,icomp)
+                        - vel(vlo.x  ,j,vhi.z  ,icomp);
+                }
+            } else if (vlo.x == dlo.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxlo, crsebcvalxlo, mxlo, rr);
-
                 int offset = AMREX_SPACEDIM * oxlo;
                 mllinop_apply_bc_x(Orientation::low, bx, blen.x,
                                    vel, mxlo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxlo, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
 
@@ -519,16 +684,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 7: {
             // xhi & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(vbox,xdir,1),zdir,1);
-            if (vhi.x == dhi.x) {
+            if (vhi.x == dhi.x and vhi.z == dhi.z) {
+                for (int j = vlo.y; j <= vhi.y; ++j) {
+                    vel      (vhi.x+1,j,vhi.z+1,icomp)
+                        = vel(vhi.x  ,j,vhi.z+1,icomp)
+                        + vel(vhi.x+1,j,vhi.z  ,icomp)
+                        - vel(vhi.x  ,j,vhi.z  ,icomp);
+                }
+            } else if (vhi.x == dhi.x) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalxhi, crsebcvalxhi, mxhi, rr);
-
                 int offset = AMREX_SPACEDIM * oxhi;
                 mllinop_apply_bc_x(Orientation::high, bx, blen.x,
                                    vel, mxhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalxhi, maxorder, dxinv[xdir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
 
@@ -542,16 +712,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 8: {
             // ylo & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellLo(vbox,ydir,1),zdir,1);
-            if (vlo.y == dlo.y) {
+            if (vlo.y == dlo.y and vlo.z == dlo.z) {
+                for (int i = vlo.x; i <= vhi.x; ++i) {
+                    vel      (i,vlo.y-1,vlo.z-1,icomp)
+                        = vel(i,vlo.y  ,vlo.z-1,icomp)
+                        + vel(i,vlo.y-1,vlo.z  ,icomp)
+                        - vel(i,vlo.y  ,vlo.z  ,icomp);
+                }
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
-
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
 
@@ -565,16 +740,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 9: {
             // yhi & zlo
             Box bx = amrex::adjCellLo(amrex::adjCellHi(vbox,ydir,1),zdir,1);
-            if (vhi.y == dhi.y) {
+            if (vhi.y == dhi.y and vlo.z == dlo.z) {
+                for (int i = vlo.x; i <= vhi.x; ++i) {
+                    vel      (i,vhi.y+1,vlo.z-1,icomp)
+                        = vel(i,vhi.y  ,vlo.z-1,icomp)
+                        + vel(i,vhi.y+1,vlo.z  ,icomp)
+                        - vel(i,vhi.y  ,vlo.z  ,icomp);
+                }
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
-
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vlo.z == dlo.z) {
+            } else if (vlo.z == dlo.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzlo, crsebcvalzlo, mzlo, rr);
 
@@ -588,16 +768,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 10: {
             // ylo & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellLo(vbox,ydir,1),zdir,1);
-            if (vlo.y == dlo.y) {
+            if (vlo.y == dlo.y and vhi.z == dhi.z) {
+                for (int i = vlo.x; i <= vhi.x; ++i) {
+                    vel      (i,vlo.y-1,vhi.z+1,icomp)
+                        = vel(i,vlo.y  ,vhi.z+1,icomp)
+                        + vel(i,vlo.y-1,vhi.z  ,icomp)
+                        - vel(i,vlo.y  ,vhi.z  ,icomp);
+                }
+            } else if (vlo.y == dlo.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalylo, crsebcvalylo, mylo, rr);
-
                 int offset = AMREX_SPACEDIM * oylo;
                 mllinop_apply_bc_y(Orientation::low, bx, blen.y,
                                    vel, mylo, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalylo, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
 
@@ -611,16 +796,21 @@ void mltensor_fill_edges (int iedge, Box const& vbox, // vbox: the valid box
         case 11: {
             // yhi & zhi
             Box bx = amrex::adjCellHi(amrex::adjCellHi(vbox,ydir,1),zdir,1);
-            if (vhi.y == dhi.y) {
+            if (vhi.y == dhi.y and vhi.z == dhi.z) {
+                for (int i = vlo.x; i <= vhi.x; ++i) {
+                    vel      (i,vhi.y+1,vhi.z+1,icomp)
+                        = vel(i,vhi.y  ,vhi.z+1,icomp)
+                        + vel(i,vhi.y+1,vhi.z  ,icomp)
+                        - vel(i,vhi.y  ,vhi.z  ,icomp);
+                }
+            } else if (vhi.y == dhi.y) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalyhi, crsebcvalyhi, myhi, rr);
-
                 int offset = AMREX_SPACEDIM * oyhi;
                 mllinop_apply_bc_y(Orientation::high, bx, blen.y,
                                    vel, myhi, bct[offset+icomp], bcl[offset+icomp],
                                    bcvalyhi, maxorder, dxinv[ydir], inhomog, icomp);
-            }
-            else if (vhi.z == dhi.z) {
+            } else if (vhi.z == dhi.z) {
 	        if (use_crsedata)
 		  mltensor_interpbndry_o1(bx, icomp, bcvalzhi, crsebcvalzhi, mzhi, rr);
 
@@ -691,7 +881,7 @@ void mltensor_cross_terms_fy (Box const& box, Array4<Real> const& fy,
                 Real dvdz = (vel(i,j,k+1,1)+vel(i,j-1,k+1,1)-vel(i,j,k-1,1)-vel(i,j-1,k-1,1))*(0.25*dzi);
                 Real dwdz = (vel(i,j,k+1,2)+vel(i,j-1,k+1,2)-vel(i,j,k-1,2)-vel(i,j-1,k-1,2))*(0.25*dzi);
                 Real divu = dudx + dwdz;
-		Real xif = kapy(i,j,k);
+                Real xif = kapy(i,j,k);
                 Real mun = 0.75*(etay(i,j,k,1)-xif);  // restore the original eta
                 Real mut =       etay(i,j,k,0);
                 fy(i,j,k,0) = -mut*(dvdx);

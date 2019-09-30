@@ -1,8 +1,6 @@
 
 CEXE_headers   += AMReX_MLMG.H
 CEXE_sources   += AMReX_MLMG.cpp
-CEXE_headers   += AMReX_MLMG_F.H
-F90EXE_sources += AMReX_MLMG_$(DIM)d.F90
 CEXE_headers   += AMReX_MLMG_K.H AMReX_MLMG_$(DIM)D_K.H
 
 
@@ -45,9 +43,9 @@ CEXE_headers   += AMReX_MLPoisson_K.H AMReX_MLPoisson_${DIM}D_K.H
 
 CEXE_headers   += AMReX_MLNodeLaplacian.H
 CEXE_sources   += AMReX_MLNodeLaplacian.cpp
+CEXE_headers   += AMReX_MLNodeLap_K.H AMReX_MLNodeLap_$(DIM)_K.H
 CEXE_headers   += AMReX_MLNodeLap_F.H
 F90EXE_sources += AMReX_MLNodeLap_$(DIM)d.F90
-F90EXE_sources += AMReX_MLNodeLap_nd.F90
 
 CEXE_headers   += AMReX_MLTensorOp.H
 CEXE_sources   += AMReX_MLTensorOp.cpp
@@ -57,8 +55,7 @@ ifeq ($(USE_EB),TRUE)
 CEXE_headers   += AMReX_MLEBABecLap.H
 CEXE_sources   += AMReX_MLEBABecLap.cpp
 CEXE_headers   += AMReX_MLEBABecLap_K.H
-CEXE_headers   += AMReX_MLEBABecLap_F.H
-F90EXE_sources += AMReX_MLEBABecLap_$(DIM)d.F90
+CEXE_headers   += AMReX_MLEBABecLap_$(DIM)D_K.H
 
 CEXE_headers   += AMReX_MLEBTensorOp.H
 CEXE_sources   += AMReX_MLEBTensorOp.cpp
@@ -67,8 +64,6 @@ endif
 
 CEXE_headers += AMReX_MacProjector.H
 CEXE_sources += AMReX_MacProjector.cpp
-
-CEXE_headers += AMReX_MG_K.H AMReX_MG_$(DIM)D_K.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
