@@ -1927,12 +1927,11 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
         Array4<int const> const& dmskarr = dmsk.const_array(mfi);
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
-            FArrayBox& fab = mf[mfi];
-            amrex_mlndlap_normalize_sten(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(fab),
-                                         BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                         BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                         s0_norm0);
+            Array4<Real const> const& stenarr = stencil->const_array(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                mlndlap_normalize_sten(tbx,arr,stenarr,dmskarr,s0_norm0);
+            });
         }
         else if (m_use_harmonic_average && mglev > 0)
         {
