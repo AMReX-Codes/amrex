@@ -28,11 +28,10 @@ void mlndlap_avgdown_coeff_x (int i, int j, int k, Array4<Real> const& crse,
 {}
 
 template <typename T>
-inline void mlndlap_fillbc_cc (Box const& vbx, Array4<T> const& sigma, Box const& domain,
-                               Array<LinOpBCType, AMREX_SPACEDIM> bclo,
-                               Array<LinOpBCType, AMREX_SPACEDIM> bchi) noexcept
-{
-}
+inline void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
+                             GpuArray<bool,AMREX_SPACEDIM> const& bflo,
+                             GpuArray<bool,AMREX_SPACEDIM> const& bfhi) noexcept
+{}
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_adotx_ha (Box const& bx, Array4<Real> const& y, Array4<Real const> const& x,
@@ -111,6 +110,16 @@ void mlndlap_rhcc (int i, int j, int k, Array4<Real> const& rhs, Array4<Real con
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
                      Array4<Real const> const& sig, Real dxi) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
+                          Array4<Real const> const& sig,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noexcept
 {}
 
 }

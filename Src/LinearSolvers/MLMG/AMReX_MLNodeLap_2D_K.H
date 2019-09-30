@@ -687,5 +687,41 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
 // sync residual
 //
 
+//
+// RAP
+//
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
+                          Array4<Real const> const& sigma,
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = (1.0/6.0)*dxinv[0]*dxinv[0];
+    Real facy = (1.0/6.0)*dxinv[1]*dxinv[1];
+    Real fxy = facx + facy;
+    Real f2xmy = 2.0*facx - facy;
+    Real fmx2y = 2.0*facy - facx;
+
+    amrex::LoopConcurrent(bx, [=] (int i, int j, int k) noexcept
+    {
+        sten(i,j,k,1) = f2xmy*(sigma(i,j-1,k)+sigma(i,j,k));
+        sten(i,j,k,2) = fmx2y*(sigma(i-1,j,k)+sigma(i,j,k));
+        sten(i,j,k,3) = fxy*sigma(i,j,k);
+    });
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_set_stencil_s0 (int i, int j, int k, Array4<Real> const& sten) noexcept
+{
+    sten(i,j,k,0) = -(sten(i-1,j  ,k,1) + sten(i  ,j  ,k,1)
+                    + sten(i  ,j-1,k,2) + sten(i  ,j  ,k,2)
+                    + sten(i-1,j-1,k,3) + sten(i  ,j-1,k,3)
+                    + sten(i-1,j  ,k,3) + sten(i  ,j  ,k,3));
+    sten(i,j,k,4) = 1.0 / (std::abs(sten(i-1,j  ,k,1)) + std::abs(sten(i,j  ,k,1))
+                         + std::abs(sten(i  ,j-1,k,2)) + std::abs(sten(i,j  ,k,2))
+                         + std::abs(sten(i-1,j-1,k,3)) + std::abs(sten(i,j-1,k,3))
+                         + std::abs(sten(i-1,j  ,k,3)) + std::abs(sten(i,j  ,k,3)) + eps);
+}
+
 }
 #endif
