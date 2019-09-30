@@ -10,7 +10,7 @@ geometry.prob_lo     = -8 -12
 geometry.prob_hi     =  8  12
 warpx.do_pml = 0
 algo.charge_deposition = standard
-algo.field_gathering = standard
+algo.field_gathering = energy-conserving
 warpx.cfl = 1.0
 
 particles.nspecies = 1
