@@ -32,6 +32,12 @@ data = ds.covering_grid( 0, ds.domain_left_edge, ds.domain_dimensions )
 
 it = int(fn[-5:])
 
+# Machine precision of the simulation
+if ds.index._dtype == "float32":
+    dfloat = 1.e-4   # single: ok, just a somewhat larger than 1.e-6
+else:
+    dfloat = 1.e-14  # double: ok, just a little larger than 1.e-15
+
 # Check the Jx field, which oscillates at wp
 j_predicted = -n0*e*c*ux*np.cos( wp*t*(it-0.5)/it ) # j at half-timestep
 jx = data['jx'].to_ndarray()
@@ -50,7 +56,7 @@ print( "relative error: np.max( np.abs( ( Ex[:32,:,0] - E_predicted ) / E_predic
            %np.max( np.abs( ( Ex[:32,:,0] - E_predicted ) / E_predicted ) ) )
 assert np.allclose( Ex[:32,:,0], E_predicted, rtol=0.1 )
 print( "absolute error: np.max( np.abs( Ex[32:,:,0] ) ) = %s" %np.max( np.abs( Ex[32:,:,0] ) ) )
-assert np.allclose( Ex[32:,:,0], 0, atol=1.e-4 )
+assert np.allclose( Ex[32:,:,0], 0, atol=np.abs(E_predicted)*dfloat )
 
 # Save an image to be displayed on the website
 t_plot = np.linspace(0.0, t, 200)

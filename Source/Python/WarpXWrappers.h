@@ -12,8 +12,11 @@
 #include <AMReX_BLProfiler.H>
 
 #ifdef BL_USE_MPI
-#include <mpi.h>
+#   include <mpi.h>
 #endif
+
+#include <AMReX_REAL.H>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,10 +64,17 @@ extern "C" {
 
     void warpx_evolve (int numsteps);  // -1 means the inputs parameter will be used.
 
-    void warpx_addNParticles(int speciesnumber, int lenx,
-                             amrex::ParticleReal* x, amrex::ParticleReal* y, amrex::ParticleReal* z,
-                             amrex::ParticleReal* vx, amrex::ParticleReal* vy, amrex::ParticleReal* vz,
-                             int nattr, amrex::ParticleReal* attr, int uniqueparticles);
+    void warpx_addNParticles(int speciesnumber,
+                             int lenx,
+                             amrex::ParticleReal const * x,
+                             amrex::ParticleReal const * y,
+                             amrex::ParticleReal const * z,
+                             amrex::ParticleReal const * vx,
+                             amrex::ParticleReal const * vy,
+                             amrex::ParticleReal const * vz,
+                             int nattr,
+                             amrex::ParticleReal const * attr,
+                             int uniqueparticles);
 
     void warpx_ConvertLabParamsToBoost();
 
