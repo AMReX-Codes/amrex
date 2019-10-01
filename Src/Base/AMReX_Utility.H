@@ -179,7 +179,7 @@ namespace amrex
     *  distribution with mean 'mean' and standard deviation 'stddev'.
     *
     */
-    AMREX_GPU_HOST_DEVICE double RandomNormal (double mean, double stddev);
+    AMREX_GPU_HOST_DEVICE Real RandomNormal (Real mean, Real stddev);
 
     /**
     * \brief Generate a psuedo-random double using C++11's mt19937.
@@ -188,7 +188,7 @@ namespace amrex
     *  uniformly distributed on [0,1)-interval for each call.
     *
     */
-    AMREX_GPU_HOST_DEVICE double Random (); // [0,1)
+    AMREX_GPU_HOST_DEVICE Real Random (); // [0,1)
 
 
 
