@@ -206,5 +206,5 @@ void testReduce ()
         AMREX_ALWAYS_ASSERT(r == 0);
     }
 
-    amrex::Print() << "Passed! \n";
+    amrex::Print() << "pass \n";
 }
