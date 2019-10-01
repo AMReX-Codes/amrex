@@ -29,7 +29,7 @@ energy = np.sum(ex**2 + ez**2 + scc.c**2*by**2)
 
 print("use_MR: %s" %use_MR)
 print("energy if corrector off (from benchmark): %s" %energy_corrector_off)
-print("energy threshold (from fenchmark): %s" %energy_threshold)
+print("energy threshold (from benchmark): %s" %energy_threshold)
 print("energy from this run: %s" %energy)
 
 assert( energy < energy_threshold )
