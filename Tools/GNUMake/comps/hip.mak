@@ -43,7 +43,8 @@ ifeq ($(HIP_PLATFORM),hcc)
   ifeq ($(DEBUG),TRUE)
     HIPCC_FLAGS += -g
   else
-    HIPCC_FLAGS += -lineinfo
+    HIPCC_FLAGS += -std=c++11
+#    HIPCC_FLAGS += -lineinfo
   endif
 
   HIP_POSSIBLE_FLAGS := -fgpd-rdc
