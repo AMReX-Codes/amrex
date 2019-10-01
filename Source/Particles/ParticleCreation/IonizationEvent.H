@@ -3,11 +3,6 @@
 
 #include "WarpXParticleContainer.H"
 
-namespace
-{
-
-}
-
 class copyAndTransformParticle
 {
 
@@ -34,14 +29,12 @@ public:
         m_attribs_product(attribs_product),
         m_runtime_attribs_product(runtime_attribs_product) {}
 
-    void operator () (int is, int ip, int pid_product,
+    void copyParticle(int is, int ip, int pid_product,
                       WarpXParticleContainer::ParticleType& p_source,
-                      WarpXParticleContainer::ParticleType& p_product
-        ) const
+                      WarpXParticleContainer::ParticleType& p_product) const
     {
-        amrex::Print()<<"is = "<<is<<'\n';
-        amrex::Print()<<"toto\n";
-
+        amrex::Print()<<"tata is = "<<is<<'\n';
+        
         // Copy particle from source to product: AoS
         p_product.id() = pid_product + ip;
         p_product.cpu() = m_cpuid;
@@ -65,6 +58,27 @@ public:
             (*m_runtime_attribs_product)[4][ip] = (*m_runtime_uold_source)[1][ip];
             (*m_runtime_attribs_product)[5][ip] = (*m_runtime_uold_source)[2][ip];
         }
+    }
+
+    void transformSourceParticle(int is, 
+                                 WarpXParticleContainer::ParticleType& p_source) const
+    {
+        amrex::Print()<<"transforming source particle --- ";
+    }
+
+    void transformProductParticle(int ip,
+                                  WarpXParticleContainer::ParticleType& p_product) const
+    {
+        amrex::Print()<<"transforming product particle\n";
+    }
+
+    void operator () (int is, int ip, int pid_product,
+                      WarpXParticleContainer::ParticleType& p_source,
+                      WarpXParticleContainer::ParticleType& p_product) const noexcept
+    {
+        this->copyParticle(is, ip, pid_product, p_source, p_product);
+        this->transformSourceParticle(is, p_source);
+        this->transformProductParticle(is, p_product);
     }
 };
 
