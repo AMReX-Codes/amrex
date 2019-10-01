@@ -11,7 +11,7 @@ void MultiParticleContainer::createParticles (
     std::unique_ptr< WarpXParticleContainer>& pc_source,
     std::unique_ptr< WarpXParticleContainer>& pc_product,
     amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
-    particleCreationProcess creation_process)
+    elementaryProcess elementary_process)
 {
     BL_PROFILE("createIonizedParticles");
 
@@ -102,7 +102,7 @@ void MultiParticleContainer::createParticles (
     }
     const int cpuid = ParallelDescriptor::MyProc();
 
-    copyAndTransformParticle copy_and_transform_functor = creation_process.initialize_functor(
+    copyAndTransformParticle copy_and_transform_functor = elementary_process.initialize_functor(
         cpuid, do_boosted_product,
         &runtime_uold_source,
         &attribs_source,

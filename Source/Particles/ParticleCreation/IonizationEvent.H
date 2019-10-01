@@ -3,6 +3,11 @@
 
 #include "WarpXParticleContainer.H"
 
+namespace
+{
+
+}
+
 class copyAndTransformParticle
 {
 
@@ -27,18 +32,7 @@ public:
         m_runtime_uold_source(runtime_uold_source),
         m_attribs_source(attribs_source),
         m_attribs_product(attribs_product),
-        m_runtime_attribs_product(runtime_attribs_product)
-    {}
-/*
-  {
-  m_cpuid = cpuid;
-  m_do_boosted_product = do_boosted_product;
-  m_runtime_uold_source = runtime_uold_source;
-  m_attribs_source = attribs_source;
-  m_attribs_product = attribs_product;
-  m_runtime_attribs_product = runtime_attribs_product;
-  }
-*/
+        m_runtime_attribs_product(runtime_attribs_product) {}
 
     void operator () (int is, int ip, int pid_product,
                       WarpXParticleContainer::ParticleType& p_source,
@@ -74,7 +68,7 @@ public:
     }
 };
 
-class particleCreationProcess
+class elementaryProcess
 {
 public:
     copyAndTransformParticle initialize_functor(
