@@ -1,7 +1,8 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include "IonizationEvent.H"
+#include "ElementaryProcess.H"
+
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <RigidInjectedParticleContainer.H>
@@ -192,13 +193,16 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
+    elementaryProcess<elementaryProcessType::Ionization> ionization_process;
+
+/*
     void createParticles (
         int lev, const amrex::MFIter& mfi,
         std::unique_ptr< WarpXParticleContainer>& pc_source,
         std::unique_ptr< WarpXParticleContainer>& pc_product,
         amrex::Gpu::ManagedDeviceVector<int>& is_flagged,
         elementaryProcess elementary_process);
-    
+*/    
 protected:
 
     // Particle container types
