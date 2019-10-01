@@ -87,12 +87,6 @@ extern "C" {
 
     // stencils
     
-    void amrex_mlndlap_restriction_rap (const int* lo, const int* hi,
-                                        amrex_real* crse, const int* clo, const int* chi,
-                                        const amrex_real* fine, const int* flo, const int* fhi,
-                                        const amrex_real* sten, const int* tlo, const int* thi,
-                                        const int* dmsk, const int* dmlo, const int* dmhi);
-    
     void amrex_mlndlap_stencil_rap (const int* lo, const int* hi,
                                     amrex_real* csten, const int* clo, const int* chi,
                                     const amrex_real* fsten, const int* flo, const int* fhi);

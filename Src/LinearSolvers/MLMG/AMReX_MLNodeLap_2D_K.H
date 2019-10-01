@@ -813,5 +813,70 @@ void mlndlap_interpadd_rap (int i, int j, int, Array4<Real> const& fine,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
+                              Array4<Real const> const& fine, Array4<Real const> const& sten,
+                              Array4<int const> const& msk) noexcept
+{
+    int ii = i*2;
+    int jj = j*2;
+    if (msk(ii,jj,0)) {
+        crse(i,j,0) = 0.0;
+    } else {
+
+        Real cv = fine(ii,jj,0)
+            + fine(ii-1,jj  ,0)*std::abs(sten(ii-1,jj  ,0,1))
+            /                  (std::abs(sten(ii-2,jj  ,0,1))
+                               +std::abs(sten(ii-1,jj  ,0,1))+eps)
+            + fine(ii+1,jj  ,0)*std::abs(sten(ii  ,jj  ,0,1))
+            /                  (std::abs(sten(ii  ,jj  ,0,1))
+                               +std::abs(sten(ii+1,jj  ,0,1))+eps)
+            + fine(ii  ,jj-1,0)*std::abs(sten(ii  ,jj-1,0,2))
+            /                  (std::abs(sten(ii  ,jj-2,0,2))
+                               +std::abs(sten(ii  ,jj-1,0,2))+eps)
+            + fine(ii  ,jj+1,0)*std::abs(sten(ii  ,jj  ,0,2))
+            /                  (std::abs(sten(ii  ,jj  ,0,2))
+                               +std::abs(sten(ii  ,jj+1,0,2))+eps);
+
+        Real wxp = std::abs(sten(ii-1,jj-1,0,1))
+            /     (std::abs(sten(ii-1,jj-2,0,3))
+                  +std::abs(sten(ii-1,jj-1,0,3))+eps);
+        Real wyp = std::abs(sten(ii-1,jj-1,0,2))
+            /     (std::abs(sten(ii-2,jj-1,0,3))
+                  +std::abs(sten(ii-1,jj-1,0,3))+eps);
+        Real wpp = std::abs(sten(ii-1,jj-1,0,3))*(1.0+wxp+wyp);
+        cv +=           wpp*sten(ii-1,jj-1,0,4)*fine(ii-1,jj-1,0);
+
+        Real wxm = std::abs(sten(ii  ,jj-1,0,1))
+            /     (std::abs(sten(ii  ,jj-2,0,3))
+                  +std::abs(sten(ii  ,jj-1,0,3))+eps);
+        wyp      = std::abs(sten(ii+1,jj-1,0,2))
+            /     (std::abs(sten(ii  ,jj-1,0,3))
+                  +std::abs(sten(ii+1,jj-1,0,3))+eps);
+        Real wmp = std::abs(sten(ii  ,jj-1,0,3))*(1.0 + wxm + wyp);
+        cv +=           wmp*sten(ii+1,jj-1,0,4)*fine(ii+1,jj-1,0);
+
+        wxp      = std::abs(sten(ii-1,jj+1,0,1))
+            /     (std::abs(sten(ii-1,jj  ,0,3))
+                  +std::abs(sten(ii-1,jj+1,0,3))+eps);
+        Real wym = std::abs(sten(ii-1,jj  ,0,2))
+            /     (std::abs(sten(ii-2,jj  ,0,3))
+                  +std::abs(sten(ii-1,jj  ,0,3))+eps);
+        Real wpm = std::abs(sten(ii-1,jj  ,0,3)) * (1.0 + wxp + wym);
+        cv +=           wpm*sten(ii-1,jj+1,0,4)*fine(ii-1,jj+1,0);
+
+        wxm      = std::abs(sten(ii  ,jj+1,0,1))
+            /     (std::abs(sten(ii  ,jj  ,0,3))
+                  +std::abs(sten(ii  ,jj+1,0,3))+eps);
+        wym      = std::abs(sten(ii+1,jj  ,0,2))
+            /     (std::abs(sten(ii  ,jj  ,0,3))
+                  +std::abs(sten(ii+1,jj  ,0,3))+eps);
+        Real wmm = std::abs(sten(ii  ,jj  ,0,3)) * (1.0 + wxm + wym);
+        cv +=           wmm*sten(ii+1,jj+1,0,4)*fine(ii+1,jj+1,0);
+
+        crse(i,j,0) = cv * 0.25;
+    }
+}
+
 }
 #endif

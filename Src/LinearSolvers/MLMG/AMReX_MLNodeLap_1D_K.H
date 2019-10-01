@@ -140,6 +140,12 @@ void mlndlap_interpadd_rap (int i, int j, int k, Array4<Real> const& fine,
                             Array4<int const> const& msk) noexcept
 {}
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_restriction_rap (int i, int j, int k, Array4<Real> const& crse,
+                              Array4<Real const> const& fine, Array4<Real const> const& sten,
+                              Array4<int const> const& msk) noexcept
+{}
+
 }
 
 #endif

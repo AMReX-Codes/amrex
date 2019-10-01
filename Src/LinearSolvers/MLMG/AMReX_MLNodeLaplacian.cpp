@@ -1461,11 +1461,11 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
         }
         else
         {
-            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+            Array4<Real const> const& stfab = stencil->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
+            });
         }
     }
 
@@ -1596,11 +1596,11 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
                 mlndlap_restriction(i,j,k,cfab,ffab,mfab);
             });
         } else {
-            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+            Array4<Real const> const& stfab = stencil->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
+            });
         }
     }
 
@@ -2316,11 +2316,11 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                 mlndlap_restriction(i,j,k,cfab,ffab,mfab);
             });
         } else {
-            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
-                                          BL_TO_FORTRAN_ANYD(fine_res[mfi]),
-                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
-                                          BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+            Array4<Real const> const& stfab = stencil->const_array(mfi);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+            {
+                mlndlap_restriction_rap(i,j,k,cfab,ffab,stfab,mfab);
+            });
         }
     }
     res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());

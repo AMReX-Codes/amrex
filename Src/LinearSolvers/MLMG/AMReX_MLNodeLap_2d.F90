@@ -49,7 +49,6 @@ module amrex_mlnodelap_2d_module
 
   ! RAP
   public:: &
-       amrex_mlndlap_restriction_rap, &
        amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
@@ -537,57 +536,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-  subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
-       sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_restriction_rap')
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, slo, shi, mlo, mhi
-    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
-    real(amrex_real), intent(in   ) :: sten(slo(1):shi(1),slo(2):shi(2),5)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: i,j, ii, jj
-    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
-
-    do    j = lo(2), hi(2)
-       jj = 2*j
-       do i = lo(1), hi(1)
-          ii = 2*i
-          if (msk(ii,jj) .ne. dirichlet) then
-             crse(i,j) = fine(ii,jj) &
-                  + fine(ii-1,jj)*abs(sten(ii-1,jj,2))/(abs(sten(ii-2,jj,2))+abs(sten(ii-1,jj,2))+eps) &
-                  + fine(ii+1,jj)*abs(sten(ii,jj,2))/(abs(sten(ii,jj,2))+abs(sten(ii+1,jj,2))+eps) &
-                  + fine(ii,jj-1)*abs(sten(ii,jj-1,3))/(abs(sten(ii,jj-2,3))+abs(sten(ii,jj-1,3))+eps) &
-                  + fine(ii,jj+1)*abs(sten(ii,jj,3))/(abs(sten(ii,jj,3))+abs(sten(ii,jj+1,3))+eps)
-
-             wxp = abs(sten(ii-1,jj-1,2))/(abs(sten(ii-1,jj-2,4))+abs(sten(ii-1,jj-1,4))+eps)
-             wyp = abs(sten(ii-1,jj-1,3))/(abs(sten(ii-2,jj-1,4))+abs(sten(ii-1,jj-1,4))+eps)
-             wpp = abs(sten(ii-1,jj-1,4))*(1.d0+wxp+wyp)
-             crse(i,j) = crse(i,j) + wpp*sten(ii-1,jj-1,5)*fine(ii-1,jj-1)
-
-             wxm = abs(sten(ii  ,jj-1,2))/(abs(sten(ii,jj-2,4))+abs(sten(ii  ,jj-1,4))+eps)
-             wyp = abs(sten(ii+1,jj-1,3))/(abs(sten(ii,jj-1,4))+abs(sten(ii+1,jj-1,4))+eps)
-             wmp = abs(sten(ii  ,jj-1,4)) *(1.d0 + wxm + wyp)
-             crse(i,j) = crse(i,j) + wmp*sten(ii+1,jj-1,5)*fine(ii+1,jj-1)
-
-             wxp = abs(sten(ii-1,jj+1,2))/(abs(sten(ii-1,jj,4))+abs(sten(ii-1,jj+1,4))+eps)
-             wym = abs(sten(ii-1,jj  ,3))/(abs(sten(ii-2,jj,4))+abs(sten(ii-1,jj  ,4))+eps)
-             wpm = abs(sten(ii-1,jj  ,4)) * (1.d0 + wxp + wym)
-             crse(i,j) = crse(i,j) + wpm*sten(ii-1,jj+1,5)*fine(ii-1,jj+1)
-
-             wxm = abs(sten(ii  ,jj+1,2))/(abs(sten(ii  ,jj  ,4))+abs(sten(ii  ,jj+1,4))+eps)
-             wym = abs(sten(ii+1,jj  ,3))/(abs(sten(ii  ,jj  ,4))+abs(sten(ii+1,jj  ,4))+eps)
-             wmm = abs(sten(ii  ,jj  ,4)) * (1.d0 + wxm + wym)
-             crse(i,j) = crse(i,j) + wmm*sten(ii+1,jj+1,5)*fine(ii+1,jj+1)
-             
-             crse(i,j) = 0.25d0*crse(i,j)
-          else
-             crse(i,j) = 0.d0
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_restriction_rap
 
 
   subroutine amrex_mlndlap_stencil_rap (lo, hi, csten, clo, chi, fsten, flo, fhi) &
