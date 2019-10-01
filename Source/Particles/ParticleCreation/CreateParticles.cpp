@@ -104,10 +104,10 @@ void MultiParticleContainer::createParticles (
 
     copyAndTransformParticle copy_and_transform_functor = elementary_process.initialize_functor(
         cpuid, do_boosted_product,
-        &runtime_uold_source,
-        &attribs_source,
-        &attribs_product,
-        &runtime_attribs_product);
+        runtime_uold_source,
+        attribs_source,
+        attribs_product,
+        runtime_attribs_product);
     
     // Loop over all source particles. If is_flagged, copy particle data
     // to corresponding product particle.

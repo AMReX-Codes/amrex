@@ -42,13 +42,14 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("do_boosted_frame_diags", do_boosted_frame_diags);
 
     pp.query("do_field_ionization", do_field_ionization);
+/*
 #ifdef AMREX_USE_GPU
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         do_field_ionization == 0,
         "Field ionization does not work on GPU so far, because the current "
         "version of Redistribute in AMReX does not work with runtime parameters");
 #endif
-
+*/
     pp.query("plot_species", plot_species);
     int do_user_plot_vars;
     do_user_plot_vars = pp.queryarr("plot_vars", plot_vars);
