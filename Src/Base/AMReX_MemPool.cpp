@@ -45,6 +45,8 @@ void amrex_mempool_init ()
     {
 	initialized = true;
 
+        std::cout << " a " << std::endl;
+
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
 
@@ -68,13 +70,15 @@ void amrex_mempool_init ()
 	for (int i=0; i<nthreads; ++i) {
 	    the_memory_pool[i].reset(new CArena);
 	}
+
 #ifdef _OPENMP
 #pragma omp parallel num_threads(nthreads)
 #endif
 	{
 	    size_t N = 1024*1024*sizeof(double);
 	    void *p = amrex_mempool_alloc(N);
-	    memset(p, 0, N);
+// HIP FIX HERE
+//	    memset(p, 0, N);
 	    amrex_mempool_free(p);
 	}
 
