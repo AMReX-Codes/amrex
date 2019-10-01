@@ -12,12 +12,6 @@ extern "C" {
                                        const amrex_real* s, const int* slo, const int* shi,
                                        const int* msk, const int* mlo, const int* mhi);
 
-    void amrex_mlndlap_solution_residual (const int* lo, const int* hi,
-                                          amrex_real* res, const int* rlo, const int* rhi,
-                                          const amrex_real* b, const int* blo, const int* bhi,
-                                          const int* msk, const int* mlo, const int* mhi,
-					  const int* nc);
-
 #if (AMREX_SPACEDIM == 2)
     void amrex_mlndlap_set_rz (const int* rz);
 #endif
@@ -25,46 +19,6 @@ extern "C" {
     int amrex_mlndlap_any_fine_sync_cells (const int* lo, const int* hi,
                                            const int* msk, const int* mlo, const int* mhi,
                                            const int* fine_flag);
-
-    void amrex_mlndlap_fillbc_cc (amrex_real* sigma, const int* slo, const int* shi,
-                                  const int* dlo, const int* dhi,
-                                  const void* bclo, const void* bchi);
-
-    void amrex_mlndlap_fillbc_cc_i (int* sigma, const int* slo, const int* shi,
-                                    const int* dlo, const int* dhi,
-                                    const void* bclo, const void* bchi);
-
-    void amrex_mlndlap_applybc (amrex_real* phi, const int* hlo, const int* hhi,
-                                const int* dlo, const int* dhi,
-                                const void* bclo, const void* bchi);
-
-    void amrex_mlndlap_restriction (const int* lo, const int* hi,
-                                    amrex_real* crse, const int* clo, const int* chi,
-                                    const amrex_real* fine, const int* flo, const int* fhi,
-                                    const int* dmsk, const int* dmlo, const int* dmhi);
-
-    void amrex_mlndlap_interpolation_ha (const int* clo, const int* chi,
-                                      amrex_real* fine, const int* fflo, const int* ffhi,
-                                      const amrex_real* crse, const int* cflo, const int* cfhi,
-                                      const amrex_real* sx, const int* sxlo, const int* sxhi,
-#if (AMREX_SPACEDIM >= 2)
-                                      const amrex_real* sy, const int* sylo, const int* syhi,
-#if (AMREX_SPACEDIM == 3)
-                                      const amrex_real* sz, const int* szlo, const int* szhi,
-#endif
-#endif
-                                      const int* dmsk, const int* dmlo, const int* dmhi,
-                                      const int* domlo, const int* domhi,
-                                      const void* bclo, const void* bchi);
-
-
-    void amrex_mlndlap_interpolation_aa (const int* clo, const int* chi,
-                                      amrex_real* fine, const int* fflo, const int* ffhi,
-                                      const amrex_real* crse, const int* cflo, const int* cfhi,
-                                      const amrex_real* sig, const int* siglo, const int* sighi,
-                                      const int* dmsk, const int* dmlo, const int* dmhi,
-                                      const int* domlo, const int* domhi,
-                                      const void* bclo, const void* bchi);
 
     void amrex_mlndlap_divu_fine_contrib (const int* clo, const int* chi,
                                           const int* cgrid_lo, const int* cgrid_hi,
@@ -133,54 +87,9 @@ extern "C" {
 
     // stencils
     
-    void amrex_mlndlap_set_stencil (const int* lo, const int* hi,
-                                    amrex_real* sten, const int* tlo, const int* thi,
-                                    const amrex_real* sigma, const int* glo, const int* ghi,
-                                    const amrex_real* dxinv);
-
-    void amrex_mlndlap_set_stencil_s0 (const int* lo, const int* hi,
-                                       amrex_real* sten, const int* tlo, const int* thi);
-
-    void amrex_mlndlap_adotx_sten (const int* lo, const int* hi,
-                                   amrex_real* y, const int* ylo, const int* yhi,
-                                   const amrex_real* x, const int* xlo, const int* xhi,
-                                   const amrex_real* sten, const int* slo, const int* shi,
-                                   const int* dmsk, const int* dmlo, const int* dmhi);
-
-    void amrex_mlndlap_normalize_sten (const int* lo, const int* hi,
-                                       amrex_real* x, const int* xlo, const int* xhi,
-                                       const amrex_real* sten, const int* slo, const int* shi,
-                                       const int* dmsk, const int* dmlo, const int* dmhi,
-                                       const amrex_real s0_norm0);
-
-    void amrex_mlndlap_gauss_seidel_sten (const int* lo, const int* hi,
-                                          amrex_real* sol, const int* slo, const int* shi,
-                                          const amrex_real* rhs, const int* rlo, const int* rhi,
-                                          const amrex_real* sten, const int* tlo, const int* thi,
-                                          const int* dmsk, const int* dmlo, const int* dmhi);
-
-    void amrex_mlndlap_jacobi_sten (const int* lo, const int* hi,
-                                    amrex_real* sol, const int* slo, const int* shi,
-                                    const amrex_real* Ax, const int* alo, const int* ahi,
-                                    const amrex_real* rhs, const int* rlo, const int* rhi,
-                                    const amrex_real* sten, const int* tlo, const int* thi,
-                                    const int* dmsk, const int* dmlo, const int* dmhi);
-
-    void amrex_mlndlap_restriction_rap (const int* lo, const int* hi,
-                                        amrex_real* crse, const int* clo, const int* chi,
-                                        const amrex_real* fine, const int* flo, const int* fhi,
-                                        const amrex_real* sten, const int* tlo, const int* thi,
-                                        const int* dmsk, const int* dmlo, const int* dmhi);
-    
     void amrex_mlndlap_stencil_rap (const int* lo, const int* hi,
                                     amrex_real* csten, const int* clo, const int* chi,
                                     const amrex_real* fsten, const int* flo, const int* fhi);
-
-    void amrex_mlndlap_interpolation_rap (const int* clo, const int* chi,
-                                          amrex_real* fine, const int* fflo, const int* ffhi,
-                                          const amrex_real* crse, const int* cflo, const int* cfhi,
-                                          const amrex_real* sten, const int* tlo, const int* thi,
-                                          const int* dmsk, const int* dmlo, const int* dmhi);
 
 #ifdef AMREX_USE_EB
 
