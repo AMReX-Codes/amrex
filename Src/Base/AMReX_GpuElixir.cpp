@@ -15,8 +15,8 @@ namespace {
 
 extern "C" {
 AMREX_HIP_OR_CUDA(
-    void  HIPRT_CB amrex_elixir_delete ( hipStream_t stream,  hipError_t error, void* p),
-    void CUDART_CB amrex_elixir_delete (cudaStream_t stream, cudaError_t error, void* p))
+    hipStreamCallback_t amrex_elixir_delete ( hipStream_t stream,  hipError_t error, void* p),
+         void CUDART_CB amrex_elixir_delete (cudaStream_t stream, cudaError_t error, void* p))
     {
         void** pp = (void**)p;
         void* d = pp[0];
@@ -40,11 +40,14 @@ Elixir::clear () noexcept
             void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));
             p[0] = m_p;
             p[1] = (void*)m_arena;
+// HIP FIX HERE
+#ifdef AMREX_USE_CUDA
             AMREX_HIP_OR_CUDA(
                 AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_elixir_delete, p, 0));,
                 AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                            amrex_elixir_delete, p, 0)););
+#endif
             Gpu::callbackAdded();
         }
     }
