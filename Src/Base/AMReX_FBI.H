@@ -89,7 +89,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    amrex::launch_global<<<nblocks,nthreads>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -176,7 +176,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
     constexpr int nthreads = 128;
     constexpr int nwarps_per_block = nthreads/Gpu::Device::warp_size;
     int nblocks = (ntotwarps + nwarps_per_block-1) / nwarps_per_block;
-    amrex::launch_global<<<nblocks,nthreads>>>(
+    AMREX_LAUNCH_KERNEL(nblocks, nthreads, 0, 0, 
     [=] AMREX_GPU_DEVICE () noexcept
     {
         int g_tid = blockDim.x*blockIdx.x + threadIdx.x;
@@ -219,6 +219,8 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int* m = (icell < ncells) ? d_masks[tag_id].ptr(i,j,k) : nullptr;
         int mypriority = g_wid+1;
         int to_try  = 1;
+// HIP FIX HERE
+#ifdef AMREX_USE_CUDA
         while (true) {
             int msk = (m && to_try) ? atomicCAS(m, 0, mypriority) : 0;
             if (__all_sync(0xffffffff, msk == 0)) {  // 0 means lock acquired
@@ -233,7 +235,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
                 }
             }
         };
-
+#endif
         if (icell < ncells) {
             for (int n = 0; n < ncomp; ++n) {
                 f(&(tag.dfab(i,j,k,n+dcomp)),
