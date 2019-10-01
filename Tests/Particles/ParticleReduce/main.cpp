@@ -177,32 +177,32 @@ void testReduce ()
 
     using PType = typename TestParticleContainer::ParticleType;
     
-    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return -p.rdata(1); });
+    auto sm = amrex::ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return -p.rdata(1); });
     AMREX_ALWAYS_ASSERT(sm == -pc.TotalNumberOfParticles());
 
-    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    auto mn = amrex::ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mn == 1);
 
-    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> Real { return p.rdata(1); });
+    auto mx = amrex::ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real { return p.rdata(1); });
     AMREX_ALWAYS_ASSERT(mx == 1);
 
     {
-        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == 1; });
+        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == 1; });
         AMREX_ALWAYS_ASSERT(r == 1);
     }
 
     {
-        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == -1; });
+        auto r = amrex::ReduceLogicalOr(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == -1; });
         AMREX_ALWAYS_ASSERT(r == 0);
     }
 
     {
-        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == p.id(); });
+        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == p.id(); });
         AMREX_ALWAYS_ASSERT(r == 1);
     }
 
     {
-        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_DEVICE (const PType& p) -> int { return p.id() == 1; });
+        auto r = amrex::ReduceLogicalAnd(pc, [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> int { return p.id() == 1; });
         AMREX_ALWAYS_ASSERT(r == 0);
     }
 
