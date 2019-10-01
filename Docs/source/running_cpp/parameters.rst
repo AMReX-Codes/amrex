@@ -825,6 +825,9 @@ Diagnostics and output
     will be written for the reduced domain defined by ``slice.dom_lo`` 
     and ``slice.dom_hi``. Note that the 'slice' is a reduced 
     diagnostic which could be 1D, 2D, or 3D, aligned with the co-ordinate axes. 
+    These slices can be visualized using read_raw_data.py and the HDF5 format can 
+    be visualized using the h5py library. Please see the documentation on visualization 
+    for further details. 
 
 * ``slice.dt_slice_snapshots_lab`` (`float`, in seconds)
     Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
