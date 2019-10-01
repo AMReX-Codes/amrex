@@ -16,22 +16,22 @@
 
 /** \brief
  * The capability for back-transformed lab-frame data is implemented to generate
- * the full diagnostic snapshot for the entire domain and reduced diagnostic 
+ * the full diagnostic snapshot for the entire domain and reduced diagnostic
  * (1D, 2D or 3D 'slices') for a sub-domain.
  * LabFrameDiag class defines the parameters required to backtrasform data from
- * boosted frame at (z_boost,t_boost) to lab-frame at (z_lab, t_lab) using Lorentz 
- * transformation. This Lorentz transformation picks out one slice corresponding 
+ * boosted frame at (z_boost,t_boost) to lab-frame at (z_lab, t_lab) using Lorentz
+ * transformation. This Lorentz transformation picks out one slice corresponding
  * to both of those times, at position current_z_boost and current_z_lab in the
  * boosted and lab frames, respectively.
  * Two derived classes, namely, LabFrameSnapShot and LabFrameSlice are defined to
- * store the full back-transformed diagnostic snapshot of the entire domain and 
+ * store the full back-transformed diagnostic snapshot of the entire domain and
  * reduced back-transformed diagnostic for a sub-domain, respectively.
- * The approach here is to define an array of LabFrameDiag  which would include 
- * both, full domain snapshots and reduced domain 'slices', sorted based on their 
- * respective t_lab. This is done to re-use the backtransformed data stored in a 
+ * The approach here is to define an array of LabFrameDiag  which would include
+ * both, full domain snapshots and reduced domain 'slices', sorted based on their
+ * respective t_lab. This is done to re-use the backtransformed data stored in a
  * temporary slice multifab at (z_lab,t_lab)
- * for the full domain snapshot and sub-domain slices that have the same t_lab, 
- * instead of re-generating the backtransformed slice data at z_lab for a given 
+ * for the full domain snapshot and sub-domain slices that have the same t_lab,
+ * instead of re-generating the backtransformed slice data at z_lab for a given
  * t_lab for each diagnostic.
  */
 
@@ -79,19 +79,19 @@ class LabFrameDiag {
 
     /// Back-transformed lab-frame field data is copied from
     /// tmp_slice to data_buffer where it is stored.
-    /// For the full diagnostic, all the data in the MultiFab is copied. 
-    /// For the reduced diagnostic, the data is selectively copied if the 
-    /// extent of the z_lab multifab intersects with the user-defined sub-domain 
-    /// for the reduced diagnostic (i.e., a 1D, 2D, or 3D region of the domain).  
+    /// For the full diagnostic, all the data in the MultiFab is copied.
+    /// For the reduced diagnostic, the data is selectively copied if the
+    /// extent of the z_lab multifab intersects with the user-defined sub-domain
+    /// for the reduced diagnostic (i.e., a 1D, 2D, or 3D region of the domain).
     virtual void AddDataToBuffer(amrex::MultiFab& tmp_slice_ptr, int i_lab,
                  amrex::Gpu::ManagedDeviceVector<int> map_actual_fields_to_dump){};
 
     /// Back-transformed lab-frame particles is copied from
-    /// tmp_particle_buffer to particles_buffer. 
-    /// For the full diagnostic, all the particles are copied, 
-    /// while for the reduced diagnostic, particles are selectively 
-    /// copied if their trajectory crosses the user-defined 
-    /// sub-domain for the reduced slice diagnostic. 
+    /// tmp_particle_buffer to particles_buffer.
+    /// For the full diagnostic, all the particles are copied,
+    /// while for the reduced diagnostic, particles are selectively
+    /// copied if their trajectory crosses the user-defined
+    /// sub-domain for the reduced slice diagnostic.
     virtual void AddPartDataToParticleBuffer(
                  amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> tmp_particle_buffer,
                  int nSpeciesBoostedFrame) {};
@@ -101,7 +101,7 @@ class LabFrameDiag {
  * LabFrameSnapShot stores the back-transformed lab-frame metadata
  * corresponding to a single time snapshot of the full domain.
  * The snapshot data is written to disk in the directory lab_frame_data/snapshots/.
- * zmin_lab, zmax_lab, and t_lab are all constant for a given snapshot. 
+ * zmin_lab, zmax_lab, and t_lab are all constant for a given snapshot.
  * current_z_lab and current_z_boost for each snapshot are updated as the
  * simulation time in the boosted frame advances.
  */
@@ -158,11 +158,11 @@ class LabFrameSlice : public LabFrameDiag {
  * slices of back-transformed data to multiple output files, each one
  * corresponding to a given time in the lab frame. The member function
  * writeLabFrameData() orchestrates the operations required to
- * Lorentz-transform data from boosted-frame to lab-frame and store them 
+ * Lorentz-transform data from boosted-frame to lab-frame and store them
  * in the LabFrameDiag class, which writes out the field and particle data
  * to the output directory. The functions Flush() and writeLabFrameData()
- * are called at the end of the simulation and when the 
- * the buffer for data storage is full, respectively. The particle data 
+ * are called at the end of the simulation and when the
+ * the buffer for data storage is full, respectively. The particle data
  * is collected and written only if particle.do_boosted_frame_diagnostic = 1.
  */
 class BoostedFrameDiagnostic {
@@ -195,11 +195,11 @@ public:
      *    data but at z_boost and
      *    ParallelCopy data from the slice multifab to the temporary slice.
      * 7. Finally, AddDataToBuffer is called where the data from temporary slice
-     *    is simply copied from tmp_slice(i,j,k_boost) to 
+     *    is simply copied from tmp_slice(i,j,k_boost) to
      *    LabFrameDiagSnapshot(i,j,k_lab) for full BT lab-frame diagnostic
-     *    OR selectivtely copy from tmp_slice(i,j,k_boost) to 
+     *    OR selectivtely copy from tmp_slice(i,j,k_boost) to
      *    LabFrameDiagSlice(i,j,k_lab) for the reduced slice diagnostic
-     * 8. Similarly, particles that crossed the z_boost plane are selected 
+     * 8. Similarly, particles that crossed the z_boost plane are selected
      *    and lorentz-transformed to the lab-frame and copied to the full
      *    and reduce diagnostic and stored in particle_buffer.
      */

@@ -128,7 +128,7 @@ namespace
 
         // Create the dataset.
         hid_t dataset = H5Dcreate(file, field_path.c_str(), H5T_IEEE_F64LE,
-                                  grid_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);        
+                                  grid_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
         if (dataset < 0)
         {
@@ -340,7 +340,7 @@ namespace
     */
     void output_write_field(const std::string& file_path,
                             const std::string& field_path,
-                            const MultiFab& mf, const int comp, 
+                            const MultiFab& mf, const int comp,
                             const int lo_x, const int lo_y, const int lo_z)
     {
 
@@ -380,13 +380,13 @@ namespace
 #if (AMREX_SPACEDIM == 3)
         hsize_t slab_offsets[3], slab_dims[3];
         int shift[3];
-        shift[0] = lo_x; 
+        shift[0] = lo_x;
         shift[1] = lo_y;
         shift[2] = lo_z;
 #else
         hsize_t slab_offsets[2], slab_dims[2];
         int shift[2];
-        shift[0] = lo_x; 
+        shift[0] = lo_x;
         shift[1] = lo_z;
 #endif
         hid_t slab_dataspace;
@@ -484,26 +484,26 @@ LorentzTransformZ(MultiFab& data, Real gamma_boost, Real beta_boost, int ncomp)
                 // Transform the transverse E and B fields. Note that ez and bz are not
                 // changed by the tranform.
                 Real e_lab, b_lab, j_lab, r_lab;
-                e_lab = gamma_boost * (arr(i, j, k, 0) + 
+                e_lab = gamma_boost * (arr(i, j, k, 0) +
                                        beta_boost*clight*arr(i, j, k, 4));
-                b_lab = gamma_boost * (arr(i, j, k, 4) + 
+                b_lab = gamma_boost * (arr(i, j, k, 4) +
                                        beta_boost*arr(i, j, k, 0)/clight);
 
                 arr(i, j, k, 0) = e_lab;
                 arr(i, j, k, 4) = b_lab;
 
-                e_lab = gamma_boost * (arr(i, j, k, 1) - 
+                e_lab = gamma_boost * (arr(i, j, k, 1) -
                                        beta_boost*clight*arr(i, j, k, 3));
-                b_lab = gamma_boost * (arr(i, j, k, 3) - 
+                b_lab = gamma_boost * (arr(i, j, k, 3) -
                                        beta_boost*arr(i, j, k, 1)/clight);
 
                 arr(i, j, k, 1) = e_lab;
                 arr(i, j, k, 3) = b_lab;
 
                 // Transform the charge and current density. Only the z component of j is affected.
-                j_lab = gamma_boost*(arr(i, j, k, 8) + 
+                j_lab = gamma_boost*(arr(i, j, k, 8) +
                                      beta_boost*clight*arr(i, j, k, 9));
-                r_lab = gamma_boost*(arr(i, j, k, 9) + 
+                r_lab = gamma_boost*(arr(i, j, k, 9) +
                                      beta_boost*arr(i, j, k, 8)/clight);
 
                 arr(i, j, k, 8) = j_lab;
@@ -619,7 +619,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         int Nx_slice_lab = ( current_slice_hi[0] - current_slice_lo[0] ) /
                            geom.CellSize(0);
         if (Nx_slice_lab == 0 ) Nx_slice_lab = 1;
-        // if the x-dimension is reduced, increase total_cells by 1 
+        // if the x-dimension is reduced, increase total_cells by 1
         // to be consistent with the number of cells created for the output.
         if (Nx_lab != Nx_slice_lab) Nx_slice_lab++;
         cell_dx = geom.CellSize(0);
@@ -627,7 +627,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
         int Ny_slice_lab = ( current_slice_hi[1] - current_slice_lo[1]) /
                              geom.CellSize(1);
         if (Ny_slice_lab == 0 ) Ny_slice_lab = 1;
-        // if the y-dimension is reduced, increase total_cells by 1 
+        // if the y-dimension is reduced, increase total_cells by 1
         // to be consistent with the number of cells created for the output.
         if (Ny_lab != Ny_slice_lab) Ny_slice_lab++;
         slice_ncells_lab = {Nx_slice_lab, Ny_slice_lab, Nz_slice_lab};
@@ -645,7 +645,7 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                               0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
            slice_hi[i_dim] = (slice_realbox.hi(i_dim) - geom.ProbLo(i_dim) -
                               0.5*geom.CellSize(i_dim))/geom.CellSize(i_dim);
-           if (slice_lo[i_dim] == slice_hi[i_dim]) 
+           if (slice_lo[i_dim] == slice_hi[i_dim])
            {
               slice_hi[i_dim] = slice_lo[i_dim] + 1;
            }
@@ -721,8 +721,8 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
 #ifdef WARPX_USE_HDF5
                 for (int comp = 0; comp < ncomp; ++comp) {
                     output_write_field(LabFrameDiags_[i]->file_name,
-                                       mesh_field_names[comp], tmp, comp, 
-                                       lbound(buff_box).x, lbound(buff_box).y, 
+                                       mesh_field_names[comp], tmp, comp,
+                                       lbound(buff_box).x, lbound(buff_box).y,
                                        lbound(buff_box).z);
                 }
 #else
@@ -898,13 +898,13 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
             if (WarpX::do_boosted_frame_fields) {
 #ifdef WARPX_USE_HDF5
-               
+
                 Box buff_box = LabFrameDiags_[i]->buff_box_;
                 for (int comp = 0; comp < LabFrameDiags_[i]->data_buffer_->nComp(); ++comp)
                     output_write_field( LabFrameDiags_[i]->file_name,
                                         mesh_field_names[comp],
-                                        *LabFrameDiags_[i]->data_buffer_, comp, 
-                                        lbound(buff_box).x, lbound(buff_box).y, 
+                                        *LabFrameDiags_[i]->data_buffer_, comp,
+                                        lbound(buff_box).x, lbound(buff_box).y,
                                         lbound(buff_box).z);
 #else
                 std::stringstream mesh_ss;
