@@ -124,7 +124,7 @@ namespace detail {
     template <typename T>
     void init_tuple_on_device (T* p, T const& v)
     {
-        amrex::launch_global<<<1,1,0,Gpu::gpuStream()>>>(
+        AMREX_LAUNCH_KERNEL(1,1,0,Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
         {
             new (p) T(v);
@@ -214,7 +214,7 @@ public:
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
-        amrex::launch_global<<<ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream()>>>(
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             ReduceTuple r = init_val;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -247,7 +247,7 @@ public:
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
-        amrex::launch_global<<<ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream()>>>(
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             ReduceTuple r = init_val;
             for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
@@ -279,7 +279,7 @@ public:
         auto ec = Gpu::ExecutionConfig(n);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
-        amrex::launch_global<<<ec.numBlocks, ec.numThreads, sm, Gpu::gpuStream()>>>(
+        AMREX_LAUNCH_KERNEL(ec.numBlocks, ec.numThreads, sm, amrex::Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto r = init_val;
             for (N i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
