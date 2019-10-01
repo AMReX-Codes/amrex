@@ -115,29 +115,33 @@ public:
 
 
     /**
-    * \brief If needs coarse data for bc, this should be called.  MultiFab
-    * crse does not need to have ghost cells.  The data are at coarse
-    * resolution.  If this is called, it *MUST* be called before
-    * `setLevelBC`.  If crse is nullptr, then bc value is assumed to
-    * be zero.
+    * \brief For cell-centered solves only: if we want to do a linear solve 
+    * where the boundary conditions on the coarsest AMR level of the solve 
+    * come from a coarser level (e.g. the base AMR level of the solve is > 0 
+    * and does not cover the entire domain), we must explicitly provide the coarser 
+    * data.  Boundary conditions from a coarser level are always Dirichlet.  
+    * The MultiFab crse does not need to have ghost cells and is at a coarser
+    * resolution than the coarsest AMR level of the solve; it is used to supply
+    * (interpolated) boundary conditions for the solve.  
+    * NOTE: If this is called, it must be called before `setLevelBC`.  
+    * If crse is nullptr, then the bc values are assumed to be zero.
     *
     * \param crse
     * \param crse_ratio
     */
     void setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept;
 
-
     /**
-    * \brief Must be called for each level.  Argument `levelbcdata` is used
-    * to supply Dirichlet bc at the physical domain.  However, even
-    * if there is no Dirichlet bc, this funcion must still be called.
-    * In that case, argument `levelbcdata` will be ignored and thus
-    * could be nullptr.  The supplied MultiFab must have one ghost
-    * cell.  Only the data outside the physical domain at Dirichlet
-    * boundary will be used.  It is assumed that the data in those
-    * ghost cells outside the domain live exactly on the face of the
-    * physical domain.  Argument `amrlev` is relative level such that
-    * the lowest to the solver is always 0.
+    * \brief For cell-centered solves only: this must be called for each level.  
+    * Argument `levelbcdata` is * used to supply Dirichlet or Neumann bc at the
+    * physical domain; if those data are homogeneous we can pass nullptr instead
+    * of levelbcdata.  Regardless, this function must be called.
+    * If used, the MultiFab levelbcdata must have one ghost cell.
+    * Only the data outside the physical domain at Dirichlet or
+    * inhomogeneous Neumann boundary will be used.  It is assumed that
+    * the data in those ghost cells outside the domain live exactly on
+    * the face of the physical domain.  Argument `amrlev` is relative
+    * level such that the lowest to the solver is always 0.
     *
     * \param amrlev
     * \param levelbcdata
@@ -185,6 +189,8 @@ public:
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
+
+    virtual void applyInhomogNeumannTerm (int armlev, MultiFab& rhs) const {}
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
@@ -276,6 +282,8 @@ protected:
     // BC
     Vector<Array<BCType, AMREX_SPACEDIM> > m_lobc;
     Vector<Array<BCType, AMREX_SPACEDIM> > m_hibc;
+    Vector<Array<int, AMREX_SPACEDIM> > m_lo_inhomog_neumann;
+    Vector<Array<int, AMREX_SPACEDIM> > m_hi_inhomog_neumann;
 
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0.,0.,0.)}};
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_hi {{AMREX_D_DECL(0.,0.,0.)}};

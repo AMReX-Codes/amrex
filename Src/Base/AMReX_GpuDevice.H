@@ -45,6 +45,7 @@ public:
 #endif
 
     static int deviceId () noexcept;
+    static int numDevicesUsed () noexcept;
 
     static void synchronize () noexcept;
     static void streamSynchronize () noexcept;
@@ -117,6 +118,7 @@ public:
     static int maxThreadsPerBlock () noexcept { return device_prop.maxThreadsPerBlock; }
     static int maxThreadsPerBlock (int dir) noexcept { return device_prop.maxThreadsDim[dir]; }
     static int maxBlocksPerGrid (int dir) noexcept { return device_prop.maxGridSize[dir]; }
+    static std::string deviceName () noexcept { return std::string(device_prop.name); }
 #endif
 
     static std::size_t freeMemAvailable ();
@@ -138,6 +140,7 @@ private:
     static void initialize_gpu ();
 
     static int device_id;
+    static int num_devices_used;
     static int verbose;
 
 #ifdef AMREX_USE_GPU

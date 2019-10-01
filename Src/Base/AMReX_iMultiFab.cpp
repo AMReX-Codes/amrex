@@ -313,14 +313,41 @@ iMultiFab::sum (int comp, int nghost, bool local) const
 {
     AMREX_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
-    iMultiFab imf(*this, amrex::make_alias, comp, 1);
-    FabArray<BaseFab<long> > lmf = ToLongMultiFab(imf);
+    long sm = 0;
 
-    long sm = amrex::ReduceSum(lmf, nghost,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, BaseFab<long> const& fab) -> long
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
     {
-        return fab.sum(bx,0);
-    });
+        ReduceOps<ReduceOpSum> reduce_op;
+        ReduceData<long> reduce_data(reduce_op);
+        using ReduceTuple = typename decltype(reduce_data)::Type;
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            const auto& arr = this->array(mfi);
+            reduce_op.eval(bx, reduce_data,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+            {
+                return { static_cast<long>(arr(i,j,k,comp)) };
+            });
+        }
+
+        ReduceTuple hv = reduce_data.value();
+        sm = amrex::get<0>(hv);
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            sm += (*this)[mfi].sum(bx,comp);
+        }
+    }
 
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
@@ -579,7 +606,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
             auto arr = p->array(mfi);
             const int idx = mfi.index();
 
-            AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
             {
                 arr(i,j,k) = owner;
             });
@@ -593,7 +620,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period)
                     const Box& obx = is.second-iv;
                     if ((oi < idx) || (oi == idx && iv < IntVect::TheZeroVector())) 
                     {
-                        AMREX_HOST_DEVICE_FOR_3D(obx, i, j, k,
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(obx, i, j, k,
                         {
                             arr(i,j,k) = nonowner;
                         });

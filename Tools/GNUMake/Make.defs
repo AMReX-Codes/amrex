@@ -188,6 +188,9 @@ ifeq ($(USE_CUDA),TRUE)
 
   # Limit the maximum number of registers available.
   CUDA_MAXREGCOUNT ?= 255
+
+  # Enable verbosity in the CUDA compilation.
+  CUDA_VERBOSE ?= TRUE
 endif
 
 ifdef USE_HIP

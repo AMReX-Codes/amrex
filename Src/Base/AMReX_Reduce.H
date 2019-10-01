@@ -8,14 +8,14 @@ namespace amrex {
 
 namespace Reduce { namespace detail {
     template <std::size_t I, typename T, typename P>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_parallel (T& d, T const& s)
     {
         P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_parallel (T& d, T const& s)
     {
         P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
@@ -23,14 +23,14 @@ namespace Reduce { namespace detail {
     }
 
     template <std::size_t I, typename T, typename P>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_local (T& d, T const& s)
     {
         P().local_update(amrex::get<I>(d), amrex::get<I>(s));
     }
 
     template <std::size_t I, typename T, typename P, typename P1, typename... Ps>
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_DEVICE
     void for_each_local (T& d, T const& s)
     {
         P().local_update(amrex::get<I>(d), amrex::get<I>(s));
@@ -54,11 +54,11 @@ namespace Reduce { namespace detail {
 struct ReduceOpSum
 {
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceSum(&d,s); }
 
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d += s; }
 
     template <typename T>
@@ -68,11 +68,11 @@ struct ReduceOpSum
 struct ReduceOpMin
 {
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMin(&d,s); }
 
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
@@ -82,15 +82,37 @@ struct ReduceOpMin
 struct ReduceOpMax
 {
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void parallel_update (T& d, T const& s) const noexcept { Gpu::deviceReduceMax(&d,s); }
 
     template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
     void init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+};
+
+struct ReduceOpLogicalAnd
+{
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalAnd(&d,s); }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void local_update (int& d, int s) const noexcept { d = d && s; }
+
+    void init (int& t) const noexcept { t = true; }
+};
+
+struct ReduceOpLogicalOr
+{
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void parallel_update (int& d, int s) const noexcept { Gpu::deviceReduceLogicalOr(&d,s); }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void local_update (int& d, int s) const noexcept { d = d || s; }
+
+    void init (int& t) const noexcept { t = false; }
 };
 
 template <typename... Ps> class ReduceOps;
@@ -148,12 +170,30 @@ public:
 
     Type& hostRef () { return m_host_tuple; }
 
-    Type initialValue () const { return m_host_tuple; }
-
 private:
     Type m_host_tuple;
     Type* m_device_tuple;
 };
+
+namespace Reduce { namespace detail {
+    template <typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_f (F const& f, int i, int j, int k, IndexType)
+        noexcept -> decltype(f(0,0,0))
+    {
+        return f(i,j,k);
+    }
+
+    template <typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_f (F const& f, int i, int j, int k, IndexType t)
+        noexcept -> decltype(f(Box()))
+    {
+        return f(Box(IntVect(AMREX_D_DECL(i,j,k)),
+                     IntVect(AMREX_D_DECL(i,j,k)),
+                     t));
+    }
+}}
 
 template <typename... Ps>
 class ReduceOps
@@ -164,11 +204,13 @@ public:
     void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val = reduce_data.initialValue();
+        ReduceTuple init_val;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
         const auto len = amrex::length(box);
+        IndexType ixtype = box.ixType();
         auto ec = Gpu::ExecutionConfig(ncells);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
         std::size_t sm = std::max(ec.sharedMem, shared_mem_bytes);
@@ -183,7 +225,7 @@ public:
                 i += lo.x;
                 j += lo.y;
                 k += lo.z;
-                auto pr = f(i,j,k);
+                auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(*dp,r);
@@ -196,7 +238,8 @@ public:
     void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val = reduce_data.initialValue();
+        ReduceTuple init_val;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         int ncells = box.numPts();
         const auto lo  = amrex::lbound(box);
@@ -216,7 +259,7 @@ public:
                 j += lo.y;
                 k += lo.z;
                 for (N n = 0; n < ncomp; ++n) {
-                    auto pr = f(i,j,k);
+                    auto pr = f(i,j,k,n);
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 }
             }
@@ -230,7 +273,8 @@ public:
     void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple init_val = reduce_data.initialValue();
+        ReduceTuple init_val;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(init_val);
         auto dp = reduce_data.devicePtr();
         auto ec = Gpu::ExecutionConfig(n);
         ec.numBlocks.x = std::min(ec.numBlocks.x, static_cast<unsigned int>(Gpu::Device::maxBlocksPerLaunch()));
@@ -383,8 +427,6 @@ public:
 
     Type& reference () { return m_tuple; }
 
-    Type initialValue () const { return m_init_val; }
-
 private:
     Type m_init_val;
     Type m_tuple;
@@ -393,14 +435,16 @@ private:
 template <typename... Ps>
 class ReduceOps
 {
-public:
+private:
 
     template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    AMREX_FORCE_INLINE
+    static auto call_f (Box const& box, D & reduce_data, F const& f)
+        noexcept -> decltype(f(0,0,0))
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple r = reduce_data.initialValue();
-        ReduceTuple& rr = reduce_data.reference();
+        ReduceTuple r;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
         for (int k = lo.z; k <= hi.z; ++k) {
@@ -410,6 +454,25 @@ public:
             auto pr = f(i,j,k);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
         }}}
+        return r;
+    }
+
+    template <typename D, typename F>
+    AMREX_FORCE_INLINE
+    static auto call_f (Box const& box, D&, F const& f)
+        noexcept -> decltype(f(Box()))
+    {
+        return f(box);
+    }
+
+public:
+
+    template <typename D, typename F>
+    void eval (Box const& box, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
+    {
+        using ReduceTuple = typename D::Type;
+        ReduceTuple& rr = reduce_data.reference();
+        auto r = call_f(box, reduce_data, f);
         Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(rr,r);
     }
 
@@ -418,7 +481,8 @@ public:
     void eval (Box const& box, N ncomp, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple r = reduce_data.initialValue();
+        ReduceTuple r;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         ReduceTuple& rr = reduce_data.reference();
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
@@ -427,7 +491,7 @@ public:
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            auto pr = f(i,j,k);
+            auto pr = f(i,j,k,n);
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
         }}}}
         Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(rr,r);
@@ -438,7 +502,8 @@ public:
     void eval (N n, D & reduce_data, F&& f, std::size_t shared_mem_bytes = 0)
     {
         using ReduceTuple = typename D::Type;
-        ReduceTuple r = reduce_data.initialValue();
+        ReduceTuple r;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
         ReduceTuple& rr = reduce_data.reference();
         AMREX_PRAGMA_SIMD
         for (N i = 0; i < n; ++i) {
