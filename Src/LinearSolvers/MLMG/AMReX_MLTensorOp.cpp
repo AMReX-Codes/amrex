@@ -195,6 +195,8 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
     const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
 
+    // Domain boundaries are handled below.
+
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
 #ifdef _OPENMP
@@ -282,6 +284,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 #endif
     }
 
+    vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
 #endif
 }
 

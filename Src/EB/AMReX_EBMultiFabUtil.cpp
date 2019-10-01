@@ -535,7 +535,7 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
 
 
 void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
-                           const Geometry& geom)
+                           const Geometry& geom, bool already_on_centroids)
 {
     if (!divu.hasEBFabFactory())
     {
@@ -618,7 +618,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                 {
                     eb_compute_divergence(i,j,k,divuarr,AMREX_D_DECL(uarr,varr,warr),
                                           ccm, flagarr, vol, AMREX_D_DECL(apx,apy,apz),
-                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv);
+                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv, already_on_centroids);
                 });
             }
         }

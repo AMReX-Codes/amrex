@@ -187,7 +187,7 @@ void eb_compute_divergence (int i, int j, int k, Array4<Real> const& divu,
                             Array4<Real const> const& apx, Array4<Real const> const& apy,
                             Array4<Real const> const& apz, Array4<Real const> const& fcx,
                             Array4<Real const> const& fcy, Array4<Real const> const& fcz,
-                            GpuArray<Real,3> const& dxinv)
+                            GpuArray<Real,3> const& dxinv, bool already_on_centroids)
 {
     if (flag(i,j,k).isCovered())
     {
@@ -198,6 +198,13 @@ void eb_compute_divergence (int i, int j, int k, Array4<Real> const& divu,
         divu(i,j,k) = dxinv[0] * (u(i+1,j,k)-u(i,j,k))
             +         dxinv[1] * (v(i,j+1,k)-v(i,j,k))
             +         dxinv[2] * (w(i,j,k+1)-w(i,j,k));
+    }
+    else if (already_on_centroids)
+    {
+        divu(i,j,k) = (1.0/vfrc(i,j,k)) * (
+                      dxinv[0] * (apx(i+1,j,k)*u(i+1,j,k)-apx(i,j,k)*u(i,j,k))
+            +         dxinv[1] * (apy(i,j+1,k)*v(i,j+1,k)-apy(i,j,k)*v(i,j,k))
+            +         dxinv[2] * (apz(i,j,k+1)*w(i,j,k+1)-apz(i,j,k)*w(i,j,k)) );
     }
     else
     {

@@ -12,7 +12,7 @@ namespace amrex {
 template <int NReal, int NInt>
 struct StructOfArrays {
 
-    using RealVector = Gpu::ManagedDeviceVector<Real>;
+    using RealVector = Gpu::ManagedDeviceVector<ParticleReal>;
     using IntVector = Gpu::ManagedDeviceVector<int>;    
 
     StructOfArrays()
@@ -128,7 +128,7 @@ struct StructOfArrays {
         for (int i = 0; i < (int) m_runtime_idata.size(); ++i) m_runtime_idata[i].resize(count);
     }
 
-    GpuArray<Real*, NReal> realarray ()
+    GpuArray<ParticleReal*, NReal> realarray ()
     {
         GpuArray<Real*, NReal> arr;
         for (int i = 0; i < NReal; ++i)

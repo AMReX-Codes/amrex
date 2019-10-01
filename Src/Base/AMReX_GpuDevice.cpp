@@ -2,6 +2,8 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <string>
+#include <unordered_set>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -26,6 +28,7 @@ namespace amrex {
 namespace Gpu {
 
 int Device::device_id = 0;
+int Device::num_devices_used = 0;
 int Device::verbose = 0;
 
 #ifdef AMREX_USE_GPU
@@ -269,13 +272,51 @@ Device::Initialize ()
 
     initialize_gpu();
 
+    // Count up the total number of devices used by
+    // all MPI ranks. Since we have to consider the
+    // case of multiple ranks per GPU, we cannot simply
+    // set it to the number of MPI ranks. A reliable way
+    // to do this instead is to collect the UUID of each
+    // GPU used by every rank, perform a gather, and then
+    // count the number of unique UUIDs in the result.
+
+    // Note: the field we need from the CUDA device properties
+    // is only available starting from CUDA 10.0, so we will
+    // leave num_devices_used as 0 for older CUDA toolkits.
+
+#if AMREX_NVCC_MAJOR_VERSION >= 10
+    size_t uuid_length = 16;
+    size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
+    const char* sendbuf = &device_prop.uuid.bytes[0];
+    char* recvbuf = new char[recv_sz];
+
+    ParallelDescriptor::Gather<char,char>(sendbuf, uuid_length,
+                                          recvbuf, uuid_length,
+                                          ParallelDescriptor::IOProcessorNumber());
+
+    if (ParallelDescriptor::IOProcessor()) {
+        std::unordered_set<std::string> uuids;
+        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+            std::string uuid(&recvbuf[16 * i], 16);
+            if (uuids.find(uuid) == uuids.end()) {
+                uuids.insert(uuid);
+            }
+        }
+        num_devices_used = uuids.size();
+    }
+    ParallelDescriptor::Bcast<int>(&num_devices_used, 1);
+
+    delete[] recvbuf;
+#endif
+
 #if defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)
     nvtxRangeEnd(nvtx_init);
 #endif
 
     if (amrex::Verbose()) {
 #ifdef AMREX_USE_MPI
-        amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
+        amrex::Print() << "CUDA initialized with 1 GPU per MPI rank; "
+                       << num_devices_used << " GPUs used in total\n";
 #else
         amrex::Print() << "CUDA initialized with 1 GPU\n";
 #endif
@@ -408,6 +449,12 @@ int
 Device::deviceId () noexcept
 {
     return device_id;
+}
+
+int
+Device::numDevicesUsed () noexcept
+{
+    return num_devices_used;
 }
 
 void

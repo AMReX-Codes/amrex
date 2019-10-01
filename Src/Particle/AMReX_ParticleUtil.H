@@ -6,6 +6,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_ParGDB.H>
 
 #include <limits>
 
@@ -103,6 +104,7 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
             [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
             {
                 const ParticleType& p = pstruct[i];
+                if ((p.id() < 0)) return false;
                 IntVect iv = IntVect(
                         AMREX_D_DECL(floor((p.pos(0)-plo[0])*dxi[0]),
                                      floor((p.pos(1)-plo[1])*dxi[1]),
@@ -118,6 +120,10 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 
     return num_wrong;
 }
+
+IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
+
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
 }
 

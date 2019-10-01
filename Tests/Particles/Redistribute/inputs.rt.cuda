@@ -7,5 +7,3 @@ redistribute.do_random = 1
 redistribute.nsteps = 100
 redistribute.nlevs = 1
 redistribute.do_regrid = 1
-
-particles.do_tiling=1
