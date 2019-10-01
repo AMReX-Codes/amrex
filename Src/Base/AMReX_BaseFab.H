@@ -62,6 +62,11 @@ namespace amrex
 template <typename T>
 struct FabView
 {
+    AMREX_GPU_HOST_DEVICE
+    FabView(T* ptr, int j, int k, long n)
+    : p(ptr), jstride(j), kstride(k), nstride(n)
+    { }
+
     T* AMREX_RESTRICT p;
     int jstride;
     int kstride;
@@ -445,11 +450,11 @@ public:
     FabView<T const> view (const IntVect& iv, int n = 0) const noexcept
     {
 #if (AMREX_SPACEDIM == 1)
-        return view(GpuArray<int,3>{iv[0],    0,    0}, n);
+        return view(GpuArray<int,3>{{iv[0],    0,    0}}, n);
 #elif (AMREX_SPACEDIM == 2)
-        return view(GpuArray<int,3>{iv[0],iv[1],    0}, n);
+        return view(GpuArray<int,3>{{iv[0],iv[1],    0}}, n);
 #else
-        return view(GpuArray<int,3>{iv[0],iv[1],iv[2]}, n);
+        return view(GpuArray<int,3>{{iv[0],iv[1],iv[2]}}, n);
 #endif
     }
 
@@ -458,11 +463,11 @@ public:
     FabView<T> view (const IntVect& iv, int n = 0) noexcept
     {
 #if (AMREX_SPACEDIM == 1)
-        return view(GpuArray<int,3>{iv[0],    0,    0}, n);
+        return view(GpuArray<int,3>{{iv[0],    0,    0}}, n);
 #elif (AMREX_SPACEDIM == 2)
-        return view(GpuArray<int,3>{iv[0],iv[1],    0}, n);
+        return view(GpuArray<int,3>{{iv[0],iv[1],    0}}, n);
 #else
-        return view(GpuArray<int,3>{iv[0],iv[1],iv[2]}, n);
+        return view(GpuArray<int,3>{{iv[0],iv[1],iv[2]}}, n);
 #endif
     }
 
@@ -556,6 +561,7 @@ public:
                                 +  (slo.y-dlo.y)*jstride
                                 +  (slo.z-dlo.z)*kstride
                                 +              n*nstride);
+
 #ifdef AMREX_DEBUG
         return FabView<T const>{p, jstride, kstride, nstride,
                 len.x-(slo.x-dlo.x),
@@ -563,7 +569,10 @@ public:
                 len.z-(slo.z-dlo.z),
                 this->nvar-n};
 #else
-        return FabView<T const>{p, jstride, kstride, nstride};
+        FabView<T const> fv(p, jstride, kstride, nstride);
+        return fv;
+
+//        return FabView<T const>{p, jstride, kstride, nstride};
 #endif
     }
 
@@ -592,7 +601,10 @@ public:
                 len.z-(slo.z-dlo.z),
                 this->nvar-n};
 #else
-        return FabView<T>{p, jstride, kstride, nstride};
+        FabView<T> fv(p, jstride, kstride, nstride);
+        return fv;
+
+//        return FabView<T>{p, jstride, kstride, nstride};
 #endif
     }
 
@@ -2082,6 +2094,7 @@ BaseFab<T>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
 {}
 
 template <class T>
+AMREX_GPU_HOST_DEVICE
 BaseFab<T>::~BaseFab () noexcept
 {
 #ifndef AMREX_DEVICE_COMPILE
@@ -2456,6 +2469,7 @@ BaseFab<T>::norm (const Box& subbox,
             for         (int k = 0; k < len.z; ++k) {
                 for     (int j = 0; j < len.y; ++j) {
                     for (int i = 0; i < len.x; ++i) {
+                        // HIP: WHY DIDN'T THIS BLOW UP?
                         nrm += std::abs(dp(i,j,k,n));
                     }
                 }
@@ -2473,7 +2487,8 @@ BaseFab<T>::norm (const Box& subbox,
                 }
             }
         }
-        nrm = std::sqrt(nrm);
+        // HIP FIX THIS
+        nrm = sqrt(nrm);
     }
     else
     {
