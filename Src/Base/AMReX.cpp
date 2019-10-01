@@ -152,12 +152,16 @@ write_lib_id(const char* msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Error (const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
+// HIP FIX HERE
+#ifdef AMREX_USE_CUDA
     assert(0);
+#endif
 #endif
 #else
     if (system::error_handler) {
@@ -179,12 +183,16 @@ amrex::Error (const std::string& msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Abort (const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
+// HIP FIX HERE
+#ifdef AMREX_USE_CUDA
     assert(0);
+#endif
 #endif
 #else
     if (system::error_handler) {
@@ -209,6 +217,7 @@ amrex::Abort (const std::string& msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Warning (const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
@@ -230,12 +239,16 @@ amrex::Warning (const std::string& msg)
 }
 
 void
+AMREX_GPU_HOST_DEVICE
 amrex::Assert (const char* EX,
                const char* file,
                int         line,
                const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
+// HIP FIX HERE
+#ifdef AMREX_USE_CUDA
+
 #if !defined(__APPLE__)
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -244,8 +257,9 @@ amrex::Assert (const char* EX,
         printf("Assertion `%s' failed, file \"%s\", line %d",
                EX, file, line);
     }
-
+#endif
     assert(0);
+
 #endif
 #else
     const int N = 512;
