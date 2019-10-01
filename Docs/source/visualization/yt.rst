@@ -127,25 +127,25 @@ notebook for postprocessing
 The full back-transformed diagnostics of the entire domain is written in lab_frame_data/snapshots/ and the back-transformed diagnostics of the reduced domain is written to lab_frame_data/slices/
 For instance : To plot the ``Ez`` field along the z-direction at the center of the 3D-domain of the full back-transformed diagnostics for the entire 3D domain :
 
-::    
+::
     iteration = 0
     field = 'Ez'
     snapshot = './lab_frame_data/snapshots/' + 'snapshot' + str(iteration).zfill(5)
     header   = './lab_frame_data/snapshots/Header'
     allrd, info = read_raw_data.read_lab_snapshot(snapshot, header) # Read field data
-    F = allrd[field]    
-    plt.plot(F[F.shape[0]//2,F.shape[1]//2,:])        
+    F = allrd[field]
+    plt.plot(F[F.shape[0]//2,F.shape[1]//2,:])
 
 Similarly, the back-transformed diagnostics on a reduced domain (1D line, 2D slice, 3D reduced diagnostic) can also be visualized using read_raw_data.py. For instance -- let us say that the user-input is an x-z slice at y=y_mid of the domain, then, to plot ``Ez`` of the x-z slice along the z-direction at the center of the slice :
 
-::    
+::
     iteration = 0
     field = 'Ez'
     snapshot = './lab_frame_data/slices/' + 'slice' + str(iteration).zfill(5)
     header   = './lab_frame_data/slices/Header'
     allrd, info = read_raw_data.read_lab_snapshot(snapshot, header) # Read field data
-    F_RD = allrd[field]        
-    plt.plot(F_RD[F_RD.shape[0]//2,F_RD.shape[1]//2,:]) 
+    F_RD = allrd[field]
+    plt.plot(F_RD[F_RD.shape[0]//2,F_RD.shape[1]//2,:])
 
 
 If the back-transformed diagnostics are written in the HDF5 format (This can be done by compiling WarpX with USE_HDF5=TRUE), then the full domain snapshot and reduced domain diagnostics can be visualized using h5py :
