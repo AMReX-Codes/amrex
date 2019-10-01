@@ -12,8 +12,8 @@
 #ifdef AMREX_USE_GPU
 extern "C" {
 AMREX_HIP_OR_CUDA(
-    void  HIPRT_CB amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
-    void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);)
+    hipStreamCallback_t amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
+         void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);)
 }
 #endif
 
@@ -68,11 +68,14 @@ public:
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
+// HIP FIX HERE
+#ifdef AMREX_USE_CUDA
                 AMREX_HIP_OR_CUDA(
                     AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
                                                                amrex_asyncarray_delete, p, 0));,
                     AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                                amrex_asyncarray_delete, p, 0)););
+#endif
                 Gpu::callbackAdded();
             }
         }
