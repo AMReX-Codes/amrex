@@ -35,7 +35,7 @@ endif
 #endif
 
 ifeq ($(HIP_PLATFORM),hcc)
-  CXXFLAGS_FROM_HOST := --std=c++14
+  CXXFLAGS_FROM_HOST := --std=c++11
   CFLAGS_FROM_HOST := 
   HIPCC_FLAGS = -m64
   HIP_PATH=/opt/rocm/hip
@@ -43,7 +43,6 @@ ifeq ($(HIP_PLATFORM),hcc)
   ifeq ($(DEBUG),TRUE)
     HIPCC_FLAGS += -g
   else
-    HIPCC_FLAGS += -std=c++11
 #    HIPCC_FLAGS += -lineinfo
   endif
 
