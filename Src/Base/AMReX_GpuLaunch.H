@@ -25,8 +25,15 @@
 
 namespace amrex {
 
-    // Because of CUDA, we cannot take rvalue lambdas.
+#ifdef AMREX_USE_CUDA
+    #define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
+        launch_global<<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__);
+#elif defined(AMREX_USE_HIP) 
+    #define AMREX_LAUNCH_KERNEL(blocks, threads, sharedMem, stream, ... ) \
+        hipLaunchKernelGGL(launch_global, blocks, threads, sharedMem, stream, __VA_ARGS__);
+#endif
 
+// Because of CUDA, we cannot take rvalue lambdas.
 // ************************************************
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 
