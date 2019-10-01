@@ -448,14 +448,13 @@ void amrex::free_state(int tid)
 }
 #endif
 
-AMREX_GPU_HOST_DEVICE Real
-amrex::RandomNormal (Real mean, Real stddev)
+AMREX_GPU_HOST_DEVICE amrex::Real
+amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 {
 
-    Real rand;
+    amrex::Real rand;
 
 #ifdef __CUDA_ARCH__
-
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -477,17 +476,17 @@ amrex::RandomNormal (Real mean, Real stddev)
 #else
     int tid = 0;
 #endif
-    std::normal_distribution<Real> distribution(mean, stddev);
+    std::normal_distribution<amrex::Real> distribution(mean, stddev);
     rand = distribution(generators[tid]);
 
 #endif
     return rand;
 }
 
-AMREX_GPU_HOST_DEVICE Real
+AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::Random ()
 {
-    Real rand;
+    amrex::Real rand;
 #ifdef __CUDA_ARCH__
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
@@ -509,9 +508,8 @@ amrex::Random ()
 #else
     int tid = 0;
 #endif
-    std::uniform_real_distribution<Real> distribution(0.0, 1.0);
-    rand = distribution(generators[tid]);
-    
+    std::uniform_real_distribution<amrex::Real> distribution(0.0, 1.0);
+    rand = distribution(generators[tid]);    
 #endif
 
     return rand;
