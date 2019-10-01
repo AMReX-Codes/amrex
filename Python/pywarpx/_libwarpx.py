@@ -66,22 +66,26 @@ _ParticleReal_size = libwarpx.warpx_ParticleReal_size()
 
 if _Real_size == 8:
     c_real = ctypes.c_double
+    _numpy_real_dtype = 'f8'
 else:
     c_real = ctypes.c_float
+    _numpy_real_dtype = 'f4'
 
 if _ParticleReal_size == 8:
     c_particlereal = ctypes.c_double
+    _numpy_particlereal_dtype = 'f8'
 else:
     c_particlereal = ctypes.c_float
+    _numpy_particlereal_dtype = 'f4'
 
 dim = libwarpx.warpx_SpaceDim()
 
 # our particle data type, depends on _ParticleReal_size
-_p_struct = [(d, 'f%d'%_ParticleReal_size) for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
+_p_struct = [(d, _numpy_particlereal_dtype) for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
 _p_dtype = np.dtype(_p_struct, align=True)
 
 _numpy_to_ctypes = {}
-_numpy_to_ctypes['f%d'%_ParticleReal_size] = c_particlereal
+_numpy_to_ctypes[_numpy_particlereal_dtype] = c_particlereal
 _numpy_to_ctypes['i4'] = ctypes.c_int
 
 class Particle(ctypes.Structure):
