@@ -4,9 +4,9 @@
 Analysis script of a WarpX simulation in a boosted frame.
 
 The simulation runs in a boosted frame, and the analysis is done in the lab
-frame, i.e., on the back-transformed diagnostics for the full 3D simulation and 
-an x-z slice at y=y_center. The field-data, Ez, along z, at (x_center,y_center,:) is compared 
-between the full back-transformed diagnostic and the reduced diagnostic (i.e., x-z slice) . 
+frame, i.e., on the back-transformed diagnostics for the full 3D simulation and
+an x-z slice at y=y_center. The field-data, Ez, along z, at (x_center,y_center,:) is compared
+between the full back-transformed diagnostic and the reduced diagnostic (i.e., x-z slice) .
 '''
 
 import sys, os, yt, glob

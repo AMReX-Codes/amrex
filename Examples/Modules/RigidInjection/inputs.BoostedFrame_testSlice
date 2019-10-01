@@ -113,7 +113,7 @@ laser1.wavelength = 0.81e-6         # The wavelength of the laser (in meters)
 
 slice.dom_lo     = -128.e-6  0.0  -40.e-6
 slice.dom_hi     =  128.e-6  0.0  0.96e-6
-slice.coarsening_ratio = 1 1 1 
+slice.coarsening_ratio = 1 1 1
 slice.plot_int = 100000
 slice.num_slice_snapshots_lab = 7
 slice.dt_slice_snapshots_lab = 1.6678204759907604e-12
