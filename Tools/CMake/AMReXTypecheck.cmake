@@ -191,7 +191,7 @@ function( add_typecheck_target _target)
    endif ()
 
    # expand genex-es
-   include(AMReX_Utils)
+   include(AMReXGenexHelpers)
    
    evaluate_genex(_defines _cxx_defines
       LANG CXX

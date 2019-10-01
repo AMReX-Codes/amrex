@@ -29,8 +29,15 @@ public:
     void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                       const Array<LinOpBCType,AMREX_SPACEDIM>& hibc);
 
-    void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol = 0.0 );
-    void project (Real reltol, Real atol = 0.0 );
+#ifndef AMREX_USE_EB
+    void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol)
+     { project(phi_in, reltol, atol, MLMG::Location::FaceCenter); }
+    void project (Real reltol, Real atol)
+     { project(reltol, atol, MLMG::Location::FaceCenter); }
+#endif
+
+    void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol, MLMG::Location);
+    void project (Real reltol, Real atol, MLMG::Location);
 
     void setVerbose            (int  v) noexcept { m_verbose = v; }
     void setCGVerbose          (int  v) noexcept { m_cg_verbose = v; }

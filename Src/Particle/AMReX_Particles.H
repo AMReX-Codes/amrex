@@ -73,11 +73,7 @@ namespace amrex {
 */
 struct ParticleCommData
 {
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-    typedef float RealType;
-#else
-    typedef double RealType;
-#endif
+  typedef ParticleReal RealType;
   int     m_lev;
   int     m_grid;
   IntVect m_cell;
@@ -268,6 +264,12 @@ public:
 
     virtual ~ParticleContainer () {}
 
+    ParticleContainer ( const ParticleContainer &) = delete;
+    ParticleContainer& operator= ( const ParticleContainer & ) = delete; 
+    
+    ParticleContainer ( ParticleContainer && ) = default;
+    ParticleContainer& operator= ( ParticleContainer && ) = default;
+        
     void Define (ParGDBBase* gdb)
     {
         m_gdb = gdb;
@@ -784,9 +786,9 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;} 
 
-    virtual const Vector<int>& NeighborProcs() const 
+    Vector<int> NeighborProcs(int ngrow) const         
     {
-        return neighbor_procs;
+        return computeNeighborProcs(this->GetParGDB(), ngrow);
     };
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
@@ -794,7 +796,6 @@ public:
 protected:
 
     mutable amrex::Vector<int> neighbor_procs;
-    mutable bool m_need_handshake;
 
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
@@ -877,13 +878,14 @@ protected:
     std::array<RealVector, NArrayReal> m_rdata_r;
     std::array<IntVector, NArrayInt>  m_idata_r;
     Gpu::ManagedDeviceVector<int> m_grids_r;
+    Gpu::ManagedDeviceVector<int> m_levs_r;
 
     Gpu::ManagedDeviceVector<int> m_lo;
     Gpu::ManagedDeviceVector<int> m_hi;
     Gpu::ManagedDeviceVector<int> m_output;
 
     Gpu::ManagedDeviceVector<int> m_grids_tmp;
-    Gpu::ManagedDeviceVector<int> m_index_sequence_tmp;
+    Gpu::ManagedDeviceVector<int> m_levs_tmp;
 
     ParticleVector m_aos_to_redistribute;
     std::vector<RealVector> m_real_arrays_to_redistribute;
@@ -900,7 +902,7 @@ protected:
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_snd_buffer;
     Gpu::PinnedDeviceVector<SuperParticleType> pinned_rcv_buffer;
 
-    mutable ParticleLocator m_particle_locator;
+    mutable AmrParticleLocator m_particle_locator;
     
 #endif
 

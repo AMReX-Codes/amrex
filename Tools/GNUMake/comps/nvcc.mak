@@ -63,7 +63,11 @@ NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=s
 ifeq ($(DEBUG),TRUE)
   NVCC_FLAGS += -g -G
 else
-  NVCC_FLAGS += -lineinfo --ptxas-options=-O3,-v
+  NVCC_FLAGS += -lineinfo --ptxas-options=-O3
+endif
+
+ifeq ($(CUDA_VERBOSE),TRUE)
+  NVCC_FLAGS += --ptxas-options=-v
 endif
 
 ifneq ($(USE_CUDA_FAST_MATH),FALSE)

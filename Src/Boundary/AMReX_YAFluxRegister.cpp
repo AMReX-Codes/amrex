@@ -69,7 +69,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 for (const auto& is : isects)
                 {
                     const Box& ibx = is.second - iv;
-                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
                     {
                         fab(i,j,k) = amrex_yafluxreg_crse_fine_boundary_cell;
                     });
@@ -83,7 +83,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 for (const auto& is : isects)
                 {
                     const Box& ibx = is.second - iv;
-                    AMREX_HOST_DEVICE_FOR_3D(ibx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx, i, j, k,
                     {
                         fab(i,j,k) = amrex_yafluxreg_fine_cell;
                     });
@@ -222,7 +222,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                             for (const auto& is : isects)
                             {
                                 const Box& ibx = is.second - iv;
-                                AMREX_HOST_DEVICE_FOR_3D(ibx,i,j,k,
+                                AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibx,i,j,k,
                                 {
                                     fab(i,j,k) = 0.0;
                                 });
@@ -374,7 +374,7 @@ YAFluxRegister::Reflux (MultiFab& state, int dc)
             const Box& bx = m_cfpatch[mfi].box();
             auto const maskfab = m_cfp_mask.array(mfi);
             auto       cfptfab = m_cfpatch.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 cfptfab(i,j,k,n) *= maskfab(i,j,k);
             });

@@ -5,16 +5,30 @@ using namespace amrex;
 
 void ParticleCopyOp::clear ()
 {
-    m_boxes.clear();
-    m_src_indices.clear();
-    m_periodic_shift.clear();
+    m_boxes.resize(0);
+    m_levels.resize(0);
+    m_src_indices.resize(0);
+    m_periodic_shift.resize(0);
 }
 
-void ParticleCopyOp::resize (const int gid, const int size)
+void ParticleCopyOp::setNumLevels(const int num_levels)
 {
-    m_boxes[gid].resize(size);
-    m_src_indices[gid].resize(size);
-    m_periodic_shift[gid].resize(size);
+    m_boxes.resize(num_levels);
+    m_levels.resize(num_levels);
+    m_src_indices.resize(num_levels);
+    m_periodic_shift.resize(num_levels);
+}
+
+void ParticleCopyOp::resize (const int gid, const int lev, const int size)
+{
+    if (lev >= m_boxes.size())
+    {
+        setNumLevels(lev+1);
+    }
+    m_boxes[lev][gid].resize(size);
+    m_levels[lev][gid].resize(size);
+    m_src_indices[lev][gid].resize(size);
+    m_periodic_shift[lev][gid].resize(size);
 }
 
 void ParticleCopyPlan::clear ()
@@ -28,7 +42,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_ids.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_handshake)
+void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -39,14 +53,11 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
 
     if (NProcs == 1) return;
 
-    if (do_handshake)
-    {
-        m_Snds.resize(0);
-        m_Snds.resize(NProcs, 0);
-
-        m_Rcvs.resize(0);
-        m_Rcvs.resize(NProcs, 0);
-    }
+    m_Snds.resize(0);
+    m_Snds.resize(NProcs, 0);
+    
+    m_Rcvs.resize(0);
+    m_Rcvs.resize(NProcs, 0);
     
     m_snd_num_particles.resize(0);
     m_snd_num_particles.resize(NProcs, 0);
@@ -63,21 +74,24 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
     {
         if (i == MyProc) continue;
         auto box_buffer_indices = map.allBucketsOnProc(i);
-        int nboxes = box_buffer_indices.size();
+        long nbytes = 0;
         for (auto bucket : box_buffer_indices)
 	{
             int dst = map.bucketToGrid(bucket);
+            int lev = map.bucketToLevel(bucket);
             int npart = box_counts[bucket];
+            if (npart == 0) continue;
             m_snd_num_particles[i] += npart;
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
+            snd_data[i].push_back(lev);
+            nbytes += 3*sizeof(int);
 	}
-	long nbytes = 2*nboxes*sizeof(int);
 	m_Snds[i] = nbytes;
 	m_NumSnds += nbytes;
     }
 
-    if (do_handshake) doHandShake(m_Snds, m_Rcvs);
+    doHandShake(m_Snds, m_Rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     long tot_snds_this_proc = 0;
@@ -108,11 +122,11 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
     
     m_nrcvs = m_RcvProc.size();
 
-    m_stats.resize(0);
-    m_stats.resize(m_nrcvs);
+    m_build_stats.resize(0);
+    m_build_stats.resize(m_nrcvs);
 
-    m_rreqs.resize(0);
-    m_rreqs.resize(m_nrcvs);
+    m_build_rreqs.resize(0);
+    m_build_rreqs.resize(m_nrcvs);
 
     m_rcv_data.resize(TotRcvBytes/sizeof(int));
  
@@ -126,7 +140,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, bool do_hand
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        m_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
+        m_build_rreqs[i] = ParallelDescriptor::Arecv((char*) (m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum).req();
     }
     
     for (int i = 0; i < NProcs; ++i)
@@ -156,17 +170,20 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
 
     if (m_nrcvs > 0)
     {
-        ParallelDescriptor::Waitall(m_rreqs, m_stats);
+        ParallelDescriptor::Waitall(m_build_rreqs, m_build_stats);
 
         Gpu::HostVector<int> rcv_box_offsets;
         Gpu::HostVector<int> rcv_box_counts;
         Gpu::HostVector<int> rcv_box_ids;        
+        Gpu::HostVector<int> rcv_box_levs;
+
         rcv_box_offsets.push_back(0);
-        for (int i = 0; i < m_rcv_data.size(); i+=2)
+        for (int i = 0; i < m_rcv_data.size(); i+=3)
         {
             rcv_box_counts.push_back(m_rcv_data[i]);
-            AMREX_ASSERT(ParallelDescriptor::MyProc() == map.procID(m_rcv_data[i+1]));
+            AMREX_ASSERT(ParallelDescriptor::MyProc() == map.procID(m_rcv_data[i+1], m_rcv_data[i+2]));
             rcv_box_ids.push_back(m_rcv_data[i+1]);
+            rcv_box_levs.push_back(m_rcv_data[i+2]);
             rcv_box_offsets.push_back(rcv_box_offsets.back() + rcv_box_counts.back());
         }
         
@@ -178,6 +195,9 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         
         m_rcv_box_ids.resize(rcv_box_ids.size());
         Gpu::thrust_copy(rcv_box_ids.begin(), rcv_box_ids.end(), m_rcv_box_ids.begin());
+
+        m_rcv_box_levs.resize(rcv_box_levs.size());
+        Gpu::thrust_copy(rcv_box_levs.begin(), rcv_box_levs.end(), m_rcv_box_levs.begin());
     }
     
     for (int j = 0; j < m_nrcvs; ++j)
@@ -187,7 +207,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map)
         const auto Cnt    = m_Rcvs[Who]/sizeof(int);
         
         long nparticles = 0;
-        for (int i = offset; i < offset + Cnt; i +=2)
+        for (int i = offset; i < offset + Cnt; i +=3)
         {
             nparticles += m_rcv_data[i];
         }
@@ -285,7 +305,7 @@ void amrex::communicateParticlesFinish (const ParticleCopyPlan& plan)
 #ifdef BL_USE_MPI
     if (plan.m_nrcvs > 0)
     {
-        ParallelDescriptor::Waitall(plan.m_rreqs, plan.m_stats);
+        ParallelDescriptor::Waitall(plan.m_particle_rreqs, plan.m_particle_stats);
     }
 #endif
 }

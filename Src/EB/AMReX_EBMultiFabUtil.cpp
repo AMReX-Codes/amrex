@@ -42,7 +42,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
         Array4<Real> const& arr = mf.array(mfi);
 
         if (is_cell_centered) {
-            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 if (flagarr(i,j,k).isCovered()) {
                     arr(i,j,k,n+icomp) = val;
@@ -535,7 +535,7 @@ void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
 
 
 void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
-                           const Geometry& geom)
+                           const Geometry& geom, bool already_on_centroids)
 {
     if (!divu.hasEBFabFactory())
     {
@@ -618,7 +618,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                 {
                     eb_compute_divergence(i,j,k,divuarr,AMREX_D_DECL(uarr,varr,warr),
                                           ccm, flagarr, vol, AMREX_D_DECL(apx,apy,apz),
-                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv);
+                                          AMREX_D_DECL(fcx,fcy,fcz), dxinv, already_on_centroids);
                 });
             }
         }
