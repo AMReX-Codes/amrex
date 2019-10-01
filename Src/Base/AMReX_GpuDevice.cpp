@@ -280,6 +280,11 @@ Device::Initialize ()
     // GPU used by every rank, perform a gather, and then
     // count the number of unique UUIDs in the result.
 
+    // Note: the field we need from the CUDA device properties
+    // is only available starting from CUDA 10.0, so we will
+    // leave num_devices_used as 0 for older CUDA toolkits.
+
+#if AMREX_NVCC_MAJOR_VERSION >= 10
     size_t uuid_length = 16;
     size_t recv_sz = uuid_length * ParallelDescriptor::NProcs();
     const char* sendbuf = &device_prop.uuid.bytes[0];
@@ -302,6 +307,7 @@ Device::Initialize ()
     ParallelDescriptor::Bcast<int>(&num_devices_used, 1);
 
     delete[] recvbuf;
+#endif
 
 #if defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)
     nvtxRangeEnd(nvtx_init);
