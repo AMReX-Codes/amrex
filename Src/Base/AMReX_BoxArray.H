@@ -43,7 +43,7 @@ namespace amrex
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
     //! Read a BoxArray from a stream.  If b is true, read in a special way
-    void readBoxArray (BoxArray& ba, std::istream& s, bool b);
+    void readBoxArray (BoxArray& ba, std::istream& s, bool b = false);
 
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
