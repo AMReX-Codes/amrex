@@ -4,6 +4,10 @@
 #include <WarpXParticleContainer.H>
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Gpu.H>
+#ifdef AMREX_USE_GPU
+    #include <thrust/partition.h>
+    #include <thrust/distance.h>
+#endif
 
 /* \brief Fill the elements of the input vector with consecutive integer,
  *        starting from 0
@@ -24,28 +28,28 @@ void fillWithConsecutiveIntegers( amrex::Gpu::DeviceVector<long>& v )
 /* \brief Find the indices that would reorder the elements of `predicate`
  * so that the elements with non-zero value precede the other elements
  *
- * \param[in] index_begin Point to the beginning of the vector which is
+ * \param[in, out] index_begin Point to the beginning of the vector which is
  *            to be filled with these indices
- * \param[in] index_begin Point to the end of the vector which is
+ * \param[in, out] index_begin Point to the end of the vector which is
  *            to be filled with these indices
  * \param[in] Vector that indicates the elements that need to be reordered first
  */
 template< typename ForwardIterator >
-ForwardIterator stablePartition(ForwardIterator index_begin,
-                               ForwardIterator index_end,
-                               amrex::Gpu::DeviceVector<int>& predicate)
+ForwardIterator stablePartition(ForwardIterator const index_begin,
+                               ForwardIterator const index_end,
+                               amrex::Gpu::DeviceVector<int> const& predicate)
 {
 #ifdef AMREX_USE_GPU
     // On GPU: Use thrust
-    int* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
-    ForwardIterator sep = thrust::stable_partition(
+    int const* AMREX_RESTRICT predicate_ptr = predicate.dataPtr();
+    ForwardIterator const sep = thrust::stable_partition(
         thrust::cuda::par(amrex::Cuda::The_ThrustCachedAllocator()),
         index_begin, index_end,
         [predicate_ptr] AMREX_GPU_DEVICE (long i) { return predicate_ptr[i]; }
     );
 #else
     // On CPU: Use std library
-    ForwardIterator sep = std::stable_partition(
+    ForwardIterator const sep = std::stable_partition(
         index_begin, index_end,
         [&predicate](long i) { return predicate[i]; }
     );
@@ -60,8 +64,8 @@ ForwardIterator stablePartition(ForwardIterator index_begin,
  * \return The number of elements between `first` and `last`
  */
 template< typename ForwardIterator >
-int iteratorDistance(ForwardIterator first,
-                     ForwardIterator last)
+int iteratorDistance(ForwardIterator const first,
+                     ForwardIterator const last)
 {
 #ifdef AMREX_USE_GPU
     // On GPU: Use thrust
@@ -86,9 +90,10 @@ int iteratorDistance(ForwardIterator first,
 class fillBufferFlag
 {
     public:
-        fillBufferFlag( WarpXParIter& pti, const amrex::iMultiFab* bmasks,
+        fillBufferFlag( WarpXParIter const& pti, amrex::iMultiFab const* bmasks,
                         amrex::Gpu::DeviceVector<int>& inexflag,
-                        const amrex::Geometry& geom, long start_index=0 ) {
+                        amrex::Geometry const& geom, long const start_index=0 ) :
+                        m_start_index(start_index) {
 
             // Extract simple structure that can be used directly on the GPU
             m_particles = &(pti.GetArrayOfStructs()[0]);
@@ -99,7 +104,6 @@ class fillBufferFlag
                 m_prob_lo[idim] = geom.ProbLo(idim);
                 m_inv_cell_size[idim] = geom.InvCellSize(idim);
             }
-            m_start_index = start_index;
         };
 
 
@@ -124,26 +128,26 @@ class fillBufferFlag
         amrex::Real m_inv_cell_size[AMREX_SPACEDIM];
         amrex::IntVect m_domain_small_end;
         int* m_inexflag_ptr;
-        WarpXParticleContainer::ParticleType* m_particles;
-        amrex::Array4<const int> m_buffer_mask;
-        long m_start_index;
+        WarpXParticleContainer::ParticleType const* m_particles;
+        amrex::Array4<int const> m_buffer_mask;
+        long const m_start_index;
 };
 
 /* \brief Functor that copies the elements of `src` into `dst`,
  *       while reordering them according to `indices`
  *
- * \param src Source vector
- * \param dst Destination vector
- * \param indices Array of indices that indicate how to reorder elements
+ * \param[in] src Source vector
+ * \param[out] dst Destination vector
+ * \param[in] indices Array of indices that indicate how to reorder elements
  */
 template <typename T>
 class copyAndReorder
 {
     public:
         copyAndReorder(
-            amrex::Gpu::ManagedDeviceVector<T>& src,
+            amrex::Gpu::ManagedDeviceVector<T> const& src,
             amrex::Gpu::ManagedDeviceVector<T>& dst,
-            amrex::Gpu::DeviceVector<long>& indices ) {
+            amrex::Gpu::DeviceVector<long> const& indices ) {
             // Extract simple structure that can be used directly on the GPU
             m_src_ptr = src.dataPtr();
             m_dst_ptr = dst.dataPtr();
@@ -156,9 +160,9 @@ class copyAndReorder
         };
 
     private:
-        T* m_src_ptr;
+        T const* m_src_ptr;
         T* m_dst_ptr;
-        long* m_indices_ptr;
+        long const* m_indices_ptr;
 };
 
 #endif // WARPX_PARTICLES_SORTING_SORTINGUTILS_H_

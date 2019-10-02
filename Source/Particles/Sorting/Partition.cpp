@@ -60,12 +60,12 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
     // - Find the indices that reorder particles so that the last particles
     //   are in the larger buffer
     fillWithConsecutiveIntegers( pid );
-    auto sep = stablePartition( pid.begin(), pid.end(), inexflag );
+    auto const sep = stablePartition( pid.begin(), pid.end(), inexflag );
     // At the end of this step, `pid` contains the indices that should be used to
     // reorder the particles, and `sep` is the position in the array that
     // separates the particles that deposit/gather on the fine patch (first part)
     // and the particles that deposit/gather in the buffers (last part)
-    long n_fine = iteratorDistance(pid.begin(), sep);
+    long const n_fine = iteratorDistance(pid.begin(), sep);
     // Number of particles on fine patch, i.e. outside of the larger buffer
 
     // Second, among particles that are in the larger buffer, partition
@@ -94,7 +94,7 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
             // the smaller buffer, by looking up the mask. Store the answer in `inexflag`.
             amrex::ParallelFor( np - n_fine,
                fillBufferFlag(pti, bmasks, inexflag, Geom(lev), n_fine) );
-            auto sep2 = stablePartition( sep, pid.end(), inexflag );
+            auto const sep2 = stablePartition( sep, pid.end(), inexflag );
 
             if (bmasks == gather_masks) {
                 nfine_gather = iteratorDistance(pid.begin(), sep2);
