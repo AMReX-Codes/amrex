@@ -217,11 +217,12 @@ int main (int argc, char* argv[])
         amrex::Print() << "******************************************************************** \n" << std::endl; 
 
 	// Solve for phi and subtract from the velocity to make it divergence-free
-        macproj.project(reltol,abstol);
+	// Note that the normal velocities are at face centers (not centroids)
+        macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
 	
 	// If we want to use phi elsewhere, we can pass in an array in which to return the solution
 	// MultiFab phi_inout(grids, dmap, 1, 1, MFInfo(), factory);	
-	// macproj.project({&phi_inout},reltol,abstol);
+	// macproj.project_center_vels({&phi_inout},reltol,abstol,MLMG::Location::FaceCenter);
 
         amrex::Print() << " \n********************************************************************" << std::endl; 
         amrex::Print() << " Done!" << std::endl;
