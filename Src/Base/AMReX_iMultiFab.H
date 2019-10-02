@@ -78,8 +78,7 @@ public:
     */
     iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int ncomp);
 
-// HIP FIX HERE
-//    virtual ~iMultiFab () override = default;
+    virtual ~iMultiFab () override;
 
     iMultiFab (iMultiFab&& rhs) noexcept = default;
     iMultiFab& operator= (iMultiFab&& rhs) noexcept = default;
