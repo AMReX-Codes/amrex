@@ -63,6 +63,7 @@ template <typename T>
 struct FabView
 {
 
+// HIP FIX HERE - Initialization List
 #ifdef AMREX_USE_HIP
 #ifdef AMREX_DEBUG
     AMREX_GPU_HOST_DEVICE
@@ -572,6 +573,7 @@ public:
                                 +  (slo.z-dlo.z)*kstride
                                 +              n*nstride);
 
+// HIP FIX HERE - Initialization List
 #ifdef AMREX_DEBUG
     #ifdef AMREX_USE_HIP
         FabView<T const> fv(p, jstride, kstride, nstride,
@@ -615,6 +617,8 @@ public:
                           +  (slo.y-dlo.y)*jstride
                           +  (slo.z-dlo.z)*kstride
                           +              n*nstride);
+
+// HIP FIX HERE - Initialization List
 #ifdef AMREX_DEBUG
     #ifdef AMREX_USE_HIP
         FabView<T> fv(p, jstride, kstride, nstride,
