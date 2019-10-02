@@ -66,7 +66,11 @@ void amrex_mempool_init ()
 
 	the_memory_pool.resize(nthreads);
 	for (int i=0; i<nthreads; ++i) {
+#ifdef AMREX_USE_HIP
+	    the_memory_pool[i].reset(new CArena(0, ArenaInfo().SetCpuMemory()));
+#else
 	    the_memory_pool[i].reset(new CArena);
+#endif
 	}
 
 #ifdef _OPENMP
@@ -75,13 +79,7 @@ void amrex_mempool_init ()
 	{
 	    size_t N = 1024*1024*sizeof(double);
 	    void *p = amrex_mempool_alloc(N);
-            double* pd = (double*) p;
-// HIP FIX HERE
-//	    memset(p, 0, N);
-//            for (int i=0; i<1; ++i)
-//            {
-//                pd[i] = (double)(0.0);
-//            }
+	    memset(p, 0, N);
 	    amrex_mempool_free(p);
 	}
 
