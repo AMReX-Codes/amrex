@@ -2519,8 +2519,12 @@ BaseFab<T>::norm (const Box& subbox,
                 }
             }
         }
-        // HIP FIX THIS
+        // HIP FIX THIS - sqrt
+#ifdef AMREX_USE_HIP
         nrm = sqrt(nrm);
+#else
+        nrm = std::sqrt(nrm);
+#endif
     }
     else
     {
