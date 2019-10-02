@@ -99,7 +99,7 @@ class fillBufferFlag
             m_particles = &(pti.GetArrayOfStructs()[0]);
             m_buffer_mask = (*bmasks)[pti].array();
             m_inexflag_ptr = inexflag.dataPtr();
-            m_domain_small_end = geom.Domain().smallEnd();
+            m_domain = geom.Domain();
             for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
                 m_prob_lo[idim] = geom.ProbLo(idim);
                 m_inv_cell_size[idim] = geom.InvCellSize(idim);
@@ -110,23 +110,19 @@ class fillBufferFlag
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void operator()( const long i ) const {
             // Select a particle
-            auto& p = m_particles[i+m_start_index];
+            auto const& p = m_particles[i+m_start_index];
             // Find the index of the cell where this particle is located
-            amrex::IntVect iv;
-            for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
-                iv[idim] = static_cast<int>(floor(
-                    (p.m_rdata.pos[idim]-m_prob_lo[idim])*m_inv_cell_size[idim]
-                ));
-            }
+            amrex::IntVect const iv = amrex::getParticleCell( p,
+                                m_prob_lo, m_inv_cell_size, m_domain );
             // Find the value of the buffer flag in this cell and
             // store it at the corresponding particle position in the array `inexflag`
             m_inexflag_ptr[i+m_start_index] = m_buffer_mask(iv);
         };
 
     private:
-        amrex::Real m_prob_lo[AMREX_SPACEDIM];
-        amrex::Real m_inv_cell_size[AMREX_SPACEDIM];
-        amrex::IntVect m_domain_small_end;
+        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> m_prob_lo;
+        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> m_inv_cell_size;
+        amrex::Box m_domain;
         int* m_inexflag_ptr;
         WarpXParticleContainer::ParticleType const* m_particles;
         amrex::Array4<int const> m_buffer_mask;
