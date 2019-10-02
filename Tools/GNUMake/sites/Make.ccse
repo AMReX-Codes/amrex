@@ -3,3 +3,8 @@
 #
 
 include $(AMREX_HOME)/Tools/GNUMake/sites/Make.unknown
+
+ifeq ($(which_computer),garuda)
+  CUDA_ARCH=75
+  FIX_NVCC_PTHREAD=TRUE
+endif

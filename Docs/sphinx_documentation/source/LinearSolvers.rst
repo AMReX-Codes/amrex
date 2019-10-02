@@ -443,11 +443,12 @@ the MACProjector object and use it to perform a MAC projection.
     Real abstol = 1.e-15;
 
     // Solve for phi and subtract from the velocity to make it divergence-free
-    macproj.project(reltol,abstol);
+    // Note that when we build with USE_EB = TRUE, we must specify whether the velocities live
+    //  at face centers (MLMG::Location::FaceCenter) or face centroids (MLMG::Location::FaceCentroid)
+    macproj.project(reltol,abstol,MLMG::Location::FaceCenter);
 
     // If we want to use phi elsewhere, we can pass in an array in which to return the solution 
-    // macproj.project({&phi_inout},reltol,abstol);
-
+    // macproj.project({&phi_inout},reltol,abstol,MLMG::Location::FaceCenter);
 
 See ``Tutorials/LinearSolvers/MAC_Projection_EB`` for the complete working example.
 
