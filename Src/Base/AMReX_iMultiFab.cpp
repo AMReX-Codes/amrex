@@ -184,6 +184,10 @@ iMultiFab::iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int nc
 {
 }
 
+iMultiFab::~iMultiFab()
+{
+}
+
 void
 iMultiFab::operator= (int r)
 {
