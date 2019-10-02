@@ -474,7 +474,7 @@ amrex::RandomNormal (double mean, double stddev)
     int tid = 0;
 #endif
 
-// HIP FIX HERE
+// HIP FIX HERE - std::normal_distribution
 #ifdef AMREX_USE_CUDA
     std::normal_distribution<double> distribution(mean, stddev);
     rand = distribution(generators[tid]);
@@ -506,7 +506,7 @@ amrex::Random ()
     int tid = 0;
 #endif
 
-// HIP FIX HERE
+// HIP FIX HERE - std::uniform_real_distribution
 #ifdef AMREX_USE_CUDA
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     rand = distribution(generators[tid]);

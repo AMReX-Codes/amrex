@@ -40,7 +40,7 @@ Elixir::clear () noexcept
             void** p = static_cast<void**>(std::malloc(2*sizeof(void*)));
             p[0] = m_p;
             p[1] = (void*)m_arena;
-// HIP FIX HERE
+// HIP FIX HERE - Callback
 #ifdef AMREX_USE_CUDA
             AMREX_HIP_OR_CUDA(
                 AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),

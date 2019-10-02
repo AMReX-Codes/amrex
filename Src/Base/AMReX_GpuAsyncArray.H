@@ -68,7 +68,7 @@ public:
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
-// HIP FIX HERE
+// HIP FIX HERE - Callback
 #ifdef AMREX_USE_CUDA
                 AMREX_HIP_OR_CUDA(
                     AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
