@@ -158,7 +158,7 @@ amrex::Error (const char* msg)
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("%s\n", msg);
-// HIP FIX HERE
+// HIP FIX HERE - assert
 #ifdef AMREX_USE_CUDA
     assert(0);
 #endif
@@ -189,7 +189,7 @@ amrex::Abort (const char* msg)
 #ifdef AMREX_DEVICE_COMPILE
 #if !defined(__APPLE__)
     if (msg) printf("Abort %s\n", msg);
-// HIP FIX HERE
+// HIP FIX HERE - assert
 #ifdef AMREX_USE_CUDA
     assert(0);
 #endif
@@ -246,7 +246,7 @@ amrex::Assert (const char* EX,
                const char* msg)
 {
 #ifdef AMREX_DEVICE_COMPILE
-// HIP FIX HERE
+// HIP FIX HERE - printf & assert
 #ifdef AMREX_USE_CUDA
 
 #if !defined(__APPLE__)

@@ -195,7 +195,7 @@ public:
                              static_cast<int>(is_periodic[2]))};
     }
     GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
-// HIP FIX HERE
+// HIP FIX HERE - Initialization List
 #ifdef AMREX_USE_HIP
         GpuArray<int, AMREX_SPACEDIM> arr;
         for (int i=0; i<AMREX_SPACEDIM; ++i)

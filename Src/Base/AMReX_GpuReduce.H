@@ -19,7 +19,7 @@ struct warpReduce
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x) const noexcept
     {
-// HIP FIX HERE
+// HIP FIX HERE - __shfl_down_sync -> remove from HIP
 #ifdef AMREX_USE_CUDA
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = __shfl_down_sync(0xffffffff, x, offset);
