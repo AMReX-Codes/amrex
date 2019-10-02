@@ -448,14 +448,13 @@ void amrex::free_state(int tid)
 }
 #endif
 
-AMREX_GPU_HOST_DEVICE double
-amrex::RandomNormal (double mean, double stddev)
+AMREX_GPU_HOST_DEVICE amrex::Real
+amrex::RandomNormal (amrex::Real mean, amrex::Real stddev)
 {
 
-    double rand;
+    amrex::Real rand;
 
 #ifdef __CUDA_ARCH__
-
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
     int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -463,7 +462,11 @@ amrex::RandomNormal (double mean, double stddev)
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
     
     int i = get_state(tid);
-    rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean; 
+#ifdef BL_USE_FLOAT
+    rand = stddev * curand_normal(&states_d_ptr[i]) + mean;
+#else
+    rand = stddev * curand_normal_double(&states_d_ptr[i]) + mean;
+#endif
     free_state(tid);
     
 #else
@@ -473,17 +476,17 @@ amrex::RandomNormal (double mean, double stddev)
 #else
     int tid = 0;
 #endif
-    std::normal_distribution<double> distribution(mean, stddev);
+    std::normal_distribution<amrex::Real> distribution(mean, stddev);
     rand = distribution(generators[tid]);
 
 #endif
     return rand;
 }
 
-AMREX_GPU_HOST_DEVICE double
+AMREX_GPU_HOST_DEVICE amrex::Real
 amrex::Random ()
 {
-    double rand;
+    amrex::Real rand;
 #ifdef __CUDA_ARCH__
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 
@@ -491,7 +494,11 @@ amrex::Random ()
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
     int i = get_state(tid);
-    rand = curand_uniform_double(&states_d_ptr[i]); 
+#ifdef BL_USE_FLOAT
+    rand = curand_uniform(&states_d_ptr[i]);
+#else
+    rand = curand_uniform_double(&states_d_ptr[i]);
+#endif    
     free_state(tid);
     
 #else
@@ -501,9 +508,8 @@ amrex::Random ()
 #else
     int tid = 0;
 #endif
-    std::uniform_real_distribution<double> distribution(0.0, 1.0);
-    rand = distribution(generators[tid]);
-    
+    std::uniform_real_distribution<amrex::Real> distribution(0.0, 1.0);
+    rand = distribution(generators[tid]);    
 #endif
 
     return rand;
