@@ -45,8 +45,6 @@ void amrex_mempool_init ()
     {
 	initialized = true;
 
-        std::cout << " a " << std::endl;
-
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
 
@@ -77,8 +75,13 @@ void amrex_mempool_init ()
 	{
 	    size_t N = 1024*1024*sizeof(double);
 	    void *p = amrex_mempool_alloc(N);
+            double* pd = (double*) p;
 // HIP FIX HERE
 //	    memset(p, 0, N);
+//            for (int i=0; i<1; ++i)
+//            {
+//                pd[i] = (double)(0.0);
+//            }
 	    amrex_mempool_free(p);
 	}
 
