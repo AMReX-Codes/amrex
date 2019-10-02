@@ -1,5 +1,6 @@
-#include <WarpX.H>
+#include <SortingUtils.H>
 #include <PhysicalParticleContainer.H>
+#include <WarpX.H>
 #include <AMReX_Particles.H>
 
 using namespace amrex;
@@ -41,56 +42,64 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
 {
     BL_PROFILE("PPC::Evolve::partition");
 
-    std::vector<bool> inexflag;
+    // Initialize temporary arrays
+    Gpu::DeviceVector<int> inexflag;
     inexflag.resize(np);
+    Gpu::DeviceVector<long> pid;
+    pid.resize(np);
 
-    auto& aos = pti.GetArrayOfStructs();
+    // First, partition particles into the larger buffer
 
-    // We need to partition the large buffer first
+    // - Select the larger buffer
     iMultiFab const* bmasks =
         (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
         gather_masks : current_masks;
-    int i = 0;
-    const auto& msk = (*bmasks)[pti];
-    for (const auto& p : aos) {
-        const IntVect& iv = Index(p, lev);
-        inexflag[i++] = msk(iv);
-    }
+    // - For each particle, find whether it is in the larger buffer,
+    //   by looking up the mask. Store the answer in `inexflag`.
+    amrex::ParallelFor( np, fillBufferFlag(pti, bmasks, inexflag, Geom(lev), 0) );
+    // - Find the indices that reorder particles so that the last particles
+    //   are in the larger buffer
+    fillWithConsecutiveIntegers( pid );
+    auto const sep = stablePartition( pid.begin(), pid.end(), inexflag );
+    // At the end of this step, `pid` contains the indices that should be used to
+    // reorder the particles, and `sep` is the position in the array that
+    // separates the particles that deposit/gather on the fine patch (first part)
+    // and the particles that deposit/gather in the buffers (last part)
+    long const n_fine = iteratorDistance(pid.begin(), sep);
+    // Number of particles on fine patch, i.e. outside of the larger buffer
 
-    Vector<long> pid;
-    pid.resize(np);
-    std::iota(pid.begin(), pid.end(), 0L);
-    auto sep = std::stable_partition(pid.begin(), pid.end(),
-                                     [&inexflag](long id) { return inexflag[id]; });
+    // Second, among particles that are in the larger buffer, partition
+    // particles into the smaller buffer
 
     if (WarpX::n_current_deposition_buffer == WarpX::n_field_gather_buffer) {
-        nfine_current = nfine_gather = std::distance(pid.begin(), sep);
-    } else if (sep != pid.end()) {
+        // No need to do anything if the buffers have the same size
+        nfine_current = nfine_gather = iteratorDistance(pid.begin(), sep);
+    } else if (sep == pid.end()) {
+        // No need to do anything if there are no particles in the larger buffer
+        nfine_current = nfine_gather = np;
+    } else {
         int n_buf;
         if (bmasks == gather_masks) {
-            nfine_gather = std::distance(pid.begin(), sep);
+            nfine_gather = n_fine;
             bmasks = current_masks;
             n_buf = WarpX::n_current_deposition_buffer;
         } else {
-            nfine_current = std::distance(pid.begin(), sep);
+            nfine_current = n_fine;
             bmasks = gather_masks;
             n_buf = WarpX::n_field_gather_buffer;
         }
         if (n_buf > 0)
         {
-            const auto& msk2 = (*bmasks)[pti];
-            for (auto it = sep; it != pid.end(); ++it) {
-                const long id = *it;
-                const IntVect& iv = Index(aos[id], lev);
-                inexflag[id] = msk2(iv);
-            }
+            // - For each particle in the large buffer, find whether it is in
+            // the smaller buffer, by looking up the mask. Store the answer in `inexflag`.
+            amrex::ParallelFor( np - n_fine,
+               fillBufferFlag(pti, bmasks, inexflag, Geom(lev), n_fine) );
+            auto const sep2 = stablePartition( sep, pid.end(), inexflag );
 
-            auto sep2 = std::stable_partition(sep, pid.end(),
-                                              [&inexflag](long id) {return inexflag[id];});
             if (bmasks == gather_masks) {
-                nfine_gather = std::distance(pid.begin(), sep2);
+                nfine_gather = iteratorDistance(pid.begin(), sep2);
             } else {
-                nfine_current = std::distance(pid.begin(), sep2);
+                nfine_current = iteratorDistance(pid.begin(), sep2);
             }
         }
     }
@@ -103,39 +112,38 @@ PhysicalParticleContainer::PartitionParticlesInBuffers(
         nfine_gather = 0;
     }
 
+    // Reorder the actual particle array, using the `pid` indices
     if (nfine_current != np || nfine_gather != np)
     {
-
+        // Temporary array for particle AoS
         ParticleVector particle_tmp;
         particle_tmp.resize(np);
 
-        for (long ip = 0; ip < np; ++ip) {
-            particle_tmp[ip] = aos[pid[ip]];
-        }
+        // Copy particle AoS
+        auto& aos = pti.GetArrayOfStructs();
+        amrex::ParallelFor( np,
+            copyAndReorder<ParticleType>( aos(), particle_tmp, pid ) );
         std::swap(aos(), particle_tmp);
 
+        // Temporary array for particle individual attributes
         RealVector tmp;
         tmp.resize(np);
 
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = wp[pid[ip]];
-        }
+        // Copy individual attributes
+        amrex::ParallelFor( np, copyAndReorder<Real>( wp, tmp, pid ) );
         std::swap(wp, tmp);
-
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = uxp[pid[ip]];
-        }
+        amrex::ParallelFor( np, copyAndReorder<Real>( uxp, tmp, pid ) );
         std::swap(uxp, tmp);
-
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = uyp[pid[ip]];
-        }
+        amrex::ParallelFor( np, copyAndReorder<Real>( uyp, tmp, pid ) );
         std::swap(uyp, tmp);
-
-        for (long ip = 0; ip < np; ++ip) {
-            tmp[ip] = uzp[pid[ip]];
-        }
+        amrex::ParallelFor( np, copyAndReorder<Real>( uzp, tmp, pid ) );
         std::swap(uzp, tmp);
-    }
 
+        // Make sure that the temporary arrays are not destroyed before
+        // the GPU kernels finish running
+        Gpu::streamSynchronize();
+    }
+    // Make sure that the temporary arrays are not destroyed before
+    // the GPU kernels finish running
+    Gpu::streamSynchronize();
 }
