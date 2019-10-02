@@ -219,14 +219,20 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
         int* m = (icell < ncells) ? d_masks[tag_id].ptr(i,j,k) : nullptr;
         int mypriority = g_wid+1;
         int to_try  = 1;
-// HIP FIX HERE
-#ifdef AMREX_USE_CUDA
         while (true) {
             int msk = (m && to_try) ? atomicCAS(m, 0, mypriority) : 0;
+#ifdef AMREX_USE_CUDA
             if (__all_sync(0xffffffff, msk == 0)) {  // 0 means lock acquired
+#elif defined(AMREX_USE_HIP)
+            if (__all(msk == 0)) { 
+#endif
                 break; // all threads have acquired.
             } else {
+#ifdef AMREX_USE_CUDA
                 if (__any_sync(0xffffffff, msk > mypriority)) {
+#elif defined(AMREX_USE_HIP)
+                if (__any(msk > mypriority)) {
+#endif
                     if (m) *m = 0; // yield
                     __threadfence();
                     to_try = 1;
@@ -235,7 +241,7 @@ fab_to_fab (Vector<Array4CopyTag<T> > const& copy_tags, int scomp, int dcomp, in
                 }
             }
         };
-#endif
+
         if (icell < ncells) {
             for (int n = 0; n < ncomp; ++n) {
                 f(&(tag.dfab(i,j,k,n+dcomp)),
