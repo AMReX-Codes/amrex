@@ -62,10 +62,20 @@ namespace amrex
 template <typename T>
 struct FabView
 {
+
+#ifdef AMREX_USE_HIP
+#ifdef AMREX_DEBUG
+    AMREX_GPU_HOST_DEVICE
+    FabView(T* ptr, int j, int k, long n, int ie, int je, int ke, int ne)
+    : p(ptr), jstride(j), kstride(k), nstride(n), iend(ie), jend(je), kend(ke), nend(ne)
+    { }
+#else
     AMREX_GPU_HOST_DEVICE
     FabView(T* ptr, int j, int k, long n)
     : p(ptr), jstride(j), kstride(k), nstride(n)
     { }
+#endif
+#endif
 
     T* AMREX_RESTRICT p;
     int jstride;
@@ -563,16 +573,27 @@ public:
                                 +              n*nstride);
 
 #ifdef AMREX_DEBUG
+    #ifdef AMREX_USE_HIP
+        FabView<T const> fv(p, jstride, kstride, nstride,
+                            len.x-(slo.x-dlo.x),
+                            len.y-(slo.y-dlo.y),
+                            len.z-(slo.z-dlo.z),
+                            this->nvar-n);
+        return fv;
+    #else
         return FabView<T const>{p, jstride, kstride, nstride,
-                len.x-(slo.x-dlo.x),
-                len.y-(slo.y-dlo.y),
-                len.z-(slo.z-dlo.z),
-                this->nvar-n};
+                                len.x-(slo.x-dlo.x),
+                                len.y-(slo.y-dlo.y),
+                                len.z-(slo.z-dlo.z),
+                                this->nvar-n};
+    #endif
 #else
+    #ifdef AMREX_USE_HIP
         FabView<T const> fv(p, jstride, kstride, nstride);
         return fv;
-
-//        return FabView<T const>{p, jstride, kstride, nstride};
+    #else
+        return FabView<T const>{p, jstride, kstride, nstride};
+    #endif
 #endif
     }
 
@@ -595,16 +616,27 @@ public:
                           +  (slo.z-dlo.z)*kstride
                           +              n*nstride);
 #ifdef AMREX_DEBUG
+    #ifdef AMREX_USE_HIP
+        FabView<T> fv(p, jstride, kstride, nstride,
+                      len.x-(slo.x-dlo.x),
+                      len.y-(slo.y-dlo.y),
+                      len.z-(slo.z-dlo.z),
+                      this->nvar-n);
+        return fv;
+    #else
         return FabView<T>{p, jstride, kstride, nstride,
                 len.x-(slo.x-dlo.x),
                 len.y-(slo.y-dlo.y),
                 len.z-(slo.z-dlo.z),
                 this->nvar-n};
+    #endif
 #else
+    #ifdef AMREX_USE_HIP
         FabView<T> fv(p, jstride, kstride, nstride);
         return fv;
-
-//        return FabView<T>{p, jstride, kstride, nstride};
+    #else
+        return FabView<T>{p, jstride, kstride, nstride};
+    #endif
 #endif
     }
 
