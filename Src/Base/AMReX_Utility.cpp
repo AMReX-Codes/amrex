@@ -383,6 +383,9 @@ namespace
 
 }
 
+// HIP FIX HERE - REWRITE RANDOM FOR HIP AS WELL (hiprand)
+// https://github.com/ROCm-Developer-Tools/HIP/blob/master/docs/markdown/CURAND_API_supported_by_HIP.md
+
 void
 amrex::InitRandom (unsigned long seed, int nprocs)
 {
@@ -474,11 +477,8 @@ amrex::RandomNormal (double mean, double stddev)
     int tid = 0;
 #endif
 
-// HIP FIX HERE - std::normal_distribution
-#ifdef AMREX_USE_CUDA
     std::normal_distribution<double> distribution(mean, stddev);
     rand = distribution(generators[tid]);
-#endif
 
 #endif
     return rand;
@@ -506,11 +506,8 @@ amrex::Random ()
     int tid = 0;
 #endif
 
-// HIP FIX HERE - std::uniform_real_distribution
-#ifdef AMREX_USE_CUDA
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
     rand = distribution(generators[tid]);
-#endif
 
 #endif
 
