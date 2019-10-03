@@ -9,7 +9,7 @@ ifeq ($(USE_GPU),TRUE)
   USE_OMP  = FALSE
   USE_CUDA = TRUE
   USE_ACC  = FALSE
-  NVCC_HOST_COMP = gcc
+  NVCC_HOST_COMP = gnu
 endif
 
 ifeq ($(USE_RZ),TRUE)
