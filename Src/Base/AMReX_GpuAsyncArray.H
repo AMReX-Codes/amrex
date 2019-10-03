@@ -9,10 +9,15 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuDevice.H>
 
+// HIP FIX HERE - MOVE TO ONE SPOT
+#ifdef __HIP_PLATFORM_HCC__
+#define HIPRT_CB 
+#endif
+
 #ifdef AMREX_USE_GPU
 extern "C" {
 AMREX_HIP_OR_CUDA(
-    hipStreamCallback_t amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
+         void HIPRT_CB  amrex_asyncarray_delete ( hipStream_t stream,  hipError_t error, void* p);,
          void CUDART_CB amrex_asyncarray_delete (cudaStream_t stream, cudaError_t error, void* p);)
 }
 #endif
@@ -68,14 +73,11 @@ public:
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
-// HIP FIX HERE - Callback
-#ifdef AMREX_USE_CUDA
                 AMREX_HIP_OR_CUDA(
                     AMREX_HIP_SAFE_CALL ( hipStreamAddCallback(Gpu::gpuStream(),
                                                                amrex_asyncarray_delete, p, 0));,
                     AMREX_CUDA_SAFE_CALL(cudaStreamAddCallback(Gpu::gpuStream(),
                                                                amrex_asyncarray_delete, p, 0)););
-#endif
                 Gpu::callbackAdded();
             }
         }
