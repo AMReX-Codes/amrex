@@ -581,12 +581,11 @@ public:
 // HIP FIX HERE - Initialization List
 #ifdef AMREX_DEBUG
     #ifdef AMREX_USE_HIP
-        FabView<T const> fv(p, jstride, kstride, nstride,
-                            len.x-(slo.x-dlo.x),
-                            len.y-(slo.y-dlo.y),
-                            len.z-(slo.z-dlo.z),
-                            this->nvar-n);
-        return fv;
+        return FabView<T const> (p, jstride, kstride, nstride,
+                                 len.x-(slo.x-dlo.x),
+                                 len.y-(slo.y-dlo.y),
+                                 len.z-(slo.z-dlo.z),
+                                 this->nvar-n);
     #else
         return FabView<T const>{p, jstride, kstride, nstride,
                                 len.x-(slo.x-dlo.x),
@@ -596,8 +595,7 @@ public:
     #endif
 #else
     #ifdef AMREX_USE_HIP
-        FabView<T const> fv(p, jstride, kstride, nstride);
-        return fv;
+        return FabView<T const> (p, jstride, kstride, nstride);
     #else
         return FabView<T const>{p, jstride, kstride, nstride};
     #endif
@@ -626,12 +624,11 @@ public:
 // HIP FIX HERE - Initialization List
 #ifdef AMREX_DEBUG
     #ifdef AMREX_USE_HIP
-        FabView<T> fv(p, jstride, kstride, nstride,
-                      len.x-(slo.x-dlo.x),
-                      len.y-(slo.y-dlo.y),
-                      len.z-(slo.z-dlo.z),
-                      this->nvar-n);
-        return fv;
+        return FabView<T>(p, jstride, kstride, nstride,
+                          len.x-(slo.x-dlo.x),
+                          len.y-(slo.y-dlo.y),
+                          len.z-(slo.z-dlo.z),
+                          this->nvar-n);
     #else
         return FabView<T>{p, jstride, kstride, nstride,
                 len.x-(slo.x-dlo.x),
@@ -641,8 +638,7 @@ public:
     #endif
 #else
     #ifdef AMREX_USE_HIP
-        FabView<T> fv(p, jstride, kstride, nstride);
-        return fv;
+        return FabView<T>(p, jstride, kstride, nstride);
     #else
         return FabView<T>{p, jstride, kstride, nstride};
     #endif

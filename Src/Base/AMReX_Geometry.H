@@ -201,6 +201,11 @@ public:
         for (int i=0; i<AMREX_SPACEDIM; ++i)
             { arr[i] = static_cast<int>(is_periodic[i]); }
         return arr;
+/*
+        return {(int[AMREX_SPACEDIM]){AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                                                   static_cast<int>(is_periodic[1]),
+                                                   static_cast<int>(is_periodic[2]))}};
+*/
 #else
         return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                              static_cast<int>(is_periodic[1]),
