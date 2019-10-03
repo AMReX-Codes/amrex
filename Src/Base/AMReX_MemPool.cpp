@@ -66,11 +66,8 @@ void amrex_mempool_init ()
 
 	the_memory_pool.resize(nthreads);
 	for (int i=0; i<nthreads; ++i) {
-#ifdef AMREX_USE_HIP
-	    the_memory_pool[i].reset(new CArena(0, ArenaInfo().SetCpuMemory()));
-#else
-	    the_memory_pool[i].reset(new CArena);
-#endif
+            AMREX_HIP_OR_CUDA( the_memory_pool[i].reset(new CArena(0, ArenaInfo().SetCpuMemory()));,
+                               the_memory_pool[i].reset(new CArena); ); 
 	}
 
 #ifdef _OPENMP
