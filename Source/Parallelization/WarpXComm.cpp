@@ -52,15 +52,15 @@ WarpX::UpdateAuxilaryData ()
 {
     BL_PROFILE("UpdateAuxilaryData()");
 
-    if (Bfield_aux[0][0]->is_nodal()) {
-        UpdateNodalAuxilaryData();
+    if (Bfield_aux[0][0]->ixType() == Bfield_fp[0][0]->ixType()) {
+        UpdateAuxilaryDataSameType();
     } else {
-        UpdateStagAuxilaryData();
+        UpdateAuxilaryDataStagToNodal();
     }
 }
 
 void
-WarpX::UpdateNodalAuxilaryData ()
+WarpX::UpdateAuxilaryDataStagToNodal ()
 {
     // For level 0, we only need to do the average.
 #ifdef _OPENMP
@@ -201,7 +201,7 @@ WarpX::UpdateNodalAuxilaryData ()
 }
 
 void
-WarpX::UpdateStagAuxilaryData ()
+WarpX::UpdateAuxilaryDataSameType ()
 {
     for (int lev = 1; lev <= finest_level; ++lev)
     {
