@@ -116,10 +116,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
     if (mglev >= m_kappa[amrlev].size()) return;
 
-    // FIXME? - Now altering the MLMGBndry object in corner/edge filling 
-    //  process. Unsure wheter to change declaration of bndry in fn def 
-    //  or to just use m_bndry_sol[amrlev].get() inside applyBCTensor()
-    applyBCTensor(amrlev, mglev, in, bc_mode /*, bndry */);
+    applyBCTensor(amrlev, mglev, in, bc_mode, bndry );
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
@@ -183,7 +180,7 @@ MLTensorOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc
 
 void
 MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
-                           BCMode bc_mode /*, const MLMGBndry* bndry */
+                           BCMode bc_mode, const MLMGBndry* bndry 
 			   ) const
 {
 #if (AMREX_SPACEDIM > 1)
@@ -194,21 +191,23 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     const auto& maskvals = m_maskvals[amrlev][mglev];
 
     FArrayBox foofab(Box::TheUnitBox(),3);
-    const auto& constfoo = foofab.array();
-    auto foo = foofab.array();
+    const auto& foo = foofab.array();
 
-    // FIXME? get pointer to MLMGBndry object this way, so that we can
-    // alter the data
-    MLMGBndry* bndry = m_bndry_sol[amrlev].get();
     const BndryRegister* crsebndry = m_crse_sol_br[amrlev].get();
     int cr = ( (amrlev>0) ? m_amr_ref_ratio[amrlev-1] : m_coarse_data_crse_ratio );
     const IntVect ratio{cr};
     
     const auto& rr = ratio.dim3();
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
-
+    const Box& domain = m_geom[amrlev][mglev].growPeriodicDomain(1);
+    Box testbox = domain;
+    
+    // pretty sure bc_mode is always inhomog
+    // see MLCellLinOp::solutionResidual()...
+    // but correctionResidual will also get here
+    // don't think having coarse data and homog makes sense...
     const int use_crsedata = (crsebndry!=nullptr && inhomog);
-
+    
     // Domain boundaries are handled below.
 
     MFItInfo mfi_info;
@@ -219,13 +218,16 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
     for (MFIter mfi(vel, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-	Box testbox = vbx;
-	if ( !m_geom[amrlev][mglev].isAllPeriodic() ) {
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-	    if (m_geom[amrlev][mglev].isPeriodic(idim)) {
-	      testbox.grow(idim,1);
-	    }
-	  }
+
+	if ( crsebndry != nullptr ){
+	  testbox = vbx;
+	   if ( !m_geom[amrlev][mglev].isAllPeriodic() ) {
+	     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+	       if (m_geom[amrlev][mglev].isPeriodic(idim)) {
+		 testbox.grow(idim,1);
+	       }
+	     }
+	   }
 	}
 
         const auto& velfab = vel.array(mfi);
@@ -249,7 +251,6 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& mxhi = maskvals[Orientation(0,Orientation::high)].array(mfi);
         const auto& myhi = maskvals[Orientation(1,Orientation::high)].array(mfi);
 
-	// FIXME? not sure about this const qualifier here
         const auto& bvxlo = (bndry != nullptr) ?
 	  (*bndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
         const auto& bvylo = (bndry != nullptr) ?
@@ -260,13 +261,13 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
 	  (*bndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
 
 	const auto& cbvxlo = (crsebndry != nullptr) ?
-	  (*crsebndry)[Orientation(0,Orientation::low )].array(mfi) : constfoo;
+	  (*crsebndry)[Orientation(0,Orientation::low )].array(mfi) : foo;
         const auto& cbvylo = (crsebndry != nullptr) ?
-	  (*crsebndry)[Orientation(1,Orientation::low )].array(mfi) : constfoo;
+	  (*crsebndry)[Orientation(1,Orientation::low )].array(mfi) : foo;
         const auto& cbvxhi = (crsebndry != nullptr) ?
-	  (*crsebndry)[Orientation(0,Orientation::high)].array(mfi) : constfoo;
+	  (*crsebndry)[Orientation(0,Orientation::high)].array(mfi) : foo;
         const auto& cbvyhi = (crsebndry != nullptr) ?
-	  (*crsebndry)[Orientation(1,Orientation::high)].array(mfi) : constfoo;
+	  (*crsebndry)[Orientation(1,Orientation::high)].array(mfi) : foo;
 
 #if (AMREX_SPACEDIM == 2)
 
@@ -283,16 +284,15 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
         const auto& mzlo = maskvals[Orientation(2,Orientation::low )].array(mfi);
         const auto& mzhi = maskvals[Orientation(2,Orientation::high)].array(mfi);
 
-	// FIXME? not sure about this const qualifier here
         const auto& bvzlo = (bndry != nullptr) ?
 	  (*bndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
         const auto& bvzhi = (bndry != nullptr) ?
 	  (*bndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
 	const auto& cbvzlo = (crsebndry != nullptr) ?
-	  (*crsebndry)[Orientation(2,Orientation::low )].array(mfi) : constfoo;
+	  (*crsebndry)[Orientation(2,Orientation::low )].array(mfi) : foo;
         const auto& cbvzhi = (crsebndry != nullptr) ?
-	  (*crsebndry)[Orientation(2,Orientation::high)].array(mfi) : constfoo;
+	  (*crsebndry)[Orientation(2,Orientation::high)].array(mfi) : foo;
 
         AMREX_HOST_DEVICE_FOR_1D ( 12, iedge,
         {
@@ -303,20 +303,15 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel,
                                 bct, bcl, inhomog, imaxorder, use_crsedata,
 				dxinv, rr, testbox);
         });
-
 	// Corners are never used in 3D stencil, only edge vals
-        // AMREX_HOST_DEVICE_FOR_1D ( 8, icorner,
-        // {
-        //     mltensor_fill_corners(icorner, vbx, velfab,
-        //                           mxlo, mylo, mzlo, mxhi, myhi, mzhi,
-        //                           bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,
-	// 			  cbvxlo, cbvylo, cbvzlo, cbvxhi, cbvyhi, cbvzhi,
-        //                           bct, bcl, inhomog, imaxorder, use_crsedata,
-        //                           dxinv, rr, testbox);
-        // });
+
 #endif
     }
 
+    /** \brief Fill cells outside periodic domains with their corresponding cells inside
+    * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
+    * is allowed to be overlapping.
+    */
     vel.EnforcePeriodicity(0, AMREX_SPACEDIM, m_geom[amrlev][mglev].periodicity());
 #endif
 }
@@ -332,7 +327,7 @@ MLTensorOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
     const int ncomp = getNComp();
     MLABecLaplacian::compFlux(amrlev, fluxes, sol, loc);
 
-    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous); //, m_bndry_sol[amrlev].get());
+    applyBCTensor(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
 
     const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
 
