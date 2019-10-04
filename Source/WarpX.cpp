@@ -137,13 +137,13 @@ WarpX::WarpX ()
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
 
-    int nlevs_max = maxLevel() + 1;
+    const int nlevs_max = maxLevel() + 1;
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
 #if 0
     // no subcycling yet
-    for (int lev = 1; lev <= maxLevel(); ++lev) {
+    for (int lev = 1; lev < nlevs_max; ++lev) {
         nsubsteps[lev] = MaxRefRatio(lev-1);
     }
 #endif
@@ -239,7 +239,7 @@ WarpX::WarpX ()
 
 WarpX::~WarpX ()
 {
-    int nlevs_max = maxLevel() +1;
+    const int nlevs_max = maxLevel() +1;
     for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
@@ -453,7 +453,8 @@ WarpX::ReadParameters ()
         }
 
         // Check that the coarsening_ratio can divide the blocking factor
-        for (int lev=0; lev<maxLevel(); lev++){
+        const int nlevs_max = maxLevel();
+        for (int lev=0; lev<nlevs_max; lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
               amrex::Abort("plot_coarsening_ratio should be an integer "
