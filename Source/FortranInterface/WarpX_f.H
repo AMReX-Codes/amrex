@@ -16,7 +16,6 @@
 
 #if (AMREX_SPACEDIM == 3)
 
-#define WRPX_SYNC_CURRENT                warpx_sync_current_3d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_3d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_3d
@@ -31,7 +30,6 @@
 
 #elif (AMREX_SPACEDIM == 2)
 
-#define WRPX_SYNC_CURRENT                warpx_sync_current_2d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
 
 #define WRPX_SUM_FINE_TO_CRSE_NODAL      warpx_sum_fine_to_crse_nodal_2d
@@ -86,14 +84,14 @@ extern "C"
 #endif
                           const amrex::Real* dx);
 
-    void WRPX_DEPOSIT_CIC(const amrex::Real* particles, int ns, int np,
-                          const amrex::Real* weights,
+    void WRPX_DEPOSIT_CIC(const amrex::ParticleReal* particles, int ns, int np,
+                          const amrex::ParticleReal* weights,
                           const amrex::Real* charge,
                           amrex::Real* rho, const int* lo, const int* hi,
                           const amrex::Real* plo, const amrex::Real* dx,
                           const int* ng);
 
-    void WRPX_INTERPOLATE_CIC_TWO_LEVELS(const amrex::Real* particles, int ns, int np,
+    void WRPX_INTERPOLATE_CIC_TWO_LEVELS(const amrex::ParticleReal* particles, int ns, int np,
                                          amrex::Real* Ex_p, amrex::Real* Ey_p,
 #if (AMREX_SPACEDIM == 3)
                                          amrex::Real* Ez_p,
@@ -111,7 +109,7 @@ extern "C"
                                          const int* clo, const int* chi, const amrex::Real* cdx,
                                          const amrex::Real* plo, const int* ng, const int* lev);
 
-    void WRPX_INTERPOLATE_CIC(const amrex::Real* particles, int ns, int np,
+    void WRPX_INTERPOLATE_CIC(const amrex::ParticleReal* particles, int ns, int np,
                               amrex::Real* Ex_p, amrex::Real* Ey_p,
 #if (AMREX_SPACEDIM == 3)
                               amrex::Real* Ez_p,
@@ -124,10 +122,10 @@ extern "C"
                               const amrex::Real* plo, const amrex::Real* dx,
                               const int* ng);
 
-    void WRPX_PUSH_LEAPFROG(amrex::Real* particles, int ns, int np,
-                            amrex::Real* vx_p, amrex::Real* vy_p,
+    void WRPX_PUSH_LEAPFROG(amrex::ParticleReal* particles, int ns, int np,
+                            amrex::ParticleReal* vx_p, amrex::ParticleReal* vy_p,
 #if (AMREX_SPACEDIM == 3)
-                            amrex::Real* vz_p,
+                            amrex::ParticleReal* vz_p,
 #endif
                             const amrex::Real* Ex_p, const amrex::Real* Ey_p,
 #if (AMREX_SPACEDIM == 3)
@@ -136,10 +134,10 @@ extern "C"
                             const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
                             const amrex::Real* prob_lo, const amrex::Real* prob_hi);
 
-    void WRPX_PUSH_LEAPFROG_POSITIONS(amrex::Real* particles, int ns, int np,
-                                      amrex::Real* vx_p, amrex::Real* vy_p,
+    void WRPX_PUSH_LEAPFROG_POSITIONS(amrex::ParticleReal* particles, int ns, int np,
+                                      amrex::ParticleReal* vx_p, amrex::ParticleReal* vy_p,
 #if (AMREX_SPACEDIM == 3)
-                                      amrex::Real* vz_p,
+                                      amrex::ParticleReal* vz_p,
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
                                       const amrex::Real* prob_hi);
@@ -230,12 +228,6 @@ extern "C"
                           const amrex::Real* sigby, int sigby_lo, int sigby_hi,
 #endif
                           const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
-
-
-    void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
-                             BL_FORT_FAB_ARG_ANYD(crse),
-                             const BL_FORT_FAB_ARG_ANYD(fine),
-                             const int* dir);
 
     void WRPX_SYNC_RHO (const int* lo, const int* hi,
                         BL_FORT_FAB_ARG_ANYD(crse),

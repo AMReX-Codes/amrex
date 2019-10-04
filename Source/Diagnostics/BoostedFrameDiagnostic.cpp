@@ -876,37 +876,37 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
 
     field_name = name + Concatenate("w_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::w).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::w).data(), np, ofs);
     ofs.close();
 
     field_name = name + Concatenate("x_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::x).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::x).data(), np, ofs);
     ofs.close();
 
     field_name = name + Concatenate("y_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::y).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::y).data(), np, ofs);
     ofs.close();
 
     field_name = name + Concatenate("z_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::z).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::z).data(), np, ofs);
     ofs.close();
 
     field_name = name + Concatenate("ux_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::ux).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::ux).data(), np, ofs);
     ofs.close();
 
     field_name = name + Concatenate("uy_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::uy).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::uy).data(), np, ofs);
     ofs.close();
 
     field_name = name + Concatenate("uz_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
-    writeRealData(pdata.GetRealData(DiagIdx::uz).data(), np, ofs);
+    writeData(pdata.GetRealData(DiagIdx::uz).data(), np, ofs);
     ofs.close();
 }
 

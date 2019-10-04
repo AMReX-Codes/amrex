@@ -12,12 +12,14 @@ using namespace amrex;
 
 int main(int argc, char* argv[])
 {
+#if defined AMREX_USE_MPI
 #if defined(_OPENMP) && defined(WARPX_USE_PSATD)
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
     assert(provided >= MPI_THREAD_FUNNELED);
 #else
     MPI_Init(&argc, &argv);
+#endif
 #endif
 
     amrex::Initialize(argc,argv);
@@ -48,5 +50,7 @@ int main(int argc, char* argv[])
     BL_PROFILE_VAR_STOP(pmain);
 
     amrex::Finalize();
+#if defined AMREX_USE_MPI
     MPI_Finalize();
+#endif
 }

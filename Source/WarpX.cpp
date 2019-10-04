@@ -103,7 +103,7 @@ IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 
 IntVect WarpX::filter_npass_each_dir(1);
 
-int WarpX::n_field_gather_buffer = 0;
+int WarpX::n_field_gather_buffer = -1;
 int WarpX::n_current_deposition_buffer = -1;
 
 int WarpX::do_nodal = false;
@@ -137,20 +137,20 @@ WarpX::WarpX ()
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
 
-    int nlevs_max = maxLevel() + 1;
+    const int nlevs_max = maxLevel() + 1;
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
 #if 0
     // no subcycling yet
-    for (int lev = 1; lev <= maxLevel(); ++lev) {
+    for (int lev = 1; lev < nlevs_max; ++lev) {
         nsubsteps[lev] = MaxRefRatio(lev-1);
     }
 #endif
 
     t_new.resize(nlevs_max, 0.0);
-    t_old.resize(nlevs_max, -1.e100);
-    dt.resize(nlevs_max, 1.e100);
+    t_old.resize(nlevs_max, std::numeric_limits<Real>::lowest());
+    dt.resize(nlevs_max, std::numeric_limits<Real>::max());
 
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
@@ -239,7 +239,7 @@ WarpX::WarpX ()
 
 WarpX::~WarpX ()
 {
-    int nlevs_max = maxLevel() +1;
+    const int nlevs_max = maxLevel() +1;
     for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
@@ -452,7 +452,8 @@ WarpX::ReadParameters ()
         }
 
         // Check that the coarsening_ratio can divide the blocking factor
-        for (int lev=0; lev<maxLevel(); lev++){
+        const int nlevs_max = maxLevel();
+        for (int lev=0; lev<nlevs_max; lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
               amrex::Abort("plot_coarsening_ratio should be an integer "
@@ -734,10 +735,18 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
+        // This forces the allocation of buffers and allows the code associated
+        // with buffers to run. But the buffer size of `1` is in fact not used,
+        // `deposit_on_main_grid` forces all particles (whether or not they
+        // are in buffers) to deposition on the main grid.
     }
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
+    }
+    if (n_field_gather_buffer < 0) {
+        // Field gather buffer should be larger than current deposition buffers
+        n_field_gather_buffer = n_current_deposition_buffer + 1;
     }
 
     int ngF = (do_moving_window) ? 2 : 0;
@@ -1016,7 +1025,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmin[0], -1.e100, xyzmin[1] };
+    return { xyzmin[0], std::numeric_limits<Real>::lowest(), xyzmin[1] };
 #endif
 }
 
@@ -1028,7 +1037,7 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #if (AMREX_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmax[0], 1.e100, xyzmax[1] };
+    return { xyzmax[0], std::numeric_limits<Real>::max(), xyzmax[1] };
 #endif
 }
 
