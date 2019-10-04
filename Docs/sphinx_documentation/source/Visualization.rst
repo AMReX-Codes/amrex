@@ -143,7 +143,7 @@ for making a simple plot:
    :math:`\rightarrow` “phi”, and then select “Draw”.
 
 -  To view the grid structure (not particularly interesting yet, but when we
-   add AMR it will be), select “ :math:`\rightarrow` “subset”
+   add AMR it will be), select “Add” :math:`\rightarrow` “Subset”
    :math:`\rightarrow` “levels”. Then double-click the text “Subset - levels”,
    enable the “Wireframe” option, select “Apply”, select “Dismiss”, and then
    select “Draw”.

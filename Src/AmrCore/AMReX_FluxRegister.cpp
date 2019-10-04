@@ -163,7 +163,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         auto       dfab =   mf.array(mfi);
         auto const sfab = mflx.const_array(mfi);
         auto const afab = area.const_array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
         {
             dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
         });
@@ -193,7 +193,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                 const Box& bx = mfi.validbox();
                 auto const sfab =          fs.const_array(mfi);
                 auto       dfab = bndry[face].array(mfi);
-                AMREX_HOST_DEVICE_FOR_4D (bx, numcomp, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (bx, numcomp, i, j, k, n,
                 {
                     dfab(i,j,k,n+destcomp) += sfab(i,j,k,n);
                 });
@@ -250,7 +250,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
         auto       dfab =   mf.array(mfi);
         auto const sfab = mflx.const_array(mfi);
         auto const afab = area.const_array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
         {
             dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
         });

@@ -16,6 +16,7 @@
 //              ./main.cpp (for execution of the tutorial)
 // 
 
+#include <AMReX_MLNodeLap_K.H>
 #include "MCNodalLinOp.H"
 
 using namespace amrex;
@@ -285,18 +286,20 @@ void MCNodalLinOp::buildMasks ()
 					if (!isects.empty()) has_cf[mfi] = 1;
 				}
 
-				amrex_mlndlap_fillbc_cc_i(BL_TO_FORTRAN_ANYD(fab),
-							  BL_TO_FORTRAN_BOX(ccdom),
-							  m_lobc.data(), m_hibc.data());
+                                mlndlap_fillbc_cc<int>(mfi.validbox(), fab.array(), ccdom,
+                                                       m_lobc[0], m_hibc[0]);
 			}
 		}
 
 		for (MFIter mfi(nd_mask,true); mfi.isValid(); ++mfi)
 		{
 			const Box& bx = mfi.tilebox();
-			amrex_mlndlap_set_nodal_mask(BL_TO_FORTRAN_BOX(bx),
-						     BL_TO_FORTRAN_ANYD(nd_mask[mfi]),
-						     BL_TO_FORTRAN_ANYD(cc_mask[mfi]));
+                        Array4<int> const& nmsk = nd_mask.array(mfi);
+                        Array4<int const> const& cmsk = cc_mask.const_array(mfi);
+                        amrex::ParallelFor(bx, [=] (int i, int j, int k) noexcept
+                        {
+                            mlndlap_set_nodal_mask(i,j,k,nmsk,cmsk);
+                        });
 		}
 	}
 
@@ -319,13 +322,9 @@ void MCNodalLinOp::buildMasks ()
 		for (MFIter mfi(m_bottom_dot_mask,true); mfi.isValid(); ++mfi)
 		{
 			const Box& bx = mfi.tilebox();
-			auto& dfab = m_bottom_dot_mask[mfi];
-			const auto& sfab = omask[mfi];
-			amrex_mlndlap_set_dot_mask(BL_TO_FORTRAN_BOX(bx),
-						   BL_TO_FORTRAN_ANYD(dfab),
-						   BL_TO_FORTRAN_ANYD(sfab),
-						   BL_TO_FORTRAN_BOX(nddomain),
-						   m_lobc.data(), m_hibc.data());
+                        Array4<Real> const& dfab = m_bottom_dot_mask.array(mfi);
+                        Array4<int const> const& sfab = omask.const_array(mfi);
+                        mlndlap_set_dot_mask(bx, dfab, sfab, nddomain, m_lobc[0], m_hibc[0]);
 		}
 	}
 }
@@ -343,10 +342,13 @@ void MCNodalLinOp::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 #endif
 	for (MFIter mfi(resmsk,true); mfi.isValid(); ++mfi)
 	{
-		const Box& bx = mfi.tilebox();
-		amrex_mlndlap_fixup_res_mask(BL_TO_FORTRAN_BOX(bx),
-					     BL_TO_FORTRAN_ANYD(resmsk[mfi]),
-					     BL_TO_FORTRAN_ANYD(cfmask[mfi]));
+            const Box& bx = mfi.tilebox();
+            Array4<int> const& rmsk = resmsk.array(mfi);
+            Array4<int const> const& fmsk = cfmask.const_array(mfi);
+            amrex::ParallelFor(bx, [=] (int i, int j, int k) noexcept
+            {
+                if (fmsk(i,j,k) == crse_fine_node) rmsk(i,j,k) = 1;
+            });
 	}
 
 }
