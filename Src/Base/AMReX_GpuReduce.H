@@ -20,6 +20,7 @@ struct warpReduce
     T operator() (T x) const noexcept
     {
 // HIP FIX HERE - __shfl_down_sync -> type of HIP intrinsics don't match. 
+//              - need to deal with Real2 type in AMReX_Reduce.H
 #ifdef AMREX_USE_CUDA
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             AMREX_HIP_OR_CUDA(T y = __shfl_down(x, offset);,
