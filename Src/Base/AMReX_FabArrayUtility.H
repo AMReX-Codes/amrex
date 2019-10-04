@@ -675,7 +675,7 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
             });
@@ -707,7 +707,7 @@ Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, in
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
             });
@@ -739,7 +739,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
             });
@@ -771,7 +771,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
             });
@@ -803,7 +803,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
             });
@@ -834,7 +834,7 @@ Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
             });
@@ -883,7 +883,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
         const Box& bx = mfi.tilebox();
         auto fab = fa.array(mfi);
         auto const ifab = msk.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             if (!ifab(i,j,k)) fab(i,j,k,n) = 0;
         });

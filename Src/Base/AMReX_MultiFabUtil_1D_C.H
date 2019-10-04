@@ -230,7 +230,7 @@ void amrex_avgdown_with_vol (Box const& bx, Array4<Real> const& crse,
 {
     const auto clo = lbound(bx);
     const auto chi = ubound(bx);
-    
+
     const int facx = ratio[0];
 
     for (int n = 0; n < ncomp; ++n) {
@@ -276,9 +276,11 @@ void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,
     const auto hi = ubound(bx);
     const Real dxi = dxinv[0];
 
-    AMREX_PRAGMA_SIMD
-    for (int i = lo.x; i <= hi.x; ++i) {
-        divu(i,0,0) = dxi * (u(i+1,0,0)-u(i,0,0));
+    for     (int n = 0; n < divu.ncomp; ++n) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            divu(i,0,0,n) = dxi * (u(i+1,0,0,n)-u(i,0,0,n));
+        }
     }
 }
 

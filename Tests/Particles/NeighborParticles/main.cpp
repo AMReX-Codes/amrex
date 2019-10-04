@@ -38,10 +38,10 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
-    amrex::Print() << "Running neighbor particles test \n";
+    amrex::PrintToFile("neighbor_test") << "Running neighbor particles test \n";
     testNeighborParticles();
 
-    amrex::Print() << "Running neighbor list test \n";
+    amrex::PrintToFile("neighbor_test") << "Running neighbor list test \n";
     testNeighborList();
 
     amrex::Finalize();
@@ -90,68 +90,68 @@ void testNeighborParticles ()
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "About to initialize particles \n";
+        amrex::PrintToFile("neighbor_test") << "About to initialize particles \n";
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Check neighbors after init ... \n";
+        amrex::PrintToFile("neighbor_test") << "Check neighbors after init ... \n";
     pc.checkNeighborParticles();
 
     pc.fillNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Check neighbors after fill ... \n";
+        amrex::PrintToFile("neighbor_test") << "Check neighbors after fill ... \n";
     pc.checkNeighborParticles();
 
     pc.updateNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Check neighbors after update ... \n";
+        amrex::PrintToFile("neighbor_test") << "Check neighbors after update ... \n";
     pc.checkNeighborParticles();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Now resetting the particle test_id values  \n";
+        amrex::PrintToFile("neighbor_test") << "Now resetting the particle test_id values  \n";
     pc.reset_test_id();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Check neighbors after reset ... \n";
+        amrex::PrintToFile("neighbor_test") << "Check neighbors after reset ... \n";
     pc.checkNeighborParticles();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Now updateNeighbors again ...  \n";
+        amrex::PrintToFile("neighbor_test") << "Now updateNeighbors again ...  \n";
     pc.updateNeighbors();
 
     if (ParallelDescriptor::MyProc() == dm[0])
-        amrex::Print() << "Check neighbors after update ... \n";
+        amrex::PrintToFile("neighbor_test") << "Check neighbors after update ... \n";
     pc.checkNeighborParticles();
 
     ParallelDescriptor::Barrier();
 
-    amrex::Print() << "Testing neighbor particles after move \n";
+    amrex::PrintToFile("neighbor_test") << "Testing neighbor particles after move \n";
 
     // so we can call minAndMaxDistance
     pc.buildNeighborList(CheckPair());
 
-    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
 
-    amrex::Print() << "Moving particles and updating neighbors \n";
+    amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
 
-    amrex::Print() << "Moving particles and updating neighbors again \n";
+    amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n"; 
 
-    amrex::Print() << "Moving particles and updating neighbors yet again \n";
+    amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors yet again \n";
     pc.moveParticles(0.1);
     pc.updateNeighbors();
 
-    amrex::Print() << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";     
+    amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";     
 }
 
 void testNeighborList ()
@@ -187,7 +187,7 @@ void testNeighborList ()
     int npc = params.num_ppc;
     IntVect nppc = IntVect(AMREX_D_DECL(npc, npc, npc));
 
-    amrex::Print() << "About to initialize particles" << std::endl;
+    amrex::PrintToFile("neighbor_test") << "About to initialize particles" << std::endl;
 
     pc.InitParticles(nppc, 1.0, 0.0);
     pc.fillNeighbors();
