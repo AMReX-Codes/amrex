@@ -18,14 +18,13 @@ namespace amrex {
       for   (int j = lo.y; j <= hi.y; ++j) {
 	jc =  ( (rr.y == 0) ? 0 : floor(double(j)/rr.y) );
 	for (int i = lo.x; i <= hi.x; i++) {
- 	    if (mask(i,j,k) > 0) {
-	      if (mask(i,j,k) != 2) {
-		ic = floor(double(i)/rr.x);
+	    // if mask == 0, cell covered, do nothing
+	    if (mask(i,j,k) == 1) { 
+	        ic = floor(double(i)/rr.x);
 		bcval(i,j,k,n) = crsebcval(ic,jc,kc,n);
-	      }
-	      // else mask == 2
-	      // on physical domain and bcval already fully filled by setBndryValues()
 	    }
+	    // else mask == 2
+	    // on physical domain and bcval already fully filled by setBndryValues()
 	}
       }
     }
