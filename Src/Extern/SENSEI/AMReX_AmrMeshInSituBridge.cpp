@@ -8,7 +8,7 @@
 #ifdef BL_USE_SENSEI_INSITU
 #include <chrono>
 #include <AnalysisAdaptor.h>
-#include <timer/Timer.h>
+#include <Profiler.h>
 #include <AMReX_AmrMeshDataAdaptor.H>
 #endif
 
@@ -26,7 +26,7 @@ AmrMeshInSituBridge::update(unsigned int step, double time,
         amrex::Print() << "SENSEI Begin update..." << std::endl;
         auto t0 = std::chrono::high_resolution_clock::now();
 
-        timer::MarkEvent event("AmrMeshInSituBridge::update");
+        sensei::TimeEvent<64> event("AmrMeshInSituBridge::update");
 
         amrex::AmrMeshDataAdaptor *data_adaptor = amrex::AmrMeshDataAdaptor::New();
         if (comm != MPI_COMM_NULL)
