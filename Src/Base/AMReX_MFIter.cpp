@@ -497,10 +497,6 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (use_gpu) {
-            if (Gpu::getNumCallbacks() > 0 && streams > 0) {
-                streams = 2;
-            }
-
             Gpu::Device::setStreamIndex((streams > 0) ? currentIndex%streams : -1);
             AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
