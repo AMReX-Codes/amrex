@@ -11,11 +11,11 @@ fn = sys.argv[1]
 use_MR = re.search( 'nci_correctorMR', fn ) != None
 
 if use_MR:
-    energy_corrector_off = 1.e26
-    energy_threshold = 3.e24
+    energy_corrector_off = 5.e32
+    energy_threshold = 1.e28
 else:
-    energy_corrector_off = 1.e28
-    energy_threshold = 5.e24
+    energy_corrector_off = 1.5e26
+    energy_threshold = 1.e24
 
 # Check EB energy after 1000 timesteps
 filename = sys.argv[1]
