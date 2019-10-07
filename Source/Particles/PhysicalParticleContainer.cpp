@@ -156,6 +156,16 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
     std::normal_distribution<double> disty(y_m, y_rms);
     std::normal_distribution<double> distz(z_m, z_rms);
 
+    // Allocate temporary vectors on the CPU
+    Gpu::HostVector<ParticleReal> particle_x;
+    Gpu::HostVector<ParticleReal> particle_y;
+    Gpu::HostVector<ParticleReal> particle_z;
+    Gpu::HostVector<ParticleReal> particle_ux;
+    Gpu::HostVector<ParticleReal> particle_uy;
+    Gpu::HostVector<ParticleReal> particle_uz;
+    Gpu::HostVector<ParticleReal> particle_w;
+    int np = 0;
+
     if (ParallelDescriptor::IOProcessor()) {
         // If do_symmetrize, create 4x fewer particles, and
         // Replicate each particle 4 times (x,y) (-x,y) (x,-y) (-x,-y)
@@ -181,44 +191,61 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
                 u.z *= PhysConst::c;
                 if (do_symmetrize){
                     // Add four particles to the beam:
-                    CheckAndAddParticle( x, y, z, { u.x, u.y, u.z}, weight/4. );
-                    CheckAndAddParticle( x,-y, z, { u.x,-u.y, u.z}, weight/4. );
-                    CheckAndAddParticle(-x, y, z, {-u.x, u.y, u.z}, weight/4. );
-                    CheckAndAddParticle(-x,-y, z, {-u.x,-u.y, u.z}, weight/4. );
+                    CheckAndAddParticle(x, y, z, { u.x, u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
+                    CheckAndAddParticle(x, -y, z, { u.x, -u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
+                    CheckAndAddParticle(-x, y, z, { -u.x, u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
+                    CheckAndAddParticle(-x, -y, z, { -u.x, -u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
                 } else {
-                    CheckAndAddParticle(x, y, z, {u.x,u.y,u.z}, weight);
+                    CheckAndAddParticle(x, y, z, { u.x, u.y, u.z}, weight,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
                 }
             }
         }
     }
-    Redistribute();
+    // Add the temporary CPU vectors to the particle structure
+    np = particle_z.size();
+    AddNParticles(0,np,
+                  particle_x.dataPtr(),  particle_y.dataPtr(),  particle_z.dataPtr(),
+                  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
+                  1, particle_w.dataPtr(),1);
 }
 
 void
 PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
                                                std::array<Real, 3> u,
-                                               Real weight)
+                                               Real weight,
+                                               Gpu::HostVector<ParticleReal>& particle_x,
+                                               Gpu::HostVector<ParticleReal>& particle_y,
+                                               Gpu::HostVector<ParticleReal>& particle_z,
+                                               Gpu::HostVector<ParticleReal>& particle_ux,
+                                               Gpu::HostVector<ParticleReal>& particle_uy,
+                                               Gpu::HostVector<ParticleReal>& particle_uz,
+                                               Gpu::HostVector<ParticleReal>& particle_w)
 {
-    std::array<ParticleReal,PIdx::nattribs> attribs;
-    attribs.fill(0.0);
-
-    // update attribs with input arguments
     if (WarpX::gamma_boost > 1.) {
         MapParticletoBoostedFrame(x, y, z, u);
     }
-    attribs[PIdx::ux] = u[0];
-    attribs[PIdx::uy] = u[1];
-    attribs[PIdx::uz] = u[2];
-    attribs[PIdx::w ] = weight;
-
-    if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) )
-    {
-        // need to create old values
-        auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-    }
-
-    // add particle
-    AddOneParticle(0, 0, 0, x, y, z, attribs);
+    particle_x.push_back(x);
+    particle_y.push_back(y);
+    particle_z.push_back(z);
+    particle_ux.push_back(u[0]);
+    particle_uy.push_back(u[1]);
+    particle_uz.push_back(u[2]);
+    particle_w.push_back(weight);
 }
 
 void
