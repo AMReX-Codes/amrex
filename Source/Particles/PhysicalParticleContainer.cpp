@@ -157,6 +157,14 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
     std::normal_distribution<double> distz(z_m, z_rms);
 
     if (ParallelDescriptor::IOProcessor()) {
+	// Allocate temporary vectors on the CPU
+        Gpu::HostVector<ParticleReal> particle_x;
+        Gpu::HostVector<ParticleReal> particle_y;
+        Gpu::HostVector<ParticleReal> particle_z;
+        Gpu::HostVector<ParticleReal> particle_ux;
+        Gpu::HostVector<ParticleReal> particle_uy;
+        Gpu::HostVector<ParticleReal> particle_uz;
+        Gpu::HostVector<ParticleReal> particle_w;
         // If do_symmetrize, create 4x fewer particles, and
         // Replicate each particle 4 times (x,y) (-x,y) (x,-y) (-x,-y)
         if (do_symmetrize){
