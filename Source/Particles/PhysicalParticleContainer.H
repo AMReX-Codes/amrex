@@ -147,7 +147,7 @@ public:
                              amrex::Gpu::HostVector<amrex::ParticleReal>& particle_ux,
                              amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uy,
                              amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uz,
-			     amrex::Gpu::HostVector<amrex::ParticleReal>& particle_w);
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_w);
 
     virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
                                   const amrex::Real z_new, const amrex::Real t_boost,
