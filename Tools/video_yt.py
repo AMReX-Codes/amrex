@@ -1,3 +1,16 @@
+'''
+This script loops over 3D plotfiles plt*****, generates a 3D rendering
+of the data with fields and particles, and saves one image per plotfile to
+plt_****_img.png. It was written for a laser-wakefield acceleration
+simulation, and contains a lot of custom values (for transparency,
+color intensity etc.), so feel free to modify it to meet your needs.
+
+Execute the file with
+> python video_yt.py
+to generate the images. It can be quite slow for even moderately large
+plotfiles.
+'''
+
 # Import statements
 import sys, os
 import yt, glob
@@ -93,7 +106,7 @@ def img_onestep(filename):
     sc.add_source(point1)
     sc.add_source(box_patch)
 # Save file
-    sc.save(filename + '_quarter.png', sigma_clip=1.)
+    sc.save(filename + '_img.png', sigma_clip=1.)
     return 0
 
 # Get plt folders in current folder and loop over them.

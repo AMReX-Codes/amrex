@@ -16,7 +16,7 @@ void warpx_push_bx_yee(int i, int j, int k,
                  + dtsdz * (Ey(i,j  ,k+1) - Ey(i,j,k));
 #elif (defined WARPX_DIM_XZ)
     Bx(i,j,0) += + dtsdz * (Ey(i,j+1,0) - Ey(i,j,0));
-#if (defined WARPX_DIM_RZ)
+#elif (defined WARPX_DIM_RZ)
     if (i != 0 || rmin != 0.) {
         Bx(i,j,0,0) += + dtsdz * (Ey(i,j+1,0,0) - Ey(i,j,0,0));
     } else {
@@ -29,9 +29,9 @@ void warpx_push_bx_yee(int i, int j, int k,
                 // (due to the 1/r terms). The following expressions regularize
                 // these divergences by assuming, on axis :
                 // Ez/r = 0/r + dEz/dr
-                Bx(i,j,0,2*imode-1) = Bx(i,j,0,2*imode-1) - imode*dtsdx*Ez(i+1,j,0,2*imode) &
+                Bx(i,j,0,2*imode-1) = Bx(i,j,0,2*imode-1) - imode*dtsdx*Ez(i+1,j,0,2*imode)
                            + dtsdz*(Ey(i,j+1,0,2*imode-1) - Ey(i,j,0,2*imode-1));
-                Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) + imode*dtsdx*Ez(i+1,j,0,2*imode-1) &
+                Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) + imode*dtsdx*Ez(i+1,j,0,2*imode-1)
                            + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
             } else {
                 Bx(i,j,0,2*imode-1) = 0.;
@@ -40,13 +40,12 @@ void warpx_push_bx_yee(int i, int j, int k,
         } else {
             // Br(i,j,m) = Br(i,j,m) + I*m*dt*Ez(i,j,m)/r + dtsdz*(Et(i,j+1,m) - Et(i,j,m))
             const amrex::Real r = rmin*dxinv + i;
-            Bx(i,j,0,2*imode-1) = Bx(i,j,0,2*imode-1) - imode*dtsdx*Ez(i,j,0,2*imode)/r &
+            Bx(i,j,0,2*imode-1) = Bx(i,j,0,2*imode-1) - imode*dtsdx*Ez(i,j,0,2*imode)/r
                        + dtsdz*(Ey(i,j+1,0,2*imode-1) - Ey(i,j,0,2*imode-1));
-            Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) + imode*dtsdx*Ez(i,j,0,2*imode-1)/r &
+            Bx(i,j,0,2*imode) = Bx(i,j,0,2*imode) + imode*dtsdx*Ez(i,j,0,2*imode-1)/r
                        + dtsdz*(Ey(i,j+1,0,2*imode) - Ey(i,j,0,2*imode));
         }
     }
-#endif
 #endif
 }
 

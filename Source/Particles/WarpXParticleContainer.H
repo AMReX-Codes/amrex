@@ -1,10 +1,12 @@
 #ifndef WARPX_WarpXParticleContainer_H_
 #define WARPX_WarpXParticleContainer_H_
 
-#include <memory>
+#include "WarpXDtType.H"
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
+
+#include <memory>
 
 enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 
@@ -66,12 +68,12 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Cuda::ManagedDeviceVector<amrex::Real>& x,
-                      amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
-                      amrex::Cuda::ManagedDeviceVector<amrex::Real>& z) const;
-    void SetPosition (const amrex::Cuda::ManagedDeviceVector<amrex::Real>& x,
-                      const amrex::Cuda::ManagedDeviceVector<amrex::Real>& y,
-                      const amrex::Cuda::ManagedDeviceVector<amrex::Real>& z);
+    void GetPosition (amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& x,
+                      amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& y,
+                      amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& z) const;
+    void SetPosition (const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& x,
+                      const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& y,
+                      const amrex::Cuda::ManagedDeviceVector<amrex::ParticleReal>& z);
 #endif
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();
@@ -102,7 +104,7 @@ class WarpXParticleContainer
 public:
     friend MultiParticleContainer;
 
-    // amrex::StructOfArrays with DiagIdx::nattribs amrex::Real components
+    // amrex::StructOfArrays with DiagIdx::nattribs amrex::ParticleReal components
     // and 0 int components for the particle data.
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
     // DiagnosticParticles is a vector, with one element per MR level.
@@ -138,7 +140,7 @@ public:
                          amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
                          const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
-                         amrex::Real t, amrex::Real dt) = 0;
+                         amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full) = 0;
 
     virtual void PostRestart () = 0;
 
@@ -230,17 +232,17 @@ public:
     amrex::Real maxParticleVelocity(bool local = false);
 
     void AddNParticles (int lev,
-                        int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
-                        const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
-                        int nattr, const amrex::Real* attr, int uniqueparticles, int id=-1);
+                        int n, const amrex::ParticleReal* x, const amrex::ParticleReal* y, const amrex::ParticleReal* z,
+                        const amrex::ParticleReal* vx, const amrex::ParticleReal* vy, const amrex::ParticleReal* vz,
+                        int nattr, const amrex::ParticleReal* attr, int uniqueparticles, int id=-1);
 
     void AddOneParticle (int lev, int grid, int tile,
-                         amrex::Real x, amrex::Real y, amrex::Real z,
-                         std::array<amrex::Real,PIdx::nattribs>& attribs);
+                         amrex::ParticleReal x, amrex::ParticleReal y, amrex::ParticleReal z,
+                         std::array<amrex::ParticleReal,PIdx::nattribs>& attribs);
 
     void AddOneParticle (ParticleTileType& particle_tile,
-                         amrex::Real x, amrex::Real y, amrex::Real z,
-                         std::array<amrex::Real,PIdx::nattribs>& attribs);
+                         amrex::ParticleReal x, amrex::ParticleReal y, amrex::ParticleReal z,
+                         std::array<amrex::ParticleReal,PIdx::nattribs>& attribs);
 
     virtual void ReadHeader (std::istream& is);
 
@@ -256,7 +258,7 @@ public:
 
     bool do_splitting = false;
 
-    // split along axes (0) or diagonals (1)
+    // split along diagonals (0) or axes (1)
     int split_type = 0;
 
     using amrex::ParticleContainer<0, 0, PIdx::nattribs>::AddRealComp;
@@ -324,7 +326,7 @@ protected:
     amrex::Vector<amrex::FArrayBox> local_jy;
     amrex::Vector<amrex::FArrayBox> local_jz;
 
-    using DataContainer = amrex::Gpu::ManagedDeviceVector<amrex::Real>;
+    using DataContainer = amrex::Gpu::ManagedDeviceVector<amrex::ParticleReal>;
     using PairIndex = std::pair<int, int>;
 
     amrex::Vector<DataContainer> m_xp, m_yp, m_zp;

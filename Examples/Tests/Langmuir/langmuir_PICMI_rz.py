@@ -1,6 +1,8 @@
 import numpy as np
 from pywarpx import picmi
 
+constants = picmi.constants
+
 nr = 64
 nz = 64
 
@@ -11,7 +13,7 @@ zmax = +20.e-6
 
 uniform_plasma = picmi.UniformDistribution(density = 1.e25,
                                            upper_bound = [None, None, 0.],
-                                           directed_velocity = [0., 0., 0.1*picmi.c])
+                                           directed_velocity = [0., 0., 0.1*constants.c])
 
 electrons = picmi.Species(particle_type='electron', name='electrons', initial_distribution=uniform_plasma)
 
