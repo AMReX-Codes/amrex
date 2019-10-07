@@ -37,7 +37,7 @@ warpx.boosted_frame_diag_fields= Ex Ey Ez By rho
 particles.nspecies = 3
 particles.species_names = electrons ions beam
 particles.use_fdtd_nci_corr = 1
-#particles.rigid_injected_species = beam
+particles.rigid_injected_species = beam
 
 electrons.charge = -q_e
 electrons.mass = m_e
