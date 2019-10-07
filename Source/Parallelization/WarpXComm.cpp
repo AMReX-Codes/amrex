@@ -3,9 +3,11 @@
 #include <WarpX_f.H>
 #include <WarpXSumGuardCells.H>
 #include <Parallelization/InterpolateCurrentFineToCoarse.H>
+#include <Parallelization/InterpolateDensityFineToCoarse.H>
 
 #include <algorithm>
 #include <cstdlib>
+
 
 using namespace amrex;
 
@@ -354,7 +356,7 @@ WarpX::interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 >
                                         std::array< amrex::MultiFab       *, 3 > const & coarse,
                                         int const refinement_ratio)
 {
-    BL_PROFILE("InterpolateCurrentFineToCoarse()");
+    BL_PROFILE("interpolateCurrentFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
     const IntVect& ng = (fine[0]->nGrowVect() + 1) / refinement_ratio; // add equivalent no. of guards to coarse patch
 
@@ -386,6 +388,8 @@ WarpX::interpolateCurrentFineToCoarse ( std::array< amrex::MultiFab const *, 3 >
 void
 WarpX::SyncRho ()
 {
+    BL_PROFILE("SyncRho()");
+
     if (!rho_fp[0]) return;
     const int ncomp = rho_fp[0]->nComp();
 
@@ -395,7 +399,7 @@ WarpX::SyncRho ()
     {
         rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
+        interpolateDensityFineToCoarse(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 
     // For each level
@@ -408,29 +412,26 @@ WarpX::SyncRho ()
 }
 
 void
-WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int refinement_ratio)
+WarpX::interpolateDensityFineToCoarse (const MultiFab& fine, MultiFab& coarse, int const refinement_ratio)
 {
+    BL_PROFILE("interpolateDensityFineToCoarse()");
     BL_ASSERT(refinement_ratio == 2);
-    const IntVect& ng = (fine.nGrowVect()+1)/refinement_ratio;
+    const IntVect& ng = (fine.nGrowVect() + 1) / refinement_ratio;  // add equivalent no. of guards to coarse patch
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox ffab;
-        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+        // OMP in-box decomposition of coarse into tilebox
+        for (MFIter mfi(coarse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.growntilebox(ng);
-            Box fbx = amrex::grow(amrex::refine(bx,refinement_ratio),1);
-            ffab.resize(fbx, nc);
-            fbx &= fine[mfi].box();
-            ffab.setVal(0.0);
-            ffab.copy(fine[mfi], fbx, 0, fbx, 0, nc);
-            WRPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
-                          BL_TO_FORTRAN_ANYD(crse[mfi]),
-                          BL_TO_FORTRAN_ANYD(ffab),
-                          &nc);
+            const Box& bx = mfi.growntilebox(ng); // only grow to outer directions of tileboxes for filling guards
+
+            amrex::ParallelFor(
+                bx,
+                InterpolateDensityFineToCoarse(fine.const_array(mfi), coarse.array(mfi), refinement_ratio, nc)
+            );
         }
     }
 }
@@ -562,7 +563,7 @@ WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
     if (rho_fp[lev]) {
         rho_cp[lev]->setVal(0.0);
         const IntVect& refinement_ratio = refRatio(lev-1);
-        SyncRho(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
+        interpolateDensityFineToCoarse(*rho_fp[lev], *rho_cp[lev], refinement_ratio[0]);
     }
 }
 
