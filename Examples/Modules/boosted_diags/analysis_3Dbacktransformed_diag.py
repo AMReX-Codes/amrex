@@ -9,11 +9,8 @@ an x-z slice at y=y_center. The field-data, Ez, along z, at (x_center,y_center,:
 between the full back-transformed diagnostic and the reduced diagnostic (i.e., x-z slice) .
 '''
 
-import sys, os, yt, glob
 import numpy as np
-import scipy.constants as scc
 import read_raw_data
-yt.funcs.mylog.setLevel(0)
 
 # Read data from back-transformed diagnostics of entire domain
 snapshot = './lab_frame_data/snapshots/snapshot00000'
@@ -30,8 +27,8 @@ allrd, info = read_raw_data.read_lab_snapshot(snapshot_slice, header_slice)
 Fs = allrd['Ez']
 Fs_1D = np.squeeze(Fs[Fs.shape[0]//2,Fs.shape[1]//2,:])
 
-error = np.max(np.abs(Fs_1D - F_1D))
+error = np.max(np.abs(Fs_1D - F_1D)) / np.max(np.abs(F_1D))
 
 # Print error and assert small error
-print("absolute error: " + str(error))
+print("relative error: " + str(error))
 assert( error < 1E-15 )
