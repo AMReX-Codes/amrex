@@ -191,28 +191,27 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
                 u.z *= PhysConst::c;
                 if (do_symmetrize){
                     // Add four particles to the beam:
-		    CheckAndAddParticle(x, y, z, { u.x, u.y, u.z}, weight/4.,
-				        particle_x,  particle_y,  particle_z,
-					particle_ux, particle_uy, particle_uz,
-					particle_w);
-		    CheckAndAddParticle(x, -y, z, { u.x, -u.y, u.z}, weight/4.,
-				        particle_x,  particle_y,  particle_z,
-					particle_ux, particle_uy, particle_uz,
-					particle_w);
-		    CheckAndAddParticle(-x, y, z, { -u.x, u.y, u.z}, weight/4.,
-				        particle_x,  particle_y,  particle_z,
-					particle_ux, particle_uy, particle_uz,
-					particle_w);
-		    CheckAndAddParticle(-x, -y, z, { -u.x, -u.y, u.z}, weight/4.,
-				        particle_x,  particle_y,  particle_z,
-					particle_ux, particle_uy, particle_uz,
-					particle_w);
-
+                    CheckAndAddParticle(x, y, z, { u.x, u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
+                    CheckAndAddParticle(x, -y, z, { u.x, -u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
+                    CheckAndAddParticle(-x, y, z, { -u.x, u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
+                    CheckAndAddParticle(-x, -y, z, { -u.x, -u.y, u.z}, weight/4.,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
                 } else {
-		    CheckAndAddParticle(x, y, z, { u.x, u.y, u.z}, weight,
-				        particle_x,  particle_y,  particle_z,
-					particle_ux, particle_uy, particle_uz,
-					particle_w);
+                    CheckAndAddParticle(x, y, z, { u.x, u.y, u.z}, weight,
+                                        particle_x,  particle_y,  particle_z,
+                                        particle_ux, particle_uy, particle_uz,
+                                        particle_w);
                 }
             }
         }
@@ -220,9 +219,9 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
     // Add the temporary CPU vectors to the particle structure
     np = particle_z.size();
     AddNParticles(0,np,
-		  particle_x.dataPtr(),  particle_y.dataPtr(),  particle_z.dataPtr(),
-		  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
-		  1, particle_w.dataPtr(),1);
+                  particle_x.dataPtr(),  particle_y.dataPtr(),  particle_z.dataPtr(),
+                  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
+                  1, particle_w.dataPtr(),1);
 }
 
 void
