@@ -29,32 +29,37 @@ reference_length = 1.0e-6
 
 #Conversion factors
 norm_to_si = {
-"E" : (m_e * 2.0 * np.pi * c /q_0/reference_length)/np.sqrt(4.0*np.pi*epsi_0),
-"B" : (m_e * 2.0 * np.pi * c /q_0/reference_length)/np.sqrt(4.0*np.pi/mu_0)
+"E" : (m_e * 2.0 * np.pi * c * c /q_0/reference_length),
+"B" : (m_e * 2.0 * np.pi * c /q_0/reference_length)
 }
 si_to_norm = {
-"x" : 1.0/(2.0*np.pi/reference_length),
-"t" : 1.0/(2.0*np.pi*c/reference_length),
+"x" : 1.0/(reference_length/(2.0*np.pi)),
+"t" : 1.0/(reference_length/(2.0*np.pi*c)),
 "p" : 1.0/m_e/c
 }
 #________________________________________
 
 
 #Initial conditions
-EVAL = np.array([4321, -1543, 3151])
-BVAL = np.array([-2971, 3967, -4332])
+EVAL = np.array([0, 0, 0])
+BVAL = np.array([0, 0, 200])
 EVAL_SI =  norm_to_si["E"] * EVAL
 BVAL_SI = norm_to_si["B"] * BVAL
 E_NORM = lambda pos, t : EVAL
 B_NORM = lambda pos, t : BVAL
 E_SI = lambda pos, t : EVAL_SI
 B_SI = lambda pos, t : BVAL_SI
-init_mom = np.array([34, -12, 81])
+init_mom = np.array([200, 0, 0])
 init_pos= np.array([0.0, 0.0, 0.0])
 #________________________________________
 
 #Input filename
 inputname = "inputs"
+#________________________________________
+
+#Tolerance
+rel_tol = 1e-2
+
 #________________________________________
 
 # This function reads the WarpX plotfile given as the first command-line
@@ -64,40 +69,43 @@ def check():
     data_set_end = yt.load(filename)
 
     sim_time = data_set_end.current_time.to_value()
-    print(sim_time)
 
     #simulation results
     all_data =  data_set_end.all_data()
     spec_names = ("ele", "pos")
-    res_pos = [np.array([
+    res_pos = np.array([np.array([
             all_data[sp, 'particle_position_x'].v[0],
             all_data[sp, 'particle_position_y'].v[0],
             all_data[sp, 'particle_position_z'].v[0]])
-            for sp in spec_names]
-    res_mom = [np.array([
+            for sp in spec_names])
+    res_mom = np.array([np.array([
             all_data[sp, 'particle_momentum_x'].v[0],
             all_data[sp, 'particle_momentum_y'].v[0],
             all_data[sp, 'particle_momentum_z'].v[0]])
-            for sp in spec_names]
+            for sp in spec_names])
 
-    sol_ele = solver.solve(
+    sol_elec = solver.solve(
         init_pos*si_to_norm["x"],
         init_mom,
         0.0,
         sim_time*si_to_norm["t"],
-        20000, E_NORM, B_NORM, -1, reference_length)
+        100, E_NORM, B_NORM, -1, reference_length)
 
-    sol_pos = solver.solve(
+    sol_posi = solver.solve(
         init_pos*si_to_norm["x"],
         init_mom,
         0.0,
         sim_time*si_to_norm["t"],
-        20000, E_NORM, B_NORM, 1, reference_length)
+        100, E_NORM, B_NORM, 1, reference_length)
 
-    print(sol_ele[-1,0], sol_ele[-1,1], sol_ele[-1,2], sol_pos[-1,0], sol_pos[-1,1], sol_pos[-1,2])
-    print(sol_ele[-1,3], sol_ele[-1,4], sol_ele[-1,5], sol_pos[-1,3], sol_pos[-1,4], sol_pos[-1,5])
-    print(np.array(res_pos)*si_to_norm["x"])
-    print(np.array(res_mom)*si_to_norm["p"])
+    sol_pos = np.concatenate((sol_elec[-1,0:3], sol_posi[-1,0:3]))
+    sol_mom = np.concatenate((sol_elec[-1,3:6], sol_posi[-1,3:6]))
+
+    pos_tol = np.linalg.norm(sol_elec[-1,0:3] - init_pos) * rel_tol
+    mom_tol = np.linalg.norm(init_mom) * rel_tol
+
+    assert (np.all( np.abs( sol_pos - res_pos.flatten()*si_to_norm["x"])  <  pos_tol))
+    assert (np.all( np.abs( sol_mom - res_mom.flatten()*si_to_norm["p"])  <  mom_tol))
 
 # This function generates the input file to test the radiation reaction pusher
 def generate():
@@ -113,7 +121,6 @@ def generate():
         f.write("amr.max_level = 0\n")
         f.write("amr.blocking_factor = 8\n")
         f.write("amr.max_grid_size = 8\n")
-        f.write("amr.plot_int = 1\n")
         f.write("geometry.coord_sys   = 0\n")
         f.write("geometry.is_periodic = 1 1 1\n")
         f.write("geometry.prob_lo = -1e-6 -1e-6 -1e-6\n")
@@ -124,9 +131,11 @@ def generate():
         f.write("warpx.cfl = 1.0\n")
 
         f.write("\nparticles.nspecies = 2\n")
-        f.write("particles.species_names = ele pos")
+        f.write("particles.species_names = ele pos\n")
 
-        f.write("\namr.plot_int = 200\n\n")
+        f.write("\namr.plot_int = 100\n\n")
+
+        f.write("warpx.plot_raw_fields = 0\n\n")
 
         for name in ("ele", "pos"):
             f.write("{}.plot_species = 1\n".format(name))

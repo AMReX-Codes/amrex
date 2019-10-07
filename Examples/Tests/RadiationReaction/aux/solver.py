@@ -25,12 +25,12 @@ def RLL (yy, t, E, B, charge, ll):
 
     f_l = charge*(EE + np.cross(v, BB))
 
-    coeff = - (4./3.)*np.pi * classical_electron_radius/ll
+    coeff =  (4./3.)*np.pi * classical_electron_radius/ll
 
     vdotE = np.dot(v, EE)
-    t1 = np.cross(f_l, BB) - vdotE*EE
-    t2 = gamma2*(np.dot(f_l, f_l) - vdotE*vdotE)*v
-    f_rr = coeff*(t1 + t2)
+    t1 = np.cross(f_l/charge, BB) + vdotE*EE
+    t2 = gamma2*(np.dot(f_l/charge, f_l/charge) - vdotE*vdotE)*v
+    f_rr = coeff*(t1 - t2)
 
     yydot_pos = v
     yydot_mom = f_l + f_rr
