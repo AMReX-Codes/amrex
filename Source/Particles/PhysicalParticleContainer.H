@@ -136,7 +136,15 @@ public:
                          amrex::Real q_tot, long npart, int do_symmetrize);
 
     void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
-                             std::array<amrex::Real, 3> u, amrex::Real weight);
+                             std::array<amrex::Real, 3> u,
+                             amrex::Real weight,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_x,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_y,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_z,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_ux,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uy,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_uz,
+                             amrex::Gpu::HostVector<amrex::ParticleReal>& particle_w);
 
     virtual void GetParticleSlice(const int direction, const amrex::Real z_old,
                                   const amrex::Real z_new, const amrex::Real t_boost,

@@ -236,14 +236,6 @@ public:
                         const amrex::ParticleReal* vx, const amrex::ParticleReal* vy, const amrex::ParticleReal* vz,
                         int nattr, const amrex::ParticleReal* attr, int uniqueparticles, int id=-1);
 
-    void AddOneParticle (int lev, int grid, int tile,
-                         amrex::ParticleReal x, amrex::ParticleReal y, amrex::ParticleReal z,
-                         std::array<amrex::ParticleReal,PIdx::nattribs>& attribs);
-
-    void AddOneParticle (ParticleTileType& particle_tile,
-                         amrex::ParticleReal x, amrex::ParticleReal y, amrex::ParticleReal z,
-                         std::array<amrex::ParticleReal,PIdx::nattribs>& attribs);
-
     virtual void ReadHeader (std::istream& is);
 
     virtual void WriteHeader (std::ostream& os) const;
