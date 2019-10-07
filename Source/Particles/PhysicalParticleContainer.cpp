@@ -1704,11 +1704,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
                 int counter_for_ParticleCopy = 0; 
-
                 const Box& box = pti.validbox();
-
                 auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
-
                 const RealBox tile_real_box(box, dx, plo);
 
                 if ( !slice_box.intersects(tile_real_box) ) continue;
@@ -1719,26 +1716,31 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 Real *const AMREX_RESTRICT zpnew = m_zp[thread_num].dataPtr();
 
                 auto& attribs = pti.GetAttribs();
-
                 Real* const AMREX_RESTRICT wpnew = attribs[PIdx::w].dataPtr();
+                Real* const AMREX_RESTRICT uxpnew = attribs[PIdx::ux].dataPtr();
+                Real* const AMREX_RESTRICT uypnew = attribs[PIdx::uy].dataPtr();
+                Real* const AMREX_RESTRICT uzpnew = attribs[PIdx::uz].dataPtr();
 
-                Real* const AMREX_RESTRICT uxpnew = attribs[PIdx::ux   ].dataPtr();
-                Real* const AMREX_RESTRICT uypnew = attribs[PIdx::uy   ].dataPtr();
-                Real* const AMREX_RESTRICT uzpnew = attribs[PIdx::uz   ].dataPtr();
-
-                Real* const AMREX_RESTRICT  xpold = tmp_particle_data[lev][index][TmpIdx::xold].dataPtr();
-                Real* const AMREX_RESTRICT  ypold = tmp_particle_data[lev][index][TmpIdx::yold].dataPtr();
-                Real* const AMREX_RESTRICT  zpold = tmp_particle_data[lev][index][TmpIdx::zold].dataPtr();
-                Real* const AMREX_RESTRICT uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
-                Real* const AMREX_RESTRICT uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
-                Real* const AMREX_RESTRICT uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
+                Real* const AMREX_RESTRICT  
+                  xpold = tmp_particle_data[lev][index][TmpIdx::xold].dataPtr();
+                Real* const AMREX_RESTRICT
+                  ypold = tmp_particle_data[lev][index][TmpIdx::yold].dataPtr();
+                Real* const AMREX_RESTRICT 
+                  zpold = tmp_particle_data[lev][index][TmpIdx::zold].dataPtr();
+                Real* const AMREX_RESTRICT 
+                  uxpold = tmp_particle_data[lev][index][TmpIdx::uxold].dataPtr();
+                Real* const AMREX_RESTRICT 
+                  uypold = tmp_particle_data[lev][index][TmpIdx::uyold].dataPtr();
+                Real* const AMREX_RESTRICT 
+                  uzpold = tmp_particle_data[lev][index][TmpIdx::uzold].dataPtr();
 
                 const long np = pti.numParticles();
 
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
                 Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
 
-                // temporary arrays to store copy_flag and copy_index for particles that cross the z-plane
+                // temporary arrays to store copy_flag and copy_index 
+                // for particles that cross the z-slice
                 amrex::Gpu::ManagedDeviceVector<int> FlagForPartCopy(np);
                 amrex::Gpu::ManagedDeviceVector<int> IndexForPartCopy(np);
 
@@ -1758,6 +1760,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 });
 
                 // exclusive scan to obtain location indices using flag values
+                // These location indices are used to copy data from
+                // src to dst when the copy-flag is set to 1.
                 amrex::Gpu::exclusive_scan(Flag,Flag+np,IndexLocation); 
 
                 int total_partdiag_size = IndexLocation[np-1] + Flag[np-1];
@@ -1769,41 +1773,67 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 amrex::Real betaboost = WarpX::beta_boost;
                 amrex::Real Phys_c = PhysConst::c;
 
-                Real* const AMREX_RESTRICT diag_wp = diagnostic_particles[lev][index].GetRealData(DiagIdx::w).data();
-                Real* const AMREX_RESTRICT diag_xp = diagnostic_particles[lev][index].GetRealData(DiagIdx::x).data();
-                Real* const AMREX_RESTRICT diag_yp = diagnostic_particles[lev][index].GetRealData(DiagIdx::y).data();
-                Real* const AMREX_RESTRICT diag_zp = diagnostic_particles[lev][index].GetRealData(DiagIdx::z).data();
-                Real* const AMREX_RESTRICT diag_uxp = diagnostic_particles[lev][index].GetRealData(DiagIdx::ux).data();
-                Real* const AMREX_RESTRICT diag_uyp = diagnostic_particles[lev][index].GetRealData(DiagIdx::uy).data();
-                Real* const AMREX_RESTRICT diag_uzp = diagnostic_particles[lev][index].GetRealData(DiagIdx::uz).data();
+                Real* const AMREX_RESTRICT diag_wp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::w).data();
+                Real* const AMREX_RESTRICT diag_xp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::x).data();
+                Real* const AMREX_RESTRICT diag_yp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::y).data();
+                Real* const AMREX_RESTRICT diag_zp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::z).data();
+                Real* const AMREX_RESTRICT diag_uxp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::ux).data();
+                Real* const AMREX_RESTRICT diag_uyp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::uy).data();
+                Real* const AMREX_RESTRICT diag_uzp = 
+                diagnostic_particles[lev][index].GetRealData(DiagIdx::uz).data();
 
-                // Copy particle data to diagnostic particle array on the GPU using flag and index values
+                // Copy particle data to diagnostic particle array on the GPU
+                //  using flag and index values
                 amrex::ParallelFor(np,
                 [=] AMREX_GPU_DEVICE(int i)
                 {
                     if (Flag[i] == 1)
                     {
-                         const Real gamma_new_p = std::sqrt(1.0 + inv_c2*(uxpnew[i]*uxpnew[i] + uypnew[i]*uypnew[i] + uzpnew[i]*uzpnew[i]));
-                         const Real t_new_p = gammaboost*t_boost - uzfrm*zpnew[i]*inv_c2;
-                         const Real z_new_p = gammaboost*(zpnew[i] + betaboost*Phys_c*t_boost);
-                         const Real uz_new_p = gammaboost*uzpnew[i] - gamma_new_p*uzfrm;
-                        
-                         const Real gamma_old_p = std::sqrt(1.0 + inv_c2*(uxpold[i]*uxpold[i] + uypold[i]*uypold[i] + uzpold[i]*uzpold[i]));
-                         const Real t_old_p = gammaboost*(t_boost - dt) - uzfrm*zpold[i]*inv_c2;
-                         const Real z_old_p = gammaboost*(zpold[i] + betaboost*Phys_c*(t_boost-dt));
-                         const Real uz_old_p = gammaboost*uzpold[i] - gamma_old_p*uzfrm;
+                         const Real gamma_new_p = std::sqrt(1.0 + inv_c2*
+                                                  (uxpnew[i]*uxpnew[i]
+                                                 + uypnew[i]*uypnew[i]
+                                                 + uzpnew[i]*uzpnew[i]));
+                         const Real t_new_p = gammaboost*t_boost
+                                              - uzfrm*zpnew[i]*inv_c2;
+                         const Real z_new_p = gammaboost*(zpnew[i]
+                                              + betaboost*Phys_c*t_boost);
+                         const Real uz_new_p = gammaboost*uzpnew[i]
+                                              - gamma_new_p*uzfrm;
+                         const Real gamma_old_p = std::sqrt(1.0 + inv_c2*
+                                                  (uxpold[i]*uxpold[i]
+                                                 + uypold[i]*uypold[i]
+                                                 + uzpold[i]*uzpold[i]));
+                         const Real t_old_p = gammaboost*(t_boost - dt)
+                                              - uzfrm*zpold[i]*inv_c2;
+                         const Real z_old_p = gammaboost*(zpold[i]
+                                              + betaboost*Phys_c*(t_boost-dt));
+                         const Real uz_old_p = gammaboost*uzpold[i]
+                                              - gamma_old_p*uzfrm;
 
                          // interpolate in time to t_lab
-                         const Real weight_old = (t_new_p - t_lab) / (t_new_p - t_old_p);
-                         const Real weight_new = (t_lab - t_old_p) / (t_new_p - t_old_p);
+                         const Real weight_old = (t_new_p - t_lab)
+                                               / (t_new_p - t_old_p);
+                         const Real weight_new = (t_lab - t_old_p)
+                                               / (t_new_p - t_old_p);
 
-                         const Real xp = xpold[i]*weight_old + xpnew[i]*weight_new;
-                         const Real yp = ypold[i]*weight_old + ypnew[i]*weight_new;
-                         const Real zp = z_old_p  *weight_old + z_new_p  *weight_new;
-                         
-                         const Real uxp = uxpold[i]*weight_old + uxpnew[i]*weight_new;
-                         const Real uyp = uypold[i]*weight_old + uypnew[i]*weight_new;
-                         const Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
+                         const Real xp = xpold[i]*weight_old
+                                       + xpnew[i]*weight_new;
+                         const Real yp = ypold[i]*weight_old
+                                       + ypnew[i]*weight_new;
+                         const Real zp = z_old_p*weight_old
+                                       + z_new_p*weight_new;
+                         const Real uxp = uxpold[i]*weight_old
+                                        + uxpnew[i]*weight_new;
+                         const Real uyp = uypold[i]*weight_old
+                                        + uypnew[i]*weight_new;
+                         const Real uzp = uz_old_p*weight_old
+                                        + uz_new_p  *weight_new;
                        
                          int loc = IndexLocation[i]; 
                          diag_wp[loc] = wpnew[i];
