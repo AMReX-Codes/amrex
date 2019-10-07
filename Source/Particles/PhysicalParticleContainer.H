@@ -136,9 +136,6 @@ public:
                          amrex::Real q_tot, long npart, int do_symmetrize);
 
     void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
-                             std::array<amrex::Real, 3> u, amrex::Real weight);
-
-    void CheckAndAddParticle(amrex::Real x, amrex::Real y, amrex::Real z,
                              std::array<amrex::Real, 3> u,
                              amrex::Real weight,
                              amrex::Gpu::HostVector<amrex::ParticleReal>& particle_x,

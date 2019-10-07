@@ -236,6 +236,9 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
                                                Gpu::HostVector<ParticleReal>& particle_uz,
                                                Gpu::HostVector<ParticleReal>& particle_w)
 {
+    if (WarpX::gamma_boost > 1.) {
+        MapParticletoBoostedFrame(x, y, z, u);
+    }
     particle_x.push_back(x);
     particle_y.push_back(y);
     particle_z.push_back(z);
@@ -243,33 +246,6 @@ PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
     particle_uy.push_back(u[1]);
     particle_uz.push_back(u[2]);
     particle_w.push_back(weight);
-}
-
-void
-PhysicalParticleContainer::CheckAndAddParticle(Real x, Real y, Real z,
-                                               std::array<Real, 3> u,
-                                               Real weight)
-{
-    std::array<ParticleReal,PIdx::nattribs> attribs;
-    attribs.fill(0.0);
-
-    // update attribs with input arguments
-    if (WarpX::gamma_boost > 1.) {
-        MapParticletoBoostedFrame(x, y, z, u);
-    }
-    attribs[PIdx::ux] = u[0];
-    attribs[PIdx::uy] = u[1];
-    attribs[PIdx::uz] = u[2];
-    attribs[PIdx::w ] = weight;
-
-    if ( (NumRuntimeRealComps()>0) || (NumRuntimeIntComps()>0) )
-    {
-        // need to create old values
-        auto& particle_tile = DefineAndReturnParticleTile(0, 0, 0);
-    }
-
-    // add particle
-    AddOneParticle(0, 0, 0, x, y, z, attribs);
 }
 
 void
