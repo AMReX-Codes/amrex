@@ -23,6 +23,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Random.H>
 
 namespace amrex
 {

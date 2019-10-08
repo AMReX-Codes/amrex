@@ -1,31 +1,8 @@
 #ifndef AMREX_RAND_H
 #define AMREX_RAND_H
 
-/*
-#include <cstdlib>
-#include <iostream>
-#include <string>
-#include <map>
-#include <chrono>
-#include <type_traits>
-#include <climits>
-#include <limits>
-#include <cfloat>
-
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-
-#include <AMReX_BLassert.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
-#include <AMReX_Box.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-*/
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_ParallelDescriptor.H>
-
 
 namespace amrex
 {
