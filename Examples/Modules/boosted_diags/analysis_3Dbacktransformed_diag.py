@@ -13,7 +13,7 @@ import numpy as np
 import read_raw_data
 
 # Read data from back-transformed diagnostics of entire domain
-snapshot = './lab_frame_data/snapshots/snapshot00000'
+snapshot = './lab_frame_data/snapshots/snapshot00002'
 header   = './lab_frame_data/snapshots/Header'
 allrd, info = read_raw_data.read_lab_snapshot(snapshot, header)
 F = allrd['Ez']
@@ -21,7 +21,7 @@ F_1D = np.squeeze(F[F.shape[0]//2,F.shape[1]//2,:])
 
 
 # Read data from reduced back-transformed diagnostics (i.e. slice)
-snapshot_slice = './lab_frame_data/slices/slice00000'
+snapshot_slice = './lab_frame_data/slices/slice00002'
 header_slice   = './lab_frame_data/slices/Header'
 allrd, info = read_raw_data.read_lab_snapshot(snapshot_slice, header_slice)
 Fs = allrd['Ez']
