@@ -562,6 +562,18 @@ WarpX::ComputeDt ()
     if (do_electrostatic) {
         dt[0] = const_dt;
     }
+
+    for (int lev=0; lev <= max_level; lev++) {
+        const Real* dx_lev = geom[lev].CellSize();
+        Print()<<"Level "<<lev<<": dt = "<<dt[lev]
+               <<" ; dx = "<<dx_lev[0]
+#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
+               <<" ; dz = "<<dx_lev[1]<<'\n';
+#elif (defined WARPX_DIM_3D)
+               <<" ; dy = "<<dx_lev[1]
+               <<" ; dz = "<<dx_lev[2]<<'\n';
+#endif
+    }
 }
 
 /* \brief computes max_step for wakefield simulation in boosted frame.
