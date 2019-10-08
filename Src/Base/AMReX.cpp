@@ -17,6 +17,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Random.H>
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 
