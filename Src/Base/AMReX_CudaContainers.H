@@ -46,14 +46,6 @@ namespace Cuda {
     using ManagedDeviceVector = PODVector<T>;
 
     template <class T>
-    using ManagedDeviceVector = PODVector<T>;
-
-    using PinnedVector = Vector<T>;
-
-    template <class T>
-    using ManagedDeviceVector = Vector<T>;
-
-    template <class T>
     using PinnedDeviceVector = PODVector<T>;
 
     template <class T>
