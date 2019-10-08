@@ -68,13 +68,9 @@ public:
 private:
 
 #ifdef WARPX_QED
-    // A flag to enable breit_wheeler process for photons
-    bool do_qed_breit_wheeler = false;
-
     // A function to initialize the Tau component according to the BW engine
     void InitTauBreitWheeler();
 #endif
-
 };
 
 #endif // #ifndef WARPX_PhotonParticleContainer_H_

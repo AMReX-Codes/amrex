@@ -1,6 +1,8 @@
 #include <limits>
 #include <sstream>
 
+#include <PhysicalParticleContainer.H>
+
 #include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
@@ -2110,11 +2112,39 @@ PhysicalParticleContainer::buildIonizationMask (const amrex::MFIter& mfi, const 
 }
 
 #ifdef WARPX_QED
+
+bool PhysicalParticleContainer::has_quantum_sync()
+{
+    return do_qed_quantum_sync;
+}
+
+bool PhysicalParticleContainer::has_breit_wheeler()
+{
+    return do_qed_breit_wheeler;
+}
+
+void
+PhysicalParticleContainer::
+set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine> ptr)
+{
+    shr_ptr_bw_engine = ptr;
+}
+
+void
+PhysicalParticleContainer::
+set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine> ptr)
+{
+    shr_ptr_qs_engine = ptr;
+}
+
 // A function to initialize the Tau component according to the QS engine
 void PhysicalParticleContainer::InitTauQuantumSync()
 {
     BL_PROFILE("PhysicalParticleContainer::InitTauQuantumSync");
-//Looping over all the particles
+    //Get functor
+    auto get_opt = shr_ptr_qs_engine->build_optical_depth_functor();
+
+    //Looping over all the particles
     int num_levels = finestLevel() + 1;
     for (int lev=0; lev < num_levels; ++lev)
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti){
@@ -2122,7 +2152,7 @@ void PhysicalParticleContainer::InitTauQuantumSync()
             amrex::ParallelFor(
                 pti.numParticles(),
                 [=] AMREX_GPU_DEVICE (long i) {
-                    taus[i] = warpx_quantum_sync_engine::get_optical_depth();
+                    taus[i] = get_opt();
                 }
                 );
     }

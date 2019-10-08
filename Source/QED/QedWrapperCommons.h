@@ -10,4 +10,7 @@
 //Sets SI units in the library
 #define PXRMP_WITH_SI_UNITS
 
-#endif
+//An empty data type
+struct DummyStruct{};
+
+#endif //WARPX_amrex_qed_wrapper_commons_h_

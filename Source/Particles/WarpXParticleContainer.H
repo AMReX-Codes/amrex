@@ -1,12 +1,17 @@
 #ifndef WARPX_WarpXParticleContainer_H_
 #define WARPX_WarpXParticleContainer_H_
 
+#include <memory>
+
 #include "WarpXDtType.H"
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
 
-#include <memory>
+#ifdef WARPX_QED
+#include <QuantumSyncEngineWrapper.h>
+#include <BreitWheelerEngineWrapper.h>
+#endif
 
 enum struct ConvertDirection{WarpX_to_SI, SI_to_WarpX};
 
@@ -315,6 +320,14 @@ protected:
 
 #ifdef WARPX_QED
     bool do_qed = false;
+
+    virtual bool has_quantum_sync(){return false;};
+    virtual bool has_breit_wheeler(){return false;};
+
+    virtual void
+    set_breit_wheeler_engine_ptr(std::shared_ptr<BreitWheelerEngine>){};
+    virtual void
+    set_quantum_sync_engine_ptr(std::shared_ptr<QuantumSynchrotronEngine>){};
 #endif
 
     amrex::Vector<amrex::FArrayBox> local_rho;

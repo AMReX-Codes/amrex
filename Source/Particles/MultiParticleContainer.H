@@ -23,8 +23,8 @@
 //
 
 #ifdef WARPX_QED
-    #include "breit_wheeler_engine_wrapper.h"
-    #include "quantum_sync_engine_wrapper.h"
+    #include "BreitWheelerEngineWrapper.h"
+    #include "QuantumSyncEngineWrapper.h"
 #endif
 
 class MultiParticleContainer
@@ -196,12 +196,6 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-
-#ifdef WARPX_QED
-    warpx_breit_wheeler_engine bw_engine;
-    warpx_quantum_sync_engine qs_engine;
-#endif
-
 protected:
 
     // Particle container types
@@ -218,6 +212,17 @@ protected:
     std::vector<bool> m_gather_from_main_grid;
 
     std::vector<PCTypes> species_types;
+
+#ifdef WARPX_QED
+    // The QED engines
+    BreitWheelerEngine bw_engine;
+    QuantumSynchrotronEngine qs_engine;
+    //_______________________________
+
+    //Initialize QED engines and provides smart pointers
+    //to species who need QED processes
+    void InitQED ();
+#endif
 
 private:
 
