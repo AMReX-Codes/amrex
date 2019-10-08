@@ -14,6 +14,7 @@ import sys
 #Physical constants
 c = 299792458.
 m_e = 9.1093837015e-31
+q_0 = 1.602176634e-19
 #________________________________________
 
 #Test cases
@@ -139,6 +140,7 @@ def generate():
             f.write("{}.single_particle_vel = {} {} {}\n".
                 format(name, velx, vely, velz))
             f.write("{}.single_particle_weight = 1.0\n".format(name))
+            f.write("{}.do_classical_radiation_reaction = 1 \n".format(cc.name))
             f.write("\n".format(name))
 
 def main():
