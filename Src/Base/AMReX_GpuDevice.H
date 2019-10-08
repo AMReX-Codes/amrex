@@ -144,7 +144,7 @@ private:
     static int verbose;
 
 #ifdef AMREX_USE_GPU
-    static constexpr int max_gpu_streams = 16;
+    static constexpr int max_gpu_streams = 4;
 #else
     // Equivalent to "single dependent stream". Fits best
     //  with math this is used in ("x/max_streams").
