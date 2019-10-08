@@ -246,7 +246,12 @@ namespace amrex
 		{
 			if ( a_count > capacity() ) AllocateBuffer(GetNewCapacity(a_count));
 			m_size = a_count;
-			std::uninitialized_fill_n<T*, size_type>(m_data, a_count, a_value);
+#ifdef AMREX_USE_GPU
+                        auto data = m_data;
+                        AMREX_FOR_1D(a_count, i, data[i] = a_value;);
+#else
+                        std::uninitialized_fill_n<T*, size_type>(m_data, a_count, a_value);
+#endif
 		}    
 
 		void assign (std::initializer_list<T> a_initializer_list) noexcept
