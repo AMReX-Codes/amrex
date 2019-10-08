@@ -1,7 +1,7 @@
 AMREX_HOME ?= ../../../
 
 DEBUG	= FALSE
-#DEBUG	= TRUE
+DEBUG	= TRUE
 
 DIM	= 3
 
@@ -10,9 +10,6 @@ COMP    = hip
 USE_MPI   = FALSE
 USE_OMP   = FALSE
 USE_HIP   = TRUE
-
-BL_NO_FORT = TRUE
-DEFINES += -DBL_NO_FORT
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
