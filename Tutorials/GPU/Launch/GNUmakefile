@@ -4,9 +4,10 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = gcc
+COMP    = hip 
 
-USE_CUDA  = TRUE
+USE_CUDA  = FALSE
+USE_HIP   = TRUE
 USE_ACC   = FALSE
 USE_OMP_OFFLOAD = FALSE
 
