@@ -171,7 +171,7 @@ def generate():
             f.write("{}.single_particle_vel = {} {} {}\n".
                 format(cc.name, cc.init_mom[0], cc.init_mom[1], cc.init_mom[2]))
             f.write("{}.single_particle_weight = {}\n".format(cc.name, small))
-            f.write("{}.do_classical_radiation_reaction = 1 \n".format(cc.name))
+            f.write("{}.do_classical_radiation_reaction = 1\n".format(cc.name))
             f.write("\n")
 
         f.write("warpx.B_external = {} {} {}\n".format(*B))
