@@ -136,6 +136,20 @@ namespace amrex {
         }    
     };
 
+    template <template <typename> class Allocator, class T, class U>
+    bool
+    operator==(Allocator<T> const&, Allocator<U> const&) noexcept
+    {
+        return true;
+    }
+    
+    template <template <typename> class Allocator, class T, class U>
+    bool
+    operator!=(Allocator<T> const& x, Allocator<U> const& y) noexcept
+    {
+        return !(x == y);
+    }
+
     template<class T>
     class ThrustManagedAllocator : public thrust::device_malloc_allocator<T>
     {
@@ -155,6 +169,7 @@ namespace amrex {
                 The_Arena()->free(thrust::raw_pointer_cast(ptr));
             }
     };
+
     
     namespace Cuda
     {
